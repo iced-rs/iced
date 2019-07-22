@@ -1,4 +1,5 @@
 mod button;
+mod checkbox;
 mod text;
 
 use ggez::graphics::{self, spritebatch::SpriteBatch, Color, Image};
@@ -18,6 +19,7 @@ impl Renderer<'_> {
             spritesheet,
         }
     }
+
     pub fn flush(&mut self) {
         graphics::draw(
             self.context,

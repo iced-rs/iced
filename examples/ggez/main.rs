@@ -2,7 +2,7 @@ mod renderer;
 mod widget;
 
 use renderer::Renderer;
-use widget::{button, Button, Column, Text};
+use widget::{button, Button, Checkbox, Column, Text};
 
 use ggez;
 use ggez::event;
@@ -43,24 +43,33 @@ impl event::EventHandler for Game {
         let screen = graphics::screen_coordinates(context);
 
         let cursor = {
-            let hello = Text::new("Hello, iced!")
-                .horizontal_alignment(iced::text::HorizontalAlignment::Center);
+            let hello = Text::new("Hello, iced!");
 
-            let button = Button::new(&mut self.button, "Press me!").width(200);
+            let checkbox =
+                Checkbox::new(true, "Check me!", Message::CheckboxToggled);
+
+            let button = Button::new(&mut self.button, "Press me!")
+                .width(200)
+                .align_self(iced::Align::End);
+
+            let widgets = Column::new()
+                .max_width(600)
+                .spacing(20)
+                .push(hello)
+                .push(checkbox)
+                .push(button);
 
             let content = Column::new()
                 .width(screen.w as u32)
                 .height(screen.h as u32)
                 .align_items(iced::Align::Center)
                 .justify_content(iced::Justify::Center)
-                .spacing(20)
-                .push(hello)
-                .push(button);
+                .push(widgets);
 
             let renderer =
                 &mut Renderer::new(context, self.spritesheet.clone());
 
-            let ui: Interface<(), Renderer> =
+            let ui: Interface<Message, Renderer> =
                 Interface::compute(content.into(), renderer);
 
             let cursor = ui.draw(renderer, iced::Point::new(0.0, 0.0));
@@ -75,6 +84,11 @@ impl event::EventHandler for Game {
         graphics::present(context)?;
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Message {
+    CheckboxToggled(bool),
 }
 
 fn into_cursor_type(cursor: iced::MouseCursor) -> mouse::MouseCursor {
