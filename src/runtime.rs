@@ -94,15 +94,11 @@ impl<'a, Message, Renderer> Interface<'a, Message, Renderer> {
         messages
     }
 
-    pub fn draw(
-        &self,
-        renderer: &mut Renderer,
-        cursor_position: Point,
-    ) -> MouseCursor {
+    pub fn draw(&self, renderer: &mut Renderer) -> MouseCursor {
         let cursor = self.root.widget.draw(
             renderer,
             Layout::new(self.layout),
-            cursor_position,
+            self.cursor_position,
         );
 
         cursor

@@ -39,6 +39,19 @@ impl event::EventHandler for Game {
         Ok(())
     }
 
+    fn mouse_motion_event(
+        &mut self,
+        _context: &mut ggez::Context,
+        x: f32,
+        y: f32,
+        _dx: f32,
+        _dy: f32,
+    ) {
+        self.runtime.on_event(iced::Event::Mouse(
+            iced::input::mouse::Event::CursorMoved { x, y },
+        ));
+    }
+
     fn draw(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
         graphics::clear(context, [0.1, 0.2, 0.3, 1.0].into());
 
@@ -71,9 +84,10 @@ impl event::EventHandler for Game {
             let renderer =
                 &mut Renderer::new(context, self.spritesheet.clone());
 
-            let ui = self.runtime.compute(content.into(), renderer);
+            let mut ui = self.runtime.compute(content.into(), renderer);
 
-            let cursor = ui.draw(renderer, iced::Point::new(0.0, 0.0));
+            let messages = ui.update();
+            let cursor = ui.draw(renderer);
 
             renderer.flush();
 
