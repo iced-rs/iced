@@ -9,8 +9,6 @@ use ggez::event;
 use ggez::graphics;
 use ggez::input::mouse;
 
-use iced::Interface;
-
 pub fn main() -> ggez::GameResult {
     let cb = ggez::ContextBuilder::new("iced", "ggez");
     let (ctx, event_loop) = &mut cb.build()?;
@@ -20,6 +18,8 @@ pub fn main() -> ggez::GameResult {
 
 struct Game {
     spritesheet: graphics::Image,
+
+    runtime: iced::Runtime,
     button: button::State,
 }
 
@@ -27,6 +27,8 @@ impl Game {
     fn new(context: &mut ggez::Context) -> ggez::GameResult<Game> {
         Ok(Game {
             spritesheet: graphics::Image::new(context, "/ui.png").unwrap(),
+
+            runtime: iced::Runtime::new(),
             button: button::State::new(),
         })
     }
@@ -69,8 +71,7 @@ impl event::EventHandler for Game {
             let renderer =
                 &mut Renderer::new(context, self.spritesheet.clone());
 
-            let ui: Interface<Message, Renderer> =
-                Interface::compute(content.into(), renderer);
+            let ui = self.runtime.compute(content.into(), renderer);
 
             let cursor = ui.draw(renderer, iced::Point::new(0.0, 0.0));
 
