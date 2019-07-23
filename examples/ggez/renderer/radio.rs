@@ -1,25 +1,24 @@
 use super::Renderer;
 
 use ggez::graphics::{DrawParam, Rect};
-use iced::{checkbox, MouseCursor};
+use iced::{radio, MouseCursor, Point, Rectangle};
 
 const SPRITE: Rect = Rect {
     x: 98.0,
-    y: 0.0,
+    y: 28.0,
     w: 28.0,
     h: 28.0,
 };
 
-impl checkbox::Renderer for Renderer<'_> {
+impl radio::Renderer for Renderer<'_> {
     fn draw(
         &mut self,
-        cursor_position: iced::Point,
-        bounds: iced::Rectangle<f32>,
-        text_bounds: iced::Rectangle<f32>,
-        is_checked: bool,
+        cursor_position: Point,
+        bounds: Rectangle<f32>,
+        bounds_with_label: Rectangle<f32>,
+        is_selected: bool,
     ) -> MouseCursor {
-        let mouse_over = bounds.contains(cursor_position)
-            || text_bounds.contains(cursor_position);
+        let mouse_over = bounds_with_label.contains(cursor_position);
 
         let width = self.spritesheet.width() as f32;
         let height = self.spritesheet.height() as f32;
@@ -39,7 +38,7 @@ impl checkbox::Renderer for Renderer<'_> {
             ..DrawParam::default()
         });
 
-        if is_checked {
+        if is_selected {
             self.sprites.add(DrawParam {
                 src: Rect {
                     x: (SPRITE.x + SPRITE.w * 2.0) / width,

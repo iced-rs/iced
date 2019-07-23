@@ -1,5 +1,7 @@
 mod button;
 mod checkbox;
+mod radio;
+mod slider;
 mod text;
 
 use ggez::graphics::{self, spritebatch::SpriteBatch, Color, Image};
