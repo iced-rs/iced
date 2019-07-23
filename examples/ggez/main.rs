@@ -59,7 +59,7 @@ impl event::EventHandler for Game {
         self.runtime.on_event(iced::Event::Mouse(
             iced::input::mouse::Event::Input {
                 state: iced::input::ButtonState::Pressed,
-                button: iced::input::mouse::Button::Left,
+                button: iced::input::mouse::Button::Left, // TODO: Map `button`
             },
         ));
     }
@@ -74,7 +74,7 @@ impl event::EventHandler for Game {
         self.runtime.on_event(iced::Event::Mouse(
             iced::input::mouse::Event::Input {
                 state: iced::input::ButtonState::Released,
-                button: iced::input::mouse::Button::Left,
+                button: iced::input::mouse::Button::Left, // TODO: Map `button`
             },
         ));
     }
