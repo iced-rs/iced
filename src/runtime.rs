@@ -1,4 +1,4 @@
-use crate::{Column, Element, Event, Layout, MouseCursor, Point};
+use crate::{input::mouse, Column, Element, Event, Layout, MouseCursor, Point};
 
 use std::hash::Hasher;
 use stretch::result;
@@ -30,6 +30,13 @@ impl Runtime {
     }
 
     pub fn on_event(&mut self, event: Event) {
+        match event {
+            Event::Mouse(mouse::Event::CursorMoved { x, y }) => {
+                self.cursor_position = Point::new(x, y);
+            }
+            _ => {}
+        }
+
         self.events.push(event);
     }
 
