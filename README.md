@@ -5,7 +5,7 @@
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
 
-An GUI runtime for Rust, heavily inspired by Elm.
+A GUI runtime for Rust, heavily inspired by Elm.
 
 [![GUI][gui_gif]][gui_gfycat]
 
