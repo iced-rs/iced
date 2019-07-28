@@ -5,7 +5,12 @@
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
 
-An opinionated GUI runtime for Rust, heavily inspired by Elm.
+An GUI runtime for Rust, heavily inspired by Elm.
+
+[![GUI][gui_gif]][gui_gfycat]
+
+[gui_gif]: https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif
+[gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
 
 ## Features
   * Simple, easy to use API
@@ -92,3 +97,20 @@ impl Counter {
     }
 }
 ```
+
+Browse the [documentation] and the [examples] to learn more!
+
+[documentation]: https://docs.rs/iced
+[examples]: https://github.com/hecrj/iced/tree/master/examples
+
+## Implementation details
+Iced is heavily inspired by [Elm], a delightful language for reliable webapps.
+It brings the reactive programming model of [The Elm Architecture] into Rust
+without introducing weak references or runtime errors.
+
+Iced also uses [Stretch], an implementation of Flexbox written in Rust, to
+perform all the layouting.
+
+[Elm]: https://elm-lang.org/
+[The Elm Architecture]: https://guide.elm-lang.org/architecture/
+[Stretch]: https://github.com/vislyhq/stretch
