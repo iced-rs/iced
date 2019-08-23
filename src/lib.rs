@@ -15,8 +15,8 @@ mod node;
 mod point;
 mod rectangle;
 mod renderer;
-mod runtime;
 mod style;
+mod user_interface;
 mod vector;
 
 #[doc(no_inline)]
@@ -31,7 +31,7 @@ pub use node::Node;
 pub use point::Point;
 pub use rectangle::Rectangle;
 pub use renderer::Renderer;
-pub use runtime::{Interface, Runtime};
 pub use style::{Align, Justify, Style};
+pub use user_interface::{Cache, UserInterface};
 pub use vector::Vector;
 pub use widget::*;

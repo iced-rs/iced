@@ -27,7 +27,8 @@ pub fn main() -> ggez::GameResult {
 struct Game {
     spritesheet: graphics::Image,
 
-    runtime: iced::Runtime,
+    cache: Option<iced::Cache>,
+    events: Vec<iced::Event>,
     tour: Tour,
 }
 
@@ -38,7 +39,8 @@ impl Game {
         Ok(Game {
             spritesheet: graphics::Image::new(context, "/ui.png").unwrap(),
 
-            runtime: iced::Runtime::new(),
+            cache: Some(iced::Cache::default()),
+            events: Vec::new(),
             tour: Tour::new(),
         })
     }
@@ -52,11 +54,11 @@ impl event::EventHandler for Game {
     fn mouse_button_down_event(
         &mut self,
         _context: &mut ggez::Context,
-        button: mouse::MouseButton,
+        _button: mouse::MouseButton,
         _x: f32,
         _y: f32,
     ) {
-        self.runtime.on_event(iced::Event::Mouse(
+        self.events.push(iced::Event::Mouse(
             iced::input::mouse::Event::Input {
                 state: iced::input::ButtonState::Pressed,
                 button: iced::input::mouse::Button::Left, // TODO: Map `button`
@@ -67,11 +69,11 @@ impl event::EventHandler for Game {
     fn mouse_button_up_event(
         &mut self,
         _context: &mut ggez::Context,
-        button: mouse::MouseButton,
+        _button: mouse::MouseButton,
         _x: f32,
         _y: f32,
     ) {
-        self.runtime.on_event(iced::Event::Mouse(
+        self.events.push(iced::Event::Mouse(
             iced::input::mouse::Event::Input {
                 state: iced::input::ButtonState::Released,
                 button: iced::input::mouse::Button::Left, // TODO: Map `button`
@@ -87,7 +89,7 @@ impl event::EventHandler for Game {
         _dx: f32,
         _dy: f32,
     ) {
-        self.runtime.on_event(iced::Event::Mouse(
+        self.events.push(iced::Event::Mouse(
             iced::input::mouse::Event::CursorMoved { x, y },
         ));
     }
@@ -130,10 +132,16 @@ impl event::EventHandler for Game {
             let renderer =
                 &mut Renderer::new(context, self.spritesheet.clone());
 
-            let mut ui = self.runtime.compute(content.into(), renderer);
+            let mut ui = iced::UserInterface::build(
+                content.into(),
+                renderer,
+                self.cache.take().unwrap(),
+            );
 
-            let messages = ui.update();
+            let messages = ui.update(self.events.drain(..));
             let cursor = ui.draw(renderer);
+
+            self.cache = Some(ui.into_cache());
 
             renderer.flush();
 
