@@ -218,7 +218,7 @@ impl State {
 
 /// The type of a [`Button`].
 ///
-/// ![Different buttons drawn by the built-in renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/button_classes.png?raw=true)
+/// ![Different buttons drawn by the built-in renderer in Coffee](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/button_classes.png?raw=true)
 ///
 /// [`Button`]: struct.Button.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

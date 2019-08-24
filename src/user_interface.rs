@@ -37,7 +37,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
 
     pub fn update(
         &mut self,
-        events: std::vec::Drain<'_, Event>,
+        events: impl Iterator<Item = Event>,
     ) -> Vec<Message> {
         let mut messages = Vec::new();
 

@@ -1,16 +1,18 @@
-//! Use the built-in widgets in your user interface.
+//! Use the built-in widgets or create your own!
 //!
 //! # Customization
 //! Every drawable widget has its own module with a `Renderer` trait that must
-//! be implemented by a custom renderer before being able to use the
-//! widget.
+//! be implemented by a renderer before being able to use it as a [`Widget`].
 //!
-//! The built-in [`Renderer`] supports all the widgets in this module!
+//! # Re-exports
+//! For convenience, the contents of this module are available at the root
+//! module. Therefore, you can directly type:
 //!
-//! [`ui` module]: ../index.html
-//! [`Row`]: struct.Row.html
-//! [`Column`]: struct.Column.html
-//! [`Renderer`]: ../struct.Renderer.html
+//! ```
+//! use iced::{button, Button, Widget};
+//! ```
+//!
+//! [`Widget`]: trait.Widget.html
 mod column;
 mod row;
 
@@ -30,24 +32,26 @@ pub use text::Text;
 
 use crate::{Event, Hasher, Layout, MouseCursor, Node, Point};
 
-/// A component that displays information or allows interaction.
+/// A component that displays information and allows interaction.
 ///
-/// If you want to build a custom widget, you will need to implement this trait.
+/// If you want to build your own widgets, you will need to implement this
+/// trait.
+///
 /// Additionally, remember to also provide [`Into<Element>`] so your users can
-/// easily turn your [`Widget`] into a generic [`Element`]
+/// easily turn your [`Widget`] into a generic [`Element`].
 ///
-/// [`Into<Element>`]: struct.Element.html
+/// [`Into<Element>`]: ../struct.Element.html
 /// [`Widget`]: trait.Widget.html
-/// [`Element`]: struct.Element.html
+/// [`Element`]: ../struct.Element.html
 pub trait Widget<Message, Renderer>: std::fmt::Debug {
     /// Returns the [`Node`] of the [`Widget`].
     ///
     /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
     ///
-    /// [`Node`]: struct.Node.html
+    /// [`Node`]: ../struct.Node.html
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: struct.Layout.html
+    /// [`Layout`]: ../struct.Layout.html
     fn node(&self, renderer: &Renderer) -> Node;
 
     /// Draws the [`Widget`] using the associated `Renderer`.
@@ -55,7 +59,7 @@ pub trait Widget<Message, Renderer>: std::fmt::Debug {
     /// It must return the [`MouseCursor`] state for the [`Widget`].
     ///
     /// [`Widget`]: trait.Widget.html
-    /// [`MouseCursor`]: enum.MouseCursor.html
+    /// [`MouseCursor`]: ../enum.MouseCursor.html
     fn draw(
         &self,
         renderer: &mut Renderer,

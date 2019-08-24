@@ -26,10 +26,10 @@ pub fn main() -> ggez::GameResult {
 
 struct Game {
     spritesheet: graphics::Image,
-
-    cache: Option<iced::Cache>,
-    events: Vec<iced::Event>,
     tour: Tour,
+
+    events: Vec<iced::Event>,
+    cache: Option<iced::Cache>,
 }
 
 impl Game {
@@ -38,10 +38,10 @@ impl Game {
 
         Ok(Game {
             spritesheet: graphics::Image::new(context, "/ui.png").unwrap(),
-
-            cache: Some(iced::Cache::default()),
-            events: Vec::new(),
             tour: Tour::new(),
+
+            events: Vec::new(),
+            cache: Some(iced::Cache::default()),
         })
     }
 }

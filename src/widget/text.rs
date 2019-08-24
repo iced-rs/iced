@@ -141,13 +141,14 @@ where
     }
 }
 
-/// The renderer of a [`Text`] fragment.
+/// The renderer of a [`Text`] fragment with a generic `Color`.
 ///
-/// Your [`core::Renderer`] will need to implement this trait before being
-/// able to use a [`Text`] in your user interface.
+/// Your [`Renderer`] will need to implement this trait before being
+/// able to use [`Text`] in your [`UserInterface`].
 ///
 /// [`Text`]: struct.Text.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [`Renderer`]: ../../trait.Renderer.html
+/// [`UserInterface`]: ../../struct.UserInterface.html
 pub trait Renderer<Color> {
     /// Creates a [`Node`] with the given [`Style`] for the provided [`Text`]
     /// contents and size.

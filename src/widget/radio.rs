@@ -49,7 +49,7 @@ use std::hash::Hash;
 ///     .label_color(Color::Black);
 /// ```
 ///
-/// ![Checkbox drawn by the built-in renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
+/// ![Checkbox drawn by the built-in renderer in Coffee](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
 pub struct Radio<Color, Message> {
     is_selected: bool,
     on_click: Message,

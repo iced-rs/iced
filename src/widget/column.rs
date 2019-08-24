@@ -43,7 +43,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 
     /// Sets the vertical spacing _between_ elements in pixels.
     ///
-    /// Custom margins per element do not exist in Coffee. You should use this
+    /// Custom margins per element do not exist in Iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
     /// elements consistent.
     pub fn spacing(mut self, px: u16) -> Self {
