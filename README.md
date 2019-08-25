@@ -6,7 +6,7 @@ Iced
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
 -------------------
 
-A delightful GUI runtime for Rust, heavily inspired by Elm.
+A simple GUI runtime for Rust, heavily inspired by Elm.
 
 __Iced is in a very early stage of development.__ Many [basic features are still
 missing] and there are probably _many_ bugs. [Feel free to contribute!]
@@ -23,7 +23,7 @@ missing] and there are probably _many_ bugs. [Feel free to contribute!]
   * Simple, easy-to-use, _macro-free_ API
   * Responsive, flexbox-based layouting
   * Type-safe, reactive programming model
-  * Built-in widgets: buttons, checkboxes, radios...
+  * Many built-in widgets
   * Custom widget support
   * Renderer-agnostic runtime
 
@@ -40,10 +40,8 @@ you want to learn about a specific release, check out [the release list].
 [the release list]: https://github.com/hecrj/iced/releases
 
 ## Overview
-
-Iced is heavily inspired by [Elm] and [The Elm Architecture].
-
-Basically, Iced expects you to split user interfaces into four different concepts:
+Iced is heavily inspired by [Elm] and [The Elm Architecture] and it expects you
+to split user interfaces into four different concepts:
 
   * __State__ — the state of your application
   * __Messages__ — user interactions or meaningful events that you care
@@ -65,14 +63,14 @@ struct Counter {
     // The counter value
     value: i32,
 
-    // Local state of the two buttons
+    // The local state of the two buttons
     increment_button: button::State,
     decrement_button: button::State,
 }
 ```
 
-Simple enough! What are the user interactions we care about? The button
-presses! These are our __messages__:
+Now that we have state, what are the user interactions we care about? The
+button presses! These are our __messages__:
 
 ```rust
 #[derive(Debug, Clone, Copy)]
@@ -82,7 +80,7 @@ pub enum Message {
 }
 ```
 
-Now, let's put it all together in our __view logic__:
+Next, let's put it all together in our __view logic__:
 
 ```rust
 use iced::{Button, Column, Text};
@@ -131,7 +129,8 @@ impl Counter {
 }
 ```
 
-And that's it! We just wrote a whole user interface. Iced is now able to:
+And that's everything! We just wrote a whole user interface. Iced is now able
+to:
 
   1. Take the result of our __view logic__ and build a user interface.
   1. Process events representing user interactions and produce __messages__ for
@@ -144,16 +143,15 @@ Browse the [documentation] and the [examples] to learn more!
 [examples]: https://github.com/hecrj/iced/tree/master/examples
 
 ## Gallery
-
 [![UI Tour - Coffee][gui_gif]][gui_gfycat]
 
 [gui_gif]: https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif
 [gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
 
 ## Implementation details
-Iced was originally born as part of [Coffee], my own 2D game engine, as
-an attempt at bringing the simplicity of [Elm] and [The Elm Architecture] into
-Rust.
+Iced was originally born as part of [Coffee], a 2D game engine I am working on,
+as an attempt at bringing the simplicity of [Elm] and [The Elm Architecture]
+into Rust.
 
 Currently, Iced builds upon
   * [`stretch`] for flexbox-based layouting.
