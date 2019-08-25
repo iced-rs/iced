@@ -6,7 +6,7 @@ Iced
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
 -------------------
 
-A simple GUI runtime for Rust, heavily inspired by Elm.
+A simple GUI runtime for Rust, heavily inspired by [Elm].
 
 __Iced is in a very early stage of development.__ Many [basic features are still
 missing] and there are probably _many_ bugs. [Feel free to contribute!]
@@ -40,8 +40,8 @@ you want to learn about a specific release, check out [the release list].
 [the release list]: https://github.com/hecrj/iced/releases
 
 ## Overview
-Iced is heavily inspired by [Elm] and [The Elm Architecture] and it expects you
-to split user interfaces into four different concepts:
+Inspired by [The Elm Architecture], Iced expects you to split user interfaces
+into four different concepts:
 
   * __State__ — the state of your application
   * __Messages__ — user interactions or meaningful events that you care
