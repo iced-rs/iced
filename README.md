@@ -1,26 +1,33 @@
-# Iced
-
+Iced
+&nbsp;
 [![Build Status](https://travis-ci.org/hecrj/iced.svg?branch=master)](https://travis-ci.org/hecrj/iced)
 [![Documentation](https://docs.rs/iced/badge.svg)](https://docs.rs/iced)
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+-------------------
 
-A GUI runtime for Rust, heavily inspired by Elm.
+A delightful GUI runtime for Rust, heavily inspired by Elm.
 
-[![GUI][gui_gif]][gui_gfycat]
+__Iced is in a very early stage of development.__ Many [basic features are still
+missing] and there are probably _many_ bugs. [Feel free to contribute!]
+
+[basic features are still missing]: https://github.com/hecrj/iced/issues?q=is%3Aissue+is%3Aopen+label%3Afeature
+[Feel free to contribute!]: #contributing--feedback
+
+[![UI Tour - Coffee][gui_gif]][gui_gfycat]
 
 [gui_gif]: https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif
 [gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
 
 ## Features
-  * Simple, easy to use API
+  * Simple, easy-to-use, _macro-free_ API
   * Responsive, flexbox-based layouting
-  * Type-safe, reactive programming model without weak references
-  * Built-in widgets
+  * Type-safe, reactive programming model
+  * Built-in widgets: buttons, checkboxes, radios...
   * Custom widget support
   * Renderer-agnostic runtime
 
-## Usage
+## Installation
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
@@ -33,48 +40,56 @@ you want to learn about a specific release, check out [the release list].
 [the release list]: https://github.com/hecrj/iced/releases
 
 ## Overview
-Here is an example showcasing an interactive counter that can be incremented and
-decremented using two different buttons:
+
+Iced is heavily inspired by [Elm] and [The Elm Architecture].
+
+Basically, Iced expects you to split user interfaces into four different concepts:
+
+  * __State__ — the state of your application
+  * __Messages__ — user interactions or meaningful events that you care
+  about
+  * __View logic__ — a way to display your __state__ as widgets that
+  may produce __messages__ on user interaction
+  * __Update logic__ — a way to react to __messages__ and update your
+  __state__
+
+Let's say we want to build an interactive counter that can be incremented and
+decremented using two different buttons.
+
+We start by modelling the __state__ of our application:
 
 ```rust
-use iced::{button, Button, Column, Text};
-use crate::MyRenderer;
+use iced::button;
 
 struct Counter {
     // The counter value
     value: i32,
 
-    // Local state of the two counter buttons
-    // This is internal widget state that may change outside our update
-    // logic
+    // Local state of the two buttons
     increment_button: button::State,
     decrement_button: button::State,
 }
+```
 
-// The user interactions we are interested on
+Simple enough! What are the user interactions we care about? The button
+presses! These are our __messages__:
+
+```rust
 #[derive(Debug, Clone, Copy)]
 pub enum Message {
     IncrementPressed,
     DecrementPressed,
 }
+```
+
+Now, let's put it all together in our __view logic__:
+
+```rust
+use iced::{Button, Column, Text};
 
 impl Counter {
-    // The update logic, called when a message is produced
-    fn react(&mut self, message: Message) {
-        // We update the counter value after an interaction here
-        match message {
-            Message::IncrementPressed => {
-                self.value += 1;
-            }
-            Message::DecrementPressed => {
-                self.value -= 1;
-            }
-        }
-    }
-
-    // The layout logic, describing the different components of the counter
-    fn layout(&mut self, window: &Window) -> Element<Message, MyRenderer> {
-        // We use a column so the elements inside are laid out vertically
+    fn view(&mut self) -> Column<Message> {
+        // We use a column: a simple vertical layout
         Column::new()
             .push(
                 // The increment button. We tell it to produce an
@@ -92,25 +107,74 @@ impl Counter {
                 Button::new(&mut self.decrement_button, "-")
                     .on_press(Message::DecrementPressed),
             )
-            .into() // We can return a generic `Element` and avoid breaking
-                    // changes if we redesign the counter in the future.
     }
 }
 ```
+
+Finally, we need to be able to react to the __messages__ and mutate our
+__state__ accordingly in our __update logic__:
+
+```rust
+impl Counter {
+    // ...
+
+    fn update(&mut self, message: Message) {
+        match message {
+            Message::IncrementPressed => {
+                self.value += 1;
+            }
+            Message::DecrementPressed => {
+                self.value -= 1;
+            }
+        }
+    }
+}
+```
+
+And that's it! We just wrote a whole user interface. Iced is now able to:
+
+  1. Take the result of our __view logic__ and build a user interface.
+  1. Process events representing user interactions and produce __messages__ for
+     our __update logic__.
+  1. Draw the resulting user interface using our own custom __renderer__.
 
 Browse the [documentation] and the [examples] to learn more!
 
 [documentation]: https://docs.rs/iced
 [examples]: https://github.com/hecrj/iced/tree/master/examples
 
+## Gallery
+
+[![UI Tour - Coffee][gui_gif]][gui_gfycat]
+
+[gui_gif]: https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif
+[gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
+
 ## Implementation details
-Iced is heavily inspired by [Elm], a delightful language for reliable webapps.
-It brings the reactive programming model of [The Elm Architecture] into Rust
-without introducing weak references or runtime errors.
+Iced was originally born as part of [Coffee], my own 2D game engine, as
+an attempt at bringing the simplicity of [Elm] and [The Elm Architecture] into
+Rust.
 
-Iced also uses [Stretch], an implementation of Flexbox written in Rust, to
-perform all the layouting.
+Currently, Iced builds upon
+  * [`stretch`] for flexbox-based layouting.
+  * [`nalgebra`] for the `Point` type.
 
+[`stretch`]: https://github.com/vislyhq/stretch
+[`nalgebra`]: https://github.com/rustsim/nalgebra
+
+[Coffee]: https://github.com/hecrj/coffee
 [Elm]: https://elm-lang.org/
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-[Stretch]: https://github.com/vislyhq/stretch
+
+## Contributing / Feedback
+If you want to contribute, you are more than welcome to be a part of the
+project! Check out the current [issues] if you want to find something to work
+on. Try to share you thoughts first! Feel free to open a new issue if you want
+to discuss new ideas.
+
+Any kind of feedback is welcome! You can open an issue or, if you want to talk,
+you can find me (and a bunch of awesome folks) over the `#gui-and-ui` channel in
+the [Rust Community Discord]. I go by `@lone_scientist` there.
+
+[issues]: https://github.com/hecrj/iced/issues
+[Rust Community Discord]: https://bit.ly/rust-community

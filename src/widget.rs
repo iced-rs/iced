@@ -88,7 +88,7 @@ pub trait Widget<Message, Renderer>: std::fmt::Debug {
     ///   * an [`Event`] describing user interaction
     ///   * the computed [`Layout`] of the [`Widget`]
     ///   * the current cursor position
-    ///   * a mutable `Message` vector, allowing the [`Widget`] to produce
+    ///   * a mutable `Message` list, allowing the [`Widget`] to produce
     ///   new messages based on user interaction.
     ///
     /// By default, it does nothing.

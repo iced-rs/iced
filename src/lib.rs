@@ -33,5 +33,5 @@ pub use rectangle::Rectangle;
 pub use renderer::Renderer;
 pub use style::{Align, Justify, Style};
 pub use user_interface::{Cache, UserInterface};
-pub use vector::Vector;
+pub(crate) use vector::Vector;
 pub use widget::*;
