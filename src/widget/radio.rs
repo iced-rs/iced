@@ -54,7 +54,7 @@ pub struct Radio<Color, Message> {
     is_selected: bool,
     on_click: Message,
     label: String,
-    label_color: Color,
+    label_color: Option<Color>,
 }
 
 impl<Color, Message> std::fmt::Debug for Radio<Color, Message>
@@ -72,10 +72,7 @@ where
     }
 }
 
-impl<Color, Message> Radio<Color, Message>
-where
-    Color: Default,
-{
+impl<Color, Message> Radio<Color, Message> {
     /// Creates a new [`Radio`] button.
     ///
     /// It expects:
@@ -95,7 +92,7 @@ where
             is_selected: Some(value) == selected,
             on_click: f(value),
             label: String::from(label),
-            label_color: Color::default(),
+            label_color: None,
         }
     }
 
@@ -104,7 +101,7 @@ where
     /// [`Color`]: ../../../../graphics/struct.Color.html
     /// [`Radio`]: struct.Radio.html
     pub fn label_color(mut self, color: Color) -> Self {
-        self.label_color = color;
+        self.label_color = Some(color);
         self
     }
 }

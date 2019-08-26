@@ -27,16 +27,13 @@ use std::hash::Hash;
 pub struct Text<Color> {
     content: String,
     size: u16,
-    color: Color,
+    color: Option<Color>,
     style: Style,
     horizontal_alignment: HorizontalAlignment,
     vertical_alignment: VerticalAlignment,
 }
 
-impl<Color> Text<Color>
-where
-    Color: Default,
-{
+impl<Color> Text<Color> {
     /// Create a new fragment of [`Text`] with the given contents.
     ///
     /// [`Text`]: struct.Text.html
@@ -44,7 +41,7 @@ where
         Text {
             content: String::from(label),
             size: 20,
-            color: Color::default(),
+            color: None,
             style: Style::default().fill_width(),
             horizontal_alignment: HorizontalAlignment::Left,
             vertical_alignment: VerticalAlignment::Top,
@@ -64,7 +61,7 @@ where
     /// [`Text`]: struct.Text.html
     /// [`Color`]: ../../../graphics/struct.Color.html
     pub fn color(mut self, color: Color) -> Self {
-        self.color = color;
+        self.color = Some(color);
         self
     }
 
@@ -180,7 +177,7 @@ pub trait Renderer<Color> {
         bounds: Rectangle<f32>,
         content: &str,
         size: f32,
-        color: Color,
+        color: Option<Color>,
         horizontal_alignment: HorizontalAlignment,
         vertical_alignment: VerticalAlignment,
     );

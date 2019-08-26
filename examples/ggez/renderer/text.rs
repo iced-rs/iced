@@ -72,7 +72,7 @@ impl text::Renderer<Color> for Renderer<'_> {
         bounds: iced::Rectangle<f32>,
         content: &str,
         size: f32,
-        color: Color,
+        color: Option<Color>,
         horizontal_alignment: text::HorizontalAlignment,
         _vertical_alignment: text::VerticalAlignment,
     ) {
@@ -101,7 +101,7 @@ impl text::Renderer<Color> for Renderer<'_> {
                 x: bounds.x,
                 y: bounds.y,
             },
-            Some(color),
+            color,
         );
     }
 }

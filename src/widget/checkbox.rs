@@ -47,7 +47,7 @@ pub struct Checkbox<Color, Message> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: String,
-    label_color: Color,
+    label_color: Option<Color>,
 }
 
 impl<Color, Message> std::fmt::Debug for Checkbox<Color, Message>
@@ -63,10 +63,7 @@ where
     }
 }
 
-impl<Color, Message> Checkbox<Color, Message>
-where
-    Color: Default,
-{
+impl<Color, Message> Checkbox<Color, Message> {
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
@@ -85,7 +82,7 @@ where
             is_checked,
             on_toggle: Box::new(f),
             label: String::from(label),
-            label_color: Color::default(),
+            label_color: None,
         }
     }
 
@@ -94,7 +91,7 @@ where
     /// [`Color`]: ../../../../graphics/struct.Color.html
     /// [`Checkbox`]: struct.Checkbox.html
     pub fn label_color(mut self, color: Color) -> Self {
-        self.label_color = color;
+        self.label_color = Some(color);
         self
     }
 }
