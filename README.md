@@ -20,7 +20,7 @@ missing] and there are probably _many_ bugs. [Feel free to contribute!]
 [gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
 
 ## Features
-  * Simple, easy-to-use, _macro-free_ API
+  * Simple, easy-to-use API
   * Responsive, flexbox-based layouting
   * Type-safe, reactive programming model
   * Many built-in widgets
@@ -51,8 +51,8 @@ into four different concepts:
   * __Update logic__ — a way to react to __messages__ and update your
   __state__
 
-Let's say we want to build an interactive counter that can be incremented and
-decremented using two different buttons.
+We can build something to see how this works! Let's say we want a simple counter
+that can be incremented and decremented using two buttons.
 
 We start by modelling the __state__ of our application:
 
@@ -84,6 +84,7 @@ Next, let's put it all together in our __view logic__:
 
 ```rust
 use iced::{Button, Column, Text};
+use iced_wgpu::Renderer; // Iced is renderer-agnostic! We need to bring our own!
 
 impl Counter {
     fn view(&mut self) -> Column<Message> {
@@ -133,9 +134,9 @@ And that's everything! We just wrote a whole user interface. Iced is now able
 to:
 
   1. Take the result of our __view logic__ and build a user interface.
-  1. Process events representing user interactions and produce __messages__ for
-     our __update logic__.
-  1. Draw the resulting user interface using our own custom __renderer__.
+  1. Process events from our system and produce __messages__ for our
+     __update logic__.
+  1. Draw the resulting user interface using our chosen __renderer__.
 
 Browse the [documentation] and the [examples] to learn more!
 
