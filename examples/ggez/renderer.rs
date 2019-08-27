@@ -43,5 +43,5 @@ impl Renderer<'_> {
 impl iced::Renderer for Renderer<'_> {
     type Color = Color;
 
-    fn explain(&mut self, layout: &iced::Layout<'_>, color: Color) {}
+    fn explain(&mut self, _layout: &iced::Layout<'_>, _color: Color) {}
 }
