@@ -1,10 +1,8 @@
-Iced
-&nbsp;
+# Iced
 [![Build Status](https://travis-ci.org/hecrj/iced.svg?branch=master)](https://travis-ci.org/hecrj/iced)
 [![Documentation](https://docs.rs/iced/badge.svg)](https://docs.rs/iced)
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
--------------------
 
 A simple GUI runtime for Rust, heavily inspired by [Elm].
 
@@ -23,7 +21,7 @@ missing] and there are probably _many_ bugs. [Feel free to contribute!]
   * Simple, easy-to-use API
   * Responsive, flexbox-based layouting
   * Type-safe, reactive programming model
-  * Many built-in widgets
+  * Built-in widgets
   * Custom widget support
   * Renderer-agnostic runtime
 
@@ -87,7 +85,7 @@ use iced::{Button, Column, Text};
 use iced_wgpu::Renderer; // Iced is renderer-agnostic! We need to bring our own!
 
 impl Counter {
-    fn view(&mut self) -> Column<Message> {
+    fn view(&mut self) -> Column<Message, Renderer> {
         // We use a column: a simple vertical layout
         Column::new()
             .push(
@@ -150,9 +148,8 @@ Browse the [documentation] and the [examples] to learn more!
 [gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
 
 ## Implementation details
-Iced was originally born as part of [Coffee], a 2D game engine I am working on,
-as an attempt at bringing the simplicity of [Elm] and [The Elm Architecture]
-into Rust.
+Iced was originally born as an attempt at bringing the simplicity of [Elm] and
+[The Elm Architecture] into [Coffee], a 2D game engine I am working on.
 
 Currently, Iced builds upon
   * [`stretch`] for flexbox-based layouting.
