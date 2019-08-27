@@ -8,20 +8,33 @@ use widget::Column;
 
 use ggez;
 use ggez::event;
+use ggez::filesystem;
 use ggez::graphics;
 use ggez::input::mouse;
 
 pub fn main() -> ggez::GameResult {
-    let cb = ggez::ContextBuilder::new("iced", "ggez").window_mode(
-        ggez::conf::WindowMode {
-            width: 1280.0,
-            height: 1024.0,
-            ..ggez::conf::WindowMode::default()
-        },
+    let (context, event_loop) = {
+        &mut ggez::ContextBuilder::new("iced", "ggez")
+            .window_mode(ggez::conf::WindowMode {
+                width: 1280.0,
+                height: 1024.0,
+                ..ggez::conf::WindowMode::default()
+            })
+            .build()?
+    };
+
+    filesystem::mount(
+        context,
+        std::path::Path::new(&format!(
+            "{}/examples/resources",
+            env!("CARGO_MANIFEST_DIR")
+        )),
+        true,
     );
-    let (ctx, event_loop) = &mut cb.build()?;
-    let state = &mut Game::new(ctx)?;
-    event::run(ctx, event_loop, state)
+
+    let state = &mut Game::new(context)?;
+
+    event::run(context, event_loop, state)
 }
 
 struct Game {
@@ -114,8 +127,6 @@ impl event::EventHandler for Game {
 
     fn draw(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
         graphics::clear(context, [0.3, 0.3, 0.6, 1.0].into());
-
-        self.tour.draw(context).expect("Draw tour");
 
         let screen = graphics::screen_coordinates(context);
 

@@ -20,10 +20,6 @@ impl Tour {
         }
     }
 
-    pub fn draw(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
-        Ok(())
-    }
-
     pub fn react(&mut self, event: Message) {
         match event {
             Message::BackPressed => {
