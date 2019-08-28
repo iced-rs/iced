@@ -16,11 +16,10 @@ use std::hash::Hash;
 
 /// A generic widget that produces a message when clicked.
 ///
-/// It implements [`Widget`] when the associated [`core::Renderer`] implements
-/// the [`button::Renderer`] trait.
+/// It implements [`Widget`] when the associated `Renderer` implements the
+/// [`button::Renderer`] trait.
 ///
-/// [`Widget`]: ../../core/trait.Widget.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [`Widget`]: ../trait.Widget.html
 /// [`button::Renderer`]: trait.Renderer.html
 ///
 /// # Example

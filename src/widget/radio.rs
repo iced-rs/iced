@@ -10,11 +10,10 @@ use std::hash::Hash;
 
 /// A circular button representing a choice.
 ///
-/// It implements [`Widget`] when the [`core::Renderer`] implements the
+/// It implements [`Widget`] when the associated `Renderer` implements the
 /// [`radio::Renderer`] trait.
 ///
-/// [`Widget`]: ../../core/trait.Widget.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [`Widget`]: ../trait.Widget.html
 /// [`radio::Renderer`]: trait.Renderer.html
 ///
 /// # Example

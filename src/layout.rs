@@ -9,9 +9,9 @@ use crate::{Point, Rectangle, Vector};
 /// [`Widget::node`].
 ///
 /// [`Node`]: struct.Node.html
-/// [`Widget::on_event`]: trait.Widget.html#method.on_event
-/// [`Widget::draw`]: trait.Widget.html#tymethod.draw
-/// [`Widget::node`]: trait.Widget.html#tymethod.node
+/// [`Widget::on_event`]: widget/trait.Widget.html#method.on_event
+/// [`Widget::draw`]: widget/trait.Widget.html#tymethod.draw
+/// [`Widget::node`]: widget/trait.Widget.html#tymethod.node
 #[derive(Debug)]
 pub struct Layout<'a> {
     layout: &'a result::Layout,
@@ -39,7 +39,7 @@ impl<'a> Layout<'a> {
     /// [`Node`].
     ///
     /// [`Layout`]: struct.Layout.html
-    /// [`Rectangle`]: ../../graphics/struct.Rectangle.html
+    /// [`Rectangle`]: struct.Rectangle.html
     /// [`Node`]: struct.Node.html
     pub fn bounds(&self) -> Rectangle<f32> {
         Rectangle {

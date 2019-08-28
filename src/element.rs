@@ -1,6 +1,8 @@
 use stretch::{geometry, result};
 
-use crate::{Event, Hasher, Layout, MouseCursor, Node, Point, Widget};
+use crate::{
+    renderer, Event, Hasher, Layout, MouseCursor, Node, Point, Widget,
+};
 
 /// A generic [`Widget`].
 ///
@@ -29,7 +31,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// Create a new [`Element`] containing the given [`Widget`].
     ///
     /// [`Element`]: struct.Element.html
-    /// [`Widget`]: trait.Widget.html
+    /// [`Widget`]: widget/trait.Widget.html
     pub fn new(
         widget: impl Widget<Message, Renderer> + 'a,
     ) -> Element<'a, Message, Renderer> {
@@ -72,7 +74,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     ) -> Element<'a, Message, Renderer>
     where
         Message: 'static,
-        Renderer: 'a + crate::Renderer,
+        Renderer: 'a + renderer::Debugger,
     {
         Element {
             widget: Box::new(Explain::new(self, color)),
@@ -160,14 +162,14 @@ where
     }
 }
 
-struct Explain<'a, Message, Renderer: crate::Renderer> {
+struct Explain<'a, Message, Renderer: renderer::Debugger> {
     element: Element<'a, Message, Renderer>,
     color: Renderer::Color,
 }
 
 impl<'a, Message, Renderer> std::fmt::Debug for Explain<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: renderer::Debugger,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Explain")
@@ -178,7 +180,7 @@ where
 
 impl<'a, Message, Renderer> Explain<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: renderer::Debugger,
 {
     fn new(
         element: Element<'a, Message, Renderer>,
@@ -191,7 +193,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Explain<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: renderer::Debugger,
 {
     fn node(&self, renderer: &Renderer) -> Node {
         self.element.widget.node(renderer)

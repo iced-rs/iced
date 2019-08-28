@@ -10,11 +10,10 @@ use crate::{
 
 /// A box that can be checked.
 ///
-/// It implements [`Widget`] when the [`core::Renderer`] implements the
+/// It implements [`Widget`] when the associated `Renderer` implements the
 /// [`checkbox::Renderer`] trait.
 ///
-/// [`Widget`]: ../../core/trait.Widget.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [`Widget`]: ../trait.Widget.html
 /// [`checkbox::Renderer`]: trait.Renderer.html
 ///
 /// # Example

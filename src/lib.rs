@@ -197,6 +197,7 @@
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
 pub mod input;
+pub mod renderer;
 pub mod widget;
 
 mod element;
@@ -207,7 +208,6 @@ mod mouse_cursor;
 mod node;
 mod point;
 mod rectangle;
-mod renderer;
 mod style;
 mod user_interface;
 mod vector;
@@ -223,7 +223,6 @@ pub use mouse_cursor::MouseCursor;
 pub use node::Node;
 pub use point::Point;
 pub use rectangle::Rectangle;
-pub use renderer::Renderer;
 pub use style::{Align, Justify, Style};
 pub use user_interface::{Cache, UserInterface};
 pub(crate) use vector::Vector;

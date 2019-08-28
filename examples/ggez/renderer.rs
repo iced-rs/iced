@@ -4,7 +4,7 @@ mod radio;
 mod slider;
 mod text;
 
-use ggez::graphics::{self, spritebatch::SpriteBatch, Color, Image};
+use ggez::graphics::{self, spritebatch::SpriteBatch, Image};
 use ggez::Context;
 
 pub struct Renderer<'a> {
@@ -38,10 +38,4 @@ impl Renderer<'_> {
         )
         .expect("Draw text");
     }
-}
-
-impl iced::Renderer for Renderer<'_> {
-    type Color = Color;
-
-    fn explain(&mut self, _layout: &iced::Layout<'_>, _color: Color) {}
 }

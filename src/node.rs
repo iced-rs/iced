@@ -8,9 +8,9 @@ use crate::{Number, Size, Style};
 /// runtime obtains a [`Node`] by calling [`Widget::node`].
 ///
 /// [`Style`]: struct.Style.html
-/// [`Widget`]: trait.Widget.html
+/// [`Widget`]: widget/trait.Widget.html
 /// [`Node`]: struct.Node.html
-/// [`Widget::node`]: trait.Widget.html#tymethod.node
+/// [`Widget::node`]: widget/trait.Widget.html#tymethod.node
 /// [`Layout`]: struct.Layout.html
 #[derive(Debug)]
 pub struct Node(pub(crate) node::Node);
@@ -47,7 +47,7 @@ impl Node {
     ///
     /// [`Node`]: struct.Node.html
     /// [`Style`]: struct.Style.html
-    /// [`Widget`]: trait.Widget.html
+    /// [`Widget`]: widget/trait.Widget.html
     pub fn with_measure<F>(style: Style, measure: F) -> Node
     where
         F: 'static + Fn(Size<Number>) -> Size<f32>,

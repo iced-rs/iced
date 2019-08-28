@@ -18,12 +18,11 @@ use crate::{
 ///
 /// A [`Slider`] will try to fill the horizontal space of its container.
 ///
-/// It implements [`Widget`] when the associated [`core::Renderer`] implements
-/// the [`slider::Renderer`] trait.
+/// It implements [`Widget`] when the associated `Renderer` implements the
+/// [`slider::Renderer`] trait.
 ///
 /// [`Slider`]: struct.Slider.html
-/// [`Widget`]: ../../core/trait.Widget.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [`Widget`]: ../trait.Widget.html
 /// [`slider::Renderer`]: trait.Renderer.html
 ///
 /// # Example

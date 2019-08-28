@@ -7,11 +7,10 @@ use std::hash::Hash;
 
 /// A fragment of text.
 ///
-/// It implements [`Widget`] when the associated [`core::Renderer`] implements
-/// the [`text::Renderer`] trait.
+/// It implements [`Widget`] when the associated `Renderer` implements the
+/// [`text::Renderer`] trait.
 ///
-/// [`Widget`]: ../../core/trait.Widget.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [`Widget`]: ../trait.Widget.html
 /// [`text::Renderer`]: trait.Renderer.html
 ///
 /// # Example
