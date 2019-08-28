@@ -67,8 +67,8 @@ struct Counter {
 }
 ```
 
-Now that we have state... When will it change? When either button is pressed!
-These user interactions are our __messages__:
+Next, we need to define the possible user interactions of our counter:
+the button presses. These interactions are our __messages__:
 
 ```rust
 #[derive(Debug, Clone, Copy)]
@@ -78,7 +78,8 @@ pub enum Message {
 }
 ```
 
-Next, let's put it all together in our __view logic__:
+Now, let's show the actual counter by putting it all together in our
+__view logic__:
 
 ```rust
 use iced::{Button, Column, Text};
@@ -108,7 +109,7 @@ impl Counter {
 }
 ```
 
-Finally, we need to be able to react to the __messages__ and change our
+Finally, we need to be able to react to any produced __messages__ and change our
 __state__ accordingly in our __update logic__:
 
 ```rust
