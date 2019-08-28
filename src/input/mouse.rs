@@ -1,3 +1,4 @@
+//! Build mouse events.
 mod button;
 mod event;
 

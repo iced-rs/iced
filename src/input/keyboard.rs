@@ -1,3 +1,4 @@
+//! Build keyboard events.
 mod event;
 mod key_code;
 

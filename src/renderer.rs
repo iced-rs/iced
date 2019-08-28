@@ -1,4 +1,4 @@
-//! Write your own renderer!
+//! Write your own renderer.
 //!
 //! There is not a common entrypoint or trait for a __renderer__ in Iced.
 //! Instead, every [`Widget`] constrains its generic `Renderer` type as

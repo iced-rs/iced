@@ -1,4 +1,4 @@
-//! Use the built-in widgets or create your own!
+//! Use the built-in widgets or create your own.
 //!
 //! # Built-in widgets
 //! Every built-in drawable widget has its own module with a `Renderer` trait
