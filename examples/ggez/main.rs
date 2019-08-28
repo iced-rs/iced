@@ -144,9 +144,9 @@ impl event::EventHandler for Game {
                 &mut Renderer::new(context, self.spritesheet.clone());
 
             let mut ui = iced::UserInterface::build(
-                content.into(),
-                renderer,
+                content,
                 self.cache.take().unwrap(),
+                renderer,
             );
 
             let messages = ui.update(self.events.drain(..));

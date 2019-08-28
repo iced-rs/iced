@@ -5,7 +5,7 @@ use crate::{Point, Rectangle, Vector};
 /// The computed bounds of a [`Node`] and its children.
 ///
 /// This type is provided by the GUI runtime to [`Widget::on_event`] and
-/// [`Widget::draw`], describing the layout of the produced [`Node`] by
+/// [`Widget::draw`], describing the layout of the [`Node`] produced by
 /// [`Widget::node`].
 ///
 /// [`Node`]: struct.Node.html

@@ -44,10 +44,6 @@ use crate::{Event, Hasher, Layout, MouseCursor, Node, Point};
 /// If you want to build your own widgets, you will need to implement this
 /// trait.
 ///
-/// Additionally, remember to also provide [`Into<Element>`] so your users can
-/// easily turn your [`Widget`] into a generic [`Element`].
-///
-/// [`Into<Element>`]: ../struct.Element.html
 /// [`Widget`]: trait.Widget.html
 /// [`Element`]: ../struct.Element.html
 pub trait Widget<Message, Renderer>: std::fmt::Debug {

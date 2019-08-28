@@ -4,10 +4,14 @@ use crate::{Event, Hasher, Layout, MouseCursor, Node, Point, Widget};
 
 /// A generic [`Widget`].
 ///
-/// If you have a widget, you should be able to use `widget.into()` to turn it
-/// into an [`Element`].
+/// It is useful to build composable user interfaces that do not leak
+/// implementation details in their __view logic__.
 ///
-/// [`Widget`]: trait.Widget.html
+/// If you have a [built-in widget], you should be able to use `Into<Element>`
+/// to turn it into an [`Element`].
+///
+/// [built-in widget]: widget/index.html#built-in-widgets
+/// [`Widget`]: widget/trait.Widget.html
 /// [`Element`]: struct.Element.html
 pub struct Element<'a, Message, Renderer> {
     pub(crate) widget: Box<dyn Widget<Message, Renderer> + 'a>,
