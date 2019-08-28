@@ -5,7 +5,7 @@ use crate::{
     Style, Widget,
 };
 
-/// A container that places its contents horizontally.
+/// A container that distributes its contents horizontally.
 ///
 /// A [`Row`] will try to fill the horizontal space of its container.
 ///

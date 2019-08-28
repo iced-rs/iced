@@ -1,12 +1,12 @@
-//! Iced is a simple GUI runtime for Rust, heavily inspired by [Elm].
+//! Iced is a renderer-agnostic GUI library for Rust focused on simplicity and
+//! type-safety. Inspired by [Elm].
 //!
 //! # Features
-//!   * Simple, easy-to-use API
+//!   * Simple, easy-to-use, renderer-agnostic API
 //!   * Responsive, flexbox-based layouting
 //!   * Type-safe, reactive programming model
-//!   * Many built-in widgets
+//!   * Built-in widgets
 //!   * Custom widget support
-//!   * Renderer-agnostic runtime
 //!
 //! Check out the [repository] and the [examples] for more details!
 //!
@@ -43,8 +43,8 @@
 //! }
 //! ```
 //!
-//! Now that we have state, what are the user interactions we care about? The
-//! button presses! These are our __messages__:
+//! Now that we have state... When will it change? When either button is pressed!
+//! These user interactions are our __messages__:
 //!
 //! ```
 //! #[derive(Debug, Clone, Copy)]
@@ -139,7 +139,7 @@
 //! }
 //! ```
 //!
-//! Finally, we need to be able to react to the __messages__ and mutate our
+//! Finally, we need to be able to react to the __messages__ and change our
 //! __state__ accordingly in our __update logic__:
 //!
 //! ```

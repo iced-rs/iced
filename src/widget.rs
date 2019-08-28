@@ -1,8 +1,14 @@
 //! Use the built-in widgets or create your own!
 //!
-//! # Customization
-//! Every drawable widget has its own module with a `Renderer` trait that must
-//! be implemented by a renderer before being able to use it as a [`Widget`].
+//! # Built-in widgets
+//! Every built-in drawable widget has its own module with a `Renderer` trait
+//! that must be implemented by an [`iced::Renderer`] before being able to use
+//! it as a [`Widget`].
+//!
+//! # Custom widgets
+//! If you want to implement a custom widget, you simply need to implement the
+//! [`Widget`] trait. You can use the API of the built-in widgets as a guide or
+//! source of inspiration.
 //!
 //! # Re-exports
 //! For convenience, the contents of this module are available at the root
@@ -13,6 +19,7 @@
 //! ```
 //!
 //! [`Widget`]: trait.Widget.html
+//! [`iced::Renderer`]: ../trait.Renderer.html
 mod column;
 mod row;
 
@@ -78,8 +85,8 @@ pub trait Widget<Message, Renderer>: std::fmt::Debug {
     /// its value cannot affect the overall [`Layout`] of the user interface.
     ///
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: struct.Layout.html
-    /// [`Text`]: ../widget/text/struct.Text.html
+    /// [`Layout`]: ../struct.Layout.html
+    /// [`Text`]: text/struct.Text.html
     fn hash(&self, state: &mut Hasher);
 
     /// Processes a runtime [`Event`].
@@ -93,9 +100,9 @@ pub trait Widget<Message, Renderer>: std::fmt::Debug {
     ///
     /// By default, it does nothing.
     ///
-    /// [`Event`]: enum.Event.html
+    /// [`Event`]: ../enum.Event.html
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: struct.Layout.html
+    /// [`Layout`]: ../struct.Layout.html
     fn on_event(
         &mut self,
         _event: Event,

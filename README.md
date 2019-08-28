@@ -4,7 +4,8 @@
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
 
-A simple GUI runtime for Rust, heavily inspired by [Elm].
+A renderer-agnostic GUI library for Rust focused on simplicity and type-safety.
+Inspired by [Elm].
 
 __Iced is in a very early stage of development.__ Many [basic features are still
 missing] and there are probably _many_ bugs. [Feel free to contribute!]
@@ -18,12 +19,11 @@ missing] and there are probably _many_ bugs. [Feel free to contribute!]
 [gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
 
 ## Features
-  * Simple, easy-to-use API
+  * Simple, easy-to-use, renderer-agnostic API
   * Responsive, flexbox-based layouting
   * Type-safe, reactive programming model
   * Built-in widgets
   * Custom widget support
-  * Renderer-agnostic runtime
 
 ## Installation
 Add `iced` as a dependency in your `Cargo.toml`:
@@ -67,8 +67,8 @@ struct Counter {
 }
 ```
 
-Now that we have state, what are the user interactions we care about? The
-button presses! These are our __messages__:
+Now that we have state... When will it change? When either button is pressed!
+These user interactions are our __messages__:
 
 ```rust
 #[derive(Debug, Clone, Copy)]
@@ -108,7 +108,7 @@ impl Counter {
 }
 ```
 
-Finally, we need to be able to react to the __messages__ and mutate our
+Finally, we need to be able to react to the __messages__ and change our
 __state__ accordingly in our __update logic__:
 
 ```rust
@@ -131,7 +131,7 @@ impl Counter {
 And that's everything! We just wrote a whole user interface. Iced is now able
 to:
 
-  1. Take the result of our __view logic__ and build a user interface.
+  1. Take the result of our __view logic__ and layout its widgets.
   1. Process events from our system and produce __messages__ for our
      __update logic__.
   1. Draw the resulting user interface using our chosen __renderer__.

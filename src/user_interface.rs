@@ -3,6 +3,7 @@ use crate::{input::mouse, Column, Element, Event, Layout, MouseCursor, Point};
 use std::hash::Hasher;
 use stretch::result;
 
+/// A set of interactive graphical elements with a specific layout.
 pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,
     root: Element<'a, Message, Renderer>,
