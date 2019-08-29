@@ -1,4 +1,4 @@
-//! Map your system events into input events that Iced can understand.
+//! Map your system events into input events that the runtime can understand.
 pub mod keyboard;
 pub mod mouse;
 

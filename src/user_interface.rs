@@ -5,10 +5,10 @@ use stretch::result;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
-/// Use this to build, update, and draw your GUI!
+/// It can be updated and drawn.
 ///
 /// Iced tries to avoid dictating how to write your event loop. You are in
-/// charge of integrating Iced in your system in any way you want.
+/// charge of using this type in your system in any way you want.
 ///
 /// [`Layout`]: struct.Layout.html
 pub struct UserInterface<'a, Message, Renderer> {
@@ -280,6 +280,9 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     }
 }
 
+/// Reusable data of a specific [`UserInterface`].
+///
+/// [`UserInterface`]: struct.UserInterface.html
 #[derive(Debug, Clone)]
 pub struct Cache {
     hash: u64,
@@ -288,6 +291,13 @@ pub struct Cache {
 }
 
 impl Cache {
+    /// Creates an empty [`Cache`].
+    ///
+    /// You should use this to initialize a [`Cache`] before building your first
+    /// [`UserInterface`].
+    ///
+    /// [`Cache`]: struct.Cache.html
+    /// [`UserInterface`]: struct.UserInterface.html
     pub fn new() -> Cache {
         let root: Element<'_, (), ()> = Column::new().into();
 
