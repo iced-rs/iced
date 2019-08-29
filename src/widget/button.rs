@@ -36,6 +36,8 @@ use std::hash::Hash;
 /// Button::new(state, "Click me!")
 ///     .on_press(Message::ButtonClicked);
 /// ```
+///
+/// ![Button drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/button.png?raw=true)
 pub struct Button<'a, Message> {
     state: &'a mut State,
     label: String,

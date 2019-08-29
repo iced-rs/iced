@@ -18,9 +18,14 @@ use std::hash::Hash;
 /// ```
 /// use iced::Text;
 ///
-/// Text::<(f32, f32, f32)>::new("I <3 iced!")
+/// #[derive(Debug, Clone, Copy)]
+/// pub enum Color {
+///     Black,
+/// }
+///
+/// Text::new("I <3 iced!")
 ///     .size(40)
-///     .color((0.0, 0.0, 1.0));
+///     .color(Color::Black);
 /// ```
 #[derive(Debug, Clone)]
 pub struct Text<Color> {

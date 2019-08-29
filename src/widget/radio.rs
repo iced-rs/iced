@@ -25,12 +25,6 @@ use std::hash::Hash;
 ///     Black,
 /// }
 ///
-/// impl Default for Color {
-///     fn default() -> Color {
-///         Color::Black
-///     }
-/// }
-///
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {
 ///     A,
@@ -44,11 +38,14 @@ use std::hash::Hash;
 ///
 /// let selected_choice = Some(Choice::A);
 ///
-/// Radio::<Color, Message>::new(Choice::A, "This is A", selected_choice, Message::RadioSelected)
+/// Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected)
+///     .label_color(Color::Black);
+///
+/// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected)
 ///     .label_color(Color::Black);
 /// ```
 ///
-/// ![Checkbox drawn by the built-in renderer in Coffee](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
+/// ![Radio buttons drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
 pub struct Radio<Color, Message> {
     is_selected: bool,
     on_click: Message,
@@ -108,7 +105,7 @@ impl<Color, Message> Radio<Color, Message> {
 impl<Color, Message, Renderer> Widget<Message, Renderer>
     for Radio<Color, Message>
 where
-    Color: 'static + Copy + Default + std::fmt::Debug,
+    Color: 'static + Copy + std::fmt::Debug,
     Renderer: self::Renderer + text::Renderer<Color>,
     Message: Copy + std::fmt::Debug,
 {
@@ -205,7 +202,7 @@ pub trait Renderer {
 impl<'a, Color, Message, Renderer> From<Radio<Color, Message>>
     for Element<'a, Message, Renderer>
 where
-    Color: 'static + Copy + Default + std::fmt::Debug,
+    Color: 'static + Copy + std::fmt::Debug,
     Renderer: self::Renderer + text::Renderer<Color>,
     Message: 'static + Copy + std::fmt::Debug,
 {

@@ -24,24 +24,19 @@ use crate::{
 /// #[derive(Debug, Clone, Copy)]
 /// pub enum Color {
 ///     Black,
-///     White,
-/// }
-///
-/// impl Default for Color {
-///     fn default() -> Color {
-///         Color::Black
-///     }
 /// }
 ///
 /// pub enum Message {
 ///     CheckboxToggled(bool),
 /// }
 ///
-/// fn some_checkbox(is_checked: bool) -> Checkbox<Color, Message> {
-///     Checkbox::new(is_checked, "Toggle me!", Message::CheckboxToggled)
-///         .label_color(Color::White)
-/// }
+/// let is_checked = true;
+///
+/// Checkbox::new(is_checked, "Toggle me!", Message::CheckboxToggled)
+///     .label_color(Color::Black);
 /// ```
+///
+/// ![Checkbox drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/checkbox.png?raw=true)
 pub struct Checkbox<Color, Message> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
@@ -98,7 +93,7 @@ impl<Color, Message> Checkbox<Color, Message> {
 impl<Color, Message, Renderer> Widget<Message, Renderer>
     for Checkbox<Color, Message>
 where
-    Color: 'static + Copy + Default + std::fmt::Debug,
+    Color: 'static + Copy + std::fmt::Debug,
     Renderer: self::Renderer + text::Renderer<Color>,
 {
     fn node(&self, renderer: &Renderer) -> Node {
