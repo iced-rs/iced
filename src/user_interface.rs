@@ -86,7 +86,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
         let root = root.into();
 
         let hasher = &mut crate::Hasher::default();
-        root.hash(hasher);
+        root.hash_layout(hasher);
 
         let hash = hasher.finish();
 
@@ -302,7 +302,7 @@ impl Cache {
         let root: Element<'_, (), ()> = Column::new().into();
 
         let hasher = &mut crate::Hasher::default();
-        root.hash(hasher);
+        root.hash_layout(hasher);
 
         Cache {
             hash: hasher.finish(),

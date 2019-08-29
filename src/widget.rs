@@ -83,7 +83,7 @@ pub trait Widget<Message, Renderer>: std::fmt::Debug {
     /// [`Widget`]: trait.Widget.html
     /// [`Layout`]: ../struct.Layout.html
     /// [`Text`]: text/struct.Text.html
-    fn hash(&self, state: &mut Hasher);
+    fn hash_layout(&self, state: &mut Hasher);
 
     /// Processes a runtime [`Event`].
     ///

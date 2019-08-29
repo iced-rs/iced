@@ -158,7 +158,7 @@ where
         )
     }
 
-    fn hash(&self, state: &mut Hasher) {
+    fn hash_layout(&self, state: &mut Hasher) {
         self.label.hash(state);
     }
 }

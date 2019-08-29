@@ -87,8 +87,8 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
         node.0.compute_layout(geometry::Size::undefined()).unwrap()
     }
 
-    pub(crate) fn hash(&self, state: &mut Hasher) {
-        self.widget.hash(state);
+    pub(crate) fn hash_layout(&self, state: &mut Hasher) {
+        self.widget.hash_layout(state);
     }
 }
 
@@ -157,8 +157,8 @@ where
         self.widget.draw(renderer, layout, cursor_position)
     }
 
-    fn hash(&self, state: &mut Hasher) {
-        self.widget.hash(state);
+    fn hash_layout(&self, state: &mut Hasher) {
+        self.widget.hash_layout(state);
     }
 }
 
@@ -222,7 +222,7 @@ where
         self.element.widget.draw(renderer, layout, cursor_position)
     }
 
-    fn hash(&self, state: &mut Hasher) {
-        self.element.widget.hash(state);
+    fn hash_layout(&self, state: &mut Hasher) {
+        self.element.widget.hash_layout(state);
     }
 }

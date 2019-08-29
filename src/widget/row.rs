@@ -196,12 +196,12 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
         cursor
     }
 
-    fn hash(&self, state: &mut Hasher) {
+    fn hash_layout(&self, state: &mut Hasher) {
         self.style.hash(state);
         self.spacing.hash(state);
 
         for child in &self.children {
-            child.widget.hash(state);
+            child.widget.hash_layout(state);
         }
     }
 }
