@@ -24,17 +24,6 @@ impl Node {
         Self::with_children(style, Vec::new())
     }
 
-    /// Creates a new [`Node`] with the given [`Style`] and children.
-    ///
-    /// [`Node`]: struct.Node.html
-    /// [`Style`]: struct.Style.html
-    pub(crate) fn with_children(style: Style, children: Vec<Node>) -> Node {
-        Node(node::Node::new(
-            style.0,
-            children.iter().map(|c| &c.0).collect(),
-        ))
-    }
-
     /// Creates a new [`Node`] with the given [`Style`] and a measure function.
     ///
     /// This type of node cannot have any children.
@@ -55,6 +44,17 @@ impl Node {
         Node(node::Node::new_leaf(
             style.0,
             Box::new(move |size| Ok(measure(size))),
+        ))
+    }
+
+    /// Creates a new [`Node`] with the given [`Style`] and children.
+    ///
+    /// [`Node`]: struct.Node.html
+    /// [`Style`]: struct.Style.html
+    pub fn with_children(style: Style, children: Vec<Node>) -> Node {
+        Node(node::Node::new(
+            style.0,
+            children.iter().map(|c| &c.0).collect(),
         ))
     }
 }
