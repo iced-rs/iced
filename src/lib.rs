@@ -117,7 +117,7 @@
 //! use iced_wgpu::Renderer; // Iced is renderer-agnostic! We need to bring our own!
 //!
 //! impl Counter {
-//!     fn view(&mut self) -> Column<Message, Renderer> {
+//!     pub fn view(&mut self) -> Column<Message, Renderer> {
 //!         // We use a column: a simple vertical layout
 //!         Column::new()
 //!             .push(
@@ -163,7 +163,7 @@
 //! impl Counter {
 //!     // ...
 //!
-//!     fn update(&mut self, message: Message) {
+//!     pub fn update(&mut self, message: Message) {
 //!         match message {
 //!             Message::IncrementPressed => {
 //!                 self.value += 1;

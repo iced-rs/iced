@@ -43,12 +43,154 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// Applies a transformation to the produced message of the [`Element`].
     ///
     /// This method is useful when you want to decouple different parts of your
-    /// UI.
+    /// UI and make them __composable__.
     ///
     /// [`Element`]: struct.Element.html
     ///
     /// # Example
-    /// TODO
+    /// Imagine we want to use [our counter](index.html#usage). But instead of
+    /// showing a single counter, we want to display many of them. We can reuse
+    /// the `Counter` type as it is!
+    ///
+    /// We use composition to model the __state__ of our new application:
+    ///
+    /// ```
+    /// # mod counter {
+    /// #     pub struct Counter;
+    /// # }
+    /// use counter::Counter;
+    ///
+    /// struct ManyCounters {
+    ///     counters: Vec<Counter>,
+    /// }
+    /// ```
+    ///
+    /// We can store the state of multiple counters now. However, the
+    /// __messages__ we implemented before describe the user interactions
+    /// of a __single__ counter. Right now, we need to also identify which
+    /// counter is receiving user interactions. Can we use composition again?
+    /// Yes.
+    ///
+    /// ```
+    /// # mod counter {
+    /// #     #[derive(Debug, Clone, Copy)]
+    /// #     pub enum Message {}
+    /// # }
+    /// #[derive(Debug, Clone, Copy)]
+    /// pub enum Message {
+    ///     Counter(usize, counter::Message)
+    /// }
+    /// ```
+    ///
+    /// We compose the previous __messages__ with the index of the counter
+    /// producing them. Let's implement our __view logic__ now:
+    ///
+    /// ```
+    /// # mod counter {
+    /// #     use iced::{button, Button};
+    /// #
+    /// #     #[derive(Debug, Clone, Copy)]
+    /// #     pub enum Message {}
+    /// #     pub struct Counter(button::State);
+    /// #
+    /// #     impl Counter {
+    /// #         pub fn view(&mut self) -> Button<Message> {
+    /// #             Button::new(&mut self.0, "_")
+    /// #         }
+    /// #     }
+    /// # }
+    /// #
+    /// # mod iced_wgpu {
+    /// #     use iced::{
+    /// #         button, MouseCursor, Node, Point, Rectangle, Style,
+    /// #     };
+    /// #     pub struct Renderer;
+    /// #
+    /// #     impl button::Renderer for Renderer {
+    /// #         fn draw(
+    /// #             &mut self,
+    /// #             _cursor_position: Point,
+    /// #             _bounds: Rectangle<f32>,
+    /// #             _state: &button::State,
+    /// #             _label: &str,
+    /// #             _class: button::Class,
+    /// #         ) -> MouseCursor {
+    /// #             MouseCursor::OutOfBounds
+    /// #         }
+    /// #     }
+    /// # }
+    /// #
+    /// # use counter::Counter;
+    /// #
+    /// # struct ManyCounters {
+    /// #     counters: Vec<Counter>,
+    /// # }
+    /// #
+    /// # #[derive(Debug, Clone, Copy)]
+    /// # pub enum Message {
+    /// #    Counter(usize, counter::Message)
+    /// # }
+    /// use iced::{Element, Row};
+    /// use iced_wgpu::Renderer;
+    ///
+    /// impl ManyCounters {
+    ///     pub fn view(&mut self) -> Row<Message, Renderer> {
+    ///         // We can quickly populate a `Row` by folding over our counters
+    ///         self.counters.iter_mut().enumerate().fold(
+    ///             Row::new().spacing(20),
+    ///             |row, (index, counter)| {
+    ///                 // We display the counter
+    ///                 let element: Element<counter::Message, Renderer> =
+    ///                     counter.view().into();
+    ///
+    ///                 row.push(
+    ///                     // Here we turn our `Element<counter::Message>` into
+    ///                     // an `Element<Message>` by combining the `index` and the
+    ///                     // message of the `element`.
+    ///                     element.map(move |message| Message::Counter(index, message))
+    ///                 )
+    ///             }
+    ///         )
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Finally, our __update logic__ is pretty straightforward: simple
+    /// delegation.
+    ///
+    /// ```
+    /// # mod counter {
+    /// #     #[derive(Debug, Clone, Copy)]
+    /// #     pub enum Message {}
+    /// #     pub struct Counter;
+    /// #
+    /// #     impl Counter {
+    /// #         pub fn update(&mut self, _message: Message) {}
+    /// #     }
+    /// # }
+    /// #
+    /// # use counter::Counter;
+    /// #
+    /// # struct ManyCounters {
+    /// #     counters: Vec<Counter>,
+    /// # }
+    /// #
+    /// # #[derive(Debug, Clone, Copy)]
+    /// # pub enum Message {
+    /// #    Counter(usize, counter::Message)
+    /// # }
+    /// impl ManyCounters {
+    ///     pub fn update(&mut self, message: Message) {
+    ///         match message {
+    ///             Message::Counter(index, counter_msg) => {
+    ///                 if let Some(counter) = self.counters.get_mut(index) {
+    ///                     counter.update(counter_msg);
+    ///                 }
+    ///             }
+    ///         }
+    ///     }
+    /// }
+    /// ```
     pub fn map<F, B>(self, f: F) -> Element<'a, B, Renderer>
     where
         Message: 'static + Copy,

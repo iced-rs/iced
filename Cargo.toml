@@ -1,6 +1,6 @@
 [package]
 name = "iced"
-version = "0.0.0"
+version = "0.1.0-alpha"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A GUI runtime, heavily inspired by Elm."
