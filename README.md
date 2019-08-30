@@ -7,10 +7,12 @@
 A renderer-agnostic GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
-__Iced is in a very early stage of development.__ Many [basic features are still
-missing] and there are probably _many_ bugs. [Feel free to contribute!]
+__Iced is in a experimental stage.__ [Features are still missing],
+[some optimizations are yet to be implemented], and there are probably _many_
+bugs. [Feel free to contribute!]
 
-[basic features are still missing]: https://github.com/hecrj/iced/issues?q=is%3Aissue+is%3Aopen+label%3Afeature
+[Features are still missing]: https://github.com/hecrj/iced/issues?q=is%3Aissue+is%3Aopen+label%3Afeature
+[some optimizations are yet to be implemented]: https://github.com/hecrj/iced/issues?q=is%3Aissue+is%3Aopen+label%3Aoptimization
 [Feel free to contribute!]: #contributing--feedback
 
 [![UI Tour - Coffee][gui_gif]][gui_gfycat]
