@@ -1,4 +1,4 @@
-//! Iced is a renderer-agnostic GUI library for Rust focused on simplicity and
+//! Iced is a renderer-agnostic GUI library focused on simplicity and
 //! type-safety. Inspired by [Elm].
 //!
 //! # Features

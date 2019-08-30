@@ -1,6 +1,6 @@
 # Iced
 [![Build Status](https://travis-ci.org/hecrj/iced.svg?branch=master)](https://travis-ci.org/hecrj/iced)
-[![Documentation](https://docs.rs/iced/badge.svg)](https://docs.rs/iced)
+[![Documentation](https://docs.rs/iced/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
 
@@ -141,8 +141,6 @@ to:
 
 Browse the [documentation] and the [examples] to learn more!
 
-[documentation]: https://docs.rs/iced
-[examples]: https://github.com/hecrj/iced/tree/master/examples
 
 ## Gallery
 [![UI Tour - Coffee][gui_gif]][gui_gfycat]
@@ -158,13 +156,6 @@ Currently, Iced builds upon
   * [`stretch`] for flexbox-based layouting.
   * [`nalgebra`] for the `Point` type.
 
-[`stretch`]: https://github.com/vislyhq/stretch
-[`nalgebra`]: https://github.com/rustsim/nalgebra
-
-[Coffee]: https://github.com/hecrj/coffee
-[Elm]: https://elm-lang.org/
-[The Elm Architecture]: https://guide.elm-lang.org/architecture/
-
 ## Contributing / Feedback
 If you want to contribute, you are more than welcome to be a part of the
 project! Check out the current [issues] if you want to find something to work
@@ -175,5 +166,12 @@ Any kind of feedback is welcome! You can open an issue or, if you want to talk,
 you can find me (and a bunch of awesome folks) over the `#gui-and-ui` channel in
 the [Rust Community Discord]. I go by `@lone_scientist` there.
 
+[documentation]: http://iced-rs.surge.sh/iced/
+[examples]: https://github.com/hecrj/iced/tree/master/examples
+[Coffee]: https://github.com/hecrj/coffee
+[Elm]: https://elm-lang.org/
+[`stretch`]: https://github.com/vislyhq/stretch
+[`nalgebra`]: https://github.com/rustsim/nalgebra
+[The Elm Architecture]: https://guide.elm-lang.org/architecture/
 [issues]: https://github.com/hecrj/iced/issues
 [Rust Community Discord]: https://bit.ly/rust-community
