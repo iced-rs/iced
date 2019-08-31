@@ -154,7 +154,6 @@ Iced was originally born as an attempt at bringing the simplicity of [Elm] and
 
 Currently, Iced builds upon
   * [`stretch`] for flexbox-based layouting.
-  * [`nalgebra`] for the `Point` type.
 
 ## Contributing / Feedback
 If you want to contribute, you are more than welcome to be a part of the
