@@ -3,7 +3,10 @@ use crate::Vector;
 /// A 2D point.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Point {
+    /// The X coordinate.
     pub x: f32,
+
+    /// The Y coordinate.
     pub y: f32,
 }
 

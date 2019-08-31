@@ -191,8 +191,8 @@
 //! [documentation]: https://docs.rs/iced
 //! [examples]: https://github.com/hecrj/iced/tree/master/examples
 //! [`UserInterface`]: struct.UserInterface.html
-//#![deny(missing_docs)]
-//#![deny(missing_debug_implementations)]
+#![deny(missing_docs)]
+#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]

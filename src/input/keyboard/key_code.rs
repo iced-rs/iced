@@ -1,6 +1,11 @@
-/// The symbolic name of a keyboard key
+/// The symbolic name of a keyboard key.
+///
+/// This is mostly the `KeyCode` type found in `winit`. If you are using
+/// `winit`, consider enabling the `winit` feature to get conversion
+/// implementations for free!
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
+#[allow(missing_docs)]
 pub enum KeyCode {
     /// The '1' key over the letters.
     Key1,
@@ -50,7 +55,7 @@ pub enum KeyCode {
     Y,
     Z,
 
-    /// The Escape key, next to F1.
+    /// The Escape key, next to F1
     Escape,
 
     F1,
@@ -78,14 +83,14 @@ pub enum KeyCode {
     F23,
     F24,
 
-    /// Print Screen/SysRq.
+    /// Print Screen/SysRq
     Snapshot,
-    /// Scroll Lock.
+    /// Scroll Lock
     Scroll,
-    /// Pause/Break key, next to Scroll lock.
+    /// Pause/Break key, next to Scroll lock
     Pause,
 
-    /// `Insert`, next to Backspace.
+    /// `Insert`, next to Backspace
     Insert,
     Home,
     Delete,
@@ -98,15 +103,11 @@ pub enum KeyCode {
     Right,
     Down,
 
-    /// The Backspace key, right over Enter.
-    // TODO: rename
-    Back,
-    /// The Enter key.
-    Return,
-    /// The space bar.
+    Backspace,
+    Enter,
     Space,
 
-    /// The "Compose" key on Linux.
+    /// The "Compose" key on Linux
     Compose,
 
     Caret,

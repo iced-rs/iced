@@ -112,7 +112,7 @@ where
     Renderer: self::Renderer<Color>,
 {
     fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(self.style, &self.content, self.size as f32)
+        renderer.node(self.style, &self.content, f32::from(self.size))
     }
 
     fn draw(
@@ -124,7 +124,7 @@ where
         renderer.draw(
             layout.bounds(),
             &self.content,
-            self.size as f32,
+            f32::from(self.size),
             self.color,
             self.horizontal_alignment,
             self.vertical_alignment,

@@ -10,6 +10,7 @@ use crate::{
 /// A [`Column`] will try to fill the horizontal space of its container.
 ///
 /// [`Column`]: struct.Column.html
+#[derive(Default)]
 pub struct Column<'a, Message, Renderer> {
     style: Style,
     spacing: u16,
@@ -144,7 +145,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 
                 let mut style = node.0.style();
                 style.margin.bottom =
-                    stretch::style::Dimension::Points(self.spacing as f32);
+                    stretch::style::Dimension::Points(f32::from(self.spacing));
 
                 node.0.set_style(style);
                 node

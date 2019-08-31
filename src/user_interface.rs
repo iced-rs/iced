@@ -11,6 +11,7 @@ use stretch::result;
 /// charge of using this type in your system in any way you want.
 ///
 /// [`Layout`]: struct.Layout.html
+#[derive(Debug)]
 pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,
     root: Element<'a, Message, Renderer>,
@@ -173,11 +174,8 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
         let mut messages = Vec::new();
 
         for event in events {
-            match event {
-                Event::Mouse(mouse::Event::CursorMoved { x, y }) => {
-                    self.cursor_position = Point::new(x, y);
-                }
-                _ => {}
+            if let Event::Mouse(mouse::Event::CursorMoved { x, y }) = event {
+                self.cursor_position = Point::new(x, y);
             }
 
             self.root.widget.on_event(
@@ -257,13 +255,11 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// }
     /// ```
     pub fn draw(&self, renderer: &mut Renderer) -> MouseCursor {
-        let cursor = self.root.widget.draw(
+        self.root.widget.draw(
             renderer,
             Layout::new(&self.layout),
             self.cursor_position,
-        );
-
-        cursor
+        )
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
