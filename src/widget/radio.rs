@@ -8,7 +8,7 @@ use crate::{
 
 use std::hash::Hash;
 
-/// A circular button representing a choice.
+/// A circular button representing a choice, with a generic text `Color`.
 ///
 /// It implements [`Widget`] when the associated `Renderer` implements the
 /// [`radio::Renderer`] trait.
@@ -92,9 +92,8 @@ impl<Color, Message> Radio<Color, Message> {
         }
     }
 
-    /// Sets the [`Color`] of the label of the [`Radio`].
+    /// Sets the `Color` of the label of the [`Radio`].
     ///
-    /// [`Color`]: ../../../../graphics/struct.Color.html
     /// [`Radio`]: struct.Radio.html
     pub fn label_color(mut self, color: Color) -> Self {
         self.label_color = Some(color);
@@ -175,11 +174,11 @@ where
 
 /// The renderer of a [`Radio`] button.
 ///
-/// Your [`core::Renderer`] will need to implement this trait before being
+/// Your [renderer] will need to implement this trait before being
 /// able to use a [`Radio`] button in your user interface.
 ///
 /// [`Radio`]: struct.Radio.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer {
     /// Draws a [`Radio`] button.
     ///

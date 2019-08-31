@@ -201,11 +201,11 @@ impl State {
 
 /// The renderer of a [`Slider`].
 ///
-/// Your [`core::Renderer`] will need to implement this trait before being
+/// Your [renderer] will need to implement this trait before being
 /// able to use a [`Slider`] in your user interface.
 ///
 /// [`Slider`]: struct.Slider.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer {
     /// Draws a [`Slider`].
     ///

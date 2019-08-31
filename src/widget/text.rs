@@ -5,7 +5,7 @@ use crate::{
 
 use std::hash::Hash;
 
-/// A fragment of text.
+/// A fragment of text with a generic `Color`.
 ///
 /// It implements [`Widget`] when the associated `Renderer` implements the
 /// [`text::Renderer`] trait.
@@ -60,10 +60,9 @@ impl<Color> Text<Color> {
         self
     }
 
-    /// Sets the [`Color`] of the [`Text`].
+    /// Sets the `Color` of the [`Text`].
     ///
     /// [`Text`]: struct.Text.html
-    /// [`Color`]: ../../../graphics/struct.Color.html
     pub fn color(mut self, color: Color) -> Self {
         self.color = Some(color);
         self
@@ -88,7 +87,7 @@ impl<Color> Text<Color> {
     /// Sets the [`HorizontalAlignment`] of the [`Text`].
     ///
     /// [`Text`]: struct.Text.html
-    /// [`HorizontalAlignment`]: ../../../graphics/enum.HorizontalAlignment.html
+    /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
     pub fn horizontal_alignment(
         mut self,
         alignment: HorizontalAlignment,
@@ -100,7 +99,7 @@ impl<Color> Text<Color> {
     /// Sets the [`VerticalAlignment`] of the [`Text`].
     ///
     /// [`Text`]: struct.Text.html
-    /// [`VerticalAlignment`]: ../../../graphics/enum.VerticalAlignment.html
+    /// [`VerticalAlignment`]: enum.VerticalAlignment.html
     pub fn vertical_alignment(mut self, alignment: VerticalAlignment) -> Self {
         self.vertical_alignment = alignment;
         self
@@ -144,11 +143,11 @@ where
 
 /// The renderer of a [`Text`] fragment with a generic `Color`.
 ///
-/// Your [`Renderer`] will need to implement this trait before being
+/// Your [renderer] will need to implement this trait before being
 /// able to use [`Text`] in your [`UserInterface`].
 ///
 /// [`Text`]: struct.Text.html
-/// [`Renderer`]: ../../trait.Renderer.html
+/// [renderer]: ../../renderer/index.html
 /// [`UserInterface`]: ../../struct.UserInterface.html
 pub trait Renderer<Color> {
     /// Creates a [`Node`] with the given [`Style`] for the provided [`Text`]
@@ -157,10 +156,10 @@ pub trait Renderer<Color> {
     /// You should probably use [`Node::with_measure`] to allow [`Text`] to
     /// adapt to the dimensions of its container.
     ///
-    /// [`Node`]: ../../core/struct.Node.html
-    /// [`Style`]: ../../core/struct.Style.html
+    /// [`Node`]: ../../struct.Node.html
+    /// [`Style`]: ../../struct.Style.html
     /// [`Text`]: struct.Text.html
-    /// [`Node::with_measure`]: ../../core/struct.Node.html#method.with_measure
+    /// [`Node::with_measure`]: ../../struct.Node.html#method.with_measure
     fn node(&self, style: Style, content: &str, size: f32) -> Node;
 
     /// Draws a [`Text`] fragment.
@@ -174,8 +173,8 @@ pub trait Renderer<Color> {
     ///   * the [`VerticalAlignment`] of the [`Text`]
     ///
     /// [`Text`]: struct.Text.html
-    /// [`HorizontalAlignment`]: ../../../graphics/enum.HorizontalAlignment.html
-    /// [`VerticalAlignment`]: ../../../graphics/enum.VerticalAlignment.html
+    /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
+    /// [`VerticalAlignment`]: enum.VerticalAlignment.html
     fn draw(
         &mut self,
         bounds: Rectangle<f32>,

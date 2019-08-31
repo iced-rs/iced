@@ -242,11 +242,11 @@ pub enum Class {
 
 /// The renderer of a [`Button`].
 ///
-/// Your [`core::Renderer`] will need to implement this trait before being
+/// Your [renderer] will need to implement this trait before being
 /// able to use a [`Button`] in your user interface.
 ///
 /// [`Button`]: struct.Button.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer {
     /// Draws a [`Button`].
     ///

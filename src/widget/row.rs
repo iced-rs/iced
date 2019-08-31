@@ -118,7 +118,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
 
     /// Adds an [`Element`] to the [`Row`].
     ///
-    /// [`Element`]: ../core/struct.Element.html
+    /// [`Element`]: ../struct.Element.html
     /// [`Row`]: struct.Row.html
     pub fn push<E>(mut self, child: E) -> Row<'a, Message, Renderer>
     where

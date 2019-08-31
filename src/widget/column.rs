@@ -121,7 +121,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 
     /// Adds an [`Element`] to the [`Column`].
     ///
-    /// [`Element`]: ../core/struct.Element.html
+    /// [`Element`]: ../struct.Element.html
     /// [`Column`]: struct.Column.html
     pub fn push<E>(mut self, child: E) -> Column<'a, Message, Renderer>
     where

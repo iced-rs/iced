@@ -8,7 +8,7 @@ use crate::{
     Widget,
 };
 
-/// A box that can be checked.
+/// A box that can be checked, with a generic text `Color`.
 ///
 /// It implements [`Widget`] when the associated `Renderer` implements the
 /// [`checkbox::Renderer`] trait.
@@ -80,9 +80,8 @@ impl<Color, Message> Checkbox<Color, Message> {
         }
     }
 
-    /// Sets the [`Color`] of the label of the [`Checkbox`].
+    /// Sets the `Color` of the label of the [`Checkbox`].
     ///
-    /// [`Color`]: ../../../../graphics/struct.Color.html
     /// [`Checkbox`]: struct.Checkbox.html
     pub fn label_color(mut self, color: Color) -> Self {
         self.label_color = Some(color);
@@ -165,11 +164,11 @@ where
 
 /// The renderer of a [`Checkbox`].
 ///
-/// Your [`core::Renderer`] will need to implement this trait before being
+/// Your [renderer] will need to implement this trait before being
 /// able to use a [`Checkbox`] in your user interface.
 ///
 /// [`Checkbox`]: struct.Checkbox.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer {
     /// Draws a [`Checkbox`].
     ///
