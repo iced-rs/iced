@@ -22,7 +22,7 @@ impl slider::Renderer for Renderer<'_> {
     fn draw(
         &mut self,
         cursor_position: Point,
-        bounds: Rectangle<f32>,
+        bounds: Rectangle,
         state: &slider::State,
         range: RangeInclusive<f32>,
         value: f32,

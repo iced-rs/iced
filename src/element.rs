@@ -110,7 +110,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// #         fn draw(
     /// #             &mut self,
     /// #             _cursor_position: Point,
-    /// #             _bounds: Rectangle<f32>,
+    /// #             _bounds: Rectangle,
     /// #             _state: &button::State,
     /// #             _label: &str,
     /// #             _class: button::Class,

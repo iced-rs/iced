@@ -1,25 +1,25 @@
 use crate::Point;
 
-/// A generic rectangle.
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub struct Rectangle<T> {
+/// A rectangle.
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct Rectangle {
     /// X coordinate of the top-left corner.
-    pub x: T,
+    pub x: f32,
 
     /// Y coordinate of the top-left corner.
-    pub y: T,
+    pub y: f32,
 
     /// Width of the rectangle.
-    pub width: T,
+    pub width: f32,
 
     /// Height of the rectangle.
-    pub height: T,
+    pub height: f32,
 }
 
-impl Rectangle<f32> {
+impl Rectangle {
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
     ///
-    /// [`Point`]: type.Point.html
+    /// [`Point`]: struct.Point.html
     /// [`Rectangle`]: struct.Rectangle.html
     pub fn contains(&self, point: Point) -> bool {
         self.x <= point.x

@@ -222,7 +222,7 @@ pub trait Renderer {
     fn draw(
         &mut self,
         cursor_position: Point,
-        bounds: Rectangle<f32>,
+        bounds: Rectangle,
         state: &State,
         range: RangeInclusive<f32>,
         value: f32,

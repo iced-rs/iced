@@ -14,8 +14,8 @@ impl radio::Renderer for Renderer<'_> {
     fn draw(
         &mut self,
         cursor_position: Point,
-        bounds: Rectangle<f32>,
-        bounds_with_label: Rectangle<f32>,
+        bounds: Rectangle,
+        bounds_with_label: Rectangle,
         is_selected: bool,
     ) -> MouseCursor {
         let mouse_over = bounds_with_label.contains(cursor_position);

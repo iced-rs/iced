@@ -177,7 +177,7 @@ pub trait Renderer<Color> {
     /// [`VerticalAlignment`]: enum.VerticalAlignment.html
     fn draw(
         &mut self,
-        bounds: Rectangle<f32>,
+        bounds: Rectangle,
         content: &str,
         size: f32,
         color: Option<Color>,

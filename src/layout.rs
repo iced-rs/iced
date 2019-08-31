@@ -41,7 +41,7 @@ impl<'a> Layout<'a> {
     /// [`Layout`]: struct.Layout.html
     /// [`Rectangle`]: struct.Rectangle.html
     /// [`Node`]: struct.Node.html
-    pub fn bounds(&self) -> Rectangle<f32> {
+    pub fn bounds(&self) -> Rectangle {
         Rectangle {
             x: self.position.x,
             y: self.position.y,

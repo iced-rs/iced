@@ -182,8 +182,8 @@ pub trait Renderer {
     fn draw(
         &mut self,
         cursor_position: Point,
-        bounds: Rectangle<f32>,
-        label_bounds: Rectangle<f32>,
+        bounds: Rectangle,
+        label_bounds: Rectangle,
         is_checked: bool,
     ) -> MouseCursor;
 }

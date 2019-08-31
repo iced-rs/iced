@@ -69,7 +69,7 @@ impl text::Renderer<Color> for Renderer<'_> {
 
     fn draw(
         &mut self,
-        bounds: iced::Rectangle<f32>,
+        bounds: iced::Rectangle,
         content: &str,
         size: f32,
         color: Option<Color>,

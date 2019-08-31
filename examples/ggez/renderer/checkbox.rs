@@ -14,8 +14,8 @@ impl checkbox::Renderer for Renderer<'_> {
     fn draw(
         &mut self,
         cursor_position: iced::Point,
-        bounds: iced::Rectangle<f32>,
-        text_bounds: iced::Rectangle<f32>,
+        bounds: iced::Rectangle,
+        text_bounds: iced::Rectangle,
         is_checked: bool,
     ) -> MouseCursor {
         let mouse_over = bounds.contains(cursor_position)

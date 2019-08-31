@@ -1,2 +1,28 @@
+use crate::Vector;
+
 /// A 2D point.
-pub type Point = nalgebra::Point2<f32>;
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Point {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl Point {
+    /// Creates a new [`Point`] with the given coordinates.
+    ///
+    /// [`Point`]: struct.Point.html
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+}
+
+impl std::ops::Add<Vector> for Point {
+    type Output = Self;
+
+    fn add(self, vector: Vector) -> Self {
+        Self {
+            x: self.x + vector.x,
+            y: self.y + vector.y,
+        }
+    }
+}

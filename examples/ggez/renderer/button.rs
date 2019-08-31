@@ -29,7 +29,7 @@ impl button::Renderer for Renderer<'_> {
     fn draw(
         &mut self,
         cursor_position: iced::Point,
-        mut bounds: iced::Rectangle<f32>,
+        mut bounds: iced::Rectangle,
         state: &button::State,
         label: &str,
         class: button::Class,

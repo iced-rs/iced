@@ -90,5 +90,5 @@ where
 }
 
 pub trait Renderer {
-    fn draw(&mut self, bounds: Rectangle<f32>);
+    fn draw(&mut self, bounds: Rectangle);
 }
