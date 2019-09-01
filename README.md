@@ -141,7 +141,6 @@ to:
 
 Browse the [documentation] and the [examples] to learn more!
 
-
 ## Gallery
 [![UI Tour - Coffee][gui_gif]][gui_gfycat]
 
@@ -152,8 +151,19 @@ Browse the [documentation] and the [examples] to learn more!
 Iced was originally born as an attempt at bringing the simplicity of [Elm] and
 [The Elm Architecture] into [Coffee], a 2D game engine I am working on.
 
-Currently, Iced builds upon
-  * [`stretch`] for flexbox-based layouting.
+The core of the library was implemented during May in [this pull request], using
+[`stretch`] for flexbox-based layouting. It was later released as the main
+feature of [Coffee 0.3.0].
+
+After release, different folks asked if the GUI could be split into a standalone
+crate, and well... Iced is here!
+
+As an interesting note, Iced does not rely on reference counting and interior
+mutability at all! There is not a single `Rc`, `RefCell`, or similar used
+directly in the library.
+
+[this pull request]: https://github.com/hecrj/coffee/pull/35
+[Coffee 0.3.0]: https://github.com/hecrj/coffee/releases/tag/0.3.0
 
 ## Contributing / Feedback
 If you want to contribute, you are more than welcome to be a part of the
@@ -169,8 +179,6 @@ the [Rust Community Discord]. I go by `@lone_scientist` there.
 [examples]: https://github.com/hecrj/iced/tree/master/examples
 [Coffee]: https://github.com/hecrj/coffee
 [Elm]: https://elm-lang.org/
-[`stretch`]: https://github.com/vislyhq/stretch
-[`nalgebra`]: https://github.com/rustsim/nalgebra
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
 [issues]: https://github.com/hecrj/iced/issues
 [Rust Community Discord]: https://bit.ly/rust-community
