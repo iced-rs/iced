@@ -163,6 +163,7 @@ mutability at all! There is not a single `Rc`, `RefCell`, or similar used
 directly in the library.
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
+[`stretch`]: https://github.com/vislyhq/stretch
 [Coffee 0.3.0]: https://github.com/hecrj/coffee/releases/tag/0.3.0
 
 ## Contributing / Feedback
