@@ -160,7 +160,9 @@ crate, and well... Iced is here!
 
 As an interesting note, Iced does not rely on reference counting and interior
 mutability at all! There is not a single `Rc`, `RefCell`, or similar used
-directly in the library.
+directly in the library. As a consequence, compiler guarantees stay intact and
+many kinds of filthy bugs and runtime errors are banished. No spooky action at
+a distance!
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
 [`stretch`]: https://github.com/vislyhq/stretch
