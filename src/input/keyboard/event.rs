@@ -13,9 +13,6 @@ pub enum Event {
         key_code: KeyCode,
     },
 
-    /// Text was entered.
-    TextEntered {
-        /// The character entered
-        character: char,
-    },
+    /// A unicode character was received.
+    ReceivedCharacter(char),
 }
