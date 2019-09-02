@@ -14,5 +14,5 @@ pub enum Event {
     },
 
     /// A unicode character was received.
-    ReceivedCharacter(char),
+    CharacterReceived(char),
 }
