@@ -9,15 +9,11 @@ pub enum ButtonState {
 }
 
 #[cfg(feature = "winit")]
-mod winit_conversion {
-    use winit::event::ElementState;
-
-    impl From<ElementState> for super::ButtonState {
-        fn from(element_state: ElementState) -> Self {
-            match element_state {
-                ElementState::Pressed => super::ButtonState::Pressed,
-                ElementState::Released => super::ButtonState::Released,
-            }
+impl From<winit::event::ElementState> for ButtonState {
+    fn from(element_state: winit::event::ElementState) -> Self {
+        match element_state {
+            winit::event::ElementState::Pressed => ButtonState::Pressed,
+            winit::event::ElementState::Released => ButtonState::Released,
         }
     }
 }

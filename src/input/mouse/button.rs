@@ -13,3 +13,15 @@ pub enum Button {
     /// Some other button.
     Other(u8),
 }
+
+#[cfg(feature = "winit")]
+impl From<winit::event::MouseButton> for super::Button {
+    fn from(mouse_button: winit::event::MouseButton) -> Self {
+        match mouse_button {
+            winit::event::MouseButton::Left => Button::Left,
+            winit::event::MouseButton::Right => Button::Right,
+            winit::event::MouseButton::Middle => Button::Middle,
+            winit::event::MouseButton::Other(other) => Button::Other(other),
+        }
+    }
+}
