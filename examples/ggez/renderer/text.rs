@@ -9,16 +9,16 @@ impl text::Renderer<Color> for Renderer<'_> {
     fn node(&self, style: iced::Style, content: &str, size: f32) -> iced::Node {
         let font_cache = graphics::font_cache(self.context);
         let content = String::from(content);
+
+        // TODO: Investigate why stretch tries to measure this MANY times
+        // with every ancestor's bounds.
+        // Bug? Using the library wrong? I should probably open an issue on
+        // the stretch repository.
+        // I noticed that the first measure is the one that matters in
+        // practice. Here, we use a RefCell to store the cached measurement.
         let measure = RefCell::new(None);
 
         iced::Node::with_measure(style, move |bounds| {
-            // TODO: Investigate why stretch tries to measure this MANY times
-            // with every ancestor's bounds.
-            // Bug? Using the library wrong? I should probably open an issue on
-            // the stretch repository.
-            // I noticed that the first measure is the one that matters in
-            // practice. Here, we use a RefCell to store the cached
-            // measurement.
             let mut measure = measure.borrow_mut();
 
             if measure.is_none() {
@@ -47,7 +47,7 @@ impl text::Renderer<Color> for Renderer<'_> {
                     Align::Left,
                 );
 
-                let (width, height) = text.dimensions(&font_cache);
+                let (width, height) = font_cache.dimensions(&text);
 
                 let size = iced::Size {
                     width: width as f32,

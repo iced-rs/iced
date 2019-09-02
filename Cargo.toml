@@ -19,4 +19,4 @@ twox-hash = "1.5"
 winit = { version = "0.20.0-alpha3", optional = true }
 
 [dev-dependencies]
-ggez = { version = "0.5", git = "https://github.com/hecrj/ggez" }
+ggez = { version = "0.5", git = "https://github.com/hecrj/ggez.git", branch = "font-cache" }
