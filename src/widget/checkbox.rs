@@ -191,7 +191,7 @@ pub trait Renderer {
 impl<'a, Color, Message, Renderer> From<Checkbox<Color, Message>>
     for Element<'a, Message, Renderer>
 where
-    Color: 'static + Copy + Default + std::fmt::Debug,
+    Color: 'static + Copy + std::fmt::Debug,
     Renderer: self::Renderer + text::Renderer<Color>,
     Message: 'static,
 {
