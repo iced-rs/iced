@@ -1,4 +1,4 @@
-//! Displays action progress to your users.
+//! Provide visual feedback to your users when performing a slow task.
 
 use crate::{
     Element, Hasher, Layout, MouseCursor, Node, Point, Rectangle, Style, Widget,
@@ -6,14 +6,14 @@ use crate::{
 
 use std::hash::Hash;
 
-/// A widget that displays a progress of an action.
+/// A bar that is filled based on an amount of progress.
 ///
-/// It implements [`Widget`] when the associated [`core::Renderer`] implements
-/// the [`button::Renderer`] trait.
+/// It implements [`Widget`] when the associated `Renderer` implements the
+/// [`progress_bar::Renderer`] trait.
 ///
-/// [`Widget`]: ../../core/trait.Widget.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [`Widget`]: ../trait.Widget.html
 /// [`progress_bar::Renderer`]: trait.Renderer.html
+///
 /// # Example
 ///
 /// ```
@@ -30,7 +30,11 @@ pub struct ProgressBar {
 }
 
 impl ProgressBar {
-    /// Creates a new [`ProgressBar`] with given progress.
+    /// Creates a new [`ProgressBar`] filled based on the given amount of
+    /// progress.
+    ///
+    /// The progress should be in the `0.0..=1.0` range. `0` meaning no work
+    /// done, and `1` meaning work finished.
     ///
     /// [`ProgressBar`]: struct.ProgressBar.html
     pub fn new(progress: f32) -> Self {
@@ -45,14 +49,6 @@ impl ProgressBar {
     /// [`ProgressBar`]: struct.ProgressBar.html
     pub fn width(mut self, width: u32) -> Self {
         self.style = self.style.width(width);
-        self
-    }
-
-    /// Makes the [`ProgressBar`] fill the horizontal space of its container.
-    ///
-    /// [`ProgressBar`]: struct.ProgressBar.html
-    pub fn fill_width(mut self) -> Self {
-        self.style = self.style.fill_width();
         self
     }
 }
@@ -83,17 +79,18 @@ where
 
 /// The renderer of a [`ProgressBar`].
 ///
-/// Your [`core::Renderer`] will need to implement this trait before being
-/// able to use a [`ProgressBar`] in your user interface.
+/// Your [renderer] will need to implement this trait before being able to use
+/// a [`ProgressBar`] in your user interface.
 ///
 /// [`ProgressBar`]: struct.ProgressBar.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer {
     /// Draws a [`ProgressBar`].
     ///
     /// It receives:
     ///   * the bounds of the [`ProgressBar`]
-    ///   * the progress of the [`ProgressBar`]
+    ///   * the current progress of the [`ProgressBar`], in the `0.0..=1.0`
+    ///   range.
     ///
     /// [`ProgressBar`]: struct.ProgressBar.html
     fn draw(&mut self, bounds: Rectangle, progress: f32);
