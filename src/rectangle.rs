@@ -1,22 +1,22 @@
 use crate::Point;
 
 /// A rectangle.
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct Rectangle {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Rectangle<T = f32> {
     /// X coordinate of the top-left corner.
-    pub x: f32,
+    pub x: T,
 
     /// Y coordinate of the top-left corner.
-    pub y: f32,
+    pub y: T,
 
     /// Width of the rectangle.
-    pub width: f32,
+    pub width: T,
 
     /// Height of the rectangle.
-    pub height: f32,
+    pub height: T,
 }
 
-impl Rectangle {
+impl Rectangle<f32> {
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
     ///
     /// [`Point`]: struct.Point.html

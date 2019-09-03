@@ -76,7 +76,7 @@ where
         MouseCursor::OutOfBounds
     }
 
-    fn hash(&self, state: &mut Hasher) {
+    fn hash_layout(&self, state: &mut Hasher) {
         self.style.hash(state);
     }
 }
@@ -96,7 +96,7 @@ pub trait Renderer {
     ///   * the progress of the [`ProgressBar`]
     ///
     /// [`ProgressBar`]: struct.ProgressBar.html
-    fn draw(&mut self, bounds: Rectangle<f32>, progress: f32);
+    fn draw(&mut self, bounds: Rectangle, progress: f32);
 }
 
 impl<'a, Message, Renderer> From<ProgressBar> for Element<'a, Message, Renderer>
