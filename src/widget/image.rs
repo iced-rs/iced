@@ -1,4 +1,4 @@
-//! Displays image to your users.
+//! Display images in your user interface.
 
 use crate::{
     Element, Hasher, Layout, MouseCursor, Node, Point, Rectangle, Style, Widget,
@@ -6,14 +6,14 @@ use crate::{
 
 use std::hash::Hash;
 
-/// A widget that displays an image.
+/// A frame that displays an image while keeping aspect ratio.
 ///
-/// It implements [`Widget`] when the associated [`core::Renderer`] implements
-/// the [`image::Renderer`] trait.
+/// It implements [`Widget`] when the associated `Renderer` implements the
+/// [`image::Renderer`] trait.
 ///
 /// [`Widget`]: ../../core/trait.Widget.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
 /// [`image::Renderer`]: trait.Renderer.html
+///
 /// # Example
 ///
 /// ```
@@ -49,7 +49,7 @@ impl<I> Image<I> {
         }
     }
 
-    /// Sets the portion of the [`Image`] that we want to draw.
+    /// Sets the portion of the [`Image`] to draw.
     ///
     /// [`Image`]: struct.Image.html
     pub fn clip(mut self, source: Rectangle<u16>) -> Self {
@@ -99,21 +99,21 @@ where
     }
 }
 
-/// The renderer of a [`Image`].
+/// The renderer of an [`Image`].
 ///
-/// Your [`core::Renderer`] will need to implement this trait before being
-/// able to use a [`Image`] in your user interface.
+/// Your [renderer] will need to implement this trait before being able to use
+/// an [`Image`] in your user interface.
 ///
 /// [`Image`]: struct.Image.html
-/// [`core::Renderer`]: ../../core/trait.Renderer.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer<I> {
-    /// Draws a [`Image`].
+    /// Draws an [`Image`].
     ///
     /// It receives:
     ///   * the bounds of the [`Image`]
     ///   * the handle of the loaded [`Image`]
-    ///   * the portion of the image that we wants to draw,
-    ///     if not specified, draw entire image
+    ///   * the portion of the image to draw. If not specified, the entire image
+    ///     should be drawn.
     ///
     /// [`Image`]: struct.Image.html
     fn draw(

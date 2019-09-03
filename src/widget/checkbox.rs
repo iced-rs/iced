@@ -64,8 +64,8 @@ impl<Color, Message> Checkbox<Color, Message> {
     ///   * a boolean describing whether the [`Checkbox`] is checked or not
     ///   * the label of the [`Checkbox`]
     ///   * a function that will be called when the [`Checkbox`] is toggled.
-    ///   It receives the new state of the [`Checkbox`] and must produce a
-    ///   `Message`.
+    ///     It will receive the new state of the [`Checkbox`] and must produce
+    ///     a `Message`.
     ///
     /// [`Checkbox`]: struct.Checkbox.html
     pub fn new<F>(is_checked: bool, label: &str, f: F) -> Self
