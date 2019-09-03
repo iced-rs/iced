@@ -1,14 +1,13 @@
 //! Displays image to your users.
 
 use crate::{
-    Style, Node, Element, MouseCursor, Layout, Hasher, Widget,
-    Rectangle, Point,
+    Element, Hasher, Layout, MouseCursor, Node, Point, Rectangle, Style, Widget,
 };
 
 use std::hash::Hash;
 
 /// A widget that displays an image.
-/// 
+///
 /// It implements [`Widget`] when the associated [`core::Renderer`] implements
 /// the [`image::Renderer`] trait.
 ///
@@ -20,7 +19,8 @@ use std::hash::Hash;
 /// ```
 /// use iced::Image;
 ///
-/// let image = Image::new("image");
+/// # let my_handle = String::from("some_handle");
+/// let image = Image::new(my_handle);
 /// ```
 pub struct Image<I> {
     image: I,
@@ -41,16 +41,16 @@ impl<I> Image<I> {
     /// Creates a new [`Image`] with given image handle.
     ///
     /// [`Image`]: struct.Image.html
-    pub fn new(image: &I) -> Self where I: Clone {
+    pub fn new(image: I) -> Self {
         Image {
-            image: image.clone(),
+            image,
             source: None,
             style: Style::default().fill_width().fill_height(),
         }
     }
 
     /// Sets the portion of the [`Image`] that we want to draw.
-    /// 
+    ///
     /// [`Image`]: struct.Image.html
     pub fn clip(mut self, source: Rectangle<u16>) -> Self {
         self.source = Some(source);
@@ -89,11 +89,7 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> MouseCursor {
-        renderer.draw(
-            layout.bounds(),
-            self.image.clone(),
-            self.source,
-        );
+        renderer.draw(layout.bounds(), self.image.clone(), self.source);
 
         MouseCursor::OutOfBounds
     }
@@ -117,8 +113,8 @@ pub trait Renderer<I> {
     ///   * the bounds of the [`Image`]
     ///   * the handle of the loaded [`Image`]
     ///   * the portion of the image that we wants to draw,
-	///     if not specified, draw entire image
-    ///   
+    ///     if not specified, draw entire image
+    ///
     /// [`Image`]: struct.Image.html
     fn draw(
         &mut self,
