@@ -32,7 +32,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// # Example
     /// Imagine we want to build a [`UserInterface`] for
     /// [the counter example that we previously wrote](index.html#usage). Here
-    /// is how we could build our GUI application indefinitely:
+    /// is how we could start setting up our application loop:
     ///
     /// ```no_run
     /// use iced::{UserInterface, Cache};
