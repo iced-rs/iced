@@ -7,18 +7,14 @@
 A renderer-agnostic GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
-__Iced is in a experimental stage.__ [Features are still missing],
-[some optimizations are yet to be implemented], and there are probably _many_
-bugs. [Feel free to contribute!]
+[![Tour - Iced][gui_gif]][gui_gfycat]
+[![Tour - Coffee][coffee_gui_gif]][coffee_gui_gfycat]
 
-[Features are still missing]: https://github.com/hecrj/iced/issues?q=is%3Aissue+is%3Aopen+label%3Afeature
-[some optimizations are yet to be implemented]: https://github.com/hecrj/iced/issues?q=is%3Aissue+is%3Aopen+label%3Aoptimization
-[Feel free to contribute!]: #contributing--feedback
+[gui_gif]: https://thumbs.gfycat.com/VeneratedSourAurochs-small.gif
+[gui_gfycat]: https://gfycat.com/veneratedsouraurochs
 
-[![UI Tour - Coffee][gui_gif]][gui_gfycat]
-
-[gui_gif]: https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif
-[gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
+[coffee_gui_gif]: https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif
+[coffee_gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
 
 ## Features
   * Simple, easy-to-use, renderer-agnostic API
@@ -26,6 +22,12 @@ bugs. [Feel free to contribute!]
   * Type-safe, reactive programming model
   * Built-in widgets
   * Custom widget support
+
+__Iced is in a experimental stage.__ [Check out the issues] and
+[feel free to contribute!].
+
+[check out the issues]: https://github.com/hecrj/iced/issues
+[feel free to contribute!]: #contributing--feedback
 
 ## Installation
 Add `iced` as a dependency in your `Cargo.toml`:
@@ -141,12 +143,6 @@ to:
 
 Browse the [documentation] and the [examples] to learn more!
 
-## Gallery
-[![UI Tour - Coffee][gui_gif]][gui_gfycat]
-
-[gui_gif]: https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif
-[gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
-
 ## Implementation details
 Iced was originally born as an attempt at bringing the simplicity of [Elm] and
 [The Elm Architecture] into [Coffee], a 2D game engine I am working on.
@@ -159,9 +155,9 @@ After release, different folks asked if the GUI could be split into a standalone
 crate, and well... Iced is here!
 
 As an interesting note, Iced does not rely on reference counting and interior
-mutability at all! There is not a single `Rc`, `RefCell`, or similar used
+mutability. There is not a single `Rc`, `RefCell`, or similar used
 directly in the library. As a consequence, compiler guarantees stay intact and
-many kinds of filthy bugs and runtime errors are banished. No spooky action at
+many kinds of pesky bugs and runtime errors are banished. No spooky action at
 a distance!
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
