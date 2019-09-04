@@ -55,7 +55,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Sets the padding of the [`Column`] in pixels.
     ///
     /// [`Column`]: struct.Column.html
-    pub fn padding(mut self, px: u32) -> Self {
+    pub fn padding(mut self, px: u16) -> Self {
         self.style = self.style.padding(px);
         self
     }
@@ -63,7 +63,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Sets the width of the [`Column`] in pixels.
     ///
     /// [`Column`]: struct.Column.html
-    pub fn width(mut self, width: u32) -> Self {
+    pub fn width(mut self, width: u16) -> Self {
         self.style = self.style.width(width);
         self
     }
@@ -71,7 +71,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Sets the height of the [`Column`] in pixels.
     ///
     /// [`Column`]: struct.Column.html
-    pub fn height(mut self, height: u32) -> Self {
+    pub fn height(mut self, height: u16) -> Self {
         self.style = self.style.height(height);
         self
     }
@@ -79,7 +79,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Sets the maximum width of the [`Column`] in pixels.
     ///
     /// [`Column`]: struct.Column.html
-    pub fn max_width(mut self, max_width: u32) -> Self {
+    pub fn max_width(mut self, max_width: u16) -> Self {
         self.style = self.style.max_width(max_width);
         self
     }
@@ -87,7 +87,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Sets the maximum height of the [`Column`] in pixels.
     ///
     /// [`Column`]: struct.Column.html
-    pub fn max_height(mut self, max_height: u32) -> Self {
+    pub fn max_height(mut self, max_height: u16) -> Self {
         self.style = self.style.max_height(max_height);
         self
     }

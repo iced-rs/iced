@@ -47,7 +47,7 @@ impl ProgressBar {
     /// Sets the width of the [`ProgressBar`] in pixels.
     ///
     /// [`ProgressBar`]: struct.ProgressBar.html
-    pub fn width(mut self, width: u32) -> Self {
+    pub fn width(mut self, width: u16) -> Self {
         self.style = self.style.width(width);
         self
     }

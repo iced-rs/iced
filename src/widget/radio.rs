@@ -152,7 +152,7 @@ where
             renderer,
             text_bounds,
             &self.label,
-            20.0,
+            None,
             self.label_color,
             text::HorizontalAlignment::Left,
             text::VerticalAlignment::Top,

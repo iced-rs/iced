@@ -1,24 +1,38 @@
 mod button;
 mod checkbox;
+mod debugger;
+mod image;
 mod radio;
 mod slider;
 mod text;
 
-use ggez::graphics::{self, spritebatch::SpriteBatch, Image};
+use ggez::graphics::{
+    self, spritebatch::SpriteBatch, Font, Image, MeshBuilder,
+};
 use ggez::Context;
 
 pub struct Renderer<'a> {
     pub context: &'a mut Context,
     pub sprites: SpriteBatch,
     pub spritesheet: Image,
+    pub font: Font,
+    font_size: f32,
+    debug_mesh: Option<MeshBuilder>,
 }
 
 impl Renderer<'_> {
-    pub fn new(context: &mut Context, spritesheet: Image) -> Renderer {
+    pub fn new(
+        context: &mut Context,
+        spritesheet: Image,
+        font: Font,
+    ) -> Renderer {
         Renderer {
             context,
             sprites: SpriteBatch::new(spritesheet.clone()),
             spritesheet,
+            font,
+            font_size: 20.0,
+            debug_mesh: None,
         }
     }
 
@@ -37,5 +51,13 @@ impl Renderer<'_> {
             graphics::FilterMode::Linear,
         )
         .expect("Draw text");
+
+        if let Some(debug_mesh) = self.debug_mesh.take() {
+            let mesh =
+                debug_mesh.build(self.context).expect("Build debug mesh");
+
+            graphics::draw(self.context, &mesh, graphics::DrawParam::default())
+                .expect("Draw debug mesh");
+        }
     }
 }

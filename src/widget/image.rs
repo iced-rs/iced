@@ -1,7 +1,8 @@
 //! Display images in your user interface.
 
 use crate::{
-    Element, Hasher, Layout, MouseCursor, Node, Point, Rectangle, Style, Widget,
+    Align, Element, Hasher, Layout, MouseCursor, Node, Point, Rectangle, Style,
+    Widget,
 };
 
 use std::hash::Hash;
@@ -25,6 +26,8 @@ use std::hash::Hash;
 pub struct Image<I> {
     image: I,
     source: Option<Rectangle<u16>>,
+    width: Option<u16>,
+    height: Option<u16>,
     style: Style,
 }
 
@@ -32,6 +35,8 @@ impl<I> std::fmt::Debug for Image<I> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Image")
             .field("source", &self.source)
+            .field("width", &self.width)
+            .field("height", &self.height)
             .field("style", &self.style)
             .finish()
     }
@@ -45,7 +50,9 @@ impl<I> Image<I> {
         Image {
             image,
             source: None,
-            style: Style::default().fill_width().fill_height(),
+            width: None,
+            height: None,
+            style: Style::default(),
         }
     }
 
@@ -60,16 +67,27 @@ impl<I> Image<I> {
     /// Sets the width of the [`Image`] boundaries in pixels.
     ///
     /// [`Image`]: struct.Image.html
-    pub fn width(mut self, width: u32) -> Self {
-        self.style = self.style.width(width);
+    pub fn width(mut self, width: u16) -> Self {
+        self.width = Some(width);
         self
     }
 
     /// Sets the height of the [`Image`] boundaries in pixels.
     ///
     /// [`Image`]: struct.Image.html
-    pub fn height(mut self, height: u32) -> Self {
-        self.style = self.style.height(height);
+    pub fn height(mut self, height: u16) -> Self {
+        self.height = Some(height);
+        self
+    }
+
+    /// Sets the alignment of the [`Image`] itself.
+    ///
+    /// This is useful if you want to override the default alignment given by
+    /// the parent container.
+    ///
+    /// [`Image`]: struct.Button.html
+    pub fn align_self(mut self, align: Align) -> Self {
+        self.style = self.style.align_self(align);
         self
     }
 }
@@ -79,8 +97,14 @@ where
     Renderer: self::Renderer<I>,
     I: Clone,
 {
-    fn node(&self, _renderer: &Renderer) -> Node {
-        Node::new(self.style)
+    fn node(&self, renderer: &Renderer) -> Node {
+        renderer.node(
+            self.style,
+            &self.image,
+            self.width,
+            self.height,
+            self.source,
+        )
     }
 
     fn draw(
@@ -89,13 +113,15 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> MouseCursor {
-        renderer.draw(layout.bounds(), self.image.clone(), self.source);
+        renderer.draw(&self.image, layout.bounds(), self.source);
 
         MouseCursor::OutOfBounds
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
         self.style.hash(state);
+        self.width.hash(state);
+        self.height.hash(state);
     }
 }
 
@@ -107,6 +133,23 @@ where
 /// [`Image`]: struct.Image.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer<I> {
+    /// Creates a [`Node`] with the given [`Style`] for the provided [`Image`]
+    /// and its size.
+    ///
+    /// You should probably keep the original aspect ratio, if possible.
+    ///
+    /// [`Node`]: ../../struct.Node.html
+    /// [`Style`]: ../../struct.Style.html
+    /// [`Image`]: struct.Image.html
+    fn node(
+        &self,
+        style: Style,
+        image: &I,
+        width: Option<u16>,
+        height: Option<u16>,
+        source: Option<Rectangle<u16>>,
+    ) -> Node;
+
     /// Draws an [`Image`].
     ///
     /// It receives:
@@ -118,8 +161,8 @@ pub trait Renderer<I> {
     /// [`Image`]: struct.Image.html
     fn draw(
         &mut self,
+        image: &I,
         bounds: Rectangle<f32>,
-        image: I,
         source: Option<Rectangle<u16>>,
     );
 }

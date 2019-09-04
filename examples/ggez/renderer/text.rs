@@ -6,7 +6,13 @@ use std::cell::RefCell;
 use std::f32;
 
 impl text::Renderer<Color> for Renderer<'_> {
-    fn node(&self, style: iced::Style, content: &str, size: f32) -> iced::Node {
+    fn node(
+        &self,
+        style: iced::Style,
+        content: &str,
+        size: Option<u16>,
+    ) -> iced::Node {
+        let font = self.font;
         let font_cache = graphics::font_cache(self.context);
         let content = String::from(content);
 
@@ -17,6 +23,7 @@ impl text::Renderer<Color> for Renderer<'_> {
         // I noticed that the first measure is the one that matters in
         // practice. Here, we use a RefCell to store the cached measurement.
         let measure = RefCell::new(None);
+        let size = size.map(f32::from).unwrap_or(self.font_size);
 
         iced::Node::with_measure(style, move |bounds| {
             let mut measure = measure.borrow_mut();
@@ -35,6 +42,7 @@ impl text::Renderer<Color> for Renderer<'_> {
 
                 let mut text = Text::new(TextFragment {
                     text: content.clone(),
+                    font: Some(font),
                     scale: Some(Scale { x: size, y: size }),
                     ..Default::default()
                 });
@@ -71,13 +79,16 @@ impl text::Renderer<Color> for Renderer<'_> {
         &mut self,
         bounds: iced::Rectangle,
         content: &str,
-        size: f32,
+        size: Option<u16>,
         color: Option<Color>,
         horizontal_alignment: text::HorizontalAlignment,
         _vertical_alignment: text::VerticalAlignment,
     ) {
+        let size = size.map(f32::from).unwrap_or(self.font_size);
+
         let mut text = Text::new(TextFragment {
             text: String::from(content),
+            font: Some(self.font),
             scale: Some(Scale { x: size, y: size }),
             ..Default::default()
         });
@@ -101,7 +112,7 @@ impl text::Renderer<Color> for Renderer<'_> {
                 x: bounds.x,
                 y: bounds.y,
             },
-            color,
+            color.or(Some(graphics::BLACK)),
         );
     }
 }

@@ -11,7 +11,7 @@ impl Style {
     /// Defines the width of a [`Node`] in pixels.
     ///
     /// [`Node`]: struct.Node.html
-    pub fn width(mut self, width: u32) -> Self {
+    pub fn width(mut self, width: u16) -> Self {
         self.0.size.width = style::Dimension::Points(width as f32);
         self
     }
@@ -19,7 +19,7 @@ impl Style {
     /// Defines the height of a [`Node`] in pixels.
     ///
     /// [`Node`]: struct.Node.html
-    pub fn height(mut self, height: u32) -> Self {
+    pub fn height(mut self, height: u16) -> Self {
         self.0.size.height = style::Dimension::Points(height as f32);
         self
     }
@@ -27,7 +27,7 @@ impl Style {
     /// Defines the minimum width of a [`Node`] in pixels.
     ///
     /// [`Node`]: struct.Node.html
-    pub fn min_width(mut self, min_width: u32) -> Self {
+    pub fn min_width(mut self, min_width: u16) -> Self {
         self.0.min_size.width = style::Dimension::Points(min_width as f32);
         self
     }
@@ -35,7 +35,7 @@ impl Style {
     /// Defines the maximum width of a [`Node`] in pixels.
     ///
     /// [`Node`]: struct.Node.html
-    pub fn max_width(mut self, max_width: u32) -> Self {
+    pub fn max_width(mut self, max_width: u16) -> Self {
         self.0.max_size.width = style::Dimension::Points(max_width as f32);
         self.fill_width()
     }
@@ -43,16 +43,18 @@ impl Style {
     /// Defines the minimum height of a [`Node`] in pixels.
     ///
     /// [`Node`]: struct.Node.html
-    pub fn min_height(mut self, min_height: u32) -> Self {
-        self.0.min_size.height = style::Dimension::Points(min_height as f32);
+    pub fn min_height(mut self, min_height: u16) -> Self {
+        self.0.min_size.height =
+            style::Dimension::Points(f32::from(min_height));
         self
     }
 
     /// Defines the maximum height of a [`Node`] in pixels.
     ///
     /// [`Node`]: struct.Node.html
-    pub fn max_height(mut self, max_height: u32) -> Self {
-        self.0.max_size.height = style::Dimension::Points(max_height as f32);
+    pub fn max_height(mut self, max_height: u16) -> Self {
+        self.0.max_size.height =
+            style::Dimension::Points(f32::from(max_height));
         self.fill_height()
     }
 
@@ -100,7 +102,7 @@ impl Style {
     /// Sets the padding of a [`Node`] in pixels.
     ///
     /// [`Node`]: struct.Node.html
-    pub fn padding(mut self, px: u32) -> Self {
+    pub fn padding(mut self, px: u16) -> Self {
         self.0.padding = stretch::geometry::Rect {
             start: style::Dimension::Points(px as f32),
             end: style::Dimension::Points(px as f32),

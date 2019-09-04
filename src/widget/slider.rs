@@ -93,7 +93,7 @@ impl<'a, Message> Slider<'a, Message> {
     /// Sets the width of the [`Slider`] in pixels.
     ///
     /// [`Slider`]: struct.Slider.html
-    pub fn width(mut self, width: u32) -> Self {
+    pub fn width(mut self, width: u16) -> Self {
         self.style = self.style.width(width);
         self
     }

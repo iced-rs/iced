@@ -30,7 +30,7 @@ use std::hash::Hash;
 #[derive(Debug, Clone)]
 pub struct Text<Color> {
     content: String,
-    size: u16,
+    size: Option<u16>,
     color: Option<Color>,
     style: Style,
     horizontal_alignment: HorizontalAlignment,
@@ -44,7 +44,7 @@ impl<Color> Text<Color> {
     pub fn new(label: &str) -> Self {
         Text {
             content: String::from(label),
-            size: 20,
+            size: None,
             color: None,
             style: Style::default().fill_width(),
             horizontal_alignment: HorizontalAlignment::Left,
@@ -56,7 +56,7 @@ impl<Color> Text<Color> {
     ///
     /// [`Text`]: struct.Text.html
     pub fn size(mut self, size: u16) -> Self {
-        self.size = size;
+        self.size = Some(size);
         self
     }
 
@@ -71,7 +71,7 @@ impl<Color> Text<Color> {
     /// Sets the width of the [`Text`] boundaries in pixels.
     ///
     /// [`Text`]: struct.Text.html
-    pub fn width(mut self, width: u32) -> Self {
+    pub fn width(mut self, width: u16) -> Self {
         self.style = self.style.width(width);
         self
     }
@@ -79,7 +79,7 @@ impl<Color> Text<Color> {
     /// Sets the height of the [`Text`] boundaries in pixels.
     ///
     /// [`Text`]: struct.Text.html
-    pub fn height(mut self, height: u32) -> Self {
+    pub fn height(mut self, height: u16) -> Self {
         self.style = self.style.height(height);
         self
     }
@@ -112,7 +112,7 @@ where
     Renderer: self::Renderer<Color>,
 {
     fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(self.style, &self.content, f32::from(self.size))
+        renderer.node(self.style, &self.content, self.size)
     }
 
     fn draw(
@@ -124,7 +124,7 @@ where
         renderer.draw(
             layout.bounds(),
             &self.content,
-            f32::from(self.size),
+            self.size,
             self.color,
             self.horizontal_alignment,
             self.vertical_alignment,
@@ -160,7 +160,7 @@ pub trait Renderer<Color> {
     /// [`Style`]: ../../struct.Style.html
     /// [`Text`]: struct.Text.html
     /// [`Node::with_measure`]: ../../struct.Node.html#method.with_measure
-    fn node(&self, style: Style, content: &str, size: f32) -> Node;
+    fn node(&self, style: Style, content: &str, size: Option<u16>) -> Node;
 
     /// Draws a [`Text`] fragment.
     ///
@@ -179,7 +179,7 @@ pub trait Renderer<Color> {
         &mut self,
         bounds: Rectangle,
         content: &str,
-        size: f32,
+        size: Option<u16>,
         color: Option<Color>,
         horizontal_alignment: HorizontalAlignment,
         vertical_alignment: VerticalAlignment,

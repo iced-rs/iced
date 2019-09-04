@@ -97,7 +97,7 @@
 //! #     }
 //! #
 //! #     impl text::Renderer<[f32; 4]> for Renderer {
-//! #         fn node(&self, style: Style, _content: &str, _size: f32) -> Node {
+//! #         fn node(&self, style: Style, _content: &str, _size: Option<u16>) -> Node {
 //! #             Node::new(style)
 //! #         }
 //! #
@@ -105,7 +105,7 @@
 //! #             &mut self,
 //! #             _bounds: Rectangle,
 //! #             _content: &str,
-//! #             _size: f32,
+//! #             _size: Option<u16>,
 //! #             _color: Option<[f32; 4]>,
 //! #             _horizontal_alignment: HorizontalAlignment,
 //! #             _vertical_alignment: VerticalAlignment,

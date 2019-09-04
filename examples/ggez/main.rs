@@ -16,8 +16,8 @@ pub fn main() -> ggez::GameResult {
     let (context, event_loop) = {
         &mut ggez::ContextBuilder::new("iced", "ggez")
             .window_mode(ggez::conf::WindowMode {
-                width: 1280.0,
-                height: 1024.0,
+                width: 850.0,
+                height: 850.0,
                 ..ggez::conf::WindowMode::default()
             })
             .build()?
@@ -39,6 +39,7 @@ pub fn main() -> ggez::GameResult {
 
 struct Game {
     spritesheet: graphics::Image,
+    font: graphics::Font,
     tour: Tour,
 
     events: Vec<iced::Event>,
@@ -51,7 +52,8 @@ impl Game {
 
         Ok(Game {
             spritesheet: graphics::Image::new(context, "/ui.png").unwrap(),
-            tour: Tour::new(),
+            font: graphics::Font::new(context, "/Roboto-Regular.ttf").unwrap(),
+            tour: Tour::new(context),
 
             events: Vec::new(),
             cache: Some(iced::Cache::default()),
@@ -126,7 +128,7 @@ impl event::EventHandler for Game {
     }
 
     fn draw(&mut self, context: &mut ggez::Context) -> ggez::GameResult {
-        graphics::clear(context, [0.3, 0.3, 0.6, 1.0].into());
+        graphics::clear(context, graphics::WHITE);
 
         let screen = graphics::screen_coordinates(context);
 
@@ -134,14 +136,17 @@ impl event::EventHandler for Game {
             let layout = self.tour.layout();
 
             let content = Column::new()
-                .width(screen.w as u32)
-                .height(screen.h as u32)
+                .width(screen.w as u16)
+                .height(screen.h as u16)
                 .align_items(iced::Align::Center)
                 .justify_content(iced::Justify::Center)
                 .push(layout);
 
-            let renderer =
-                &mut Renderer::new(context, self.spritesheet.clone());
+            let renderer = &mut Renderer::new(
+                context,
+                self.spritesheet.clone(),
+                self.font,
+            );
 
             let mut ui = iced::UserInterface::build(
                 content,

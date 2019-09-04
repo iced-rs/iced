@@ -104,6 +104,7 @@ impl button::Renderer for Renderer<'_> {
 
         let mut text = Text::new(TextFragment {
             text: String::from(label),
+            font: Some(self.font),
             scale: Some(Scale { x: 20.0, y: 20.0 }),
             ..Default::default()
         });

@@ -1,22 +1,26 @@
 use super::widget::{
-    button, slider, Button, Checkbox, Column, Element, Radio, Row, Slider, Text,
+    button, slider, Button, Checkbox, Column, Element, Image, Radio, Row,
+    Slider, Text,
 };
 
-use ggez::graphics::{Color, BLACK};
+use ggez::graphics::{self, Color, FilterMode, BLACK};
+use ggez::Context;
 use iced::{text::HorizontalAlignment, Align};
 
 pub struct Tour {
     steps: Steps,
     back_button: button::State,
     next_button: button::State,
+    debug: bool,
 }
 
 impl Tour {
-    pub fn new() -> Tour {
+    pub fn new(context: &mut Context) -> Tour {
         Tour {
-            steps: Steps::new(),
+            steps: Steps::new(context),
             back_button: button::State::new(),
             next_button: button::State::new(),
+            debug: false,
         }
     }
 
@@ -29,7 +33,7 @@ impl Tour {
                 self.steps.advance();
             }
             Message::StepMessage(step_msg) => {
-                self.steps.update(step_msg);
+                self.steps.update(step_msg, &mut self.debug);
             }
         }
     }
@@ -39,6 +43,7 @@ impl Tour {
             steps,
             back_button,
             next_button,
+            ..
         } = self;
 
         let mut controls = Row::new();
@@ -59,12 +64,18 @@ impl Tour {
             );
         }
 
-        Column::new()
+        let element: Element<_> = Column::new()
             .max_width(500)
             .spacing(20)
-            .push(steps.layout().map(Message::StepMessage))
+            .push(steps.layout(self.debug).map(Message::StepMessage))
             .push(controls)
-            .into()
+            .into();
+
+        if self.debug {
+            element.explain(BLACK)
+        } else {
+            element
+        }
     }
 }
 
@@ -81,20 +92,18 @@ struct Steps {
 }
 
 impl Steps {
-    fn new() -> Steps {
+    fn new(context: &mut Context) -> Steps {
         Steps {
             steps: vec![
                 Step::Welcome,
-                Step::Buttons {
-                    primary: button::State::new(),
-                    secondary: button::State::new(),
-                    positive: button::State::new(),
-                },
-                Step::Checkbox { is_checked: false },
-                Step::Radio { selection: None },
                 Step::Slider {
                     state: slider::State::new(),
                     value: 50,
+                },
+                Step::RowsAndColumns {
+                    layout: Layout::Row,
+                    spacing_slider: slider::State::new(),
+                    spacing: 20,
                 },
                 Step::Text {
                     size_slider: slider::State::new(),
@@ -102,23 +111,33 @@ impl Steps {
                     color_sliders: [slider::State::new(); 3],
                     color: BLACK,
                 },
-                Step::RowsAndColumns {
-                    layout: Layout::Row,
-                    spacing_slider: slider::State::new(),
-                    spacing: 20,
+                Step::Radio { selection: None },
+                Step::Image {
+                    ferris: {
+                        let mut image =
+                            graphics::Image::new(context, "/ferris.png")
+                                .expect("Load ferris image");
+
+                        image.set_filter(FilterMode::Linear);
+
+                        image
+                    },
+                    width: 300,
+                    slider: slider::State::new(),
                 },
+                Step::Debugger,
                 Step::End,
             ],
             current: 0,
         }
     }
 
-    fn update(&mut self, msg: StepMessage) {
-        self.steps[self.current].update(msg);
+    fn update(&mut self, msg: StepMessage, debug: &mut bool) {
+        self.steps[self.current].update(msg, debug);
     }
 
-    fn layout(&mut self) -> Element<StepMessage> {
-        self.steps[self.current].layout()
+    fn layout(&mut self, debug: bool) -> Element<StepMessage> {
+        self.steps[self.current].layout(debug)
     }
 
     fn advance(&mut self) {
@@ -145,20 +164,14 @@ impl Steps {
 
 enum Step {
     Welcome,
-    Buttons {
-        primary: button::State,
-        secondary: button::State,
-        positive: button::State,
-    },
-    Checkbox {
-        is_checked: bool,
-    },
-    Radio {
-        selection: Option<Language>,
-    },
     Slider {
         state: slider::State,
         value: u16,
+    },
+    RowsAndColumns {
+        layout: Layout,
+        spacing_slider: slider::State,
+        spacing: u16,
     },
     Text {
         size_slider: slider::State,
@@ -166,31 +179,36 @@ enum Step {
         color_sliders: [slider::State; 3],
         color: Color,
     },
-    RowsAndColumns {
-        layout: Layout,
-        spacing_slider: slider::State,
-        spacing: u16,
+    Radio {
+        selection: Option<Language>,
     },
+    Image {
+        ferris: graphics::Image,
+        width: u16,
+        slider: slider::State,
+    },
+    Debugger,
     End,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum StepMessage {
-    CheckboxToggled(bool),
-    LanguageSelected(Language),
     SliderChanged(f32),
-    TextSizeChanged(f32),
-    TextColorChanged(Color),
     LayoutChanged(Layout),
     SpacingChanged(f32),
+    TextSizeChanged(f32),
+    TextColorChanged(Color),
+    LanguageSelected(Language),
+    ImageWidthChanged(f32),
+    DebugToggled(bool),
 }
 
 impl<'a> Step {
-    fn update(&mut self, msg: StepMessage) {
+    fn update(&mut self, msg: StepMessage, debug: &mut bool) {
         match msg {
-            StepMessage::CheckboxToggled(value) => {
-                if let Step::Checkbox { is_checked } = self {
-                    *is_checked = value;
+            StepMessage::DebugToggled(value) => {
+                if let Step::Debugger = self {
+                    *debug = value;
                 }
             }
             StepMessage::LanguageSelected(language) => {
@@ -223,31 +241,30 @@ impl<'a> Step {
                     *spacing = new_spacing.round() as u16;
                 }
             }
+            StepMessage::ImageWidthChanged(new_width) => {
+                if let Step::Image { width, .. } = self {
+                    *width = new_width.round() as u16;
+                }
+            }
         };
     }
 
     fn can_continue(&self) -> bool {
         match self {
             Step::Welcome => true,
-            Step::Buttons { .. } => true,
-            Step::Checkbox { is_checked } => *is_checked,
             Step::Radio { selection } => *selection == Some(Language::Rust),
             Step::Slider { .. } => true,
             Step::Text { .. } => true,
+            Step::Image { .. } => true,
             Step::RowsAndColumns { .. } => true,
+            Step::Debugger => true,
             Step::End => false,
         }
     }
 
-    fn layout(&mut self) -> Element<StepMessage> {
+    fn layout(&mut self, debug: bool) -> Element<StepMessage> {
         match self {
             Step::Welcome => Self::welcome().into(),
-            Step::Buttons {
-                primary,
-                secondary,
-                positive,
-            } => Self::buttons(primary, secondary, positive).into(),
-            Step::Checkbox { is_checked } => Self::checkbox(*is_checked).into(),
             Step::Radio { selection } => Self::radio(*selection).into(),
             Step::Slider { state, value } => Self::slider(state, *value).into(),
             Step::Text {
@@ -256,6 +273,11 @@ impl<'a> Step {
                 color_sliders,
                 color,
             } => Self::text(size_slider, *size, color_sliders, *color).into(),
+            Step::Image {
+                ferris,
+                width,
+                slider,
+            } => Self::image(ferris.clone(), *width, slider).into(),
             Step::RowsAndColumns {
                 layout,
                 spacing_slider,
@@ -263,6 +285,7 @@ impl<'a> Step {
             } => {
                 Self::rows_and_columns(*layout, spacing_slider, *spacing).into()
             }
+            Step::Debugger => Self::debugger(debug).into(),
             Step::End => Self::end().into(),
         }
     }
@@ -277,80 +300,26 @@ impl<'a> Step {
     fn welcome() -> Column<'a, StepMessage> {
         Self::container("Welcome!")
             .push(Text::new(
-                "This is a tour that introduces some of the features and \
-                 concepts related with UI development in Iced.",
+                "This a simple tour meant to showcase a bunch of widgets that \
+                 can be easily implemented on top of Iced.",
+            ))
+            .push(Text::new(
+                "Iced is a renderer-agnostic GUI library for Rust focused on \
+                 simplicity and type-safety. It is heavily inspired by Elm.",
+            ))
+            .push(Text::new(
+                "It was originally born as part of Coffee, an opinionated \
+                 2D game engine for Rust.",
+            ))
+            .push(Text::new(
+                "Iced does not provide a built-in renderer. This example runs \
+                 on a fairly simple renderer built on top of ggez, another \
+                 game library.",
             ))
             .push(Text::new(
                 "You will need to interact with the UI in order to reach the \
                  end!",
             ))
-    }
-
-    fn buttons(
-        primary: &'a mut button::State,
-        secondary: &'a mut button::State,
-        positive: &'a mut button::State,
-    ) -> Column<'a, StepMessage> {
-        Self::container("Button")
-            .push(Text::new("A button can fire actions when clicked."))
-            .push(Text::new(
-                "As of now, there are 3 different types of buttons: \
-                 primary, secondary, and positive.",
-            ))
-            .push(Button::new(primary, "Primary"))
-            .push(
-                Button::new(secondary, "Secondary")
-                    .class(button::Class::Secondary),
-            )
-            .push(
-                Button::new(positive, "Positive")
-                    .class(button::Class::Positive),
-            )
-            .push(Text::new(
-                "Additional types will be added in the near future! Choose \
-                 each type smartly depending on the situation.",
-            ))
-    }
-
-    fn checkbox(is_checked: bool) -> Column<'a, StepMessage> {
-        Self::container("Checkbox")
-            .push(Text::new(
-                "A box that can be checked. Useful to build toggle controls.",
-            ))
-            .push(Checkbox::new(
-                is_checked,
-                "Show \"Next\" button",
-                StepMessage::CheckboxToggled,
-            ))
-            .push(Text::new(
-                "A checkbox always has a label, and both the checkbox and its \
-                 label can be clicked to toggle it.",
-            ))
-    }
-
-    fn radio(selection: Option<Language>) -> Column<'a, StepMessage> {
-        let question = Column::new()
-            .padding(20)
-            .spacing(10)
-            .push(Text::new("Iced is written in..."))
-            .push(Language::all().iter().cloned().fold(
-                Column::new().padding(10).spacing(20),
-                |choices, language| {
-                    choices.push(Radio::new(
-                        language,
-                        language.into(),
-                        selection,
-                        StepMessage::LanguageSelected,
-                    ))
-                },
-            ));
-
-        Self::container("Radio button")
-            .push(Text::new(
-                "A radio button is normally used to represent a choice. Like \
-                 a checkbox, it always has a label.",
-            ))
-            .push(question)
     }
 
     fn slider(
@@ -376,55 +345,6 @@ impl<'a> Step {
                 Text::new(&value.to_string())
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
-    }
-
-    fn text(
-        size_slider: &'a mut slider::State,
-        size: u16,
-        color_sliders: &'a mut [slider::State; 3],
-        color: Color,
-    ) -> Column<'a, StepMessage> {
-        let size_section = Column::new()
-            .padding(20)
-            .spacing(20)
-            .push(Text::new("You can change its size:"))
-            .push(
-                Text::new(&format!("This text is {} points", size)).size(size),
-            )
-            .push(Slider::new(
-                size_slider,
-                10.0..=50.0,
-                size as f32,
-                StepMessage::TextSizeChanged,
-            ));
-
-        let [red, green, blue] = color_sliders;
-        let color_section = Column::new()
-            .padding(20)
-            .spacing(20)
-            .push(Text::new("And its color:"))
-            .push(Text::new(&format!("{:?}", color)).color(color))
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .push(Slider::new(red, 0.0..=1.0, color.r, move |r| {
-                        StepMessage::TextColorChanged(Color { r, ..color })
-                    }))
-                    .push(Slider::new(green, 0.0..=1.0, color.g, move |g| {
-                        StepMessage::TextColorChanged(Color { g, ..color })
-                    }))
-                    .push(Slider::new(blue, 0.0..=1.0, color.b, move |b| {
-                        StepMessage::TextColorChanged(Color { b, ..color })
-                    })),
-            );
-
-        Self::container("Text")
-            .push(Text::new(
-                "Text is probably the most essential widget for your UI. \
-                 It will try to adapt to the dimensions of its container.",
-            ))
-            .push(size_section)
-            .push(color_section)
     }
 
     fn rows_and_columns(
@@ -463,7 +383,7 @@ impl<'a> Step {
             .spacing(10)
             .push(Slider::new(
                 spacing_slider,
-                0.0..=100.0,
+                0.0..=80.0,
                 spacing as f32,
                 StepMessage::SpacingChanged,
             ))
@@ -489,10 +409,127 @@ impl<'a> Step {
             .push(spacing_section)
     }
 
+    fn text(
+        size_slider: &'a mut slider::State,
+        size: u16,
+        color_sliders: &'a mut [slider::State; 3],
+        color: Color,
+    ) -> Column<'a, StepMessage> {
+        let size_section = Column::new()
+            .padding(20)
+            .spacing(20)
+            .push(Text::new("You can change its size:"))
+            .push(
+                Text::new(&format!("This text is {} pixels", size)).size(size),
+            )
+            .push(Slider::new(
+                size_slider,
+                10.0..=70.0,
+                size as f32,
+                StepMessage::TextSizeChanged,
+            ));
+
+        let [red, green, blue] = color_sliders;
+        let color_section = Column::new()
+            .padding(20)
+            .spacing(20)
+            .push(Text::new("And its color:"))
+            .push(Text::new(&format!("{:?}", color)).color(color))
+            .push(
+                Row::new()
+                    .spacing(10)
+                    .push(Slider::new(red, 0.0..=1.0, color.r, move |r| {
+                        StepMessage::TextColorChanged(Color { r, ..color })
+                    }))
+                    .push(Slider::new(green, 0.0..=1.0, color.g, move |g| {
+                        StepMessage::TextColorChanged(Color { g, ..color })
+                    }))
+                    .push(Slider::new(blue, 0.0..=1.0, color.b, move |b| {
+                        StepMessage::TextColorChanged(Color { b, ..color })
+                    })),
+            );
+
+        Self::container("Text")
+            .push(Text::new(
+                "Text is probably the most essential widget for your UI. \
+                 It will try to adapt to the dimensions of its container.",
+            ))
+            .push(size_section)
+            .push(color_section)
+    }
+
+    fn radio(selection: Option<Language>) -> Column<'a, StepMessage> {
+        let question = Column::new()
+            .padding(20)
+            .spacing(10)
+            .push(Text::new("Iced is written in...").size(24))
+            .push(Language::all().iter().cloned().fold(
+                Column::new().padding(10).spacing(20),
+                |choices, language| {
+                    choices.push(Radio::new(
+                        language,
+                        language.into(),
+                        selection,
+                        StepMessage::LanguageSelected,
+                    ))
+                },
+            ));
+
+        Self::container("Radio button")
+            .push(Text::new(
+                "A radio button is normally used to represent a choice... \
+                 Surprise test!",
+            ))
+            .push(question)
+            .push(Text::new(
+                "Iced works very well with iterators! The list above is \
+                 basically created by folding a column over the different \
+                 choices, creating a radio button for each one of them!",
+            ))
+    }
+
+    fn image(
+        ferris: graphics::Image,
+        width: u16,
+        slider: &'a mut slider::State,
+    ) -> Column<'a, StepMessage> {
+        Self::container("Image")
+            .push(Text::new("An image that tries to keep its aspect ratio."))
+            .push(Image::new(ferris).width(width).align_self(Align::Center))
+            .push(Slider::new(
+                slider,
+                100.0..=500.0,
+                width as f32,
+                StepMessage::ImageWidthChanged,
+            ))
+            .push(
+                Text::new(&format!("Width: {} px", width.to_string()))
+                    .horizontal_alignment(HorizontalAlignment::Center),
+            )
+    }
+
+    fn debugger(debug: bool) -> Column<'a, StepMessage> {
+        Self::container("Debugger")
+            .push(Text::new(
+                "You can ask Iced to visually explain the layouting of the \
+                 different elements comprising your UI!",
+            ))
+            .push(Text::new(
+                "Give it a shot! Check the following checkbox to be able to \
+                 see element boundaries.",
+            ))
+            .push(Checkbox::new(
+                debug,
+                "Explain layout",
+                StepMessage::DebugToggled,
+            ))
+            .push(Text::new("Feel free to go back and take a look."))
+    }
+
     fn end() -> Column<'a, StepMessage> {
         Self::container("You reached the end!")
             .push(Text::new(
-                "This tour will be extended as more features are added.",
+                "This tour will be updated as more features are added.",
             ))
             .push(Text::new("Make sure to keep an eye on it!"))
     }
