@@ -151,8 +151,10 @@ The core of the library was implemented during May in [this pull request], using
 [`stretch`] for flexbox-based layouting. It was later released as the main
 feature of [Coffee 0.3.0].
 
-After release, different folks asked if the GUI could be split into a standalone
-crate, and well... Iced is here!
+After release, different folks suggested me to split the new [`ui` module] into
+its own standalone crate, as it could potentially benefit other engines and
+applications. I thought it was a great idea, and after a bit of work... Iced is
+here!
 
 As an interesting note, Iced does not rely on reference counting and interior
 mutability. There is not a single `Rc`, `RefCell`, or similar used
@@ -163,6 +165,7 @@ a distance!
 [this pull request]: https://github.com/hecrj/coffee/pull/35
 [`stretch`]: https://github.com/vislyhq/stretch
 [Coffee 0.3.0]: https://github.com/hecrj/coffee/releases/tag/0.3.0
+[`ui` module]: https://docs.rs/coffee/0.3.2/coffee/ui/index.html
 
 ## Contributing / Feedback
 If you want to contribute, you are more than welcome to be a part of the
