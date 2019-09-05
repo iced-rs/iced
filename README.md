@@ -171,8 +171,9 @@ on. Try to share you thoughts first! Feel free to open a new issue if you want
 to discuss new ideas.
 
 Any kind of feedback is welcome! You can open an issue or, if you want to talk,
-you can find me (and a bunch of awesome folks) over the `#gui-and-ui` channel in
-the [Rust Community Discord]. I go by `@lone_scientist` there.
+you can find me (and a bunch of awesome folks) over the `#games-and-graphics`
+and `#gui-and-ui` channels in the [Rust Community Discord]. I go by
+`@lone_scientist` there.
 
 [documentation]: http://iced-rs.surge.sh/iced/
 [examples]: https://github.com/hecrj/iced/tree/master/examples
