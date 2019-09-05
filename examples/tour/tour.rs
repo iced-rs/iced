@@ -24,7 +24,7 @@ impl Tour {
         }
     }
 
-    pub fn react(&mut self, event: Message) {
+    pub fn update(&mut self, event: Message) {
         match event {
             Message::BackPressed => {
                 self.steps.go_back();
@@ -38,7 +38,7 @@ impl Tour {
         }
     }
 
-    pub fn layout(&mut self) -> Element<Message> {
+    pub fn view(&mut self) -> Element<Message> {
         let Tour {
             steps,
             back_button,
@@ -67,7 +67,7 @@ impl Tour {
         let element: Element<_> = Column::new()
             .max_width(500)
             .spacing(20)
-            .push(steps.layout(self.debug).map(Message::StepMessage))
+            .push(steps.view(self.debug).map(Message::StepMessage))
             .push(controls)
             .into();
 
@@ -136,8 +136,8 @@ impl Steps {
         self.steps[self.current].update(msg, debug);
     }
 
-    fn layout(&mut self, debug: bool) -> Element<StepMessage> {
-        self.steps[self.current].layout(debug)
+    fn view(&mut self, debug: bool) -> Element<StepMessage> {
+        self.steps[self.current].view(debug)
     }
 
     fn advance(&mut self) {
@@ -262,7 +262,7 @@ impl<'a> Step {
         }
     }
 
-    fn layout(&mut self, debug: bool) -> Element<StepMessage> {
+    fn view(&mut self, debug: bool) -> Element<StepMessage> {
         match self {
             Step::Welcome => Self::welcome().into(),
             Step::Radio { selection } => Self::radio(*selection).into(),

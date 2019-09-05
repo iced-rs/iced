@@ -16,8 +16,8 @@ pub fn main() -> ggez::GameResult {
     let (context, event_loop) = {
         &mut ggez::ContextBuilder::new("iced", "ggez")
             .window_mode(ggez::conf::WindowMode {
-                width: 850.0,
-                height: 850.0,
+                width: 1280.0,
+                height: 1024.0,
                 ..ggez::conf::WindowMode::default()
             })
             .build()?
@@ -133,14 +133,14 @@ impl event::EventHandler for Game {
         let screen = graphics::screen_coordinates(context);
 
         let (messages, cursor) = {
-            let layout = self.tour.layout();
+            let view = self.tour.view();
 
             let content = Column::new()
                 .width(screen.w as u16)
                 .height(screen.h as u16)
                 .align_items(iced::Align::Center)
                 .justify_content(iced::Justify::Center)
-                .push(layout);
+                .push(view);
 
             let renderer = &mut Renderer::new(
                 context,
@@ -165,7 +165,7 @@ impl event::EventHandler for Game {
         };
 
         for message in messages {
-            self.tour.react(message);
+            self.tour.update(message);
         }
 
         mouse::set_cursor_type(context, into_cursor_type(cursor));
