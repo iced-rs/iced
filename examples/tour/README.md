@@ -24,10 +24,10 @@ cargo run --example tour
 [![Tour - Iced][gui_gif]][gui_gfycat]
 
 [`ggez`]: https://github.com/ggez/ggez
-[`tour`]: tour/tour.rs
-[`renderer`]: tour/renderer
-[`widget`]: tour/widget.rs
-[`main`]: tour/main.rs
+[`tour`]: tour.rs
+[`renderer`]: renderer
+[`widget`]: widget.rs
+[`main`]: main.rs
 [personal fork]: https://github.com/hecrj/ggez
 [add a `FontCache` type]: https://github.com/ggez/ggez/pull/679
 [fix some issues with HiDPI]: https://github.com/hecrj/ggez/commit/dfe2fd2423c51a6daf42c75f66dfaeaacd439fb1
