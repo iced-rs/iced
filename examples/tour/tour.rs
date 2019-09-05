@@ -66,6 +66,7 @@ impl Tour {
 
         let element: Element<_> = Column::new()
             .max_width(500)
+            .padding(20)
             .spacing(20)
             .push(steps.view(self.debug).map(Message::StepMessage))
             .push(controls)
