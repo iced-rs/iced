@@ -139,6 +139,7 @@ impl event::EventHandler for Game {
             let content = Column::new()
                 .width(screen.w as u16)
                 .height(screen.h as u16)
+                .padding(20)
                 .align_items(iced::Align::Center)
                 .justify_content(iced::Justify::Center)
                 .push(view);
