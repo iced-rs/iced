@@ -85,7 +85,7 @@ impl<I> Image<I> {
     /// This is useful if you want to override the default alignment given by
     /// the parent container.
     ///
-    /// [`Image`]: struct.Button.html
+    /// [`Image`]: struct.Image.html
     pub fn align_self(mut self, align: Align) -> Self {
         self.style = self.style.align_self(align);
         self
