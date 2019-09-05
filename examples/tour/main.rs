@@ -18,6 +18,7 @@ pub fn main() -> ggez::GameResult {
             .window_mode(ggez::conf::WindowMode {
                 width: 1280.0,
                 height: 1024.0,
+                resizable: true,
                 ..ggez::conf::WindowMode::default()
             })
             .build()?
