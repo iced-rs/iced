@@ -170,7 +170,11 @@ impl event::EventHandler for Game {
             self.tour.update(message);
         }
 
-        mouse::set_cursor_type(context, into_cursor_type(cursor));
+        let cursor_type = into_cursor_type(cursor);
+
+        if mouse::cursor_type(context) != cursor_type {
+            mouse::set_cursor_type(context, cursor_type);
+        }
 
         graphics::present(context)?;
         Ok(())
