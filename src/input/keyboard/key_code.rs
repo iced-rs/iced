@@ -1,8 +1,11 @@
 /// The symbolic name of a keyboard key.
 ///
-/// This is mostly the `KeyCode` type found in `winit`. If you are using
-/// `winit`, consider enabling the `winit` feature to get conversion
-/// implementations for free!
+/// This is mostly the `KeyCode` type found in [`winit`].
+///
+/// If you are using [`winit`], consider enabling the `winit` feature to get
+/// conversion implementations for free!
+///
+/// [`winit`]: https://docs.rs/winit/0.20.0-alpha3/winit/
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
 #[allow(missing_docs)]

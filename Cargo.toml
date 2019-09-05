@@ -11,6 +11,12 @@ readme = "README.md"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
+[badges]
+maintenance = { status = "actively-developed" }
+
+[package.metadata.docs.rs]
+features = ["winit"]
+
 [dependencies]
 stretch = "0.2"
 twox-hash = "1.5"

@@ -1,4 +1,9 @@
 /// The button of a mouse.
+///
+/// If you are using [`winit`], consider enabling the `winit` feature to get
+/// conversion implementations for free!
+///
+/// [`winit`]: https://docs.rs/winit/0.20.0-alpha3/winit/
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum Button {
     /// The left mouse button.
