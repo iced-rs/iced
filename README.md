@@ -175,7 +175,7 @@ you can find me (and a bunch of awesome folks) over the `#games-and-graphics`
 and `#gui-and-ui` channels in the [Rust Community Discord]. I go by
 `@lone_scientist` there.
 
-[documentation]: http://iced-rs.surge.sh/iced/
+[documentation]: https://docs.rs/iced
 [examples]: https://github.com/hecrj/iced/tree/master/examples
 [Coffee]: https://github.com/hecrj/coffee
 [Elm]: https://elm-lang.org/
