@@ -1,0 +1,17 @@
+[package]
+name = "iced_examples"
+version = "0.0.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+publish = false
+edition = "2018"
+
+[[bin]]
+name = "tour"
+path = "tour/main.rs"
+
+[dependencies]
+iced = { version = "0.1.0-alpha", path = "../core" }
+
+# A personal `ggez` fork that introduces a `FontCache` type to measure text
+# efficiently and fixes HiDPI issues.
+ggez = { version = "0.5", git = "https://github.com/hecrj/ggez.git" }
