@@ -25,4 +25,6 @@ twox-hash = "1.5"
 winit = { version = "0.20.0-alpha3", optional = true }
 
 [dev-dependencies]
+# A personal `ggez` fork that introduces a `FontCache` type to measure text
+# efficiently and fixes HiDPI issues.
 ggez = { version = "0.5", git = "https://github.com/hecrj/ggez.git" }
