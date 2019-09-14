@@ -26,16 +26,16 @@ The implementation consists of different modules:
     the [`renderer`].
 
 ```
-cargo run --example tour
+cargo run --package iced_ggez_tour
 ```
 
 [![Tour - Iced][gui_gif]][gui_gfycat]
 
 [`ggez`]: https://github.com/ggez/ggez
-[`tour`]: tour/tour.rs
-[`renderer`]: tour/renderer
-[`widget`]: tour/widget.rs
-[`main`]: tour/main.rs
+[`tour`]: tour/src/tour.rs
+[`renderer`]: tour/src/renderer
+[`widget`]: tour/src/widget.rs
+[`main`]: tour/src/main.rs
 [personal fork]: https://github.com/hecrj/ggez
 [add a `FontCache` type]: https://github.com/ggez/ggez/pull/679
 [fix some issues with HiDPI]: https://github.com/hecrj/ggez/commit/dfe2fd2423c51a6daf42c75f66dfaeaacd439fb1

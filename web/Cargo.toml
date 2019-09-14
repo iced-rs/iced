@@ -1,0 +1,27 @@
+[package]
+name = "iced_web"
+version = "0.1.0-alpha"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+description = "A web backend for Iced"
+license = "MIT"
+repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced_web"
+readme = "README.md"
+keywords = ["gui", "ui", "web", "interface", "widgets"]
+categories = ["web-programming"]
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[dependencies]
+iced = { version = "0.1.0-alpha", path = ".." }
+dodrio = "0.1.0"
+
+[dependencies.web-sys]
+version = "0.3.27"
+features = [
+    "console",
+    "Document",
+    "HtmlElement",
+]

@@ -27,7 +27,7 @@ pub fn main() -> ggez::GameResult {
     filesystem::mount(
         context,
         std::path::Path::new(&format!(
-            "{}/resources",
+            "{}/examples/resources",
             env!("CARGO_MANIFEST_DIR")
         )),
         true,
