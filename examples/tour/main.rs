@@ -12,6 +12,8 @@ use ggez::filesystem;
 use ggez::graphics;
 use ggez::input::mouse;
 
+extern crate env_logger;
+
 pub fn main() -> ggez::GameResult {
     let (context, event_loop) = {
         &mut ggez::ContextBuilder::new("iced", "ggez")
@@ -33,6 +35,7 @@ pub fn main() -> ggez::GameResult {
         true,
     );
 
+    env_logger::init();
     let state = &mut Game::new(context)?;
 
     event::run(context, event_loop, state)

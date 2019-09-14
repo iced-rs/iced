@@ -20,6 +20,7 @@ features = ["winit"]
 [dependencies]
 stretch = "0.2"
 twox-hash = "1.5"
+log = "0.4.8"
 
 # Enable to obtain conversion traits
 winit = { version = "0.20.0-alpha3", optional = true }
@@ -28,3 +29,4 @@ winit = { version = "0.20.0-alpha3", optional = true }
 # A personal `ggez` fork that introduces a `FontCache` type to measure text
 # efficiently and fixes HiDPI issues.
 ggez = { version = "0.5", git = "https://github.com/hecrj/ggez.git" }
+env_logger = "0.6.2"
