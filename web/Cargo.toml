@@ -17,6 +17,7 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 iced = { version = "0.1.0-alpha", path = ".." }
 dodrio = "0.1.0"
+futures = "0.1"
 
 [dependencies.web-sys]
 version = "0.3.27"

@@ -1,11 +1,7 @@
-use super::widget::{
-    button, slider, Button, Checkbox, Column, Element, Image, Radio, Row,
-    Slider, Text,
+use iced_web::{
+    button, slider, text::HorizontalAlignment, Align, Button, Checkbox, Color,
+    Column, Element, Image, Radio, Row, Slider, Text,
 };
-
-use ggez::graphics::{self, Color, FilterMode, BLACK};
-use ggez::Context;
-use iced::{text::HorizontalAlignment, Align};
 
 pub struct Tour {
     steps: Steps,
@@ -15,9 +11,9 @@ pub struct Tour {
 }
 
 impl Tour {
-    pub fn new(context: &mut Context) -> Tour {
+    pub fn new() -> Tour {
         Tour {
-            steps: Steps::new(context),
+            steps: Steps::new(),
             back_button: button::State::new(),
             next_button: button::State::new(),
             debug: false,
@@ -72,7 +68,7 @@ impl Tour {
             .into();
 
         if self.debug {
-            element.explain(BLACK)
+            element.explain(Color::BLACK)
         } else {
             element
         }
@@ -92,7 +88,7 @@ struct Steps {
 }
 
 impl Steps {
-    fn new(context: &mut Context) -> Steps {
+    fn new() -> Steps {
         Steps {
             steps: vec![
                 Step::Welcome,
@@ -109,19 +105,10 @@ impl Steps {
                     size_slider: slider::State::new(),
                     size: 30,
                     color_sliders: [slider::State::new(); 3],
-                    color: BLACK,
+                    color: Color::BLACK,
                 },
                 Step::Radio { selection: None },
                 Step::Image {
-                    ferris: {
-                        let mut image =
-                            graphics::Image::new(context, "/ferris.png")
-                                .expect("Load ferris image");
-
-                        image.set_filter(FilterMode::Linear);
-
-                        image
-                    },
                     width: 300,
                     slider: slider::State::new(),
                 },
@@ -183,7 +170,6 @@ enum Step {
         selection: Option<Language>,
     },
     Image {
-        ferris: graphics::Image,
         width: u16,
         slider: slider::State,
     },
@@ -273,11 +259,7 @@ impl<'a> Step {
                 color_sliders,
                 color,
             } => Self::text(size_slider, *size, color_sliders, *color).into(),
-            Step::Image {
-                ferris,
-                width,
-                slider,
-            } => Self::image(ferris.clone(), *width, slider).into(),
+            Step::Image { width, slider } => Self::image(*width, slider).into(),
             Step::RowsAndColumns {
                 layout,
                 spacing_slider,
@@ -489,13 +471,16 @@ impl<'a> Step {
     }
 
     fn image(
-        ferris: graphics::Image,
         width: u16,
         slider: &'a mut slider::State,
     ) -> Column<'a, StepMessage> {
         Self::container("Image")
             .push(Text::new("An image that tries to keep its aspect ratio."))
-            .push(Image::new(ferris).width(width).align_self(Align::Center))
+            .push(
+                Image::new("resources/ferris.png")
+                    .width(width)
+                    .align_self(Align::Center),
+            )
             .push(Slider::new(
                 slider,
                 100.0..=500.0,
