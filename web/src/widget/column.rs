@@ -1,4 +1,6 @@
-use crate::{Align, Element, Widget};
+use crate::{Align, Bus, Element, Widget};
+
+use dodrio::bumpalo;
 
 pub struct Column<'a, Message> {
     children: Vec<Element<'a, Message>>,
@@ -36,7 +38,23 @@ impl<'a, Message> Column<'a, Message> {
     }
 }
 
-impl<'a, Message> Widget<Message> for Column<'a, Message> {}
+impl<'a, Message> Widget<Message> for Column<'a, Message> {
+    fn node<'b>(
+        &self,
+        bump: &'b bumpalo::Bump,
+        publish: &Bus<Message>,
+    ) -> dodrio::Node<'b> {
+        use dodrio::builder::*;
+
+        let children: Vec<_> = self
+            .children
+            .iter()
+            .map(|element| element.widget.node(bump, publish))
+            .collect();
+
+        div(bump).children(children).finish()
+    }
+}
 
 impl<'a, Message> From<Column<'a, Message>> for Element<'a, Message>
 where

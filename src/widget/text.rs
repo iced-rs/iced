@@ -29,8 +29,10 @@ use std::hash::Hash;
 /// ```
 #[derive(Debug, Clone)]
 pub struct Text<Color> {
-    content: String,
-    size: Option<u16>,
+    /// The text contents
+    pub content: String,
+    /// The text size
+    pub size: Option<u16>,
     color: Option<Color>,
     style: Style,
     horizontal_alignment: HorizontalAlignment,

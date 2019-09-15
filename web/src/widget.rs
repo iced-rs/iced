@@ -1,3 +1,6 @@
+use crate::Bus;
+use dodrio::bumpalo;
+
 pub mod button;
 pub mod slider;
 pub mod text;
@@ -17,4 +20,14 @@ pub use row::Row;
 pub use slider::Slider;
 pub use text::Text;
 
-pub trait Widget<Message> {}
+pub trait Widget<Message> {
+    fn node<'b>(
+        &self,
+        bump: &'b bumpalo::Bump,
+        _bus: &Bus<Message>,
+    ) -> dodrio::Node<'b> {
+        use dodrio::builder::*;
+
+        div(bump).children(vec![text("WIP")]).finish()
+    }
+}

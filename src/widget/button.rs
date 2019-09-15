@@ -40,9 +40,11 @@ use std::hash::Hash;
 /// ![Button drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/button.png?raw=true)
 pub struct Button<'a, Message> {
     state: &'a mut State,
-    label: String,
+    /// The label of the button.
+    pub label: String,
     class: Class,
-    on_press: Option<Message>,
+    /// The message to produce when the button is pressed
+    pub on_press: Option<Message>,
     style: Style,
 }
 
