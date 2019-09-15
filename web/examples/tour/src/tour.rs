@@ -295,8 +295,8 @@ impl<'a> Step {
             ))
             .push(Text::new(
                 "Iced does not provide a built-in renderer. This example runs \
-                 on a fairly simple renderer built on top of ggez, another \
-                 game library.",
+                 on WebAssembly using dodrio, an experimental VDOM library \
+                 for Rust.",
             ))
             .push(Text::new(
                 "You will need to interact with the UI in order to reach the \

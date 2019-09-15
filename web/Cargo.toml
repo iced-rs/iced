@@ -18,6 +18,7 @@ maintenance = { status = "actively-developed" }
 iced = { version = "0.1.0-alpha", path = ".." }
 dodrio = "0.1.0"
 futures = "0.1"
+wasm-bindgen = "0.2.50"
 
 [dependencies.web-sys]
 version = "0.3.27"
@@ -25,4 +26,8 @@ features = [
     "console",
     "Document",
     "HtmlElement",
+    "HtmlInputElement",
+    "Event",
+    "EventTarget",
+    "InputEvent",
 ]

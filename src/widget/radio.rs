@@ -47,9 +47,12 @@ use std::hash::Hash;
 ///
 /// ![Radio buttons drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
 pub struct Radio<Color, Message> {
-    is_selected: bool,
-    on_click: Message,
-    label: String,
+    /// Whether the radio button is selected or not
+    pub is_selected: bool,
+    /// The message to produce when the radio button is clicked
+    pub on_click: Message,
+    /// The label of the radio button
+    pub label: String,
     label_color: Option<Color>,
 }
 

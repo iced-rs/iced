@@ -52,7 +52,10 @@ impl<'a, Message> Widget<Message> for Column<'a, Message> {
             .map(|element| element.widget.node(bump, publish))
             .collect();
 
-        div(bump).children(children).finish()
+        div(bump)
+            .attr("style", "display: flex; flex-direction: column")
+            .children(children)
+            .finish()
     }
 }
 

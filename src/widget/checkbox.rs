@@ -38,9 +38,12 @@ use crate::{
 ///
 /// ![Checkbox drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/checkbox.png?raw=true)
 pub struct Checkbox<Color, Message> {
-    is_checked: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message>,
-    label: String,
+    /// Whether the checkbox is checked or not
+    pub is_checked: bool,
+    /// Toggle message to fire
+    pub on_toggle: Box<dyn Fn(bool) -> Message>,
+    /// The label of the checkbox
+    pub label: String,
     label_color: Option<Color>,
 }
 

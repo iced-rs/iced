@@ -1,7 +1,7 @@
 use crate::{Bus, Element, Widget};
-use dodrio::bumpalo;
-
 pub use iced::button::{Class, State};
+
+use dodrio::bumpalo;
 
 pub type Button<'a, Message> = iced::Button<'a, Message>;
 

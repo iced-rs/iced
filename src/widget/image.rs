@@ -24,9 +24,11 @@ use std::hash::Hash;
 /// let image = Image::new(my_handle);
 /// ```
 pub struct Image<I> {
-    image: I,
+    /// The image handle
+    pub image: I,
     source: Option<Rectangle<u16>>,
-    width: Option<u16>,
+    /// The width of the image
+    pub width: Option<u16>,
     height: Option<u16>,
     style: Style,
 }

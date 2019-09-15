@@ -40,7 +40,10 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
             .map(|element| element.widget.node(bump, publish))
             .collect();
 
-        div(bump).children(children).finish()
+        div(bump)
+            .attr("style", "display: flex; flex-direction: row")
+            .children(children)
+            .finish()
     }
 }
 

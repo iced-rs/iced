@@ -25,9 +25,5 @@ pub trait Widget<Message> {
         &self,
         bump: &'b bumpalo::Bump,
         _bus: &Bus<Message>,
-    ) -> dodrio::Node<'b> {
-        use dodrio::builder::*;
-
-        div(bump).children(vec![text("WIP")]).finish()
-    }
+    ) -> dodrio::Node<'b>;
 }

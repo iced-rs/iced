@@ -6,6 +6,7 @@
 //! [`State`]: struct.State.html
 use std::hash::Hash;
 use std::ops::RangeInclusive;
+use std::rc::Rc;
 
 use crate::input::{mouse, ButtonState};
 use crate::{
@@ -42,9 +43,12 @@ use crate::{
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 pub struct Slider<'a, Message> {
     state: &'a mut State,
-    range: RangeInclusive<f32>,
-    value: f32,
-    on_change: Box<dyn Fn(f32) -> Message>,
+    /// The range of the slider
+    pub range: RangeInclusive<f32>,
+    /// The current value of the slider
+    pub value: f32,
+    /// The function to produce messages on change
+    pub on_change: Rc<Box<dyn Fn(f32) -> Message>>,
     style: Style,
 }
 
@@ -85,7 +89,7 @@ impl<'a, Message> Slider<'a, Message> {
             state,
             value: value.max(*range.start()).min(*range.end()),
             range,
-            on_change: Box::new(on_change),
+            on_change: Rc::new(Box::new(on_change)),
             style: Style::default().min_width(100).fill_width(),
         }
     }
