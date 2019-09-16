@@ -7,7 +7,6 @@ matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
-cache: cargo
 before_install:
   - |
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
