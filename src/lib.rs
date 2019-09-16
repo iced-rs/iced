@@ -196,7 +196,6 @@
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
-#[macro_use] extern crate log;
 pub mod input;
 pub mod renderer;
 pub mod widget;
