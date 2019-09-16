@@ -13,6 +13,8 @@ use ggez::graphics;
 use ggez::input::mouse;
 
 pub fn main() -> ggez::GameResult {
+    env_logger::init();
+
     let (context, event_loop) = {
         &mut ggez::ContextBuilder::new("iced", "ggez")
             .window_mode(ggez::conf::WindowMode {
