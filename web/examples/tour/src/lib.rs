@@ -1,4 +1,4 @@
-use futures::{future, Future};
+use futures::Future;
 use iced_web::UserInterface;
 use wasm_bindgen::prelude::*;
 
@@ -23,10 +23,10 @@ impl iced_web::UserInterface for Tour {
     fn update(
         &mut self,
         message: tour::Message,
-    ) -> Box<dyn Future<Item = tour::Message, Error = ()>> {
+    ) -> Option<Box<dyn Future<Output = tour::Message>>> {
         self.update(message);
 
-        Box::new(future::err(()))
+        None
     }
 
     fn view(&mut self) -> iced_web::Element<tour::Message> {

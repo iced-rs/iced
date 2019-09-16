@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 iced_web = { path = "../.." }
 wasm-bindgen = "0.2.50"
-futures = "0.1"
+futures-preview = "=0.3.0-alpha.18"
 log = "0.4"
 console_error_panic_hook = "0.1.6"
 console_log = "0.1.2"

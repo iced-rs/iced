@@ -17,7 +17,7 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 iced = { version = "0.1.0-alpha", path = ".." }
 dodrio = "0.1.0"
-futures = "0.1"
+futures-preview = "=0.3.0-alpha.18"
 wasm-bindgen = "0.2.50"
 
 [dependencies.web-sys]

@@ -19,7 +19,7 @@ pub trait UserInterface {
     fn update(
         &mut self,
         message: Self::Message,
-    ) -> Box<dyn Future<Item = Self::Message, Error = ()>>;
+    ) -> Option<Box<dyn Future<Output = Self::Message>>>;
 
     fn view(&mut self) -> Element<Self::Message>;
 
