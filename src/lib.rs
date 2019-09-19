@@ -78,7 +78,7 @@
 //! # mod iced_wgpu {
 //! #     use iced::{
 //! #         button, text, text::HorizontalAlignment, text::VerticalAlignment,
-//! #         MouseCursor, Node, Point, Rectangle, Style,
+//! #         MouseCursor, Node, Point, Rectangle, Style, Color
 //! #     };
 //! #
 //! #     pub struct Renderer {}
@@ -96,7 +96,7 @@
 //! #         }
 //! #     }
 //! #
-//! #     impl text::Renderer<[f32; 4]> for Renderer {
+//! #     impl text::Renderer for Renderer {
 //! #         fn node(&self, style: Style, _content: &str, _size: Option<u16>) -> Node {
 //! #             Node::new(style)
 //! #         }
@@ -106,7 +106,7 @@
 //! #             _bounds: Rectangle,
 //! #             _content: &str,
 //! #             _size: Option<u16>,
-//! #             _color: Option<[f32; 4]>,
+//! #             _color: Option<Color>,
 //! #             _horizontal_alignment: HorizontalAlignment,
 //! #             _vertical_alignment: VerticalAlignment,
 //! #         ) {

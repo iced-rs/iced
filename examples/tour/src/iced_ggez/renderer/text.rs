@@ -5,7 +5,7 @@ use iced::text;
 use std::cell::RefCell;
 use std::f32;
 
-impl text::Renderer<iced::Color> for Renderer<'_> {
+impl text::Renderer for Renderer<'_> {
     fn node(
         &self,
         style: iced::Style,

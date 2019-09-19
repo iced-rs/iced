@@ -1,8 +1,8 @@
-use crate::{Bus, Color, Element, Widget};
+use crate::{Bus, Element, Widget};
 
 use dodrio::bumpalo;
 
-pub type Checkbox<Message> = iced::Checkbox<Color, Message>;
+pub use iced::Checkbox;
 
 impl<Message> Widget<Message> for Checkbox<Message>
 where

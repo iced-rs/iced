@@ -2,8 +2,6 @@ use super::{into_color, Renderer};
 use ggez::graphics::{DrawMode, MeshBuilder, Rect};
 
 impl iced::renderer::Debugger for Renderer<'_> {
-    type Color = iced::Color;
-
     fn explain(&mut self, layout: &iced::Layout<'_>, color: iced::Color) {
         let bounds = layout.bounds();
 

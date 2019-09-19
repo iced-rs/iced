@@ -2,13 +2,13 @@
 use crate::input::{mouse, ButtonState};
 use crate::widget::{text, Column, Row, Text};
 use crate::{
-    Align, Element, Event, Hasher, Layout, MouseCursor, Node, Point, Rectangle,
-    Widget,
+    Align, Color, Element, Event, Hasher, Layout, MouseCursor, Node, Point,
+    Rectangle, Widget,
 };
 
 use std::hash::Hash;
 
-/// A circular button representing a choice, with a generic text `Color`.
+/// A circular button representing a choice.
 ///
 /// It implements [`Widget`] when the associated `Renderer` implements the
 /// [`radio::Renderer`] trait.
@@ -18,12 +18,7 @@ use std::hash::Hash;
 ///
 /// # Example
 /// ```
-/// use iced::{Column, Radio};
-///
-/// #[derive(Debug, Clone, Copy)]
-/// pub enum Color {
-///     Black,
-/// }
+/// use iced::Radio;
 ///
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {
@@ -38,27 +33,28 @@ use std::hash::Hash;
 ///
 /// let selected_choice = Some(Choice::A);
 ///
-/// Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected)
-///     .label_color(Color::Black);
+/// Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected);
 ///
-/// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected)
-///     .label_color(Color::Black);
+/// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
 /// ```
 ///
 /// ![Radio buttons drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
-pub struct Radio<Color, Message> {
+pub struct Radio<Message> {
     /// Whether the radio button is selected or not
     pub is_selected: bool,
+
     /// The message to produce when the radio button is clicked
     pub on_click: Message,
+
     /// The label of the radio button
     pub label: String,
-    label_color: Option<Color>,
+
+    /// The color of the label
+    pub label_color: Option<Color>,
 }
 
-impl<Color, Message> std::fmt::Debug for Radio<Color, Message>
+impl<Message> std::fmt::Debug for Radio<Message>
 where
-    Color: std::fmt::Debug,
     Message: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -71,7 +67,7 @@ where
     }
 }
 
-impl<Color, Message> Radio<Color, Message> {
+impl<Message> Radio<Message> {
     /// Creates a new [`Radio`] button.
     ///
     /// It expects:
@@ -98,17 +94,15 @@ impl<Color, Message> Radio<Color, Message> {
     /// Sets the `Color` of the label of the [`Radio`].
     ///
     /// [`Radio`]: struct.Radio.html
-    pub fn label_color(mut self, color: Color) -> Self {
-        self.label_color = Some(color);
+    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
+        self.label_color = Some(color.into());
         self
     }
 }
 
-impl<Color, Message, Renderer> Widget<Message, Renderer>
-    for Radio<Color, Message>
+impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message>
 where
-    Color: 'static + Copy + std::fmt::Debug,
-    Renderer: self::Renderer + text::Renderer<Color>,
+    Renderer: self::Renderer + text::Renderer,
     Message: Copy + std::fmt::Debug,
 {
     fn node(&self, renderer: &mut Renderer) -> Node {
@@ -201,14 +195,13 @@ pub trait Renderer {
     ) -> MouseCursor;
 }
 
-impl<'a, Color, Message, Renderer> From<Radio<Color, Message>>
+impl<'a, Message, Renderer> From<Radio<Message>>
     for Element<'a, Message, Renderer>
 where
-    Color: 'static + Copy + std::fmt::Debug,
-    Renderer: self::Renderer + text::Renderer<Color>,
+    Renderer: self::Renderer + text::Renderer,
     Message: 'static + Copy + std::fmt::Debug,
 {
-    fn from(checkbox: Radio<Color, Message>) -> Element<'a, Message, Renderer> {
+    fn from(checkbox: Radio<Message>) -> Element<'a, Message, Renderer> {
         Element::new(checkbox)
     }
 }

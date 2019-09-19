@@ -1,11 +1,12 @@
 //! Write some text for your users to read.
 use crate::{
-    Element, Hasher, Layout, MouseCursor, Node, Point, Rectangle, Style, Widget,
+    Color, Element, Hasher, Layout, MouseCursor, Node, Point, Rectangle, Style,
+    Widget,
 };
 
 use std::hash::Hash;
 
-/// A fragment of text with a generic `Color`.
+/// A paragraph of text.
 ///
 /// It implements [`Widget`] when the associated `Renderer` implements the
 /// [`text::Renderer`] trait.
@@ -16,19 +17,13 @@ use std::hash::Hash;
 /// # Example
 ///
 /// ```
-/// use iced::Text;
-///
-/// #[derive(Debug, Clone, Copy)]
-/// pub enum Color {
-///     Black,
-/// }
+/// use iced::{Text, Color};
 ///
 /// Text::new("I <3 iced!")
-///     .size(40)
-///     .color(Color::Black);
+///     .size(40);
 /// ```
 #[derive(Debug, Clone)]
-pub struct Text<Color> {
+pub struct Text {
     /// The text contents
     pub content: String,
     /// The text size
@@ -39,7 +34,7 @@ pub struct Text<Color> {
     vertical_alignment: VerticalAlignment,
 }
 
-impl<Color> Text<Color> {
+impl Text {
     /// Create a new fragment of [`Text`] with the given contents.
     ///
     /// [`Text`]: struct.Text.html
@@ -65,8 +60,8 @@ impl<Color> Text<Color> {
     /// Sets the `Color` of the [`Text`].
     ///
     /// [`Text`]: struct.Text.html
-    pub fn color(mut self, color: Color) -> Self {
-        self.color = Some(color);
+    pub fn color<C: Into<Color>>(mut self, color: C) -> Self {
+        self.color = Some(color.into());
         self
     }
 
@@ -108,10 +103,9 @@ impl<Color> Text<Color> {
     }
 }
 
-impl<Message, Renderer, Color> Widget<Message, Renderer> for Text<Color>
+impl<Message, Renderer> Widget<Message, Renderer> for Text
 where
-    Color: Copy + std::fmt::Debug,
-    Renderer: self::Renderer<Color>,
+    Renderer: self::Renderer,
 {
     fn node(&self, renderer: &mut Renderer) -> Node {
         renderer.node(self.style, &self.content, self.size)
@@ -143,7 +137,7 @@ where
     }
 }
 
-/// The renderer of a [`Text`] fragment with a generic `Color`.
+/// The renderer of a [`Text`] fragment.
 ///
 /// Your [renderer] will need to implement this trait before being
 /// able to use [`Text`] in your [`UserInterface`].
@@ -151,7 +145,7 @@ where
 /// [`Text`]: struct.Text.html
 /// [renderer]: ../../renderer/index.html
 /// [`UserInterface`]: ../../struct.UserInterface.html
-pub trait Renderer<Color> {
+pub trait Renderer {
     /// Creates a [`Node`] with the given [`Style`] for the provided [`Text`]
     /// contents and size.
     ///
@@ -188,13 +182,11 @@ pub trait Renderer<Color> {
     );
 }
 
-impl<'a, Message, Renderer, Color> From<Text<Color>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Text> for Element<'a, Message, Renderer>
 where
-    Color: 'static + Copy + std::fmt::Debug,
-    Renderer: self::Renderer<Color>,
+    Renderer: self::Renderer,
 {
-    fn from(text: Text<Color>) -> Element<'a, Message, Renderer> {
+    fn from(text: Text) -> Element<'a, Message, Renderer> {
         Element::new(text)
     }
 }

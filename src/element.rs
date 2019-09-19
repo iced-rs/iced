@@ -1,7 +1,7 @@
 use stretch::{geometry, result};
 
 use crate::{
-    renderer, Event, Hasher, Layout, MouseCursor, Node, Point, Widget,
+    renderer, Color, Event, Hasher, Layout, MouseCursor, Node, Point, Widget,
 };
 
 /// A generic [`Widget`].
@@ -210,16 +210,16 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     ///
     /// [`Element`]: struct.Element.html
     /// [`Renderer`]: trait.Renderer.html
-    pub fn explain(
+    pub fn explain<C: Into<Color>>(
         self,
-        color: Renderer::Color,
+        color: C,
     ) -> Element<'a, Message, Renderer>
     where
         Message: 'static,
         Renderer: 'a + renderer::Debugger,
     {
         Element {
-            widget: Box::new(Explain::new(self, color)),
+            widget: Box::new(Explain::new(self, color.into())),
         }
     }
 
@@ -309,7 +309,7 @@ where
 
 struct Explain<'a, Message, Renderer: renderer::Debugger> {
     element: Element<'a, Message, Renderer>,
-    color: Renderer::Color,
+    color: Color,
 }
 
 impl<'a, Message, Renderer> std::fmt::Debug for Explain<'a, Message, Renderer>
@@ -327,10 +327,7 @@ impl<'a, Message, Renderer> Explain<'a, Message, Renderer>
 where
     Renderer: renderer::Debugger,
 {
-    fn new(
-        element: Element<'a, Message, Renderer>,
-        color: Renderer::Color,
-    ) -> Self {
+    fn new(element: Element<'a, Message, Renderer>, color: Color) -> Self {
         Explain { element, color }
     }
 }

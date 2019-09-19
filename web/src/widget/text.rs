@@ -1,9 +1,7 @@
-use crate::{Bus, Color, Element, Widget};
+use crate::{Bus, Element, Widget};
 use dodrio::bumpalo;
 
-pub use iced::text::HorizontalAlignment;
-
-pub type Text = iced::Text<Color>;
+pub use iced::text::*;
 
 impl<'a, Message> Widget<Message> for Text {
     fn node<'b>(

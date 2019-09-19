@@ -17,19 +17,12 @@
 //! [`text::Renderer`]: ../widget/text/trait.Renderer.html
 //! [`Checkbox`]: ../widget/checkbox/struct.Checkbox.html
 //! [`checkbox::Renderer`]: ../widget/checkbox/trait.Renderer.html
-use crate::Layout;
+use crate::{Color, Layout};
 
 /// A renderer able to graphically explain a [`Layout`].
 ///
 /// [`Layout`]: ../struct.Layout.html
 pub trait Debugger {
-    /// The color type that will be used to configure the _explanation_.
-    ///
-    /// This is the type that will be asked in [`Element::explain`].
-    ///
-    /// [`Element::explain`]: ../struct.Element.html#method.explain
-    type Color: Copy;
-
     /// Explains the [`Layout`] of an [`Element`] for debugging purposes.
     ///
     /// This will be called when [`Element::explain`] has been used. It should
@@ -41,5 +34,5 @@ pub trait Debugger {
     /// [`Layout`]: struct.Layout.html
     /// [`Element`]: struct.Element.html
     /// [`Element::explain`]: struct.Element.html#method.explain
-    fn explain(&mut self, layout: &Layout<'_>, color: Self::Color);
+    fn explain(&mut self, layout: &Layout<'_>, color: Color);
 }

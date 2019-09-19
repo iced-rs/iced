@@ -1,8 +1,8 @@
-use crate::{Bus, Color, Element, Widget};
+use crate::{Bus, Element, Widget};
 
 use dodrio::bumpalo;
 
-pub type Radio<Message> = iced::Radio<Color, Message>;
+pub use iced::Radio;
 
 impl<Message> Widget<Message> for Radio<Message>
 where

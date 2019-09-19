@@ -4,11 +4,11 @@ use std::hash::Hash;
 use crate::input::{mouse, ButtonState};
 use crate::widget::{text, Column, Row, Text};
 use crate::{
-    Align, Element, Event, Hasher, Layout, MouseCursor, Node, Point, Rectangle,
-    Widget,
+    Align, Color, Element, Event, Hasher, Layout, MouseCursor, Node, Point,
+    Rectangle, Widget,
 };
 
-/// A box that can be checked, with a generic text `Color`.
+/// A box that can be checked.
 ///
 /// It implements [`Widget`] when the associated `Renderer` implements the
 /// [`checkbox::Renderer`] trait.
@@ -19,12 +19,7 @@ use crate::{
 /// # Example
 ///
 /// ```
-/// use iced::Checkbox;
-///
-/// #[derive(Debug, Clone, Copy)]
-/// pub enum Color {
-///     Black,
-/// }
+/// use iced::{Checkbox, Color};
 ///
 /// pub enum Message {
 ///     CheckboxToggled(bool),
@@ -32,25 +27,28 @@ use crate::{
 ///
 /// let is_checked = true;
 ///
-/// Checkbox::new(is_checked, "Toggle me!", Message::CheckboxToggled)
-///     .label_color(Color::Black);
+/// Checkbox::new(is_checked, "Toggle me!", Message::CheckboxToggled);
 /// ```
 ///
 /// ![Checkbox drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/checkbox.png?raw=true)
-pub struct Checkbox<Color, Message> {
+pub struct Checkbox<Message> {
     /// Whether the checkbox is checked or not
     pub is_checked: bool,
-    /// Toggle message to fire
+
+    /// Function to call when checkbox is toggled to produce a __message__.
+    ///
+    /// The function should be provided `true` when the checkbox is checked
+    /// and `false` otherwise.
     pub on_toggle: Box<dyn Fn(bool) -> Message>,
+
     /// The label of the checkbox
     pub label: String,
-    label_color: Option<Color>,
+
+    /// The color of the label
+    pub label_color: Option<Color>,
 }
 
-impl<Color, Message> std::fmt::Debug for Checkbox<Color, Message>
-where
-    Color: std::fmt::Debug,
-{
+impl<Message> std::fmt::Debug for Checkbox<Message> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Checkbox")
             .field("is_checked", &self.is_checked)
@@ -60,7 +58,7 @@ where
     }
 }
 
-impl<Color, Message> Checkbox<Color, Message> {
+impl<Message> Checkbox<Message> {
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
@@ -83,20 +81,18 @@ impl<Color, Message> Checkbox<Color, Message> {
         }
     }
 
-    /// Sets the `Color` of the label of the [`Checkbox`].
+    /// Sets the color of the label of the [`Checkbox`].
     ///
     /// [`Checkbox`]: struct.Checkbox.html
-    pub fn label_color(mut self, color: Color) -> Self {
-        self.label_color = Some(color);
+    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
+        self.label_color = Some(color.into());
         self
     }
 }
 
-impl<Color, Message, Renderer> Widget<Message, Renderer>
-    for Checkbox<Color, Message>
+impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
 where
-    Color: 'static + Copy + std::fmt::Debug,
-    Renderer: self::Renderer + text::Renderer<Color>,
+    Renderer: self::Renderer + text::Renderer,
 {
     fn node(&self, renderer: &mut Renderer) -> Node {
         Row::<(), Renderer>::new()
@@ -191,16 +187,13 @@ pub trait Renderer {
     ) -> MouseCursor;
 }
 
-impl<'a, Color, Message, Renderer> From<Checkbox<Color, Message>>
+impl<'a, Message, Renderer> From<Checkbox<Message>>
     for Element<'a, Message, Renderer>
 where
-    Color: 'static + Copy + std::fmt::Debug,
-    Renderer: self::Renderer + text::Renderer<Color>,
+    Renderer: self::Renderer + text::Renderer,
     Message: 'static,
 {
-    fn from(
-        checkbox: Checkbox<Color, Message>,
-    ) -> Element<'a, Message, Renderer> {
+    fn from(checkbox: Checkbox<Message>) -> Element<'a, Message, Renderer> {
         Element::new(checkbox)
     }
 }
