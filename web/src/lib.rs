@@ -3,14 +3,12 @@ use futures::Future;
 use std::cell::RefCell;
 
 mod bus;
-mod color;
 mod element;
 mod widget;
 
 pub use bus::Bus;
-pub use color::Color;
 pub use element::Element;
-pub use iced::Align;
+pub use iced::{Align, Color};
 pub use widget::*;
 
 pub trait UserInterface {

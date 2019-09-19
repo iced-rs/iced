@@ -1,10 +1,10 @@
-use super::Renderer;
-use ggez::graphics::{Color, DrawMode, MeshBuilder, Rect};
+use super::{into_color, Renderer};
+use ggez::graphics::{DrawMode, MeshBuilder, Rect};
 
 impl iced::renderer::Debugger for Renderer<'_> {
-    type Color = Color;
+    type Color = iced::Color;
 
-    fn explain(&mut self, layout: &iced::Layout<'_>, color: Color) {
+    fn explain(&mut self, layout: &iced::Layout<'_>, color: iced::Color) {
         let bounds = layout.bounds();
 
         let mut debug_mesh =
@@ -18,7 +18,7 @@ impl iced::renderer::Debugger for Renderer<'_> {
                 w: bounds.width,
                 h: bounds.height,
             },
-            color,
+            into_color(color),
         );
 
         self.debug_mesh = Some(debug_mesh);

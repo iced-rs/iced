@@ -107,7 +107,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer> for Slider<'a, Message>
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, _renderer: &Renderer) -> Node {
+    fn node(&self, _renderer: &mut Renderer) -> Node {
         Node::new(self.style.height(25))
     }
 

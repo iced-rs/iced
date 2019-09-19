@@ -1,4 +1,4 @@
-use iced_web::{
+use crate::widget::{
     button, slider, text::HorizontalAlignment, Align, Button, Checkbox, Color,
     Column, Element, Image, Radio, Row, Slider, Text,
 };

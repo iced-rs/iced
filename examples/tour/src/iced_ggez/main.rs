@@ -1,10 +1,4 @@
-mod renderer;
-mod tour;
-mod widget;
-
-use renderer::Renderer;
-use tour::Tour;
-use widget::Column;
+use iced_tour::{iced_ggez, Tour};
 
 use ggez;
 use ggez::event;
@@ -26,10 +20,7 @@ pub fn main() -> ggez::GameResult {
 
     filesystem::mount(
         context,
-        std::path::Path::new(&format!(
-            "{}/examples/resources",
-            env!("CARGO_MANIFEST_DIR")
-        )),
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")),
         true,
     );
 
@@ -41,6 +32,7 @@ pub fn main() -> ggez::GameResult {
 struct Game {
     spritesheet: graphics::Image,
     font: graphics::Font,
+    images: iced_ggez::ImageCache,
     tour: Tour,
 
     events: Vec<iced::Event>,
@@ -52,9 +44,12 @@ impl Game {
         graphics::set_default_filter(context, graphics::FilterMode::Nearest);
 
         Ok(Game {
-            spritesheet: graphics::Image::new(context, "/ui.png").unwrap(),
-            font: graphics::Font::new(context, "/Roboto-Regular.ttf").unwrap(),
-            tour: Tour::new(context),
+            spritesheet: graphics::Image::new(context, "/resources/ui.png")
+                .unwrap(),
+            font: graphics::Font::new(context, "/resources/Roboto-Regular.ttf")
+                .unwrap(),
+            images: iced_ggez::ImageCache::new(),
+            tour: Tour::new(),
 
             events: Vec::new(),
             cache: Some(iced::Cache::default()),
@@ -136,7 +131,7 @@ impl event::EventHandler for Game {
         let (messages, cursor) = {
             let view = self.tour.view();
 
-            let content = Column::new()
+            let content = iced_ggez::Column::new()
                 .width(screen.w as u16)
                 .height(screen.h as u16)
                 .padding(20)
@@ -144,8 +139,9 @@ impl event::EventHandler for Game {
                 .justify_content(iced::Justify::Center)
                 .push(view);
 
-            let renderer = &mut Renderer::new(
+            let renderer = &mut iced_ggez::Renderer::new(
                 context,
+                &mut self.images,
                 self.spritesheet.clone(),
                 self.font,
             );

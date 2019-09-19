@@ -3,15 +3,48 @@ use super::Renderer;
 use ggez::{graphics, nalgebra};
 use iced::image;
 
-impl image::Renderer<graphics::Image> for Renderer<'_> {
+pub struct Cache {
+    images: std::collections::HashMap<String, graphics::Image>,
+}
+
+impl Cache {
+    pub fn new() -> Self {
+        Self {
+            images: std::collections::HashMap::new(),
+        }
+    }
+
+    fn get<'a>(
+        &mut self,
+        name: &'a str,
+        context: &mut ggez::Context,
+    ) -> graphics::Image {
+        if let Some(image) = self.images.get(name) {
+            return image.clone();
+        }
+
+        let mut image = graphics::Image::new(context, &format!("/{}", name))
+            .expect("Load ferris image");
+
+        image.set_filter(graphics::FilterMode::Linear);
+
+        self.images.insert(name.to_string(), image.clone());
+
+        image
+    }
+}
+
+impl<'a> image::Renderer<&'a str> for Renderer<'_> {
     fn node(
-        &self,
+        &mut self,
         style: iced::Style,
-        image: &graphics::Image,
+        name: &&'a str,
         width: Option<u16>,
         height: Option<u16>,
         _source: Option<iced::Rectangle<u16>>,
     ) -> iced::Node {
+        let image = self.images.get(name, self.context);
+
         let aspect_ratio = image.width() as f32 / image.height() as f32;
 
         let style = match (width, height) {
@@ -30,15 +63,17 @@ impl image::Renderer<graphics::Image> for Renderer<'_> {
 
     fn draw(
         &mut self,
-        image: &graphics::Image,
+        name: &&'a str,
         bounds: iced::Rectangle,
         _source: Option<iced::Rectangle<u16>>,
     ) {
+        let image = self.images.get(name, self.context);
+
         // We should probably use batches to draw images efficiently and keep
         // draw side-effect free, but this is good enough for the example.
         graphics::draw(
             self.context,
-            image,
+            &image,
             graphics::DrawParam::new()
                 .dest(nalgebra::Point2::new(bounds.x, bounds.y))
                 .scale(nalgebra::Vector2::new(

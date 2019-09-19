@@ -113,7 +113,7 @@ where
     Color: Copy + std::fmt::Debug,
     Renderer: self::Renderer<Color>,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
+    fn node(&self, renderer: &mut Renderer) -> Node {
         renderer.node(self.style, &self.content, self.size)
     }
 

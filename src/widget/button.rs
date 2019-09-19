@@ -133,7 +133,7 @@ where
     Renderer: self::Renderer,
     Message: Copy + std::fmt::Debug,
 {
-    fn node(&self, _renderer: &Renderer) -> Node {
+    fn node(&self, _renderer: &mut Renderer) -> Node {
         Node::new(self.style.height(50))
     }
 

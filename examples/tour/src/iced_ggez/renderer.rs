@@ -11,8 +11,11 @@ use ggez::graphics::{
 };
 use ggez::Context;
 
+pub use image::Cache;
+
 pub struct Renderer<'a> {
     pub context: &'a mut Context,
+    pub images: &'a mut image::Cache,
     pub sprites: SpriteBatch,
     pub spritesheet: Image,
     pub font: Font,
@@ -20,14 +23,16 @@ pub struct Renderer<'a> {
     debug_mesh: Option<MeshBuilder>,
 }
 
-impl Renderer<'_> {
+impl<'a> Renderer<'a> {
     pub fn new(
-        context: &mut Context,
+        context: &'a mut Context,
+        images: &'a mut image::Cache,
         spritesheet: Image,
         font: Font,
-    ) -> Renderer {
+    ) -> Renderer<'a> {
         Renderer {
             context,
+            images,
             sprites: SpriteBatch::new(spritesheet.clone()),
             spritesheet,
             font,
@@ -59,5 +64,14 @@ impl Renderer<'_> {
             graphics::draw(self.context, &mesh, graphics::DrawParam::default())
                 .expect("Draw debug mesh");
         }
+    }
+}
+
+pub fn into_color(color: iced::Color) -> graphics::Color {
+    graphics::Color {
+        r: color.r,
+        g: color.g,
+        b: color.b,
+        a: color.a,
     }
 }

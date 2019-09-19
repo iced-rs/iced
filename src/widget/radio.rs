@@ -111,7 +111,7 @@ where
     Renderer: self::Renderer + text::Renderer<Color>,
     Message: Copy + std::fmt::Debug,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
+    fn node(&self, renderer: &mut Renderer) -> Node {
         Row::<(), Renderer>::new()
             .spacing(15)
             .align_items(Align::Center)

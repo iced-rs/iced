@@ -98,7 +98,7 @@ where
     Color: 'static + Copy + std::fmt::Debug,
     Renderer: self::Renderer + text::Renderer<Color>,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
+    fn node(&self, renderer: &mut Renderer) -> Node {
         Row::<(), Renderer>::new()
             .spacing(15)
             .align_items(Align::Center)

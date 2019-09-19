@@ -223,7 +223,10 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
         }
     }
 
-    pub(crate) fn compute_layout(&self, renderer: &Renderer) -> result::Layout {
+    pub(crate) fn compute_layout(
+        &self,
+        renderer: &mut Renderer,
+    ) -> result::Layout {
         let node = self.widget.node(renderer);
 
         node.0.compute_layout(geometry::Size::undefined()).unwrap()
@@ -264,7 +267,7 @@ impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
 where
     A: Copy,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
+    fn node(&self, renderer: &mut Renderer) -> Node {
         self.widget.node(renderer)
     }
 
@@ -337,7 +340,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: renderer::Debugger,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
+    fn node(&self, renderer: &mut Renderer) -> Node {
         self.element.widget.node(renderer)
     }
 

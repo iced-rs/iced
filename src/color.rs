@@ -1,4 +1,6 @@
+/// A color in the sRGB color space.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(missing_docs)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
@@ -7,6 +9,7 @@ pub struct Color {
 }
 
 impl Color {
+    /// The black color.
     pub const BLACK: Color = Color {
         r: 0.0,
         g: 0.0,

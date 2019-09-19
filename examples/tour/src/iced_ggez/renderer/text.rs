@@ -1,11 +1,11 @@
-use super::Renderer;
-use ggez::graphics::{self, mint, Align, Color, Scale, Text, TextFragment};
+use super::{into_color, Renderer};
+use ggez::graphics::{self, mint, Align, Scale, Text, TextFragment};
 
 use iced::text;
 use std::cell::RefCell;
 use std::f32;
 
-impl text::Renderer<Color> for Renderer<'_> {
+impl text::Renderer<iced::Color> for Renderer<'_> {
     fn node(
         &self,
         style: iced::Style,
@@ -80,7 +80,7 @@ impl text::Renderer<Color> for Renderer<'_> {
         bounds: iced::Rectangle,
         content: &str,
         size: Option<u16>,
-        color: Option<Color>,
+        color: Option<iced::Color>,
         horizontal_alignment: text::HorizontalAlignment,
         _vertical_alignment: text::VerticalAlignment,
     ) {
@@ -112,7 +112,7 @@ impl text::Renderer<Color> for Renderer<'_> {
                 x: bounds.x,
                 y: bounds.y,
             },
-            color.or(Some(graphics::BLACK)),
+            color.or(Some(iced::Color::BLACK)).map(into_color),
         );
     }
 }

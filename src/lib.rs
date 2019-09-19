@@ -200,6 +200,7 @@ pub mod input;
 pub mod renderer;
 pub mod widget;
 
+mod color;
 mod element;
 mod event;
 mod hasher;
@@ -215,6 +216,7 @@ mod vector;
 #[doc(no_inline)]
 pub use stretch::{geometry::Size, number::Number};
 
+pub use color::Color;
 pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;

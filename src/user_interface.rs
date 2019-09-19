@@ -69,7 +69,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     ///     let user_interface = UserInterface::build(
     ///         counter.view(),
     ///         cache,
-    ///         &renderer,
+    ///         &mut renderer,
     ///     );
     ///
     ///     // Update and draw the user interface here...
@@ -82,7 +82,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
         cache: Cache,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
     ) -> Self {
         let root = root.into();
 
@@ -153,7 +153,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     ///     let mut user_interface = UserInterface::build(
     ///         counter.view(),
     ///         cache,
-    ///         &renderer,
+    ///         &mut renderer,
     ///     );
     ///
     ///     // Update the user interface
@@ -236,7 +236,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     ///     let mut user_interface = UserInterface::build(
     ///         counter.view(),
     ///         cache,
-    ///         &renderer,
+    ///         &mut renderer,
     ///     );
     ///
     ///     let messages = user_interface.update(events.drain(..));
@@ -302,7 +302,7 @@ impl Cache {
 
         Cache {
             hash: hasher.finish(),
-            layout: root.compute_layout(&()),
+            layout: root.compute_layout(&mut ()),
             cursor_position: Point::new(0.0, 0.0),
         }
     }

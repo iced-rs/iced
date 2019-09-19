@@ -133,7 +133,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Row<'a, Message, Renderer>
 {
-    fn node(&self, renderer: &Renderer) -> Node {
+    fn node(&self, renderer: &mut Renderer) -> Node {
         let mut children: Vec<Node> = self
             .children
             .iter()

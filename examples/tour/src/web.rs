@@ -2,9 +2,7 @@ use futures::Future;
 use iced_web::UserInterface;
 use wasm_bindgen::prelude::*;
 
-mod tour;
-
-use tour::Tour;
+use crate::tour::{self, Tour};
 
 #[wasm_bindgen(start)]
 pub fn run() {

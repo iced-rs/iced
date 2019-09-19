@@ -99,7 +99,7 @@ where
     Renderer: self::Renderer<I>,
     I: Clone,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
+    fn node(&self, renderer: &mut Renderer) -> Node {
         renderer.node(
             self.style,
             &self.image,
@@ -144,7 +144,7 @@ pub trait Renderer<I> {
     /// [`Style`]: ../../struct.Style.html
     /// [`Image`]: struct.Image.html
     fn node(
-        &self,
+        &mut self,
         style: Style,
         image: &I,
         width: Option<u16>,
