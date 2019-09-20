@@ -87,7 +87,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     ///
     /// ```
     /// # mod counter {
-    /// #     use iced::{button, Button};
+    /// #     use iced_native::{button, Button};
     /// #
     /// #     #[derive(Debug, Clone, Copy)]
     /// #     pub enum Message {}
@@ -101,19 +101,21 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// # }
     /// #
     /// # mod iced_wgpu {
-    /// #     use iced::{
-    /// #         button, MouseCursor, Node, Point, Rectangle, Style,
+    /// #     use iced_native::{
+    /// #         button, Button, MouseCursor, Node, Point, Rectangle, Style, Layout
     /// #     };
     /// #     pub struct Renderer;
     /// #
     /// #     impl button::Renderer for Renderer {
-    /// #         fn draw(
+    /// #         fn node<Message>(&self, _button: &Button<'_, Message>) -> Node {
+    /// #             Node::new(Style::default())
+    /// #         }
+    /// #
+    /// #         fn draw<Message>(
     /// #             &mut self,
+    /// #             _button: &Button<'_, Message>,
+    /// #             _layout: Layout<'_>,
     /// #             _cursor_position: Point,
-    /// #             _bounds: Rectangle,
-    /// #             _state: &button::State,
-    /// #             _label: &str,
-    /// #             _class: button::Class,
     /// #         ) -> MouseCursor {
     /// #             MouseCursor::OutOfBounds
     /// #         }
@@ -130,7 +132,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// # pub enum Message {
     /// #    Counter(usize, counter::Message)
     /// # }
-    /// use iced::{Element, Row};
+    /// use iced_native::{Element, Row};
     /// use iced_wgpu::Renderer;
     ///
     /// impl ManyCounters {

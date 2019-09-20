@@ -2,7 +2,7 @@ use crate::{Bus, Element, Widget};
 
 use dodrio::bumpalo;
 
-pub use iced::Radio;
+pub use iced_core::Radio;
 
 impl<Message> Widget<Message> for Radio<Message>
 where

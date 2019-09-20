@@ -1,8 +1,9 @@
 use super::Renderer;
 
 use ggez::graphics::{DrawParam, Rect};
-use iced::{slider, MouseCursor, Point, Rectangle};
-use std::ops::RangeInclusive;
+use iced_native::{
+    slider, Layout, Length, MouseCursor, Node, Point, Slider, Style,
+};
 
 const RAIL: Rect = Rect {
     x: 98.0,
@@ -19,14 +20,22 @@ const MARKER: Rect = Rect {
 };
 
 impl slider::Renderer for Renderer<'_> {
-    fn draw(
+    fn node<Message>(&self, slider: &Slider<'_, Message>) -> Node {
+        let style = Style::default()
+            .width(slider.width)
+            .height(Length::Units(25))
+            .min_width(Length::Units(100));
+
+        Node::new(style)
+    }
+
+    fn draw<Message>(
         &mut self,
+        slider: &Slider<'_, Message>,
+        layout: Layout<'_>,
         cursor_position: Point,
-        bounds: Rectangle,
-        state: &slider::State,
-        range: RangeInclusive<f32>,
-        value: f32,
     ) -> MouseCursor {
+        let bounds = layout.bounds();
         let width = self.spritesheet.width() as f32;
         let height = self.spritesheet.height() as f32;
 
@@ -48,13 +57,14 @@ impl slider::Renderer for Renderer<'_> {
             ..DrawParam::default()
         });
 
-        let (range_start, range_end) = range.into_inner();
+        let (range_start, range_end) = slider.range.clone().into_inner();
 
         let marker_offset = (bounds.width - MARKER.w as f32)
-            * ((value - range_start) / (range_end - range_start).max(1.0));
+            * ((slider.value - range_start)
+                / (range_end - range_start).max(1.0));
 
         let mouse_over = bounds.contains(cursor_position);
-        let is_active = state.is_dragging() || mouse_over;
+        let is_active = slider.state.is_dragging() || mouse_over;
 
         self.sprites.add(DrawParam {
             src: Rect {
@@ -66,12 +76,13 @@ impl slider::Renderer for Renderer<'_> {
             },
             dest: ggez::mint::Point2 {
                 x: bounds.x + marker_offset.round(),
-                y: bounds.y + (if state.is_dragging() { 2.0 } else { 0.0 }),
+                y: bounds.y
+                    + (if slider.state.is_dragging() { 2.0 } else { 0.0 }),
             },
             ..DrawParam::default()
         });
 
-        if state.is_dragging() {
+        if slider.state.is_dragging() {
             MouseCursor::Grabbing
         } else if mouse_over {
             MouseCursor::Grab

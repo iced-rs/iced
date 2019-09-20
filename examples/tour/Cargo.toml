@@ -16,7 +16,7 @@ path = "src/iced_ggez/main.rs"
 futures-preview = "=0.3.0-alpha.18"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iced = { path = "../.." }
+iced_native = { version = "0.1.0-alpha", path = "../../native" }
 # A personal `ggez` fork that introduces a `FontCache` type to measure text
 # efficiently and fixes HiDPI issues.
 ggez = { version = "0.5", git = "https://github.com/hecrj/ggez.git" }

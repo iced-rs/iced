@@ -15,7 +15,7 @@
 //! module. Therefore, you can directly type:
 //!
 //! ```
-//! use iced::{button, Button, Widget};
+//! use iced_native::{button, Button, Widget};
 //! ```
 //!
 //! [`Widget`]: trait.Widget.html
@@ -26,19 +26,25 @@ mod row;
 pub mod button;
 pub mod checkbox;
 pub mod image;
-//pub mod progress_bar;
 pub mod radio;
 pub mod slider;
 pub mod text;
 
+#[doc(no_inline)]
 pub use button::Button;
+#[doc(no_inline)]
 pub use checkbox::Checkbox;
+#[doc(no_inline)]
 pub use column::Column;
+#[doc(no_inline)]
 pub use image::Image;
-//pub use progress_bar::ProgressBar;
+#[doc(no_inline)]
 pub use radio::Radio;
+#[doc(no_inline)]
 pub use row::Row;
+#[doc(no_inline)]
 pub use slider::Slider;
+#[doc(no_inline)]
 pub use text::Text;
 
 use crate::{Event, Hasher, Layout, MouseCursor, Node, Point};

@@ -1,7 +1,10 @@
 use super::Renderer;
 
 use ggez::graphics::{DrawParam, Rect};
-use iced::{radio, MouseCursor, Point, Rectangle};
+use iced_native::{
+    radio, text, Align, Column, Layout, Length, MouseCursor, Node, Point,
+    Radio, Row, Text, Widget,
+};
 
 const SPRITE: Rect = Rect {
     x: 98.0,
@@ -10,15 +13,41 @@ const SPRITE: Rect = Rect {
     h: 28.0,
 };
 
-impl radio::Renderer for Renderer<'_> {
-    fn draw(
+impl radio::Renderer for Renderer<'_>
+where
+    Self: text::Renderer,
+{
+    fn node<Message>(&mut self, radio: &Radio<Message>) -> Node {
+        Row::<(), Self>::new()
+            .spacing(15)
+            .align_items(Align::Center)
+            .push(
+                Column::new()
+                    .width(Length::Units(SPRITE.w as u16))
+                    .height(Length::Units(SPRITE.h as u16)),
+            )
+            .push(Text::new(&radio.label))
+            .node(self)
+    }
+
+    fn draw<Message>(
         &mut self,
+        radio: &Radio<Message>,
+        layout: Layout<'_>,
         cursor_position: Point,
-        bounds: Rectangle,
-        bounds_with_label: Rectangle,
-        is_selected: bool,
     ) -> MouseCursor {
-        let mouse_over = bounds_with_label.contains(cursor_position);
+        let children: Vec<_> = layout.children().collect();
+
+        let mut text = Text::new(&radio.label);
+
+        if let Some(label_color) = radio.label_color {
+            text = text.color(label_color);
+        }
+
+        text::Renderer::draw(self, &text, children[1]);
+
+        let bounds = layout.bounds();
+        let mouse_over = bounds.contains(cursor_position);
 
         let width = self.spritesheet.width() as f32;
         let height = self.spritesheet.height() as f32;
@@ -38,7 +67,7 @@ impl radio::Renderer for Renderer<'_> {
             ..DrawParam::default()
         });
 
-        if is_selected {
+        if radio.is_selected {
             self.sprites.add(DrawParam {
                 src: Rect {
                     x: (SPRITE.x + SPRITE.w * 2.0) / width,

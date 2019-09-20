@@ -2,7 +2,7 @@ use crate::{Bus, Element, Widget};
 
 use dodrio::bumpalo;
 
-pub use iced::Checkbox;
+pub use iced_core::Checkbox;
 
 impl<Message> Widget<Message> for Checkbox<Message>
 where

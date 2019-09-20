@@ -1,6 +1,6 @@
 use crate::widget::{
     button, slider, text::HorizontalAlignment, Align, Button, Checkbox, Color,
-    Column, Element, Image, Radio, Row, Slider, Text,
+    Column, Element, Image, Length, Radio, Row, Slider, Text,
 };
 
 pub struct Tour {
@@ -16,7 +16,7 @@ impl Tour {
             steps: Steps::new(),
             back_button: button::State::new(),
             next_button: button::State::new(),
-            debug: false,
+            debug: true,
         }
     }
 
@@ -61,7 +61,7 @@ impl Tour {
         }
 
         let element: Element<_> = Column::new()
-            .max_width(500)
+            .max_width(Length::Units(500))
             .spacing(20)
             .push(steps.view(self.debug).map(Message::StepMessage))
             .push(controls)
@@ -478,7 +478,7 @@ impl<'a> Step {
             .push(Text::new("An image that tries to keep its aspect ratio."))
             .push(
                 Image::new("resources/ferris.png")
-                    .width(width)
+                    .width(Length::Units(width))
                     .align_self(Align::Center),
             )
             .push(Slider::new(

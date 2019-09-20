@@ -1,8 +1,12 @@
 use super::{into_color, Renderer};
 use ggez::graphics::{DrawMode, MeshBuilder, Rect};
 
-impl iced::renderer::Debugger for Renderer<'_> {
-    fn explain(&mut self, layout: &iced::Layout<'_>, color: iced::Color) {
+impl iced_native::renderer::Debugger for Renderer<'_> {
+    fn explain(
+        &mut self,
+        layout: &iced_native::Layout<'_>,
+        color: iced_native::Color,
+    ) {
         let bounds = layout.bounds();
 
         let mut debug_mesh =

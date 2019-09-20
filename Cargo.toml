@@ -3,7 +3,7 @@ name = "iced"
 version = "0.1.0-alpha"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
-description = "A GUI runtime, heavily inspired by Elm."
+description = "A cross-platform GUI library inspired by Elm"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
 documentation = "https://docs.rs/iced"
@@ -14,18 +14,10 @@ categories = ["gui"]
 [badges]
 maintenance = { status = "actively-developed" }
 
-[package.metadata.docs.rs]
-features = ["winit"]
-
-[dependencies]
-stretch = "0.2"
-twox-hash = "1.5"
-
-# Enable to obtain conversion traits
-winit = { version = "0.20.0-alpha3", optional = true }
-
 [workspace]
 members = [
+    "core",
+    "native",
     "web",
     "examples/tour",
 ]

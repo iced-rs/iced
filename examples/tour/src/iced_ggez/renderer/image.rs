@@ -1,7 +1,7 @@
 use super::Renderer;
 
 use ggez::{graphics, nalgebra};
-use iced::image;
+use iced_native::{image, Image, Layout, Length, Style};
 
 pub struct Cache {
     images: std::collections::HashMap<String, graphics::Image>,
@@ -35,39 +35,29 @@ impl Cache {
 }
 
 impl<'a> image::Renderer<&'a str> for Renderer<'_> {
-    fn node(
-        &mut self,
-        style: iced::Style,
-        name: &&'a str,
-        width: Option<u16>,
-        height: Option<u16>,
-        _source: Option<iced::Rectangle<u16>>,
-    ) -> iced::Node {
-        let image = self.images.get(name, self.context);
+    fn node(&mut self, image: &Image<&'a str>) -> iced_native::Node {
+        let ggez_image = self.images.get(image.handle, self.context);
 
-        let aspect_ratio = image.width() as f32 / image.height() as f32;
+        let aspect_ratio =
+            ggez_image.width() as f32 / ggez_image.height() as f32;
 
-        let style = match (width, height) {
-            (Some(width), Some(height)) => style.width(width).height(height),
-            (Some(width), None) => style
-                .width(width)
-                .height((width as f32 / aspect_ratio).round() as u16),
-            (None, Some(height)) => style
-                .height(height)
-                .width((height as f32 * aspect_ratio).round() as u16),
-            (None, None) => style.width(image.width()).height(image.height()),
+        let mut style = Style::default().align_self(image.align_self);
+
+        style = match (image.width, image.height) {
+            (Length::Units(width), _) => style.width(image.width).height(
+                Length::Units((width as f32 / aspect_ratio).round() as u16),
+            ),
+            (_, _) => style
+                .width(Length::Units(ggez_image.width()))
+                .height(Length::Units(ggez_image.height())),
         };
 
-        iced::Node::new(style)
+        iced_native::Node::new(style)
     }
 
-    fn draw(
-        &mut self,
-        name: &&'a str,
-        bounds: iced::Rectangle,
-        _source: Option<iced::Rectangle<u16>>,
-    ) {
-        let image = self.images.get(name, self.context);
+    fn draw(&mut self, image: &Image<&'a str>, layout: Layout<'_>) {
+        let image = self.images.get(image.handle, self.context);
+        let bounds = layout.bounds();
 
         // We should probably use batches to draw images efficiently and keep
         // draw side-effect free, but this is good enough for the example.

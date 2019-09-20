@@ -1,7 +1,7 @@
 use crate::{Bus, Element, Widget};
 use dodrio::bumpalo;
 
-pub use iced::text::*;
+pub use iced_core::text::*;
 
 impl<'a, Message> Widget<Message> for Text {
     fn node<'b>(

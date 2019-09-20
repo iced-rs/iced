@@ -12,7 +12,7 @@ use crate::{Point, Rectangle, Vector};
 /// [`Widget::on_event`]: widget/trait.Widget.html#method.on_event
 /// [`Widget::draw`]: widget/trait.Widget.html#tymethod.draw
 /// [`Widget::node`]: widget/trait.Widget.html#tymethod.node
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Layout<'a> {
     layout: &'a result::Layout,
     position: Point,

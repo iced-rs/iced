@@ -2,7 +2,7 @@ use super::Renderer;
 use ggez::graphics::{
     self, Align, Color, DrawParam, Rect, Scale, Text, TextFragment, WHITE,
 };
-use iced::{button, MouseCursor};
+use iced_native::{button, Button, Layout, Length, MouseCursor, Node, Style};
 
 const LEFT: Rect = Rect {
     x: 0.0,
@@ -26,20 +26,29 @@ const RIGHT: Rect = Rect {
 };
 
 impl button::Renderer for Renderer<'_> {
-    fn draw(
+    fn node<Message>(&self, button: &Button<'_, Message>) -> Node {
+        let style = Style::default()
+            .width(button.width)
+            .height(Length::Units(LEFT.h as u16))
+            .min_width(Length::Units(100))
+            .align_self(button.align_self);
+
+        Node::new(style)
+    }
+
+    fn draw<Message>(
         &mut self,
-        cursor_position: iced::Point,
-        mut bounds: iced::Rectangle,
-        state: &button::State,
-        label: &str,
-        class: button::Class,
+        button: &Button<'_, Message>,
+        layout: Layout<'_>,
+        cursor_position: iced_native::Point,
     ) -> MouseCursor {
+        let mut bounds = layout.bounds();
         let mouse_over = bounds.contains(cursor_position);
 
         let mut state_offset = 0.0;
 
         if mouse_over {
-            if state.is_pressed() {
+            if button.state.is_pressed() {
                 bounds.y += 4.0;
                 state_offset = RIGHT.x + RIGHT.w;
             } else {
@@ -47,7 +56,7 @@ impl button::Renderer for Renderer<'_> {
             }
         }
 
-        let class_index = match class {
+        let class_index = match button.class {
             button::Class::Primary => 0,
             button::Class::Secondary => 1,
             button::Class::Positive => 2,
@@ -103,7 +112,7 @@ impl button::Renderer for Renderer<'_> {
         });
 
         let mut text = Text::new(TextFragment {
-            text: String::from(label),
+            text: button.label.clone(),
             font: Some(self.font),
             scale: Some(Scale { x: 20.0, y: 20.0 }),
             ..Default::default()

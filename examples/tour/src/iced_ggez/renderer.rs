@@ -67,7 +67,7 @@ impl<'a> Renderer<'a> {
     }
 }
 
-pub fn into_color(color: iced::Color) -> graphics::Color {
+pub fn into_color(color: iced_native::Color) -> graphics::Color {
     graphics::Color {
         r: color.r,
         g: color.g,

@@ -35,8 +35,8 @@ struct Game {
     images: iced_ggez::ImageCache,
     tour: Tour,
 
-    events: Vec<iced::Event>,
-    cache: Option<iced::Cache>,
+    events: Vec<iced_native::Event>,
+    cache: Option<iced_native::Cache>,
 }
 
 impl Game {
@@ -52,7 +52,7 @@ impl Game {
             tour: Tour::new(),
 
             events: Vec::new(),
-            cache: Some(iced::Cache::default()),
+            cache: Some(iced_native::Cache::default()),
         })
     }
 }
@@ -69,10 +69,10 @@ impl event::EventHandler for Game {
         _x: f32,
         _y: f32,
     ) {
-        self.events.push(iced::Event::Mouse(
-            iced::input::mouse::Event::Input {
-                state: iced::input::ButtonState::Pressed,
-                button: iced::input::mouse::Button::Left, // TODO: Map `button`
+        self.events.push(iced_native::Event::Mouse(
+            iced_native::input::mouse::Event::Input {
+                state: iced_native::input::ButtonState::Pressed,
+                button: iced_native::input::mouse::Button::Left, // TODO: Map `button`
             },
         ));
     }
@@ -84,10 +84,10 @@ impl event::EventHandler for Game {
         _x: f32,
         _y: f32,
     ) {
-        self.events.push(iced::Event::Mouse(
-            iced::input::mouse::Event::Input {
-                state: iced::input::ButtonState::Released,
-                button: iced::input::mouse::Button::Left, // TODO: Map `button`
+        self.events.push(iced_native::Event::Mouse(
+            iced_native::input::mouse::Event::Input {
+                state: iced_native::input::ButtonState::Released,
+                button: iced_native::input::mouse::Button::Left, // TODO: Map `button`
             },
         ));
     }
@@ -100,8 +100,8 @@ impl event::EventHandler for Game {
         _dx: f32,
         _dy: f32,
     ) {
-        self.events.push(iced::Event::Mouse(
-            iced::input::mouse::Event::CursorMoved { x, y },
+        self.events.push(iced_native::Event::Mouse(
+            iced_native::input::mouse::Event::CursorMoved { x, y },
         ));
     }
 
@@ -132,11 +132,11 @@ impl event::EventHandler for Game {
             let view = self.tour.view();
 
             let content = iced_ggez::Column::new()
-                .width(screen.w as u16)
-                .height(screen.h as u16)
+                .width(iced_native::Length::Units(screen.w as u16))
+                .height(iced_native::Length::Units(screen.h as u16))
                 .padding(20)
-                .align_items(iced::Align::Center)
-                .justify_content(iced::Justify::Center)
+                .align_items(iced_native::Align::Center)
+                .justify_content(iced_native::Justify::Center)
                 .push(view);
 
             let renderer = &mut iced_ggez::Renderer::new(
@@ -146,7 +146,7 @@ impl event::EventHandler for Game {
                 self.font,
             );
 
-            let mut ui = iced::UserInterface::build(
+            let mut ui = iced_native::UserInterface::build(
                 content,
                 self.cache.take().unwrap(),
                 renderer,
@@ -177,13 +177,13 @@ impl event::EventHandler for Game {
     }
 }
 
-fn into_cursor_type(cursor: iced::MouseCursor) -> mouse::MouseCursor {
+fn into_cursor_type(cursor: iced_native::MouseCursor) -> mouse::MouseCursor {
     match cursor {
-        iced::MouseCursor::OutOfBounds => mouse::MouseCursor::Default,
-        iced::MouseCursor::Idle => mouse::MouseCursor::Default,
-        iced::MouseCursor::Pointer => mouse::MouseCursor::Hand,
-        iced::MouseCursor::Working => mouse::MouseCursor::Progress,
-        iced::MouseCursor::Grab => mouse::MouseCursor::Grab,
-        iced::MouseCursor::Grabbing => mouse::MouseCursor::Grabbing,
+        iced_native::MouseCursor::OutOfBounds => mouse::MouseCursor::Default,
+        iced_native::MouseCursor::Idle => mouse::MouseCursor::Default,
+        iced_native::MouseCursor::Pointer => mouse::MouseCursor::Hand,
+        iced_native::MouseCursor::Working => mouse::MouseCursor::Progress,
+        iced_native::MouseCursor::Grab => mouse::MouseCursor::Grab,
+        iced_native::MouseCursor::Grabbing => mouse::MouseCursor::Grabbing,
     }
 }

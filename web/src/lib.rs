@@ -8,7 +8,7 @@ mod widget;
 
 pub use bus::Bus;
 pub use element::Element;
-pub use iced::{Align, Color};
+pub use iced_core::{Align, Color, Length};
 pub use widget::*;
 
 pub trait UserInterface {

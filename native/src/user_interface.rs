@@ -35,7 +35,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// is naive way to set up our application loop:
     ///
     /// ```no_run
-    /// use iced::{UserInterface, Cache};
+    /// use iced_native::{UserInterface, Cache};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -46,7 +46,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// #     }
     /// # }
     /// #
-    /// # use iced::Column;
+    /// # use iced_native::Column;
     /// #
     /// # pub struct Counter;
     /// #
@@ -118,7 +118,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// [the previous example](#example):
     ///
     /// ```no_run
-    /// use iced::{UserInterface, Cache};
+    /// use iced_native::{UserInterface, Cache};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -129,7 +129,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// #     }
     /// # }
     /// #
-    /// # use iced::Column;
+    /// # use iced_native::Column;
     /// #
     /// # pub struct Counter;
     /// #
@@ -203,7 +203,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced::{UserInterface, Cache};
+    /// use iced_native::{UserInterface, Cache};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -214,7 +214,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// #     }
     /// # }
     /// #
-    /// # use iced::Column;
+    /// # use iced_native::Column;
     /// #
     /// # pub struct Counter;
     /// #

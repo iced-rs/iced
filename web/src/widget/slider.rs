@@ -2,9 +2,9 @@ use crate::{Bus, Element, Widget};
 
 use dodrio::bumpalo;
 
-pub type Slider<'a, Message> = iced::Slider<'a, Message>;
+pub type Slider<'a, Message> = iced_core::Slider<'a, Message>;
 
-pub use iced::slider::State;
+pub use iced_core::slider::State;
 
 impl<'a, Message> Widget<Message> for Slider<'a, Message>
 where

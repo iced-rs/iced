@@ -1,7 +1,10 @@
 use super::Renderer;
 
 use ggez::graphics::{DrawParam, Rect};
-use iced::{checkbox, MouseCursor};
+use iced_native::{
+    checkbox, text, Align, Checkbox, Column, Layout, Length, MouseCursor, Node,
+    Row, Text, Widget,
+};
 
 const SPRITE: Rect = Rect {
     x: 98.0,
@@ -10,14 +13,41 @@ const SPRITE: Rect = Rect {
     h: 28.0,
 };
 
-impl checkbox::Renderer for Renderer<'_> {
-    fn draw(
+impl checkbox::Renderer for Renderer<'_>
+where
+    Self: text::Renderer,
+{
+    fn node<Message>(&mut self, checkbox: &Checkbox<Message>) -> Node {
+        Row::<(), Self>::new()
+            .spacing(15)
+            .align_items(Align::Center)
+            .push(
+                Column::new()
+                    .width(Length::Units(SPRITE.w as u16))
+                    .height(Length::Units(SPRITE.h as u16)),
+            )
+            .push(Text::new(&checkbox.label))
+            .node(self)
+    }
+
+    fn draw<Message>(
         &mut self,
-        cursor_position: iced::Point,
-        bounds: iced::Rectangle,
-        text_bounds: iced::Rectangle,
-        is_checked: bool,
+        checkbox: &Checkbox<Message>,
+        layout: Layout<'_>,
+        cursor_position: iced_native::Point,
     ) -> MouseCursor {
+        let bounds = layout.bounds();
+        let children: Vec<_> = layout.children().collect();
+        let text_bounds = children[1].bounds();
+
+        let mut text = Text::new(&checkbox.label);
+
+        if let Some(label_color) = checkbox.label_color {
+            text = text.color(label_color);
+        }
+
+        text::Renderer::draw(self, &text, children[1]);
+
         let mouse_over = bounds.contains(cursor_position)
             || text_bounds.contains(cursor_position);
 
@@ -39,7 +69,7 @@ impl checkbox::Renderer for Renderer<'_> {
             ..DrawParam::default()
         });
 
-        if is_checked {
+        if checkbox.is_checked {
             self.sprites.add(DrawParam {
                 src: Rect {
                     x: (SPRITE.x + SPRITE.w * 2.0) / width,

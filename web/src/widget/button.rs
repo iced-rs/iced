@@ -1,9 +1,8 @@
 use crate::{Bus, Element, Widget};
-pub use iced::button::{Class, State};
 
 use dodrio::bumpalo;
 
-pub type Button<'a, Message> = iced::Button<'a, Message>;
+pub type Button<'a, Message> = iced_core::Button<'a, Message>;
 
 impl<'a, Message> Widget<Message> for Button<'a, Message>
 where
