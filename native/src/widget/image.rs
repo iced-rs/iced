@@ -1,8 +1,6 @@
 //! Display images in your user interface.
 
-use crate::{
-    Element, Hasher, Layout, MouseCursor, Node, Point, Rectangle, Widget,
-};
+use crate::{Element, Hasher, Layout, MouseCursor, Node, Point, Widget};
 
 use std::hash::Hash;
 
@@ -31,6 +29,7 @@ where
     fn hash_layout(&self, state: &mut Hasher) {
         self.width.hash(state);
         self.height.hash(state);
+        self.align_self.hash(state);
     }
 }
 
