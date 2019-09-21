@@ -21,7 +21,7 @@ The implementation consists of different modules:
   - __[`widget`]__ conditionally re-exposes the correct platform widgets based
     on the target architecture.
   - __[`main`]__ integrates Iced with [`ggez`] and connects the [`tour`] with
-    the [`renderer`].
+    the native [`renderer`].
   - __[`lib`]__ exposes the [`tour`] types and conditionally implements the
     WebAssembly entrypoint in the [`web`] module.
 
@@ -53,10 +53,12 @@ python3 -m http.server
 [`ggez`]: https://github.com/ggez/ggez
 [`tour`]: src/tour.rs
 [`iced_ggez`]: src/iced_ggez
+[`renderer`]: src/iced_ggez/renderer
 [`widget`]: src/widget.rs
 [`main`]: src/main.rs
 [`lib`]: src/lib.rs
 [`web`]: src/web.rs
+[`wasm-pack`]: https://rustwasm.github.io/wasm-pack/installer/
 [personal fork]: https://github.com/hecrj/ggez
 [add a `FontCache` type]: https://github.com/ggez/ggez/pull/679
 [fix some issues with HiDPI]: https://github.com/hecrj/ggez/commit/dfe2fd2423c51a6daf42c75f66dfaeaacd439fb1
