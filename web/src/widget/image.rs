@@ -29,6 +29,8 @@ impl<'a, Message> Widget<Message> for Image<'a> {
             }
         }
 
+        // TODO: Complete styling
+
         image.finish()
     }
 }

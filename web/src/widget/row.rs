@@ -18,6 +18,7 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
             .map(|element| element.widget.node(bump, publish))
             .collect();
 
+        // TODO: Complete styling
         div(bump)
             .attr("style", "display: flex; flex-direction: row")
             .children(children)

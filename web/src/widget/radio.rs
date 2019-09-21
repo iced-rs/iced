@@ -20,6 +20,7 @@ where
         let event_bus = bus.clone();
         let on_click = self.on_click;
 
+        // TODO: Complete styling
         label(bump)
             .attr("style", "display: block")
             .children(vec![

@@ -2,9 +2,7 @@ use crate::{Bus, Element, Widget};
 
 use dodrio::bumpalo;
 
-pub type Slider<'a, Message> = iced_core::Slider<'a, Message>;
-
-pub use iced_core::slider::State;
+pub use iced_core::slider::*;
 
 impl<'a, Message> Widget<Message> for Slider<'a, Message>
 where
@@ -28,6 +26,7 @@ where
         let event_bus = bus.clone();
 
         // TODO: Make `step` configurable
+        // TODO: Complete styling
         label(bump)
             .children(vec![input(bump)
                 .attr("type", "range")

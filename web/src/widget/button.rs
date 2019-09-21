@@ -2,7 +2,7 @@ use crate::{Bus, Element, Widget};
 
 use dodrio::bumpalo;
 
-pub type Button<'a, Message> = iced_core::Button<'a, Message>;
+pub use iced_core::button::*;
 
 impl<'a, Message> Widget<Message> for Button<'a, Message>
 where
@@ -28,6 +28,8 @@ where
                 vdom.schedule_render();
             });
         }
+
+        // TODO: Complete styling
 
         node.finish()
     }

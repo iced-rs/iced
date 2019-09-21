@@ -14,6 +14,7 @@ impl<'a, Message> Widget<Message> for Text {
         let content = bumpalo::format!(in bump, "{}", self.content);
         let size = bumpalo::format!(in bump, "font-size: {}px", self.size.unwrap_or(20));
 
+        // TODO: Complete styling
         p(bump)
             .attr("style", size.into_bump_str())
             .children(vec![text(content.into_bump_str())])

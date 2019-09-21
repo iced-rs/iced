@@ -20,6 +20,7 @@ where
         let event_bus = bus.clone();
         let msg = (self.on_toggle)(!self.is_checked);
 
+        // TODO: Complete styling
         label(bump)
             .children(vec![
                 input(bump)

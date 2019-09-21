@@ -8,9 +8,12 @@ repository = "https://github.com/hecrj/iced"
 edition = "2018"
 publish = false
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [[bin]]
-name = "ggez"
-path = "src/iced_ggez/main.rs"
+name = "main"
+path = "src/main.rs"
 
 [dependencies]
 futures-preview = "=0.3.0-alpha.18"
