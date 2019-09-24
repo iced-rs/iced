@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - `Color` generic parameter in widgets. The new `Color` type is used now. This keeps widgets as reusable as possible. It may complicate implementing some runtimes, but a color mapper should be easily implementable in situations where colors are limited. [#17]
 
+[#6]: https://github.com/hecrj/iced/issues/6
+[#12]: https://github.com/hecrj/iced/issues/12
 [#17]: https://github.com/hecrj/iced/pull/17
 
 
