@@ -7,10 +7,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
         rust: [stable, beta]
+        include:
+          - os: ubuntu-latest
+            rust: stable
+            targets: 'wasm32-unknown-unknown'
     steps:
     - uses: hecrj/setup-rust-action@v1
       with:
         rust-version: ${{ matrix.rust }}
+        targets: ${{ matrix.targets }}
     - name: Install libinput
       if: matrix.os == 'ubuntu-latest'
       run: |
@@ -18,4 +23,7 @@ jobs:
         sudo apt-get install -y libasound2-dev libudev-dev
     - uses: actions/checkout@master
     - name: Run tests
-      run: cargo test --verbose --all-features
+      run: cargo test --verbose --all --all-features
+    - name: Build tour for WebAssembly
+      if: matrix.targets == 'wasm32-unknown-unknown'
+      run: cargo build --verbose --package iced_tour --lib --target wasm32-unknown-unknown
