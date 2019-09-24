@@ -25,20 +25,3 @@ pub enum Justify {
     /// Place items with evenly distributed space.
     SpaceEvenly,
 }
-
-#[cfg(feature = "stretch")]
-#[doc(hidden)]
-impl From<Justify> for stretch::style::JustifyContent {
-    fn from(justify: Justify) -> Self {
-        match justify {
-            Justify::Start => stretch::style::JustifyContent::FlexStart,
-            Justify::Center => stretch::style::JustifyContent::Center,
-            Justify::End => stretch::style::JustifyContent::FlexEnd,
-            Justify::SpaceBetween => {
-                stretch::style::JustifyContent::SpaceBetween
-            }
-            Justify::SpaceAround => stretch::style::JustifyContent::SpaceAround,
-            Justify::SpaceEvenly => stretch::style::JustifyContent::SpaceEvenly,
-        }
-    }
-}

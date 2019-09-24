@@ -6,8 +6,3 @@ edition = "2018"
 description = "The essential concepts of Iced"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-stretch = { version = "0.2", optional = true }

@@ -11,7 +11,7 @@ repository = "https://github.com/hecrj/iced"
 features = ["winit"]
 
 [dependencies]
-iced_core = { version = "0.1.0-alpha", features = ["stretch"], path = "../core" }
+iced_core = { version = "0.1.0-alpha", path = "../core" }
 stretch = "0.2"
 twox-hash = "1.5"
 

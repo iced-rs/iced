@@ -19,29 +19,3 @@ pub enum Align {
     /// Stretch over the cross axis.
     Stretch,
 }
-
-#[cfg(feature = "stretch")]
-#[doc(hidden)]
-impl From<Align> for stretch::style::AlignItems {
-    fn from(align: Align) -> Self {
-        match align {
-            Align::Start => stretch::style::AlignItems::FlexStart,
-            Align::Center => stretch::style::AlignItems::Center,
-            Align::End => stretch::style::AlignItems::FlexEnd,
-            Align::Stretch => stretch::style::AlignItems::Stretch,
-        }
-    }
-}
-
-#[cfg(feature = "stretch")]
-#[doc(hidden)]
-impl From<Align> for stretch::style::AlignSelf {
-    fn from(align: Align) -> Self {
-        match align {
-            Align::Start => stretch::style::AlignSelf::FlexStart,
-            Align::Center => stretch::style::AlignSelf::Center,
-            Align::End => stretch::style::AlignSelf::FlexEnd,
-            Align::Stretch => stretch::style::AlignSelf::Stretch,
-        }
-    }
-}
