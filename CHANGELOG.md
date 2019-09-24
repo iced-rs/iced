@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `iced` becomes `iced_native`. The current `iced` crate will be empty until we have a first prototype of a low-level renderer. [#17]
 - Widgets expose their fields publicly, simplifying the `Renderer` traits in `iced_native`. [#17]
-- Widgets no longer hold a default `Style`. Related to #6 and #12. [#17]
-- All `Renderer` traits now have total control to produce a `Node`. Related to #6 and #12. [#17]
+- Widgets no longer hold a default `Style`. Related to [#6] and [#12]. [#17]
+- All `Renderer` traits now have total control to produce a `Node`. Related to [#6] and [#12]. [#17]
 - The tour example lives in its own crate now and it can be run both on native and web. [#17]
 
 ### Removed
