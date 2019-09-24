@@ -4,11 +4,11 @@ use std::cell::RefCell;
 
 mod bus;
 mod element;
-mod widget;
+pub mod widget;
 
 pub use bus::Bus;
 pub use element::Element;
-pub use iced_core::{Align, Color, Length};
+pub use iced_core::{Align, Color, Justify, Length};
 pub use widget::*;
 
 pub trait UserInterface {

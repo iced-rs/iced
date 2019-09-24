@@ -11,14 +11,20 @@ mod image;
 mod radio;
 mod row;
 
+#[doc(no_inline)]
 pub use button::Button;
+
+#[doc(no_inline)]
+pub use slider::Slider;
+
+#[doc(no_inline)]
+pub use text::Text;
+
 pub use checkbox::Checkbox;
 pub use column::Column;
 pub use image::Image;
 pub use radio::Radio;
 pub use row::Row;
-pub use slider::Slider;
-pub use text::Text;
 
 pub trait Widget<Message> {
     fn node<'b>(
