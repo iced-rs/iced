@@ -32,11 +32,23 @@ pub trait UserInterface {
             .build(&event_loop)
             .expect("Open window");
 
-        let renderer = Renderer::new(&window);
+        let size = window.inner_size().to_physical(window.hidpi_factor());;
+
+        let mut renderer =
+            Renderer::new(&window, size.width as u32, size.height as u32);
+
+        window.request_redraw();
 
         event_loop.run(move |event, _, control_flow| match event {
             Event::EventsCleared => {
                 window.request_redraw();
+            }
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                ..
+            } => {
+                println!("Redrawing");
+                renderer.draw();
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
@@ -45,7 +57,7 @@ pub trait UserInterface {
                 *control_flow = ControlFlow::Exit;
             }
             _ => {
-                *control_flow = ControlFlow::Poll;
+                *control_flow = ControlFlow::Wait;
             }
         })
     }

@@ -6,8 +6,9 @@ use iced_native::{
 
 use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
-    Adapter, Device, DeviceDescriptor, Extensions, Instance, Limits,
-    PowerPreference, RequestAdapterOptions, Surface,
+    Adapter, CommandEncoderDescriptor, Device, DeviceDescriptor, Extensions,
+    Instance, Limits, PowerPreference, RequestAdapterOptions, Surface,
+    SwapChain, SwapChainDescriptor, TextureFormat, TextureUsage,
 };
 
 pub struct Renderer {
@@ -15,10 +16,15 @@ pub struct Renderer {
     surface: Surface,
     adapter: Adapter,
     device: Device,
+    swap_chain: SwapChain,
 }
 
 impl Renderer {
-    pub fn new<W: HasRawWindowHandle>(window: &W) -> Self {
+    pub fn new<W: HasRawWindowHandle>(
+        window: &W,
+        width: u32,
+        height: u32,
+    ) -> Self {
         let instance = Instance::new();
 
         let adapter = instance.request_adapter(&RequestAdapterOptions {
@@ -34,12 +40,50 @@ impl Renderer {
 
         let surface = instance.create_surface(window.raw_window_handle());
 
+        let swap_chain = device.create_swap_chain(
+            &surface,
+            &SwapChainDescriptor {
+                usage: TextureUsage::OUTPUT_ATTACHMENT,
+                format: TextureFormat::Bgra8UnormSrgb,
+                width,
+                height,
+                present_mode: wgpu::PresentMode::Vsync,
+            },
+        );
+
         Self {
             instance,
             surface,
             adapter,
             device,
+            swap_chain,
         }
+    }
+
+    pub fn draw(&mut self) {
+        let frame = self.swap_chain.get_next_texture();
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor { todo: 0 });
+
+        let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                attachment: &frame.view,
+                resolve_target: None,
+                load_op: wgpu::LoadOp::Clear,
+                store_op: wgpu::StoreOp::Store,
+                clear_color: wgpu::Color {
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    a: 1.0,
+                },
+            }],
+            depth_stencil_attachment: None,
+        });
+
+        self.device.get_queue().submit(&[encoder.finish()]);
     }
 }
 
