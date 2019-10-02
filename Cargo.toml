@@ -1,6 +1,6 @@
 [package]
 name = "iced"
-version = "0.1.0-alpha"
+version = "0.1.0-alpha.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A cross-platform GUI library inspired by Elm"
@@ -21,3 +21,10 @@ members = [
     "web",
     "examples/tour",
 ]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+iced_winit = { version = "0.1.0-alpha", path = "winit" }
+iced_wgpu = { version = "0.1.0-alpha", path = "wgpu" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+iced_web = { version = "0.1.0-alpha", path = "web" }
