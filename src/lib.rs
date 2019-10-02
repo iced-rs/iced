@@ -15,9 +15,9 @@ pub trait UserInterface {
 
     fn view(&mut self) -> Element<Self::Message>;
 
-    fn run(self)
+    fn run(mut self)
     where
-        Self: Sized,
+        Self: 'static + Sized,
     {
         use winit::{
             event::{Event, WindowEvent},
@@ -37,10 +37,47 @@ pub trait UserInterface {
         let mut renderer =
             Renderer::new(&window, size.width as u32, size.height as u32);
 
+        let mut cache = Some(iced_winit::Cache::default());
+        let mut events = Vec::new();
+
         window.request_redraw();
 
         event_loop.run(move |event, _, control_flow| match event {
             Event::EventsCleared => {
+                // TODO: Once we remove lifetimes from widgets, we will be able
+                // to keep user interfaces alive between events.
+                //
+                // This will allow us to only rebuild when a message is handled.
+                let mut user_interface = iced_winit::UserInterface::build(
+                    self.view(),
+                    cache.take().unwrap(),
+                    &mut renderer,
+                );
+
+                let messages = user_interface.update(events.drain(..));
+
+                if messages.is_empty() {
+                    let _ = user_interface.draw(&mut renderer);
+
+                    cache = Some(user_interface.into_cache());
+                } else {
+                    let temp_cache = user_interface.into_cache();
+
+                    for message in messages {
+                        self.update(message);
+                    }
+
+                    let user_interface = iced_winit::UserInterface::build(
+                        self.view(),
+                        temp_cache,
+                        &mut renderer,
+                    );
+
+                    let _ = user_interface.draw(&mut renderer);
+
+                    cache = Some(user_interface.into_cache());
+                };
+
                 window.request_redraw();
             }
             Event::WindowEvent {
