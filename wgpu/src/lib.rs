@@ -4,7 +4,44 @@ use iced_native::{
     Style, Text,
 };
 
-pub struct Renderer;
+use raw_window_handle::HasRawWindowHandle;
+use wgpu::{
+    Adapter, Device, DeviceDescriptor, Extensions, Instance, Limits,
+    PowerPreference, RequestAdapterOptions, Surface,
+};
+
+pub struct Renderer {
+    instance: Instance,
+    surface: Surface,
+    adapter: Adapter,
+    device: Device,
+}
+
+impl Renderer {
+    pub fn new<W: HasRawWindowHandle>(window: &W) -> Self {
+        let instance = Instance::new();
+
+        let adapter = instance.request_adapter(&RequestAdapterOptions {
+            power_preference: PowerPreference::LowPower,
+        });
+
+        let device = adapter.request_device(&DeviceDescriptor {
+            extensions: Extensions {
+                anisotropic_filtering: false,
+            },
+            limits: Limits { max_bind_groups: 1 },
+        });
+
+        let surface = instance.create_surface(window.raw_window_handle());
+
+        Self {
+            instance,
+            surface,
+            adapter,
+            device,
+        }
+    }
+}
 
 impl text::Renderer for Renderer {
     fn node(&self, _text: &Text) -> Node {

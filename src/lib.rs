@@ -32,6 +32,8 @@ pub trait UserInterface {
             .build(&event_loop)
             .expect("Open window");
 
+        let renderer = Renderer::new(&window);
+
         event_loop.run(move |event, _, control_flow| match event {
             Event::EventsCleared => {
                 window.request_redraw();

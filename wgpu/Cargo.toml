@@ -7,6 +7,10 @@ description = "A wgpu renderer for Iced"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
 
+[features]
+vulkan = ["wgpu/vulkan"]
+
 [dependencies]
 iced_native = { version = "0.1.0-alpha", path = "../native" }
 wgpu = "0.3"
+raw-window-handle = "0.1"
