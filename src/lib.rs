@@ -39,15 +39,19 @@ pub trait UserInterface {
 
         let mut cache = Some(iced_winit::Cache::default());
         let mut events = Vec::new();
+        let mut redraws = 0;
 
         window.request_redraw();
 
         event_loop.run(move |event, _, control_flow| match event {
             Event::EventsCleared => {
-                // TODO: Once we remove lifetimes from widgets, we will be able
-                // to keep user interfaces alive between events.
+                // TODO: We should find out a way to keep a user interface
+                // alive between events while still being able to drop it and
+                // rebuild it only when a message is handled.
                 //
-                // This will allow us to only rebuild when a message is handled.
+                // The borrow checker does not seem to like it when I try this,
+                // even though I am not technically double borrowing at any
+                // point.
                 let mut user_interface = iced_winit::UserInterface::build(
                     self.view(),
                     cache.take().unwrap(),
@@ -61,6 +65,8 @@ pub trait UserInterface {
 
                     cache = Some(user_interface.into_cache());
                 } else {
+                    // When there are messages, we are forced to rebuild twice
+                    // for now :^)
                     let temp_cache = user_interface.into_cache();
 
                     for message in messages {
@@ -76,7 +82,7 @@ pub trait UserInterface {
                     let _ = user_interface.draw(&mut renderer);
 
                     cache = Some(user_interface.into_cache());
-                };
+                }
 
                 window.request_redraw();
             }
@@ -84,8 +90,13 @@ pub trait UserInterface {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                println!("Redrawing");
+                println!("Redrawing {}", redraws);
                 renderer.draw();
+
+                redraws += 1;
+
+                // TODO: Handle animations!
+                // Maybe we can use `ControlFlow::WaitUntil` for this.
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
