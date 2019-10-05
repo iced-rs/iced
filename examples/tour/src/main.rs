@@ -73,6 +73,7 @@ impl UserInterface for Tour {
         let element: Element<_> = Column::new()
             .max_width(Length::Units(500))
             .spacing(20)
+            .padding(20)
             .push(steps.view(self.debug).map(Message::StepMessage))
             .push(controls)
             .into();
