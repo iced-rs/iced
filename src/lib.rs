@@ -1,4 +1,4 @@
-pub use iced_wgpu::Renderer;
+pub use iced_wgpu::{Primitive, Renderer};
 pub use iced_winit::{
     button, slider, text, winit, Align, Button, Checkbox, Color, Image,
     Justify, Length, Radio, Slider, Text,
@@ -33,13 +33,15 @@ pub trait UserInterface {
             .expect("Open window");
 
         let size = window.inner_size().to_physical(window.hidpi_factor());;
+        let (width, height) = (size.width as u16, size.height as u16);
 
-        let mut renderer =
-            Renderer::new(&window, size.width as u32, size.height as u32);
+        let mut renderer = Renderer::new(&window);
+        let mut target = renderer.target(width, height);
 
         let mut cache = Some(iced_winit::Cache::default());
         let mut events = Vec::new();
         let mut redraws = 0;
+        let mut primitive = Primitive::None;
 
         window.request_redraw();
 
@@ -51,7 +53,7 @@ pub trait UserInterface {
                 // This will allow us to rebuild it only when a message is
                 // handled.
                 let mut user_interface = iced_winit::UserInterface::build(
-                    self.view(),
+                    document(&mut self, width, height),
                     cache.take().unwrap(),
                     &mut renderer,
                 );
@@ -59,7 +61,7 @@ pub trait UserInterface {
                 let messages = user_interface.update(events.drain(..));
 
                 if messages.is_empty() {
-                    let _ = user_interface.draw(&mut renderer);
+                    primitive = user_interface.draw(&mut renderer);
 
                     cache = Some(user_interface.into_cache());
                 } else {
@@ -72,12 +74,12 @@ pub trait UserInterface {
                     }
 
                     let user_interface = iced_winit::UserInterface::build(
-                        self.view(),
+                        document(&mut self, width, height),
                         temp_cache,
                         &mut renderer,
                     );
 
-                    let _ = user_interface.draw(&mut renderer);
+                    primitive = user_interface.draw(&mut renderer);
 
                     cache = Some(user_interface.into_cache());
                 }
@@ -89,7 +91,7 @@ pub trait UserInterface {
                 ..
             } => {
                 println!("Redrawing {}", redraws);
-                renderer.draw();
+                renderer.draw(&mut target, &primitive);
 
                 redraws += 1;
 
@@ -107,4 +109,20 @@ pub trait UserInterface {
             }
         })
     }
+}
+
+fn document<UserInterface>(
+    user_interface: &mut UserInterface,
+    width: u16,
+    height: u16,
+) -> Element<UserInterface::Message>
+where
+    UserInterface: self::UserInterface,
+    UserInterface::Message: 'static,
+{
+    Column::new()
+        .width(Length::Units(width))
+        .height(Length::Units(height))
+        .push(user_interface.view())
+        .into()
 }

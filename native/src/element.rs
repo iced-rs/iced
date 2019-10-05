@@ -41,6 +41,15 @@ where
         }
     }
 
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Renderer::Primitive {
+        self.widget.draw(renderer, layout, cursor_position)
+    }
+
     /// Applies a transformation to the produced message of the [`Element`].
     ///
     /// This method is useful when you want to decouple different parts of your
