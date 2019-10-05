@@ -7,7 +7,7 @@
 use std::hash::Hash;
 
 use crate::input::{mouse, ButtonState};
-use crate::{Element, Event, Hasher, Layout, MouseCursor, Node, Point, Widget};
+use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
 
 pub use iced_core::slider::*;
 

@@ -103,7 +103,7 @@ where
     /// #
     /// # mod iced_wgpu {
     /// #     use iced_native::{
-    /// #         button, row, Button, MouseCursor, Node, Point, Rectangle, Style, Layout, Row
+    /// #         button, row, Button, Node, Point, Rectangle, Style, Layout, Row
     /// #     };
     /// #     pub struct Renderer;
     /// #

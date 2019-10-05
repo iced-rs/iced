@@ -1,8 +1,6 @@
 use std::hash::Hash;
 
-use crate::{
-    Element, Event, Hasher, Layout, MouseCursor, Node, Point, Style, Widget,
-};
+use crate::{Element, Event, Hasher, Layout, Node, Point, Style, Widget};
 
 /// A container that distributes its contents horizontally.
 pub type Row<'a, Message, Renderer> =

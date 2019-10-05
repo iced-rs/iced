@@ -77,8 +77,7 @@
 //! #
 //! # mod iced_wgpu {
 //! #     use iced_native::{
-//! #         button, text, Button, Text,
-//! #         MouseCursor, Node, Point, Rectangle, Style, Color, Layout
+//! #         button, text, Button, Text, Node, Point, Rectangle, Style, Color, Layout
 //! #     };
 //! #
 //! #     pub struct Renderer {}
@@ -207,7 +206,6 @@ mod element;
 mod event;
 mod hasher;
 mod layout;
-mod mouse_cursor;
 mod node;
 mod style;
 mod user_interface;
@@ -223,7 +221,6 @@ pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
-pub use mouse_cursor::MouseCursor;
 pub use node::Node;
 pub use renderer::Renderer;
 pub use style::Style;

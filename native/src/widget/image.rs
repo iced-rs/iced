@@ -1,6 +1,6 @@
 //! Display images in your user interface.
 
-use crate::{Element, Hasher, Layout, MouseCursor, Node, Point, Widget};
+use crate::{Element, Hasher, Layout, Node, Point, Widget};
 
 use std::hash::Hash;
 
