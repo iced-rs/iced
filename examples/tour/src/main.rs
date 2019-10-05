@@ -305,9 +305,13 @@ impl<'a> Step {
                  2D game engine for Rust.",
             ))
             .push(Text::new(
-                "Iced does not provide a built-in renderer. This example runs \
-                 on WebAssembly using dodrio, an experimental VDOM library \
-                 for Rust.",
+                "Iced does not provide a built-in renderer. On native \
+                 platforms, this example runs on a fairly simple renderer \
+                 built on top of ggez, another game library.",
+            ))
+            .push(Text::new(
+                "Additionally, this tour can also run on WebAssembly thanks \
+                 to dodrio, an experimental VDOM library for Rust.",
             ))
             .push(Text::new(
                 "You will need to interact with the UI in order to reach the \
