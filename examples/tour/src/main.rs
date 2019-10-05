@@ -1,6 +1,7 @@
 use iced::{
     button, slider, text::HorizontalAlignment, Align, Button, Checkbox, Color,
-    Column, Element, Image, Length, Radio, Row, Slider, Text, UserInterface,
+    Column, Element, Image, Justify, Length, Radio, Row, Slider, Text,
+    UserInterface,
 };
 
 pub fn main() {
@@ -78,11 +79,19 @@ impl UserInterface for Tour {
             .push(controls)
             .into();
 
-        if self.debug {
+        let element = if self.debug {
             element.explain(Color::BLACK)
         } else {
             element
-        }
+        };
+
+        Column::new()
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_items(Align::Center)
+            .justify_content(Justify::Center)
+            .push(element)
+            .into()
     }
 }
 
