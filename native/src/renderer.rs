@@ -17,12 +17,16 @@
 //! [`text::Renderer`]: ../widget/text/trait.Renderer.html
 //! [`Checkbox`]: ../widget/checkbox/struct.Checkbox.html
 //! [`checkbox::Renderer`]: ../widget/checkbox/trait.Renderer.html
-use crate::{Color, Layout};
+use crate::{Color, Layout, Point, Widget};
+
+pub trait Renderer {
+    type Primitive;
+}
 
 /// A renderer able to graphically explain a [`Layout`].
 ///
 /// [`Layout`]: ../struct.Layout.html
-pub trait Debugger {
+pub trait Debugger: Renderer {
     /// Explains the [`Layout`] of an [`Element`] for debugging purposes.
     ///
     /// This will be called when [`Element::explain`] has been used. It should
@@ -34,5 +38,11 @@ pub trait Debugger {
     /// [`Layout`]: struct.Layout.html
     /// [`Element`]: struct.Element.html
     /// [`Element::explain`]: struct.Element.html#method.explain
-    fn explain(&mut self, layout: &Layout<'_>, color: Color);
+    fn explain<Message>(
+        &mut self,
+        widget: &dyn Widget<Message, Self>,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        color: Color,
+    ) -> Self::Primitive;
 }

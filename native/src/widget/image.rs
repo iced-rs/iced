@@ -20,10 +20,8 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> MouseCursor {
-        renderer.draw(&self, layout);
-
-        MouseCursor::OutOfBounds
+    ) -> Renderer::Primitive {
+        renderer.draw(&self, layout)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -40,7 +38,7 @@ where
 ///
 /// [`Image`]: struct.Image.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer<I> {
+pub trait Renderer<I>: crate::Renderer {
     /// Creates a [`Node`] for the provided [`Image`].
     ///
     /// You should probably keep the original aspect ratio, if possible.
@@ -52,7 +50,8 @@ pub trait Renderer<I> {
     /// Draws an [`Image`].
     ///
     /// [`Image`]: struct.Image.html
-    fn draw(&mut self, image: &Image<I>, layout: Layout<'_>);
+    fn draw(&mut self, image: &Image<I>, layout: Layout<'_>)
+        -> Self::Primitive;
 }
 
 impl<'a, I, Message, Renderer> From<Image<I>> for Element<'a, Message, Renderer>

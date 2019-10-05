@@ -20,13 +20,12 @@
 //!
 //! [`Widget`]: trait.Widget.html
 //! [renderer]: ../renderer/index.html
-mod column;
-mod row;
-
 pub mod button;
 pub mod checkbox;
+pub mod column;
 pub mod image;
 pub mod radio;
+pub mod row;
 pub mod slider;
 pub mod text;
 
@@ -47,7 +46,7 @@ pub use slider::Slider;
 #[doc(no_inline)]
 pub use text::Text;
 
-use crate::{Event, Hasher, Layout, MouseCursor, Node, Point};
+use crate::{Event, Hasher, Layout, Node, Point};
 
 /// A component that displays information and allows interaction.
 ///
@@ -56,7 +55,10 @@ use crate::{Event, Hasher, Layout, MouseCursor, Node, Point};
 ///
 /// [`Widget`]: trait.Widget.html
 /// [`Element`]: ../struct.Element.html
-pub trait Widget<Message, Renderer>: std::fmt::Debug {
+pub trait Widget<Message, Renderer>: std::fmt::Debug
+where
+    Renderer: crate::Renderer,
+{
     /// Returns the [`Node`] of the [`Widget`].
     ///
     /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
@@ -69,16 +71,13 @@ pub trait Widget<Message, Renderer>: std::fmt::Debug {
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     ///
-    /// It must return the [`MouseCursor`] state for the [`Widget`].
-    ///
     /// [`Widget`]: trait.Widget.html
-    /// [`MouseCursor`]: ../enum.MouseCursor.html
     fn draw(
         &self,
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor;
+    ) -> Renderer::Primitive;
 
     /// Computes the _layout_ hash of the [`Widget`].
     ///

@@ -1,7 +1,7 @@
 use iced_native::{
-    button, checkbox, image, radio, renderer::Debugger, slider, text, Button,
-    Checkbox, Color, Image, Layout, MouseCursor, Node, Point, Radio, Slider,
-    Style, Text,
+    button, checkbox, column, image, radio, renderer::Debugger, row, slider,
+    text, Button, Checkbox, Color, Column, Image, Layout, Node, Point, Radio,
+    Row, Slider, Style, Text, Widget,
 };
 
 use raw_window_handle::HasRawWindowHandle;
@@ -87,12 +87,36 @@ impl Renderer {
     }
 }
 
+impl column::Renderer for Renderer {
+    fn draw<Message>(
+        &mut self,
+        _column: &Column<'_, Message, Self>,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+    ) -> Self::Primitive {
+        ()
+    }
+}
+
+impl row::Renderer for Renderer {
+    fn draw<Message>(
+        &mut self,
+        _column: &Row<'_, Message, Self>,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+    ) -> Self::Primitive {
+        ()
+    }
+}
+
 impl text::Renderer for Renderer {
     fn node(&self, _text: &Text) -> Node {
         Node::new(Style::default())
     }
 
-    fn draw(&mut self, _text: &Text, _layout: Layout<'_>) {}
+    fn draw(&mut self, _text: &Text, _layout: Layout<'_>) -> Self::Primitive {
+        ()
+    }
 }
 
 impl checkbox::Renderer for Renderer {
@@ -105,8 +129,8 @@ impl checkbox::Renderer for Renderer {
         _checkbox: &Checkbox<Message>,
         _layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> MouseCursor {
-        MouseCursor::OutOfBounds
+    ) -> Self::Primitive {
+        ()
     }
 }
 
@@ -120,8 +144,8 @@ impl radio::Renderer for Renderer {
         _radio: &Radio<Message>,
         _layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> MouseCursor {
-        MouseCursor::OutOfBounds
+    ) -> Self::Primitive {
+        ()
     }
 }
 
@@ -135,8 +159,8 @@ impl slider::Renderer for Renderer {
         _slider: &Slider<Message>,
         _layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> MouseCursor {
-        MouseCursor::OutOfBounds
+    ) -> Self::Primitive {
+        ()
     }
 }
 
@@ -145,7 +169,13 @@ impl image::Renderer<&str> for Renderer {
         Node::new(Style::default())
     }
 
-    fn draw(&mut self, _checkbox: &Image<&str>, _layout: Layout<'_>) {}
+    fn draw(
+        &mut self,
+        _checkbox: &Image<&str>,
+        _layout: Layout<'_>,
+    ) -> Self::Primitive {
+        ()
+    }
 }
 
 impl button::Renderer for Renderer {
@@ -158,11 +188,23 @@ impl button::Renderer for Renderer {
         _button: &Button<Message>,
         _layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> MouseCursor {
-        MouseCursor::OutOfBounds
+    ) -> Self::Primitive {
+        ()
     }
 }
 
+impl iced_native::Renderer for Renderer {
+    type Primitive = ();
+}
+
 impl Debugger for Renderer {
-    fn explain(&mut self, _layout: &Layout<'_>, _color: Color) {}
+    fn explain<Message>(
+        &mut self,
+        widget: &dyn Widget<Message, Self>,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _color: Color,
+    ) -> Self::Primitive {
+        widget.draw(self, layout, cursor_position)
+    }
 }

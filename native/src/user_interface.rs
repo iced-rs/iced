@@ -1,7 +1,7 @@
-use crate::{input::mouse, Column, Element, Event, Layout, MouseCursor, Point};
+use crate::{input::mouse, Element, Event, Layout, Point};
 
 use std::hash::Hasher;
-use stretch::result;
+use stretch::{geometry, result};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -19,7 +19,10 @@ pub struct UserInterface<'a, Message, Renderer> {
     cursor_position: Point,
 }
 
-impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
+impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+{
     /// Builds a user interface for an [`Element`].
     ///
     /// It is able to avoid expensive computations when using a [`Cache`]
@@ -43,6 +46,19 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// #
     /// #     impl Renderer {
     /// #         pub fn new() -> Self { Renderer }
+    /// #     }
+    /// #
+    /// #     impl iced_native::Renderer for Renderer { type Primitive = (); }
+    /// #
+    /// #     impl iced_native::column::Renderer for Renderer {
+    /// #         fn draw<Message>(
+    /// #             &mut self,
+    /// #             _column: &iced_native::Column<'_, Message, Self>,
+    /// #             _layout: iced_native::Layout<'_>,
+    /// #             _cursor_position: iced_native::Point,
+    /// #         ) -> Self::Primitive {
+    /// #             ()
+    /// #         }
     /// #     }
     /// # }
     /// #
@@ -126,6 +142,19 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// #
     /// #     impl Renderer {
     /// #         pub fn new() -> Self { Renderer }
+    /// #     }
+    /// #
+    /// #     impl iced_native::Renderer for Renderer { type Primitive = (); }
+    /// #
+    /// #     impl iced_native::column::Renderer for Renderer {
+    /// #         fn draw<Message>(
+    /// #             &mut self,
+    /// #             _column: &iced_native::Column<'_, Message, Self>,
+    /// #             _layout: iced_native::Layout<'_>,
+    /// #             _cursor_position: iced_native::Point,
+    /// #         ) -> Self::Primitive {
+    /// #             ()
+    /// #         }
     /// #     }
     /// # }
     /// #
@@ -212,6 +241,19 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     /// #     impl Renderer {
     /// #         pub fn new() -> Self { Renderer }
     /// #     }
+    /// #
+    /// #     impl iced_native::Renderer for Renderer { type Primitive = (); }
+    /// #
+    /// #     impl iced_native::column::Renderer for Renderer {
+    /// #         fn draw<Message>(
+    /// #             &mut self,
+    /// #             _column: &iced_native::Column<'_, Message, Self>,
+    /// #             _layout: iced_native::Layout<'_>,
+    /// #             _cursor_position: iced_native::Point,
+    /// #         ) -> Self::Primitive {
+    /// #             ()
+    /// #         }
+    /// #     }
     /// # }
     /// #
     /// # use iced_native::Column;
@@ -254,7 +296,7 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer> {
     ///     // Flush rendering operations...
     /// }
     /// ```
-    pub fn draw(&self, renderer: &mut Renderer) -> MouseCursor {
+    pub fn draw(&self, renderer: &mut Renderer) -> Renderer::Primitive {
         self.root.widget.draw(
             renderer,
             Layout::new(&self.layout),
@@ -295,14 +337,16 @@ impl Cache {
     /// [`Cache`]: struct.Cache.html
     /// [`UserInterface`]: struct.UserInterface.html
     pub fn new() -> Cache {
-        let root: Element<'_, (), ()> = Column::new().into();
+        use crate::{Node, Style};
 
-        let hasher = &mut crate::Hasher::default();
-        root.hash_layout(hasher);
+        let empty_node = Node::new(Style::default());
 
         Cache {
-            hash: hasher.finish(),
-            layout: root.compute_layout(&mut ()),
+            hash: 0,
+            layout: empty_node
+                .0
+                .compute_layout(geometry::Size::undefined())
+                .unwrap(),
             cursor_position: Point::new(0.0, 0.0),
         }
     }

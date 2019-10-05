@@ -71,7 +71,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
+    ) -> Renderer::Primitive {
         renderer.draw(&self, layout, cursor_position)
     }
 
@@ -87,7 +87,7 @@ where
 ///
 /// [`Slider`]: struct.Slider.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer {
+pub trait Renderer: crate::Renderer {
     /// Creates a [`Node`] for the provided [`Radio`].
     ///
     /// [`Node`]: ../../struct.Node.html
@@ -111,7 +111,7 @@ pub trait Renderer {
         slider: &Slider<'_, Message>,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor;
+    ) -> Self::Primitive;
 }
 
 impl<'a, Message, Renderer> From<Slider<'a, Message>>

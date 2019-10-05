@@ -1,5 +1,5 @@
 //! Write some text for your users to read.
-use crate::{Element, Hasher, Layout, MouseCursor, Node, Point, Widget};
+use crate::{Element, Hasher, Layout, Node, Point, Widget};
 
 use std::hash::Hash;
 
@@ -18,10 +18,8 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> MouseCursor {
-        renderer.draw(&self, layout);
-
-        MouseCursor::OutOfBounds
+    ) -> Renderer::Primitive {
+        renderer.draw(&self, layout)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -40,7 +38,7 @@ where
 /// [`Text`]: struct.Text.html
 /// [renderer]: ../../renderer/index.html
 /// [`UserInterface`]: ../../struct.UserInterface.html
-pub trait Renderer {
+pub trait Renderer: crate::Renderer {
     /// Creates a [`Node`] with the given [`Style`] for the provided [`Text`]
     /// contents and size.
     ///
@@ -66,7 +64,7 @@ pub trait Renderer {
     /// [`Text`]: struct.Text.html
     /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
     /// [`VerticalAlignment`]: enum.VerticalAlignment.html
-    fn draw(&mut self, text: &Text, layout: Layout<'_>);
+    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Primitive;
 }
 
 impl<'a, Message, Renderer> From<Text> for Element<'a, Message, Renderer>

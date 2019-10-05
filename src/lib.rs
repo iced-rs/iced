@@ -45,13 +45,11 @@ pub trait UserInterface {
 
         event_loop.run(move |event, _, control_flow| match event {
             Event::EventsCleared => {
-                // TODO: We should find out a way to keep a user interface
-                // alive between events while still being able to drop it and
-                // rebuild it only when a message is handled.
+                // TODO: We should be able to keep a user interface alive
+                // between events once we remove state references.
                 //
-                // The borrow checker does not seem to like it when I try this,
-                // even though I am not technically double borrowing at any
-                // point.
+                // This will allow us to rebuild it only when a message is
+                // handled.
                 let mut user_interface = iced_winit::UserInterface::build(
                     self.view(),
                     cache.take().unwrap(),

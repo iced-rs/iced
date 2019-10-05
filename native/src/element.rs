@@ -1,8 +1,6 @@
 use stretch::{geometry, result};
 
-use crate::{
-    renderer, Color, Event, Hasher, Layout, MouseCursor, Node, Point, Widget,
-};
+use crate::{renderer, Color, Event, Hasher, Layout, Node, Point, Widget};
 
 /// A generic [`Widget`].
 ///
@@ -27,7 +25,10 @@ impl<'a, Message, Renderer> std::fmt::Debug for Element<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Element<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+{
     /// Create a new [`Element`] containing the given [`Widget`].
     ///
     /// [`Element`]: struct.Element.html
@@ -102,9 +103,20 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// #
     /// # mod iced_wgpu {
     /// #     use iced_native::{
-    /// #         button, Button, MouseCursor, Node, Point, Rectangle, Style, Layout
+    /// #         button, row, Button, MouseCursor, Node, Point, Rectangle, Style, Layout, Row
     /// #     };
     /// #     pub struct Renderer;
+    /// #
+    /// #     impl iced_native::Renderer for Renderer { type Primitive = (); }
+    /// #
+    /// #     impl iced_native::row::Renderer for Renderer {
+    /// #         fn draw<Message>(
+    /// #             &mut self,
+    /// #             _column: &Row<'_, Message, Self>,
+    /// #             _layout: Layout<'_>,
+    /// #             _cursor_position: Point,
+    /// #         ) {}
+    /// #     }
     /// #
     /// #     impl button::Renderer for Renderer {
     /// #         fn node<Message>(&self, _button: &Button<'_, Message>) -> Node {
@@ -116,9 +128,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// #             _button: &Button<'_, Message>,
     /// #             _layout: Layout<'_>,
     /// #             _cursor_position: Point,
-    /// #         ) -> MouseCursor {
-    /// #             MouseCursor::OutOfBounds
-    /// #         }
+    /// #         ) {}
     /// #     }
     /// # }
     /// #
@@ -268,6 +278,7 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
 impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
 where
     A: Copy,
+    Renderer: crate::Renderer,
 {
     fn node(&self, renderer: &mut Renderer) -> Node {
         self.widget.node(renderer)
@@ -300,7 +311,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
+    ) -> Renderer::Primitive {
         self.widget.draw(renderer, layout, cursor_position)
     }
 
@@ -309,14 +320,14 @@ where
     }
 }
 
-struct Explain<'a, Message, Renderer: renderer::Debugger> {
+struct Explain<'a, Message, Renderer: crate::Renderer> {
     element: Element<'a, Message, Renderer>,
     color: Color,
 }
 
 impl<'a, Message, Renderer> std::fmt::Debug for Explain<'a, Message, Renderer>
 where
-    Renderer: renderer::Debugger,
+    Renderer: crate::Renderer,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Explain")
@@ -327,7 +338,7 @@ where
 
 impl<'a, Message, Renderer> Explain<'a, Message, Renderer>
 where
-    Renderer: renderer::Debugger,
+    Renderer: crate::Renderer,
 {
     fn new(element: Element<'a, Message, Renderer>, color: Color) -> Self {
         Explain { element, color }
@@ -337,7 +348,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Explain<'a, Message, Renderer>
 where
-    Renderer: renderer::Debugger,
+    Renderer: crate::Renderer + renderer::Debugger,
 {
     fn node(&self, renderer: &mut Renderer) -> Node {
         self.element.widget.node(renderer)
@@ -360,10 +371,13 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
-        renderer.explain(&layout, self.color);
-
-        self.element.widget.draw(renderer, layout, cursor_position)
+    ) -> Renderer::Primitive {
+        renderer.explain(
+            self.element.widget.as_ref(),
+            layout,
+            cursor_position,
+            self.color,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

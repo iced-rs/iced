@@ -10,6 +10,8 @@ pub type Row<'a, Message, Renderer> =
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Row<'a, Message, Renderer>
+where
+    Renderer: self::Renderer,
 {
     fn node(&self, renderer: &mut Renderer) -> Node {
         let mut children: Vec<Node> = self
@@ -70,21 +72,8 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
-        let mut cursor = MouseCursor::OutOfBounds;
-
-        self.children.iter().zip(layout.children()).for_each(
-            |(child, layout)| {
-                let new_cursor =
-                    child.widget.draw(renderer, layout, cursor_position);
-
-                if new_cursor != MouseCursor::OutOfBounds {
-                    cursor = new_cursor;
-                }
-            },
-        );
-
-        cursor
+    ) -> Renderer::Primitive {
+        renderer.draw(&self, layout, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -105,10 +94,19 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     }
 }
 
+pub trait Renderer: crate::Renderer + Sized {
+    fn draw<Message>(
+        &mut self,
+        row: &Row<'_, Message, Self>,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Self::Primitive;
+}
+
 impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a,
+    Renderer: 'a + self::Renderer,
     Message: 'static,
 {
     fn from(row: Row<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {

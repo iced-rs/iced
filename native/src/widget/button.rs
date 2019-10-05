@@ -7,7 +7,7 @@
 //! [`Class`]: enum.Class.html
 
 use crate::input::{mouse, ButtonState};
-use crate::{Element, Event, Hasher, Layout, MouseCursor, Node, Point, Widget};
+use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
 use std::hash::Hash;
 
 pub use iced_core::button::*;
@@ -63,7 +63,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
+    ) -> Renderer::Primitive {
         renderer.draw(&self, layout, cursor_position)
     }
 
@@ -81,7 +81,7 @@ where
 ///
 /// [`Button`]: struct.Button.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer {
+pub trait Renderer: crate::Renderer {
     /// Creates a [`Node`] for the provided [`Button`].
     ///
     /// [`Node`]: ../../struct.Node.html
@@ -96,7 +96,7 @@ pub trait Renderer {
         button: &Button<'_, Message>,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor;
+    ) -> Self::Primitive;
 }
 
 impl<'a, Message, Renderer> From<Button<'a, Message>>

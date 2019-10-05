@@ -83,6 +83,10 @@
 //! #
 //! #     pub struct Renderer {}
 //! #
+//! #     impl iced_native::Renderer for Renderer {
+//! #         type Primitive = ();
+//! #     }
+//! #
 //! #     impl button::Renderer for Renderer {
 //! #         fn node<Message>(
 //! #             &self,
@@ -96,9 +100,7 @@
 //! #             _button: &Button<'_, Message>,
 //! #             _layout: Layout<'_>,
 //! #             _cursor_position: Point,
-//! #         ) -> MouseCursor {
-//! #             MouseCursor::OutOfBounds
-//! #         }
+//! #         ) {}
 //! #     }
 //! #
 //! #     impl text::Renderer for Renderer {
@@ -192,7 +194,7 @@
 //! [documentation]: https://docs.rs/iced
 //! [examples]: https://github.com/hecrj/iced/tree/master/examples
 //! [`UserInterface`]: struct.UserInterface.html
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]
@@ -223,6 +225,7 @@ pub use hasher::Hasher;
 pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
 pub use node::Node;
+pub use renderer::Renderer;
 pub use style::Style;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;
