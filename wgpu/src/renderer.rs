@@ -54,7 +54,7 @@ impl Renderer {
         // TODO: Think about font loading strategy
         // Loading system fonts with fallback may be a good idea
         let font: &[u8] =
-            include_bytes!("../../examples/tour/resources/Roboto-Regular.ttf");
+            include_bytes!("../../examples/resources/Roboto-Regular.ttf");
 
         let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
             .build(&mut device, TextureFormat::Bgra8UnormSrgb);

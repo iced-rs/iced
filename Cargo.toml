@@ -19,7 +19,6 @@ members = [
     "core",
     "native",
     "web",
-    "examples/tour",
 ]
 
 [features]
