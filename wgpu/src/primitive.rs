@@ -1,4 +1,4 @@
-use iced_native::Rectangle;
+use iced_native::{Color, Rectangle};
 
 #[derive(Debug, Clone)]
 pub enum Primitive {
@@ -11,4 +11,13 @@ pub enum Primitive {
         bounds: Rectangle,
         size: f32,
     },
+    Box {
+        bounds: Rectangle,
+        background: Background,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Background {
+    Color(Color),
 }
