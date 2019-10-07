@@ -144,8 +144,8 @@ impl Renderer {
                 scale: wgpu_glyph::Scale { x: *size, y: *size },
                 ..Default::default()
             }),
-            Primitive::Box { bounds, background } => {
-                // TODO: Batch boxes and draw them all at once
+            Primitive::Quad { bounds, background } => {
+                // TODO: Batch quads and draw them all at once
             }
         }
     }

@@ -20,7 +20,7 @@ impl button::Renderer for Renderer {
     ) -> Self::Primitive {
         Primitive::Group {
             primitives: vec![
-                Primitive::Box {
+                Primitive::Quad {
                     bounds: layout.bounds(),
                     background: Background::Color(Color {
                         r: 0.0,

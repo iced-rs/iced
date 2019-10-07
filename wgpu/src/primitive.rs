@@ -11,7 +11,7 @@ pub enum Primitive {
         bounds: Rectangle,
         size: f32,
     },
-    Box {
+    Quad {
         bounds: Rectangle,
         background: Background,
     },
