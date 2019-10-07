@@ -38,9 +38,15 @@ pub trait UserInterface {
         let mut renderer = Renderer::new(&window);
         let mut target = renderer.target(width, height);
 
-        let mut cache = Some(iced_winit::Cache::default());
+        let user_interface = iced_winit::UserInterface::build(
+            document(&mut self, width, height),
+            iced_winit::Cache::default(),
+            &mut renderer,
+        );
+
+        let mut primitive = user_interface.draw(&mut renderer);
+        let mut cache = Some(user_interface.into_cache());
         let mut events = Vec::new();
-        let mut primitive = Primitive::None;
 
         window.request_redraw();
 
