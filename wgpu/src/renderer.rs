@@ -3,8 +3,8 @@ use iced_native::{renderer::Debugger, Color, Layout, Point, Widget};
 
 use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
-    Adapter, CommandEncoderDescriptor, Device, DeviceDescriptor, Extensions,
-    Instance, Limits, PowerPreference, RequestAdapterOptions, Surface,
+    Adapter, BackendBit, CommandEncoderDescriptor, Device, DeviceDescriptor,
+    Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface,
     SwapChain, SwapChainDescriptor, TextureFormat, TextureUsage,
 };
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
@@ -21,10 +21,10 @@ mod slider;
 mod text;
 
 pub struct Renderer {
-    instance: Instance,
     surface: Surface,
     adapter: Adapter,
     device: Device,
+    queue: Queue,
     quad_pipeline: quad::Pipeline,
 
     quads: Vec<Quad>,
@@ -40,20 +40,20 @@ pub struct Target {
 
 impl Renderer {
     pub fn new<W: HasRawWindowHandle>(window: &W) -> Self {
-        let instance = Instance::new();
-
-        let adapter = instance.request_adapter(&RequestAdapterOptions {
+        let adapter = Adapter::request(&RequestAdapterOptions {
             power_preference: PowerPreference::LowPower,
-        });
+            backends: BackendBit::all(),
+        })
+        .expect("Request adapter");
 
-        let mut device = adapter.request_device(&DeviceDescriptor {
+        let (mut device, queue) = adapter.request_device(&DeviceDescriptor {
             extensions: Extensions {
                 anisotropic_filtering: false,
             },
             limits: Limits { max_bind_groups: 1 },
         });
 
-        let surface = instance.create_surface(window.raw_window_handle());
+        let surface = Surface::create(window);
 
         // TODO: Think about font loading strategy
         // Loading system fonts with fallback may be a good idea
@@ -66,10 +66,10 @@ impl Renderer {
         let quad_pipeline = quad::Pipeline::new(&mut device);
 
         Self {
-            instance,
             surface,
             adapter,
             device,
+            queue,
             quad_pipeline,
 
             quads: Vec::new(),
@@ -143,7 +143,7 @@ impl Renderer {
             )
             .expect("Draw text");
 
-        self.device.get_queue().submit(&[encoder.finish()]);
+        self.queue.submit(&[encoder.finish()]);
     }
 
     fn draw_primitive(&mut self, primitive: &Primitive) {
