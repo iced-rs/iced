@@ -18,14 +18,16 @@ impl button::Renderer for Renderer {
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Self::Primitive {
+        let bounds = layout.bounds();
+
         Primitive::Group {
             primitives: vec![
                 Primitive::Quad {
-                    bounds: layout.bounds(),
+                    bounds,
                     background: Background::Color(Color {
-                        r: 0.0,
-                        b: 1.0,
-                        g: 0.0,
+                        r: 0.8,
+                        b: 0.8,
+                        g: 0.8,
                         a: 1.0,
                     }),
                 },

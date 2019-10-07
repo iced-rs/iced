@@ -16,4 +16,23 @@ impl Color {
         b: 0.0,
         a: 1.0,
     };
+
+    pub fn into_linear(self) -> [f32; 4] {
+        // As described in:
+        // https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation
+        fn linear_component(u: f32) -> f32 {
+            if u < 0.04045 {
+                u / 12.92
+            } else {
+                ((u + 0.055) / 1.055).powf(2.4)
+            }
+        }
+
+        [
+            linear_component(self.r),
+            linear_component(self.g),
+            linear_component(self.b),
+            self.a,
+        ]
+    }
 }

@@ -5,6 +5,8 @@ use iced::{
 };
 
 pub fn main() {
+    env_logger::init();
+
     let tour = Tour::new();
 
     tour.run();

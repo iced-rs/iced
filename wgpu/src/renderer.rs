@@ -1,4 +1,4 @@
-use crate::Primitive;
+use crate::{quad, Background, Primitive, Quad, Transformation};
 use iced_native::{renderer::Debugger, Color, Layout, Point, Widget};
 
 use raw_window_handle::HasRawWindowHandle;
@@ -25,12 +25,16 @@ pub struct Renderer {
     surface: Surface,
     adapter: Adapter,
     device: Device,
+    quad_pipeline: quad::Pipeline,
+
+    quads: Vec<Quad>,
     glyph_brush: Rc<RefCell<GlyphBrush<'static, ()>>>,
 }
 
 pub struct Target {
     width: u16,
     height: u16,
+    transformation: Transformation,
     swap_chain: SwapChain,
 }
 
@@ -59,11 +63,16 @@ impl Renderer {
         let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
             .build(&mut device, TextureFormat::Bgra8UnormSrgb);
 
+        let quad_pipeline = quad::Pipeline::new(&mut device);
+
         Self {
             instance,
             surface,
             adapter,
             device,
+            quad_pipeline,
+
+            quads: Vec::new(),
             glyph_brush: Rc::new(RefCell::new(glyph_brush)),
         }
     }
@@ -72,6 +81,7 @@ impl Renderer {
         Target {
             width,
             height,
+            transformation: Transformation::orthographic(width, height),
             swap_chain: self.device.create_swap_chain(
                 &self.surface,
                 &SwapChainDescriptor {
@@ -110,6 +120,16 @@ impl Renderer {
 
         self.draw_primitive(primitive);
 
+        self.quad_pipeline.draw(
+            &mut self.device,
+            &mut encoder,
+            &self.quads,
+            target.transformation,
+            &frame.view,
+        );
+
+        self.quads.clear();
+
         self.glyph_brush
             .borrow_mut()
             .draw_queued(
@@ -145,7 +165,13 @@ impl Renderer {
                 ..Default::default()
             }),
             Primitive::Quad { bounds, background } => {
-                // TODO: Batch quads and draw them all at once
+                self.quads.push(Quad {
+                    position: [bounds.x, bounds.y],
+                    scale: [bounds.width, bounds.height],
+                    color: match background {
+                        Background::Color(color) => color.into_linear(),
+                    },
+                });
             }
         }
     }

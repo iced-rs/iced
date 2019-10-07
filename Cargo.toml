@@ -30,3 +30,6 @@ iced_wgpu = { version = "0.1.0-alpha", path = "wgpu" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced_web = { version = "0.1.0-alpha", path = "web" }
+
+[dev-dependencies]
+env_logger = "0.7"
