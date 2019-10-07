@@ -15,3 +15,4 @@ iced_native = { version = "0.1.0-alpha", path = "../native" }
 wgpu = "0.3"
 wgpu_glyph = "0.4"
 raw-window-handle = "0.1"
+log = "0.4"

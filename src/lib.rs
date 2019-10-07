@@ -40,7 +40,6 @@ pub trait UserInterface {
 
         let mut cache = Some(iced_winit::Cache::default());
         let mut events = Vec::new();
-        let mut redraws = 0;
         let mut primitive = Primitive::None;
 
         window.request_redraw();
@@ -90,10 +89,7 @@ pub trait UserInterface {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                println!("Redrawing {}", redraws);
                 renderer.draw(&mut target, &primitive);
-
-                redraws += 1;
 
                 // TODO: Handle animations!
                 // Maybe we can use `ControlFlow::WaitUntil` for this.

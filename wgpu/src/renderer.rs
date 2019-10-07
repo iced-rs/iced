@@ -96,6 +96,8 @@ impl Renderer {
     }
 
     pub fn draw(&mut self, target: &mut Target, primitive: &Primitive) {
+        log::debug!("Drawing");
+
         let frame = target.swap_chain.get_next_texture();
 
         let mut encoder = self
