@@ -2,7 +2,7 @@ use crate::{Primitive, Renderer};
 use iced_native::{checkbox, Checkbox, Layout, Node, Point, Style};
 
 impl checkbox::Renderer for Renderer {
-    fn node<Message>(&mut self, _checkbox: &Checkbox<Message>) -> Node {
+    fn node<Message>(&self, _checkbox: &Checkbox<Message>) -> Node {
         Node::new(Style::default())
     }
 

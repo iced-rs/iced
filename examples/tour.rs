@@ -1,7 +1,7 @@
 use iced::{
-    button, slider, text::HorizontalAlignment, Align, Button, Checkbox, Color,
-    Column, Element, Image, Justify, Length, Radio, Row, Slider, Text,
-    UserInterface,
+    button, slider, text::HorizontalAlignment, Align, Background, Button,
+    Checkbox, Color, Column, Element, Image, Justify, Length, Radio, Row,
+    Slider, Text, UserInterface,
 };
 
 pub fn main() {
@@ -59,9 +59,8 @@ impl UserInterface for Tour {
 
         if steps.has_previous() {
             controls = controls.push(
-                Button::new(back_button, "Back")
-                    .on_press(Message::BackPressed)
-                    .class(button::Class::Secondary),
+                secondary_button(back_button, "Back")
+                    .on_press(Message::BackPressed),
             );
         }
 
@@ -69,7 +68,8 @@ impl UserInterface for Tour {
 
         if steps.can_continue() {
             controls = controls.push(
-                Button::new(next_button, "Next").on_press(Message::NextPressed),
+                primary_button(next_button, "Next")
+                    .on_press(Message::NextPressed),
             );
         }
 
@@ -544,6 +544,44 @@ impl<'a> Step {
             ))
             .push(Text::new("Make sure to keep an eye on it!"))
     }
+}
+
+fn button<'a, Message>(
+    state: &'a mut button::State,
+    label: &str,
+) -> Button<'a, Message> {
+    Button::new(
+        state,
+        Text::new(label)
+            .color(Color::WHITE)
+            .horizontal_alignment(HorizontalAlignment::Center),
+    )
+    .padding(10)
+    .border_radius(10)
+}
+
+fn primary_button<'a, Message>(
+    state: &'a mut button::State,
+    label: &str,
+) -> Button<'a, Message> {
+    button(state, label).background(Background::Color(Color {
+        r: 0.3,
+        g: 0.3,
+        b: 0.8,
+        a: 1.0,
+    }))
+}
+
+fn secondary_button<'a, Message>(
+    state: &'a mut button::State,
+    label: &str,
+) -> Button<'a, Message> {
+    button(state, label).background(Background::Color(Color {
+        r: 0.8,
+        g: 0.8,
+        b: 0.8,
+        a: 1.0,
+    }))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

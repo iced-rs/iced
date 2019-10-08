@@ -1,4 +1,4 @@
-use iced_native::{Color, Rectangle};
+use iced_native::{text, Background, Color, Rectangle};
 
 #[derive(Debug, Clone)]
 pub enum Primitive {
@@ -9,16 +9,14 @@ pub enum Primitive {
     Text {
         content: String,
         bounds: Rectangle,
+        color: Color,
         size: f32,
+        horizontal_alignment: text::HorizontalAlignment,
+        vertical_alignment: text::VerticalAlignment,
     },
     Quad {
         bounds: Rectangle,
         background: Background,
+        border_radius: u16,
     },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Background {
-    Color(Color),
-    // TODO: Add gradient and image variants
 }

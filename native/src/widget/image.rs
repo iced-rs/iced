@@ -11,7 +11,7 @@ where
     Renderer: self::Renderer<I>,
     I: Clone,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
     }
 
@@ -45,7 +45,7 @@ pub trait Renderer<I>: crate::Renderer {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Image`]: struct.Image.html
-    fn node(&mut self, image: &Image<I>) -> Node;
+    fn node(&self, image: &Image<I>) -> Node;
 
     /// Draws an [`Image`].
     ///

@@ -11,7 +11,7 @@ where
     Renderer: self::Renderer,
     Message: Copy + std::fmt::Debug,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
     }
 
@@ -61,7 +61,7 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Radio`]: struct.Radio.html
-    fn node<Message>(&mut self, radio: &Radio<Message>) -> Node;
+    fn node<Message>(&self, radio: &Radio<Message>) -> Node;
 
     /// Draws a [`Radio`] button.
     ///

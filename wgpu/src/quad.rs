@@ -123,6 +123,11 @@ impl Pipeline {
                                 format: wgpu::VertexFormat::Float4,
                                 offset: 4 * (2 + 2),
                             },
+                            wgpu::VertexAttributeDescriptor {
+                                shader_location: 4,
+                                format: wgpu::VertexFormat::Uint,
+                                offset: 4 * (2 + 2 + 4),
+                            },
                         ],
                     },
                 ],
@@ -262,6 +267,7 @@ pub struct Quad {
     pub position: [f32; 2],
     pub scale: [f32; 2],
     pub color: [f32; 4],
+    pub border_radius: u32,
 }
 
 impl Quad {

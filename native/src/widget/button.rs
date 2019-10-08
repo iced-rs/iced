@@ -10,14 +10,18 @@ use crate::input::{mouse, ButtonState};
 use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
 use std::hash::Hash;
 
-pub use iced_core::button::*;
+pub use iced_core::button::State;
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Button<'a, Message>
+pub type Button<'a, Message, Renderer> =
+    iced_core::Button<'a, Message, Element<'a, Message, Renderer>>;
+
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Button<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
     Message: Copy + std::fmt::Debug,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
     }
 
@@ -68,9 +72,9 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        self.label.hash(state);
         self.width.hash(state);
         self.align_self.hash(state);
+        self.content.hash_layout(state);
     }
 }
 
@@ -81,31 +85,33 @@ where
 ///
 /// [`Button`]: struct.Button.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer: crate::Renderer {
+pub trait Renderer: crate::Renderer + Sized {
     /// Creates a [`Node`] for the provided [`Button`].
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Button`]: struct.Button.html
-    fn node<Message>(&self, button: &Button<'_, Message>) -> Node;
+    fn node<Message>(&self, button: &Button<'_, Message, Self>) -> Node;
 
     /// Draws a [`Button`].
     ///
     /// [`Button`]: struct.Button.html
     fn draw<Message>(
         &mut self,
-        button: &Button<'_, Message>,
+        button: &Button<'_, Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Primitive;
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message>>
+impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
     Message: 'static + Copy + std::fmt::Debug,
 {
-    fn from(button: Button<'a, Message>) -> Element<'a, Message, Renderer> {
+    fn from(
+        button: Button<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
         Element::new(button)
     }
 }

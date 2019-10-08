@@ -9,7 +9,7 @@ impl<Message, Renderer> Widget<Message, Renderer> for Text
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
     }
 

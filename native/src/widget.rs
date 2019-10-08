@@ -67,7 +67,7 @@ where
     /// [`Node`]: ../struct.Node.html
     /// [`Widget`]: trait.Widget.html
     /// [`Layout`]: ../struct.Layout.html
-    fn node(&self, renderer: &mut Renderer) -> Node;
+    fn node(&self, renderer: &Renderer) -> Node;
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     ///

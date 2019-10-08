@@ -10,7 +10,7 @@ impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
     }
 
@@ -64,7 +64,7 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Checkbox`]: struct.Checkbox.html
-    fn node<Message>(&mut self, checkbox: &Checkbox<Message>) -> Node;
+    fn node<Message>(&self, checkbox: &Checkbox<Message>) -> Node;
 
     /// Draws a [`Checkbox`].
     ///

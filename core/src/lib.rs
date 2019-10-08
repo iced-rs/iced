@@ -1,6 +1,7 @@
 pub mod widget;
 
 mod align;
+mod background;
 mod color;
 mod justify;
 mod length;
@@ -9,6 +10,7 @@ mod rectangle;
 mod vector;
 
 pub use align::Align;
+pub use background::Background;
 pub use color::Color;
 pub use justify::Justify;
 pub use length::Length;

@@ -1,5 +1,7 @@
-use crate::{quad, Background, Primitive, Quad, Transformation};
-use iced_native::{renderer::Debugger, Color, Layout, Point, Widget};
+use crate::{quad, Primitive, Quad, Transformation};
+use iced_native::{
+    renderer::Debugger, Background, Color, Layout, Point, Widget,
+};
 
 use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
@@ -159,20 +161,74 @@ impl Renderer {
                 content,
                 bounds,
                 size,
-            } => self.glyph_brush.borrow_mut().queue(Section {
-                text: &content,
-                screen_position: (bounds.x, bounds.y),
-                bounds: (bounds.width, bounds.height),
-                scale: wgpu_glyph::Scale { x: *size, y: *size },
-                ..Default::default()
-            }),
-            Primitive::Quad { bounds, background } => {
+                color,
+                horizontal_alignment,
+                vertical_alignment,
+            } => {
+                let x = match horizontal_alignment {
+                    iced_native::text::HorizontalAlignment::Left => bounds.x,
+                    iced_native::text::HorizontalAlignment::Center => {
+                        bounds.x + bounds.width / 2.0
+                    }
+                    iced_native::text::HorizontalAlignment::Right => {
+                        bounds.x + bounds.width
+                    }
+                };
+
+                let y = match vertical_alignment {
+                    iced_native::text::VerticalAlignment::Top => bounds.y,
+                    iced_native::text::VerticalAlignment::Center => {
+                        bounds.y + bounds.height / 2.0
+                    }
+                    iced_native::text::VerticalAlignment::Bottom => {
+                        bounds.y + bounds.height
+                    }
+                };
+
+                self.glyph_brush.borrow_mut().queue(Section {
+                    text: &content,
+                    screen_position: (x, y),
+                    bounds: (bounds.width, bounds.height),
+                    scale: wgpu_glyph::Scale { x: *size, y: *size },
+                    color: color.into_linear(),
+                    layout: wgpu_glyph::Layout::default()
+                        .h_align(match horizontal_alignment {
+                            iced_native::text::HorizontalAlignment::Left => {
+                                wgpu_glyph::HorizontalAlign::Left
+                            }
+                            iced_native::text::HorizontalAlignment::Center => {
+                                wgpu_glyph::HorizontalAlign::Center
+                            }
+                            iced_native::text::HorizontalAlignment::Right => {
+                                wgpu_glyph::HorizontalAlign::Right
+                            }
+                        })
+                        .v_align(match vertical_alignment {
+                            iced_native::text::VerticalAlignment::Top => {
+                                wgpu_glyph::VerticalAlign::Top
+                            }
+                            iced_native::text::VerticalAlignment::Center => {
+                                wgpu_glyph::VerticalAlign::Center
+                            }
+                            iced_native::text::VerticalAlignment::Bottom => {
+                                wgpu_glyph::VerticalAlign::Bottom
+                            }
+                        }),
+                    ..Default::default()
+                })
+            }
+            Primitive::Quad {
+                bounds,
+                background,
+                border_radius,
+            } => {
                 self.quads.push(Quad {
                     position: [bounds.x, bounds.y],
                     scale: [bounds.width, bounds.height],
                     color: match background {
                         Background::Color(color) => color.into_linear(),
                     },
+                    border_radius: u32::from(*border_radius),
                 });
             }
         }

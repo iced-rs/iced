@@ -2,7 +2,7 @@ use crate::{Primitive, Renderer};
 use iced_native::{radio, Layout, Node, Point, Radio, Style};
 
 impl radio::Renderer for Renderer {
-    fn node<Message>(&mut self, _checkbox: &Radio<Message>) -> Node {
+    fn node<Message>(&self, _checkbox: &Radio<Message>) -> Node {
         Node::new(Style::default())
     }
 

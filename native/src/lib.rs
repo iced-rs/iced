@@ -89,14 +89,14 @@
 //! #     impl button::Renderer for Renderer {
 //! #         fn node<Message>(
 //! #             &self,
-//! #             _button: &Button<'_, Message>
+//! #             _button: &Button<'_, Message, Self>
 //! #         ) -> Node {
 //! #             Node::new(Style::default())
 //! #         }
 //! #
 //! #         fn draw<Message>(
 //! #             &mut self,
-//! #             _button: &Button<'_, Message>,
+//! #             _button: &Button<'_, Message, Self>,
 //! #             _layout: Layout<'_>,
 //! #             _cursor_position: Point,
 //! #         ) {}
@@ -125,7 +125,7 @@
 //!             .push(
 //!                 // The increment button. We tell it to produce an
 //!                 // `IncrementPressed` message when pressed
-//!                 Button::new(&mut self.increment_button, "+")
+//!                 Button::new(&mut self.increment_button, Text::new("+"))
 //!                     .on_press(Message::IncrementPressed),
 //!             )
 //!             .push(
@@ -135,7 +135,7 @@
 //!             .push(
 //!                 // The decrement button. We tell it to produce a
 //!                 // `DecrementPressed` message when pressed
-//!                 Button::new(&mut self.decrement_button, "-")
+//!                 Button::new(&mut self.decrement_button, Text::new("-"))
 //!                     .on_press(Message::DecrementPressed),
 //!             )
 //!     }
@@ -212,7 +212,9 @@ mod user_interface;
 
 pub(crate) use iced_core::Vector;
 
-pub use iced_core::{Align, Color, Justify, Length, Point, Rectangle};
+pub use iced_core::{
+    Align, Background, Color, Justify, Length, Point, Rectangle,
+};
 
 #[doc(no_inline)]
 pub use stretch::{geometry::Size, number::Number};

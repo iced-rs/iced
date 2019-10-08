@@ -1,5 +1,5 @@
 //! Write some text for your users to read.
-use crate::{Color, Length};
+use crate::{Align, Color, Length};
 
 /// A paragraph of text.
 ///

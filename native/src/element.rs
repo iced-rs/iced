@@ -41,6 +41,10 @@ where
         }
     }
 
+    pub fn node(&self, renderer: &Renderer) -> Node {
+        self.widget.node(renderer)
+    }
+
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -97,22 +101,22 @@ where
     ///
     /// ```
     /// # mod counter {
-    /// #     use iced_native::{button, Button};
+    /// #     use iced_native::{text, Text};
     /// #
     /// #     #[derive(Debug, Clone, Copy)]
     /// #     pub enum Message {}
-    /// #     pub struct Counter(button::State);
+    /// #     pub struct Counter;
     /// #
     /// #     impl Counter {
-    /// #         pub fn view(&mut self) -> Button<Message> {
-    /// #             Button::new(&mut self.0, "_")
+    /// #         pub fn view(&mut self) -> Text {
+    /// #             Text::new("")
     /// #         }
     /// #     }
     /// # }
     /// #
     /// # mod iced_wgpu {
     /// #     use iced_native::{
-    /// #         button, row, Button, Node, Point, Rectangle, Style, Layout, Row
+    /// #         text, row, Text, Node, Point, Rectangle, Style, Layout, Row
     /// #     };
     /// #     pub struct Renderer;
     /// #
@@ -127,16 +131,15 @@ where
     /// #         ) {}
     /// #     }
     /// #
-    /// #     impl button::Renderer for Renderer {
-    /// #         fn node<Message>(&self, _button: &Button<'_, Message>) -> Node {
+    /// #     impl text::Renderer for Renderer {
+    /// #         fn node(&self, _text: &Text) -> Node {
     /// #             Node::new(Style::default())
     /// #         }
     /// #
-    /// #         fn draw<Message>(
+    /// #         fn draw(
     /// #             &mut self,
-    /// #             _button: &Button<'_, Message>,
+    /// #             _text: &Text,
     /// #             _layout: Layout<'_>,
-    /// #             _cursor_position: Point,
     /// #         ) {}
     /// #     }
     /// # }
@@ -289,7 +292,7 @@ where
     A: Copy,
     Renderer: crate::Renderer,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         self.widget.node(renderer)
     }
 
@@ -359,7 +362,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer + renderer::Debugger,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         self.element.widget.node(renderer)
     }
 

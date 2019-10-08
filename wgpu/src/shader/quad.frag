@@ -3,6 +3,7 @@
 layout(location = 0) in vec4 v_Color;
 layout(location = 1) in vec2 v_Pos;
 layout(location = 2) in vec2 v_Scale;
+layout(location = 3) in flat uint v_BorderRadius;
 
 layout(location = 0) out vec4 o_Color;
 
@@ -26,8 +27,11 @@ float rounded(in vec2 frag_coord, in vec2 position, in vec2 size, float radius, 
 }
 
 void main() {
-    o_Color = vec4(
-        v_Color.xyz,
-        v_Color.w * rounded(gl_FragCoord.xy, v_Pos, v_Scale, 5.0, 1.0)
-    );
+    float radius_alpha = 1.0;
+
+    if(v_BorderRadius > 0.0) {
+        radius_alpha = rounded(gl_FragCoord.xy, v_Pos, v_Scale, v_BorderRadius, 1.0);
+    }
+
+    o_Color = vec4(v_Color.xyz, v_Color.w * radius_alpha);
 }

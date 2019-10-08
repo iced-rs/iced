@@ -74,12 +74,12 @@ impl Style {
         self
     }
 
-    pub(crate) fn align_items(mut self, align: Align) -> Self {
+    pub fn align_items(mut self, align: Align) -> Self {
         self.0.align_items = into_align_items(align);
         self
     }
 
-    pub(crate) fn justify_content(mut self, justify: Justify) -> Self {
+    pub fn justify_content(mut self, justify: Justify) -> Self {
         self.0.justify_content = into_justify_content(justify);
         self
     }

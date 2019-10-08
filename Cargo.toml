@@ -19,6 +19,8 @@ members = [
     "core",
     "native",
     "web",
+    "wgpu",
+    "winit",
 ]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

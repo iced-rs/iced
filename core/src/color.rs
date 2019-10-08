@@ -17,6 +17,14 @@ impl Color {
         a: 1.0,
     };
 
+    /// The white color.
+    pub const WHITE: Color = Color {
+        r: 1.0,
+        g: 1.0,
+        b: 1.0,
+        a: 1.0,
+    };
+
     pub fn into_linear(self) -> [f32; 4] {
         // As described in:
         // https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation
