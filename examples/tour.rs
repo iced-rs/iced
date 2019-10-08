@@ -304,8 +304,8 @@ impl<'a> Step {
     fn welcome() -> Column<'a, StepMessage> {
         Self::container("Welcome!")
             .push(Text::new(
-                "This a simple tour meant to showcase a bunch of widgets that \
-                 can be easily implemented on top of Iced.",
+                "This is a simple tour meant to showcase a bunch of widgets \
+                 that can be easily implemented on top of Iced.",
             ))
             .push(Text::new(
                 "Iced is a renderer-agnostic GUI library for Rust focused on \
