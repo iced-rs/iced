@@ -1,7 +1,7 @@
 use iced::{
-    button, slider, text::HorizontalAlignment, Align, Background, Button,
-    Checkbox, Color, Column, Element, Image, Justify, Length, Radio, Row,
-    Slider, Text, UserInterface,
+    button, slider, text::HorizontalAlignment, Align, Application, Background,
+    Button, Checkbox, Color, Column, Element, Image, Justify, Length, Radio,
+    Row, Slider, Text,
 };
 
 pub fn main() {
@@ -30,7 +30,7 @@ impl Tour {
     }
 }
 
-impl UserInterface for Tour {
+impl Application for Tour {
     type Message = Message;
 
     fn update(&mut self, event: Message) {

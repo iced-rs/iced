@@ -1,8 +1,10 @@
 //! Write your own renderer.
 //!
-//! There is not a common entrypoint or trait for a __renderer__ in Iced.
-//! Instead, every [`Widget`] constrains its generic `Renderer` type as
-//! necessary.
+//! You will need to implement the `Renderer` trait first. It simply contains
+//! a `Primitive` associated type.
+//!
+//! There is no common trait to draw all the widgets. Instead, every [`Widget`]
+//! constrains its generic `Renderer` type as necessary.
 //!
 //! This approach is flexible and composable. For instance, the
 //! [`Text`] widget only needs a [`text::Renderer`] while a [`Checkbox`] widget
@@ -17,32 +19,13 @@
 //! [`text::Renderer`]: ../widget/text/trait.Renderer.html
 //! [`Checkbox`]: ../widget/checkbox/struct.Checkbox.html
 //! [`checkbox::Renderer`]: ../widget/checkbox/trait.Renderer.html
-use crate::{Color, Layout, Point, Widget};
+
+mod debugger;
+mod windowed;
+
+pub use debugger::Debugger;
+pub use windowed::Windowed;
 
 pub trait Renderer {
     type Primitive;
-}
-
-/// A renderer able to graphically explain a [`Layout`].
-///
-/// [`Layout`]: ../struct.Layout.html
-pub trait Debugger: Renderer {
-    /// Explains the [`Layout`] of an [`Element`] for debugging purposes.
-    ///
-    /// This will be called when [`Element::explain`] has been used. It should
-    /// _explain_ the given [`Layout`] graphically.
-    ///
-    /// A common approach consists in recursively rendering the bounds of the
-    /// [`Layout`] and its children.
-    ///
-    /// [`Layout`]: struct.Layout.html
-    /// [`Element`]: struct.Element.html
-    /// [`Element::explain`]: struct.Element.html#method.explain
-    fn explain<Message>(
-        &mut self,
-        widget: &dyn Widget<Message, Self>,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        color: Color,
-    ) -> Self::Primitive;
 }

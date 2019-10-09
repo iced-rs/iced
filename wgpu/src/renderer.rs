@@ -1,6 +1,7 @@
 use crate::{quad, Primitive, Quad, Transformation};
 use iced_native::{
-    renderer::Debugger, Background, Color, Layout, Point, Widget,
+    renderer::Debugger, renderer::Windowed, Background, Color, Layout,
+    MouseCursor, Point, Widget,
 };
 
 use raw_window_handle::HasRawWindowHandle;
@@ -41,7 +42,7 @@ pub struct Target {
 }
 
 impl Renderer {
-    pub fn new<W: HasRawWindowHandle>(window: &W) -> Self {
+    fn new<W: HasRawWindowHandle>(window: &W) -> Self {
         let adapter = Adapter::request(&RequestAdapterOptions {
             power_preference: PowerPreference::LowPower,
             backends: BackendBit::all(),
@@ -79,7 +80,7 @@ impl Renderer {
         }
     }
 
-    pub fn target(&self, width: u16, height: u16) -> Target {
+    fn target(&self, width: u16, height: u16) -> Target {
         Target {
             width,
             height,
@@ -97,7 +98,11 @@ impl Renderer {
         }
     }
 
-    pub fn draw(&mut self, target: &mut Target, primitive: &Primitive) {
+    fn draw(
+        &mut self,
+        target: &mut Target,
+        primitive: &Primitive,
+    ) -> MouseCursor {
         log::debug!("Drawing");
 
         let frame = target.swap_chain.get_next_texture();
@@ -146,8 +151,9 @@ impl Renderer {
             .expect("Draw text");
 
         self.queue.submit(&[encoder.finish()]);
-    }
 
+        MouseCursor::OutOfBounds
+    }
     fn draw_primitive(&mut self, primitive: &Primitive) {
         match primitive {
             Primitive::None => {}
@@ -238,6 +244,26 @@ impl Renderer {
 impl iced_native::Renderer for Renderer {
     // TODO: Add `MouseCursor` here (?)
     type Primitive = Primitive;
+}
+
+impl Windowed for Renderer {
+    type Target = Target;
+
+    fn new<W: HasRawWindowHandle>(window: &W) -> Self {
+        Self::new(window)
+    }
+
+    fn target(&self, width: u16, height: u16) -> Target {
+        self.target(width, height)
+    }
+
+    fn draw(
+        &mut self,
+        target: &mut Target,
+        primitive: &Primitive,
+    ) -> MouseCursor {
+        self.draw(target, primitive)
+    }
 }
 
 impl Debugger for Renderer {

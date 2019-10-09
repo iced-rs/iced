@@ -11,7 +11,7 @@ pub use element::Element;
 pub use iced_core::{Align, Color, Justify, Length};
 pub use widget::*;
 
-pub trait UserInterface {
+pub trait Application {
     type Message;
 
     fn update(
@@ -25,23 +25,23 @@ pub trait UserInterface {
     where
         Self: 'static + Sized,
     {
+        let app = Instance::new(self);
+
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         let body = document.body().unwrap();
-
-        let app = Application::new(self);
-
         let vdom = dodrio::Vdom::new(&body, app);
+
         vdom.forget();
     }
 }
 
-struct Application<Message> {
-    ui: RefCell<Box<dyn UserInterface<Message = Message>>>,
+struct Instance<Message> {
+    ui: RefCell<Box<dyn Application<Message = Message>>>,
 }
 
-impl<Message> Application<Message> {
-    fn new(ui: impl UserInterface<Message = Message> + 'static) -> Self {
+impl<Message> Instance<Message> {
+    fn new(ui: impl Application<Message = Message> + 'static) -> Self {
         Self {
             ui: RefCell::new(Box::new(ui)),
         }
@@ -55,7 +55,7 @@ impl<Message> Application<Message> {
     }
 }
 
-impl<Message> dodrio::Render for Application<Message>
+impl<Message> dodrio::Render for Instance<Message>
 where
     Message: 'static,
 {
