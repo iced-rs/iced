@@ -48,7 +48,7 @@ pub trait Application {
         window.request_redraw();
 
         event_loop.run(move |event, _, control_flow| match event {
-            event::Event::EventsCleared => {
+            event::Event::MainEventsCleared => {
                 // TODO: We should be able to keep a user interface alive
                 // between events once we remove state references.
                 //
@@ -90,16 +90,16 @@ pub trait Application {
 
                 window.request_redraw();
             }
+            event::Event::RedrawRequested(_) => {
+                renderer.draw(&mut target, &primitive);
+
+                // TODO: Handle animations!
+                // Maybe we can use `ControlFlow::WaitUntil` for this.
+            }
             event::Event::WindowEvent {
                 event: window_event,
                 ..
             } => match window_event {
-                WindowEvent::RedrawRequested => {
-                    renderer.draw(&mut target, &primitive);
-
-                    // TODO: Handle animations!
-                    // Maybe we can use `ControlFlow::WaitUntil` for this.
-                }
                 WindowEvent::CursorMoved { position, .. } => {
                     let physical_position =
                         position.to_physical(window.hidpi_factor());
