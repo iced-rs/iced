@@ -1,8 +1,10 @@
-use crate::renderer::Windowed;
-use crate::{Cache, Column, Element, Length, UserInterface};
+use crate::{
+    column, conversion, input::mouse, renderer::Windowed, Cache, Column,
+    Element, Event, Length, UserInterface,
+};
 
 pub trait Application {
-    type Renderer: Windowed + iced_native::column::Renderer;
+    type Renderer: Windowed + column::Renderer;
 
     type Message;
 
@@ -15,7 +17,7 @@ pub trait Application {
         Self: 'static + Sized,
     {
         use winit::{
-            event::{Event, WindowEvent},
+            event::{self, WindowEvent},
             event_loop::{ControlFlow, EventLoop},
             window::WindowBuilder,
         };
@@ -46,7 +48,7 @@ pub trait Application {
         window.request_redraw();
 
         event_loop.run(move |event, _, control_flow| match event {
-            Event::EventsCleared => {
+            event::Event::EventsCleared => {
                 // TODO: We should be able to keep a user interface alive
                 // between events once we remove state references.
                 //
@@ -70,6 +72,8 @@ pub trait Application {
                     let temp_cache = user_interface.into_cache();
 
                     for message in messages {
+                        log::debug!("Updating");
+
                         self.update(message);
                     }
 
@@ -86,21 +90,36 @@ pub trait Application {
 
                 window.request_redraw();
             }
-            Event::WindowEvent {
-                event: WindowEvent::RedrawRequested,
+            event::Event::WindowEvent {
+                event: window_event,
                 ..
-            } => {
-                renderer.draw(&mut target, &primitive);
+            } => match window_event {
+                WindowEvent::RedrawRequested => {
+                    renderer.draw(&mut target, &primitive);
 
-                // TODO: Handle animations!
-                // Maybe we can use `ControlFlow::WaitUntil` for this.
-            }
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => {
-                *control_flow = ControlFlow::Exit;
-            }
+                    // TODO: Handle animations!
+                    // Maybe we can use `ControlFlow::WaitUntil` for this.
+                }
+                WindowEvent::CursorMoved { position, .. } => {
+                    let physical_position =
+                        position.to_physical(window.hidpi_factor());
+
+                    events.push(Event::Mouse(mouse::Event::CursorMoved {
+                        x: physical_position.x as f32,
+                        y: physical_position.y as f32,
+                    }));
+                }
+                WindowEvent::MouseInput { button, state, .. } => {
+                    events.push(Event::Mouse(mouse::Event::Input {
+                        button: conversion::mouse_button(button),
+                        state: conversion::button_state(state),
+                    }));
+                }
+                WindowEvent::CloseRequested => {
+                    *control_flow = ControlFlow::Exit;
+                }
+                _ => {}
+            },
             _ => {
                 *control_flow = ControlFlow::Wait;
             }

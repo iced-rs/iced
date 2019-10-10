@@ -10,3 +10,4 @@ repository = "https://github.com/hecrj/iced"
 [dependencies]
 iced_native = { version = "0.1.0-alpha", path = "../native" }
 winit = "0.20.0-alpha3"
+log = "0.4"
