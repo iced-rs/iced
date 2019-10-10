@@ -1,6 +1,6 @@
 use crate::{
     column, conversion, input::mouse, renderer::Windowed, Cache, Column,
-    Element, Event, Length, UserInterface,
+    Element, Event, Length, MouseCursor, UserInterface,
 };
 
 pub trait Application {
@@ -44,6 +44,7 @@ pub trait Application {
         let mut primitive = user_interface.draw(&mut renderer);
         let mut cache = Some(user_interface.into_cache());
         let mut events = Vec::new();
+        let mut mouse_cursor = MouseCursor::OutOfBounds;
 
         window.request_redraw();
 
@@ -91,7 +92,15 @@ pub trait Application {
                 window.request_redraw();
             }
             event::Event::RedrawRequested(_) => {
-                renderer.draw(&mut target, &primitive);
+                let new_mouse_cursor = renderer.draw(&mut target, &primitive);
+
+                if new_mouse_cursor != mouse_cursor {
+                    window.set_cursor_icon(conversion::mouse_cursor(
+                        new_mouse_cursor,
+                    ));
+
+                    mouse_cursor = new_mouse_cursor;
+                }
 
                 // TODO: Handle animations!
                 // Maybe we can use `ControlFlow::WaitUntil` for this.
