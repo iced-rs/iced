@@ -15,6 +15,3 @@ iced_core = { version = "0.1.0-alpha", path = "../core" }
 stretch = "0.2"
 twox-hash = "1.5"
 raw-window-handle = "0.1"
-
-# Enable to obtain conversion traits
-winit = { version = "0.20.0-alpha3", optional = true }
