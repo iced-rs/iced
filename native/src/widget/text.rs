@@ -18,7 +18,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> Renderer::Primitive {
+    ) -> Renderer::Output {
         renderer.draw(&self, layout)
     }
 
@@ -64,7 +64,7 @@ pub trait Renderer: crate::Renderer {
     /// [`Text`]: struct.Text.html
     /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
     /// [`VerticalAlignment`]: enum.VerticalAlignment.html
-    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Primitive;
+    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Text> for Element<'a, Message, Renderer>

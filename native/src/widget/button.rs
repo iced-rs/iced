@@ -67,7 +67,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Primitive {
+    ) -> Renderer::Output {
         renderer.draw(&self, layout, cursor_position)
     }
 
@@ -100,7 +100,7 @@ pub trait Renderer: crate::Renderer + Sized {
         button: &Button<'_, Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Self::Primitive;
+    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>

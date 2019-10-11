@@ -77,7 +77,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Primitive;
+    ) -> Renderer::Output;
 
     /// Computes the _layout_ hash of the [`Widget`].
     ///

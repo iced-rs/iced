@@ -10,7 +10,7 @@ impl image::Renderer<&str> for Renderer {
         &mut self,
         _image: &Image<&str>,
         _layout: Layout<'_>,
-    ) -> Self::Primitive {
+    ) -> Self::Output {
         Primitive::None
     }
 }

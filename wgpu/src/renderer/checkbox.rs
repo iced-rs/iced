@@ -11,7 +11,7 @@ impl checkbox::Renderer for Renderer {
         _checkbox: &Checkbox<Message>,
         _layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> Self::Primitive {
+    ) -> Self::Output {
         // TODO
         Primitive::None
     }

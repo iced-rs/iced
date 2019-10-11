@@ -11,7 +11,7 @@ impl radio::Renderer for Renderer {
         _radio: &Radio<Message>,
         _layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> Self::Primitive {
+    ) -> Self::Output {
         Primitive::None
     }
 }

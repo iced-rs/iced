@@ -21,7 +21,7 @@ impl button::Renderer for Renderer {
         button: &Button<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Self::Primitive {
+    ) -> Self::Output {
         let bounds = layout.bounds();
 
         Primitive::Group {

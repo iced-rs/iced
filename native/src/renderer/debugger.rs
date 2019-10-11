@@ -21,5 +21,5 @@ pub trait Debugger: super::Renderer {
         layout: Layout<'_>,
         cursor_position: Point,
         color: Color,
-    ) -> Self::Primitive;
+    ) -> Self::Output;
 }

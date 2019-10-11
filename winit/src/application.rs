@@ -100,7 +100,7 @@ pub trait Application {
                     size = new_size;
                 }
 
-                let new_mouse_cursor = renderer.draw(&mut target, &primitive);
+                let new_mouse_cursor = renderer.draw(&primitive, &mut target);
 
                 if new_mouse_cursor != mouse_cursor {
                     window.set_cursor_icon(conversion::mouse_cursor(

@@ -50,7 +50,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Primitive {
+    ) -> Renderer::Output {
         self.widget.draw(renderer, layout, cursor_position)
     }
 
@@ -120,7 +120,7 @@ where
     /// #     };
     /// #     pub struct Renderer;
     /// #
-    /// #     impl iced_native::Renderer for Renderer { type Primitive = (); }
+    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
     /// #
     /// #     impl iced_native::row::Renderer for Renderer {
     /// #         fn draw<Message>(
@@ -323,7 +323,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Primitive {
+    ) -> Renderer::Output {
         self.widget.draw(renderer, layout, cursor_position)
     }
 
@@ -383,7 +383,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Primitive {
+    ) -> Renderer::Output {
         renderer.explain(
             self.element.widget.as_ref(),
             layout,

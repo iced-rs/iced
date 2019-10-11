@@ -48,7 +48,7 @@ where
     /// #         pub fn new() -> Self { Renderer }
     /// #     }
     /// #
-    /// #     impl iced_native::Renderer for Renderer { type Primitive = (); }
+    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
     /// #
     /// #     impl iced_native::column::Renderer for Renderer {
     /// #         fn draw<Message>(
@@ -56,7 +56,7 @@ where
     /// #             _column: &iced_native::Column<'_, Message, Self>,
     /// #             _layout: iced_native::Layout<'_>,
     /// #             _cursor_position: iced_native::Point,
-    /// #         ) -> Self::Primitive {
+    /// #         ) -> Self::Output {
     /// #             ()
     /// #         }
     /// #     }
@@ -144,7 +144,7 @@ where
     /// #         pub fn new() -> Self { Renderer }
     /// #     }
     /// #
-    /// #     impl iced_native::Renderer for Renderer { type Primitive = (); }
+    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
     /// #
     /// #     impl iced_native::column::Renderer for Renderer {
     /// #         fn draw<Message>(
@@ -152,7 +152,7 @@ where
     /// #             _column: &iced_native::Column<'_, Message, Self>,
     /// #             _layout: iced_native::Layout<'_>,
     /// #             _cursor_position: iced_native::Point,
-    /// #         ) -> Self::Primitive {
+    /// #         ) -> Self::Output {
     /// #             ()
     /// #         }
     /// #     }
@@ -242,7 +242,7 @@ where
     /// #         pub fn new() -> Self { Renderer }
     /// #     }
     /// #
-    /// #     impl iced_native::Renderer for Renderer { type Primitive = (); }
+    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
     /// #
     /// #     impl iced_native::column::Renderer for Renderer {
     /// #         fn draw<Message>(
@@ -250,7 +250,7 @@ where
     /// #             _column: &iced_native::Column<'_, Message, Self>,
     /// #             _layout: iced_native::Layout<'_>,
     /// #             _cursor_position: iced_native::Point,
-    /// #         ) -> Self::Primitive {
+    /// #         ) -> Self::Output {
     /// #             ()
     /// #         }
     /// #     }
@@ -296,7 +296,7 @@ where
     ///     // Flush rendering operations...
     /// }
     /// ```
-    pub fn draw(&self, renderer: &mut Renderer) -> Renderer::Primitive {
+    pub fn draw(&self, renderer: &mut Renderer) -> Renderer::Output {
         self.root.widget.draw(
             renderer,
             Layout::new(&self.layout),

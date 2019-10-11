@@ -11,7 +11,7 @@ impl slider::Renderer for Renderer {
         _slider: &Slider<Message>,
         _layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> Self::Primitive {
+    ) -> Self::Output {
         Primitive::None
     }
 }

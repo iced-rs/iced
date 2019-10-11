@@ -11,7 +11,7 @@ pub trait Windowed: super::Renderer {
 
     fn draw(
         &mut self,
+        output: &Self::Output,
         target: &mut Self::Target,
-        primitive: &Self::Primitive,
     ) -> MouseCursor;
 }

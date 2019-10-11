@@ -7,7 +7,7 @@ impl row::Renderer for Renderer {
         row: &Row<'_, Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Self::Primitive {
+    ) -> Self::Output {
         Primitive::Group {
             primitives: row
                 .children

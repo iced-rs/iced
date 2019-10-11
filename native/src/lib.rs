@@ -83,7 +83,7 @@
 //! #     pub struct Renderer {}
 //! #
 //! #     impl iced_native::Renderer for Renderer {
-//! #         type Primitive = ();
+//! #         type Output = ();
 //! #     }
 //! #
 //! #     impl button::Renderer for Renderer {

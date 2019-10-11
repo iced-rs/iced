@@ -100,8 +100,8 @@ impl Renderer {
 
     fn draw(
         &mut self,
-        target: &mut Target,
         primitive: &Primitive,
+        target: &mut Target,
     ) -> MouseCursor {
         log::debug!("Drawing");
 
@@ -154,6 +154,7 @@ impl Renderer {
 
         MouseCursor::OutOfBounds
     }
+
     fn draw_primitive(&mut self, primitive: &Primitive) {
         match primitive {
             Primitive::None => {}
@@ -243,7 +244,7 @@ impl Renderer {
 
 impl iced_native::Renderer for Renderer {
     // TODO: Add `MouseCursor` here (?)
-    type Primitive = Primitive;
+    type Output = Primitive;
 }
 
 impl Windowed for Renderer {
@@ -259,10 +260,10 @@ impl Windowed for Renderer {
 
     fn draw(
         &mut self,
+        output: &Self::Output,
         target: &mut Target,
-        primitive: &Primitive,
     ) -> MouseCursor {
-        self.draw(target, primitive)
+        self.draw(output, target)
     }
 }
 
@@ -273,7 +274,7 @@ impl Debugger for Renderer {
         layout: Layout<'_>,
         cursor_position: Point,
         _color: Color,
-    ) -> Self::Primitive {
+    ) -> Self::Output {
         // TODO: Include a bordered box to display layout bounds
         widget.draw(self, layout, cursor_position)
     }

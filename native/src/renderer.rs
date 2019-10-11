@@ -1,7 +1,7 @@
 //! Write your own renderer.
 //!
 //! You will need to implement the `Renderer` trait first. It simply contains
-//! a `Primitive` associated type.
+//! an `Output` associated type.
 //!
 //! There is no common trait to draw all the widgets. Instead, every [`Widget`]
 //! constrains its generic `Renderer` type as necessary.
@@ -27,5 +27,5 @@ pub use debugger::Debugger;
 pub use windowed::Windowed;
 
 pub trait Renderer {
-    type Primitive;
+    type Output;
 }

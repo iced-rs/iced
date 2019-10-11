@@ -20,7 +20,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> Renderer::Primitive {
+    ) -> Renderer::Output {
         renderer.draw(&self, layout)
     }
 
@@ -50,8 +50,7 @@ pub trait Renderer<I>: crate::Renderer {
     /// Draws an [`Image`].
     ///
     /// [`Image`]: struct.Image.html
-    fn draw(&mut self, image: &Image<I>, layout: Layout<'_>)
-        -> Self::Primitive;
+    fn draw(&mut self, image: &Image<I>, layout: Layout<'_>) -> Self::Output;
 }
 
 impl<'a, I, Message, Renderer> From<Image<I>> for Element<'a, Message, Renderer>

@@ -67,7 +67,7 @@ impl text::Renderer for Renderer {
         })
     }
 
-    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Primitive {
+    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Output {
         Primitive::Text {
             content: text.content.clone(),
             size: f32::from(text.size.unwrap_or(20)),
