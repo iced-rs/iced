@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{text, Color, Layout, Node, Style, Text};
+use iced_native::{text, Color, Layout, MouseCursor, Node, Style, Text};
 
 use wgpu_glyph::{GlyphCruncher, Section};
 
@@ -68,13 +68,16 @@ impl text::Renderer for Renderer {
     }
 
     fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Output {
-        Primitive::Text {
-            content: text.content.clone(),
-            size: f32::from(text.size.unwrap_or(20)),
-            bounds: layout.bounds(),
-            color: text.color.unwrap_or(Color::BLACK),
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
-        }
+        (
+            Primitive::Text {
+                content: text.content.clone(),
+                size: f32::from(text.size.unwrap_or(20)),
+                bounds: layout.bounds(),
+                color: text.color.unwrap_or(Color::BLACK),
+                horizontal_alignment: text.horizontal_alignment,
+                vertical_alignment: text.vertical_alignment,
+            },
+            MouseCursor::OutOfBounds,
+        )
     }
 }

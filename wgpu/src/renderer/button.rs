@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    button, Align, Background, Button, Color, Layout, Length, Node, Point,
-    Style,
+    button, Align, Background, Button, Color, Layout, Length, MouseCursor,
+    Node, Point, Style,
 };
 
 impl button::Renderer for Renderer {
@@ -24,26 +24,35 @@ impl button::Renderer for Renderer {
     ) -> Self::Output {
         let bounds = layout.bounds();
 
-        Primitive::Group {
-            primitives: vec![
-                Primitive::Quad {
-                    bounds,
-                    background: button.background.unwrap_or(Background::Color(
-                        Color {
-                            r: 0.8,
-                            b: 0.8,
-                            g: 0.8,
-                            a: 1.0,
-                        },
-                    )),
-                    border_radius: button.border_radius,
-                },
-                button.content.draw(
-                    self,
-                    layout.children().next().unwrap(),
-                    cursor_position,
-                ),
-            ],
-        }
+        let (content, _) = button.content.draw(
+            self,
+            layout.children().next().unwrap(),
+            cursor_position,
+        );
+
+        (
+            Primitive::Group {
+                primitives: vec![
+                    Primitive::Quad {
+                        bounds,
+                        background: button.background.unwrap_or(
+                            Background::Color(Color {
+                                r: 0.8,
+                                b: 0.8,
+                                g: 0.8,
+                                a: 1.0,
+                            }),
+                        ),
+                        border_radius: button.border_radius,
+                    },
+                    content,
+                ],
+            },
+            if bounds.contains(cursor_position) {
+                MouseCursor::Pointer
+            } else {
+                MouseCursor::OutOfBounds
+            },
+        )
     }
 }

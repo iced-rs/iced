@@ -100,7 +100,7 @@ impl Renderer {
 
     fn draw(
         &mut self,
-        primitive: &Primitive,
+        (primitive, mouse_cursor): &(Primitive, MouseCursor),
         target: &mut Target,
     ) -> MouseCursor {
         log::debug!("Drawing");
@@ -152,7 +152,7 @@ impl Renderer {
 
         self.queue.submit(&[encoder.finish()]);
 
-        MouseCursor::OutOfBounds
+        *mouse_cursor
     }
 
     fn draw_primitive(&mut self, primitive: &Primitive) {
@@ -243,8 +243,7 @@ impl Renderer {
 }
 
 impl iced_native::Renderer for Renderer {
-    // TODO: Add `MouseCursor` here (?)
-    type Output = Primitive;
+    type Output = (Primitive, MouseCursor);
 }
 
 impl Windowed for Renderer {

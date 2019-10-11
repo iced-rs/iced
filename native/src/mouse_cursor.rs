@@ -1,5 +1,5 @@
 /// The state of the mouse cursor.
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy, PartialOrd, Ord)]
 pub enum MouseCursor {
     /// The cursor is out of the bounds of the user interface.
     OutOfBounds,

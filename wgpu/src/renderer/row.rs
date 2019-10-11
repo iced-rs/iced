@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{row, Layout, Point, Row};
+use iced_native::{row, Layout, MouseCursor, Point, Row};
 
 impl row::Renderer for Renderer {
     fn draw<Message>(
@@ -8,15 +8,27 @@ impl row::Renderer for Renderer {
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
-        Primitive::Group {
-            primitives: row
-                .children
-                .iter()
-                .zip(layout.children())
-                .map(|(child, layout)| {
-                    child.draw(self, layout, cursor_position)
-                })
-                .collect(),
-        }
+        let mut mouse_cursor = MouseCursor::OutOfBounds;
+
+        (
+            Primitive::Group {
+                primitives: row
+                    .children
+                    .iter()
+                    .zip(layout.children())
+                    .map(|(child, layout)| {
+                        let (primitive, new_mouse_cursor) =
+                            child.draw(self, layout, cursor_position);
+
+                        if new_mouse_cursor > mouse_cursor {
+                            mouse_cursor = new_mouse_cursor;
+                        }
+
+                        primitive
+                    })
+                    .collect(),
+            },
+            mouse_cursor,
+        )
     }
 }

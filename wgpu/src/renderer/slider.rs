@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{slider, Layout, Node, Point, Slider, Style};
+use iced_native::{slider, Layout, MouseCursor, Node, Point, Slider, Style};
 
 impl slider::Renderer for Renderer {
     fn node<Message>(&self, _slider: &Slider<Message>) -> Node {
@@ -12,6 +12,6 @@ impl slider::Renderer for Renderer {
         _layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Self::Output {
-        Primitive::None
+        (Primitive::None, MouseCursor::OutOfBounds)
     }
 }

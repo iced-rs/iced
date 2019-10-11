@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{radio, Layout, Node, Point, Radio, Style};
+use iced_native::{radio, Layout, MouseCursor, Node, Point, Radio, Style};
 
 impl radio::Renderer for Renderer {
     fn node<Message>(&self, _checkbox: &Radio<Message>) -> Node {
@@ -12,6 +12,6 @@ impl radio::Renderer for Renderer {
         _layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Self::Output {
-        Primitive::None
+        (Primitive::None, MouseCursor::OutOfBounds)
     }
 }

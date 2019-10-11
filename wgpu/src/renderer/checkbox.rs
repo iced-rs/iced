@@ -1,5 +1,7 @@
 use crate::{Primitive, Renderer};
-use iced_native::{checkbox, Checkbox, Layout, Node, Point, Style};
+use iced_native::{
+    checkbox, Checkbox, Layout, MouseCursor, Node, Point, Style,
+};
 
 impl checkbox::Renderer for Renderer {
     fn node<Message>(&self, _checkbox: &Checkbox<Message>) -> Node {
@@ -13,6 +15,6 @@ impl checkbox::Renderer for Renderer {
         _cursor_position: Point,
     ) -> Self::Output {
         // TODO
-        Primitive::None
+        (Primitive::None, MouseCursor::OutOfBounds)
     }
 }
