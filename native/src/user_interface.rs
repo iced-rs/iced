@@ -98,7 +98,7 @@ where
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
         cache: Cache,
-        renderer: &mut Renderer,
+        renderer: &Renderer,
     ) -> Self {
         let root = root.into();
 

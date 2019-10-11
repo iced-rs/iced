@@ -247,10 +247,7 @@ where
         }
     }
 
-    pub(crate) fn compute_layout(
-        &self,
-        renderer: &mut Renderer,
-    ) -> result::Layout {
+    pub(crate) fn compute_layout(&self, renderer: &Renderer) -> result::Layout {
         let node = self.widget.node(renderer);
 
         node.0.compute_layout(geometry::Size::undefined()).unwrap()

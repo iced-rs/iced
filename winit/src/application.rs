@@ -41,7 +41,7 @@ pub trait Application {
         let user_interface = UserInterface::build(
             document(&mut self, size),
             Cache::default(),
-            &mut renderer,
+            &renderer,
         );
 
         let mut primitive = user_interface.draw(&mut renderer);
@@ -61,7 +61,7 @@ pub trait Application {
                 let mut user_interface = UserInterface::build(
                     document(&mut self, size),
                     cache.take().unwrap(),
-                    &mut renderer,
+                    &renderer,
                 );
 
                 let messages = user_interface.update(events.drain(..));
@@ -84,7 +84,7 @@ pub trait Application {
                     let user_interface = UserInterface::build(
                         document(&mut self, size),
                         temp_cache,
-                        &mut renderer,
+                        &renderer,
                     );
 
                     primitive = user_interface.draw(&mut renderer);
