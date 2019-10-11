@@ -29,14 +29,17 @@ pub trait Application {
             .build(&event_loop)
             .expect("Open window");
 
-        let size = window.inner_size().to_physical(window.hidpi_factor());;
-        let (width, height) = (size.width as u16, size.height as u16);
+        let mut size: Size = window
+            .inner_size()
+            .to_physical(window.hidpi_factor())
+            .into();
+        let mut new_size: Option<Size> = None;
 
         let mut renderer = Self::Renderer::new(&window);
-        let mut target = renderer.target(width, height);
+        let mut target = renderer.target(size.width, size.height);
 
         let user_interface = UserInterface::build(
-            document(&mut self, width, height),
+            document(&mut self, size),
             Cache::default(),
             &mut renderer,
         );
@@ -56,7 +59,7 @@ pub trait Application {
                 // This will allow us to rebuild it only when a message is
                 // handled.
                 let mut user_interface = UserInterface::build(
-                    document(&mut self, width, height),
+                    document(&mut self, size),
                     cache.take().unwrap(),
                     &mut renderer,
                 );
@@ -79,7 +82,7 @@ pub trait Application {
                     }
 
                     let user_interface = UserInterface::build(
-                        document(&mut self, width, height),
+                        document(&mut self, size),
                         temp_cache,
                         &mut renderer,
                     );
@@ -92,6 +95,11 @@ pub trait Application {
                 window.request_redraw();
             }
             event::Event::RedrawRequested(_) => {
+                if let Some(new_size) = new_size.take() {
+                    target = renderer.target(new_size.width, new_size.height);
+                    size = new_size;
+                }
+
                 let new_mouse_cursor = renderer.draw(&mut target, &primitive);
 
                 if new_mouse_cursor != mouse_cursor {
@@ -127,6 +135,12 @@ pub trait Application {
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }
+                WindowEvent::Resized(size) => {
+                    new_size =
+                        Some(size.to_physical(window.hidpi_factor()).into());
+
+                    log::debug!("Resized: {:?}", new_size);
+                }
                 _ => {}
             },
             _ => {
@@ -136,18 +150,32 @@ pub trait Application {
     }
 }
 
-fn document<Application>(
-    application: &mut Application,
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+struct Size {
     width: u16,
     height: u16,
+}
+
+impl From<winit::dpi::PhysicalSize> for Size {
+    fn from(physical_size: winit::dpi::PhysicalSize) -> Self {
+        Self {
+            width: physical_size.width.round() as u16,
+            height: physical_size.height.round() as u16,
+        }
+    }
+}
+
+fn document<Application>(
+    application: &mut Application,
+    size: Size,
 ) -> Element<Application::Message, Application::Renderer>
 where
     Application: self::Application,
     Application::Message: 'static,
 {
     Column::new()
-        .width(Length::Units(width))
-        .height(Length::Units(height))
+        .width(Length::Units(size.width))
+        .height(Length::Units(size.height))
         .push(application.view())
         .into()
 }
