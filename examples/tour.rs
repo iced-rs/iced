@@ -556,8 +556,8 @@ fn button<'a, Message>(
             .color(Color::WHITE)
             .horizontal_alignment(HorizontalAlignment::Center),
     )
-    .padding(10)
-    .border_radius(10)
+    .padding(12)
+    .border_radius(12)
 }
 
 fn primary_button<'a, Message>(
@@ -565,9 +565,9 @@ fn primary_button<'a, Message>(
     label: &str,
 ) -> Button<'a, Message> {
     button(state, label).background(Background::Color(Color {
-        r: 0.3,
-        g: 0.3,
-        b: 0.8,
+        r: 0.11,
+        g: 0.42,
+        b: 0.87,
         a: 1.0,
     }))
 }
@@ -577,9 +577,9 @@ fn secondary_button<'a, Message>(
     label: &str,
 ) -> Button<'a, Message> {
     button(state, label).background(Background::Color(Color {
-        r: 0.8,
-        g: 0.8,
-        b: 0.8,
+        r: 0.4,
+        g: 0.4,
+        b: 0.4,
         a: 1.0,
     }))
 }

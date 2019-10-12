@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
     button, Align, Background, Button, Color, Layout, Length, MouseCursor,
-    Node, Point, Style,
+    Node, Point, Rectangle, Style,
 };
 
 impl button::Renderer for Renderer {
@@ -30,9 +30,35 @@ impl button::Renderer for Renderer {
             cursor_position,
         );
 
+        let is_hover = bounds.contains(cursor_position);
+
+        // TODO: Render proper shadows
+        // TODO: Make hovering and pressed styles configurable
+        let shadow_offset = if button.state.is_pressed {
+            0.0
+        } else if is_hover {
+            2.0
+        } else {
+            1.0
+        };
+
         (
             Primitive::Group {
                 primitives: vec![
+                    Primitive::Quad {
+                        bounds: Rectangle {
+                            x: bounds.x + 1.0,
+                            y: bounds.y + shadow_offset,
+                            ..bounds
+                        },
+                        background: Background::Color(Color {
+                            r: 0.0,
+                            b: 0.0,
+                            g: 0.0,
+                            a: 0.5,
+                        }),
+                        border_radius: button.border_radius,
+                    },
                     Primitive::Quad {
                         bounds,
                         background: button.background.unwrap_or(
@@ -48,7 +74,7 @@ impl button::Renderer for Renderer {
                     content,
                 ],
             },
-            if bounds.contains(cursor_position) {
+            if is_hover {
                 MouseCursor::Pointer
             } else {
                 MouseCursor::OutOfBounds
