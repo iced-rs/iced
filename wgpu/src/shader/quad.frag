@@ -30,7 +30,7 @@ void main() {
     float radius_alpha = 1.0;
 
     if(v_BorderRadius > 0.0) {
-        radius_alpha = rounded(gl_FragCoord.xy, v_Pos, v_Scale, v_BorderRadius, 1.0);
+        radius_alpha = rounded(gl_FragCoord.xy, v_Pos, v_Scale, v_BorderRadius, 0.5);
     }
 
     o_Color = vec4(v_Color.xyz, v_Color.w * radius_alpha);
