@@ -30,14 +30,16 @@ impl button::Renderer for Renderer {
             cursor_position,
         );
 
-        let is_hover = bounds.contains(cursor_position);
+        let is_mouse_over = bounds.contains(cursor_position);
 
         // TODO: Render proper shadows
         // TODO: Make hovering and pressed styles configurable
-        let shadow_offset = if button.state.is_pressed {
-            0.0
-        } else if is_hover {
-            2.0
+        let shadow_offset = if is_mouse_over {
+            if button.state.is_pressed {
+                0.0
+            } else {
+                2.0
+            }
         } else {
             1.0
         };
@@ -74,7 +76,7 @@ impl button::Renderer for Renderer {
                     content,
                 ],
             },
-            if is_hover {
+            if is_mouse_over {
                 MouseCursor::Pointer
             } else {
                 MouseCursor::OutOfBounds
