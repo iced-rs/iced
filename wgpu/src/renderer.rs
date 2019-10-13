@@ -272,9 +272,36 @@ impl Debugger for Renderer {
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
-        _color: Color,
+        color: Color,
     ) -> Self::Output {
-        // TODO: Include a bordered box to display layout bounds
-        widget.draw(self, layout, cursor_position)
+        let mut primitives = Vec::new();
+        let (primitive, cursor) = widget.draw(self, layout, cursor_position);
+
+        explain_layout(layout, color, &mut primitives);
+        primitives.push(primitive);
+
+        (Primitive::Group { primitives }, cursor)
+    }
+}
+
+fn explain_layout(
+    layout: Layout,
+    color: Color,
+    primitives: &mut Vec<Primitive>,
+) {
+    // TODO: Draw borders instead
+    primitives.push(Primitive::Quad {
+        bounds: layout.bounds(),
+        background: Background::Color(Color {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+            a: 0.05,
+        }),
+        border_radius: 0,
+    });
+
+    for child in layout.children() {
+        explain_layout(child, color, primitives);
     }
 }
