@@ -26,9 +26,7 @@ where
                 button: mouse::Button::Left,
                 state: ButtonState::Pressed,
             }) => {
-                let mouse_over = layout
-                    .children()
-                    .any(|child| child.bounds().contains(cursor_position));
+                let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {
                     messages.push((self.on_toggle)(!self.is_checked));
