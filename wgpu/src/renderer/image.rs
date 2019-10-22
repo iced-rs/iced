@@ -9,6 +9,7 @@ impl image::Renderer for Renderer {
 
         let mut style = Style::default().align_self(image.align_self);
 
+        // TODO: Deal with additional cases
         style = match (image.width, image.height) {
             (Length::Units(width), _) => style.width(image.width).height(
                 Length::Units((width as f32 / aspect_ratio).round() as u16),
