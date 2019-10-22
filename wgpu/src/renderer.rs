@@ -1,4 +1,4 @@
-use crate::{quad, Primitive, Quad, Transformation};
+use crate::{quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
     renderer::Debugger, renderer::Windowed, Background, Color, Layout,
     MouseCursor, Point, Widget,
@@ -29,8 +29,10 @@ pub struct Renderer {
     device: Device,
     queue: Queue,
     quad_pipeline: quad::Pipeline,
+    image_pipeline: crate::image::Pipeline,
 
     quads: Vec<Quad>,
+    images: Vec<Image>,
     glyph_brush: Rc<RefCell<GlyphBrush<'static, ()>>>,
 }
 
@@ -67,6 +69,7 @@ impl Renderer {
             .build(&mut device, TextureFormat::Bgra8UnormSrgb);
 
         let quad_pipeline = quad::Pipeline::new(&mut device);
+        let image_pipeline = crate::image::Pipeline::new(&mut device);
 
         Self {
             surface,
@@ -74,8 +77,10 @@ impl Renderer {
             device,
             queue,
             quad_pipeline,
+            image_pipeline,
 
             quads: Vec::new(),
+            images: Vec::new(),
             glyph_brush: Rc::new(RefCell::new(glyph_brush)),
         }
     }
@@ -138,6 +143,16 @@ impl Renderer {
         );
 
         self.quads.clear();
+
+        self.image_pipeline.draw(
+            &mut self.device,
+            &mut encoder,
+            &self.images,
+            target.transformation,
+            &frame.view,
+        );
+
+        self.images.clear();
 
         self.glyph_brush
             .borrow_mut()
@@ -236,6 +251,13 @@ impl Renderer {
                         Background::Color(color) => color.into_linear(),
                     },
                     border_radius: u32::from(*border_radius),
+                });
+            }
+            Primitive::Image { path, bounds } => {
+                self.images.push(Image {
+                    path: path.clone(),
+                    position: [bounds.x, bounds.y],
+                    scale: [bounds.width, bounds.height],
                 });
             }
         }

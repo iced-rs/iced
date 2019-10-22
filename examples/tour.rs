@@ -74,7 +74,7 @@ impl Application for Tour {
         }
 
         let element: Element<_> = Column::new()
-            .max_width(Length::Units(500))
+            .max_width(Length::Units(540))
             .spacing(20)
             .padding(20)
             .push(steps.view(self.debug).map(Message::StepMessage))
@@ -503,9 +503,18 @@ impl<'a> Step {
         Self::container("Image")
             .push(Text::new("An image that tries to keep its aspect ratio."))
             .push(
-                Image::new("resources/ferris.png")
-                    .width(Length::Units(width))
-                    .align_self(Align::Center),
+                // This should go away once we unify resource loading on native
+                // platforms
+                if cfg!(target_arch = "wasm32") {
+                    Image::new("resources/ferris.png")
+                } else {
+                    Image::new(format!(
+                        "{}/examples/resources/ferris.png",
+                        env!("CARGO_MANIFEST_DIR")
+                    ))
+                }
+                .width(Length::Units(width))
+                .align_self(Align::Center),
             )
             .push(Slider::new(
                 slider,

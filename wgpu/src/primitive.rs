@@ -19,4 +19,8 @@ pub enum Primitive {
         background: Background,
         border_radius: u16,
     },
+    Image {
+        path: String,
+        bounds: Rectangle,
+    },
 }
