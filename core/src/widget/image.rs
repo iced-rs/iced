@@ -9,12 +9,12 @@ use crate::{Align, Length, Rectangle};
 /// ```
 /// use iced_core::Image;
 ///
-/// # let my_handle = String::from("some_handle");
-/// let image = Image::new(my_handle);
+/// let image = Image::new("resources/ferris.png");
 /// ```
-pub struct Image<I> {
-    /// The image handle
-    pub handle: I,
+#[derive(Debug)]
+pub struct Image {
+    /// The image path
+    pub path: String,
 
     /// The part of the image to show
     pub clip: Option<Rectangle<u16>>,
@@ -28,23 +28,13 @@ pub struct Image<I> {
     pub align_self: Option<Align>,
 }
 
-impl<I> std::fmt::Debug for Image<I> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Image")
-            .field("clip", &self.clip)
-            .field("width", &self.width)
-            .field("height", &self.height)
-            .finish()
-    }
-}
-
-impl<I> Image<I> {
-    /// Creates a new [`Image`] with given image handle.
+impl Image {
+    /// Creates a new [`Image`] with the given path.
     ///
     /// [`Image`]: struct.Image.html
-    pub fn new(handle: I) -> Self {
+    pub fn new<T: Into<String>>(path: T) -> Self {
         Image {
-            handle,
+            path: path.into(),
             clip: None,
             width: Length::Shrink,
             height: Length::Shrink,
