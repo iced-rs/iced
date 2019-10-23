@@ -1,5 +1,4 @@
 use dodrio::bumpalo;
-use futures::Future;
 use std::cell::RefCell;
 
 mod bus;
@@ -8,16 +7,13 @@ pub mod widget;
 
 pub use bus::Bus;
 pub use element::Element;
-pub use iced_core::{Align, Color, Justify, Length};
+pub use iced_core::{Align, Background, Color, Justify, Length};
 pub use widget::*;
 
 pub trait Application {
     type Message;
 
-    fn update(
-        &mut self,
-        message: Self::Message,
-    ) -> Option<Box<dyn Future<Output = Self::Message>>>;
+    fn update(&mut self, message: Self::Message);
 
     fn view(&mut self) -> Element<Self::Message>;
 
@@ -48,10 +44,7 @@ impl<Message> Instance<Message> {
     }
 
     fn update(&mut self, message: Message) {
-        let mut ui = self.ui.borrow_mut();
-
-        // TODO: Resolve futures and publish resulting messages
-        let _ = ui.update(message);
+        self.ui.borrow_mut().update(message);
     }
 }
 

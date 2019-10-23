@@ -1,13 +1,8 @@
-pub use iced_wgpu::{Primitive, Renderer};
-pub use iced_winit::{
-    button, slider, text, winit, Align, Background, Checkbox, Color, Image,
-    Justify, Length, Radio, Slider, Text,
-};
+#[cfg_attr(target_arch = "wasm32", path = "web.rs")]
+#[cfg_attr(not(target_arch = "wasm32"), path = "winit.rs")]
+mod platform;
 
-pub type Element<'a, Message> = iced_winit::Element<'a, Message, Renderer>;
-pub type Row<'a, Message> = iced_winit::Row<'a, Message, Renderer>;
-pub type Column<'a, Message> = iced_winit::Column<'a, Message, Renderer>;
-pub type Button<'a, Message> = iced_winit::Button<'a, Message, Renderer>;
+pub use platform::*;
 
 pub trait Application {
     type Message;
@@ -20,17 +15,38 @@ pub trait Application {
     where
         Self: 'static + Sized,
     {
-        iced_winit::Application::run(Instance(self))
+        #[cfg(not(target_arch = "wasm32"))]
+        iced_winit::Application::run(Instance(self));
+
+        #[cfg(target_arch = "wasm32")]
+        iced_web::Application::run(Instance(self));
     }
 }
 
 struct Instance<A: Application>(A);
 
+#[cfg(not(target_arch = "wasm32"))]
 impl<A> iced_winit::Application for Instance<A>
 where
     A: Application,
 {
     type Renderer = Renderer;
+    type Message = A::Message;
+
+    fn update(&mut self, message: Self::Message) {
+        self.0.update(message);
+    }
+
+    fn view(&mut self) -> Element<Self::Message> {
+        self.0.view()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl<A> iced_web::Application for Instance<A>
+where
+    A: Application,
+{
     type Message = A::Message;
 
     fn update(&mut self, message: Self::Message) {
