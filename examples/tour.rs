@@ -308,7 +308,7 @@ impl<'a> Step {
                  that can be easily implemented on top of Iced.",
             ))
             .push(Text::new(
-                "Iced is a renderer-agnostic GUI library for Rust focused on \
+                "Iced is a cross-platform GUI library for Rust focused on \
                  simplicity and type-safety. It is heavily inspired by Elm.",
             ))
             .push(Text::new(
@@ -316,9 +316,9 @@ impl<'a> Step {
                  2D game engine for Rust.",
             ))
             .push(Text::new(
-                "Iced does not provide a built-in renderer. On native \
-                 platforms, this example runs on a fairly simple renderer \
-                 built on top of ggez, another game library.",
+                "On native platforms, Iced provides by default a renderer \
+                 built on top of wgpu, a graphics library supporting Vulkan, \
+                 Metal, DX11, and DX12.",
             ))
             .push(Text::new(
                 "Additionally, this tour can also run on WebAssembly thanks \
@@ -633,4 +633,17 @@ impl From<Language> for &str {
 pub enum Layout {
     Row,
     Column,
+}
+
+// This should be gracefully handled by Iced in the future. Probably using our
+// own proc macro, or maybe the whole process is streamlined by `wasm-pack` at
+// some point.
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen(start)]
+    pub fn run() {
+        super::main()
+    }
 }
