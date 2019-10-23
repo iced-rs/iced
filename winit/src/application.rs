@@ -26,6 +26,10 @@ pub trait Application {
 
         // TODO: Ask for window settings and configure this properly
         let window = WindowBuilder::new()
+            .with_inner_size(winit::dpi::LogicalSize {
+                width: 1280.0,
+                height: 1024.0,
+            })
             .build(&event_loop)
             .expect("Open window");
 
