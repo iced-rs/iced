@@ -87,10 +87,9 @@ __view logic__:
 
 ```rust
 use iced::{Button, Column, Text};
-use iced_wgpu::Renderer; // Iced does not include a renderer! We need to bring our own!
 
 impl Counter {
-    pub fn view(&mut self) -> Column<Message, Renderer> {
+    pub fn view(&mut self) -> Column<Message> {
         // We use a column: a simple vertical layout
         Column::new()
             .push(

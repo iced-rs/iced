@@ -37,7 +37,7 @@ __update logic__ and __view logic__.
 [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 
 #### Running the native version
-Simply use [Cargo](https://doc.rust-lang.org/cargo/reference/manifest.html#examples)
+Use [Cargo](https://doc.rust-lang.org/cargo/reference/manifest.html#examples)
 to run the example:
 
 ```
@@ -45,9 +45,19 @@ cargo run --example tour
 ```
 
 #### Running the web version
+Build using the `wasm32-unknown-unknown` target and use the [`wasm-bindgen`] CLI
+to generate appropriate bindings in a `tour` directory.
+
 ```
-TODO
+cd examples
+cargo build --example tour --target wasm32-unknown-unknown
+wasm-bindgen ../target/wasm32-unknown-unknown/debug/examples/tour.wasm --out-dir tour --web
 ```
+
+Finally, serve the `examples` directory using an HTTP server, and access the
+`tour.html` file.
+
+[`wasm-bindgen`]: https://github.com/rustwasm/wasm-bindgen
 
 
 ## [Coffee]
