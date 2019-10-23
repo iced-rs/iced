@@ -2,7 +2,10 @@ use crate::{Bus, Element, Widget};
 
 use dodrio::bumpalo;
 
-pub use iced_core::button::*;
+pub use iced_core::button::State;
+
+pub type Button<'a, Message> =
+    iced_core::Button<'a, Message, Element<'a, Message>>;
 
 impl<'a, Message> Widget<Message> for Button<'a, Message>
 where
@@ -15,9 +18,8 @@ where
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let label = bumpalo::format!(in bump, "{}", self.label);
-
-        let mut node = button(bump).children(vec![text(label.into_bump_str())]);
+        let mut node =
+            button(bump).children(vec![self.content.node(bump, bus)]);
 
         if let Some(on_press) = self.on_press {
             let event_bus = bus.clone();

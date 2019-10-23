@@ -1,4 +1,4 @@
-use crate::Application;
+use crate::Instance;
 
 use std::rc::Rc;
 
@@ -14,7 +14,7 @@ where
     pub fn new() -> Self {
         Self {
             publish: Rc::new(Box::new(|message, root| {
-                let app = root.unwrap_mut::<Application<Message>>();
+                let app = root.unwrap_mut::<Instance<Message>>();
 
                 app.update(message)
             })),

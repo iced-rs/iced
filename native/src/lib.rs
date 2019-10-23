@@ -77,28 +77,29 @@
 //! #
 //! # mod iced_wgpu {
 //! #     use iced_native::{
-//! #         button, text, Button, Text,
-//! #         MouseCursor, Node, Point, Rectangle, Style, Color, Layout
+//! #         button, text, Button, Text, Node, Point, Rectangle, Style, Color, Layout
 //! #     };
 //! #
 //! #     pub struct Renderer {}
 //! #
+//! #     impl iced_native::Renderer for Renderer {
+//! #         type Output = ();
+//! #     }
+//! #
 //! #     impl button::Renderer for Renderer {
 //! #         fn node<Message>(
 //! #             &self,
-//! #             _button: &Button<'_, Message>
+//! #             _button: &Button<'_, Message, Self>
 //! #         ) -> Node {
 //! #             Node::new(Style::default())
 //! #         }
 //! #
 //! #         fn draw<Message>(
 //! #             &mut self,
-//! #             _button: &Button<'_, Message>,
+//! #             _button: &Button<'_, Message, Self>,
 //! #             _layout: Layout<'_>,
 //! #             _cursor_position: Point,
-//! #         ) -> MouseCursor {
-//! #             MouseCursor::OutOfBounds
-//! #         }
+//! #         ) {}
 //! #     }
 //! #
 //! #     impl text::Renderer for Renderer {
@@ -124,7 +125,7 @@
 //!             .push(
 //!                 // The increment button. We tell it to produce an
 //!                 // `IncrementPressed` message when pressed
-//!                 Button::new(&mut self.increment_button, "+")
+//!                 Button::new(&mut self.increment_button, Text::new("+"))
 //!                     .on_press(Message::IncrementPressed),
 //!             )
 //!             .push(
@@ -134,7 +135,7 @@
 //!             .push(
 //!                 // The decrement button. We tell it to produce a
 //!                 // `DecrementPressed` message when pressed
-//!                 Button::new(&mut self.decrement_button, "-")
+//!                 Button::new(&mut self.decrement_button, Text::new("-"))
 //!                     .on_press(Message::DecrementPressed),
 //!             )
 //!     }
@@ -192,7 +193,7 @@
 //! [documentation]: https://docs.rs/iced
 //! [examples]: https://github.com/hecrj/iced/tree/master/examples
 //! [`UserInterface`]: struct.UserInterface.html
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]
@@ -212,7 +213,9 @@ mod user_interface;
 
 pub(crate) use iced_core::Vector;
 
-pub use iced_core::{Align, Color, Justify, Length, Point, Rectangle};
+pub use iced_core::{
+    Align, Background, Color, Justify, Length, Point, Rectangle,
+};
 
 #[doc(no_inline)]
 pub use stretch::{geometry::Size, number::Number};
@@ -223,6 +226,7 @@ pub use hasher::Hasher;
 pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
 pub use node::Node;
+pub use renderer::Renderer;
 pub use style::Style;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;

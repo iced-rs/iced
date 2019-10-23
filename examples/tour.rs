@@ -1,7 +1,16 @@
-use crate::widget::{
-    button, slider, text::HorizontalAlignment, Align, Button, Checkbox, Color,
-    Column, Element, Image, Length, Radio, Row, Slider, Text,
+use iced::{
+    button, slider, text::HorizontalAlignment, Align, Application, Background,
+    Button, Checkbox, Color, Column, Element, Image, Justify, Length, Radio,
+    Row, Slider, Text,
 };
+
+pub fn main() {
+    env_logger::init();
+
+    let tour = Tour::new();
+
+    tour.run();
+}
 
 pub struct Tour {
     steps: Steps,
@@ -19,8 +28,12 @@ impl Tour {
             debug: false,
         }
     }
+}
 
-    pub fn update(&mut self, event: Message) {
+impl Application for Tour {
+    type Message = Message;
+
+    fn update(&mut self, event: Message) {
         match event {
             Message::BackPressed => {
                 self.steps.go_back();
@@ -34,7 +47,7 @@ impl Tour {
         }
     }
 
-    pub fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<Message> {
         let Tour {
             steps,
             back_button,
@@ -46,9 +59,8 @@ impl Tour {
 
         if steps.has_previous() {
             controls = controls.push(
-                Button::new(back_button, "Back")
-                    .on_press(Message::BackPressed)
-                    .class(button::Class::Secondary),
+                secondary_button(back_button, "Back")
+                    .on_press(Message::BackPressed),
             );
         }
 
@@ -56,22 +68,32 @@ impl Tour {
 
         if steps.can_continue() {
             controls = controls.push(
-                Button::new(next_button, "Next").on_press(Message::NextPressed),
+                primary_button(next_button, "Next")
+                    .on_press(Message::NextPressed),
             );
         }
 
         let element: Element<_> = Column::new()
-            .max_width(Length::Units(500))
+            .max_width(Length::Units(540))
             .spacing(20)
+            .padding(20)
             .push(steps.view(self.debug).map(Message::StepMessage))
             .push(controls)
             .into();
 
-        if self.debug {
+        let element = if self.debug {
             element.explain(Color::BLACK)
         } else {
             element
-        }
+        };
+
+        Column::new()
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_items(Align::Center)
+            .justify_content(Justify::Center)
+            .push(element)
+            .into()
     }
 }
 
@@ -286,7 +308,7 @@ impl<'a> Step {
                  that can be easily implemented on top of Iced.",
             ))
             .push(Text::new(
-                "Iced is a renderer-agnostic GUI library for Rust focused on \
+                "Iced is a cross-platform GUI library for Rust focused on \
                  simplicity and type-safety. It is heavily inspired by Elm.",
             ))
             .push(Text::new(
@@ -294,9 +316,9 @@ impl<'a> Step {
                  2D game engine for Rust.",
             ))
             .push(Text::new(
-                "Iced does not provide a built-in renderer. On native \
-                 platforms, this example runs on a fairly simple renderer \
-                 built on top of ggez, another game library.",
+                "On native platforms, Iced provides by default a renderer \
+                 built on top of wgpu, a graphics library supporting Vulkan, \
+                 Metal, DX11, and DX12.",
             ))
             .push(Text::new(
                 "Additionally, this tour can also run on WebAssembly thanks \
@@ -304,7 +326,7 @@ impl<'a> Step {
             ))
             .push(Text::new(
                 "You will need to interact with the UI in order to reach the \
-                 end of this tour!",
+                 end!",
             ))
     }
 
@@ -481,9 +503,18 @@ impl<'a> Step {
         Self::container("Image")
             .push(Text::new("An image that tries to keep its aspect ratio."))
             .push(
-                Image::new("resources/ferris.png")
-                    .width(Length::Units(width))
-                    .align_self(Align::Center),
+                // This should go away once we unify resource loading on native
+                // platforms
+                if cfg!(target_arch = "wasm32") {
+                    Image::new("resources/ferris.png")
+                } else {
+                    Image::new(format!(
+                        "{}/examples/resources/ferris.png",
+                        env!("CARGO_MANIFEST_DIR")
+                    ))
+                }
+                .width(Length::Units(width))
+                .align_self(Align::Center),
             )
             .push(Slider::new(
                 slider,
@@ -522,6 +553,44 @@ impl<'a> Step {
             ))
             .push(Text::new("Make sure to keep an eye on it!"))
     }
+}
+
+fn button<'a, Message>(
+    state: &'a mut button::State,
+    label: &str,
+) -> Button<'a, Message> {
+    Button::new(
+        state,
+        Text::new(label)
+            .color(Color::WHITE)
+            .horizontal_alignment(HorizontalAlignment::Center),
+    )
+    .padding(12)
+    .border_radius(12)
+}
+
+fn primary_button<'a, Message>(
+    state: &'a mut button::State,
+    label: &str,
+) -> Button<'a, Message> {
+    button(state, label).background(Background::Color(Color {
+        r: 0.11,
+        g: 0.42,
+        b: 0.87,
+        a: 1.0,
+    }))
+}
+
+fn secondary_button<'a, Message>(
+    state: &'a mut button::State,
+    label: &str,
+) -> Button<'a, Message> {
+    button(state, label).background(Background::Color(Color {
+        r: 0.4,
+        g: 0.4,
+        b: 0.4,
+        a: 1.0,
+    }))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -564,4 +633,17 @@ impl From<Language> for &str {
 pub enum Layout {
     Row,
     Column,
+}
+
+// This should be gracefully handled by Iced in the future. Probably using our
+// own proc macro, or maybe the whole process is streamlined by `wasm-pack` at
+// some point.
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen(start)]
+    pub fn run() {
+        super::main()
+    }
 }

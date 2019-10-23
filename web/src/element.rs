@@ -14,6 +14,14 @@ impl<'a, Message> Element<'a, Message> {
         }
     }
 
+    pub fn node<'b>(
+        &self,
+        bump: &'b bumpalo::Bump,
+        bus: &Bus<Message>,
+    ) -> dodrio::Node<'b> {
+        self.widget.node(bump, bus)
+    }
+
     pub fn explain(self, _color: Color) -> Element<'a, Message> {
         self
     }

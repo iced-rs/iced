@@ -24,6 +24,3 @@ jobs:
     - uses: actions/checkout@master
     - name: Run tests
       run: cargo test --verbose --all --all-features
-    - name: Build tour for WebAssembly
-      if: matrix.targets == 'wasm32-unknown-unknown'
-      run: cargo build --verbose --package iced_tour --lib --target wasm32-unknown-unknown

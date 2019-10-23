@@ -2,9 +2,9 @@ use crate::{Bus, Element, Length, Widget};
 
 use dodrio::bumpalo;
 
-pub type Image<'a> = iced_core::Image<&'a str>;
+pub use iced_core::Image;
 
-impl<'a, Message> Widget<Message> for Image<'a> {
+impl<Message> Widget<Message> for Image {
     fn node<'b>(
         &self,
         bump: &'b bumpalo::Bump,
@@ -12,7 +12,7 @@ impl<'a, Message> Widget<Message> for Image<'a> {
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let src = bumpalo::format!(in bump, "{}", self.handle);
+        let src = bumpalo::format!(in bump, "{}", self.path);
 
         let mut image = img(bump).attr("src", src.into_bump_str());
 
@@ -35,8 +35,8 @@ impl<'a, Message> Widget<Message> for Image<'a> {
     }
 }
 
-impl<'a, Message> From<Image<'a>> for Element<'a, Message> {
-    fn from(image: Image<'a>) -> Element<'a, Message> {
+impl<'a, Message> From<Image> for Element<'a, Message> {
+    fn from(image: Image) -> Element<'a, Message> {
         Element::new(image)
     }
 }

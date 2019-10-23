@@ -1,8 +1,6 @@
 use stretch::{geometry, result};
 
-use crate::{
-    renderer, Color, Event, Hasher, Layout, MouseCursor, Node, Point, Widget,
-};
+use crate::{renderer, Color, Event, Hasher, Layout, Node, Point, Widget};
 
 /// A generic [`Widget`].
 ///
@@ -27,7 +25,10 @@ impl<'a, Message, Renderer> std::fmt::Debug for Element<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Element<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+{
     /// Create a new [`Element`] containing the given [`Widget`].
     ///
     /// [`Element`]: struct.Element.html
@@ -38,6 +39,19 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
         Element {
             widget: Box::new(widget),
         }
+    }
+
+    pub fn node(&self, renderer: &Renderer) -> Node {
+        self.widget.node(renderer)
+    }
+
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Renderer::Output {
+        self.widget.draw(renderer, layout, cursor_position)
     }
 
     /// Applies a transformation to the produced message of the [`Element`].
@@ -87,38 +101,46 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     ///
     /// ```
     /// # mod counter {
-    /// #     use iced_native::{button, Button};
+    /// #     use iced_native::{text, Text};
     /// #
     /// #     #[derive(Debug, Clone, Copy)]
     /// #     pub enum Message {}
-    /// #     pub struct Counter(button::State);
+    /// #     pub struct Counter;
     /// #
     /// #     impl Counter {
-    /// #         pub fn view(&mut self) -> Button<Message> {
-    /// #             Button::new(&mut self.0, "_")
+    /// #         pub fn view(&mut self) -> Text {
+    /// #             Text::new("")
     /// #         }
     /// #     }
     /// # }
     /// #
     /// # mod iced_wgpu {
     /// #     use iced_native::{
-    /// #         button, Button, MouseCursor, Node, Point, Rectangle, Style, Layout
+    /// #         text, row, Text, Node, Point, Rectangle, Style, Layout, Row
     /// #     };
     /// #     pub struct Renderer;
     /// #
-    /// #     impl button::Renderer for Renderer {
-    /// #         fn node<Message>(&self, _button: &Button<'_, Message>) -> Node {
+    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
+    /// #
+    /// #     impl iced_native::row::Renderer for Renderer {
+    /// #         fn draw<Message>(
+    /// #             &mut self,
+    /// #             _column: &Row<'_, Message, Self>,
+    /// #             _layout: Layout<'_>,
+    /// #             _cursor_position: Point,
+    /// #         ) {}
+    /// #     }
+    /// #
+    /// #     impl text::Renderer for Renderer {
+    /// #         fn node(&self, _text: &Text) -> Node {
     /// #             Node::new(Style::default())
     /// #         }
     /// #
-    /// #         fn draw<Message>(
+    /// #         fn draw(
     /// #             &mut self,
-    /// #             _button: &Button<'_, Message>,
+    /// #             _text: &Text,
     /// #             _layout: Layout<'_>,
-    /// #             _cursor_position: Point,
-    /// #         ) -> MouseCursor {
-    /// #             MouseCursor::OutOfBounds
-    /// #         }
+    /// #         ) {}
     /// #     }
     /// # }
     /// #
@@ -225,10 +247,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
         }
     }
 
-    pub(crate) fn compute_layout(
-        &self,
-        renderer: &mut Renderer,
-    ) -> result::Layout {
+    pub(crate) fn compute_layout(&self, renderer: &Renderer) -> result::Layout {
         let node = self.widget.node(renderer);
 
         node.0.compute_layout(geometry::Size::undefined()).unwrap()
@@ -268,8 +287,9 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
 impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
 where
     A: Copy,
+    Renderer: crate::Renderer,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         self.widget.node(renderer)
     }
 
@@ -300,7 +320,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
+    ) -> Renderer::Output {
         self.widget.draw(renderer, layout, cursor_position)
     }
 
@@ -309,14 +329,14 @@ where
     }
 }
 
-struct Explain<'a, Message, Renderer: renderer::Debugger> {
+struct Explain<'a, Message, Renderer: crate::Renderer> {
     element: Element<'a, Message, Renderer>,
     color: Color,
 }
 
 impl<'a, Message, Renderer> std::fmt::Debug for Explain<'a, Message, Renderer>
 where
-    Renderer: renderer::Debugger,
+    Renderer: crate::Renderer,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Explain")
@@ -327,7 +347,7 @@ where
 
 impl<'a, Message, Renderer> Explain<'a, Message, Renderer>
 where
-    Renderer: renderer::Debugger,
+    Renderer: crate::Renderer,
 {
     fn new(element: Element<'a, Message, Renderer>, color: Color) -> Self {
         Explain { element, color }
@@ -337,9 +357,9 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Explain<'a, Message, Renderer>
 where
-    Renderer: renderer::Debugger,
+    Renderer: crate::Renderer + renderer::Debugger,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         self.element.widget.node(renderer)
     }
 
@@ -360,10 +380,13 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
-        renderer.explain(&layout, self.color);
-
-        self.element.widget.draw(renderer, layout, cursor_position)
+    ) -> Renderer::Output {
+        renderer.explain(
+            self.element.widget.as_ref(),
+            layout,
+            cursor_position,
+            self.color,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

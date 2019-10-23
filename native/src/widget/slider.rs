@@ -7,7 +7,7 @@
 use std::hash::Hash;
 
 use crate::input::{mouse, ButtonState};
-use crate::{Element, Event, Hasher, Layout, MouseCursor, Node, Point, Widget};
+use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
 
 pub use iced_core::slider::*;
 
@@ -15,7 +15,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer> for Slider<'a, Message>
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
     }
 
@@ -71,7 +71,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
+    ) -> Renderer::Output {
         renderer.draw(&self, layout, cursor_position)
     }
 
@@ -87,7 +87,7 @@ where
 ///
 /// [`Slider`]: struct.Slider.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer {
+pub trait Renderer: crate::Renderer {
     /// Creates a [`Node`] for the provided [`Radio`].
     ///
     /// [`Node`]: ../../struct.Node.html
@@ -111,7 +111,7 @@ pub trait Renderer {
         slider: &Slider<'_, Message>,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor;
+    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Slider<'a, Message>>

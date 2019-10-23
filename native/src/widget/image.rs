@@ -1,17 +1,16 @@
 //! Display images in your user interface.
 
-use crate::{Element, Hasher, Layout, MouseCursor, Node, Point, Widget};
+use crate::{Element, Hasher, Layout, Node, Point, Widget};
 
 use std::hash::Hash;
 
 pub use iced_core::Image;
 
-impl<I, Message, Renderer> Widget<Message, Renderer> for Image<I>
+impl<Message, Renderer> Widget<Message, Renderer> for Image
 where
-    Renderer: self::Renderer<I>,
-    I: Clone,
+    Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
     }
 
@@ -20,10 +19,8 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> MouseCursor {
-        renderer.draw(&self, layout);
-
-        MouseCursor::OutOfBounds
+    ) -> Renderer::Output {
+        renderer.draw(&self, layout)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -40,27 +37,26 @@ where
 ///
 /// [`Image`]: struct.Image.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer<I> {
+pub trait Renderer: crate::Renderer {
     /// Creates a [`Node`] for the provided [`Image`].
     ///
     /// You should probably keep the original aspect ratio, if possible.
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Image`]: struct.Image.html
-    fn node(&mut self, image: &Image<I>) -> Node;
+    fn node(&self, image: &Image) -> Node;
 
     /// Draws an [`Image`].
     ///
     /// [`Image`]: struct.Image.html
-    fn draw(&mut self, image: &Image<I>, layout: Layout<'_>);
+    fn draw(&mut self, image: &Image, layout: Layout<'_>) -> Self::Output;
 }
 
-impl<'a, I, Message, Renderer> From<Image<I>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer<I>,
-    I: Clone + 'a,
+    Renderer: self::Renderer,
 {
-    fn from(image: Image<I>) -> Element<'a, Message, Renderer> {
+    fn from(image: Image) -> Element<'a, Message, Renderer> {
         Element::new(image)
     }
 }

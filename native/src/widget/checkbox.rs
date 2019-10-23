@@ -2,7 +2,7 @@
 use std::hash::Hash;
 
 use crate::input::{mouse, ButtonState};
-use crate::{Element, Event, Hasher, Layout, MouseCursor, Node, Point, Widget};
+use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
 
 pub use iced_core::Checkbox;
 
@@ -10,7 +10,7 @@ impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &mut Renderer) -> Node {
+    fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
     }
 
@@ -26,9 +26,7 @@ where
                 button: mouse::Button::Left,
                 state: ButtonState::Pressed,
             }) => {
-                let mouse_over = layout
-                    .children()
-                    .any(|child| child.bounds().contains(cursor_position));
+                let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {
                     messages.push((self.on_toggle)(!self.is_checked));
@@ -43,7 +41,7 @@ where
         renderer: &mut Renderer,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor {
+    ) -> Renderer::Output {
         renderer.draw(&self, layout, cursor_position)
     }
 
@@ -59,12 +57,12 @@ where
 ///
 /// [`Checkbox`]: struct.Checkbox.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer {
+pub trait Renderer: crate::Renderer {
     /// Creates a [`Node`] for the provided [`Checkbox`].
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Checkbox`]: struct.Checkbox.html
-    fn node<Message>(&mut self, checkbox: &Checkbox<Message>) -> Node;
+    fn node<Message>(&self, checkbox: &Checkbox<Message>) -> Node;
 
     /// Draws a [`Checkbox`].
     ///
@@ -80,7 +78,7 @@ pub trait Renderer {
         checkbox: &Checkbox<Message>,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> MouseCursor;
+    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Checkbox<Message>>
