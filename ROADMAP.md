@@ -141,6 +141,13 @@ We could also consider releasing a `0.1.0` version at this point and share it as
 
 [TodoMVC]: http://todomvc.com/
 
+### Multi-window support
+Open and control multiple windows at runtime.
+
+I think this could be achieved by implementing an additional trait in `iced_winit` similar to `Application` but with a slightly different `view` method, allowing users to control what is shown in each window.
+
+This approach should also allow us to perform custom optimizations for this particular use case.
+
 ### Async actions
 Most applications need to perform work in the background, without freezing the UI while they work. The current architecture can be easily extended to achieve this.
 
@@ -194,13 +201,6 @@ This is a necessary feature to implement many kind of interactables, like dropdo
 `iced_native` will need to group widgets to perform layouting and process some events first for widgets positioned on top.
 
 `iced_wgpu` will also need to process the scene graph and sort draw calls based on the different layers.
-
-### Multi-window support
-Open and control multiple windows at runtime.
-
-I think this could be achieved by implementing an additional trait in `iced_winit` similar to `Application` but with a slightly different `view` method, allowing users to control what is shown in each window.
-
-This approach should also allow us to perform custom optimizations for this particular use case.
 
 ### Animations
 Allow widgets to request a redraw at a specific time.
