@@ -7,9 +7,6 @@ description = "A renderer-agnostic library for native GUIs"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
 
-[package.metadata.docs.rs]
-features = ["winit"]
-
 [dependencies]
 iced_core = { version = "0.1.0-alpha", path = "../core" }
 stretch = "0.2"
