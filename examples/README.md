@@ -54,7 +54,7 @@ cargo build --example tour --target wasm32-unknown-unknown
 wasm-bindgen ../target/wasm32-unknown-unknown/debug/examples/tour.wasm --out-dir tour --web
 ```
 
-Finally, serve the `examples` directory using an HTTP server, and access the
+Finally, serve the `examples` directory using an HTTP server and access the
 `tour.html` file.
 
 [`wasm-bindgen`]: https://github.com/rustwasm/wasm-bindgen
