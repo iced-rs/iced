@@ -251,8 +251,8 @@ impl Pipeline {
             let instance_buffer = device
                 .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
                 .fill_from_slice(&[Instance {
-                    position: image.position,
-                    scale: image.scale,
+                    _position: image.position,
+                    _scale: image.scale,
                 }]);
 
             encoder.copy_buffer_to_buffer(
@@ -433,6 +433,6 @@ const QUAD_VERTS: [Vertex; 4] = [
 
 #[derive(Clone, Copy)]
 struct Instance {
-    position: [f32; 2],
-    scale: [f32; 2],
+    _position: [f32; 2],
+    _scale: [f32; 2],
 }
