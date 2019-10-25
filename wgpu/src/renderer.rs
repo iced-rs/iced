@@ -20,6 +20,7 @@ mod column;
 mod image;
 mod radio;
 mod row;
+mod scrollable;
 mod slider;
 mod text;
 
@@ -31,8 +32,6 @@ pub struct Renderer {
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
 
-    quads: Vec<Quad>,
-    images: Vec<Image>,
     glyph_brush: Rc<RefCell<GlyphBrush<'static, ()>>>,
 }
 
@@ -41,6 +40,24 @@ pub struct Target {
     height: u16,
     transformation: Transformation,
     swap_chain: SwapChain,
+}
+
+pub struct Layer {
+    quads: Vec<Quad>,
+    images: Vec<Image>,
+    layers: Vec<Layer>,
+    y_offset: u32,
+}
+
+impl Layer {
+    pub fn new(y_offset: u32) -> Self {
+        Self {
+            quads: Vec::new(),
+            images: Vec::new(),
+            layers: Vec::new(),
+            y_offset,
+        }
+    }
 }
 
 impl Renderer {
@@ -79,8 +96,6 @@ impl Renderer {
             quad_pipeline,
             image_pipeline,
 
-            quads: Vec::new(),
-            images: Vec::new(),
             glyph_brush: Rc::new(RefCell::new(glyph_brush)),
         }
     }
@@ -132,27 +147,10 @@ impl Renderer {
             depth_stencil_attachment: None,
         });
 
-        self.draw_primitive(primitive);
+        let mut layer = Layer::new(0);
 
-        self.quad_pipeline.draw(
-            &mut self.device,
-            &mut encoder,
-            &self.quads,
-            target.transformation,
-            &frame.view,
-        );
-
-        self.quads.clear();
-
-        self.image_pipeline.draw(
-            &mut self.device,
-            &mut encoder,
-            &self.images,
-            target.transformation,
-            &frame.view,
-        );
-
-        self.images.clear();
+        self.draw_primitive(primitive, &mut layer);
+        self.flush(target.transformation, &layer, &mut encoder, &frame.view);
 
         self.glyph_brush
             .borrow_mut()
@@ -170,13 +168,13 @@ impl Renderer {
         *mouse_cursor
     }
 
-    fn draw_primitive(&mut self, primitive: &Primitive) {
+    fn draw_primitive(&mut self, primitive: &Primitive, layer: &mut Layer) {
         match primitive {
             Primitive::None => {}
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
-                    self.draw_primitive(primitive)
+                    self.draw_primitive(primitive, layer)
                 }
             }
             Primitive::Text {
@@ -244,7 +242,7 @@ impl Renderer {
                 background,
                 border_radius,
             } => {
-                self.quads.push(Quad {
+                layer.quads.push(Quad {
                     position: [bounds.x, bounds.y],
                     scale: [bounds.width, bounds.height],
                     color: match background {
@@ -254,12 +252,55 @@ impl Renderer {
                 });
             }
             Primitive::Image { path, bounds } => {
-                self.images.push(Image {
+                layer.images.push(Image {
                     path: path.clone(),
                     position: [bounds.x, bounds.y],
                     scale: [bounds.width, bounds.height],
                 });
             }
+            Primitive::Scrollable {
+                bounds,
+                offset,
+                content,
+            } => {
+                let mut new_layer = Layer::new(layer.y_offset + offset);
+
+                // TODO: Primitive culling
+                self.draw_primitive(content, &mut new_layer);
+
+                layer.layers.push(new_layer);
+            }
+        }
+    }
+
+    fn flush(
+        &mut self,
+        transformation: Transformation,
+        layer: &Layer,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+    ) {
+        let translated = transformation
+            * Transformation::translate(0.0, -(layer.y_offset as f32));
+
+        self.quad_pipeline.draw(
+            &mut self.device,
+            encoder,
+            &layer.quads,
+            transformation,
+            target,
+        );
+
+        self.image_pipeline.draw(
+            &mut self.device,
+            encoder,
+            &layer.images,
+            translated,
+            target,
+        );
+
+        for layer in layer.layers.iter() {
+            self.flush(transformation, layer, encoder, target);
         }
     }
 }

@@ -347,7 +347,7 @@ impl Cache {
                 .0
                 .compute_layout(geometry::Size::undefined())
                 .unwrap(),
-            cursor_position: Point::new(0.0, 0.0),
+            cursor_position: Point::new(-1.0, -1.0),
         }
     }
 }

@@ -136,6 +136,17 @@ pub trait Application {
                         state: conversion::button_state(state),
                     }));
                 }
+                WindowEvent::MouseWheel { delta, .. } => match delta {
+                    winit::event::MouseScrollDelta::LineDelta(
+                        delta_x,
+                        delta_y,
+                    ) => {
+                        events.push(Event::Mouse(
+                            mouse::Event::WheelScrolled { delta_x, delta_y },
+                        ));
+                    }
+                    _ => {}
+                },
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }

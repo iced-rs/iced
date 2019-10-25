@@ -13,4 +13,5 @@ wgpu = { version = "0.3", git = "https://github.com/gfx-rs/wgpu-rs", rev = "cb25
 wgpu_glyph = { version = "0.4", git = "https://github.com/hecrj/wgpu_glyph", rev = "48daa98f5f785963838b4345e86ac40eac095ba9" }
 raw-window-handle = "0.1"
 image = "0.22"
+nalgebra = "0.18"
 log = "0.4"

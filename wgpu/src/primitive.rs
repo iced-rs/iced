@@ -23,4 +23,9 @@ pub enum Primitive {
         path: String,
         bounds: Rectangle,
     },
+    Scrollable {
+        bounds: Rectangle,
+        offset: u32,
+        content: Box<Primitive>,
+    },
 }
