@@ -191,7 +191,7 @@ Besides performing async actions on demand, most applications also need to liste
 
 The idea here is to also follow [Elm]'s footsteps. We can add a method `subscriptions(&self) -> Subscription<Message>` to `Application` and keep the subscriptions alive in the runtime.
 
-The challenge here is designing the public API of subscriptions, so users can build their own, and _subscription diffing_, or basically detecting when a subscription is added/changed/removed. For this, we can take a look at the source code of [Elm] for inspiration.
+The challenge here is designing the public API of subscriptions. Ideally, users should be able to create their own subscriptions and the GUI runtime should keep them alive by performing _subscription diffing_ (i.e. detecting when a subscription is added, changed, or removed). For this, we can take a look at [Elm] for inspiration.
 
 ### Layers
 Currently, Iced assumes widgets cannot be laid out on top of each other. We should implement support for multiple layers of widgets.
