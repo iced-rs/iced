@@ -74,7 +74,7 @@ It exposes a renderer-agnostic `Application` trait that can be implemented and t
 Finally, `iced` unifies everything into a simple abstraction to create cross-platform applications:
 
 - On native, it uses `iced_winit` and `iced_wgpu`.
-- On web, it uses `iced_web`.
+- On the web, it uses `iced_web`.
 
 This is the crate meant to be used by __end-users__.
 
@@ -101,7 +101,7 @@ When it comes to `iced_native`, we may need to add the concept of _event propaga
 
 When it comes to `iced_wgpu`, we should be able to use scissoring and transformations. [`wgpu`] has a [`RenderPass::set_scissor_rect`] that should work nicely.
 
-The main issue here will be [`wgpu_glyph`], which is used currently to render text primitives. [`wgpu_glyph`] is powered by [`glyph-brush`], which caches glyphs to render text very fast. However, the current cache model does not seem to be composable (i.e. once you issue a draw call the cache is purged). We will need to change it (and potentially contribute) to accomodate for this use case.
+The main issue here will be [`wgpu_glyph`], which is used currently to render text primitives. [`wgpu_glyph`] is powered by [`glyph-brush`], which caches glyphs to render text very fast. However, the current cache model does not seem to be composable (i.e. once you issue a draw call the cache is purged). We will need to change it (and potentially contribute) to accommodate for this use case.
 
 [`RenderPass::set_scissor_rect`]: https://docs.rs/wgpu/0.3.0/src/wgpu/lib.rs.html#1246-1248
 [`glyph-brush`]: https://github.com/alexheretic/glyph-brush
@@ -153,7 +153,7 @@ Most applications need to perform work in the background, without freezing the U
 
 We can let users return an asynchronous action (i.e. a future) producing a `Message` in `Application::update`. The runtime will spawn each returned action in a thread pool and, once it finishes, feed the produced message back to `update`. This is also how [Elm] does it.
 
-When it comes to implementing this, [`winit`] already supports user-specific events that can be sent from another thread. Accomodating `iced_winit` for this functionality should not be too complicated.
+When it comes to implementing this, [`winit`] already supports user-specific events that can be sent from another thread. Accommodating `iced_winit` for this functionality should not be too complicated.
 
 [Elm]: https://elm-lang.org/
 
@@ -196,7 +196,7 @@ The challenge here is designing the public API of subscriptions, so users can bu
 ### Layers
 Currently, Iced assumes widgets cannot be laid out on top of each other. We should implement support for multiple layers of widgets.
 
-This is a necessary feature to implement many kind of interactables, like dropdown menus, select fields, etc.
+This is a necessary feature to implement many kinds of interactables, like dropdown menus, select fields, etc.
 
 `iced_native` will need to group widgets to perform layouting and process some events first for widgets positioned on top.
 
@@ -207,12 +207,12 @@ Allow widgets to request a redraw at a specific time.
 
 This is a necessary feature to render loading spinners, a blinking text cursor, GIF images, etc.
 
-[`winit`] allows controlling the event loop in a flexible way. We may be able to use [`ControlFlow::WaitUntil`](https://docs.rs/winit/0.20.0-alpha3/winit/event_loop/enum.ControlFlow.html#variant.WaitUntil) for this purpose.
+[`winit`] allows flexible control of its event loop. We may be able to use [`ControlFlow::WaitUntil`](https://docs.rs/winit/0.20.0-alpha3/winit/event_loop/enum.ControlFlow.html#variant.WaitUntil) for this purpose.
 
 ### Canvas widget
 A widget to draw freely in 2D or 3D. It could be used to draw charts, implement a Paint clone, a CAD application, etc.
 
-As a first approach, we could expose the underlying renderer directly here, and couple this widget with it ([`wgpu`] for now). Once [`wgpu`] gets WebGL or WebGPU support, this widget will be able to run on web too. The renderer primitive could be a simple texture that the widget draws to.
+As a first approach, we could expose the underlying renderer directly here, and couple this widget with it ([`wgpu`] for now). Once [`wgpu`] gets WebGL or WebGPU support, this widget will be able to run on the web too. The renderer primitive could be a simple texture that the widget draws to.
 
 In the long run, we could expose a renderer-agnostic abstraction to perform the drawing.
 
