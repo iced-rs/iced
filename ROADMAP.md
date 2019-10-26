@@ -257,12 +257,14 @@ We could take a different approach, and keep some kind of state tree decoupled f
 
 Once the state lifetime of widgets is removed, we could keep them alive between iterations and even make `Application::view` take a non-mutable reference. This would also improve the end-user API, as it will not be necessary to constantly provide mutable state to widgets.
 
+This is a big undertaking and introduces a new set of problems. We should research and consider the implications of this approach in detail before going for it.
+
 ### Improve style definitions
 As of now, each widget defines its own styling options with methods, following the builder pattern.
 
-A unified way of defining and reusing styles would be great. I am not proposing something like CSS, we should try to stay as type-safe and intuitive as possible.
+A unified way of defining and reusing styles would be great. I think we must avoid replicating CSS, we should try to stay as type-safe, explicit, and intuitive as possible.
 
-I think [`elm-ui`] could serve as an inspiration.
+I think many different ideas in [`elm-ui`] could serve as an inspiration.
 
 [`elm-ui`]: https://www.youtube.com/watch?v=Ie-gqwSHQr0
 
