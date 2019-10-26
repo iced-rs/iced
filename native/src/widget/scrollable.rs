@@ -56,12 +56,7 @@ where
                 Event::Mouse(mouse::Event::WheelScrolled {
                     delta_y, ..
                 }) => {
-                    // TODO: Configurable speed (?)
-                    self.state.offset = (self.state.offset as i32
-                        - delta_y.round() as i32 * 15)
-                        .max(0)
-                        .min((content_bounds.height - bounds.height) as i32)
-                        as u32;
+                    self.state.scroll(delta_y, bounds, content_bounds);
                 }
                 _ => {}
             }
@@ -70,7 +65,8 @@ where
         let cursor_position = if is_mouse_over {
             Point::new(
                 cursor_position.x,
-                cursor_position.y + self.state.offset as f32,
+                cursor_position.y
+                    + self.state.offset(bounds, content_bounds) as f32,
             )
         } else {
             Point::new(cursor_position.x, -1.0)

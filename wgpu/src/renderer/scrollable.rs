@@ -16,11 +16,10 @@ impl scrollable::Renderer for Renderer {
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
+        let offset = scrollable.state.offset(bounds, content_bounds);
+
         let cursor_position = if bounds.contains(cursor_position) {
-            Point::new(
-                cursor_position.x,
-                cursor_position.y + scrollable.state.offset as f32,
-            )
+            Point::new(cursor_position.x, cursor_position.y + offset as f32)
         } else {
             Point::new(cursor_position.x, -1.0)
         };
@@ -30,7 +29,7 @@ impl scrollable::Renderer for Renderer {
 
         let primitive = Primitive::Scrollable {
             bounds,
-            offset: scrollable.state.offset,
+            offset,
             content: Box::new(content),
         };
 
@@ -41,7 +40,7 @@ impl scrollable::Renderer for Renderer {
                 {
                     let ratio = bounds.height / content_bounds.height;
                     let scrollbar_height = bounds.height * ratio;
-                    let y_offset = scrollable.state.offset as f32 * ratio;
+                    let y_offset = offset as f32 * ratio;
 
                     let scrollbar = Primitive::Quad {
                         bounds: Rectangle {

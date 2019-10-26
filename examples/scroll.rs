@@ -1,6 +1,6 @@
 use iced::{
-    button, scrollable, Align, Application, Button, Color, Element, Image,
-    Length, Scrollable, Text,
+    button, scrollable, Align, Application, Button, Color, Column, Element,
+    Image, Justify, Length, Scrollable, Text,
 };
 
 pub fn main() {
@@ -32,12 +32,7 @@ impl Application for Example {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let content = Scrollable::new(&mut self.scroll)
-            .width(Length::Fill)
-            .max_width(Length::Units(600))
-            .spacing(20)
-            .padding(20)
-            .align_self(Align::Center);
+        let content = Scrollable::new(&mut self.scroll).spacing(20).padding(20);
 
         //let content = (0..self.paragraph_count)
         //    .fold(content, |column, _| column.push(lorem_ipsum()))
@@ -49,8 +44,12 @@ impl Application for Example {
         //            .align_self(Align::Center),
         //    );
 
-        (0..10)
-            .fold(content, |content, _| {
+        Column::new()
+            .height(Length::Fill)
+            .max_width(Length::Units(600))
+            .align_self(Align::Center)
+            .justify_content(Justify::Center)
+            .push((0..3).fold(content, |content, _| {
                 content.push(
                     Image::new(format!(
                         "{}/examples/resources/ferris.png",
@@ -59,7 +58,7 @@ impl Application for Example {
                     .width(Length::Units(400))
                     .align_self(Align::Center),
                 )
-            })
+            }))
             .into()
     }
 }
