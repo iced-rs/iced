@@ -84,7 +84,7 @@ This section describes some important features that should be implemented before
 
 Most of the work related to these features needs to happen in the `iced_native` path of the ecosystem, as the web already supports many of them.
 
-### Scrollables / Clippables
+### Scrollables / Clippables ([#24])
 Content that can take a (practically) infinite amount of space and can be viewed using a scrollbar. This is a very basic feature.
 
 The end-user API could look like this:
@@ -103,10 +103,11 @@ When it comes to `iced_wgpu`, we should be able to use scissoring and transforma
 
 The main issue here will be [`wgpu_glyph`], which is used currently to render text primitives. [`wgpu_glyph`] is powered by [`glyph-brush`], which caches glyphs to render text very fast. However, the current cache model does not seem to be composable (i.e. once you issue a draw call the cache is purged). We will need to change it (and potentially contribute) to accommodate for this use case.
 
+[#24]: https://github.com/hecrj/iced/issues/24
 [`RenderPass::set_scissor_rect`]: https://docs.rs/wgpu/0.3.0/src/wgpu/lib.rs.html#1246-1248
 [`glyph-brush`]: https://github.com/alexheretic/glyph-brush
 
-### Text input widget
+### Text input widget ([#25])
 A widget where the user can type raw text and passwords.
 
 This widget will have a quite complex event logic, potentially coupled with text rendering. Some examples are:
@@ -134,21 +135,26 @@ let text = "Hello";
 TextInput::new(&mut text_input, &text, Message::TextChanged);
 ```
 
-### TodoMVC example
+[#25]: https://github.com/hecrj/iced/issues/25
+
+### TodoMVC example ([#26])
 Once we have scrollables support and a text widget, we could build a [TodoMVC] example. It seems to be a very simple example and could showcase the API quite well.
 
 We could also consider releasing a `0.1.0` version at this point and share it as a milestone on different social platforms.
 
+[#26]: https://github.com/hecrj/iced/issues/26
 [TodoMVC]: http://todomvc.com/
 
-### Multi-window support
+### Multi-window support ([#27])
 Open and control multiple windows at runtime.
 
 I think this could be achieved by implementing an additional trait in `iced_winit` similar to `Application` but with a slightly different `view` method, allowing users to control what is shown in each window.
 
 This approach should also allow us to perform custom optimizations for this particular use case.
 
-### Async actions
+[#27]: https://github.com/hecrj/iced/issues/27
+
+### Async actions ([#28])
 Most applications need to perform work in the background, without freezing the UI while they work. The current architecture can be easily extended to achieve this.
 
 We can let users return an asynchronous action (i.e. a future) producing a `Message` in `Application::update`. The runtime will spawn each returned action in a thread pool and, once it finishes, feed the produced message back to `update`. This is also how [Elm] does it.
@@ -186,14 +192,18 @@ impl Application for WeatherReport {
 }
 ```
 
-### Event subscriptions
+[#28]: https://github.com/hecrj/iced/issues/28
+
+### Event subscriptions ([#29])
 Besides performing async actions on demand, most applications also need to listen to events passively. An example of this could be a WebSocket connection, where messages can come in at any time.
 
 The idea here is to also follow [Elm]'s footsteps. We can add a method `subscriptions(&self) -> Subscription<Message>` to `Application` and keep the subscriptions alive in the runtime.
 
 The challenge here is designing the public API of subscriptions. Ideally, users should be able to create their own subscriptions and the GUI runtime should keep them alive by performing _subscription diffing_ (i.e. detecting when a subscription is added, changed, or removed). For this, we can take a look at [Elm] for inspiration.
 
-### Layers
+[#29]: https://github.com/hecrj/iced/issues/29
+
+### Layers ([#30])
 Currently, Iced assumes widgets cannot be laid out on top of each other. We should implement support for multiple layers of widgets.
 
 This is a necessary feature to implement many kinds of interactables, like dropdown menus, select fields, etc.
@@ -202,21 +212,27 @@ This is a necessary feature to implement many kinds of interactables, like dropd
 
 `iced_wgpu` will also need to process the scene graph and sort draw calls based on the different layers.
 
-### Animations
+[#30]: https://github.com/hecrj/iced/issues/30
+
+### Animations ([#31])
 Allow widgets to request a redraw at a specific time.
 
 This is a necessary feature to render loading spinners, a blinking text cursor, GIF images, etc.
 
 [`winit`] allows flexible control of its event loop. We may be able to use [`ControlFlow::WaitUntil`](https://docs.rs/winit/0.20.0-alpha3/winit/event_loop/enum.ControlFlow.html#variant.WaitUntil) for this purpose.
 
-### Canvas widget
+[#31]: https://github.com/hecrj/iced/issues/31
+
+### Canvas widget ([#32])
 A widget to draw freely in 2D or 3D. It could be used to draw charts, implement a Paint clone, a CAD application, etc.
 
 As a first approach, we could expose the underlying renderer directly here, and couple this widget with it ([`wgpu`] for now). Once [`wgpu`] gets WebGL or WebGPU support, this widget will be able to run on the web too. The renderer primitive could be a simple texture that the widget draws to.
 
 In the long run, we could expose a renderer-agnostic abstraction to perform the drawing.
 
-### Text shaping and font fallback
+[#32]: https://github.com/hecrj/iced/issues/32
+
+### Text shaping and font fallback ([#33])
 [`wgpu_glyph`] uses [`glyph-brush`], which in turn uses [`rusttype`]. While the current implementation is able to layout text quite nicely, it does not perform any [text shaping].
 
 [Text shaping] with font fallback is a necessary feature for any serious GUI toolkit. It unlocks support to truly localize your application, supporting many different scripts.
@@ -225,16 +241,18 @@ The only available library that does a great job at shaping is [HarfBuzz], which
 
 This feature will probably imply rewriting [`wgpu_glyph`] entirely, as caching will be more complicated and the API will probably need to ask for more data.
 
+[#33]: https://github.com/hecrj/iced/issues/33
 [`rusttype`]: https://github.com/redox-os/rusttype
 [text shaping]: https://en.wikipedia.org/wiki/Complex_text_layout
 [HarfBuzz]: https://github.com/harfbuzz/harfbuzz
 [`skribo`]: https://github.com/linebender/skribo
 
-### Grid layout and text layout
+### Grid layout and text layout ([#34])
 Currently, `iced_native` only supports flexbox items. For instance, it is not possible to create a grid of items or make text float around an image.
 
 We will need to enhance the layouting engine to support different strategies and improve the way we measure text to lay it out in a more flexible way.
 
+[#34]: https://github.com/hecrj/iced/issues/34
 
 ## Ideas that may be worth exploring
 
