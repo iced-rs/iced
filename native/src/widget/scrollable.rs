@@ -30,6 +30,7 @@ where
             .width(self.content.width)
             .max_width(self.content.max_width)
             .height(self.height)
+            .max_height(self.max_height)
             .align_self(self.align_self)
             .align_items(self.align_items);
 

@@ -1,9 +1,10 @@
-use crate::{Align, Column, Justify, Length, Rectangle};
+use crate::{Align, Column, Length, Rectangle};
 
 #[derive(Debug)]
 pub struct Scrollable<'a, Element> {
     pub state: &'a mut State,
     pub height: Length,
+    pub max_height: Length,
     pub align_self: Option<Align>,
     pub align_items: Align,
     pub content: Column<Element>,
@@ -14,6 +15,7 @@ impl<'a, Element> Scrollable<'a, Element> {
         Scrollable {
             state,
             height: Length::Shrink,
+            max_height: Length::Shrink,
             align_self: None,
             align_items: Align::Start,
             content: Column::new(),
@@ -30,77 +32,68 @@ impl<'a, Element> Scrollable<'a, Element> {
         self
     }
 
-    /// Sets the padding of the [`Column`].
+    /// Sets the padding of the [`Scrollable`].
     ///
-    /// [`Column`]: struct.Column.html
+    /// [`Scrollable`]: struct.Scrollable.html
     pub fn padding(mut self, units: u16) -> Self {
         self.content = self.content.padding(units);
         self
     }
 
-    /// Sets the width of the [`Column`].
+    /// Sets the width of the [`Scrollable`].
     ///
-    /// [`Column`]: struct.Column.html
+    /// [`Scrollable`]: struct.Scrollable.html
     pub fn width(mut self, width: Length) -> Self {
         self.content = self.content.width(width);
         self
     }
 
-    /// Sets the height of the [`Column`].
+    /// Sets the height of the [`Scrollable`].
     ///
-    /// [`Column`]: struct.Column.html
+    /// [`Scrollable`]: struct.Scrollable.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
-    /// Sets the maximum width of the [`Column`].
+    /// Sets the maximum width of the [`Scrollable`].
     ///
-    /// [`Column`]: struct.Column.html
+    /// [`Scrollable`]: struct.Scrollable.html
     pub fn max_width(mut self, max_width: Length) -> Self {
         self.content = self.content.max_width(max_width);
         self
     }
 
-    /// Sets the maximum height of the [`Column`] in pixels.
+    /// Sets the maximum height of the [`Scrollable`] in pixels.
     ///
-    /// [`Column`]: struct.Column.html
+    /// [`Scrollable`]: struct.Scrollable.html
     pub fn max_height(mut self, max_height: Length) -> Self {
-        self.content = self.content.max_height(max_height);
+        self.max_height = max_height;
         self
     }
 
-    /// Sets the alignment of the [`Column`] itself.
+    /// Sets the alignment of the [`Scrollable`] itself.
     ///
     /// This is useful if you want to override the default alignment given by
     /// the parent container.
     ///
-    /// [`Column`]: struct.Column.html
+    /// [`Scrollable`]: struct.Scrollable.html
     pub fn align_self(mut self, align: Align) -> Self {
         self.align_self = Some(align);
         self
     }
 
-    /// Sets the horizontal alignment of the contents of the [`Column`] .
+    /// Sets the horizontal alignment of the contents of the [`Scrollable`] .
     ///
-    /// [`Column`]: struct.Column.html
+    /// [`Scrollable`]: struct.Scrollable.html
     pub fn align_items(mut self, align_items: Align) -> Self {
         self.align_items = align_items;
         self
     }
 
-    /// Sets the vertical distribution strategy for the contents of the
-    /// [`Column`] .
+    /// Adds an element to the [`Scrollable`].
     ///
-    /// [`Column`]: struct.Column.html
-    pub fn justify_content(mut self, justify: Justify) -> Self {
-        self.content = self.content.justify_content(justify);
-        self
-    }
-
-    /// Adds an element to the [`Column`].
-    ///
-    /// [`Column`]: struct.Column.html
+    /// [`Scrollable`]: struct.Scrollable.html
     pub fn push<E>(mut self, child: E) -> Scrollable<'a, Element>
     where
         E: Into<Element>,
