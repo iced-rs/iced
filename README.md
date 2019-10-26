@@ -23,9 +23,10 @@ Inspired by [Elm].
   * Built-in widgets
   * Custom widget support
 
-__Iced is in a experimental stage.__ [Check out the issues] and
-[feel free to contribute!].
+__Iced is in a experimental stage.__ [Take a look at the roadmap],
+[check out the issues], and [feel free to contribute!].
 
+[Take a look at the roadmap]: https://github.com/hecrj/iced/blob/master/ROADMAP.md
 [check out the issues]: https://github.com/hecrj/iced/issues
 [feel free to contribute!]: #contributing--feedback
 
@@ -96,7 +97,7 @@ impl Counter {
             .push(
                 // The increment button. We tell it to produce an
                 // `IncrementPressed` message when pressed
-                Button::new(&mut self.increment_button, "+")
+                Button::new(&mut self.increment_button, Text::new("+"))
                     .on_press(Message::IncrementPressed),
             )
             .push(
@@ -106,7 +107,7 @@ impl Counter {
             .push(
                 // The decrement button. We tell it to produce a
                 // `DecrementPressed` message when pressed
-                Button::new(&mut self.decrement_button, "-")
+                Button::new(&mut self.decrement_button, Text::new("-"))
                     .on_press(Message::DecrementPressed),
             )
     }
@@ -156,21 +157,26 @@ its own standalone crate, as it could potentially benefit other engines and
 applications. I thought it was a great idea, and after a bit of work... Iced is
 here!
 
-As an interesting note, the core of Iced does not rely on interior mutability.
-Usage of types like `RefCell` is restricted to runtime boundaries. As a
-consequence, compiler guarantees stay intact and many kinds of pesky bugs and
-runtime errors are banished. No spooky action at a distance!
+Iced consists of different crates which offer different layers of abstractions
+for our users. This modular architecture helps us keep implementation details
+hidden and decoupled, which should allow us to rewrite or change strategies in
+the future.
+
+![Iced ecosystem](https://github.com/hecrj/iced/raw/master/docs/crates_graph.png)
+
+Read [the roadmap] if you want to learn more!
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
 [`stretch`]: https://github.com/vislyhq/stretch
 [Coffee 0.3.0]: https://github.com/hecrj/coffee/releases/tag/0.3.0
 [`ui` module]: https://docs.rs/coffee/0.3.2/coffee/ui/index.html
+[the roadmap]: https://github.com/hecrj/iced/blob/master/ROADMAP.md
 
 ## Contributing / Feedback
 If you want to contribute, you are more than welcome to be a part of the
-project! Check out the current [issues] if you want to find something to work
-on. Try to share you thoughts first! Feel free to open a new issue if you want
-to discuss new ideas.
+project! Check out [the roadmap] and [the current issues] if you want to find
+something to work on. Try to share you thoughts first! Feel free to open a new
+issue if you want to discuss new ideas.
 
 Any kind of feedback is welcome! You can open an issue or, if you want to talk,
 you can find me (and a bunch of awesome folks) over the `#games-and-graphics`
@@ -182,5 +188,5 @@ and `#gui-and-ui` channels in the [Rust Community Discord]. I go by
 [Coffee]: https://github.com/hecrj/coffee
 [Elm]: https://elm-lang.org/
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-[issues]: https://github.com/hecrj/iced/issues
+[the current issues]: https://github.com/hecrj/iced/issues
 [Rust Community Discord]: https://bit.ly/rust-community
