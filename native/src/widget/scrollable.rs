@@ -31,8 +31,7 @@ where
             .max_width(self.content.max_width)
             .height(self.height)
             .max_height(self.max_height)
-            .align_self(self.align_self)
-            .align_items(self.align_items);
+            .align_self(self.align_self);
 
         style.0.flex_direction = stretch::style::FlexDirection::Column;
 

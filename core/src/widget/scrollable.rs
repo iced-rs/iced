@@ -6,7 +6,6 @@ pub struct Scrollable<'a, Element> {
     pub height: Length,
     pub max_height: Length,
     pub align_self: Option<Align>,
-    pub align_items: Align,
     pub content: Column<Element>,
 }
 
@@ -17,7 +16,6 @@ impl<'a, Element> Scrollable<'a, Element> {
             height: Length::Shrink,
             max_height: Length::Shrink,
             align_self: None,
-            align_items: Align::Start,
             content: Column::new(),
         }
     }
@@ -87,7 +85,7 @@ impl<'a, Element> Scrollable<'a, Element> {
     ///
     /// [`Scrollable`]: struct.Scrollable.html
     pub fn align_items(mut self, align_items: Align) -> Self {
-        self.align_items = align_items;
+        self.content = self.content.align_items(align_items);
         self
     }
 
