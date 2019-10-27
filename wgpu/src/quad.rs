@@ -1,4 +1,5 @@
 use crate::Transformation;
+use iced_native::Rectangle;
 
 use std::mem;
 
@@ -165,6 +166,7 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         instances: &[Quad],
         transformation: Transformation,
+        bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
     ) {
         let matrix: [f32; 16] = transformation.into();
@@ -226,6 +228,12 @@ impl Pipeline {
                 render_pass.set_vertex_buffers(
                     0,
                     &[(&self.vertices, 0), (&self.instances, 0)],
+                );
+                render_pass.set_scissor_rect(
+                    bounds.x,
+                    bounds.y,
+                    bounds.width,
+                    bounds.height,
                 );
 
                 render_pass.draw_indexed(

@@ -251,7 +251,7 @@ impl Renderer {
                 border_radius,
             } => {
                 layer.quads.push(Quad {
-                    position: [bounds.x, bounds.y],
+                    position: [bounds.x, bounds.y - layer.y_offset as f32],
                     scale: [bounds.width, bounds.height],
                     color: match background {
                         Background::Color(color) => color.into_linear(),
@@ -304,6 +304,7 @@ impl Renderer {
             encoder,
             &layer.quads,
             transformation,
+            layer.bounds,
             target,
         );
 
