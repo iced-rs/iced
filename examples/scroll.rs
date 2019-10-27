@@ -1,6 +1,6 @@
 use iced::{
-    button, scrollable, Align, Application, Button, Color, Column, Element,
-    Image, Justify, Length, Scrollable, Text,
+    button, scrollable, Align, Application, Button, Column, Element, Image,
+    Justify, Length, Scrollable, Text,
 };
 
 pub fn main() {
@@ -9,7 +9,7 @@ pub fn main() {
 
 #[derive(Default)]
 struct Example {
-    paragraph_count: u16,
+    item_count: u16,
 
     scroll: scrollable::State,
     add_button: button::State,
@@ -17,7 +17,7 @@ struct Example {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Message {
-    AddParagraph,
+    AddItem,
 }
 
 impl Application for Example {
@@ -25,36 +25,47 @@ impl Application for Example {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::AddParagraph => {
-                self.paragraph_count += 1;
+            Message::AddItem => {
+                self.item_count += 1;
             }
         }
     }
 
     fn view(&mut self) -> Element<Message> {
-        let content = (0..3).fold(
-            Scrollable::new(&mut self.scroll).spacing(20).padding(20),
-            |content, _| {
-                content.push(
-                    Image::new(format!(
-                        "{}/examples/resources/ferris.png",
-                        env!("CARGO_MANIFEST_DIR")
-                    ))
-                    .width(Length::Units(400))
-                    .align_self(Align::Center),
-                )
-            },
-        );
+        //let content = (0..3).fold(
+        //    Scrollable::new(&mut self.scroll).spacing(20).padding(20),
+        //    |content, _| {
+        //        content.push(
+        //        )
+        //    },
+        //);
 
-        //let content = (0..self.paragraph_count)
-        //    .fold(content, |column, _| column.push(lorem_ipsum()))
-        //    .push(
-        //        Button::new(&mut self.add_button, Text::new("Add paragraph"))
-        //            .on_press(Message::AddParagraph)
-        //            .padding(20)
-        //            .border_radius(5)
-        //            .align_self(Align::Center),
-        //    );
+        let content = (0..self.item_count)
+            .fold(
+                Scrollable::new(&mut self.scroll)
+                    .spacing(20)
+                    .padding(20)
+                    .align_items(Align::Center),
+                |column, i| {
+                    if i % 2 == 0 {
+                        column.push(lorem_ipsum().width(Length::Units(600)))
+                    } else {
+                        column.push(
+                            Image::new(format!(
+                                "{}/examples/resources/ferris.png",
+                                env!("CARGO_MANIFEST_DIR")
+                            ))
+                            .width(Length::Units(400)),
+                        )
+                    }
+                },
+            )
+            .push(
+                Button::new(&mut self.add_button, Text::new("Add item"))
+                    .on_press(Message::AddItem)
+                    .padding(20)
+                    .border_radius(5),
+            );
 
         Column::new()
             .height(Length::Fill)
