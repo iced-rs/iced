@@ -26,7 +26,6 @@ mod text;
 
 pub struct Renderer {
     surface: Surface,
-    adapter: Adapter,
     device: Device,
     queue: Queue,
     quad_pipeline: quad::Pipeline,
@@ -92,7 +91,6 @@ impl Renderer {
 
         Self {
             surface,
-            adapter,
             device,
             queue,
             quad_pipeline,
