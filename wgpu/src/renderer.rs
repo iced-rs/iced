@@ -41,21 +41,23 @@ pub struct Target {
     swap_chain: SwapChain,
 }
 
-pub struct Layer {
+pub struct Layer<'a> {
     bounds: Rectangle<u32>,
     y_offset: u32,
     quads: Vec<Quad>,
     images: Vec<Image>,
-    layers: Vec<Layer>,
+    text: Vec<wgpu_glyph::Section<'a>>,
+    layers: Vec<Layer<'a>>,
 }
 
-impl Layer {
+impl<'a> Layer<'a> {
     pub fn new(bounds: Rectangle<u32>, y_offset: u32) -> Self {
         Self {
             bounds,
             y_offset,
             quads: Vec::new(),
             images: Vec::new(),
+            text: Vec::new(),
             layers: Vec::new(),
         }
     }
@@ -176,7 +178,11 @@ impl Renderer {
         *mouse_cursor
     }
 
-    fn draw_primitive(&mut self, primitive: &Primitive, layer: &mut Layer) {
+    fn draw_primitive<'a>(
+        &mut self,
+        primitive: &'a Primitive,
+        layer: &mut Layer<'a>,
+    ) {
         match primitive {
             Primitive::None => {}
             Primitive::Group { primitives } => {
@@ -213,7 +219,7 @@ impl Renderer {
                     }
                 };
 
-                self.glyph_brush.borrow_mut().queue(Section {
+                layer.text.push(Section {
                     text: &content,
                     screen_position: (x, y),
                     bounds: (bounds.width, bounds.height),
@@ -316,6 +322,23 @@ impl Renderer {
             layer.bounds,
             target,
         );
+
+        {
+            let mut glyph_brush = self.glyph_brush.borrow_mut();
+
+            for text in layer.text.iter() {
+                glyph_brush.queue(text);
+            }
+
+            glyph_brush
+                .draw_queued_with_transform(
+                    &mut self.device,
+                    encoder,
+                    target,
+                    translated.into(),
+                )
+                .expect("Draw text");
+        }
 
         for layer in layer.layers.iter() {
             self.flush(transformation, layer, encoder, target);
