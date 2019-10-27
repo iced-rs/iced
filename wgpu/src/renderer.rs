@@ -1,7 +1,7 @@
 use crate::{quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
     renderer::Debugger, renderer::Windowed, Background, Color, Layout,
-    MouseCursor, Point, Widget,
+    MouseCursor, Point, Rectangle, Widget,
 };
 
 use raw_window_handle::HasRawWindowHandle;
@@ -43,19 +43,21 @@ pub struct Target {
 }
 
 pub struct Layer {
+    bounds: Rectangle<u32>,
+    y_offset: u32,
     quads: Vec<Quad>,
     images: Vec<Image>,
     layers: Vec<Layer>,
-    y_offset: u32,
 }
 
 impl Layer {
-    pub fn new(y_offset: u32) -> Self {
+    pub fn new(bounds: Rectangle<u32>, y_offset: u32) -> Self {
         Self {
+            bounds,
+            y_offset,
             quads: Vec::new(),
             images: Vec::new(),
             layers: Vec::new(),
-            y_offset,
         }
     }
 }
@@ -147,7 +149,15 @@ impl Renderer {
             depth_stencil_attachment: None,
         });
 
-        let mut layer = Layer::new(0);
+        let mut layer = Layer::new(
+            Rectangle {
+                x: 0,
+                y: 0,
+                width: u32::from(target.width),
+                height: u32::from(target.height),
+            },
+            0,
+        );
 
         self.draw_primitive(primitive, &mut layer);
         self.flush(target.transformation, &layer, &mut encoder, &frame.view);
@@ -263,7 +273,15 @@ impl Renderer {
                 offset,
                 content,
             } => {
-                let mut new_layer = Layer::new(layer.y_offset + offset);
+                let mut new_layer = Layer::new(
+                    Rectangle {
+                        x: bounds.x as u32,
+                        y: bounds.y as u32 - layer.y_offset,
+                        width: bounds.width as u32,
+                        height: bounds.height as u32,
+                    },
+                    layer.y_offset + offset,
+                );
 
                 // TODO: Primitive culling
                 self.draw_primitive(content, &mut new_layer);
@@ -296,6 +314,7 @@ impl Renderer {
             encoder,
             &layer.images,
             translated,
+            layer.bounds,
             target,
         );
 

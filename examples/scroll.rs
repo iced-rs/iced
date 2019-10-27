@@ -32,7 +32,19 @@ impl Application for Example {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let content = Scrollable::new(&mut self.scroll).spacing(20).padding(20);
+        let content = (0..3).fold(
+            Scrollable::new(&mut self.scroll).spacing(20).padding(20),
+            |content, _| {
+                content.push(
+                    Image::new(format!(
+                        "{}/examples/resources/ferris.png",
+                        env!("CARGO_MANIFEST_DIR")
+                    ))
+                    .width(Length::Units(400))
+                    .align_self(Align::Center),
+                )
+            },
+        );
 
         //let content = (0..self.paragraph_count)
         //    .fold(content, |column, _| column.push(lorem_ipsum()))
@@ -46,19 +58,9 @@ impl Application for Example {
 
         Column::new()
             .height(Length::Fill)
-            .max_width(Length::Units(600))
-            .align_self(Align::Center)
             .justify_content(Justify::Center)
-            .push((0..3).fold(content, |content, _| {
-                content.push(
-                    Image::new(format!(
-                        "{}/examples/resources/ferris.png",
-                        env!("CARGO_MANIFEST_DIR")
-                    ))
-                    .width(Length::Units(400))
-                    .align_self(Align::Center),
-                )
-            }))
+            .padding(20)
+            .push(content)
             .into()
     }
 }
