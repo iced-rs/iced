@@ -4,6 +4,8 @@ use iced::{
 };
 
 pub fn main() {
+    env_logger::init();
+
     Example::default().run()
 }
 
@@ -32,25 +34,17 @@ impl Application for Example {
     }
 
     fn view(&mut self) -> Element<Message> {
-        //let content = (0..3).fold(
-        //    Scrollable::new(&mut self.scroll).spacing(20).padding(20),
-        //    |content, _| {
-        //        content.push(
-        //        )
-        //    },
-        //);
-
         let content = (0..self.item_count)
             .fold(
                 Scrollable::new(&mut self.scroll)
                     .spacing(20)
                     .padding(20)
                     .align_items(Align::Center),
-                |column, i| {
+                |scrollable, i| {
                     if i % 2 == 0 {
-                        column.push(lorem_ipsum().width(Length::Units(600)))
+                        scrollable.push(lorem_ipsum().width(Length::Units(600)))
                     } else {
-                        column.push(
+                        scrollable.push(
                             Image::new(format!(
                                 "{}/examples/resources/ferris.png",
                                 env!("CARGO_MANIFEST_DIR")

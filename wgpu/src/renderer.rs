@@ -75,7 +75,7 @@ impl Renderer {
             extensions: Extensions {
                 anisotropic_filtering: false,
             },
-            limits: Limits { max_bind_groups: 1 },
+            limits: Limits { max_bind_groups: 2 },
         });
 
         let surface = Surface::create(window);
@@ -161,17 +161,6 @@ impl Renderer {
 
         self.draw_primitive(primitive, &mut layer);
         self.flush(target.transformation, &layer, &mut encoder, &frame.view);
-
-        self.glyph_brush
-            .borrow_mut()
-            .draw_queued(
-                &mut self.device,
-                &mut encoder,
-                &frame.view,
-                u32::from(target.width),
-                u32::from(target.height),
-            )
-            .expect("Draw text");
 
         self.queue.submit(&[encoder.finish()]);
 
@@ -331,11 +320,17 @@ impl Renderer {
             }
 
             glyph_brush
-                .draw_queued_with_transform(
+                .draw_queued_with_transform_and_scissoring(
                     &mut self.device,
                     encoder,
                     target,
                     translated.into(),
+                    wgpu_glyph::Region {
+                        x: layer.bounds.x,
+                        y: layer.bounds.y,
+                        width: layer.bounds.width,
+                        height: layer.bounds.height,
+                    },
                 )
                 .expect("Draw text");
         }
