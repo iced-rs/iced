@@ -55,12 +55,17 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
+        renderer: &Renderer,
     ) {
         self.children.iter_mut().zip(layout.children()).for_each(
             |(child, layout)| {
-                child
-                    .widget
-                    .on_event(event, layout, cursor_position, messages)
+                child.widget.on_event(
+                    event,
+                    layout,
+                    cursor_position,
+                    messages,
+                    renderer,
+                )
             },
         );
     }

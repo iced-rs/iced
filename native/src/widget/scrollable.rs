@@ -46,6 +46,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
+        renderer: &Renderer,
     ) {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
@@ -78,8 +79,13 @@ where
             Point::new(cursor_position.x, -1.0)
         };
 
-        self.content
-            .on_event(event, content, cursor_position, messages)
+        self.content.on_event(
+            event,
+            content,
+            cursor_position,
+            messages,
+            renderer,
+        )
     }
 
     fn draw(

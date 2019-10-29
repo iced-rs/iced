@@ -117,6 +117,7 @@ where
         _layout: Layout<'_>,
         _cursor_position: Point,
         _messages: &mut Vec<Message>,
+        _renderer: &Renderer,
     ) {
     }
 }

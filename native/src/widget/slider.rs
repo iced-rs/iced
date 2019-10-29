@@ -25,6 +25,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
+        _renderer: &Renderer,
     ) {
         let mut change = || {
             let bounds = layout.bounds();

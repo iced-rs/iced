@@ -21,6 +21,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
+        _renderer: &Renderer,
     ) {
         match event {
             Event::Mouse(mouse::Event::Input {

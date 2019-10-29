@@ -68,7 +68,8 @@ pub trait Application {
                     &renderer,
                 );
 
-                let messages = user_interface.update(events.drain(..));
+                let messages =
+                    user_interface.update(&renderer, events.drain(..));
 
                 if messages.is_empty() {
                     primitive = user_interface.draw(&mut renderer);
