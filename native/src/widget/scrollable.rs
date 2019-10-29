@@ -64,11 +64,16 @@ where
         // TODO: Event capture. Nested scrollables should capture scroll events.
         if is_mouse_over {
             match event {
-                Event::Mouse(mouse::Event::WheelScrolled {
-                    delta_y, ..
-                }) => {
-                    // TODO: Configurable speed (?)
-                    self.state.scroll(delta_y * 15.0, bounds, content_bounds);
+                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                    match delta {
+                        mouse::ScrollDelta::Lines { y, .. } => {
+                            // TODO: Configurable speed (?)
+                            self.state.scroll(y * 15.0, bounds, content_bounds);
+                        }
+                        mouse::ScrollDelta::Pixels { y, .. } => {
+                            self.state.scroll(y, bounds, content_bounds);
+                        }
+                    }
                 }
                 _ => {}
             }

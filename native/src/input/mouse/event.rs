@@ -34,11 +34,22 @@ pub enum Event {
     },
 
     /// The mouse wheel was scrolled.
-    WheelScrolled {
+    WheelScrolled { delta: ScrollDelta },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ScrollDelta {
+    Lines {
         /// The number of horizontal lines scrolled
-        delta_x: f32,
+        x: f32,
 
         /// The number of vertical lines scrolled
-        delta_y: f32,
+        y: f32,
+    },
+    Pixels {
+        /// The number of horizontal pixels scrolled
+        x: f32,
+        /// The number of vertical pixels scrolled
+        y: f32,
     },
 }

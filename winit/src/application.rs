@@ -123,6 +123,7 @@ pub trait Application {
                 ..
             } => match window_event {
                 WindowEvent::CursorMoved { position, .. } => {
+                    // TODO: Remove when renderer supports HiDPI
                     let physical_position =
                         position.to_physical(window.hidpi_factor());
 
@@ -143,10 +144,28 @@ pub trait Application {
                         delta_y,
                     ) => {
                         events.push(Event::Mouse(
-                            mouse::Event::WheelScrolled { delta_x, delta_y },
+                            mouse::Event::WheelScrolled {
+                                delta: mouse::ScrollDelta::Lines {
+                                    x: delta_x,
+                                    y: delta_y,
+                                },
+                            },
                         ));
                     }
-                    _ => {}
+                    winit::event::MouseScrollDelta::PixelDelta(position) => {
+                        // TODO: Remove when renderer supports HiDPI
+                        let physical_position =
+                            position.to_physical(window.hidpi_factor());
+
+                        events.push(Event::Mouse(
+                            mouse::Event::WheelScrolled {
+                                delta: mouse::ScrollDelta::Pixels {
+                                    x: physical_position.x as f32,
+                                    y: physical_position.y as f32,
+                                },
+                            },
+                        ));
+                    }
                 },
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
