@@ -294,25 +294,29 @@ impl Renderer {
         let translated = transformation
             * Transformation::translate(0.0, -(layer.y_offset as f32));
 
-        self.quad_pipeline.draw(
-            &mut self.device,
-            encoder,
-            &layer.quads,
-            transformation,
-            layer.bounds,
-            target,
-        );
+        if layer.quads.len() > 0 {
+            self.quad_pipeline.draw(
+                &mut self.device,
+                encoder,
+                &layer.quads,
+                transformation,
+                layer.bounds,
+                target,
+            );
+        }
 
-        self.image_pipeline.draw(
-            &mut self.device,
-            encoder,
-            &layer.images,
-            translated,
-            layer.bounds,
-            target,
-        );
+        if layer.images.len() > 0 {
+            self.image_pipeline.draw(
+                &mut self.device,
+                encoder,
+                &layer.images,
+                translated,
+                layer.bounds,
+                target,
+            );
+        }
 
-        {
+        if layer.text.len() > 0 {
             let mut glyph_brush = self.glyph_brush.borrow_mut();
 
             for text in layer.text.iter() {
