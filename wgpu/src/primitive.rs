@@ -23,7 +23,7 @@ pub enum Primitive {
         path: String,
         bounds: Rectangle,
     },
-    Scrollable {
+    Clip {
         bounds: Rectangle,
         offset: u32,
         content: Box<Primitive>,

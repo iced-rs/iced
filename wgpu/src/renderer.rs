@@ -270,7 +270,7 @@ impl Renderer {
                     scale: [bounds.width, bounds.height],
                 });
             }
-            Primitive::Scrollable {
+            Primitive::Clip {
                 bounds,
                 offset,
                 content,

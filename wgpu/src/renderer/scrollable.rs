@@ -56,7 +56,7 @@ impl scrollable::Renderer for Renderer {
         let (content, mouse_cursor) =
             scrollable.content.draw(self, content, cursor_position);
 
-        let primitive = Primitive::Scrollable {
+        let primitive = Primitive::Clip {
             bounds,
             offset,
             content: Box::new(content),
