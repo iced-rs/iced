@@ -5,6 +5,8 @@ use crate::{
 
 pub use iced_core::scrollable::State;
 
+use std::hash::Hash;
+
 /// A scrollable [`Column`].
 ///
 /// [`Column`]: ../column/struct.Column.html
@@ -69,15 +71,15 @@ where
                     + self.state.offset(bounds, content_bounds) as f32,
             )
         } else {
+            // TODO: Make `cursor_position` an `Option<Point>` so we can encode
+            // cursor unavailability.
+            // This will probably happen naturally once we add multi-window
+            // support.
             Point::new(cursor_position.x, -1.0)
         };
 
-        self.content.on_event(
-            event,
-            layout.children().next().unwrap(),
-            cursor_position,
-            messages,
-        )
+        self.content
+            .on_event(event, content, cursor_position, messages)
     }
 
     fn draw(
@@ -99,6 +101,12 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Scrollable<'static, (), ()>>().hash(state);
+
+        self.height.hash(state);
+        self.max_height.hash(state);
+        self.align_self.hash(state);
+
         self.content.hash_layout(state)
     }
 }
