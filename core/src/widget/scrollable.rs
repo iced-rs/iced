@@ -1,4 +1,4 @@
-use crate::{Align, Column, Length, Rectangle};
+use crate::{Align, Column, Length, Point, Rectangle};
 
 #[derive(Debug)]
 pub struct Scrollable<'a, Element> {
@@ -103,6 +103,7 @@ impl<'a, Element> Scrollable<'a, Element> {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct State {
+    pub scrollbar_grabbed_at: Option<Point>,
     offset: u32,
 }
 
@@ -121,11 +122,20 @@ impl State {
             return;
         }
 
-        // TODO: Configurable speed (?)
-        self.offset = (self.offset as i32 - delta_y.round() as i32 * 15)
+        self.offset = (self.offset as i32 - delta_y.round() as i32)
             .max(0)
             .min((content_bounds.height - bounds.height) as i32)
             as u32;
+    }
+
+    pub fn scroll_to(
+        &mut self,
+        percentage: f32,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        self.offset = ((content_bounds.height - bounds.height) * percentage)
+            .max(0.0) as u32;
     }
 
     pub fn offset(&self, bounds: Rectangle, content_bounds: Rectangle) -> u32 {
@@ -133,5 +143,9 @@ impl State {
             (content_bounds.height - bounds.height).round() as u32;
 
         self.offset.min(hidden_content).max(0)
+    }
+
+    pub fn is_scrollbar_grabbed(&self) -> bool {
+        self.scrollbar_grabbed_at.is_some()
     }
 }

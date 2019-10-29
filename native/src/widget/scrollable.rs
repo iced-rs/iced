@@ -1,6 +1,7 @@
 use crate::{
-    column, input::mouse, Element, Event, Hasher, Layout, Node, Point,
-    Rectangle, Style, Widget,
+    column,
+    input::{mouse, ButtonState},
+    Element, Event, Hasher, Layout, Node, Point, Rectangle, Style, Widget,
 };
 
 pub use iced_core::scrollable::State;
@@ -54,18 +55,65 @@ where
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
+        let is_mouse_over_scrollbar = renderer.is_mouse_over_scrollbar(
+            bounds,
+            content_bounds,
+            cursor_position,
+        );
+
+        // TODO: Event capture. Nested scrollables should capture scroll events.
         if is_mouse_over {
             match event {
                 Event::Mouse(mouse::Event::WheelScrolled {
                     delta_y, ..
                 }) => {
-                    self.state.scroll(delta_y, bounds, content_bounds);
+                    // TODO: Configurable speed (?)
+                    self.state.scroll(delta_y * 15.0, bounds, content_bounds);
                 }
                 _ => {}
             }
         }
 
-        let cursor_position = if is_mouse_over {
+        if self.state.is_scrollbar_grabbed() || is_mouse_over_scrollbar {
+            match event {
+                Event::Mouse(mouse::Event::Input {
+                    button: mouse::Button::Left,
+                    state,
+                }) => match state {
+                    ButtonState::Pressed => {
+                        self.state.scroll_to(
+                            cursor_position.y / (bounds.y + bounds.height),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        self.state.scrollbar_grabbed_at = Some(cursor_position);
+                    }
+                    ButtonState::Released => {
+                        self.state.scrollbar_grabbed_at = None;
+                    }
+                },
+                Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                    if let Some(scrollbar_grabbed_at) =
+                        self.state.scrollbar_grabbed_at
+                    {
+                        self.state.scroll(
+                            scrollbar_grabbed_at.y - cursor_position.y,
+                            bounds,
+                            content_bounds,
+                        );
+
+                        self.state.scrollbar_grabbed_at = Some(cursor_position);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let cursor_position = if is_mouse_over
+            && !(is_mouse_over_scrollbar
+                || self.state.scrollbar_grabbed_at.is_some())
+        {
             Point::new(
                 cursor_position.x,
                 cursor_position.y
@@ -73,7 +121,7 @@ where
             )
         } else {
             // TODO: Make `cursor_position` an `Option<Point>` so we can encode
-            // cursor unavailability.
+            // cursor availability.
             // This will probably happen naturally once we add multi-window
             // support.
             Point::new(cursor_position.x, -1.0)
@@ -118,6 +166,13 @@ where
 }
 
 pub trait Renderer: crate::Renderer + Sized {
+    fn is_mouse_over_scrollbar(
+        &self,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        cursor_position: Point,
+    ) -> bool;
+
     fn draw<Message>(
         &mut self,
         scrollable: &Scrollable<'_, Message, Self>,

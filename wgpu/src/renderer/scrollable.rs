@@ -1,9 +1,33 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    scrollable, Background, Color, Layout, Point, Rectangle, Scrollable, Widget,
+    scrollable, Background, Color, Layout, MouseCursor, Point, Rectangle,
+    Scrollable, Widget,
 };
 
+const SCROLLBAR_WIDTH: u16 = 10;
+const SCROLLBAR_MARGIN: u16 = 10;
+
+fn scrollbar_bounds(bounds: Rectangle) -> Rectangle {
+    Rectangle {
+        x: bounds.x + bounds.width
+            - f32::from(SCROLLBAR_WIDTH + 2 * SCROLLBAR_MARGIN),
+        y: bounds.y,
+        width: f32::from(SCROLLBAR_WIDTH + 2 * SCROLLBAR_MARGIN),
+        height: bounds.height,
+    }
+}
+
 impl scrollable::Renderer for Renderer {
+    fn is_mouse_over_scrollbar(
+        &self,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        cursor_position: Point,
+    ) -> bool {
+        content_bounds.height > bounds.height
+            && scrollbar_bounds(bounds).contains(cursor_position)
+    }
+
     fn draw<Message>(
         &mut self,
         scrollable: &Scrollable<'_, Message, Self>,
@@ -15,8 +39,15 @@ impl scrollable::Renderer for Renderer {
         let content_bounds = content.bounds();
 
         let offset = scrollable.state.offset(bounds, content_bounds);
+        let is_content_overflowing = content_bounds.height > bounds.height;
+        let scrollbar_bounds = scrollbar_bounds(bounds);
+        let is_mouse_over_scrollbar = self.is_mouse_over_scrollbar(
+            bounds,
+            content_bounds,
+            cursor_position,
+        );
 
-        let cursor_position = if bounds.contains(cursor_position) {
+        let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
             Point::new(cursor_position.x, cursor_position.y + offset as f32)
         } else {
             Point::new(cursor_position.x, -1.0)
@@ -32,16 +63,19 @@ impl scrollable::Renderer for Renderer {
         };
 
         (
-            if is_mouse_over && content_bounds.height > bounds.height {
+            if is_content_overflowing
+                && (is_mouse_over || scrollable.state.is_scrollbar_grabbed())
+            {
                 let ratio = bounds.height / content_bounds.height;
                 let scrollbar_height = bounds.height * ratio;
                 let y_offset = offset as f32 * ratio;
 
                 let scrollbar = Primitive::Quad {
                     bounds: Rectangle {
-                        x: bounds.x + bounds.width - 12.0,
-                        y: bounds.y + y_offset,
-                        width: 10.0,
+                        x: scrollbar_bounds.x + f32::from(SCROLLBAR_MARGIN),
+                        y: scrollbar_bounds.y + y_offset,
+                        width: scrollbar_bounds.width
+                            - f32::from(2 * SCROLLBAR_MARGIN),
                         height: scrollbar_height,
                     },
                     background: Background::Color(Color {
@@ -52,13 +86,48 @@ impl scrollable::Renderer for Renderer {
                     }),
                     border_radius: 5,
                 };
-                Primitive::Group {
-                    primitives: vec![primitive, scrollbar],
+
+                if is_mouse_over_scrollbar
+                    || scrollable.state.is_scrollbar_grabbed()
+                {
+                    let scrollbar_background = Primitive::Quad {
+                        bounds: Rectangle {
+                            x: scrollbar_bounds.x + f32::from(SCROLLBAR_MARGIN),
+                            width: scrollbar_bounds.width
+                                - f32::from(2 * SCROLLBAR_MARGIN),
+                            ..scrollbar_bounds
+                        },
+                        background: Background::Color(Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 0.3,
+                        }),
+                        border_radius: 5,
+                    };
+
+                    Primitive::Group {
+                        primitives: vec![
+                            primitive,
+                            scrollbar_background,
+                            scrollbar,
+                        ],
+                    }
+                } else {
+                    Primitive::Group {
+                        primitives: vec![primitive, scrollbar],
+                    }
                 }
             } else {
                 primitive
             },
-            mouse_cursor,
+            if is_mouse_over_scrollbar
+                || scrollable.state.is_scrollbar_grabbed()
+            {
+                MouseCursor::Idle
+            } else {
+                mouse_cursor
+            },
         )
     }
 }
