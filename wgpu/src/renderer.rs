@@ -47,7 +47,6 @@ pub struct Layer<'a> {
     quads: Vec<Quad>,
     images: Vec<Image>,
     text: Vec<wgpu_glyph::Section<'a>>,
-    layers: Vec<Layer<'a>>,
 }
 
 impl<'a> Layer<'a> {
@@ -58,7 +57,6 @@ impl<'a> Layer<'a> {
             quads: Vec::new(),
             images: Vec::new(),
             text: Vec::new(),
-            layers: Vec::new(),
         }
     }
 }
@@ -149,7 +147,8 @@ impl Renderer {
             depth_stencil_attachment: None,
         });
 
-        let mut layer = Layer::new(
+        let mut layers = Vec::new();
+        let mut current = Layer::new(
             Rectangle {
                 x: 0,
                 y: 0,
@@ -159,8 +158,17 @@ impl Renderer {
             0,
         );
 
-        self.draw_primitive(primitive, &mut layer);
-        self.flush(target.transformation, &layer, &mut encoder, &frame.view);
+        self.draw_primitive(primitive, &mut current, &mut layers);
+        layers.push(current);
+
+        for layer in layers {
+            self.flush(
+                target.transformation,
+                &layer,
+                &mut encoder,
+                &frame.view,
+            );
+        }
 
         self.queue.submit(&[encoder.finish()]);
 
@@ -171,13 +179,14 @@ impl Renderer {
         &mut self,
         primitive: &'a Primitive,
         layer: &mut Layer<'a>,
+        layers: &mut Vec<Layer<'a>>,
     ) {
         match primitive {
             Primitive::None => {}
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
-                    self.draw_primitive(primitive, layer)
+                    self.draw_primitive(primitive, layer, layers)
                 }
             }
             Primitive::Text {
@@ -277,9 +286,9 @@ impl Renderer {
                 );
 
                 // TODO: Primitive culling
-                self.draw_primitive(content, &mut new_layer);
+                self.draw_primitive(content, &mut new_layer, layers);
 
-                layer.layers.push(new_layer);
+                layers.push(new_layer);
             }
         }
     }
@@ -337,10 +346,6 @@ impl Renderer {
                     },
                 )
                 .expect("Draw text");
-        }
-
-        for layer in layer.layers.iter() {
-            self.flush(transformation, layer, encoder, target);
         }
     }
 }

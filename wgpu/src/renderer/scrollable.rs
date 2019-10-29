@@ -34,34 +34,31 @@ impl scrollable::Renderer for Renderer {
         };
 
         (
-            Primitive::Group {
-                primitives: if is_mouse_over
-                    && content_bounds.height > bounds.height
-                {
-                    let ratio = bounds.height / content_bounds.height;
-                    let scrollbar_height = bounds.height * ratio;
-                    let y_offset = offset as f32 * ratio;
+            if is_mouse_over && content_bounds.height > bounds.height {
+                let ratio = bounds.height / content_bounds.height;
+                let scrollbar_height = bounds.height * ratio;
+                let y_offset = offset as f32 * ratio;
 
-                    let scrollbar = Primitive::Quad {
-                        bounds: Rectangle {
-                            x: bounds.x + bounds.width - 12.0,
-                            y: bounds.y + y_offset,
-                            width: 10.0,
-                            height: scrollbar_height,
-                        },
-                        background: Background::Color(Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 0.5,
-                        }),
-                        border_radius: 5,
-                    };
-
-                    vec![primitive, scrollbar]
-                } else {
-                    vec![primitive]
-                },
+                let scrollbar = Primitive::Quad {
+                    bounds: Rectangle {
+                        x: bounds.x + bounds.width - 12.0,
+                        y: bounds.y + y_offset,
+                        width: 10.0,
+                        height: scrollbar_height,
+                    },
+                    background: Background::Color(Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.7,
+                    }),
+                    border_radius: 5,
+                };
+                Primitive::Group {
+                    primitives: vec![primitive, scrollbar],
+                }
+            } else {
+                primitive
             },
             mouse_cursor,
         )
