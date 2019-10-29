@@ -1,6 +1,6 @@
 use crate::{
-    column, input::mouse, Element, Event, Hasher, Layout, Node, Point, Style,
-    Widget,
+    column, input::mouse, Element, Event, Hasher, Layout, Node, Point,
+    Rectangle, Style, Widget,
 };
 
 pub use iced_core::scrollable::State;
@@ -86,7 +86,16 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        self::Renderer::draw(renderer, &self, layout, cursor_position)
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+
+        self::Renderer::draw(
+            renderer,
+            &self,
+            bounds,
+            content_layout,
+            cursor_position,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -98,7 +107,8 @@ pub trait Renderer: crate::Renderer + Sized {
     fn draw<Message>(
         &mut self,
         scrollable: &Scrollable<'_, Message, Self>,
-        layout: Layout<'_>,
+        bounds: Rectangle,
+        content_layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output;
 }

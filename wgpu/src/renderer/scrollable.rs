@@ -7,13 +7,11 @@ impl scrollable::Renderer for Renderer {
     fn draw<Message>(
         &mut self,
         scrollable: &Scrollable<'_, Message, Self>,
-        layout: Layout<'_>,
+        bounds: Rectangle,
+        content: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
-        let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
-
-        let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
         let offset = scrollable.state.offset(bounds, content_bounds);
