@@ -2,10 +2,6 @@ use nalgebra::Matrix3;
 use std::ops::Mul;
 
 /// A 2D transformation matrix.
-///
-/// It can be used to apply a transformation to a [`Target`].
-///
-/// [`Target`]: struct.Target.html
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Transformation(Matrix3<f32>);
 
@@ -16,11 +12,6 @@ impl Transformation {
     }
 
     /// Creates an orthographic projection.
-    ///
-    /// You should rarely need this. On creation, a [`Target`] is automatically
-    /// set up with the correct orthographic projection.
-    ///
-    /// [`Target`]: struct.Target.html
     #[rustfmt::skip]
     pub fn orthographic(width: u16, height: u16) -> Transformation {
         Transformation(nalgebra::Matrix3::new(
@@ -31,8 +22,6 @@ impl Transformation {
     }
 
     /// Creates a translate transformation.
-    ///
-    /// You can use this to pan your camera, for example.
     pub fn translate(x: f32, y: f32) -> Transformation {
         Transformation(Matrix3::new_translation(&nalgebra::Vector2::new(x, y)))
     }
