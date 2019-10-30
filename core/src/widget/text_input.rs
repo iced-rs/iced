@@ -13,7 +13,9 @@ pub struct TextInput<'a, Message> {
 }
 
 #[derive(Debug, Default)]
-pub struct State {}
+pub struct State {
+    pub is_focused: bool,
+}
 
 impl<'a, Message> TextInput<'a, Message> {
     pub fn new<F>(

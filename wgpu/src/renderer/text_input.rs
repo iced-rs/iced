@@ -23,21 +23,23 @@ impl text_input::Renderer for Renderer {
 
         let border = Primitive::Quad {
             bounds,
-            background: Background::Color(if is_mouse_over {
-                Color {
-                    r: 0.5,
-                    g: 0.5,
-                    b: 0.5,
-                    a: 1.0,
-                }
-            } else {
-                Color {
-                    r: 0.7,
-                    g: 0.7,
-                    b: 0.7,
-                    a: 1.0,
-                }
-            }),
+            background: Background::Color(
+                if is_mouse_over || text_input.state.is_focused {
+                    Color {
+                        r: 0.5,
+                        g: 0.5,
+                        b: 0.5,
+                        a: 1.0,
+                    }
+                } else {
+                    Color {
+                        r: 0.7,
+                        g: 0.7,
+                        b: 0.7,
+                        a: 1.0,
+                    }
+                },
+            ),
             border_radius: 5,
         };
 
@@ -70,9 +72,9 @@ impl text_input::Renderer for Renderer {
                     }
                 } else {
                     Color {
-                        r: 0.9,
-                        g: 0.9,
-                        b: 0.9,
+                        r: 0.3,
+                        g: 0.3,
+                        b: 0.3,
                         a: 1.0,
                     }
                 },

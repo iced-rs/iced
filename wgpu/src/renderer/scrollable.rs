@@ -5,7 +5,7 @@ use iced_native::{
 };
 
 const SCROLLBAR_WIDTH: u16 = 10;
-const SCROLLBAR_MARGIN: u16 = 10;
+const SCROLLBAR_MARGIN: u16 = 5;
 
 fn scrollbar_bounds(bounds: Rectangle) -> Rectangle {
     Rectangle {

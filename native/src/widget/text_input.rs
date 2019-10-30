@@ -1,4 +1,5 @@
 use crate::{
+    input::{keyboard, mouse, ButtonState},
     Element, Event, Hasher, Layout, Length, Node, Point, Rectangle, Style,
     Widget,
 };
@@ -27,12 +28,47 @@ where
 
     fn on_event(
         &mut self,
-        _event: Event,
-        _layout: Layout<'_>,
-        _cursor_position: Point,
-        _messages: &mut Vec<Message>,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
         _renderer: &Renderer,
     ) {
+        match event {
+            Event::Mouse(mouse::Event::Input {
+                button: mouse::Button::Left,
+                state: ButtonState::Pressed,
+            }) => {
+                self.state.is_focused =
+                    layout.bounds().contains(cursor_position);
+            }
+            Event::Keyboard(keyboard::Event::CharacterReceived(c))
+                if self.state.is_focused && !c.is_control() =>
+            {
+                self.value.push(c);
+
+                let message = (self.on_change)(self.value.clone());
+                messages.push(message);
+            }
+            Event::Keyboard(keyboard::Event::Input {
+                key_code: keyboard::KeyCode::Backspace,
+                state: ButtonState::Pressed,
+            }) => {
+                let _ = self.value.pop();
+
+                let message = (self.on_change)(self.value.clone());
+                messages.push(message);
+            }
+            Event::Keyboard(keyboard::Event::Input {
+                key_code: keyboard::KeyCode::Enter,
+                state: ButtonState::Pressed,
+            }) => {
+                if let Some(on_submit) = self.on_submit.clone() {
+                    messages.push(on_submit);
+                }
+            }
+            _ => {}
+        }
     }
 
     fn draw(
@@ -78,7 +114,9 @@ where
     Renderer: 'static + self::Renderer,
     Message: 'static + Clone + std::fmt::Debug,
 {
-    fn from(button: TextInput<'a, Message>) -> Element<'a, Message, Renderer> {
-        Element::new(button)
+    fn from(
+        text_input: TextInput<'a, Message>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(text_input)
     }
 }

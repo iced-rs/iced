@@ -47,7 +47,7 @@ impl text::Renderer for Renderer {
                 let (width, height) = if let Some(bounds) =
                     glyph_brush.borrow_mut().glyph_bounds(&text)
                 {
-                    (bounds.width(), bounds.height())
+                    (bounds.width().round(), bounds.height().round())
                 } else {
                     (0.0, 0.0)
                 };
