@@ -54,6 +54,8 @@ impl text_input::Renderer for Renderer {
             border_radius: 5,
         };
 
+        let size = f32::from(text_input.size.unwrap_or(self.default_size()));
+
         let value = Primitive::Clip {
             bounds: text_bounds,
             offset: 0,
@@ -82,7 +84,7 @@ impl text_input::Renderer for Renderer {
                     width: f32::INFINITY,
                     ..text_bounds
                 },
-                size: f32::from(text_input.size.unwrap_or(self.default_size())),
+                size,
                 horizontal_alignment: HorizontalAlignment::Left,
                 vertical_alignment: VerticalAlignment::Center,
             }),
@@ -90,7 +92,43 @@ impl text_input::Renderer for Renderer {
 
         (
             Primitive::Group {
-                primitives: vec![border, input, value],
+                primitives: if text_input.state.is_focused {
+                    use wgpu_glyph::{GlyphCruncher, Scale, Section};
+
+                    let mut text_value_width = self
+                        .glyph_brush
+                        .borrow_mut()
+                        .glyph_bounds(Section {
+                            text: &text_input.value,
+                            bounds: (f32::INFINITY, text_bounds.height),
+                            scale: Scale { x: size, y: size },
+                            ..Default::default()
+                        })
+                        .map(|bounds| bounds.width().round())
+                        .unwrap_or(0.0);
+
+                    let spaces_at_the_end = text_input.value.len()
+                        - text_input.value.trim_end().len();
+
+                    if spaces_at_the_end > 0 {
+                        text_value_width += spaces_at_the_end as f32 * 5.0;
+                    }
+
+                    let cursor = Primitive::Quad {
+                        bounds: Rectangle {
+                            x: text_bounds.x + text_value_width,
+                            y: text_bounds.y,
+                            width: 1.0,
+                            height: text_bounds.height,
+                        },
+                        background: Background::Color(Color::BLACK),
+                        border_radius: 0,
+                    };
+
+                    vec![border, input, value, cursor]
+                } else {
+                    vec![border, input, value]
+                },
             },
             if is_mouse_over {
                 MouseCursor::Text
