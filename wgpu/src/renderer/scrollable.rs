@@ -56,7 +56,7 @@ impl scrollable::Renderer for Renderer {
         let (content, mouse_cursor) =
             scrollable.content.draw(self, content, cursor_position);
 
-        let primitive = Primitive::Clip {
+        let clip = Primitive::Clip {
             bounds,
             offset,
             content: Box::new(content),
@@ -107,19 +107,15 @@ impl scrollable::Renderer for Renderer {
                     };
 
                     Primitive::Group {
-                        primitives: vec![
-                            primitive,
-                            scrollbar_background,
-                            scrollbar,
-                        ],
+                        primitives: vec![clip, scrollbar_background, scrollbar],
                     }
                 } else {
                     Primitive::Group {
-                        primitives: vec![primitive, scrollbar],
+                        primitives: vec![clip, scrollbar],
                     }
                 }
             } else {
-                primitive
+                clip
             },
             if is_mouse_over_scrollbar
                 || scrollable.state.is_scrollbar_grabbed()

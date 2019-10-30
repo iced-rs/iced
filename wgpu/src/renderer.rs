@@ -23,6 +23,7 @@ mod row;
 mod scrollable;
 mod slider;
 mod text;
+mod text_input;
 
 pub struct Renderer {
     surface: Surface,
@@ -148,7 +149,8 @@ impl Renderer {
         });
 
         let mut layers = Vec::new();
-        let mut current = Layer::new(
+
+        layers.push(Layer::new(
             Rectangle {
                 x: 0,
                 y: 0,
@@ -156,10 +158,9 @@ impl Renderer {
                 height: u32::from(target.height),
             },
             0,
-        );
+        ));
 
-        self.draw_primitive(primitive, &mut current, &mut layers);
-        layers.push(current);
+        self.draw_primitive(primitive, &mut layers);
 
         for layer in layers {
             self.flush(
@@ -178,15 +179,16 @@ impl Renderer {
     fn draw_primitive<'a>(
         &mut self,
         primitive: &'a Primitive,
-        layer: &mut Layer<'a>,
         layers: &mut Vec<Layer<'a>>,
     ) {
+        let layer = layers.last_mut().unwrap();
+
         match primitive {
             Primitive::None => {}
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
-                    self.draw_primitive(primitive, layer, layers)
+                    self.draw_primitive(primitive, layers)
                 }
             }
             Primitive::Text {
@@ -275,7 +277,7 @@ impl Renderer {
                 offset,
                 content,
             } => {
-                let mut new_layer = Layer::new(
+                let clip_layer = Layer::new(
                     Rectangle {
                         x: bounds.x as u32,
                         y: bounds.y as u32 - layer.y_offset,
@@ -285,8 +287,12 @@ impl Renderer {
                     layer.y_offset + offset,
                 );
 
+                let new_layer = Layer::new(layer.bounds, layer.y_offset);
+
+                layers.push(clip_layer);
+
                 // TODO: Primitive culling
-                self.draw_primitive(content, &mut new_layer, layers);
+                self.draw_primitive(content, layers);
 
                 layers.push(new_layer);
             }
