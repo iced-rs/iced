@@ -15,26 +15,6 @@ struct Todos {
     tasks: Vec<Task>,
 }
 
-#[derive(Debug)]
-struct Task {
-    description: String,
-    completed: bool,
-}
-
-impl Task {
-    fn new(description: String) -> Self {
-        Task {
-            description,
-            completed: false,
-        }
-    }
-
-    fn view(&mut self) -> Element<bool> {
-        Checkbox::new(self.completed, &self.description, |checked| checked)
-            .into()
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum Message {
     InputChanged(String),
@@ -103,6 +83,26 @@ impl Application for Todos {
         Scrollable::new(&mut self.scroll)
             .padding(40)
             .push(content)
+            .into()
+    }
+}
+
+#[derive(Debug)]
+struct Task {
+    description: String,
+    completed: bool,
+}
+
+impl Task {
+    fn new(description: String) -> Self {
+        Task {
+            description,
+            completed: false,
+        }
+    }
+
+    fn view(&mut self) -> Element<bool> {
+        Checkbox::new(self.completed, &self.description, |checked| checked)
             .into()
     }
 }

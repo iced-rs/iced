@@ -1,20 +1,17 @@
 use crate::Length;
 
+use std::ops::{Index, RangeTo};
+
 pub struct TextInput<'a, Message> {
     pub state: &'a mut State,
     pub placeholder: String,
-    pub value: String,
+    pub value: Value,
     pub width: Length,
     pub max_width: Length,
     pub padding: u16,
     pub size: Option<u16>,
     pub on_change: Box<dyn Fn(String) -> Message>,
     pub on_submit: Option<Message>,
-}
-
-#[derive(Debug, Default)]
-pub struct State {
-    pub is_focused: bool,
 }
 
 impl<'a, Message> TextInput<'a, Message> {
@@ -30,7 +27,7 @@ impl<'a, Message> TextInput<'a, Message> {
         Self {
             state,
             placeholder: String::from(placeholder),
-            value: String::from(value),
+            value: Value::new(value),
             width: Length::Fill,
             max_width: Length::Shrink,
             padding: 0,
@@ -82,5 +79,86 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // TODO: Complete once stabilized
         f.debug_struct("TextInput").finish()
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct State {
+    pub is_focused: bool,
+    cursor_position: usize,
+}
+
+impl State {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn focused() -> Self {
+        Self {
+            is_focused: true,
+            ..Self::default()
+        }
+    }
+
+    pub fn move_cursor_right(&mut self, value: &Value) {
+        let current = self.cursor_position(value);
+
+        if current < value.len() {
+            self.cursor_position = current + 1;
+        }
+    }
+
+    pub fn move_cursor_left(&mut self, value: &Value) {
+        let current = self.cursor_position(value);
+
+        if current > 0 {
+            self.cursor_position = current - 1;
+        }
+    }
+
+    pub fn cursor_position(&self, value: &Value) -> usize {
+        self.cursor_position.min(value.len())
+    }
+}
+
+pub struct Value(Vec<char>);
+
+impl Value {
+    pub fn new(string: &str) -> Self {
+        Self(string.chars().collect())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn until(&self, index: usize) -> Self {
+        Self(self.0[..index].iter().cloned().collect())
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut string = String::new();
+
+        for c in self.0.iter() {
+            string.push(*c);
+        }
+
+        string
+    }
+
+    pub fn insert(&mut self, index: usize, c: char) {
+        self.0.insert(index, c);
+    }
+
+    pub fn remove(&mut self, index: usize) {
+        self.0.remove(index);
+    }
+}
+
+impl Index<RangeTo<usize>> for Value {
+    type Output = [char];
+
+    fn index(&self, index: RangeTo<usize>) -> &[char] {
+        &self.0[index]
     }
 }

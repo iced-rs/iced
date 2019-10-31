@@ -45,28 +45,55 @@ where
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused && !c.is_control() =>
             {
-                self.value.push(c);
+                let cursor_position = self.state.cursor_position(&self.value);
 
-                let message = (self.on_change)(self.value.clone());
+                self.value.insert(cursor_position, c);
+                self.state.move_cursor_right(&self.value);
+
+                let message = (self.on_change)(self.value.to_string());
                 messages.push(message);
             }
             Event::Keyboard(keyboard::Event::Input {
-                key_code: keyboard::KeyCode::Backspace,
+                key_code,
                 state: ButtonState::Pressed,
-            }) => {
-                let _ = self.value.pop();
-
-                let message = (self.on_change)(self.value.clone());
-                messages.push(message);
-            }
-            Event::Keyboard(keyboard::Event::Input {
-                key_code: keyboard::KeyCode::Enter,
-                state: ButtonState::Pressed,
-            }) => {
-                if let Some(on_submit) = self.on_submit.clone() {
-                    messages.push(on_submit);
+            }) if self.state.is_focused => match key_code {
+                keyboard::KeyCode::Enter => {
+                    if let Some(on_submit) = self.on_submit.clone() {
+                        messages.push(on_submit);
+                    }
                 }
-            }
+                keyboard::KeyCode::Backspace => {
+                    let cursor_position =
+                        self.state.cursor_position(&self.value);
+
+                    if cursor_position > 0 {
+                        self.state.move_cursor_left(&self.value);
+
+                        let _ = self.value.remove(cursor_position - 1);
+
+                        let message = (self.on_change)(self.value.to_string());
+                        messages.push(message);
+                    }
+                }
+                keyboard::KeyCode::Delete => {
+                    let cursor_position =
+                        self.state.cursor_position(&self.value);
+
+                    if cursor_position < self.value.len() {
+                        let _ = self.value.remove(cursor_position);
+
+                        let message = (self.on_change)(self.value.to_string());
+                        messages.push(message);
+                    }
+                }
+                keyboard::KeyCode::Left => {
+                    self.state.move_cursor_left(&self.value);
+                }
+                keyboard::KeyCode::Right => {
+                    self.state.move_cursor_right(&self.value);
+                }
+                _ => {}
+            },
             _ => {}
         }
     }

@@ -55,17 +55,18 @@ impl text_input::Renderer for Renderer {
         };
 
         let size = f32::from(text_input.size.unwrap_or(self.default_size()));
+        let text = text_input.value.to_string();
 
         let value = Primitive::Clip {
             bounds: text_bounds,
             offset: 0,
             content: Box::new(Primitive::Text {
-                content: if text_input.value.is_empty() {
+                content: if text.is_empty() {
                     text_input.placeholder.clone()
                 } else {
-                    text_input.value.clone()
+                    text.clone()
                 },
-                color: if text_input.value.is_empty() {
+                color: if text.is_empty() {
                     Color {
                         r: 0.7,
                         g: 0.7,
@@ -95,11 +96,18 @@ impl text_input::Renderer for Renderer {
                 primitives: if text_input.state.is_focused {
                     use wgpu_glyph::{GlyphCruncher, Scale, Section};
 
+                    let text_before_cursor = &text_input
+                        .value
+                        .until(
+                            text_input.state.cursor_position(&text_input.value),
+                        )
+                        .to_string();
+
                     let mut text_value_width = self
                         .glyph_brush
                         .borrow_mut()
                         .glyph_bounds(Section {
-                            text: &text_input.value,
+                            text: text_before_cursor,
                             bounds: (f32::INFINITY, text_bounds.height),
                             scale: Scale { x: size, y: size },
                             ..Default::default()
@@ -107,11 +115,24 @@ impl text_input::Renderer for Renderer {
                         .map(|bounds| bounds.width().round())
                         .unwrap_or(0.0);
 
-                    let spaces_at_the_end = text_input.value.len()
-                        - text_input.value.trim_end().len();
+                    let spaces_at_the_end = text_before_cursor.len()
+                        - text_before_cursor.trim_end().len();
 
                     if spaces_at_the_end > 0 {
-                        text_value_width += spaces_at_the_end as f32 * 5.0;
+                        let space_width = {
+                            let glyph_brush = self.glyph_brush.borrow();
+
+                            // TODO: Select appropriate font
+                            let font = &glyph_brush.fonts()[0];
+
+                            font.glyph(' ')
+                                .scaled(Scale { x: size, y: size })
+                                .h_metrics()
+                                .advance_width
+                        };
+
+                        text_value_width +=
+                            spaces_at_the_end as f32 * space_width;
                     }
 
                     let cursor = Primitive::Quad {
