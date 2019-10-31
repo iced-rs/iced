@@ -23,14 +23,12 @@ impl Pipeline {
                 }],
             });
 
-        let matrix: [f32; 16] = Transformation::identity().into();
-
         let transform = device
             .create_buffer_mapped(
                 16,
                 wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
             )
-            .fill_from_slice(&matrix[..]);
+            .fill_from_slice(Transformation::identity().as_ref());
 
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &constant_layout,
@@ -169,11 +167,9 @@ impl Pipeline {
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
     ) {
-        let matrix: [f32; 16] = transformation.into();
-
         let transform_buffer = device
             .create_buffer_mapped(16, wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(&matrix[..]);
+            .fill_from_slice(transformation.as_ref());
 
         encoder.copy_buffer_to_buffer(
             &transform_buffer,
