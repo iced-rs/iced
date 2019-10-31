@@ -121,6 +121,7 @@ impl State {
     }
 }
 
+// TODO: Use `unicode-segmentation`
 pub struct Value(Vec<char>);
 
 impl Value {
