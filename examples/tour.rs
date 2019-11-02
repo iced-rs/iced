@@ -1,7 +1,7 @@
 use iced::{
-    button, slider, text::HorizontalAlignment, Align, Application, Background,
-    Button, Checkbox, Color, Column, Element, Image, Justify, Length, Radio,
-    Row, Slider, Text,
+    button, scrollable, slider, text::HorizontalAlignment, Align, Application,
+    Background, Button, Checkbox, Color, Column, Element, Image, Justify,
+    Length, Radio, Row, Scrollable, Slider, Text,
 };
 
 pub fn main() {
@@ -14,6 +14,7 @@ pub fn main() {
 
 pub struct Tour {
     steps: Steps,
+    scroll: scrollable::State,
     back_button: button::State,
     next_button: button::State,
     debug: bool,
@@ -23,6 +24,7 @@ impl Tour {
     pub fn new() -> Tour {
         Tour {
             steps: Steps::new(),
+            scroll: scrollable::State::new(),
             back_button: button::State::new(),
             next_button: button::State::new(),
             debug: false,
@@ -88,11 +90,13 @@ impl Application for Tour {
         };
 
         Column::new()
-            .width(Length::Fill)
             .height(Length::Fill)
-            .align_items(Align::Center)
             .justify_content(Justify::Center)
-            .push(element)
+            .push(
+                Scrollable::new(&mut self.scroll)
+                    .align_items(Align::Center)
+                    .push(element),
+            )
             .into()
     }
 }
@@ -134,6 +138,7 @@ impl Steps {
                     width: 300,
                     slider: slider::State::new(),
                 },
+                Step::Scrollable,
                 Step::Debugger,
                 Step::End,
             ],
@@ -195,6 +200,7 @@ enum Step {
         width: u16,
         slider: slider::State,
     },
+    Scrollable,
     Debugger,
     End,
 }
@@ -265,6 +271,7 @@ impl<'a> Step {
             Step::Text { .. } => true,
             Step::Image { .. } => true,
             Step::RowsAndColumns { .. } => true,
+            Step::Scrollable => true,
             Step::Debugger => true,
             Step::End => false,
         }
@@ -289,6 +296,7 @@ impl<'a> Step {
             } => {
                 Self::rows_and_columns(*layout, spacing_slider, *spacing).into()
             }
+            Step::Scrollable => Self::scrollable().into(),
             Step::Debugger => Self::debugger(debug).into(),
             Step::End => Self::end().into(),
         }
@@ -524,6 +532,32 @@ impl<'a> Step {
             ))
             .push(
                 Text::new(&format!("Width: {} px", width.to_string()))
+                    .horizontal_alignment(HorizontalAlignment::Center),
+            )
+    }
+
+    fn scrollable() -> Column<'a, StepMessage> {
+        Self::container("Scrollable")
+            .push(Text::new(
+                "Iced supports scrollable content. Try it out! Find the \
+                 button further below.",
+            ))
+            .push(
+                Text::new(
+                    "Tip: You can use the scrollbar to scroll down faster!",
+                )
+                .size(16),
+            )
+            .push(Column::new().height(Length::Units(4096)))
+            .push(
+                Text::new("You are halfway there!")
+                    .size(30)
+                    .horizontal_alignment(HorizontalAlignment::Center),
+            )
+            .push(Column::new().height(Length::Units(4096)))
+            .push(
+                Text::new("You made it!")
+                    .size(50)
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
     }
