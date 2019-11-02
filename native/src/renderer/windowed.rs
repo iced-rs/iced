@@ -1,17 +1,29 @@
-use crate::MouseCursor;
+use crate::{Metrics, MouseCursor};
 
 use raw_window_handle::HasRawWindowHandle;
 
-pub trait Windowed: super::Renderer {
-    type Target;
+pub trait Windowed: super::Renderer + Sized {
+    type Target: Target<Renderer = Self>;
 
-    fn new<W: HasRawWindowHandle>(window: &W) -> Self;
-
-    fn target(&self, width: u16, height: u16) -> Self::Target;
+    fn new() -> Self;
 
     fn draw(
         &mut self,
         output: &Self::Output,
+        metrics: Option<Metrics>,
         target: &mut Self::Target,
     ) -> MouseCursor;
+}
+
+pub trait Target {
+    type Renderer;
+
+    fn new<W: HasRawWindowHandle>(
+        window: &W,
+        width: u16,
+        height: u16,
+        renderer: &Self::Renderer,
+    ) -> Self;
+
+    fn resize(&mut self, width: u16, height: u16, renderer: &Self::Renderer);
 }

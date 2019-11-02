@@ -1,6 +1,6 @@
 use crate::{quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
-    renderer::Debugger, renderer::Windowed, Background, Color, Layout,
+    renderer::Debugger, renderer::Windowed, Background, Color, Layout, Metrics,
     MouseCursor, Point, Rectangle, Widget,
 };
 
@@ -26,7 +26,6 @@ mod text;
 mod text_input;
 
 pub struct Renderer {
-    surface: Surface,
     device: Device,
     queue: Queue,
     quad_pipeline: quad::Pipeline,
@@ -36,10 +35,59 @@ pub struct Renderer {
 }
 
 pub struct Target {
+    surface: Surface,
     width: u16,
     height: u16,
     transformation: Transformation,
     swap_chain: SwapChain,
+}
+
+impl iced_native::renderer::Target for Target {
+    type Renderer = Renderer;
+
+    fn new<W: HasRawWindowHandle>(
+        window: &W,
+        width: u16,
+        height: u16,
+        renderer: &Renderer,
+    ) -> Target {
+        let surface = Surface::create(window);
+
+        let swap_chain = renderer.device.create_swap_chain(
+            &surface,
+            &SwapChainDescriptor {
+                usage: TextureUsage::OUTPUT_ATTACHMENT,
+                format: TextureFormat::Bgra8UnormSrgb,
+                width: u32::from(width),
+                height: u32::from(height),
+                present_mode: wgpu::PresentMode::Vsync,
+            },
+        );
+
+        Target {
+            surface,
+            width,
+            height,
+            transformation: Transformation::orthographic(width, height),
+            swap_chain,
+        }
+    }
+
+    fn resize(&mut self, width: u16, height: u16, renderer: &Renderer) {
+        self.width = width;
+        self.height = height;
+        self.transformation = Transformation::orthographic(width, height);
+        self.swap_chain = renderer.device.create_swap_chain(
+            &self.surface,
+            &SwapChainDescriptor {
+                usage: TextureUsage::OUTPUT_ATTACHMENT,
+                format: TextureFormat::Bgra8UnormSrgb,
+                width: u32::from(width),
+                height: u32::from(height),
+                present_mode: wgpu::PresentMode::Vsync,
+            },
+        );
+    }
 }
 
 pub struct Layer<'a> {
@@ -63,7 +111,7 @@ impl<'a> Layer<'a> {
 }
 
 impl Renderer {
-    fn new<W: HasRawWindowHandle>(window: &W) -> Self {
+    fn new() -> Self {
         let adapter = Adapter::request(&RequestAdapterOptions {
             power_preference: PowerPreference::LowPower,
             backends: BackendBit::all(),
@@ -77,8 +125,6 @@ impl Renderer {
             limits: Limits { max_bind_groups: 2 },
         });
 
-        let surface = Surface::create(window);
-
         // TODO: Think about font loading strategy
         // Loading system fonts with fallback may be a good idea
         let font: &[u8] =
@@ -91,31 +137,12 @@ impl Renderer {
         let image_pipeline = crate::image::Pipeline::new(&mut device);
 
         Self {
-            surface,
             device,
             queue,
             quad_pipeline,
             image_pipeline,
 
             glyph_brush: Rc::new(RefCell::new(glyph_brush)),
-        }
-    }
-
-    fn target(&self, width: u16, height: u16) -> Target {
-        Target {
-            width,
-            height,
-            transformation: Transformation::orthographic(width, height),
-            swap_chain: self.device.create_swap_chain(
-                &self.surface,
-                &SwapChainDescriptor {
-                    usage: TextureUsage::OUTPUT_ATTACHMENT,
-                    format: TextureFormat::Bgra8UnormSrgb,
-                    width: u32::from(width),
-                    height: u32::from(height),
-                    present_mode: wgpu::PresentMode::Vsync,
-                },
-            ),
         }
     }
 
@@ -363,17 +390,14 @@ impl iced_native::Renderer for Renderer {
 impl Windowed for Renderer {
     type Target = Target;
 
-    fn new<W: HasRawWindowHandle>(window: &W) -> Self {
-        Self::new(window)
-    }
-
-    fn target(&self, width: u16, height: u16) -> Target {
-        self.target(width, height)
+    fn new() -> Self {
+        Self::new()
     }
 
     fn draw(
         &mut self,
         output: &Self::Output,
+        metrics: Option<Metrics>,
         target: &mut Target,
     ) -> MouseCursor {
         self.draw(output, target)

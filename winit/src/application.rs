@@ -1,7 +1,7 @@
 use crate::{
     column, conversion,
     input::{keyboard, mouse},
-    renderer::Windowed,
+    renderer::{Target, Windowed},
     Cache, Column, Element, Event, Length, MouseCursor, UserInterface,
 };
 
@@ -41,8 +41,14 @@ pub trait Application {
             .into();
         let mut new_size: Option<Size> = None;
 
-        let mut renderer = Self::Renderer::new(&window);
-        let mut target = renderer.target(size.width, size.height);
+        let mut renderer = Self::Renderer::new();
+
+        let mut target = <Self::Renderer as Windowed>::Target::new(
+            &window,
+            size.width,
+            size.height,
+            &renderer,
+        );
 
         let user_interface = UserInterface::build(
             document(&mut self, size),
@@ -103,11 +109,13 @@ pub trait Application {
             }
             event::Event::RedrawRequested(_) => {
                 if let Some(new_size) = new_size.take() {
-                    target = renderer.target(new_size.width, new_size.height);
+                    target.resize(new_size.width, new_size.height, &renderer);
+
                     size = new_size;
                 }
 
-                let new_mouse_cursor = renderer.draw(&primitive, &mut target);
+                let new_mouse_cursor =
+                    renderer.draw(&primitive, None, &mut target);
 
                 if new_mouse_cursor != mouse_cursor {
                     window.set_cursor_icon(conversion::mouse_cursor(
