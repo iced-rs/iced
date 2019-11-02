@@ -217,7 +217,7 @@ where
     /// ```
     pub fn map<F, B>(self, f: F) -> Element<'a, B, Renderer>
     where
-        Message: 'static + Copy,
+        Message: 'static + Clone,
         Renderer: 'a,
         B: 'static,
         F: 'static + Fn(Message) -> B,
@@ -286,7 +286,7 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
 
 impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
 where
-    A: Copy,
+    A: Clone,
     Renderer: crate::Renderer,
 {
     fn node(&self, renderer: &Renderer) -> Node {
