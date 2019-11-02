@@ -1,7 +1,7 @@
 use iced::{
-    button, scrollable, slider, text::HorizontalAlignment, Align, Application,
-    Background, Button, Checkbox, Color, Column, Element, Image, Justify,
-    Length, Radio, Row, Scrollable, Slider, Text,
+    button, scrollable, slider, text::HorizontalAlignment, text_input, Align,
+    Application, Background, Button, Checkbox, Color, Column, Element, Image,
+    Justify, Length, Radio, Row, Scrollable, Slider, Text, TextInput,
 };
 
 pub fn main() {
@@ -101,7 +101,7 @@ impl Application for Tour {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Message {
     BackPressed,
     NextPressed,
@@ -139,6 +139,10 @@ impl Steps {
                     slider: slider::State::new(),
                 },
                 Step::Scrollable,
+                Step::TextInput {
+                    value: String::new(),
+                    state: text_input::State::new(),
+                },
                 Step::Debugger,
                 Step::End,
             ],
@@ -201,11 +205,15 @@ enum Step {
         slider: slider::State,
     },
     Scrollable,
+    TextInput {
+        value: String,
+        state: text_input::State,
+    },
     Debugger,
     End,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum StepMessage {
     SliderChanged(f32),
     LayoutChanged(Layout),
@@ -214,6 +222,7 @@ pub enum StepMessage {
     TextColorChanged(Color),
     LanguageSelected(Language),
     ImageWidthChanged(f32),
+    InputChanged(String),
     DebugToggled(bool),
 }
 
@@ -260,6 +269,11 @@ impl<'a> Step {
                     *width = new_width.round() as u16;
                 }
             }
+            StepMessage::InputChanged(new_value) => {
+                if let Step::TextInput { value, .. } = self {
+                    *value = new_value;
+                }
+            }
         };
     }
 
@@ -272,6 +286,7 @@ impl<'a> Step {
             Step::Image { .. } => true,
             Step::RowsAndColumns { .. } => true,
             Step::Scrollable => true,
+            Step::TextInput { value, .. } => !value.is_empty(),
             Step::Debugger => true,
             Step::End => false,
         }
@@ -297,6 +312,9 @@ impl<'a> Step {
                 Self::rows_and_columns(*layout, spacing_slider, *spacing).into()
             }
             Step::Scrollable => Self::scrollable().into(),
+            Step::TextInput { value, state } => {
+                Self::text_input(value, state).into()
+            }
             Step::Debugger => Self::debugger(debug).into(),
             Step::End => Self::end().into(),
         }
@@ -559,6 +577,38 @@ impl<'a> Step {
                 Text::new("You made it!")
                     .size(50)
                     .horizontal_alignment(HorizontalAlignment::Center),
+            )
+    }
+
+    fn text_input(
+        value: &str,
+        state: &'a mut text_input::State,
+    ) -> Column<'a, StepMessage> {
+        Self::container("Text input")
+            .push(Text::new(
+                "Use a text input to ask for different kinds of information.",
+            ))
+            .push(
+                TextInput::new(
+                    state,
+                    "Type something to continue...",
+                    value,
+                    StepMessage::InputChanged,
+                )
+                .padding(10)
+                .size(30),
+            )
+            .push(Text::new(
+                "A text input produces a message every time it changes. It is \
+                 very easy to keep track of its contents:",
+            ))
+            .push(
+                Text::new(if value.is_empty() {
+                    "You have not typed anything yet..."
+                } else {
+                    value
+                })
+                .horizontal_alignment(HorizontalAlignment::Center),
             )
     }
 
