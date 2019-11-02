@@ -102,8 +102,11 @@ where
                     if let Some(scrollbar_grabbed_at) =
                         self.state.scrollbar_grabbed_at
                     {
+                        let ratio = content_bounds.height / bounds.height;
+                        let delta = scrollbar_grabbed_at.y - cursor_position.y;
+
                         self.state.scroll(
-                            scrollbar_grabbed_at.y - cursor_position.y,
+                            delta * ratio,
                             bounds,
                             content_bounds,
                         );
