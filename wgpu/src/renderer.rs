@@ -4,26 +4,19 @@ use iced_native::{
     MouseCursor, Point, Rectangle, Widget,
 };
 
-use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
     Adapter, BackendBit, CommandEncoderDescriptor, Device, DeviceDescriptor,
-    Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface,
-    SwapChain, SwapChainDescriptor, TextureFormat, TextureUsage,
+    Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions,
+    TextureFormat,
 };
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use std::{cell::RefCell, rc::Rc};
 
-mod button;
-mod checkbox;
-mod column;
-mod image;
-mod radio;
-mod row;
-mod scrollable;
-mod slider;
-mod text;
-mod text_input;
+mod target;
+mod widget;
+
+pub use target::Target;
 
 pub struct Renderer {
     device: Device,
@@ -32,62 +25,6 @@ pub struct Renderer {
     image_pipeline: crate::image::Pipeline,
 
     glyph_brush: Rc<RefCell<GlyphBrush<'static, ()>>>,
-}
-
-pub struct Target {
-    surface: Surface,
-    width: u16,
-    height: u16,
-    transformation: Transformation,
-    swap_chain: SwapChain,
-}
-
-impl iced_native::renderer::Target for Target {
-    type Renderer = Renderer;
-
-    fn new<W: HasRawWindowHandle>(
-        window: &W,
-        width: u16,
-        height: u16,
-        renderer: &Renderer,
-    ) -> Target {
-        let surface = Surface::create(window);
-
-        let swap_chain = renderer.device.create_swap_chain(
-            &surface,
-            &SwapChainDescriptor {
-                usage: TextureUsage::OUTPUT_ATTACHMENT,
-                format: TextureFormat::Bgra8UnormSrgb,
-                width: u32::from(width),
-                height: u32::from(height),
-                present_mode: wgpu::PresentMode::Vsync,
-            },
-        );
-
-        Target {
-            surface,
-            width,
-            height,
-            transformation: Transformation::orthographic(width, height),
-            swap_chain,
-        }
-    }
-
-    fn resize(&mut self, width: u16, height: u16, renderer: &Renderer) {
-        self.width = width;
-        self.height = height;
-        self.transformation = Transformation::orthographic(width, height);
-        self.swap_chain = renderer.device.create_swap_chain(
-            &self.surface,
-            &SwapChainDescriptor {
-                usage: TextureUsage::OUTPUT_ATTACHMENT,
-                format: TextureFormat::Bgra8UnormSrgb,
-                width: u32::from(width),
-                height: u32::from(height),
-                present_mode: wgpu::PresentMode::Vsync,
-            },
-        );
-    }
 }
 
 pub struct Layer<'a> {
@@ -153,7 +90,9 @@ impl Renderer {
     ) -> MouseCursor {
         log::debug!("Drawing");
 
-        let frame = target.swap_chain.get_next_texture();
+        let (width, height) = target.dimensions();
+        let transformation = target.transformation();
+        let frame = target.next_frame();
 
         let mut encoder = self
             .device
@@ -181,8 +120,8 @@ impl Renderer {
             Rectangle {
                 x: 0,
                 y: 0,
-                width: u32::from(target.width),
-                height: u32::from(target.height),
+                width: u32::from(width),
+                height: u32::from(height),
             },
             0,
         ));
@@ -190,12 +129,7 @@ impl Renderer {
         self.draw_primitive(primitive, &mut layers);
 
         for layer in layers {
-            self.flush(
-                target.transformation,
-                &layer,
-                &mut encoder,
-                &frame.view,
-            );
+            self.flush(transformation, &layer, &mut encoder, &frame.view);
         }
 
         self.queue.submit(&[encoder.finish()]);
