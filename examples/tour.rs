@@ -510,20 +510,7 @@ impl<'a> Step {
     ) -> Column<'a, StepMessage> {
         Self::container("Image")
             .push(Text::new("An image that tries to keep its aspect ratio."))
-            .push(
-                // This should go away once we unify resource loading on native
-                // platforms
-                if cfg!(target_arch = "wasm32") {
-                    Image::new("resources/ferris.png")
-                } else {
-                    Image::new(format!(
-                        "{}/examples/resources/ferris.png",
-                        env!("CARGO_MANIFEST_DIR")
-                    ))
-                }
-                .width(Length::Units(width))
-                .align_self(Align::Center),
-            )
+            .push(ferris(width))
             .push(Slider::new(
                 slider,
                 100.0..=500.0,
@@ -555,6 +542,7 @@ impl<'a> Step {
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
             .push(Column::new().height(Length::Units(4096)))
+            .push(ferris(300))
             .push(
                 Text::new("You made it!")
                     .size(50)
@@ -587,6 +575,21 @@ impl<'a> Step {
             ))
             .push(Text::new("Make sure to keep an eye on it!"))
     }
+}
+
+fn ferris(width: u16) -> Image {
+    // This should go away once we unify resource loading on native
+    // platforms
+    if cfg!(target_arch = "wasm32") {
+        Image::new("resources/ferris.png")
+    } else {
+        Image::new(format!(
+            "{}/examples/resources/ferris.png",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+    }
+    .width(Length::Units(width))
+    .align_self(Align::Center)
 }
 
 fn button<'a, Message>(
