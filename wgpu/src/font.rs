@@ -1,13 +1,13 @@
 pub use font_kit::family_name::FamilyName as Family;
 
 pub struct Source {
-    raw: font_kit::sources::fontconfig::FontconfigSource,
+    raw: font_kit::source::SystemSource,
 }
 
 impl Source {
     pub fn new() -> Self {
         Source {
-            raw: font_kit::sources::fontconfig::FontconfigSource::new(),
+            raw: font_kit::source::SystemSource::new(),
         }
     }
 
