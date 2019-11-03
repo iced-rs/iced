@@ -1,3 +1,4 @@
+mod font;
 mod image;
 mod primitive;
 mod quad;

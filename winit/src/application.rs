@@ -2,13 +2,13 @@ use crate::{
     column, conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    Cache, Column, Element, Event, Length, MouseCursor, UserInterface,
+    Cache, Column, Debug, Element, Event, Length, MouseCursor, UserInterface,
 };
 
 pub trait Application {
     type Renderer: Windowed + column::Renderer;
 
-    type Message;
+    type Message: std::fmt::Debug;
 
     fn update(&mut self, message: Self::Message);
 
@@ -24,6 +24,9 @@ pub trait Application {
             window::WindowBuilder,
         };
 
+        let mut debug = Debug::new();
+
+        debug.startup_started();
         let event_loop = EventLoop::new();
 
         // TODO: Ask for window settings and configure this properly
@@ -50,16 +53,22 @@ pub trait Application {
             &renderer,
         );
 
+        debug.layout_started();
         let user_interface = UserInterface::build(
-            document(&mut self, size),
+            document(&mut self, size, &mut debug),
             Cache::default(),
             &renderer,
         );
+        debug.layout_finished();
 
+        debug.draw_started();
         let mut primitive = user_interface.draw(&mut renderer);
+        debug.draw_finished();
+
         let mut cache = Some(user_interface.into_cache());
         let mut events = Vec::new();
         let mut mouse_cursor = MouseCursor::OutOfBounds;
+        debug.startup_finished();
 
         window.request_redraw();
 
@@ -70,17 +79,23 @@ pub trait Application {
                 //
                 // This will allow us to rebuild it only when a message is
                 // handled.
+                debug.layout_started();
                 let mut user_interface = UserInterface::build(
-                    document(&mut self, size),
+                    document(&mut self, size, &mut debug),
                     cache.take().unwrap(),
                     &renderer,
                 );
+                debug.layout_finished();
 
+                debug.event_processing_started();
                 let messages =
                     user_interface.update(&renderer, events.drain(..));
+                debug.event_processing_finished();
 
                 if messages.is_empty() {
+                    debug.draw_started();
                     primitive = user_interface.draw(&mut renderer);
+                    debug.draw_finished();
 
                     cache = Some(user_interface.into_cache());
                 } else {
@@ -91,16 +106,24 @@ pub trait Application {
                     for message in messages {
                         log::debug!("Updating");
 
+                        debug.log_message(&message);
+
+                        debug.update_started();
                         self.update(message);
+                        debug.update_finished();
                     }
 
+                    debug.layout_started();
                     let user_interface = UserInterface::build(
-                        document(&mut self, size),
+                        document(&mut self, size, &mut debug),
                         temp_cache,
                         &renderer,
                     );
+                    debug.layout_finished();
 
+                    debug.draw_started();
                     primitive = user_interface.draw(&mut renderer);
+                    debug.draw_finished();
 
                     cache = Some(user_interface.into_cache());
                 }
@@ -108,6 +131,8 @@ pub trait Application {
                 window.request_redraw();
             }
             event::Event::RedrawRequested(_) => {
+                debug.render_started();
+
                 if let Some(new_size) = new_size.take() {
                     target.resize(new_size.width, new_size.height, &renderer);
 
@@ -115,7 +140,9 @@ pub trait Application {
                 }
 
                 let new_mouse_cursor =
-                    renderer.draw(&primitive, None, &mut target);
+                    renderer.draw(&primitive, &debug.overlay(), &mut target);
+
+                debug.render_finished();
 
                 if new_mouse_cursor != mouse_cursor {
                     window.set_cursor_icon(conversion::mouse_cursor(
@@ -191,6 +218,14 @@ pub trait Application {
                         },
                     ..
                 } => {
+                    match (virtual_keycode, state) {
+                        (
+                            winit::event::VirtualKeyCode::F12,
+                            winit::event::ElementState::Pressed,
+                        ) => debug.toggle(),
+                        _ => {}
+                    }
+
                     events.push(Event::Keyboard(keyboard::Event::Input {
                         key_code: conversion::key_code(virtual_keycode),
                         state: conversion::button_state(state),
@@ -229,17 +264,22 @@ impl From<winit::dpi::PhysicalSize> for Size {
     }
 }
 
-fn document<Application>(
-    application: &mut Application,
+fn document<'a, Application>(
+    application: &'a mut Application,
     size: Size,
-) -> Element<Application::Message, Application::Renderer>
+    debug: &mut Debug,
+) -> Element<'a, Application::Message, Application::Renderer>
 where
     Application: self::Application,
     Application::Message: 'static,
 {
+    debug.view_started();
+    let view = application.view();
+    debug.view_finished();
+
     Column::new()
         .width(Length::Units(size.width))
         .height(Length::Units(size.height))
-        .push(application.view())
+        .push(view)
         .into()
 }

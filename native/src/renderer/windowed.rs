@@ -1,4 +1,4 @@
-use crate::{Metrics, MouseCursor};
+use crate::MouseCursor;
 
 use raw_window_handle::HasRawWindowHandle;
 
@@ -7,10 +7,10 @@ pub trait Windowed: super::Renderer + Sized {
 
     fn new() -> Self;
 
-    fn draw(
+    fn draw<T: AsRef<str>>(
         &mut self,
         output: &Self::Output,
-        metrics: Option<Metrics>,
+        overlay: &[T],
         target: &mut Self::Target,
     ) -> MouseCursor;
 }

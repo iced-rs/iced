@@ -1,6 +1,6 @@
-use crate::{quad, Image, Primitive, Quad, Transformation};
+use crate::{font, quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
-    renderer::Debugger, renderer::Windowed, Background, Color, Layout, Metrics,
+    renderer::Debugger, renderer::Windowed, Background, Color, Layout,
     MouseCursor, Point, Rectangle, Widget,
 };
 
@@ -62,13 +62,16 @@ impl Renderer {
             limits: Limits { max_bind_groups: 2 },
         });
 
-        // TODO: Think about font loading strategy
-        // Loading system fonts with fallback may be a good idea
-        let font: &[u8] =
-            include_bytes!("../../examples/resources/Roboto-Regular.ttf");
+        // TODO: Font customization
+        let font_source = font::Source::new();
+        let sans_serif_font = font_source.load(&[font::Family::SansSerif]);
+        let mono_font = font_source.load(&[font::Family::Monospace]);
 
-        let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
-            .build(&mut device, TextureFormat::Bgra8UnormSrgb);
+        let glyph_brush = GlyphBrushBuilder::using_fonts_bytes(vec![
+            sans_serif_font,
+            mono_font,
+        ])
+        .build(&mut device, TextureFormat::Bgra8UnormSrgb);
 
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
@@ -83,9 +86,10 @@ impl Renderer {
         }
     }
 
-    fn draw(
+    fn draw<T: AsRef<str>>(
         &mut self,
         (primitive, mouse_cursor): &(Primitive, MouseCursor),
+        overlay: &[T],
         target: &mut Target,
     ) -> MouseCursor {
         log::debug!("Drawing");
@@ -127,6 +131,7 @@ impl Renderer {
         ));
 
         self.draw_primitive(primitive, &mut layers);
+        self.draw_overlay(overlay, &mut layers);
 
         for layer in layers {
             self.flush(transformation, &layer, &mut encoder, &frame.view);
@@ -260,6 +265,41 @@ impl Renderer {
         }
     }
 
+    fn draw_overlay<'a, T: AsRef<str>>(
+        &mut self,
+        lines: &'a [T],
+        layers: &mut Vec<Layer<'a>>,
+    ) {
+        let first = layers.first().unwrap();
+        let mut overlay = Layer::new(first.bounds, 0);
+
+        let font_id =
+            wgpu_glyph::FontId(self.glyph_brush.borrow().fonts().len() - 1);
+        let scale = wgpu_glyph::Scale { x: 20.0, y: 20.0 };
+
+        for (i, line) in lines.iter().enumerate() {
+            overlay.text.push(Section {
+                text: line.as_ref(),
+                screen_position: (11.0, 11.0 + 25.0 * i as f32),
+                color: [0.9, 0.9, 0.9, 1.0],
+                scale,
+                font_id,
+                ..Section::default()
+            });
+
+            overlay.text.push(Section {
+                text: line.as_ref(),
+                screen_position: (10.0, 10.0 + 25.0 * i as f32),
+                color: [0.0, 0.0, 0.0, 1.0],
+                scale,
+                font_id,
+                ..Section::default()
+            });
+        }
+
+        layers.push(overlay);
+    }
+
     fn flush(
         &mut self,
         transformation: Transformation,
@@ -328,13 +368,13 @@ impl Windowed for Renderer {
         Self::new()
     }
 
-    fn draw(
+    fn draw<T: AsRef<str>>(
         &mut self,
         output: &Self::Output,
-        metrics: Option<Metrics>,
+        overlay: &[T],
         target: &mut Target,
     ) -> MouseCursor {
-        self.draw(output, target)
+        self.draw(output, overlay, target)
     }
 }
 
