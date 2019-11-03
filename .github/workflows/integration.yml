@@ -19,4 +19,6 @@ jobs:
         sudo apt-get install -y libasound2-dev libudev-dev
     - uses: actions/checkout@master
     - name: Run tests
-      run: cargo test --verbose --all --all-features
+      run: |
+        cargo test --verbose --all
+        cargo test --verbose --all --all-features
