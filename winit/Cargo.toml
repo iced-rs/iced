@@ -9,5 +9,5 @@ repository = "https://github.com/hecrj/iced"
 
 [dependencies]
 iced_native = { version = "0.1.0-alpha", path = "../native" }
-winit = { version = "0.20.0-alpha3", git = "https://github.com/hecrj/winit", branch = "redraw-requested-2.0" }
+winit = { version = "0.20.0-alpha3", git = "https://github.com/rust-windowing/winit", rev = "709808eb4e69044705fcb214bcc30556db761405"}
 log = "0.4"

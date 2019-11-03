@@ -14,6 +14,7 @@ mod radio;
 mod row;
 
 pub mod button;
+pub mod scrollable;
 pub mod slider;
 pub mod text;
 
@@ -25,6 +26,9 @@ pub use slider::Slider;
 
 #[doc(no_inline)]
 pub use text::Text;
+
+#[doc(no_inline)]
+pub use scrollable::Scrollable;
 
 pub use checkbox::Checkbox;
 pub use column::Column;

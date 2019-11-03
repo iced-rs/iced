@@ -1,7 +1,7 @@
 use crate::{quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
     renderer::Debugger, renderer::Windowed, Background, Color, Layout,
-    MouseCursor, Point, Widget,
+    MouseCursor, Point, Rectangle, Widget,
 };
 
 use raw_window_handle::HasRawWindowHandle;
@@ -20,19 +20,17 @@ mod column;
 mod image;
 mod radio;
 mod row;
+mod scrollable;
 mod slider;
 mod text;
 
 pub struct Renderer {
     surface: Surface,
-    adapter: Adapter,
     device: Device,
     queue: Queue,
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
 
-    quads: Vec<Quad>,
-    images: Vec<Image>,
     glyph_brush: Rc<RefCell<GlyphBrush<'static, ()>>>,
 }
 
@@ -41,6 +39,26 @@ pub struct Target {
     height: u16,
     transformation: Transformation,
     swap_chain: SwapChain,
+}
+
+pub struct Layer<'a> {
+    bounds: Rectangle<u32>,
+    y_offset: u32,
+    quads: Vec<Quad>,
+    images: Vec<Image>,
+    text: Vec<wgpu_glyph::Section<'a>>,
+}
+
+impl<'a> Layer<'a> {
+    pub fn new(bounds: Rectangle<u32>, y_offset: u32) -> Self {
+        Self {
+            bounds,
+            y_offset,
+            quads: Vec::new(),
+            images: Vec::new(),
+            text: Vec::new(),
+        }
+    }
 }
 
 impl Renderer {
@@ -55,7 +73,7 @@ impl Renderer {
             extensions: Extensions {
                 anisotropic_filtering: false,
             },
-            limits: Limits { max_bind_groups: 1 },
+            limits: Limits { max_bind_groups: 2 },
         });
 
         let surface = Surface::create(window);
@@ -73,14 +91,11 @@ impl Renderer {
 
         Self {
             surface,
-            adapter,
             device,
             queue,
             quad_pipeline,
             image_pipeline,
 
-            quads: Vec::new(),
-            images: Vec::new(),
             glyph_brush: Rc::new(RefCell::new(glyph_brush)),
         }
     }
@@ -132,51 +147,46 @@ impl Renderer {
             depth_stencil_attachment: None,
         });
 
-        self.draw_primitive(primitive);
-
-        self.quad_pipeline.draw(
-            &mut self.device,
-            &mut encoder,
-            &self.quads,
-            target.transformation,
-            &frame.view,
+        let mut layers = Vec::new();
+        let mut current = Layer::new(
+            Rectangle {
+                x: 0,
+                y: 0,
+                width: u32::from(target.width),
+                height: u32::from(target.height),
+            },
+            0,
         );
 
-        self.quads.clear();
+        self.draw_primitive(primitive, &mut current, &mut layers);
+        layers.push(current);
 
-        self.image_pipeline.draw(
-            &mut self.device,
-            &mut encoder,
-            &self.images,
-            target.transformation,
-            &frame.view,
-        );
-
-        self.images.clear();
-
-        self.glyph_brush
-            .borrow_mut()
-            .draw_queued(
-                &mut self.device,
+        for layer in layers {
+            self.flush(
+                target.transformation,
+                &layer,
                 &mut encoder,
                 &frame.view,
-                u32::from(target.width),
-                u32::from(target.height),
-            )
-            .expect("Draw text");
+            );
+        }
 
         self.queue.submit(&[encoder.finish()]);
 
         *mouse_cursor
     }
 
-    fn draw_primitive(&mut self, primitive: &Primitive) {
+    fn draw_primitive<'a>(
+        &mut self,
+        primitive: &'a Primitive,
+        layer: &mut Layer<'a>,
+        layers: &mut Vec<Layer<'a>>,
+    ) {
         match primitive {
             Primitive::None => {}
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
-                    self.draw_primitive(primitive)
+                    self.draw_primitive(primitive, layer, layers)
                 }
             }
             Primitive::Text {
@@ -207,7 +217,7 @@ impl Renderer {
                     }
                 };
 
-                self.glyph_brush.borrow_mut().queue(Section {
+                layer.text.push(Section {
                     text: &content,
                     screen_position: (x, y),
                     bounds: (bounds.width, bounds.height),
@@ -244,8 +254,8 @@ impl Renderer {
                 background,
                 border_radius,
             } => {
-                self.quads.push(Quad {
-                    position: [bounds.x, bounds.y],
+                layer.quads.push(Quad {
+                    position: [bounds.x, bounds.y - layer.y_offset as f32],
                     scale: [bounds.width, bounds.height],
                     color: match background {
                         Background::Color(color) => color.into_linear(),
@@ -254,12 +264,88 @@ impl Renderer {
                 });
             }
             Primitive::Image { path, bounds } => {
-                self.images.push(Image {
+                layer.images.push(Image {
                     path: path.clone(),
                     position: [bounds.x, bounds.y],
                     scale: [bounds.width, bounds.height],
                 });
             }
+            Primitive::Clip {
+                bounds,
+                offset,
+                content,
+            } => {
+                let mut new_layer = Layer::new(
+                    Rectangle {
+                        x: bounds.x as u32,
+                        y: bounds.y as u32 - layer.y_offset,
+                        width: bounds.width as u32,
+                        height: bounds.height as u32,
+                    },
+                    layer.y_offset + offset,
+                );
+
+                // TODO: Primitive culling
+                self.draw_primitive(content, &mut new_layer, layers);
+
+                layers.push(new_layer);
+            }
+        }
+    }
+
+    fn flush(
+        &mut self,
+        transformation: Transformation,
+        layer: &Layer,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+    ) {
+        let translated = transformation
+            * Transformation::translate(0.0, -(layer.y_offset as f32));
+
+        if layer.quads.len() > 0 {
+            self.quad_pipeline.draw(
+                &mut self.device,
+                encoder,
+                &layer.quads,
+                transformation,
+                layer.bounds,
+                target,
+            );
+        }
+
+        if layer.images.len() > 0 {
+            self.image_pipeline.draw(
+                &mut self.device,
+                encoder,
+                &layer.images,
+                translated,
+                layer.bounds,
+                target,
+            );
+        }
+
+        if layer.text.len() > 0 {
+            let mut glyph_brush = self.glyph_brush.borrow_mut();
+
+            for text in layer.text.iter() {
+                glyph_brush.queue(text);
+            }
+
+            glyph_brush
+                .draw_queued_with_transform_and_scissoring(
+                    &mut self.device,
+                    encoder,
+                    target,
+                    translated.into(),
+                    wgpu_glyph::Region {
+                        x: layer.bounds.x,
+                        y: layer.bounds.y,
+                        width: layer.bounds.width,
+                        height: layer.bounds.height,
+                    },
+                )
+                .expect("Draw text");
         }
     }
 }

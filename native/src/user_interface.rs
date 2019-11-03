@@ -186,7 +186,7 @@ where
     ///     );
     ///
     ///     // Update the user interface
-    ///     let messages = user_interface.update(events.drain(..));
+    ///     let messages = user_interface.update(&renderer, events.drain(..));
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -198,6 +198,7 @@ where
     /// ```
     pub fn update(
         &mut self,
+        renderer: &Renderer,
         events: impl Iterator<Item = Event>,
     ) -> Vec<Message> {
         let mut messages = Vec::new();
@@ -212,6 +213,7 @@ where
                 Layout::new(&self.layout),
                 self.cursor_position,
                 &mut messages,
+                renderer,
             );
         }
 
@@ -281,7 +283,7 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     let messages = user_interface.update(events.drain(..));
+    ///     let messages = user_interface.update(&renderer, events.drain(..));
     ///
     ///     // Draw the user interface
     ///     let mouse_cursor = user_interface.draw(&mut renderer);
@@ -347,7 +349,7 @@ impl Cache {
                 .0
                 .compute_layout(geometry::Size::undefined())
                 .unwrap(),
-            cursor_position: Point::new(0.0, 0.0),
+            cursor_position: Point::new(-1.0, -1.0),
         }
     }
 }

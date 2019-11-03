@@ -9,8 +9,9 @@ repository = "https://github.com/hecrj/iced"
 
 [dependencies]
 iced_native = { version = "0.1.0-alpha", path = "../native" }
-wgpu = { version = "0.3", git = "https://github.com/gfx-rs/wgpu-rs", rev = "cb25914b95b58fee0dc139b400867e7a731d98f4" }
-wgpu_glyph = { version = "0.4", git = "https://github.com/hecrj/wgpu_glyph", rev = "48daa98f5f785963838b4345e86ac40eac095ba9" }
-raw-window-handle = "0.1"
+wgpu = { version = "0.3", git = "https://github.com/gfx-rs/wgpu-rs", rev = "ed2c67f762970d0099c1e6c6e078fb645afbf964" }
+wgpu_glyph = { version = "0.4", git = "https://github.com/hecrj/wgpu_glyph", rev = "954ac865ca1b7f6b97bf403f8c6174a7120e667c" }
+raw-window-handle = "0.3"
 image = "0.22"
+glam = "0.8"
 log = "0.4"

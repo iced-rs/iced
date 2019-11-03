@@ -1,4 +1,5 @@
 use crate::Transformation;
+use iced_native::Rectangle;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -218,13 +219,12 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         instances: &[Image],
         transformation: Transformation,
+        bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
     ) {
-        let matrix: [f32; 16] = transformation.into();
-
         let transform_buffer = device
             .create_buffer_mapped(16, wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(&matrix[..]);
+            .fill_from_slice(transformation.as_ref());
 
         encoder.copy_buffer_to_buffer(
             &transform_buffer,
@@ -290,6 +290,12 @@ impl Pipeline {
                 render_pass.set_vertex_buffers(
                     0,
                     &[(&self.vertices, 0), (&self.instances, 0)],
+                );
+                render_pass.set_scissor_rect(
+                    bounds.x,
+                    bounds.y,
+                    bounds.width,
+                    bounds.height,
                 );
 
                 render_pass.draw_indexed(

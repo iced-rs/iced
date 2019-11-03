@@ -299,6 +299,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<B>,
+        renderer: &Renderer,
     ) {
         let mut original_messages = Vec::new();
 
@@ -307,6 +308,7 @@ where
             layout,
             cursor_position,
             &mut original_messages,
+            renderer,
         );
 
         original_messages
@@ -369,10 +371,15 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
+        renderer: &Renderer,
     ) {
-        self.element
-            .widget
-            .on_event(event, layout, cursor_position, messages)
+        self.element.widget.on_event(
+            event,
+            layout,
+            cursor_position,
+            messages,
+            renderer,
+        )
     }
 
     fn draw(

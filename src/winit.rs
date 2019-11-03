@@ -1,8 +1,8 @@
 pub use iced_wgpu::{Primitive, Renderer};
 
 pub use iced_winit::{
-    button, slider, text, winit, Align, Background, Checkbox, Color, Image,
-    Justify, Length, Radio, Slider, Text,
+    button, scrollable, slider, text, winit, Align, Background, Checkbox,
+    Color, Image, Justify, Length, Radio, Scrollable, Slider, Text,
 };
 
 pub type Element<'a, Message> = iced_winit::Element<'a, Message, Renderer>;

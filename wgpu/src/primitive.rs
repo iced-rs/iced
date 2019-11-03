@@ -23,4 +23,9 @@ pub enum Primitive {
         path: String,
         bounds: Rectangle,
     },
+    Clip {
+        bounds: Rectangle,
+        offset: u32,
+        content: Box<Primitive>,
+    },
 }
