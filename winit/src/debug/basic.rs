@@ -149,6 +149,12 @@ impl Debug {
             format!("{: <30} {:?}", key, value)
         }
 
+        lines.push(format!(
+            "{} {} - {}",
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION"),
+            env!("CARGO_PKG_REPOSITORY"),
+        ));
         lines.push(key_value("Startup:", self.startup_duration));
         lines.push(key_value("Update:", self.update_durations.average()));
         lines.push(key_value("View:", self.view_durations.average()));
