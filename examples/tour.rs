@@ -76,7 +76,7 @@ impl Application for Tour {
         }
 
         let element: Element<_> = Column::new()
-            .max_width(Length::Units(540))
+            .max_width(Length::Units((540.0*3.0) as u16))
             .spacing(20)
             .padding(20)
             .push(steps.view(self.debug).map(Message::StepMessage))
