@@ -274,7 +274,7 @@ impl Renderer {
         layers: &mut Vec<Layer<'a>>,
     ) {
         let first = layers.first().unwrap();
-        let mut overlay = Layer::new(first.bounds, 0);
+        let mut overlay = Layer::new(first.bounds, Vector::new(0, 0));
 
         let font_id =
             wgpu_glyph::FontId(self.glyph_brush.borrow().fonts().len() - 1);
