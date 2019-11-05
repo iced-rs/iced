@@ -5,7 +5,7 @@ mod platform;
 pub use platform::*;
 
 pub trait Application {
-    type Message;
+    type Message: std::fmt::Debug;
 
     fn update(&mut self, message: Self::Message);
 

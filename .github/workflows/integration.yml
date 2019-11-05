@@ -7,10 +7,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
         rust: [stable, beta]
-        include:
-          - os: ubuntu-latest
-            rust: stable
-            targets: 'wasm32-unknown-unknown'
     steps:
     - uses: hecrj/setup-rust-action@v1
       with:
@@ -23,4 +19,6 @@ jobs:
         sudo apt-get install -y libasound2-dev libudev-dev
     - uses: actions/checkout@master
     - name: Run tests
-      run: cargo test --verbose --all --all-features
+      run: |
+        cargo test --verbose --all
+        cargo test --verbose --all --all-features

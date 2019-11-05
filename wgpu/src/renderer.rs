@@ -1,45 +1,30 @@
-use crate::{quad, Image, Primitive, Quad, Transformation};
+use crate::{font, quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
     renderer::Debugger, renderer::Windowed, Background, Color, Layout,
     MouseCursor, Point, Rectangle, Vector, Widget,
 };
 
-use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
     Adapter, BackendBit, CommandEncoderDescriptor, Device, DeviceDescriptor,
-    Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface,
-    SwapChain, SwapChainDescriptor, TextureFormat, TextureUsage,
+    Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions,
+    TextureFormat,
 };
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
 use std::{cell::RefCell, rc::Rc};
 
-mod button;
-mod checkbox;
-mod column;
-mod image;
-mod radio;
-mod row;
-mod scrollable;
-mod slider;
-mod text;
-mod text_input;
+mod target;
+mod widget;
+
+pub use target::Target;
 
 pub struct Renderer {
-    surface: Surface,
     device: Device,
     queue: Queue,
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
 
     glyph_brush: Rc<RefCell<GlyphBrush<'static, ()>>>,
-}
-
-pub struct Target {
-    width: u16,
-    height: u16,
-    transformation: Transformation,
-    swap_chain: SwapChain,
 }
 
 pub struct Layer<'a> {
@@ -63,7 +48,7 @@ impl<'a> Layer<'a> {
 }
 
 impl Renderer {
-    fn new<W: HasRawWindowHandle>(window: &W) -> Self {
+    fn new() -> Self {
         let adapter = Adapter::request(&RequestAdapterOptions {
             power_preference: PowerPreference::LowPower,
             backends: BackendBit::all(),
@@ -77,21 +62,24 @@ impl Renderer {
             limits: Limits { max_bind_groups: 2 },
         });
 
-        let surface = Surface::create(window);
+        // TODO: Font customization
+        let font_source = font::Source::new();
+        let default_font = font_source
+            .load(&[font::Family::SansSerif, font::Family::Serif])
+            .expect("Find sans-serif or serif font");
 
-        // TODO: Think about font loading strategy
-        // Loading system fonts with fallback may be a good idea
-        let font: &[u8] =
-            include_bytes!("../../examples/resources/Roboto-Regular.ttf");
+        let mono_font = font_source
+            .load(&[font::Family::Monospace])
+            .expect("Find monospace font");
 
-        let glyph_brush = GlyphBrushBuilder::using_font_bytes(font)
-            .build(&mut device, TextureFormat::Bgra8UnormSrgb);
+        let glyph_brush =
+            GlyphBrushBuilder::using_fonts_bytes(vec![default_font, mono_font])
+                .build(&mut device, TextureFormat::Bgra8UnormSrgb);
 
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
 
         Self {
-            surface,
             device,
             queue,
             quad_pipeline,
@@ -101,32 +89,17 @@ impl Renderer {
         }
     }
 
-    fn target(&self, width: u16, height: u16) -> Target {
-        Target {
-            width,
-            height,
-            transformation: Transformation::orthographic(width, height),
-            swap_chain: self.device.create_swap_chain(
-                &self.surface,
-                &SwapChainDescriptor {
-                    usage: TextureUsage::OUTPUT_ATTACHMENT,
-                    format: TextureFormat::Bgra8UnormSrgb,
-                    width: u32::from(width),
-                    height: u32::from(height),
-                    present_mode: wgpu::PresentMode::Vsync,
-                },
-            ),
-        }
-    }
-
-    fn draw(
+    fn draw<T: AsRef<str>>(
         &mut self,
         (primitive, mouse_cursor): &(Primitive, MouseCursor),
+        overlay: &[T],
         target: &mut Target,
     ) -> MouseCursor {
         log::debug!("Drawing");
 
-        let frame = target.swap_chain.get_next_texture();
+        let (width, height) = target.dimensions();
+        let transformation = target.transformation();
+        let frame = target.next_frame();
 
         let mut encoder = self
             .device
@@ -154,21 +127,17 @@ impl Renderer {
             Rectangle {
                 x: 0,
                 y: 0,
-                width: u32::from(target.width),
-                height: u32::from(target.height),
+                width: u32::from(width),
+                height: u32::from(height),
             },
             Vector::new(0, 0),
         ));
 
         self.draw_primitive(primitive, &mut layers);
+        self.draw_overlay(overlay, &mut layers);
 
         for layer in layers {
-            self.flush(
-                target.transformation,
-                &layer,
-                &mut encoder,
-                &frame.view,
-            );
+            self.flush(transformation, &layer, &mut encoder, &frame.view);
         }
 
         self.queue.submit(&[encoder.finish()]);
@@ -302,6 +271,41 @@ impl Renderer {
         }
     }
 
+    fn draw_overlay<'a, T: AsRef<str>>(
+        &mut self,
+        lines: &'a [T],
+        layers: &mut Vec<Layer<'a>>,
+    ) {
+        let first = layers.first().unwrap();
+        let mut overlay = Layer::new(first.bounds, Vector::new(0, 0));
+
+        let font_id =
+            wgpu_glyph::FontId(self.glyph_brush.borrow().fonts().len() - 1);
+        let scale = wgpu_glyph::Scale { x: 20.0, y: 20.0 };
+
+        for (i, line) in lines.iter().enumerate() {
+            overlay.text.push(Section {
+                text: line.as_ref(),
+                screen_position: (11.0, 11.0 + 25.0 * i as f32),
+                color: [0.9, 0.9, 0.9, 1.0],
+                scale,
+                font_id,
+                ..Section::default()
+            });
+
+            overlay.text.push(Section {
+                text: line.as_ref(),
+                screen_position: (10.0, 10.0 + 25.0 * i as f32),
+                color: [0.0, 0.0, 0.0, 1.0],
+                scale,
+                font_id,
+                ..Section::default()
+            });
+        }
+
+        layers.push(overlay);
+    }
+
     fn flush(
         &mut self,
         transformation: Transformation,
@@ -369,20 +373,17 @@ impl iced_native::Renderer for Renderer {
 impl Windowed for Renderer {
     type Target = Target;
 
-    fn new<W: HasRawWindowHandle>(window: &W) -> Self {
-        Self::new(window)
+    fn new() -> Self {
+        Self::new()
     }
 
-    fn target(&self, width: u16, height: u16) -> Target {
-        self.target(width, height)
-    }
-
-    fn draw(
+    fn draw<T: AsRef<str>>(
         &mut self,
         output: &Self::Output,
+        overlay: &[T],
         target: &mut Target,
     ) -> MouseCursor {
-        self.draw(output, target)
+        self.draw(output, overlay, target)
     }
 }
 

@@ -11,6 +11,10 @@ readme = "README.md"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
+[features]
+# Enables a debug view in native platforms (press F12)
+debug = ["iced_winit/debug"]
+
 [badges]
 maintenance = { status = "actively-developed" }
 

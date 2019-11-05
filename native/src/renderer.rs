@@ -24,7 +24,7 @@ mod debugger;
 mod windowed;
 
 pub use debugger::Debugger;
-pub use windowed::Windowed;
+pub use windowed::{Target, Windowed};
 
 pub trait Renderer {
     type Output;
