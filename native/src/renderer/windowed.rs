@@ -22,8 +22,15 @@ pub trait Target {
         window: &W,
         width: u16,
         height: u16,
+        dpi: f32,
         renderer: &Self::Renderer,
     ) -> Self;
 
-    fn resize(&mut self, width: u16, height: u16, renderer: &Self::Renderer);
+    fn resize(
+        &mut self,
+        width: u16,
+        height: u16,
+        dpi: f32,
+        renderer: &Self::Renderer,
+    );
 }

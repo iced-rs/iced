@@ -26,6 +26,11 @@ impl Transformation {
     pub fn translate(x: f32, y: f32) -> Transformation {
         Transformation(Mat4::from_translation(Vec3::new(x, y, 0.0)))
     }
+
+    /// Creates a scale transformation.
+    pub fn scale(x: f32, y: f32) -> Transformation {
+        Transformation(Mat4::from_scale(Vec3::new(x, y, 0.0)))
+    }
 }
 
 impl Mul for Transformation {

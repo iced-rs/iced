@@ -38,20 +38,19 @@ pub trait Application {
             .build(&event_loop)
             .expect("Open window");
 
-        let mut size: Size = window
-            .inner_size()
-            .to_physical(window.hidpi_factor())
-            .into();
-        let mut new_size: Option<Size> = None;
+        let dpi = window.hidpi_factor();
+        let mut size = window.inner_size();
+        let mut new_size: Option<winit::dpi::LogicalSize> = None;
 
         let mut renderer = Self::Renderer::new();
 
-        let mut target = <Self::Renderer as Windowed>::Target::new(
-            &window,
-            size.width,
-            size.height,
-            &renderer,
-        );
+        let mut target = {
+            let (width, height) = to_physical(size, dpi);
+
+            <Self::Renderer as Windowed>::Target::new(
+                &window, width, height, dpi as f32, &renderer,
+            )
+        };
 
         debug.layout_started();
         let user_interface = UserInterface::build(
@@ -134,7 +133,15 @@ pub trait Application {
                 debug.render_started();
 
                 if let Some(new_size) = new_size.take() {
-                    target.resize(new_size.width, new_size.height, &renderer);
+                    let dpi = window.hidpi_factor();
+                    let (width, height) = to_physical(new_size, dpi);
+
+                    target.resize(
+                        width,
+                        height,
+                        window.hidpi_factor() as f32,
+                        &renderer,
+                    );
 
                     size = new_size;
                 }
@@ -160,13 +167,9 @@ pub trait Application {
                 ..
             } => match window_event {
                 WindowEvent::CursorMoved { position, .. } => {
-                    // TODO: Remove when renderer supports HiDPI
-                    let physical_position =
-                        position.to_physical(window.hidpi_factor());
-
                     events.push(Event::Mouse(mouse::Event::CursorMoved {
-                        x: physical_position.x as f32,
-                        y: physical_position.y as f32,
+                        x: position.x as f32,
+                        y: position.y as f32,
                     }));
                 }
                 WindowEvent::MouseInput { button, state, .. } => {
@@ -190,15 +193,11 @@ pub trait Application {
                         ));
                     }
                     winit::event::MouseScrollDelta::PixelDelta(position) => {
-                        // TODO: Remove when renderer supports HiDPI
-                        let physical_position =
-                            position.to_physical(window.hidpi_factor());
-
                         events.push(Event::Mouse(
                             mouse::Event::WheelScrolled {
                                 delta: mouse::ScrollDelta::Pixels {
-                                    x: physical_position.x as f32,
-                                    y: physical_position.y as f32,
+                                    x: position.x as f32,
+                                    y: position.y as f32,
                                 },
                             },
                         ));
@@ -235,8 +234,7 @@ pub trait Application {
                     *control_flow = ControlFlow::Exit;
                 }
                 WindowEvent::Resized(size) => {
-                    new_size =
-                        Some(size.to_physical(window.hidpi_factor()).into());
+                    new_size = Some(size.into());
 
                     log::debug!("Resized: {:?}", new_size);
                 }
@@ -249,24 +247,18 @@ pub trait Application {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-struct Size {
-    width: u16,
-    height: u16,
-}
+fn to_physical(size: winit::dpi::LogicalSize, dpi: f64) -> (u16, u16) {
+    let physical_size = size.to_physical(dpi);
 
-impl From<winit::dpi::PhysicalSize> for Size {
-    fn from(physical_size: winit::dpi::PhysicalSize) -> Self {
-        Self {
-            width: physical_size.width.round() as u16,
-            height: physical_size.height.round() as u16,
-        }
-    }
+    (
+        physical_size.width.round() as u16,
+        physical_size.height.round() as u16,
+    )
 }
 
 fn document<'a, Application>(
     application: &'a mut Application,
-    size: Size,
+    size: winit::dpi::LogicalSize,
     debug: &mut Debug,
 ) -> Element<'a, Application::Message, Application::Renderer>
 where
@@ -278,8 +270,8 @@ where
     debug.view_finished();
 
     Column::new()
-        .width(Length::Units(size.width))
-        .height(Length::Units(size.height))
+        .width(Length::Units(size.width.round() as u16))
+        .height(Length::Units(size.height.round() as u16))
         .push(view)
         .into()
 }

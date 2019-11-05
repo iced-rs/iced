@@ -28,3 +28,16 @@ impl Rectangle<f32> {
             && point.y <= self.y + self.height
     }
 }
+
+impl std::ops::Mul<f32> for Rectangle<u32> {
+    type Output = Self;
+
+    fn mul(self, scale: f32) -> Self {
+        Self {
+            x: (self.x as f32 * scale).round() as u32,
+            y: (self.y as f32 * scale).round() as u32,
+            width: (self.width as f32 * scale).round() as u32,
+            height: (self.height as f32 * scale).round() as u32,
+        }
+    }
+}
