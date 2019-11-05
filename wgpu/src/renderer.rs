@@ -1,7 +1,7 @@
 use crate::{font, quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
     renderer::Debugger, renderer::Windowed, Background, Color, Layout,
-    MouseCursor, Point, Rectangle, Widget,
+    MouseCursor, Point, Rectangle, Vector, Widget,
 };
 
 use wgpu::{
@@ -29,17 +29,17 @@ pub struct Renderer {
 
 pub struct Layer<'a> {
     bounds: Rectangle<u32>,
-    y_offset: u32,
+    offset: Vector<u32>,
     quads: Vec<Quad>,
     images: Vec<Image>,
     text: Vec<wgpu_glyph::Section<'a>>,
 }
 
 impl<'a> Layer<'a> {
-    pub fn new(bounds: Rectangle<u32>, y_offset: u32) -> Self {
+    pub fn new(bounds: Rectangle<u32>, offset: Vector<u32>) -> Self {
         Self {
             bounds,
-            y_offset,
+            offset,
             quads: Vec::new(),
             images: Vec::new(),
             text: Vec::new(),
@@ -127,7 +127,7 @@ impl Renderer {
                 width: u32::from(width),
                 height: u32::from(height),
             },
-            0,
+            Vector::new(0, 0),
         ));
 
         self.draw_primitive(primitive, &mut layers);
@@ -223,7 +223,10 @@ impl Renderer {
                 border_radius,
             } => {
                 layer.quads.push(Quad {
-                    position: [bounds.x, bounds.y - layer.y_offset as f32],
+                    position: [
+                        bounds.x - layer.offset.x as f32,
+                        bounds.y - layer.offset.y as f32,
+                    ],
                     scale: [bounds.width, bounds.height],
                     color: match background {
                         Background::Color(color) => color.into_linear(),
@@ -245,15 +248,15 @@ impl Renderer {
             } => {
                 let clip_layer = Layer::new(
                     Rectangle {
-                        x: bounds.x as u32,
-                        y: bounds.y as u32 - layer.y_offset,
+                        x: bounds.x as u32 - layer.offset.x,
+                        y: bounds.y as u32 - layer.offset.y,
                         width: bounds.width as u32,
                         height: bounds.height as u32,
                     },
-                    layer.y_offset + offset,
+                    layer.offset + *offset,
                 );
 
-                let new_layer = Layer::new(layer.bounds, layer.y_offset);
+                let new_layer = Layer::new(layer.bounds, layer.offset);
 
                 layers.push(clip_layer);
 
@@ -308,7 +311,10 @@ impl Renderer {
         target: &wgpu::TextureView,
     ) {
         let translated = transformation
-            * Transformation::translate(0.0, -(layer.y_offset as f32));
+            * Transformation::translate(
+                -(layer.offset.x as f32),
+                -(layer.offset.y as f32),
+            );
 
         if layer.quads.len() > 0 {
             self.quad_pipeline.draw(

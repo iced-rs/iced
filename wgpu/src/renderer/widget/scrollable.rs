@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
     scrollable, Background, Color, Layout, MouseCursor, Point, Rectangle,
-    Scrollable, Widget,
+    Scrollable, Vector, Widget,
 };
 
 const SCROLLBAR_WIDTH: u16 = 10;
@@ -58,7 +58,7 @@ impl scrollable::Renderer for Renderer {
 
         let clip = Primitive::Clip {
             bounds,
-            offset,
+            offset: Vector::new(0, offset),
             content: Box::new(content),
         };
 
