@@ -1,7 +1,5 @@
 use crate::Length;
 
-use std::ops::{Index, RangeTo};
-
 pub struct TextInput<'a, Message> {
     pub state: &'a mut State,
     pub placeholder: String,
@@ -93,13 +91,6 @@ impl State {
         Self::default()
     }
 
-    pub fn focused() -> Self {
-        Self {
-            is_focused: true,
-            ..Self::default()
-        }
-    }
-
     pub fn move_cursor_right(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
@@ -134,7 +125,7 @@ impl Value {
     }
 
     pub fn until(&self, index: usize) -> Self {
-        Self(self.0[..index].iter().cloned().collect())
+        Self(self.0[..index.min(self.len())].iter().cloned().collect())
     }
 
     pub fn to_string(&self) -> String {
@@ -153,13 +144,5 @@ impl Value {
 
     pub fn remove(&mut self, index: usize) {
         self.0.remove(index);
-    }
-}
-
-impl Index<RangeTo<usize>> for Value {
-    type Output = [char];
-
-    fn index(&self, index: RangeTo<usize>) -> &[char] {
-        &self.0[index]
     }
 }
