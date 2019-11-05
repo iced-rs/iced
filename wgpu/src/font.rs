@@ -1,3 +1,4 @@
+pub use font_kit::error::SelectionError as LoadError;
 pub use font_kit::family_name::FamilyName as Family;
 
 pub struct Source {
@@ -11,14 +12,11 @@ impl Source {
         }
     }
 
-    pub fn load(&self, families: &[Family]) -> Vec<u8> {
-        let font = self
-            .raw
-            .select_best_match(
-                families,
-                &font_kit::properties::Properties::default(),
-            )
-            .expect("Find font");
+    pub fn load(&self, families: &[Family]) -> Result<Vec<u8>, LoadError> {
+        let font = self.raw.select_best_match(
+            families,
+            &font_kit::properties::Properties::default(),
+        )?;
 
         match font {
             font_kit::handle::Handle::Path { path, .. } => {
@@ -28,10 +26,10 @@ impl Source {
                 let mut reader = std::fs::File::open(path).expect("Read font");
                 let _ = reader.read_to_end(&mut buf);
 
-                buf
+                Ok(buf)
             }
             font_kit::handle::Handle::Memory { bytes, .. } => {
-                bytes.as_ref().clone()
+                Ok(bytes.as_ref().clone())
             }
         }
     }

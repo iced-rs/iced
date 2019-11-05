@@ -64,14 +64,17 @@ impl Renderer {
 
         // TODO: Font customization
         let font_source = font::Source::new();
-        let sans_serif_font = font_source.load(&[font::Family::SansSerif]);
-        let mono_font = font_source.load(&[font::Family::Monospace]);
+        let default_font = font_source
+            .load(&[font::Family::SansSerif, font::Family::Serif])
+            .expect("Find sans-serif or serif font");
 
-        let glyph_brush = GlyphBrushBuilder::using_fonts_bytes(vec![
-            sans_serif_font,
-            mono_font,
-        ])
-        .build(&mut device, TextureFormat::Bgra8UnormSrgb);
+        let mono_font = font_source
+            .load(&[font::Family::Monospace])
+            .expect("Find monospace font");
+
+        let glyph_brush =
+            GlyphBrushBuilder::using_fonts_bytes(vec![default_font, mono_font])
+                .build(&mut device, TextureFormat::Bgra8UnormSrgb);
 
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
