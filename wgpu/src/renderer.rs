@@ -239,7 +239,7 @@ impl Renderer {
                     color: match background {
                         Background::Color(color) => color.into_linear(),
                     },
-                    border_radius: *border_radius as u32,
+                    border_radius: *border_radius as f32,
                 });
             }
             Primitive::Image { path, bounds } => {
@@ -327,13 +327,14 @@ impl Renderer {
                 encoder,
                 &layer.quads,
                 transformation,
+                dpi,
                 bounds,
                 target,
             );
         }
 
         if layer.images.len() > 0 {
-            let translated = transformation
+            let translated_and_scaled = transformation
                 * Transformation::scale(dpi, dpi)
                 * Transformation::translate(
                     -(layer.offset.x as f32),
@@ -344,7 +345,7 @@ impl Renderer {
                 &mut self.device,
                 encoder,
                 &layer.images,
-                translated,
+                translated_and_scaled,
                 bounds,
                 target,
             );
