@@ -2,7 +2,7 @@ use crate::{Primitive, Renderer};
 
 use iced_native::{
     text::HorizontalAlignment, text::VerticalAlignment, text_input, Background,
-    Color, MouseCursor, Point, Rectangle, TextInput,
+    Color, MouseCursor, Point, Rectangle, TextInput, Vector,
 };
 use std::f32;
 
@@ -89,7 +89,7 @@ impl text_input::Renderer for Renderer {
 
         let content = Primitive::Clip {
             bounds: text_bounds,
-            offset: 0,
+            offset: Vector::new(0, 0),
             content: Box::new(if text_input.state.is_focused {
                 use wgpu_glyph::{GlyphCruncher, Scale, Section};
 

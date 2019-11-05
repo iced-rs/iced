@@ -1,4 +1,4 @@
-use iced_native::{text, Background, Color, Rectangle};
+use iced_native::{text, Background, Color, Rectangle, Vector};
 
 #[derive(Debug, Clone)]
 pub enum Primitive {
@@ -25,7 +25,7 @@ pub enum Primitive {
     },
     Clip {
         bounds: Rectangle,
-        offset: u32,
+        offset: Vector<u32>,
         content: Box<Primitive>,
     },
 }

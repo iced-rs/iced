@@ -211,10 +211,8 @@ mod node;
 mod style;
 mod user_interface;
 
-pub(crate) use iced_core::Vector;
-
 pub use iced_core::{
-    Align, Background, Color, Justify, Length, Point, Rectangle,
+    Align, Background, Color, Justify, Length, Point, Rectangle, Vector,
 };
 
 #[doc(no_inline)]
