@@ -10,6 +10,7 @@ const SIZE: f32 = 28.0;
 impl checkbox::Renderer for Renderer {
     fn node<Message>(&self, checkbox: &Checkbox<Message>) -> Node {
         Row::<(), Self>::new()
+            .width(Length::Fill)
             .spacing(15)
             .align_items(Align::Center)
             .push(

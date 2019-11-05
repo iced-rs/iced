@@ -1,7 +1,7 @@
 use crate::{quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
     renderer::Debugger, renderer::Windowed, Background, Color, Layout,
-    MouseCursor, Point, Rectangle, Widget,
+    MouseCursor, Point, Rectangle, Vector, Widget,
 };
 
 use raw_window_handle::HasRawWindowHandle;
@@ -23,6 +23,7 @@ mod row;
 mod scrollable;
 mod slider;
 mod text;
+mod text_input;
 
 pub struct Renderer {
     surface: Surface,
@@ -43,17 +44,17 @@ pub struct Target {
 
 pub struct Layer<'a> {
     bounds: Rectangle<u32>,
-    y_offset: u32,
+    offset: Vector<u32>,
     quads: Vec<Quad>,
     images: Vec<Image>,
     text: Vec<wgpu_glyph::Section<'a>>,
 }
 
 impl<'a> Layer<'a> {
-    pub fn new(bounds: Rectangle<u32>, y_offset: u32) -> Self {
+    pub fn new(bounds: Rectangle<u32>, offset: Vector<u32>) -> Self {
         Self {
             bounds,
-            y_offset,
+            offset,
             quads: Vec::new(),
             images: Vec::new(),
             text: Vec::new(),
@@ -148,18 +149,18 @@ impl Renderer {
         });
 
         let mut layers = Vec::new();
-        let mut current = Layer::new(
+
+        layers.push(Layer::new(
             Rectangle {
                 x: 0,
                 y: 0,
                 width: u32::from(target.width),
                 height: u32::from(target.height),
             },
-            0,
-        );
+            Vector::new(0, 0),
+        ));
 
-        self.draw_primitive(primitive, &mut current, &mut layers);
-        layers.push(current);
+        self.draw_primitive(primitive, &mut layers);
 
         for layer in layers {
             self.flush(
@@ -178,15 +179,16 @@ impl Renderer {
     fn draw_primitive<'a>(
         &mut self,
         primitive: &'a Primitive,
-        layer: &mut Layer<'a>,
         layers: &mut Vec<Layer<'a>>,
     ) {
+        let layer = layers.last_mut().unwrap();
+
         match primitive {
             Primitive::None => {}
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
-                    self.draw_primitive(primitive, layer, layers)
+                    self.draw_primitive(primitive, layers)
                 }
             }
             Primitive::Text {
@@ -255,7 +257,10 @@ impl Renderer {
                 border_radius,
             } => {
                 layer.quads.push(Quad {
-                    position: [bounds.x, bounds.y - layer.y_offset as f32],
+                    position: [
+                        bounds.x - layer.offset.x as f32,
+                        bounds.y - layer.offset.y as f32,
+                    ],
                     scale: [bounds.width, bounds.height],
                     color: match background {
                         Background::Color(color) => color.into_linear(),
@@ -275,18 +280,22 @@ impl Renderer {
                 offset,
                 content,
             } => {
-                let mut new_layer = Layer::new(
+                let clip_layer = Layer::new(
                     Rectangle {
-                        x: bounds.x as u32,
-                        y: bounds.y as u32 - layer.y_offset,
+                        x: bounds.x as u32 - layer.offset.x,
+                        y: bounds.y as u32 - layer.offset.y,
                         width: bounds.width as u32,
                         height: bounds.height as u32,
                     },
-                    layer.y_offset + offset,
+                    layer.offset + *offset,
                 );
 
+                let new_layer = Layer::new(layer.bounds, layer.offset);
+
+                layers.push(clip_layer);
+
                 // TODO: Primitive culling
-                self.draw_primitive(content, &mut new_layer, layers);
+                self.draw_primitive(content, layers);
 
                 layers.push(new_layer);
             }
@@ -301,7 +310,10 @@ impl Renderer {
         target: &wgpu::TextureView,
     ) {
         let translated = transformation
-            * Transformation::translate(0.0, -(layer.y_offset as f32));
+            * Transformation::translate(
+                -(layer.offset.x as f32),
+                -(layer.offset.y as f32),
+            );
 
         if layer.quads.len() > 0 {
             self.quad_pipeline.draw(

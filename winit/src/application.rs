@@ -1,6 +1,8 @@
 use crate::{
-    column, conversion, input::mouse, renderer::Windowed, Cache, Column,
-    Element, Event, Length, MouseCursor, UserInterface,
+    column, conversion,
+    input::{keyboard, mouse},
+    renderer::Windowed,
+    Cache, Column, Element, Event, Length, MouseCursor, UserInterface,
 };
 
 pub trait Application {
@@ -167,6 +169,25 @@ pub trait Application {
                         ));
                     }
                 },
+                WindowEvent::ReceivedCharacter(c) => {
+                    events.push(Event::Keyboard(
+                        keyboard::Event::CharacterReceived(c),
+                    ));
+                }
+                WindowEvent::KeyboardInput {
+                    input:
+                        winit::event::KeyboardInput {
+                            virtual_keycode: Some(virtual_keycode),
+                            state,
+                            ..
+                        },
+                    ..
+                } => {
+                    events.push(Event::Keyboard(keyboard::Event::Input {
+                        key_code: conversion::key_code(virtual_keycode),
+                        state: conversion::button_state(state),
+                    }));
+                }
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }

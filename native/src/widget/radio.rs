@@ -9,7 +9,7 @@ pub use iced_core::Radio;
 impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message>
 where
     Renderer: self::Renderer,
-    Message: Copy + std::fmt::Debug,
+    Message: Clone + std::fmt::Debug,
 {
     fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
@@ -29,7 +29,7 @@ where
                 state: ButtonState::Pressed,
             }) => {
                 if layout.bounds().contains(cursor_position) {
-                    messages.push(self.on_click);
+                    messages.push(self.on_click.clone());
                 }
             }
             _ => {}
@@ -85,7 +85,7 @@ impl<'a, Message, Renderer> From<Radio<Message>>
     for Element<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
-    Message: 'static + Copy + std::fmt::Debug,
+    Message: 'static + Clone + std::fmt::Debug,
 {
     fn from(checkbox: Radio<Message>) -> Element<'a, Message, Renderer> {
         Element::new(checkbox)

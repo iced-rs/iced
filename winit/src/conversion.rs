@@ -9,6 +9,7 @@ pub fn mouse_cursor(mouse_cursor: MouseCursor) -> winit::window::CursorIcon {
         MouseCursor::Working => winit::window::CursorIcon::Progress,
         MouseCursor::Grab => winit::window::CursorIcon::Grab,
         MouseCursor::Grabbing => winit::window::CursorIcon::Grabbing,
+        MouseCursor::Text => winit::window::CursorIcon::Text,
     }
 }
 

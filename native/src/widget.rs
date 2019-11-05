@@ -29,6 +29,7 @@ pub mod row;
 pub mod scrollable;
 pub mod slider;
 pub mod text;
+pub mod text_input;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -48,6 +49,8 @@ pub use scrollable::Scrollable;
 pub use slider::Slider;
 #[doc(no_inline)]
 pub use text::Text;
+#[doc(no_inline)]
+pub use text_input::TextInput;
 
 use crate::{Event, Hasher, Layout, Node, Point};
 

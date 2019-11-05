@@ -19,7 +19,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
-    Message: Copy + std::fmt::Debug,
+    Message: Clone + std::fmt::Debug,
 {
     fn node(&self, renderer: &Renderer) -> Node {
         renderer.node(&self)
@@ -38,7 +38,7 @@ where
                 button: mouse::Button::Left,
                 state,
             }) => {
-                if let Some(on_press) = self.on_press {
+                if let Some(on_press) = self.on_press.clone() {
                     let bounds = layout.bounds();
 
                     match state {
@@ -108,7 +108,7 @@ impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer,
-    Message: 'static + Copy + std::fmt::Debug,
+    Message: 'static + Clone + std::fmt::Debug,
 {
     fn from(
         button: Button<'a, Message, Renderer>,

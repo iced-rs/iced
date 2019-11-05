@@ -18,4 +18,7 @@ pub enum MouseCursor {
 
     /// The cursor is grabbing a widget.
     Grabbing,
+
+    /// The cursor is over a text widget.
+    Text,
 }
