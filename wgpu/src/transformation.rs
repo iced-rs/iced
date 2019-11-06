@@ -29,7 +29,7 @@ impl Transformation {
 
     /// Creates a scale transformation.
     pub fn scale(x: f32, y: f32) -> Transformation {
-        Transformation(Mat4::from_scale(Vec3::new(x, y, 0.0)))
+        Transformation(Mat4::from_scale(Vec3::new(x, y, 1.0)))
     }
 }
 
