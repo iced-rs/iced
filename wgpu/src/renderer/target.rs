@@ -6,6 +6,7 @@ pub struct Target {
     surface: wgpu::Surface,
     width: u16,
     height: u16,
+    dpi: f32,
     transformation: Transformation,
     swap_chain: wgpu::SwapChain,
 }
@@ -13,6 +14,10 @@ pub struct Target {
 impl Target {
     pub fn dimensions(&self) -> (u16, u16) {
         (self.width, self.height)
+    }
+
+    pub fn dpi(&self) -> f32 {
+        self.dpi
     }
 
     pub fn transformation(&self) -> Transformation {
@@ -31,6 +36,7 @@ impl iced_native::renderer::Target for Target {
         window: &W,
         width: u16,
         height: u16,
+        dpi: f32,
         renderer: &Renderer,
     ) -> Target {
         let surface = wgpu::Surface::create(window);
@@ -41,14 +47,22 @@ impl iced_native::renderer::Target for Target {
             surface,
             width,
             height,
+            dpi,
             transformation: Transformation::orthographic(width, height),
             swap_chain,
         }
     }
 
-    fn resize(&mut self, width: u16, height: u16, renderer: &Renderer) {
+    fn resize(
+        &mut self,
+        width: u16,
+        height: u16,
+        dpi: f32,
+        renderer: &Renderer,
+    ) {
         self.width = width;
         self.height = height;
+        self.dpi = dpi;
         self.transformation = Transformation::orthographic(width, height);
         self.swap_chain =
             new_swap_chain(&self.surface, width, height, &renderer.device);

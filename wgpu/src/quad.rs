@@ -6,7 +6,7 @@ use std::mem;
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     constants: wgpu::BindGroup,
-    transform: wgpu::Buffer,
+    constants_buffer: wgpu::Buffer,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
     instances: wgpu::Buffer,
@@ -23,20 +23,20 @@ impl Pipeline {
                 }],
             });
 
-        let transform = device
+        let constants_buffer = device
             .create_buffer_mapped(
-                16,
+                1,
                 wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
             )
-            .fill_from_slice(Transformation::identity().as_ref());
+            .fill_from_slice(&[Uniforms::default()]);
 
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &constant_layout,
             bindings: &[wgpu::Binding {
                 binding: 0,
                 resource: wgpu::BindingResource::Buffer {
-                    buffer: &transform,
-                    range: 0..64,
+                    buffer: &constants_buffer,
+                    range: 0..std::mem::size_of::<Uniforms>() as u64,
                 },
             }],
         });
@@ -124,7 +124,7 @@ impl Pipeline {
                             },
                             wgpu::VertexAttributeDescriptor {
                                 shader_location: 4,
-                                format: wgpu::VertexFormat::Uint,
+                                format: wgpu::VertexFormat::Float,
                                 offset: 4 * (2 + 2 + 4),
                             },
                         ],
@@ -151,7 +151,7 @@ impl Pipeline {
         Pipeline {
             pipeline,
             constants,
-            transform,
+            constants_buffer,
             vertices,
             indices,
             instances,
@@ -164,19 +164,22 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         instances: &[Quad],
         transformation: Transformation,
+        scale: f32,
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
     ) {
-        let transform_buffer = device
-            .create_buffer_mapped(16, wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(transformation.as_ref());
+        let uniforms = Uniforms::new(transformation, scale);
+
+        let constants_buffer = device
+            .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&[uniforms]);
 
         encoder.copy_buffer_to_buffer(
-            &transform_buffer,
+            &constants_buffer,
             0,
-            &self.transform,
+            &self.constants_buffer,
             0,
-            16 * 4,
+            std::mem::size_of::<Uniforms>() as u64,
         );
 
         let mut i = 0;
@@ -271,9 +274,34 @@ pub struct Quad {
     pub position: [f32; 2],
     pub scale: [f32; 2],
     pub color: [f32; 4],
-    pub border_radius: u32,
+    pub border_radius: f32,
 }
 
 impl Quad {
     const MAX: usize = 100_000;
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+struct Uniforms {
+    transform: [f32; 16],
+    scale: f32,
+}
+
+impl Uniforms {
+    fn new(transformation: Transformation, scale: f32) -> Uniforms {
+        Self {
+            transform: *transformation.as_ref(),
+            scale,
+        }
+    }
+}
+
+impl Default for Uniforms {
+    fn default() -> Self {
+        Self {
+            transform: *Transformation::identity().as_ref(),
+            scale: 1.0,
+        }
+    }
 }

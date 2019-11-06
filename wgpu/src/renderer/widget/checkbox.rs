@@ -76,7 +76,7 @@ impl checkbox::Renderer for Renderer {
                         a: 1.0,
                     }
                 }),
-                border_radius: 6,
+                border_radius: 5,
             },
         );
 

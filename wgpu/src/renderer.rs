@@ -98,6 +98,7 @@ impl Renderer {
         log::debug!("Drawing");
 
         let (width, height) = target.dimensions();
+        let dpi = target.dpi();
         let transformation = target.transformation();
         let frame = target.next_frame();
 
@@ -137,7 +138,7 @@ impl Renderer {
         self.draw_overlay(overlay, &mut layers);
 
         for layer in layers {
-            self.flush(transformation, &layer, &mut encoder, &frame.view);
+            self.flush(dpi, transformation, &layer, &mut encoder, &frame.view);
         }
 
         self.queue.submit(&[encoder.finish()]);
@@ -190,7 +191,10 @@ impl Renderer {
 
                 layer.text.push(Section {
                     text: &content,
-                    screen_position: (x, y),
+                    screen_position: (
+                        x - layer.offset.x as f32,
+                        y - layer.offset.y as f32,
+                    ),
                     bounds: (bounds.width, bounds.height),
                     scale: wgpu_glyph::Scale { x: *size, y: *size },
                     color: color.into_linear(),
@@ -225,6 +229,7 @@ impl Renderer {
                 background,
                 border_radius,
             } => {
+                // TODO: Move some of this computations to the GPU (?)
                 layer.quads.push(Quad {
                     position: [
                         bounds.x - layer.offset.x as f32,
@@ -234,7 +239,7 @@ impl Renderer {
                     color: match background {
                         Background::Color(color) => color.into_linear(),
                     },
-                    border_radius: u32::from(*border_radius),
+                    border_radius: *border_radius as f32,
                 });
             }
             Primitive::Image { path, bounds } => {
@@ -308,16 +313,13 @@ impl Renderer {
 
     fn flush(
         &mut self,
+        dpi: f32,
         transformation: Transformation,
         layer: &Layer,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
     ) {
-        let translated = transformation
-            * Transformation::translate(
-                -(layer.offset.x as f32),
-                -(layer.offset.y as f32),
-            );
+        let bounds = layer.bounds * dpi;
 
         if layer.quads.len() > 0 {
             self.quad_pipeline.draw(
@@ -325,18 +327,26 @@ impl Renderer {
                 encoder,
                 &layer.quads,
                 transformation,
-                layer.bounds,
+                dpi,
+                bounds,
                 target,
             );
         }
 
         if layer.images.len() > 0 {
+            let translated_and_scaled = transformation
+                * Transformation::scale(dpi, dpi)
+                * Transformation::translate(
+                    -(layer.offset.x as f32),
+                    -(layer.offset.y as f32),
+                );
+
             self.image_pipeline.draw(
                 &mut self.device,
                 encoder,
                 &layer.images,
-                translated,
-                layer.bounds,
+                translated_and_scaled,
+                bounds,
                 target,
             );
         }
@@ -345,6 +355,20 @@ impl Renderer {
             let mut glyph_brush = self.glyph_brush.borrow_mut();
 
             for text in layer.text.iter() {
+                // Target physical coordinates directly to avoid blurry text
+                let text = Section {
+                    screen_position: (
+                        text.screen_position.0 * dpi,
+                        text.screen_position.1 * dpi,
+                    ),
+                    bounds: (text.bounds.0 * dpi, text.bounds.1 * dpi),
+                    scale: wgpu_glyph::Scale {
+                        x: text.scale.x * dpi,
+                        y: text.scale.y * dpi,
+                    },
+                    ..*text
+                };
+
                 glyph_brush.queue(text);
             }
 
@@ -353,12 +377,12 @@ impl Renderer {
                     &mut self.device,
                     encoder,
                     target,
-                    translated.into(),
+                    transformation.into(),
                     wgpu_glyph::Region {
-                        x: layer.bounds.x,
-                        y: layer.bounds.y,
-                        width: layer.bounds.width,
-                        height: layer.bounds.height,
+                        x: bounds.x,
+                        y: bounds.y,
+                        width: bounds.width,
+                        height: bounds.height,
                     },
                 )
                 .expect("Draw text");

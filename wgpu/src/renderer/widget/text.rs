@@ -6,6 +6,9 @@ use wgpu_glyph::{GlyphCruncher, Section};
 use std::cell::RefCell;
 use std::f32;
 
+// TODO: Obtain from renderer configuration
+const DEFAULT_TEXT_SIZE: f32 = 20.0;
+
 impl text::Renderer for Renderer {
     fn node(&self, text: &Text) -> Node {
         let glyph_brush = self.glyph_brush.clone();
@@ -18,7 +21,7 @@ impl text::Renderer for Renderer {
         // I noticed that the first measure is the one that matters in
         // practice. Here, we use a RefCell to store the cached measurement.
         let measure = RefCell::new(None);
-        let size = text.size.map(f32::from).unwrap_or(20.0);
+        let size = text.size.map(f32::from).unwrap_or(DEFAULT_TEXT_SIZE);
 
         let style = Style::default().width(text.width);
 
@@ -71,7 +74,7 @@ impl text::Renderer for Renderer {
         (
             Primitive::Text {
                 content: text.content.clone(),
-                size: f32::from(text.size.unwrap_or(20)),
+                size: text.size.map(f32::from).unwrap_or(DEFAULT_TEXT_SIZE),
                 bounds: layout.bounds(),
                 color: text.color.unwrap_or(Color::BLACK),
                 horizontal_alignment: text.horizontal_alignment,
