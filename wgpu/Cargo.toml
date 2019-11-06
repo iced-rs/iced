@@ -13,6 +13,6 @@ wgpu = { version = "0.3", git = "https://github.com/gfx-rs/wgpu-rs", rev = "ed2c
 wgpu_glyph = { version = "0.4", git = "https://github.com/hecrj/wgpu_glyph", rev = "954ac865ca1b7f6b97bf403f8c6174a7120e667c" }
 raw-window-handle = "0.3"
 image = "0.22"
-glam = "0.8"
+glam = { git = "https://github.com/bitshifter/glam-rs?31" }
 font-kit = "0.4"
 log = "0.4"
