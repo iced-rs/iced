@@ -6,7 +6,8 @@ use wgpu_glyph::{GlyphCruncher, Section};
 use std::cell::RefCell;
 use std::f32;
 
-pub const DEFAULT_TEXT_SIZE : f32 = 20.0*3.0;
+// TODO: Obtain from renderer configuration
+const DEFAULT_TEXT_SIZE: f32 = 20.0;
 
 impl text::Renderer for Renderer {
     fn node(&self, text: &Text) -> Node {
