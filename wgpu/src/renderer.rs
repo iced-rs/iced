@@ -254,24 +254,31 @@ impl Renderer {
                 offset,
                 content,
             } => {
-                let clip_layer = Layer::new(
-                    Rectangle {
-                        x: bounds.x as u32 - layer.offset.x,
-                        y: bounds.y as u32 - layer.offset.y,
-                        width: bounds.width as u32,
-                        height: bounds.height as u32,
-                    },
-                    layer.offset + *offset,
-                );
+                let x = bounds.x - layer.offset.x as f32;
+                let y = bounds.y - layer.offset.y as f32;
+                let width = (bounds.width + x).min(bounds.width);
+                let height = (bounds.height + y).min(bounds.height);
 
-                let new_layer = Layer::new(layer.bounds, layer.offset);
+                // Only draw visible content on-screen
+                // TODO: Also, check for parent layer bounds to avoid further
+                // drawing in some circumstances.
+                if width > 0.0 && height > 0.0 {
+                    let clip_layer = Layer::new(
+                        Rectangle {
+                            x: x.max(0.0).floor() as u32,
+                            y: y.max(0.0).floor() as u32,
+                            width: width.ceil() as u32,
+                            height: height.ceil() as u32,
+                        },
+                        layer.offset + *offset,
+                    );
 
-                layers.push(clip_layer);
+                    let new_layer = Layer::new(layer.bounds, layer.offset);
 
-                // TODO: Primitive culling
-                self.draw_primitive(content, layers);
-
-                layers.push(new_layer);
+                    layers.push(clip_layer);
+                    self.draw_primitive(content, layers);
+                    layers.push(new_layer);
+                }
             }
         }
     }
