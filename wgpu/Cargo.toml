@@ -9,8 +9,8 @@ repository = "https://github.com/hecrj/iced"
 
 [dependencies]
 iced_native = { version = "0.1.0-alpha", path = "../native" }
-wgpu = { version = "0.3", git = "https://github.com/gfx-rs/wgpu-rs", rev = "ed2c67f762970d0099c1e6c6e078fb645afbf964" }
-wgpu_glyph = { version = "0.4", git = "https://github.com/hecrj/wgpu_glyph", rev = "954ac865ca1b7f6b97bf403f8c6174a7120e667c" }
+wgpu = "0.4"
+wgpu_glyph = { version = "0.5", git = "https://github.com/hecrj/wgpu_glyph", branch = "feature/scissoring" }
 raw-window-handle = "0.3"
 image = "0.22"
 glam = "0.8"
