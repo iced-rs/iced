@@ -265,8 +265,8 @@ impl Renderer {
                 if width > 0.0 && height > 0.0 {
                     let clip_layer = Layer::new(
                         Rectangle {
-                            x: x.max(0.0).ceil() as u32,
-                            y: y.max(0.0).ceil() as u32,
+                            x: x.max(0.0).floor() as u32,
+                            y: y.max(0.0).floor() as u32,
                             width: width.ceil() as u32,
                             height: height.ceil() as u32,
                         },
