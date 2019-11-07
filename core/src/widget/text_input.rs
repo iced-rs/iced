@@ -125,17 +125,12 @@ impl Value {
     }
 
     pub fn until(&self, index: usize) -> Self {
-        Self(self.0[..index.min(self.len())].iter().cloned().collect())
+        Self(self.0[..index.min(self.len())].to_vec())
     }
 
     pub fn to_string(&self) -> String {
-        let mut string = String::new();
-
-        for c in self.0.iter() {
-            string.push(*c);
-        }
-
-        string
+        use std::iter::FromIterator;
+        String::from_iter(self.0.iter())
     }
 
     pub fn insert(&mut self, index: usize, c: char) {

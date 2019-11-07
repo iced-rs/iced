@@ -33,7 +33,7 @@ impl Application for Todos {
             Message::CreateTask => {
                 if !self.input_value.is_empty() {
                     self.tasks.push(Task::new(self.input_value.clone()));
-                    self.input_value = String::new();
+                    self.input_value.clear();
                 }
             }
             Message::TaskChanged(i, completed) => {
