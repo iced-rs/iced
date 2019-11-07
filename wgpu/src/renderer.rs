@@ -365,8 +365,8 @@ impl Renderer {
                 // Target physical coordinates directly to avoid blurry text
                 let text = Section {
                     screen_position: (
-                        text.screen_position.0 * dpi,
-                        text.screen_position.1 * dpi,
+                        (text.screen_position.0 * dpi).round(),
+                        (text.screen_position.1 * dpi).round(),
                     ),
                     bounds: (text.bounds.0 * dpi, text.bounds.1 * dpi),
                     scale: wgpu_glyph::Scale {
