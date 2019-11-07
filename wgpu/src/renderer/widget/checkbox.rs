@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
     checkbox, text, text::HorizontalAlignment, text::VerticalAlignment, Align,
-    Background, Checkbox, Color, Column, Layout, Length, MouseCursor, Node,
+    Background, Checkbox, Column, Layout, Length, MouseCursor, Node,
     Point, Rectangle, Row, Text, Widget,
 };
 
@@ -46,12 +46,7 @@ impl checkbox::Renderer for Renderer {
         let (checkbox_border, checkbox_box) = (
             Primitive::Quad {
                 bounds: checkbox_bounds,
-                background: Background::Color(Color {
-                    r: 0.6,
-                    g: 0.6,
-                    b: 0.6,
-                    a: 1.0,
-                }),
+                background: Background::Color([0.6, 0.6, 0.6].into()),
                 border_radius: 6,
             },
             Primitive::Quad {
@@ -61,21 +56,14 @@ impl checkbox::Renderer for Renderer {
                     width: checkbox_bounds.width - 2.0,
                     height: checkbox_bounds.height - 2.0,
                 },
-                background: Background::Color(if is_mouse_over {
-                    Color {
-                        r: 0.90,
-                        g: 0.90,
-                        b: 0.90,
-                        a: 1.0,
+                background: Background::Color(
+                    if is_mouse_over {
+                        [0.90, 0.90, 0.90]
+                    } else {
+                        [0.95, 0.95, 0.95]
                     }
-                } else {
-                    Color {
-                        r: 0.95,
-                        g: 0.95,
-                        b: 0.95,
-                        a: 1.0,
-                    }
-                }),
+                    .into(),
+                ),
                 border_radius: 5,
             },
         );

@@ -1,6 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    scrollable, Background, Color, Layout, MouseCursor, Point, Rectangle,
+    scrollable, Background, Layout, MouseCursor, Point, Rectangle,
     Scrollable, Vector, Widget,
 };
 
@@ -78,12 +78,7 @@ impl scrollable::Renderer for Renderer {
                             - f32::from(2 * SCROLLBAR_MARGIN),
                         height: scrollbar_height,
                     },
-                    background: Background::Color(Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.7,
-                    }),
+                    background: Background::Color([0.0, 0.0, 0.0, 0.7].into()),
                     border_radius: 5,
                 };
 
@@ -97,12 +92,9 @@ impl scrollable::Renderer for Renderer {
                                 - f32::from(2 * SCROLLBAR_MARGIN),
                             ..scrollbar_bounds
                         },
-                        background: Background::Color(Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 0.3,
-                        }),
+                        background: Background::Color(
+                            [0.0, 0.0, 0.0, 0.3].into(),
+                        ),
                         border_radius: 5,
                     };
 

@@ -1,6 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    button, Align, Background, Button, Color, Layout, Length, MouseCursor,
+    button, Align, Background, Button, Layout, Length, MouseCursor,
     Node, Point, Rectangle, Style,
 };
 
@@ -53,23 +53,15 @@ impl button::Renderer for Renderer {
                             y: bounds.y + shadow_offset,
                             ..bounds
                         },
-                        background: Background::Color(Color {
-                            r: 0.0,
-                            b: 0.0,
-                            g: 0.0,
-                            a: 0.5,
-                        }),
+                        background: Background::Color(
+                            [0.0, 0.0, 0.0, 0.5].into(),
+                        ),
                         border_radius: button.border_radius,
                     },
                     Primitive::Quad {
                         bounds,
                         background: button.background.unwrap_or(
-                            Background::Color(Color {
-                                r: 0.8,
-                                b: 0.8,
-                                g: 0.8,
-                                a: 1.0,
-                            }),
+                            Background::Color([0.8, 0.8, 0.8].into()),
                         ),
                         border_radius: button.border_radius,
                     },

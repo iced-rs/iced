@@ -1,6 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    radio, text, Align, Background, Color, Column, Layout, Length, MouseCursor,
+    radio, text, Align, Background, Column, Layout, Length, MouseCursor,
     Node, Point, Radio, Rectangle, Row, Text, Widget,
 };
 
@@ -41,12 +41,7 @@ impl radio::Renderer for Renderer {
         let (radio_border, radio_box) = (
             Primitive::Quad {
                 bounds: radio_bounds,
-                background: Background::Color(Color {
-                    r: 0.6,
-                    g: 0.6,
-                    b: 0.6,
-                    a: 1.0,
-                }),
+                background: Background::Color([0.6, 0.6, 0.6].into()),
                 border_radius: (SIZE / 2.0) as u16,
             },
             Primitive::Quad {
@@ -56,21 +51,14 @@ impl radio::Renderer for Renderer {
                     width: radio_bounds.width - 2.0,
                     height: radio_bounds.height - 2.0,
                 },
-                background: Background::Color(if is_mouse_over {
-                    Color {
-                        r: 0.90,
-                        g: 0.90,
-                        b: 0.90,
-                        a: 1.0,
+                background: Background::Color(
+                    if is_mouse_over {
+                        [0.90, 0.90, 0.90]
+                    } else {
+                        [0.95, 0.95, 0.95]
                     }
-                } else {
-                    Color {
-                        r: 0.95,
-                        g: 0.95,
-                        b: 0.95,
-                        a: 1.0,
-                    }
-                }),
+                    .into(),
+                ),
                 border_radius: (SIZE / 2.0 - 1.0) as u16,
             },
         );
@@ -85,12 +73,7 @@ impl radio::Renderer for Renderer {
                             width: radio_bounds.width - DOT_SIZE,
                             height: radio_bounds.height - DOT_SIZE,
                         },
-                        background: Background::Color(Color {
-                            r: 0.30,
-                            g: 0.30,
-                            b: 0.30,
-                            a: 1.0,
-                        }),
+                        background: Background::Color([0.3, 0.3, 0.3].into()),
                         border_radius: (DOT_SIZE / 2.0) as u16,
                     };
 

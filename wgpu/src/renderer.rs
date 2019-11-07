@@ -444,12 +444,7 @@ fn explain_layout(
     // TODO: Draw borders instead
     primitives.push(Primitive::Quad {
         bounds: layout.bounds(),
-        background: Background::Color(Color {
-            r: 0.0,
-            g: 0.0,
-            b: 0.0,
-            a: 0.05,
-        }),
+        background: Background::Color([0.0, 0.0, 0.0, 0.05].into()),
         border_radius: 0,
     });
 

@@ -44,3 +44,15 @@ impl Color {
         ]
     }
 }
+
+impl From<[f32; 3]> for Color {
+    fn from([r, g, b]: [f32; 3]) -> Self {
+        Color { r, g, b, a: 1.0 }
+    }
+}
+
+impl From<[f32; 4]> for Color {
+    fn from([r, g, b, a]: [f32; 4]) -> Self {
+        Color { r, g, b, a }
+    }
+}
