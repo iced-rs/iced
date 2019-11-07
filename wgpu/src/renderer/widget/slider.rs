@@ -37,12 +37,7 @@ impl slider::Renderer for Renderer {
                     width: bounds.width,
                     height: 2.0,
                 },
-                background: Background::Color(Color {
-                    r: 0.6,
-                    g: 0.6,
-                    b: 0.6,
-                    a: 1.0,
-                }),
+                background: Background::Color([0.6, 0.6, 0.6].into()),
                 border_radius: 0,
             },
             Primitive::Quad {
@@ -71,12 +66,7 @@ impl slider::Renderer for Renderer {
                     width: HANDLE_WIDTH + 2.0,
                     height: HANDLE_HEIGHT + 2.0,
                 },
-                background: Background::Color(Color {
-                    r: 0.6,
-                    g: 0.6,
-                    b: 0.6,
-                    a: 1.0,
-                }),
+                background: Background::Color([0.6, 0.6, 0.6].into()),
                 border_radius: 5,
             },
             Primitive::Quad {
@@ -86,28 +76,16 @@ impl slider::Renderer for Renderer {
                     width: HANDLE_WIDTH,
                     height: HANDLE_HEIGHT,
                 },
-                background: Background::Color(if slider.state.is_dragging() {
-                    Color {
-                        r: 0.85,
-                        g: 0.85,
-                        b: 0.85,
-                        a: 1.0,
+                background: Background::Color(
+                    if slider.state.is_dragging() {
+                        [0.85, 0.85, 0.85]
+                    } else if is_mouse_over {
+                        [0.90, 0.90, 0.90]
+                    } else {
+                        [0.95, 0.95, 0.95]
                     }
-                } else if is_mouse_over {
-                    Color {
-                        r: 0.9,
-                        g: 0.9,
-                        b: 0.9,
-                        a: 1.0,
-                    }
-                } else {
-                    Color {
-                        r: 0.95,
-                        g: 0.95,
-                        b: 0.95,
-                        a: 1.0,
-                    }
-                }),
+                    .into(),
+                ),
                 border_radius: 4,
             },
         );

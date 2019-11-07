@@ -25,20 +25,11 @@ impl text_input::Renderer for Renderer {
             bounds,
             background: Background::Color(
                 if is_mouse_over || text_input.state.is_focused {
-                    Color {
-                        r: 0.5,
-                        g: 0.5,
-                        b: 0.5,
-                        a: 1.0,
-                    }
+                    [0.5, 0.5, 0.5]
                 } else {
-                    Color {
-                        r: 0.7,
-                        g: 0.7,
-                        b: 0.7,
-                        a: 1.0,
-                    }
-                },
+                    [0.7, 0.7, 0.7]
+                }
+                .into(),
             ),
             border_radius: 5,
         };
@@ -64,20 +55,11 @@ impl text_input::Renderer for Renderer {
                 text.clone()
             },
             color: if text.is_empty() {
-                Color {
-                    r: 0.7,
-                    g: 0.7,
-                    b: 0.7,
-                    a: 1.0,
-                }
+                [0.7, 0.7, 0.7]
             } else {
-                Color {
-                    r: 0.3,
-                    g: 0.3,
-                    b: 0.3,
-                    a: 1.0,
-                }
-            },
+                [0.3, 0.3, 0.3]
+            }
+            .into(),
             bounds: Rectangle {
                 width: f32::INFINITY,
                 ..text_bounds
