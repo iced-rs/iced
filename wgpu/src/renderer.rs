@@ -74,6 +74,7 @@ impl Renderer {
 
         let glyph_brush =
             GlyphBrushBuilder::using_fonts_bytes(vec![default_font, mono_font])
+                .initial_cache_size((2048, 2048))
                 .build(&mut device, TextureFormat::Bgra8UnormSrgb);
 
         let quad_pipeline = quad::Pipeline::new(&mut device);
@@ -365,8 +366,8 @@ impl Renderer {
                 // Target physical coordinates directly to avoid blurry text
                 let text = Section {
                     screen_position: (
-                        text.screen_position.0 * dpi,
-                        text.screen_position.1 * dpi,
+                        (text.screen_position.0 * dpi).round(),
+                        (text.screen_position.1 * dpi).round(),
                     ),
                     bounds: (text.bounds.0 * dpi, text.bounds.1 * dpi),
                     scale: wgpu_glyph::Scale {
