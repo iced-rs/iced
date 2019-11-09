@@ -16,31 +16,35 @@ pub trait Application {
 
     fn view(&mut self) -> Element<Self::Message, Self::Renderer>;
 
-    fn run(mut self)
+    fn new(self) -> (winit::event_loop::EventLoop<()>, winit::window::Window)
     where
         Self: 'static + Sized,
     {
-        use winit::{
-            event::{self, WindowEvent},
-            event_loop::{ControlFlow, EventLoop},
-            window::WindowBuilder,
-        };
-
-        let mut debug = Debug::new();
-        let mut title = self.title();
-
-        debug.startup_started();
-        let event_loop = EventLoop::new();
-
-        // TODO: Ask for window settings and configure this properly
-        let window = WindowBuilder::new()
-            .with_title(&title)
+        let event_loop = winit::event_loop::EventLoop::new();
+        let window = winit::window::WindowBuilder::new()
+            .with_title(&self.title())
             .with_inner_size(winit::dpi::LogicalSize {
                 width: 1280.0,
                 height: 1024.0,
             })
             .build(&event_loop)
             .expect("Open window");
+        (event_loop, window)
+    }
+
+    fn run(mut self, event_loop : winit::event_loop::EventLoop<()>, window : winit::window::Window)
+    where
+        Self: 'static + Sized,
+    {
+        use winit::{
+            event::{self, WindowEvent},
+            event_loop::{ControlFlow},
+        };
+
+        let mut debug = Debug::new();
+        let mut title = self.title();
+
+        debug.startup_started();
 
         let dpi = window.hidpi_factor();
         let mut size = window.inner_size();

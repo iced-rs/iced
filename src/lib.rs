@@ -13,15 +13,26 @@ pub trait Application {
 
     fn view(&mut self) -> Element<Self::Message>;
 
-    fn run(self)
+    fn new(self) -> (platform::EventLoop<()>, platform::Window)
     where
         Self: 'static + Sized,
     {
         #[cfg(not(target_arch = "wasm32"))]
-        iced_winit::Application::run(Instance(self));
+        return iced_winit::Application::new(Instance(self));
 
         #[cfg(target_arch = "wasm32")]
-        iced_web::Application::run(Instance(self));
+        ((), ())
+    }
+
+    fn run(self, event_loop : platform::EventLoop<()>, window : platform::Window)
+    where
+        Self: 'static + Sized,
+    {
+        #[cfg(not(target_arch = "wasm32"))]
+        iced_winit::Application::run(Instance(self), event_loop, window);
+
+        #[cfg(target_arch = "wasm32")]
+        iced_web::Application::new_run(Instance(self));
     }
 }
 

@@ -1,3 +1,7 @@
+pub use iced_winit::winit::event_loop::EventLoop;
+pub use iced_winit::winit::window::Window;
+pub use iced_winit::winit::dpi;
+
 pub use iced_wgpu::{Primitive, Renderer};
 
 pub use iced_winit::{
