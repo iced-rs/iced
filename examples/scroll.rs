@@ -25,6 +25,10 @@ pub enum Message {
 impl Application for Example {
     type Message = Message;
 
+    fn title(&self) -> String {
+        String::from("Scroll - Iced")
+    }
+
     fn update(&mut self, message: Message) {
         match message {
             Message::AddItem => {

@@ -7,9 +7,7 @@ use iced::{
 pub fn main() {
     env_logger::init();
 
-    let tour = Tour::new();
-
-    tour.run();
+    Tour::new().run()
 }
 
 pub struct Tour {
@@ -35,6 +33,10 @@ impl Tour {
 impl Application for Tour {
     type Message = Message;
 
+    fn title(&self) -> String {
+        format!("{} - Iced", self.steps.title())
+    }
+
     fn update(&mut self, event: Message) {
         match event {
             Message::BackPressed => {
@@ -52,6 +54,7 @@ impl Application for Tour {
     fn view(&mut self) -> Element<Message> {
         let Tour {
             steps,
+            scroll,
             back_button,
             next_button,
             ..
@@ -93,7 +96,7 @@ impl Application for Tour {
             .height(Length::Fill)
             .justify_content(Justify::Center)
             .push(
-                Scrollable::new(&mut self.scroll)
+                Scrollable::new(scroll)
                     .align_items(Align::Center)
                     .push(element),
             )
@@ -177,6 +180,10 @@ impl Steps {
     fn can_continue(&self) -> bool {
         self.current + 1 < self.steps.len()
             && self.steps[self.current].can_continue()
+    }
+
+    fn title(&self) -> &str {
+        self.steps[self.current].title()
     }
 }
 
@@ -277,6 +284,21 @@ impl<'a> Step {
         };
     }
 
+    fn title(&self) -> &str {
+        match self {
+            Step::Welcome => "Welcome",
+            Step::Radio { .. } => "Radio button",
+            Step::Slider { .. } => "Slider",
+            Step::Text { .. } => "Text",
+            Step::Image { .. } => "Image",
+            Step::RowsAndColumns { .. } => "Rows and columns",
+            Step::Scrollable => "Scrollable",
+            Step::TextInput { .. } => "Text input",
+            Step::Debugger => "Debugger",
+            Step::End => "End",
+        }
+    }
+
     fn can_continue(&self) -> bool {
         match self {
             Step::Welcome => true,
@@ -294,30 +316,27 @@ impl<'a> Step {
 
     fn view(&mut self, debug: bool) -> Element<StepMessage> {
         match self {
-            Step::Welcome => Self::welcome().into(),
-            Step::Radio { selection } => Self::radio(*selection).into(),
-            Step::Slider { state, value } => Self::slider(state, *value).into(),
+            Step::Welcome => Self::welcome(),
+            Step::Radio { selection } => Self::radio(*selection),
+            Step::Slider { state, value } => Self::slider(state, *value),
             Step::Text {
                 size_slider,
                 size,
                 color_sliders,
                 color,
-            } => Self::text(size_slider, *size, color_sliders, *color).into(),
-            Step::Image { width, slider } => Self::image(*width, slider).into(),
+            } => Self::text(size_slider, *size, color_sliders, *color),
+            Step::Image { width, slider } => Self::image(*width, slider),
             Step::RowsAndColumns {
                 layout,
                 spacing_slider,
                 spacing,
-            } => {
-                Self::rows_and_columns(*layout, spacing_slider, *spacing).into()
-            }
-            Step::Scrollable => Self::scrollable().into(),
-            Step::TextInput { value, state } => {
-                Self::text_input(value, state).into()
-            }
-            Step::Debugger => Self::debugger(debug).into(),
-            Step::End => Self::end().into(),
+            } => Self::rows_and_columns(*layout, spacing_slider, *spacing),
+            Step::Scrollable => Self::scrollable(),
+            Step::TextInput { value, state } => Self::text_input(value, state),
+            Step::Debugger => Self::debugger(debug),
+            Step::End => Self::end(),
         }
+        .into()
     }
 
     fn container(title: &str) -> Column<'a, StepMessage> {

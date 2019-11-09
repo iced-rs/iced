@@ -7,6 +7,8 @@ pub use platform::*;
 pub trait Application {
     type Message: std::fmt::Debug;
 
+    fn title(&self) -> String;
+
     fn update(&mut self, message: Self::Message);
 
     fn view(&mut self) -> Element<Self::Message>;
@@ -32,6 +34,10 @@ where
 {
     type Renderer = Renderer;
     type Message = A::Message;
+
+    fn title(&self) -> String {
+        self.0.title()
+    }
 
     fn update(&mut self, message: Self::Message) {
         self.0.update(message);
