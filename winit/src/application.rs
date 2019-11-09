@@ -10,6 +10,8 @@ pub trait Application {
 
     type Message: std::fmt::Debug;
 
+    fn title(&self) -> String;
+
     fn update(&mut self, message: Self::Message);
 
     fn view(&mut self) -> Element<Self::Message, Self::Renderer>;
@@ -25,12 +27,14 @@ pub trait Application {
         };
 
         let mut debug = Debug::new();
+        let mut title = self.title();
 
         debug.startup_started();
         let event_loop = EventLoop::new();
 
         // TODO: Ask for window settings and configure this properly
         let window = WindowBuilder::new()
+            .with_title(&title)
             .with_inner_size(winit::dpi::LogicalSize {
                 width: 1280.0,
                 height: 1024.0,
@@ -110,6 +114,15 @@ pub trait Application {
                         debug.update_started();
                         self.update(message);
                         debug.update_finished();
+                    }
+
+                    // Update window title
+                    let new_title = self.title();
+
+                    if title != new_title {
+                        window.set_title(&new_title);
+
+                        title = new_title;
                     }
 
                     debug.layout_started();

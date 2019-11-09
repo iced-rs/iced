@@ -25,6 +25,10 @@ pub enum Message {
 impl Application for Todos {
     type Message = Message;
 
+    fn title(&self) -> String {
+        String::from("Todos - Iced")
+    }
+
     fn update(&mut self, message: Message) {
         match message {
             Message::InputChanged(value) => {
