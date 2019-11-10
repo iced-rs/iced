@@ -207,6 +207,7 @@ mod element;
 mod event;
 mod hasher;
 mod mouse_cursor;
+mod size;
 mod user_interface;
 
 pub use iced_core::{
@@ -219,5 +220,6 @@ pub use hasher::Hasher;
 pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
 pub use renderer::Renderer;
+pub use size::Size;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;

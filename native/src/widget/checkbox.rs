@@ -10,14 +10,18 @@ impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
 where
     Renderer: self::Renderer,
 {
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         renderer.layout(&self, limits)
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
@@ -40,7 +44,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout, cursor_position)
@@ -67,7 +71,7 @@ pub trait Renderer: crate::Renderer {
         &self,
         checkbox: &Checkbox<Message>,
         limits: &layout::Limits,
-    ) -> Layout;
+    ) -> layout::Node;
 
     /// Draws a [`Checkbox`].
     ///
@@ -81,7 +85,7 @@ pub trait Renderer: crate::Renderer {
     fn draw<Message>(
         &mut self,
         checkbox: &Checkbox<Message>,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output;
 }

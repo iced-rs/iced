@@ -9,9 +9,8 @@ use wgpu::{
     Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions,
     TextureFormat,
 };
-use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Section};
 
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
 
 mod target;
 mod widget;
@@ -24,7 +23,7 @@ pub struct Renderer {
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
 
-    glyph_brush: Rc<RefCell<GlyphBrush<'static, ()>>>,
+    glyph_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
 }
 
 pub struct Layer<'a> {
@@ -72,8 +71,10 @@ impl Renderer {
             .load(&[font::Family::Monospace])
             .expect("Find monospace font");
 
+        let fonts = vec![default_font, mono_font];
+
         let glyph_brush =
-            GlyphBrushBuilder::using_fonts_bytes(vec![default_font, mono_font])
+            wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(fonts)
                 .initial_cache_size((2048, 2048))
                 .build(&mut device, TextureFormat::Bgra8UnormSrgb);
 
@@ -86,7 +87,7 @@ impl Renderer {
             quad_pipeline,
             image_pipeline,
 
-            glyph_brush: Rc::new(RefCell::new(glyph_brush)),
+            glyph_brush: RefCell::new(glyph_brush),
         }
     }
 
@@ -190,7 +191,7 @@ impl Renderer {
                     }
                 };
 
-                layer.text.push(Section {
+                layer.text.push(wgpu_glyph::Section {
                     text: &content,
                     screen_position: (
                         x - layer.offset.x as f32,
@@ -297,22 +298,22 @@ impl Renderer {
         let scale = wgpu_glyph::Scale { x: 20.0, y: 20.0 };
 
         for (i, line) in lines.iter().enumerate() {
-            overlay.text.push(Section {
+            overlay.text.push(wgpu_glyph::Section {
                 text: line.as_ref(),
                 screen_position: (11.0, 11.0 + 25.0 * i as f32),
                 color: [0.9, 0.9, 0.9, 1.0],
                 scale,
                 font_id,
-                ..Section::default()
+                ..wgpu_glyph::Section::default()
             });
 
-            overlay.text.push(Section {
+            overlay.text.push(wgpu_glyph::Section {
                 text: line.as_ref(),
                 screen_position: (10.0, 10.0 + 25.0 * i as f32),
                 color: [0.0, 0.0, 0.0, 1.0],
                 scale,
                 font_id,
-                ..Section::default()
+                ..wgpu_glyph::Section::default()
             });
         }
 
@@ -364,7 +365,7 @@ impl Renderer {
 
             for text in layer.text.iter() {
                 // Target physical coordinates directly to avoid blurry text
-                let text = Section {
+                let text = wgpu_glyph::Section {
                     screen_position: (
                         (text.screen_position.0 * dpi).round(),
                         (text.screen_position.1 * dpi).round(),
@@ -423,7 +424,7 @@ impl Debugger for Renderer {
     fn explain<Message>(
         &mut self,
         widget: &dyn Widget<Message, Self>,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
         color: Color,
     ) -> Self::Output {
@@ -438,7 +439,7 @@ impl Debugger for Renderer {
 }
 
 fn explain_layout(
-    layout: &Layout,
+    layout: Layout<'_>,
     color: Color,
     primitives: &mut Vec<Primitive>,
 ) {

@@ -1,5 +1,5 @@
 //! Write some text for your users to read.
-use crate::{layout, Element, Hasher, Layout, Point, Widget};
+use crate::{layout, Element, Hasher, Layout, Length, Point, Widget};
 
 use std::hash::Hash;
 
@@ -9,14 +9,22 @@ impl<Message, Renderer> Widget<Message, Renderer> for Text
 where
     Renderer: self::Renderer,
 {
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         renderer.layout(&self, limits)
     }
 
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout)
@@ -49,7 +57,7 @@ pub trait Renderer: crate::Renderer {
     /// [`Style`]: ../../struct.Style.html
     /// [`Text`]: struct.Text.html
     /// [`Node::with_measure`]: ../../struct.Node.html#method.with_measure
-    fn layout(&self, text: &Text, limits: &layout::Limits) -> Layout;
+    fn layout(&self, text: &Text, limits: &layout::Limits) -> layout::Node;
 
     /// Draws a [`Text`] fragment.
     ///
@@ -64,7 +72,7 @@ pub trait Renderer: crate::Renderer {
     /// [`Text`]: struct.Text.html
     /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
     /// [`VerticalAlignment`]: enum.VerticalAlignment.html
-    fn draw(&mut self, text: &Text, layout: &Layout) -> Self::Output;
+    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Text> for Element<'a, Message, Renderer>

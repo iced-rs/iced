@@ -52,7 +52,7 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{layout, Event, Hasher, Layout, Point};
+use crate::{layout, Event, Hasher, Layout, Length, Point};
 
 /// A component that displays information and allows interaction.
 ///
@@ -73,7 +73,19 @@ where
     /// [`Node`]: ../struct.Node.html
     /// [`Widget`]: trait.Widget.html
     /// [`Layout`]: ../struct.Layout.html
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout;
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node;
+
+    fn width(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     ///
@@ -81,7 +93,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output;
 
@@ -117,7 +129,7 @@ where
     fn on_event(
         &mut self,
         _event: Event,
-        _layout: &Layout,
+        _layout: Layout<'_>,
         _cursor_position: Point,
         _messages: &mut Vec<Message>,
         _renderer: &Renderer,

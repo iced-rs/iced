@@ -1,5 +1,7 @@
 use crate::{Align, Justify, Length};
 
+use std::u32;
+
 /// A container that distributes its contents vertically.
 ///
 /// A [`Column`] will try to fill the horizontal space of its container.
@@ -10,8 +12,8 @@ pub struct Column<Element> {
     pub padding: u16,
     pub width: Length,
     pub height: Length,
-    pub max_width: Length,
-    pub max_height: Length,
+    pub max_width: u32,
+    pub max_height: u32,
     pub align_self: Option<Align>,
     pub align_items: Align,
     pub justify_content: Justify,
@@ -28,8 +30,8 @@ impl<Element> Column<Element> {
             padding: 0,
             width: Length::Fill,
             height: Length::Shrink,
-            max_width: Length::Shrink,
-            max_height: Length::Shrink,
+            max_width: u32::MAX,
+            max_height: u32::MAX,
             align_self: None,
             align_items: Align::Start,
             justify_content: Justify::Start,
@@ -74,7 +76,7 @@ impl<Element> Column<Element> {
     /// Sets the maximum width of the [`Column`].
     ///
     /// [`Column`]: struct.Column.html
-    pub fn max_width(mut self, max_width: Length) -> Self {
+    pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
@@ -82,7 +84,7 @@ impl<Element> Column<Element> {
     /// Sets the maximum height of the [`Column`] in pixels.
     ///
     /// [`Column`]: struct.Column.html
-    pub fn max_height(mut self, max_height: Length) -> Self {
+    pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
         self
     }

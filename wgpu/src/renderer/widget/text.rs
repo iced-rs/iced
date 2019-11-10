@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
-use iced_native::{layout, text, Color, Layout, MouseCursor, Rectangle, Text};
+use iced_native::{layout, text, Color, Layout, MouseCursor, Size, Text};
 
-//use wgpu_glyph::{GlyphCruncher, Section};
+use wgpu_glyph::{GlyphCruncher, Section};
 
 use std::f32;
 
@@ -9,17 +9,32 @@ use std::f32;
 const DEFAULT_TEXT_SIZE: f32 = 20.0;
 
 impl text::Renderer for Renderer {
-    fn layout(&self, text: &Text, limits: &layout::Limits) -> Layout {
-        // TODO
-        Layout::new(Rectangle {
-            x: 0.0,
-            y: 0.0,
-            width: 0.0,
-            height: 0.0,
-        })
+    fn layout(&self, text: &Text, limits: &layout::Limits) -> layout::Node {
+        let limits = limits.width(text.width).height(text.height);
+        let size = text.size.map(f32::from).unwrap_or(DEFAULT_TEXT_SIZE);
+        let bounds = limits.max();
+
+        let section = Section {
+            text: &text.content,
+            scale: wgpu_glyph::Scale { x: size, y: size },
+            bounds: (bounds.width, bounds.height),
+            ..Default::default()
+        };
+
+        let (width, height) = if let Some(bounds) =
+            self.glyph_brush.borrow_mut().glyph_bounds(&section)
+        {
+            (bounds.width().ceil(), bounds.height().ceil())
+        } else {
+            (0.0, 0.0)
+        };
+
+        let size = limits.resolve(Size::new(width, height));
+
+        layout::Node::new(size)
     }
 
-    fn draw(&mut self, text: &Text, layout: &Layout) -> Self::Output {
+    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Output {
         (
             Primitive::Text {
                 content: text.content.clone(),

@@ -32,7 +32,7 @@ impl scrollable::Renderer for Renderer {
         &mut self,
         scrollable: &Scrollable<'_, Message, Self>,
         bounds: Rectangle,
-        content: &Layout,
+        content: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);

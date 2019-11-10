@@ -1,4 +1,4 @@
-use crate::{input::mouse, layout, Element, Event, Layout, Point, Rectangle};
+use crate::{input::mouse, layout, Element, Event, Layout, Point, Size};
 
 use std::hash::Hasher;
 
@@ -14,7 +14,7 @@ use std::hash::Hasher;
 pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,
     root: Element<'a, Message, Renderer>,
-    layout: Layout,
+    layout: layout::Node,
     cursor_position: Point,
 }
 
@@ -109,7 +109,11 @@ where
         let layout = if hash == cache.hash {
             cache.layout
         } else {
-            root.layout(renderer, &layout::Limits::NONE)
+            let layout_start = std::time::Instant::now();
+            let layout = root.layout(renderer, &layout::Limits::NONE);
+            dbg!(std::time::Instant::now() - layout_start);
+
+            layout
         };
 
         UserInterface {
@@ -209,7 +213,7 @@ where
 
             self.root.widget.on_event(
                 event,
-                &self.layout,
+                Layout::new(&self.layout),
                 self.cursor_position,
                 &mut messages,
                 renderer,
@@ -298,9 +302,11 @@ where
     /// }
     /// ```
     pub fn draw(&self, renderer: &mut Renderer) -> Renderer::Output {
-        self.root
-            .widget
-            .draw(renderer, &self.layout, self.cursor_position)
+        self.root.widget.draw(
+            renderer,
+            Layout::new(&self.layout),
+            self.cursor_position,
+        )
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
@@ -323,7 +329,7 @@ where
 #[derive(Debug, Clone)]
 pub struct Cache {
     hash: u64,
-    layout: Layout,
+    layout: layout::Node,
     cursor_position: Point,
 }
 
@@ -338,12 +344,7 @@ impl Cache {
     pub fn new() -> Cache {
         Cache {
             hash: 0,
-            layout: Layout::new(Rectangle {
-                x: 0.0,
-                y: 0.0,
-                width: 0.0,
-                height: 0.0,
-            }),
+            layout: layout::Node::new(Size::new(0.0, 0.0)),
             cursor_position: Point::new(-1.0, -1.0),
         }
     }

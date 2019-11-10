@@ -1,6 +1,7 @@
 use crate::{
     input::{keyboard, mouse, ButtonState},
-    layout, Element, Event, Hasher, Layout, Point, Rectangle, Widget,
+    layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
+    Widget,
 };
 
 pub use iced_core::{text_input::State, TextInput};
@@ -10,20 +11,30 @@ where
     Renderer: self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
-        // TODO
-        Layout::new(Rectangle {
-            x: 0.0,
-            y: 0.0,
-            width: 0.0,
-            height: 0.0,
-        })
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let padding = self.padding as f32;
+        let text_size = self.size.unwrap_or(renderer.default_size());
+
+        let limits = limits
+            .pad(padding)
+            .width(self.width)
+            .height(Length::Units(text_size));
+
+        let mut text = layout::Node::new(limits.resolve(Size::ZERO));
+        text.bounds.x = padding;
+        text.bounds.y = padding;
+
+        layout::Node::with_children(text.size().pad(padding), vec![text])
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
@@ -95,7 +106,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         let bounds = layout.bounds();

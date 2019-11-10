@@ -1,4 +1,6 @@
-use crate::{layout, renderer, Color, Event, Hasher, Layout, Point, Widget};
+use crate::{
+    layout, renderer, Color, Event, Hasher, Layout, Length, Point, Widget,
+};
 
 /// A generic [`Widget`].
 ///
@@ -39,18 +41,26 @@ where
         }
     }
 
+    pub fn width(&self) -> Length {
+        self.widget.width()
+    }
+
+    pub fn height(&self) -> Length {
+        self.widget.height()
+    }
+
     pub fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-    ) -> Layout {
+    ) -> layout::Node {
         self.widget.layout(renderer, limits)
     }
 
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         self.widget.draw(renderer, layout, cursor_position)
@@ -285,14 +295,18 @@ where
     A: Clone,
     Renderer: crate::Renderer,
 {
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         self.widget.layout(renderer, limits)
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<B>,
         renderer: &Renderer,
@@ -316,7 +330,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         self.widget.draw(renderer, layout, cursor_position)
@@ -357,14 +371,18 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer + renderer::Debugger,
 {
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         self.element.widget.layout(renderer, limits)
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
@@ -381,7 +399,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         renderer.explain(

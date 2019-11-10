@@ -10,14 +10,18 @@ impl<Message, Renderer> Widget<Message, Renderer> for Image
 where
     Renderer: self::Renderer,
 {
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         renderer.layout(&self, limits)
     }
 
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout)
@@ -44,12 +48,12 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Image`]: struct.Image.html
-    fn layout(&self, image: &Image, limits: &layout::Limits) -> Layout;
+    fn layout(&self, image: &Image, limits: &layout::Limits) -> layout::Node;
 
     /// Draws an [`Image`].
     ///
     /// [`Image`]: struct.Image.html
-    fn draw(&mut self, image: &Image, layout: &Layout) -> Self::Output;
+    fn draw(&mut self, image: &Image, layout: Layout<'_>) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>

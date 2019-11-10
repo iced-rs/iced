@@ -1,11 +1,13 @@
 use crate::{
     column,
     input::{mouse, ButtonState},
-    layout, Element, Event, Hasher, Layout, Point, Rectangle, Widget,
+    layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
+    Widget,
 };
 
 pub use iced_core::scrollable::State;
 
+use std::f32;
 use std::hash::Hash;
 
 /// A scrollable [`Column`].
@@ -19,15 +21,31 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer + column::Renderer,
 {
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
-        // TODO
-        self.content.layout(renderer, limits)
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits
+            .max_height(self.max_height)
+            .width(Length::Fill)
+            .height(self.height);
+
+        let child_limits = layout::Limits::new(
+            Size::new(limits.min().width, 0.0),
+            Size::new(limits.max().width, f32::INFINITY),
+        );
+
+        let content = self.content.layout(renderer, &child_limits);
+        let size = limits.resolve(content.size());
+
+        layout::Node::with_children(size, vec![content])
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
@@ -130,7 +148,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
@@ -168,7 +186,7 @@ pub trait Renderer: crate::Renderer + Sized {
         &mut self,
         scrollable: &Scrollable<'_, Message, Self>,
         bounds: Rectangle,
-        content_layout: &Layout,
+        content_layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output;
 }

@@ -25,7 +25,7 @@ impl Tour {
             scroll: scrollable::State::new(),
             back_button: button::State::new(),
             next_button: button::State::new(),
-            debug: false,
+            debug: true,
         }
     }
 }
@@ -79,7 +79,7 @@ impl Application for Tour {
         }
 
         let element: Element<_> = Column::new()
-            .max_width(Length::Units(540))
+            .max_width(540)
             .spacing(20)
             .padding(20)
             .push(steps.view(self.debug).map(Message::StepMessage))

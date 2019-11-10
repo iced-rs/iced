@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    layout, slider, Background, Color, Layout, MouseCursor, Point, Rectangle,
-    Slider,
+    layout, slider, Background, Color, Layout, Length, MouseCursor, Point,
+    Rectangle, Size, Slider,
 };
 
 const HANDLE_WIDTH: f32 = 8.0;
@@ -12,20 +12,17 @@ impl slider::Renderer for Renderer {
         &self,
         slider: &Slider<Message>,
         limits: &layout::Limits,
-    ) -> Layout {
-        // TODO
-        Layout::new(Rectangle {
-            x: 0.0,
-            y: 0.0,
-            width: 0.0,
-            height: 0.0,
-        })
+    ) -> layout::Node {
+        let limits = limits.width(slider.width).height(Length::Units(30));
+        let size = limits.resolve(Size::ZERO);
+
+        layout::Node::new(size)
     }
 
     fn draw<Message>(
         &mut self,
         slider: &Slider<Message>,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
         let bounds = layout.bounds();

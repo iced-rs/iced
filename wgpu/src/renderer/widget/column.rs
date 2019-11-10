@@ -5,7 +5,7 @@ impl column::Renderer for Renderer {
     fn draw<Message>(
         &mut self,
         column: &Column<'_, Message, Self>,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
         let mut mouse_cursor = MouseCursor::OutOfBounds;

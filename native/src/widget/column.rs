@@ -1,6 +1,8 @@
 use std::hash::Hash;
 
-use crate::{layout, Element, Event, Hasher, Layout, Point, Rectangle, Widget};
+use crate::{
+    layout, Element, Event, Hasher, Layout, Length, Point, Size, Widget,
+};
 
 /// A container that distributes its contents vertically.
 pub type Column<'a, Message, Renderer> =
@@ -11,20 +13,35 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer,
 {
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
-        // TODO
-        Layout::new(Rectangle {
-            x: 0.0,
-            y: 0.0,
-            width: 0.0,
-            height: 0.0,
-        })
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits
+            .max_width(self.max_width)
+            .max_height(self.max_height)
+            .width(self.width)
+            .height(self.height);
+
+        layout::flex::resolve(
+            layout::flex::Axis::Vertical,
+            renderer,
+            &limits,
+            self.padding as f32,
+            self.spacing as f32,
+            &self.children,
+        )
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
@@ -45,7 +62,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout, cursor_position)
@@ -72,7 +89,7 @@ pub trait Renderer: crate::Renderer + Sized {
     fn draw<Message>(
         &mut self,
         row: &Column<'_, Message, Self>,
-        layout: &Layout,
+        layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output;
 }
