@@ -1,14 +1,14 @@
-pub use iced_winit::winit::event_loop::EventLoop;
-pub use iced_winit::winit::window::Window;
-pub use iced_winit::winit::dpi;
-
-pub use iced_wgpu::{Primitive, Renderer};
-
 pub use iced_winit::{
-    button, scrollable, slider, text, text_input, winit, Align, Background,
+    Application,
+    Platform,
+    winit::dpi,
+    button, scrollable, slider, text, text_input, Align, Background,
     Checkbox, Color, Image, Justify, Length, Radio, Scrollable, Slider, Text,
     TextInput,
+    winit
 };
+
+pub use iced_wgpu::Renderer;
 
 pub type Element<'a, Message> = iced_winit::Element<'a, Message, Renderer>;
 pub type Row<'a, Message> = iced_winit::Row<'a, Message, Renderer>;

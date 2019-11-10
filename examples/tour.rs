@@ -1,14 +1,8 @@
 use iced::{
     button, scrollable, slider, text::HorizontalAlignment, text_input, Align,
-    Application, Background, Button, Checkbox, Color, Column, Element, Image,
+    Background, Button, Checkbox, Color, Column, Element, Image,
     Justify, Length, Radio, Row, Scrollable, Slider, Text, TextInput,
 };
-
-pub fn main() {
-    env_logger::init();
-
-    Tour::new().run()
-}
 
 pub struct Tour {
     steps: Steps,
@@ -30,8 +24,16 @@ impl Tour {
     }
 }
 
-impl Application for Tour {
+#[derive(Debug, Clone)]
+pub enum Message {
+    BackPressed,
+    NextPressed,
+    StepMessage(StepMessage),
+}
+
+impl iced::Application for Tour {
     type Message = Message;
+    type Renderer = iced::Renderer;
 
     fn title(&self) -> String {
         format!("{} - Iced", self.steps.title())
@@ -102,13 +104,6 @@ impl Application for Tour {
             )
             .into()
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    BackPressed,
-    NextPressed,
-    StepMessage(StepMessage),
 }
 
 struct Steps {
@@ -752,4 +747,9 @@ mod wasm {
     pub fn run() {
         super::main()
     }
+}
+
+pub fn main() {
+    env_logger::init();
+    iced::Instance::new(Tour::new()).run()
 }

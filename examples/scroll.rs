@@ -1,12 +1,12 @@
 use iced::{
-    button, scrollable, Align, Application, Button, Column, Element, Image,
+    button, scrollable, Align, Button, Column, Element, Image,
     Justify, Length, Scrollable, Text,
 };
 
 pub fn main() {
     env_logger::init();
 
-    Example::default().run()
+    iced::Instance::new(Example::default()).run()
 }
 
 #[derive(Default)]
@@ -22,8 +22,9 @@ pub enum Message {
     AddItem,
 }
 
-impl Application for Example {
+impl iced::Application for Example {
     type Message = Message;
+    type Renderer = iced::Renderer;
 
     fn title(&self) -> String {
         String::from("Scroll - Iced")

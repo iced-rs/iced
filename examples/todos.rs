@@ -1,10 +1,10 @@
 use iced::{
-    scrollable, text::HorizontalAlignment, text_input, Align, Application,
+    scrollable, text::HorizontalAlignment, text_input, Align,
     Checkbox, Color, Column, Element, Length, Scrollable, Text, TextInput,
 };
 
 pub fn main() {
-    Todos::default().run()
+    iced::Instance::new(Todos::default()).run()
 }
 
 #[derive(Debug, Default)]
@@ -22,8 +22,9 @@ pub enum Message {
     TaskChanged(usize, bool),
 }
 
-impl Application for Todos {
+impl iced::Application for Todos {
     type Message = Message;
+    type Renderer = iced::Renderer;
 
     fn title(&self) -> String {
         String::from("Todos - Iced")
