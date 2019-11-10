@@ -18,7 +18,7 @@ pub trait Debugger: super::Renderer {
     fn explain<Message>(
         &mut self,
         widget: &dyn Widget<Message, Self>,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
         color: Color,
     ) -> Self::Output;

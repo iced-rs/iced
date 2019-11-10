@@ -1,5 +1,5 @@
 //! Write some text for your users to read.
-use crate::{Element, Hasher, Layout, Node, Point, Widget};
+use crate::{layout, Element, Hasher, Layout, Point, Widget};
 
 use std::hash::Hash;
 
@@ -9,14 +9,14 @@ impl<Message, Renderer> Widget<Message, Renderer> for Text
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(&self)
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        renderer.layout(&self, limits)
     }
 
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         _cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout)
@@ -49,7 +49,7 @@ pub trait Renderer: crate::Renderer {
     /// [`Style`]: ../../struct.Style.html
     /// [`Text`]: struct.Text.html
     /// [`Node::with_measure`]: ../../struct.Node.html#method.with_measure
-    fn node(&self, text: &Text) -> Node;
+    fn layout(&self, text: &Text, limits: &layout::Limits) -> Layout;
 
     /// Draws a [`Text`] fragment.
     ///
@@ -64,7 +64,7 @@ pub trait Renderer: crate::Renderer {
     /// [`Text`]: struct.Text.html
     /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
     /// [`VerticalAlignment`]: enum.VerticalAlignment.html
-    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Output;
+    fn draw(&mut self, text: &Text, layout: &Layout) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Text> for Element<'a, Message, Renderer>

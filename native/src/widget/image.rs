@@ -1,6 +1,6 @@
 //! Display images in your user interface.
 
-use crate::{Element, Hasher, Layout, Node, Point, Widget};
+use crate::{layout, Element, Hasher, Layout, Point, Widget};
 
 use std::hash::Hash;
 
@@ -10,14 +10,14 @@ impl<Message, Renderer> Widget<Message, Renderer> for Image
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(&self)
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        renderer.layout(&self, limits)
     }
 
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         _cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout)
@@ -44,12 +44,12 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Image`]: struct.Image.html
-    fn node(&self, image: &Image) -> Node;
+    fn layout(&self, image: &Image, limits: &layout::Limits) -> Layout;
 
     /// Draws an [`Image`].
     ///
     /// [`Image`]: struct.Image.html
-    fn draw(&mut self, image: &Image, layout: Layout<'_>) -> Self::Output;
+    fn draw(&mut self, image: &Image, layout: &Layout) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>

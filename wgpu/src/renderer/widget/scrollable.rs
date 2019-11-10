@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    scrollable, Background, Layout, MouseCursor, Point, Rectangle,
-    Scrollable, Vector, Widget,
+    scrollable, Background, Layout, MouseCursor, Point, Rectangle, Scrollable,
+    Vector, Widget,
 };
 
 const SCROLLBAR_WIDTH: u16 = 10;
@@ -32,7 +32,7 @@ impl scrollable::Renderer for Renderer {
         &mut self,
         scrollable: &Scrollable<'_, Message, Self>,
         bounds: Rectangle,
-        content: Layout<'_>,
+        content: &Layout,
         cursor_position: Point,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);

@@ -1,6 +1,6 @@
 //! Create choices using radio buttons.
 use crate::input::{mouse, ButtonState};
-use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Point, Widget};
 
 use std::hash::Hash;
 
@@ -11,14 +11,14 @@ where
     Renderer: self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(&self)
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        renderer.layout(&self, limits)
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
@@ -39,7 +39,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout, cursor_position)
@@ -62,7 +62,11 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Radio`]: struct.Radio.html
-    fn node<Message>(&self, radio: &Radio<Message>) -> Node;
+    fn layout<Message>(
+        &self,
+        radio: &Radio<Message>,
+        limits: &layout::Limits,
+    ) -> Layout;
 
     /// Draws a [`Radio`] button.
     ///
@@ -76,7 +80,7 @@ pub trait Renderer: crate::Renderer {
     fn draw<Message>(
         &mut self,
         radio: &Radio<Message>,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Self::Output;
 }

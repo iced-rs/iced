@@ -7,7 +7,7 @@
 //! [`Class`]: enum.Class.html
 
 use crate::input::{mouse, ButtonState};
-use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Point, Widget};
 use std::hash::Hash;
 
 pub use iced_core::button::State;
@@ -21,14 +21,14 @@ where
     Renderer: self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(&self)
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        renderer.layout(&self, limits)
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
@@ -66,7 +66,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout, cursor_position)
@@ -91,7 +91,11 @@ pub trait Renderer: crate::Renderer + Sized {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Button`]: struct.Button.html
-    fn node<Message>(&self, button: &Button<'_, Message, Self>) -> Node;
+    fn layout<Message>(
+        &self,
+        button: &Button<'_, Message, Self>,
+        limits: &layout::Limits,
+    ) -> Layout;
 
     /// Draws a [`Button`].
     ///
@@ -99,7 +103,7 @@ pub trait Renderer: crate::Renderer + Sized {
     fn draw<Message>(
         &mut self,
         button: &Button<'_, Message, Self>,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Self::Output;
 }

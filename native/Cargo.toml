@@ -9,6 +9,5 @@ repository = "https://github.com/hecrj/iced"
 
 [dependencies]
 iced_core = { version = "0.1.0-alpha", path = "../core" }
-stretch = "0.2"
 twox-hash = "1.5"
 raw-window-handle = "0.3"

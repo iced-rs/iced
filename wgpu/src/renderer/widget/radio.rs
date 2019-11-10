@@ -1,30 +1,31 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    radio, text, Align, Background, Column, Layout, Length, MouseCursor,
-    Node, Point, Radio, Rectangle, Row, Text, Widget,
+    layout, radio, text, Background, Layout, MouseCursor, Point, Radio,
+    Rectangle, Text,
 };
 
 const SIZE: f32 = 28.0;
 const DOT_SIZE: f32 = SIZE / 2.0;
 
 impl radio::Renderer for Renderer {
-    fn node<Message>(&self, radio: &Radio<Message>) -> Node {
-        Row::<(), Self>::new()
-            .spacing(15)
-            .align_items(Align::Center)
-            .push(
-                Column::new()
-                    .width(Length::Units(SIZE as u16))
-                    .height(Length::Units(SIZE as u16)),
-            )
-            .push(Text::new(&radio.label))
-            .node(self)
+    fn layout<Message>(
+        &self,
+        radio: &Radio<Message>,
+        limits: &layout::Limits,
+    ) -> Layout {
+        // TODO
+        Layout::new(Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+        })
     }
 
     fn draw<Message>(
         &mut self,
         radio: &Radio<Message>,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Self::Output {
         let bounds = layout.bounds();

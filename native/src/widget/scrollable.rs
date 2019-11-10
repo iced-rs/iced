@@ -1,7 +1,7 @@
 use crate::{
     column,
     input::{mouse, ButtonState},
-    Element, Event, Hasher, Layout, Node, Point, Rectangle, Style, Widget,
+    layout, Element, Event, Hasher, Layout, Point, Rectangle, Widget,
 };
 
 pub use iced_core::scrollable::State;
@@ -19,32 +19,15 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer + column::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        let mut content = self.content.node(renderer);
-
-        {
-            let mut style = content.0.style();
-            style.flex_shrink = 0.0;
-
-            content.0.set_style(style);
-        }
-
-        let mut style = Style::default()
-            .width(self.content.width)
-            .max_width(self.content.max_width)
-            .height(self.height)
-            .max_height(self.max_height)
-            .align_self(self.align_self);
-
-        style.0.flex_direction = stretch::style::FlexDirection::Column;
-
-        Node::with_children(style, vec![content])
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        // TODO
+        self.content.layout(renderer, limits)
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
@@ -147,7 +130,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
@@ -185,7 +168,7 @@ pub trait Renderer: crate::Renderer + Sized {
         &mut self,
         scrollable: &Scrollable<'_, Message, Self>,
         bounds: Rectangle,
-        content_layout: Layout<'_>,
+        content_layout: &Layout,
         cursor_position: Point,
     ) -> Self::Output;
 }

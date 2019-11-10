@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use crate::{Element, Event, Hasher, Layout, Node, Point, Style, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Point, Rectangle, Widget};
 
 /// A container that distributes its contents horizontally.
 pub type Row<'a, Message, Renderer> =
@@ -11,48 +11,20 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        let mut children: Vec<Node> = self
-            .children
-            .iter()
-            .map(|child| {
-                let mut node = child.widget.node(renderer);
-
-                let mut style = node.0.style();
-                style.margin.end =
-                    stretch::style::Dimension::Points(f32::from(self.spacing));
-
-                node.0.set_style(style);
-                node
-            })
-            .collect();
-
-        if let Some(node) = children.last_mut() {
-            let mut style = node.0.style();
-            style.margin.end = stretch::style::Dimension::Undefined;
-
-            node.0.set_style(style);
-        }
-
-        let mut style = Style::default()
-            .width(self.width)
-            .height(self.height)
-            .max_width(self.max_width)
-            .max_height(self.max_height)
-            .padding(self.padding)
-            .align_self(self.align_self)
-            .align_items(self.align_items)
-            .justify_content(self.justify_content);
-
-        style.0.flex_direction = stretch::style::FlexDirection::Row;
-
-        Node::with_children(style, children)
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        // TODO
+        Layout::new(Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+        })
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
@@ -73,7 +45,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(&self, layout, cursor_position)
@@ -101,7 +73,7 @@ pub trait Renderer: crate::Renderer + Sized {
     fn draw<Message>(
         &mut self,
         row: &Row<'_, Message, Self>,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Self::Output;
 }

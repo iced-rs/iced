@@ -1,6 +1,8 @@
-use stretch::result;
+use crate::Rectangle;
 
-use crate::{Point, Rectangle, Vector};
+mod limits;
+
+pub use limits::Limits;
 
 /// The computed bounds of a [`Node`] and its children.
 ///
@@ -12,25 +14,25 @@ use crate::{Point, Rectangle, Vector};
 /// [`Widget::on_event`]: widget/trait.Widget.html#method.on_event
 /// [`Widget::draw`]: widget/trait.Widget.html#tymethod.draw
 /// [`Widget::node`]: widget/trait.Widget.html#tymethod.node
-#[derive(Debug, Clone, Copy)]
-pub struct Layout<'a> {
-    layout: &'a result::Layout,
-    position: Point,
+#[derive(Debug, Clone)]
+pub struct Layout {
+    bounds: Rectangle,
+    children: Vec<Layout>,
 }
 
-impl<'a> Layout<'a> {
-    pub(crate) fn new(layout: &'a result::Layout) -> Self {
-        Self::with_parent_position(layout, Point::new(0.0, 0.0))
+impl Layout {
+    pub fn new(bounds: Rectangle) -> Self {
+        Layout {
+            bounds,
+            children: Vec::new(),
+        }
     }
 
-    fn with_parent_position(
-        layout: &'a result::Layout,
-        parent_position: Point,
-    ) -> Self {
-        let position =
-            parent_position + Vector::new(layout.location.x, layout.location.y);
+    pub fn push(&mut self, mut child: Layout) {
+        child.bounds.x += self.bounds.x;
+        child.bounds.y += self.bounds.y;
 
-        Layout { layout, position }
+        self.children.push(child);
     }
 
     /// Gets the bounds of the [`Layout`].
@@ -42,21 +44,14 @@ impl<'a> Layout<'a> {
     /// [`Rectangle`]: struct.Rectangle.html
     /// [`Node`]: struct.Node.html
     pub fn bounds(&self) -> Rectangle {
-        Rectangle {
-            x: self.position.x,
-            y: self.position.y,
-            width: self.layout.size.width,
-            height: self.layout.size.height,
-        }
+        self.bounds
     }
 
     /// Returns an iterator over the [`Layout`] of the children of a [`Node`].
     ///
     /// [`Layout`]: struct.Layout.html
     /// [`Node`]: struct.Node.html
-    pub fn children(&'a self) -> impl Iterator<Item = Layout<'a>> {
-        self.layout.children.iter().map(move |layout| {
-            Layout::with_parent_position(layout, self.position)
-        })
+    pub fn children(&self) -> impl Iterator<Item = &Layout> {
+        self.children.iter()
     }
 }

@@ -1,6 +1,4 @@
-use stretch::{geometry, result};
-
-use crate::{renderer, Color, Event, Hasher, Layout, Node, Point, Widget};
+use crate::{layout, renderer, Color, Event, Hasher, Layout, Point, Widget};
 
 /// A generic [`Widget`].
 ///
@@ -41,14 +39,18 @@ where
         }
     }
 
-    pub fn node(&self, renderer: &Renderer) -> Node {
-        self.widget.node(renderer)
+    pub fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> Layout {
+        self.widget.layout(renderer, limits)
     }
 
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Renderer::Output {
         self.widget.draw(renderer, layout, cursor_position)
@@ -247,12 +249,6 @@ where
         }
     }
 
-    pub(crate) fn compute_layout(&self, renderer: &Renderer) -> result::Layout {
-        let node = self.widget.node(renderer);
-
-        node.0.compute_layout(geometry::Size::undefined()).unwrap()
-    }
-
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
@@ -289,14 +285,14 @@ where
     A: Clone,
     Renderer: crate::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        self.widget.node(renderer)
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        self.widget.layout(renderer, limits)
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
         messages: &mut Vec<B>,
         renderer: &Renderer,
@@ -320,7 +316,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Renderer::Output {
         self.widget.draw(renderer, layout, cursor_position)
@@ -361,14 +357,14 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer + renderer::Debugger,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        self.element.widget.node(renderer)
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        self.element.widget.layout(renderer, limits)
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
@@ -385,7 +381,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Renderer::Output {
         renderer.explain(

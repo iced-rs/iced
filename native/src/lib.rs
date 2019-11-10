@@ -199,32 +199,25 @@
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
 pub mod input;
+pub mod layout;
 pub mod renderer;
 pub mod widget;
 
 mod element;
 mod event;
 mod hasher;
-mod layout;
 mod mouse_cursor;
-mod node;
-mod style;
 mod user_interface;
 
 pub use iced_core::{
     Align, Background, Color, Justify, Length, Point, Rectangle, Vector,
 };
 
-#[doc(no_inline)]
-pub use stretch::{geometry::Size, number::Number};
-
 pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
-pub use node::Node;
 pub use renderer::Renderer;
-pub use style::Style;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;

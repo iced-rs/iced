@@ -1,7 +1,6 @@
-use crate::{input::mouse, Element, Event, Layout, Point};
+use crate::{input::mouse, layout, Element, Event, Layout, Point, Rectangle};
 
 use std::hash::Hasher;
-use stretch::{geometry, result};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -15,7 +14,7 @@ use stretch::{geometry, result};
 pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,
     root: Element<'a, Message, Renderer>,
-    layout: result::Layout,
+    layout: Layout,
     cursor_position: Point,
 }
 
@@ -110,7 +109,7 @@ where
         let layout = if hash == cache.hash {
             cache.layout
         } else {
-            root.compute_layout(renderer)
+            root.layout(renderer, &layout::Limits::NONE)
         };
 
         UserInterface {
@@ -210,7 +209,7 @@ where
 
             self.root.widget.on_event(
                 event,
-                Layout::new(&self.layout),
+                &self.layout,
                 self.cursor_position,
                 &mut messages,
                 renderer,
@@ -299,11 +298,9 @@ where
     /// }
     /// ```
     pub fn draw(&self, renderer: &mut Renderer) -> Renderer::Output {
-        self.root.widget.draw(
-            renderer,
-            Layout::new(&self.layout),
-            self.cursor_position,
-        )
+        self.root
+            .widget
+            .draw(renderer, &self.layout, self.cursor_position)
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
@@ -326,7 +323,7 @@ where
 #[derive(Debug, Clone)]
 pub struct Cache {
     hash: u64,
-    layout: result::Layout,
+    layout: Layout,
     cursor_position: Point,
 }
 
@@ -339,16 +336,14 @@ impl Cache {
     /// [`Cache`]: struct.Cache.html
     /// [`UserInterface`]: struct.UserInterface.html
     pub fn new() -> Cache {
-        use crate::{Node, Style};
-
-        let empty_node = Node::new(Style::default());
-
         Cache {
             hash: 0,
-            layout: empty_node
-                .0
-                .compute_layout(geometry::Size::undefined())
-                .unwrap(),
+            layout: Layout::new(Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: 0.0,
+                height: 0.0,
+            }),
             cursor_position: Point::new(-1.0, -1.0),
         }
     }

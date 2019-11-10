@@ -1,7 +1,6 @@
 use crate::{
     input::{keyboard, mouse, ButtonState},
-    Element, Event, Hasher, Layout, Length, Node, Point, Rectangle, Style,
-    Widget,
+    layout, Element, Event, Hasher, Layout, Point, Rectangle, Widget,
 };
 
 pub use iced_core::{text_input::State, TextInput};
@@ -11,25 +10,20 @@ where
     Renderer: self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        let text_bounds =
-            Node::new(Style::default().width(Length::Fill).height(
-                Length::Units(self.size.unwrap_or(renderer.default_size())),
-            ));
-
-        Node::with_children(
-            Style::default()
-                .width(self.width)
-                .max_width(self.width)
-                .padding(self.padding),
-            vec![text_bounds],
-        )
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> Layout {
+        // TODO
+        Layout::new(Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+        })
     }
 
     fn on_event(
         &mut self,
         event: Event,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
@@ -101,7 +95,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Renderer::Output {
         let bounds = layout.bounds();

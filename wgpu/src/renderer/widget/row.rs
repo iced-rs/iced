@@ -5,7 +5,7 @@ impl row::Renderer for Renderer {
     fn draw<Message>(
         &mut self,
         row: &Row<'_, Message, Self>,
-        layout: Layout<'_>,
+        layout: &Layout,
         cursor_position: Point,
     ) -> Self::Output {
         let mut mouse_cursor = MouseCursor::OutOfBounds;
