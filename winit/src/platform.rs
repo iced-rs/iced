@@ -6,32 +6,25 @@ use crate::{
 
 pub struct Platform {
     pub event_loop : winit::event_loop::EventLoop<()>,
-    pub window : winit::window::Window,
+    pub window_builder : winit::window::WindowBuilder,
 }
 
 impl Platform {
     pub fn new<Application : crate::application::Application>(application : &Application) -> Self
     {
         let event_loop = winit::event_loop::EventLoop::new();
-        let window = winit::window::WindowBuilder::new()
-            .with_title(&application.title())
-            .with_inner_size(winit::dpi::LogicalSize {
-                width: 1280.0,
-                height: 1024.0,
-            })
-            .build(&event_loop)
-            .expect("Open window");
-        Self{event_loop, window}
+        let window_builder = winit::window::WindowBuilder::new().with_title(&application.title());
+        Self{event_loop, window_builder}
     }
 
 
-   pub fn run<Application : crate::application::Application + 'static>(self, mut application : Application)
-    {
+   pub fn run<Application : crate::application::Application + 'static>(self, mut application : Application) -> Result<(), winit::error::OsError> {
         let mut debug = crate::Debug::new();
         let mut title = application.title();
         debug.startup_started();
 
-        let Self{event_loop, window} = self;
+        let Self{event_loop, window_builder} = self;
+        let window = window_builder.build(&event_loop)?;
         let dpi = window.hidpi_factor();
         let mut size = window.inner_size();
         let mut new_size: Option<winit::dpi::LogicalSize> = None;

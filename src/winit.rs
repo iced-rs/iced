@@ -1,11 +1,11 @@
 pub use iced_winit::{
     Application,
     Platform,
+    winit::error::OsError as Error,
     winit::dpi,
     button, scrollable, slider, text, text_input, Align, Background,
     Checkbox, Color, Image, Justify, Length, Radio, Scrollable, Slider, Text,
     TextInput,
-    winit
 };
 
 pub use iced_wgpu::Renderer;

@@ -5,13 +5,10 @@ pub use platform::*;
 
 pub struct Instance<A : Application> {
     pub platform : platform::Platform,
-    instance : A,
+    application : A,
 }
 
 impl<A : Application + 'static> Instance<A> {
-    pub fn new(application : A) -> Self {
-        let instance = application;
-        Self{platform: platform::Platform::new(&instance), instance}
-    }
-    pub fn run(self) { self.platform.run(self.instance); }
+    pub fn new(application : A) -> Self { Self{platform: platform::Platform::new(&application), application} }
+    pub fn run(self) -> Result<(), platform::Error> { self.platform.run(self.application) }
 }
