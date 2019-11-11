@@ -3,7 +3,7 @@ use iced::{
     Justify, Length, Scrollable, Text,
 };
 
-pub fn main() {
+pub fn main() -> Result<(), iced::Error> {
     env_logger::init();
 
     iced::Instance::new(Example::default()).run()

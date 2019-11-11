@@ -3,7 +3,7 @@ use iced::{
     Checkbox, Color, Column, Element, Length, Scrollable, Text, TextInput,
 };
 
-pub fn main() {
+pub fn main() -> Result<(), iced::Error> {
     iced::Instance::new(Todos::default()).run()
 }
 

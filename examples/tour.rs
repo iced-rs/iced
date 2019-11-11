@@ -749,7 +749,7 @@ mod wasm {
     }
 }
 
-pub fn main() {
+pub fn main() -> std::result::Result<(), iced::Error> {
     env_logger::init();
     iced::Instance::new(Tour::new()).run()
 }

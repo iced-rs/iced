@@ -18,12 +18,12 @@ impl Platform {
     }
 
 
-   pub fn run<Application : crate::application::Application + 'static>(self, mut application : Application) -> Result<(), winit::error::OsError> {
+   pub fn run<'a, Application : crate::application::Application + 'a>(self, mut application : Application) -> Result<(), winit::error::OsError> {
         let mut debug = crate::Debug::new();
         let mut title = application.title();
         debug.startup_started();
 
-        let Self{event_loop, window_builder} = self;
+        let Self{mut event_loop, window_builder} = self;
         let window = window_builder.build(&event_loop)?;
         let dpi = window.hidpi_factor();
         let mut size = window.inner_size();
@@ -61,7 +61,8 @@ impl Platform {
         window.request_redraw();
 
         use winit::event::{self, WindowEvent};
-        event_loop.run(move |event, _, control_flow| match event {
+        use winit::platform::desktop::EventLoopExtDesktop;
+        event_loop.run_return(move |event, _, control_flow| match event {
             event::Event::MainEventsCleared => {
                 // TODO: We should be able to keep a user interface alive
                 // between events once we remove state references.
@@ -242,7 +243,8 @@ impl Platform {
             _ => {
                 *control_flow = winit::event_loop::ControlFlow::Wait;
             }
-        })
+        });
+        Ok(())
     }
 }
 
@@ -257,8 +259,6 @@ fn to_physical(size: winit::dpi::LogicalSize, dpi: f64) -> (u16, u16) {
 
 fn document<'a, Application : crate::application::Application>(application: &'a mut Application, size: winit::dpi::LogicalSize, debug: &mut crate::Debug)
     -> crate::Element<'a, Application::Message, Application::Renderer>
-    where
-        Application::Message : 'static,
 {
     debug.view_started();
     let view = application.view();

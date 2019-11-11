@@ -8,7 +8,7 @@ pub struct Instance<A : Application> {
     application : A,
 }
 
-impl<A : Application + 'static> Instance<A> {
+impl<'a, A : Application + 'a> Instance<A> {
     pub fn new(application : A) -> Self { Self{platform: platform::Platform::new(&application), application} }
     pub fn run(self) -> Result<(), platform::Error> { self.platform.run(self.application) }
 }
