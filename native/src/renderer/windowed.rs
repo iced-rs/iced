@@ -8,6 +8,10 @@ pub struct Style {
     pub window_background : Color,
 }
 
+impl Style {
+    pub fn default() -> Self { Self{ window_background: Color{r:1.,g:1.,b:1.,a:1.}, } }
+}
+
 pub trait Windowed: super::Renderer + Sized {
     type Target: Target<Renderer = Self>;
 
