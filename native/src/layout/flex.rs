@@ -63,7 +63,8 @@ where
 {
     let limits = limits.pad(padding);
 
-    let mut total_non_fill = spacing as f32 * (children.len() - 1) as f32;
+    let mut total_non_fill =
+        spacing as f32 * (children.len() as i32 - 1).max(0) as f32;
     let mut fill_sum = 0;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(children.len());
