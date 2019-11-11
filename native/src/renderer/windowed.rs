@@ -5,11 +5,15 @@ use raw_window_handle::HasRawWindowHandle;
 use crate::Color;
 #[derive(Debug)]
 pub struct Style {
-    pub window_background : Color,
+    pub window_background : Color /*= Color::WHITE*/,
+    pub text_color : Color /*= Color::BLACK*/,
+    pub text_size: f32 /*= 20.0*/,
 }
 
 impl Style {
-    pub fn default() -> Self { Self{ window_background: Color{r:1.,g:1.,b:1.,a:1.}, } }
+    pub fn light() -> Self { Self{ window_background: Color::WHITE, text_color: Color::BLACK, text_size: 20.} }
+    pub fn dark() -> Self { Self{ window_background: Color::BLACK, text_color: Color::WHITE, text_size: 20.} }
+    pub fn default() -> Self { Self::light() }
 }
 
 pub trait Windowed: super::Renderer + Sized {

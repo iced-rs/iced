@@ -6,6 +6,7 @@ pub use iced_winit::{
     button, scrollable, slider, text, text_input, Align, Background,
     Checkbox, Color, Image, Justify, Length, Radio, Scrollable, Slider, Text,
     TextInput,
+    renderer::Style,
 };
 
 pub use iced_wgpu::Renderer;
