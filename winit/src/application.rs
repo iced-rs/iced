@@ -61,7 +61,7 @@ pub trait Application {
         let user_interface = UserInterface::build(
             document(&mut self, size, &mut debug),
             Cache::default(),
-            &renderer,
+            &mut renderer,
         );
         debug.layout_finished();
 
@@ -87,7 +87,7 @@ pub trait Application {
                 let mut user_interface = UserInterface::build(
                     document(&mut self, size, &mut debug),
                     cache.take().unwrap(),
-                    &renderer,
+                    &mut renderer,
                 );
                 debug.layout_finished();
 
@@ -130,7 +130,7 @@ pub trait Application {
                     let user_interface = UserInterface::build(
                         document(&mut self, size, &mut debug),
                         temp_cache,
-                        &renderer,
+                        &mut renderer,
                     );
                     debug.layout_finished();
 

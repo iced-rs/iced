@@ -1,6 +1,6 @@
 //! Display images in your user interface.
 
-use crate::{Align, Length, Rectangle};
+use crate::{Length, Rectangle};
 
 /// A frame that displays an image while keeping aspect ratio.
 ///

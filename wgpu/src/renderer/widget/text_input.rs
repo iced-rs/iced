@@ -78,7 +78,7 @@ impl text_input::Renderer for Renderer {
                 .to_string();
 
             let mut text_value_width = self
-                .glyph_brush
+                .text_measurements
                 .borrow_mut()
                 .glyph_bounds(Section {
                     text: text_before_cursor,
@@ -94,7 +94,7 @@ impl text_input::Renderer for Renderer {
 
             if spaces_at_the_end > 0 {
                 let space_width = {
-                    let glyph_brush = self.glyph_brush.borrow();
+                    let glyph_brush = self.text_measurements.borrow();
 
                     // TODO: Select appropriate font
                     let font = &glyph_brush.fonts()[0];

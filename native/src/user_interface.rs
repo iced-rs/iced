@@ -97,7 +97,7 @@ where
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
         cache: Cache,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
     ) -> Self {
         let root = root.into();
 
@@ -110,7 +110,7 @@ where
             cache.layout
         } else {
             let layout_start = std::time::Instant::now();
-            let layout = root.layout(renderer, &layout::Limits::NONE);
+            let layout = renderer.layout(&root);
             dbg!(std::time::Instant::now() - layout_start);
 
             layout

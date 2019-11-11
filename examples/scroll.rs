@@ -1,6 +1,6 @@
 use iced::{
-    button, scrollable, Align, Application, Button, Column, Container, Element,
-    Image, Length, Scrollable, Text,
+    button, scrollable, Align, Application, Button, Container, Element, Image,
+    Length, Scrollable, Text,
 };
 
 pub fn main() {

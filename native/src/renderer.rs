@@ -26,6 +26,15 @@ mod windowed;
 pub use debugger::Debugger;
 pub use windowed::{Target, Windowed};
 
-pub trait Renderer {
+use crate::{layout, Element};
+
+pub trait Renderer: Sized {
     type Output;
+
+    fn layout<'a, Message>(
+        &mut self,
+        element: &Element<'a, Message, Self>,
+    ) -> layout::Node {
+        element.layout(self, &layout::Limits::NONE)
+    }
 }

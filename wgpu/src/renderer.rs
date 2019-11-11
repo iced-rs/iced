@@ -22,8 +22,8 @@ pub struct Renderer {
     queue: Queue,
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
-
-    glyph_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
+    text_pipeline: wgpu_glyph::GlyphBrush<'static, ()>,
+    text_measurements: RefCell<glyph_brush::GlyphBrush<'static, ()>>,
 }
 
 pub struct Layer<'a> {
@@ -73,10 +73,13 @@ impl Renderer {
 
         let fonts = vec![default_font, mono_font];
 
-        let glyph_brush =
-            wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(fonts)
+        let text_pipeline =
+            wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(fonts.clone())
                 .initial_cache_size((2048, 2048))
                 .build(&mut device, TextureFormat::Bgra8UnormSrgb);
+
+        let text_measurements =
+            glyph_brush::GlyphBrushBuilder::using_fonts_bytes(fonts).build();
 
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
@@ -86,8 +89,8 @@ impl Renderer {
             queue,
             quad_pipeline,
             image_pipeline,
-
-            glyph_brush: RefCell::new(glyph_brush),
+            text_pipeline,
+            text_measurements: RefCell::new(text_measurements),
         }
     }
 
@@ -293,8 +296,7 @@ impl Renderer {
         let first = layers.first().unwrap();
         let mut overlay = Layer::new(first.bounds, Vector::new(0, 0));
 
-        let font_id =
-            wgpu_glyph::FontId(self.glyph_brush.borrow().fonts().len() - 1);
+        let font_id = wgpu_glyph::FontId(self.text_pipeline.fonts().len() - 1);
         let scale = wgpu_glyph::Scale { x: 20.0, y: 20.0 };
 
         for (i, line) in lines.iter().enumerate() {
@@ -361,8 +363,6 @@ impl Renderer {
         }
 
         if layer.text.len() > 0 {
-            let mut glyph_brush = self.glyph_brush.borrow_mut();
-
             for text in layer.text.iter() {
                 // Target physical coordinates directly to avoid blurry text
                 let text = wgpu_glyph::Section {
@@ -378,10 +378,10 @@ impl Renderer {
                     ..*text
                 };
 
-                glyph_brush.queue(text);
+                self.text_pipeline.queue(text);
             }
 
-            glyph_brush
+            self.text_pipeline
                 .draw_queued_with_transform_and_scissoring(
                     &mut self.device,
                     encoder,
@@ -401,6 +401,25 @@ impl Renderer {
 
 impl iced_native::Renderer for Renderer {
     type Output = (Primitive, MouseCursor);
+
+    fn layout<'a, Message>(
+        &mut self,
+        element: &iced_native::Element<'a, Message, Self>,
+    ) -> iced_native::layout::Node {
+        let node = element.layout(self, &iced_native::layout::Limits::NONE);
+
+        // Trim measurements cache
+        // TODO: We should probably use a `GlyphCalculator` for this. However,
+        // it uses a lifetimed `GlyphCalculatorGuard` with side-effects on drop.
+        // This makes stuff quite inconvenient. A manual method for trimming the
+        // cache would make our lives easier.
+        self.text_measurements
+            .borrow_mut()
+            .process_queued(|_, _| {}, |_| {})
+            .expect("Trim text measurements");
+
+        node
+    }
 }
 
 impl Windowed for Renderer {

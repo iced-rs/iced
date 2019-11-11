@@ -22,7 +22,7 @@ impl text::Renderer for Renderer {
         };
 
         let (width, height) = if let Some(bounds) =
-            self.glyph_brush.borrow_mut().glyph_bounds(&section)
+            self.text_measurements.borrow_mut().glyph_bounds(&section)
         {
             (bounds.width().ceil(), bounds.height().ceil())
         } else {
