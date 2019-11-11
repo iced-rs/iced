@@ -22,6 +22,14 @@ impl Limits {
         }
     }
 
+    pub fn min(&self) -> Size {
+        self.min
+    }
+
+    pub fn max(&self) -> Size {
+        self.max
+    }
+
     pub fn width(mut self, width: Length) -> Limits {
         match width {
             Length::Shrink => {
@@ -85,27 +93,6 @@ impl Limits {
         self
     }
 
-    pub fn resolve(&self, intrinsic_size: Size) -> Size {
-        Size::new(
-            intrinsic_size
-                .width
-                .min(self.max.width)
-                .max(self.fill.width),
-            intrinsic_size
-                .height
-                .min(self.max.height)
-                .max(self.fill.height),
-        )
-    }
-
-    pub fn min(&self) -> Size {
-        self.min
-    }
-
-    pub fn max(&self) -> Size {
-        self.max
-    }
-
     pub fn pad(&self, padding: f32) -> Limits {
         self.shrink(Size::new(padding * 2.0, padding * 2.0))
     }
@@ -127,5 +114,26 @@ impl Limits {
         );
 
         Limits { min, max, fill }
+    }
+
+    pub fn loose(&self) -> Limits {
+        Limits {
+            min: Size::ZERO,
+            max: self.max,
+            fill: self.fill,
+        }
+    }
+
+    pub fn resolve(&self, intrinsic_size: Size) -> Size {
+        Size::new(
+            intrinsic_size
+                .width
+                .min(self.max.width)
+                .max(self.fill.width),
+            intrinsic_size
+                .height
+                .min(self.max.height)
+                .max(self.fill.height),
+        )
     }
 }

@@ -211,7 +211,7 @@ mod size;
 mod user_interface;
 
 pub use iced_core::{
-    Align, Background, Color, Justify, Length, Point, Rectangle, Vector,
+    Align, Background, Color, Length, Point, Rectangle, Vector,
 };
 
 pub use element::Element;

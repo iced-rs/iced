@@ -31,12 +31,16 @@ pub mod slider;
 pub mod text;
 pub mod text_input;
 
+mod container;
+
 #[doc(no_inline)]
 pub use button::Button;
 #[doc(no_inline)]
 pub use checkbox::Checkbox;
 #[doc(no_inline)]
 pub use column::Column;
+#[doc(no_inline)]
+pub use container::Container;
 #[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]

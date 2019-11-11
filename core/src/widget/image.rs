@@ -24,8 +24,6 @@ pub struct Image {
 
     /// The height of the image
     pub height: Length,
-
-    pub align_self: Option<Align>,
 }
 
 impl Image {
@@ -38,7 +36,6 @@ impl Image {
             clip: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            align_self: None,
         }
     }
 
@@ -63,17 +60,6 @@ impl Image {
     /// [`Image`]: struct.Image.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
-        self
-    }
-
-    /// Sets the alignment of the [`Image`] itself.
-    ///
-    /// This is useful if you want to override the default alignment given by
-    /// the parent container.
-    ///
-    /// [`Image`]: struct.Image.html
-    pub fn align_self(mut self, align: Align) -> Self {
-        self.align_self = Some(align);
         self
     }
 }

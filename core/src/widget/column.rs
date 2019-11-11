@@ -1,4 +1,4 @@
-use crate::{Align, Justify, Length};
+use crate::{Align, Length};
 
 use std::u32;
 
@@ -14,9 +14,7 @@ pub struct Column<Element> {
     pub height: Length,
     pub max_width: u32,
     pub max_height: u32,
-    pub align_self: Option<Align>,
     pub align_items: Align,
-    pub justify_content: Justify,
     pub children: Vec<Element>,
 }
 
@@ -32,9 +30,7 @@ impl<Element> Column<Element> {
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
-            align_self: None,
             align_items: Align::Start,
-            justify_content: Justify::Start,
             children: Vec::new(),
         }
     }
@@ -89,31 +85,11 @@ impl<Element> Column<Element> {
         self
     }
 
-    /// Sets the alignment of the [`Column`] itself.
-    ///
-    /// This is useful if you want to override the default alignment given by
-    /// the parent container.
-    ///
-    /// [`Column`]: struct.Column.html
-    pub fn align_self(mut self, align: Align) -> Self {
-        self.align_self = Some(align);
-        self
-    }
-
     /// Sets the horizontal alignment of the contents of the [`Column`] .
     ///
     /// [`Column`]: struct.Column.html
     pub fn align_items(mut self, align: Align) -> Self {
         self.align_items = align;
-        self
-    }
-
-    /// Sets the vertical distribution strategy for the contents of the
-    /// [`Column`] .
-    ///
-    /// [`Column`]: struct.Column.html
-    pub fn justify_content(mut self, justify: Justify) -> Self {
-        self.justify_content = justify;
         self
     }
 

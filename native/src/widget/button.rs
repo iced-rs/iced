@@ -7,7 +7,7 @@
 //! [`Class`]: enum.Class.html
 
 use crate::input::{mouse, ButtonState};
-use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Point, Widget};
 use std::hash::Hash;
 
 pub use iced_core::button::State;
@@ -78,7 +78,6 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         self.width.hash(state);
-        self.align_self.hash(state);
         self.content.hash_layout(state);
     }
 }

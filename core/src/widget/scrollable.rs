@@ -7,7 +7,6 @@ pub struct Scrollable<'a, Element> {
     pub state: &'a mut State,
     pub height: Length,
     pub max_height: u32,
-    pub align_self: Option<Align>,
     pub content: Column<Element>,
 }
 
@@ -17,7 +16,6 @@ impl<'a, Element> Scrollable<'a, Element> {
             state,
             height: Length::Shrink,
             max_height: u32::MAX,
-            align_self: None,
             content: Column::new(),
         }
     }
@@ -69,17 +67,6 @@ impl<'a, Element> Scrollable<'a, Element> {
     /// [`Scrollable`]: struct.Scrollable.html
     pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
-        self
-    }
-
-    /// Sets the alignment of the [`Scrollable`] itself.
-    ///
-    /// This is useful if you want to override the default alignment given by
-    /// the parent container.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
-    pub fn align_self(mut self, align: Align) -> Self {
-        self.align_self = Some(align);
         self
     }
 
@@ -142,9 +129,9 @@ impl State {
 
     pub fn offset(&self, bounds: Rectangle, content_bounds: Rectangle) -> u32 {
         let hidden_content =
-            (content_bounds.height - bounds.height).round() as u32;
+            (content_bounds.height - bounds.height).max(0.0).round() as u32;
 
-        self.offset.min(hidden_content).max(0)
+        self.offset.min(hidden_content)
     }
 
     pub fn is_scrollbar_grabbed(&self) -> bool {

@@ -1,8 +1,6 @@
 use std::hash::Hash;
 
-use crate::{
-    layout, Element, Event, Hasher, Layout, Length, Point, Size, Widget,
-};
+use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
 
 /// A container that distributes its contents vertically.
 pub type Column<'a, Message, Renderer> =
@@ -34,6 +32,7 @@ where
             &limits,
             self.padding as f32,
             self.spacing as f32,
+            self.align_items,
             &self.children,
         )
     }
@@ -74,9 +73,7 @@ where
         self.height.hash(state);
         self.max_width.hash(state);
         self.max_height.hash(state);
-        self.align_self.hash(state);
         self.align_items.hash(state);
-        self.justify_content.hash(state);
         self.spacing.hash(state);
 
         for child in &self.children {

@@ -15,7 +15,4 @@ pub enum Align {
 
     /// Align at the end of the cross axis.
     End,
-
-    /// Stretch over the cross axis.
-    Stretch,
 }

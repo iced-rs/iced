@@ -168,7 +168,6 @@ where
 
         self.height.hash(state);
         self.max_height.hash(state);
-        self.align_self.hash(state);
 
         self.content.hash_layout(state)
     }

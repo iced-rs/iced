@@ -1,4 +1,4 @@
-use crate::{Rectangle, Size};
+use crate::{Align, Rectangle, Size};
 
 #[derive(Debug, Clone, Default)]
 pub struct Node {
@@ -33,5 +33,28 @@ impl Node {
 
     pub fn children(&self) -> &[Node] {
         &self.children
+    }
+
+    pub fn align(
+        &mut self,
+        horizontal_alignment: Align,
+        vertical_alignment: Align,
+        space: Size,
+    ) {
+        match horizontal_alignment {
+            Align::Start => {}
+            Align::Center => {
+                self.bounds.x += (space.width - self.bounds.width) / 2.0;
+            }
+            Align::End => {}
+        }
+
+        match vertical_alignment {
+            Align::Start => {}
+            Align::Center => {
+                self.bounds.y += (space.height - self.bounds.height) / 2.0;
+            }
+            Align::End => {}
+        }
     }
 }

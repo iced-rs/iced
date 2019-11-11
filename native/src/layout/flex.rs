@@ -17,7 +17,7 @@
 // limitations under the License.
 use crate::{
     layout::{Limits, Node},
-    Element, Size,
+    Align, Element, Size,
 };
 
 #[derive(Debug)]
@@ -56,6 +56,7 @@ pub fn resolve<Message, Renderer>(
     limits: &Limits,
     padding: f32,
     spacing: f32,
+    align_items: Align,
     children: &[Element<'_, Message, Renderer>],
 ) -> Node
 where
@@ -66,6 +67,7 @@ where
     let mut total_non_fill =
         spacing as f32 * (children.len() as i32 - 1).max(0) as f32;
     let mut fill_sum = 0;
+    let mut cross = axis.cross(limits.min());
 
     let mut nodes: Vec<Node> = Vec::with_capacity(children.len());
     nodes.resize(children.len(), Node::default());
@@ -81,8 +83,10 @@ where
             let child_limits = Limits::new(Size::ZERO, limits.max());
 
             let layout = child.layout(renderer, &child_limits);
+            let size = layout.size();
 
-            total_non_fill += axis.main(layout.size());
+            total_non_fill += axis.main(size);
+            cross = cross.max(axis.cross(size));
 
             nodes[i] = layout;
         } else {
@@ -120,13 +124,13 @@ where
             );
 
             let layout = child.layout(renderer, &child_limits);
+            cross = cross.max(axis.cross(layout.size()));
 
             nodes[i] = layout;
         }
     }
 
     let mut main = padding;
-    let mut cross = axis.cross(limits.min());
 
     for (i, node) in nodes.iter_mut().enumerate() {
         if i > 0 {
@@ -138,10 +142,18 @@ where
         node.bounds.x = x;
         node.bounds.y = y;
 
+        match axis {
+            Axis::Horizontal => {
+                node.align(Align::Start, align_items, Size::new(0.0, cross));
+            }
+            Axis::Vertical => {
+                node.align(align_items, Align::Start, Size::new(cross, 0.0));
+            }
+        }
+
         let size = node.size();
 
         main += axis.main(size);
-        cross = cross.max(axis.cross(size));
     }
 
     let (width, height) = axis.pack(main, cross);

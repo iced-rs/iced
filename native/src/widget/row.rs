@@ -32,6 +32,7 @@ where
             &limits,
             self.padding as f32,
             self.spacing as f32,
+            self.align_items,
             &self.children,
         )
     }
@@ -72,9 +73,7 @@ where
         self.height.hash(state);
         self.max_width.hash(state);
         self.max_height.hash(state);
-        self.align_self.hash(state);
         self.align_items.hash(state);
-        self.justify_content.hash(state);
         self.spacing.hash(state);
         self.spacing.hash(state);
 

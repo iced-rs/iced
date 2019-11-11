@@ -9,6 +9,7 @@
 //! ```
 mod checkbox;
 mod column;
+mod container;
 mod image;
 mod radio;
 mod row;
@@ -32,6 +33,7 @@ pub use text_input::TextInput;
 
 pub use checkbox::Checkbox;
 pub use column::Column;
+pub use container::Container;
 pub use image::Image;
 pub use radio::Radio;
 pub use row::Row;
