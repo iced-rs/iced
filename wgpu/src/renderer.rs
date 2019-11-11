@@ -1,7 +1,7 @@
 use crate::{font, quad, Image, Primitive, Quad, Transformation};
 use iced_native::{
-    renderer::Debugger, renderer::Windowed, Background, Color, Layout,
-    MouseCursor, Point, Rectangle, Vector, Widget,
+    renderer::Debugger, renderer::Windowed, renderer::Style, Background, Color, Layout,
+    MouseCursor, Point, Rectangle, Vector as Offset, Widget,
 };
 
 use wgpu::{
@@ -23,20 +23,20 @@ pub struct Renderer {
     queue: Queue,
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
-
+    style : Style,
     glyph_brush: Rc<RefCell<GlyphBrush<'static, ()>>>,
 }
 
 pub struct Layer<'a> {
     bounds: Rectangle<u32>,
-    offset: Vector<u32>,
+    offset: Offset<u32>,
     quads: Vec<Quad>,
     images: Vec<Image>,
     text: Vec<wgpu_glyph::Section<'a>>,
 }
 
 impl<'a> Layer<'a> {
-    pub fn new(bounds: Rectangle<u32>, offset: Vector<u32>) -> Self {
+    pub fn new(bounds: Rectangle<u32>, offset: Offset<u32>) -> Self {
         Self {
             bounds,
             offset,
@@ -48,7 +48,7 @@ impl<'a> Layer<'a> {
 }
 
 impl Renderer {
-    fn new() -> Self {
+    fn new(style : Style) -> Self {
         let adapter = Adapter::request(&RequestAdapterOptions {
             power_preference: PowerPreference::LowPower,
             backends: BackendBit::all(),
@@ -85,7 +85,7 @@ impl Renderer {
             queue,
             quad_pipeline,
             image_pipeline,
-
+            style,
             glyph_brush: Rc::new(RefCell::new(glyph_brush)),
         }
     }
@@ -113,12 +113,7 @@ impl Renderer {
                 resolve_target: None,
                 load_op: wgpu::LoadOp::Clear,
                 store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color {
-                    r: 1.0,
-                    g: 1.0,
-                    b: 1.0,
-                    a: 1.0,
-                },
+                clear_color: { let Color{r,g,b,a} = self.style.window_background; wgpu::Color{r:r.into(), g:g.into(), b:b.into(), a:a.into()} },
             }],
             depth_stencil_attachment: None,
         });
@@ -132,7 +127,7 @@ impl Renderer {
                 width: u32::from(width),
                 height: u32::from(height),
             },
-            Vector::new(0, 0),
+            Offset::new(0, 0),
         ));
 
         self.draw_primitive(primitive, &mut layers);
@@ -290,7 +285,7 @@ impl Renderer {
         layers: &mut Vec<Layer<'a>>,
     ) {
         let first = layers.first().unwrap();
-        let mut overlay = Layer::new(first.bounds, Vector::new(0, 0));
+        let mut overlay = Layer::new(first.bounds, Offset::new(0, 0));
 
         let font_id =
             wgpu_glyph::FontId(self.glyph_brush.borrow().fonts().len() - 1);
@@ -405,8 +400,8 @@ impl iced_native::Renderer for Renderer {
 impl Windowed for Renderer {
     type Target = Target;
 
-    fn new() -> Self {
-        Self::new()
+    fn new(style : Style) -> Self {
+        Self::new(style)
     }
 
     fn draw<T: AsRef<str>>(

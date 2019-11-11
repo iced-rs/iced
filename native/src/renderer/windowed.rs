@@ -2,10 +2,16 @@ use crate::MouseCursor;
 
 use raw_window_handle::HasRawWindowHandle;
 
+use crate::Color;
+#[derive(Debug)]
+pub struct Style {
+    pub window_background : Color,
+}
+
 pub trait Windowed: super::Renderer + Sized {
     type Target: Target<Renderer = Self>;
 
-    fn new() -> Self;
+    fn new(style : Style) -> Self;
 
     fn draw<T: AsRef<str>>(
         &mut self,

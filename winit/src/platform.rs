@@ -30,7 +30,7 @@ impl Platform {
         let mut new_size: Option<winit::dpi::LogicalSize> = None;
 
         use crate::renderer::Windowed;
-        let mut renderer = /*<Application as crate::application::Application>*/Application::Renderer::new();
+        let mut renderer = Application::Renderer::new(application.style());
 
         use crate::renderer::Target;
         let mut target = {
