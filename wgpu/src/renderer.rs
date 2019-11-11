@@ -71,15 +71,17 @@ impl Renderer {
             .load(&[font::Family::Monospace])
             .expect("Find monospace font");
 
-        let fonts = vec![default_font, mono_font];
-
         let text_pipeline =
-            wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(fonts.clone())
-                .initial_cache_size((2048, 2048))
-                .build(&mut device, TextureFormat::Bgra8UnormSrgb);
+            wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(vec![
+                default_font.clone(),
+                mono_font,
+            ])
+            .initial_cache_size((2048, 2048))
+            .build(&mut device, TextureFormat::Bgra8UnormSrgb);
 
         let text_measurements =
-            glyph_brush::GlyphBrushBuilder::using_fonts_bytes(fonts).build();
+            glyph_brush::GlyphBrushBuilder::using_font_bytes(default_font)
+                .build();
 
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
