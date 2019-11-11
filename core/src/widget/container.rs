@@ -8,7 +8,6 @@ pub struct Container<Element> {
     pub height: Length,
     pub max_width: u32,
     pub max_height: u32,
-    pub padding: u16,
     pub horizontal_alignment: Align,
     pub vertical_alignment: Align,
     pub content: Element,
@@ -29,7 +28,6 @@ impl<Element> Container<Element> {
             max_height: u32::MAX,
             horizontal_alignment: Align::Start,
             vertical_alignment: Align::Start,
-            padding: 0,
             content: content.into(),
         }
     }
@@ -63,14 +61,6 @@ impl<Element> Container<Element> {
     /// [`Container`]: struct.Container.html
     pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
-        self
-    }
-
-    /// Sets the padding of the [`Container`].
-    ///
-    /// [`Container`]: struct.Container.html
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
         self
     }
 

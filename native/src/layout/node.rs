@@ -46,7 +46,9 @@ impl Node {
             Align::Center => {
                 self.bounds.x += (space.width - self.bounds.width) / 2.0;
             }
-            Align::End => {}
+            Align::End => {
+                self.bounds.x += space.width - self.bounds.width;
+            }
         }
 
         match vertical_alignment {
@@ -54,7 +56,9 @@ impl Node {
             Align::Center => {
                 self.bounds.y += (space.height - self.bounds.height) / 2.0;
             }
-            Align::End => {}
+            Align::End => {
+                self.bounds.y += space.height - self.bounds.height;
+            }
         }
     }
 }
