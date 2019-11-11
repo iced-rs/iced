@@ -1,5 +1,5 @@
 use iced::{
-    button, scrollable, slider, text::HorizontalAlignment, text_input, Align,
+    button, scrollable, slider, text::HorizontalAlignment, text_input,
     Application, Background, Button, Checkbox, Color, Column, Container,
     Element, Image, Length, Radio, Row, Scrollable, Slider, Text, TextInput,
 };

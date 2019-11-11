@@ -128,7 +128,7 @@ where
     /// #
     /// # mod iced_wgpu {
     /// #     use iced_native::{
-    /// #         text, row, Text, Node, Point, Rectangle, Style, Layout, Row
+    /// #         text, row, layout, Text, Size, Point, Rectangle, Layout, Row
     /// #     };
     /// #     pub struct Renderer;
     /// #
@@ -144,8 +144,12 @@ where
     /// #     }
     /// #
     /// #     impl text::Renderer for Renderer {
-    /// #         fn node(&self, _text: &Text) -> Node {
-    /// #             Node::new(Style::default())
+    /// #         fn layout(
+    /// #             &self,
+    /// #             _text: &Text,
+    /// #             _limits: &layout::Limits,
+    /// #         ) -> layout::Node {
+    /// #             layout::Node::new(Size::ZERO)
     /// #         }
     /// #
     /// #         fn draw(

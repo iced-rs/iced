@@ -77,7 +77,7 @@
 //! #
 //! # mod iced_wgpu {
 //! #     use iced_native::{
-//! #         button, text, Button, Text, Node, Point, Rectangle, Style, Color, Layout
+//! #         button, text, layout, Button, Text, Point, Rectangle, Color, Layout, Size
 //! #     };
 //! #
 //! #     pub struct Renderer {}
@@ -87,11 +87,12 @@
 //! #     }
 //! #
 //! #     impl button::Renderer for Renderer {
-//! #         fn node<Message>(
+//! #         fn layout<Message>(
 //! #             &self,
-//! #             _button: &Button<'_, Message, Self>
-//! #         ) -> Node {
-//! #             Node::new(Style::default())
+//! #             _button: &Button<'_, Message, Self>,
+//! #             _limits: &layout::Limits,
+//! #         ) -> layout::Node {
+//! #             layout::Node::new(Size::ZERO)
 //! #         }
 //! #
 //! #         fn draw<Message>(
@@ -103,8 +104,12 @@
 //! #     }
 //! #
 //! #     impl text::Renderer for Renderer {
-//! #         fn node(&self, _text: &Text) -> Node {
-//! #             Node::new(Style::default())
+//! #         fn layout(
+//! #             &self,
+//! #             _text: &Text,
+//! #             _limits: &layout::Limits,
+//! #         ) -> layout::Node {
+//! #             layout::Node::new(Size::ZERO)
 //! #         }
 //! #
 //! #         fn draw(
