@@ -1,5 +1,5 @@
 use crate::{
-    input::{keyboard, mouse},
+    input::{keyboard, mouse, touch},
     window,
 };
 
@@ -19,4 +19,7 @@ pub enum Event {
 
     /// A window event
     Window(window::Event),
+
+    /// A touch event
+    Touch(touch::Touch),
 }

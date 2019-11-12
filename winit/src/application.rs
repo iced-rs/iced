@@ -310,7 +310,6 @@ pub trait Application: Sized {
                         physical_size.width,
                         physical_size.height,
                     );
-
                     resized = false;
                 }
 

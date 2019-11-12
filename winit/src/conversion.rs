@@ -5,7 +5,7 @@
 use crate::{
     input::{
         keyboard::{self, KeyCode, ModifiersState},
-        mouse, ButtonState,
+        mouse, touch, ButtonState,
     },
     window, Event, Mode, MouseCursor,
 };
@@ -83,6 +83,9 @@ pub fn window_event(
         }
         WindowEvent::HoveredFileCancelled => {
             Some(Event::Window(window::Event::FilesHoveredLeft))
+        }
+        WindowEvent::Touch(touch) => {
+            Some(Event::Touch(touch_event(touch)))
         }
         _ => None,
     }
@@ -340,5 +343,26 @@ pub(crate) fn is_private_use_character(c: char) -> bool {
         | '\u{F0000}'..='\u{FFFFD}'
         | '\u{100000}'..='\u{10FFFD}' => true,
         _ => false,
+    }
+}
+pub(crate) fn touch_event(touch: winit::event::Touch) -> touch::Touch {
+    let location = touch.location;
+    match touch.phase {
+        winit::event::TouchPhase::Started => touch::Touch::Started {
+            x: location.x as f32,
+            y: location.y as f32,
+        },
+        winit::event::TouchPhase::Ended => touch::Touch::Ended {
+            x: location.x as f32,
+            y: location.y as f32,
+        },
+        winit::event::TouchPhase::Moved => touch::Touch::Moved {
+            x: location.x as f32,
+            y: location.y as f32,
+        },
+        winit::event::TouchPhase::Cancelled => touch::Touch::Cancelled {
+            x: location.x as f32,
+            y: location.y as f32,
+        },
     }
 }

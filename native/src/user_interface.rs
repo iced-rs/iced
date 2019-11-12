@@ -1,5 +1,6 @@
 use crate::{
-    input::mouse, layout, Clipboard, Element, Event, Layout, Point, Size,
+    input::{mouse, touch},
+    layout, Clipboard, Element, Event, Layout, Point, Size,
 };
 
 use std::hash::Hasher;
@@ -181,8 +182,15 @@ where
         let mut messages = Vec::new();
 
         for event in events {
-            if let Event::Mouse(mouse::Event::CursorMoved { x, y }) = event {
-                self.cursor_position = Point::new(x, y);
+            match event {
+                Event::Mouse(mouse::Event::CursorMoved { x, y })
+                | Event::Touch(touch::Touch::Started { x, y })
+                | Event::Touch(touch::Touch::Ended { x, y })
+                | Event::Touch(touch::Touch::Moved { x, y })
+                | Event::Touch(touch::Touch::Cancelled { x, y }) => {
+                    self.cursor_position = Point::new(x, y);
+                }
+                _ => {}
             }
 
             self.root.widget.on_event(

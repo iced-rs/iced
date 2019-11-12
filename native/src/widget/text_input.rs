@@ -5,7 +5,7 @@
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
 use crate::{
-    input::{keyboard, mouse, ButtonState},
+    input::{keyboard, mouse, touch, ButtonState},
     layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
     Rectangle, Size, Widget,
 };
@@ -202,7 +202,8 @@ where
             Event::Mouse(mouse::Event::Input {
                 button: mouse::Button::Left,
                 state: ButtonState::Pressed,
-            }) => {
+            })
+            | Event::Touch(touch::Touch::Started { .. }) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
 
                 if is_clicked {
