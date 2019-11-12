@@ -3,7 +3,7 @@ use iced_native::{image, Image, Layout, Length, MouseCursor, Node, Style};
 
 impl image::Renderer for Renderer {
     fn node(&self, image: &Image) -> Node {
-        let (width, height) = self.image_pipeline.dimensions(&image.path);
+        let (width, height) = self.image_pipeline.dimensions(&image.path).unwrap_or_else(|e| { println!("{} {}", e, image.path); (0,0) });
 
         let aspect_ratio = width as f32 / height as f32;
 

@@ -5,9 +5,9 @@ use raw_window_handle::HasRawWindowHandle;
 use crate::Color;
 #[derive(Debug)]
 pub struct Style {
-    pub window_background : Color /*= Color::WHITE*/,
-    pub text_color : Color /*= Color::BLACK*/,
-    pub text_size: f32 /*= 20.0*/,
+    pub window_background : Color,
+    pub text_color : Color,
+    pub text_size: f32,
 }
 
 impl Style {

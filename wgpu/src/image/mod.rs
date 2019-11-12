@@ -1,10 +1,11 @@
-use crate::Transformation;
-use iced_native::Rectangle;
-
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::mem;
-use std::rc::Rc;
+
+use crate::Transformation;
+
+mod memory;
+use memory::Memory;
 
 pub struct Pipeline {
     cache: RefCell<HashMap<String, Memory>>,
@@ -197,20 +198,20 @@ impl Pipeline {
         }
     }
 
-    pub fn dimensions(&self, path: &str) -> (u32, u32) {
-        self.load(path);
-
-        self.cache.borrow().get(path).unwrap().dimensions()
+    pub fn dimensions(&self, path: &str) -> Result<(u32, u32), image::ImageError> {
+        self.load(path)?;
+        Ok(self.cache.borrow().get(path).unwrap().dimensions())
     }
 
-    fn load(&self, path: &str) {
+    fn load(&self, path: &str) -> Result<(), image::ImageError> {
         if !self.cache.borrow().contains_key(path) {
-            let image = image::open(path).expect("Load image").to_bgra();
+            let image = image::open(path)?.to_bgra();
 
             self.cache
                 .borrow_mut()
                 .insert(path.to_string(), Memory::Host { image });
         }
+        Ok(())
     }
 
     pub fn draw(
@@ -219,7 +220,7 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         instances: &[Image],
         transformation: Transformation,
-        bounds: Rectangle<u32>,
+        bounds: iced_native::Rectangle<u32>,
         target: &wgpu::TextureView,
     ) {
         let transform_buffer = device
@@ -239,173 +240,84 @@ impl Pipeline {
         //
         // [1]: https://github.com/nical/guillotiere
         for image in instances {
-            self.load(&image.path);
-
-            let texture = self
-                .cache
-                .borrow_mut()
-                .get_mut(&image.path)
-                .unwrap()
-                .upload(device, encoder, &self.texture_layout);
-
-            let instance_buffer = device
-                .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-                .fill_from_slice(&[Instance {
-                    _position: image.position,
-                    _scale: image.scale,
-                }]);
-
-            encoder.copy_buffer_to_buffer(
-                &instance_buffer,
-                0,
-                &self.instances,
-                0,
-                mem::size_of::<Image>() as u64,
-            );
-
-            {
-                let mut render_pass =
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        color_attachments: &[
-                            wgpu::RenderPassColorAttachmentDescriptor {
-                                attachment: target,
-                                resolve_target: None,
-                                load_op: wgpu::LoadOp::Load,
-                                store_op: wgpu::StoreOp::Store,
-                                clear_color: wgpu::Color {
-                                    r: 0.0,
-                                    g: 0.0,
-                                    b: 0.0,
-                                    a: 0.0,
-                                },
-                            },
-                        ],
-                        depth_stencil_attachment: None,
-                    });
-
-                render_pass.set_pipeline(&self.pipeline);
-                render_pass.set_bind_group(0, &self.constants, &[]);
-                render_pass.set_bind_group(1, &texture, &[]);
-                render_pass.set_index_buffer(&self.indices, 0);
-                render_pass.set_vertex_buffers(
-                    0,
-                    &[(&self.vertices, 0), (&self.instances, 0)],
-                );
-                render_pass.set_scissor_rect(
-                    bounds.x,
-                    bounds.y,
-                    bounds.width,
-                    bounds.height,
-                );
-
-                render_pass.draw_indexed(
-                    0..QUAD_INDICES.len() as u32,
-                    0,
-                    0..1 as u32,
-                );
-            }
-        }
-    }
-}
-
-enum Memory {
-    Host {
-        image: image::ImageBuffer<image::Bgra<u8>, Vec<u8>>,
-    },
-    Device {
-        bind_group: Rc<wgpu::BindGroup>,
-        width: u32,
-        height: u32,
-    },
-}
-
-impl Memory {
-    fn dimensions(&self) -> (u32, u32) {
-        match self {
-            Memory::Host { image } => image.dimensions(),
-            Memory::Device { width, height, .. } => (*width, *height),
+            if let Err(e) = self.draw_image(device, encoder, bounds, target, image) { println!("{} '{}'", e, image.path); }
         }
     }
 
-    fn upload(
+    pub fn draw_image(
         &mut self,
-        device: &wgpu::Device,
+        device: &mut wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        texture_layout: &wgpu::BindGroupLayout,
-    ) -> Rc<wgpu::BindGroup> {
-        match self {
-            Memory::Host { image } => {
-                let (width, height) = image.dimensions();
+        bounds: iced_native::Rectangle<u32>,
+        target: &wgpu::TextureView,
+        image : &Image
+    ) -> Result<(), image::ImageError> {
+        self.load(&image.path)?;
 
-                let extent = wgpu::Extent3d {
-                    width,
-                    height,
-                    depth: 1,
-                };
+        let texture = self
+            .cache
+            .borrow_mut()
+            .get_mut(&image.path)
+            .unwrap()
+            .upload(device, encoder, &self.texture_layout);
 
-                let texture = device.create_texture(&wgpu::TextureDescriptor {
-                    size: extent,
-                    array_layer_count: 1,
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    usage: wgpu::TextureUsage::COPY_DST
-                        | wgpu::TextureUsage::SAMPLED,
+        let instance_buffer = device
+            .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&[Instance {
+                _position: image.position,
+                _scale: image.scale,
+            }]);
+
+        encoder.copy_buffer_to_buffer(
+            &instance_buffer,
+            0,
+            &self.instances,
+            0,
+            mem::size_of::<Image>() as u64,
+        );
+
+        {
+            let mut render_pass =
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    color_attachments: &[
+                        wgpu::RenderPassColorAttachmentDescriptor {
+                            attachment: target,
+                            resolve_target: None,
+                            load_op: wgpu::LoadOp::Load,
+                            store_op: wgpu::StoreOp::Store,
+                            clear_color: wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 0.0,
+                            },
+                        },
+                    ],
+                    depth_stencil_attachment: None,
                 });
 
-                let slice = image.clone().into_raw();
+            render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_bind_group(0, &self.constants, &[]);
+            render_pass.set_bind_group(1, &texture, &[]);
+            render_pass.set_index_buffer(&self.indices, 0);
+            render_pass.set_vertex_buffers(
+                0,
+                &[(&self.vertices, 0), (&self.instances, 0)],
+            );
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
 
-                let temp_buf = device
-                    .create_buffer_mapped(
-                        slice.len(),
-                        wgpu::BufferUsage::COPY_SRC,
-                    )
-                    .fill_from_slice(&slice[..]);
-
-                encoder.copy_buffer_to_texture(
-                    wgpu::BufferCopyView {
-                        buffer: &temp_buf,
-                        offset: 0,
-                        row_pitch: 4 * width as u32,
-                        image_height: height as u32,
-                    },
-                    wgpu::TextureCopyView {
-                        texture: &texture,
-                        array_layer: 0,
-                        mip_level: 0,
-                        origin: wgpu::Origin3d {
-                            x: 0.0,
-                            y: 0.0,
-                            z: 0.0,
-                        },
-                    },
-                    extent,
-                );
-
-                let bind_group =
-                    device.create_bind_group(&wgpu::BindGroupDescriptor {
-                        layout: texture_layout,
-                        bindings: &[wgpu::Binding {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(
-                                &texture.create_default_view(),
-                            ),
-                        }],
-                    });
-
-                let bind_group = Rc::new(bind_group);
-
-                *self = Memory::Device {
-                    bind_group: bind_group.clone(),
-                    width,
-                    height,
-                };
-
-                bind_group
-            }
-            Memory::Device { bind_group, .. } => bind_group.clone(),
+            render_pass.draw_indexed(
+                0..QUAD_INDICES.len() as u32,
+                0,
+                0..1 as u32,
+            );
         }
+        Ok(())
     }
 }
 
