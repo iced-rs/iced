@@ -2,7 +2,7 @@ use crate::{
     input::{keyboard, mouse},
     conversion,
     Event,
- };
+};
 
 pub struct Platform {
     pub event_loop : winit::event_loop::EventLoop<()>,
