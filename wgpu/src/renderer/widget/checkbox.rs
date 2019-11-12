@@ -1,16 +1,19 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    checkbox, text, text::HorizontalAlignment, text::VerticalAlignment, Align,
-    Background, Checkbox, Column, Layout, Length, MouseCursor, Node,
-    Point, Rectangle, Row, Text, Widget,
+    checkbox, layout, text, text::HorizontalAlignment, text::VerticalAlignment,
+    Align, Background, Checkbox, Column, Layout, Length, MouseCursor, Point,
+    Rectangle, Row, Text, Widget,
 };
 
 const SIZE: f32 = 28.0;
 
 impl checkbox::Renderer for Renderer {
-    fn node<Message>(&self, checkbox: &Checkbox<Message>) -> Node {
+    fn layout<Message>(
+        &self,
+        checkbox: &Checkbox<Message>,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         Row::<(), Self>::new()
-            .width(Length::Fill)
             .spacing(15)
             .align_items(Align::Center)
             .push(
@@ -19,7 +22,7 @@ impl checkbox::Renderer for Renderer {
                     .height(Length::Units(SIZE as u16)),
             )
             .push(Text::new(&checkbox.label))
-            .node(self)
+            .layout(self, limits)
     }
 
     fn draw<Message>(

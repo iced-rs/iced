@@ -1,7 +1,4 @@
-use iced::{
-    button, scrollable, Align, Button, Column, Element, Image,
-    Justify, Length, Scrollable, Text,
-};
+use iced::{button, scrollable, Align, Button, Container, Element, Image, Length, Scrollable, Text, };
 
 pub fn main() -> Result<(), iced::Error> {
     env_logger::init();
@@ -66,11 +63,10 @@ impl iced::Application for Example {
                     .border_radius(5),
             );
 
-        Column::new()
+        Container::new(content)
+            .width(Length::Fill)
             .height(Length::Fill)
-            .justify_content(Justify::Center)
-            .padding(20)
-            .push(content)
+            .center_y()
             .into()
     }
 }

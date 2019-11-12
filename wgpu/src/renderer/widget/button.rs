@@ -1,19 +1,30 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    button, Align, Background, Button, Layout, Length, MouseCursor,
-    Node, Point, Rectangle, Style,
+    button, layout, Background, Button, Layout, Length, MouseCursor, Point,
+    Rectangle,
 };
 
 impl button::Renderer for Renderer {
-    fn node<Message>(&self, button: &Button<Message, Self>) -> Node {
-        let style = Style::default()
+    fn layout<Message>(
+        &self,
+        button: &Button<Message, Self>,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let padding = f32::from(button.padding);
+        let limits = limits
+            .min_width(100)
             .width(button.width)
-            .padding(button.padding)
-            .min_width(Length::Units(100))
-            .align_self(button.align_self)
-            .align_items(Align::Stretch);
+            .height(Length::Shrink)
+            .pad(padding);
 
-        Node::with_children(style, vec![button.content.node(self)])
+        let mut content = button.content.layout(self, &limits);
+
+        content.bounds.x = padding;
+        content.bounds.y = padding;
+
+        let size = limits.resolve(content.size()).pad(padding);
+
+        layout::Node::with_children(size, vec![content])
     }
 
     fn draw<Message>(

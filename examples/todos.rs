@@ -1,7 +1,4 @@
-use iced::{
-    scrollable, text::HorizontalAlignment, text_input, Align,
-    Checkbox, Color, Column, Element, Length, Scrollable, Text, TextInput,
-};
+use iced::{scrollable, text::HorizontalAlignment, text_input, Checkbox, Color, Column, Container, Element, Length, Scrollable, Text, TextInput, };
 
 pub fn main() -> Result<(), iced::Error> {
     iced::Instance::new(Todos::default()).run()
@@ -78,8 +75,7 @@ impl iced::Application for Todos {
         );
 
         let content = Column::new()
-            .max_width(Length::Units(800))
-            .align_self(Align::Center)
+            .max_width(800)
             .spacing(20)
             .push(title)
             .push(input)
@@ -87,7 +83,7 @@ impl iced::Application for Todos {
 
         Scrollable::new(&mut self.scroll)
             .padding(40)
-            .push(content)
+            .push(Container::new(content).width(Length::Fill).center_x())
             .into()
     }
 }

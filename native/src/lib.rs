@@ -77,7 +77,7 @@
 //! #
 //! # mod iced_wgpu {
 //! #     use iced_native::{
-//! #         button, text, Button, Text, Node, Point, Rectangle, Style, Color, Layout
+//! #         button, text, layout, Button, Text, Point, Rectangle, Color, Layout, Size
 //! #     };
 //! #
 //! #     pub struct Renderer {}
@@ -87,11 +87,12 @@
 //! #     }
 //! #
 //! #     impl button::Renderer for Renderer {
-//! #         fn node<Message>(
+//! #         fn layout<Message>(
 //! #             &self,
-//! #             _button: &Button<'_, Message, Self>
-//! #         ) -> Node {
-//! #             Node::new(Style::default())
+//! #             _button: &Button<'_, Message, Self>,
+//! #             _limits: &layout::Limits,
+//! #         ) -> layout::Node {
+//! #             layout::Node::new(Size::ZERO)
 //! #         }
 //! #
 //! #         fn draw<Message>(
@@ -103,8 +104,12 @@
 //! #     }
 //! #
 //! #     impl text::Renderer for Renderer {
-//! #         fn node(&self, _text: &Text) -> Node {
-//! #             Node::new(Style::default())
+//! #         fn layout(
+//! #             &self,
+//! #             _text: &Text,
+//! #             _limits: &layout::Limits,
+//! #         ) -> layout::Node {
+//! #             layout::Node::new(Size::ZERO)
 //! #         }
 //! #
 //! #         fn draw(
@@ -199,32 +204,27 @@
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
 pub mod input;
+pub mod layout;
 pub mod renderer;
 pub mod widget;
 
 mod element;
 mod event;
 mod hasher;
-mod layout;
 mod mouse_cursor;
-mod node;
-mod style;
+mod size;
 mod user_interface;
 
 pub use iced_core::{
-    Align, Background, Color, Justify, Length, Point, Rectangle, Vector,
+    Align, Background, Color, Length, Point, Rectangle, Vector,
 };
-
-#[doc(no_inline)]
-pub use stretch::{geometry::Size, number::Number};
 
 pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
-pub use node::Node;
 pub use renderer::Renderer;
-pub use style::Style;
+pub use size::Size;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;

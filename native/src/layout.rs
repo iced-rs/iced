@@ -1,62 +1,50 @@
-use stretch::result;
+mod limits;
+mod node;
+
+pub mod flex;
+
+pub use limits::Limits;
+pub use node::Node;
 
 use crate::{Point, Rectangle, Vector};
 
-/// The computed bounds of a [`Node`] and its children.
-///
-/// This type is provided by the GUI runtime to [`Widget::on_event`] and
-/// [`Widget::draw`], describing the layout of the [`Node`] produced by
-/// [`Widget::node`].
-///
-/// [`Node`]: struct.Node.html
-/// [`Widget::on_event`]: widget/trait.Widget.html#method.on_event
-/// [`Widget::draw`]: widget/trait.Widget.html#tymethod.draw
-/// [`Widget::node`]: widget/trait.Widget.html#tymethod.node
 #[derive(Debug, Clone, Copy)]
 pub struct Layout<'a> {
-    layout: &'a result::Layout,
     position: Point,
+    node: &'a Node,
 }
 
 impl<'a> Layout<'a> {
-    pub(crate) fn new(layout: &'a result::Layout) -> Self {
-        Self::with_parent_position(layout, Point::new(0.0, 0.0))
+    pub(crate) fn new(node: &'a Node) -> Self {
+        Self::with_offset(Vector::new(0.0, 0.0), node)
     }
 
-    fn with_parent_position(
-        layout: &'a result::Layout,
-        parent_position: Point,
-    ) -> Self {
-        let position =
-            parent_position + Vector::new(layout.location.x, layout.location.y);
+    pub(crate) fn with_offset(offset: Vector, node: &'a Node) -> Self {
+        let bounds = node.bounds();
 
-        Layout { layout, position }
-    }
-
-    /// Gets the bounds of the [`Layout`].
-    ///
-    /// The returned [`Rectangle`] describes the position and size of a
-    /// [`Node`].
-    ///
-    /// [`Layout`]: struct.Layout.html
-    /// [`Rectangle`]: struct.Rectangle.html
-    /// [`Node`]: struct.Node.html
-    pub fn bounds(&self) -> Rectangle {
-        Rectangle {
-            x: self.position.x,
-            y: self.position.y,
-            width: self.layout.size.width,
-            height: self.layout.size.height,
+        Self {
+            position: Point::new(bounds.x, bounds.y) + offset,
+            node,
         }
     }
 
-    /// Returns an iterator over the [`Layout`] of the children of a [`Node`].
-    ///
-    /// [`Layout`]: struct.Layout.html
-    /// [`Node`]: struct.Node.html
+    pub fn bounds(&self) -> Rectangle {
+        let bounds = self.node.bounds();
+
+        Rectangle {
+            x: self.position.x,
+            y: self.position.y,
+            width: bounds.width,
+            height: bounds.height,
+        }
+    }
+
     pub fn children(&'a self) -> impl Iterator<Item = Layout<'a>> {
-        self.layout.children.iter().map(move |layout| {
-            Layout::with_parent_position(layout, self.position)
+        self.node.children().iter().map(move |node| {
+            Layout::with_offset(
+                Vector::new(self.position.x, self.position.y),
+                node,
+            )
         })
     }
 }

@@ -1,75 +1,33 @@
-use crate::{Primitive, Renderer};
-use iced_native::{text, Layout, MouseCursor, Node, Style, Text};
-
-use wgpu_glyph::{GlyphCruncher, Section};
-
-use std::cell::RefCell;
-use std::f32;
-
-impl text::Renderer for Renderer {
-    fn node(&self, text: &Text) -> Node {
-        let glyph_brush = self.glyph_brush.clone();
-        let content = text.content.clone();
-
-        // TODO: Investigate why stretch tries to measure this MANY times
-        // with every ancestor's bounds.
-        // Bug? Using the library wrong? I should probably open an issue on
-        // the stretch repository.
-        // I noticed that the first measure is the one that matters in
-        // practice. Here, we use a RefCell to store the cached measurement.
-        let measure = RefCell::new(None);
+impl iced_native::text::Renderer for crate::Renderer {
+    fn layout(&self, text: &iced_native::Text, limits: &iced_native::layout::Limits) -> iced_native::layout::Node {
+        let limits = limits.width(text.width).height(text.height);
         let size = text.size.map(f32::from).unwrap_or(self.style.text_size);
+        let bounds = limits.max();
 
-        let style = Style::default().width(text.width);
+        let section = wgpu_glyph::Section {
+            text: &text.content,
+            scale: wgpu_glyph::Scale { x: size, y: size },
+            bounds: (bounds.width, bounds.height),
+            ..Default::default()
+        };
 
-        iced_native::Node::with_measure(style, move |bounds| {
-            let mut measure = measure.borrow_mut();
+        use glyph_brush::GlyphCruncher;
+        let (width, height) = if let Some(bounds) =
+            self.text_measurements.borrow_mut().glyph_bounds(&section)
+        {
+            (bounds.width().ceil(), bounds.height().ceil())
+        } else {
+            (0.0, 0.0)
+        };
 
-            if measure.is_none() {
-                let bounds = (
-                    match bounds.width {
-                        iced_native::Number::Undefined => f32::INFINITY,
-                        iced_native::Number::Defined(w) => w,
-                    },
-                    match bounds.height {
-                        iced_native::Number::Undefined => f32::INFINITY,
-                        iced_native::Number::Defined(h) => h,
-                    },
-                );
+        let size = limits.resolve(iced_native::Size::new(width, height));
 
-                let text = Section {
-                    text: &content,
-                    scale: wgpu_glyph::Scale { x: size, y: size },
-                    bounds,
-                    ..Default::default()
-                };
-
-                let (width, height) = if let Some(bounds) =
-                    glyph_brush.borrow_mut().glyph_bounds(&text)
-                {
-                    (bounds.width().ceil(), bounds.height().ceil())
-                } else {
-                    (0.0, 0.0)
-                };
-
-                let size = iced_native::Size { width, height };
-
-                // If the text has no width boundary we avoid caching as the
-                // layout engine may just be measuring text in a row.
-                if bounds.0 == f32::INFINITY {
-                    return size;
-                } else {
-                    *measure = Some(size);
-                }
-            }
-
-            measure.unwrap()
-        })
+        iced_native::layout::Node::new(size)
     }
 
-    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Output {
+    fn draw(&mut self, text: &iced_native::Text, layout: iced_native::Layout<'_>) -> Self::Output {
         (
-            Primitive::Text {
+            crate::Primitive::Text {
                 content: text.content.clone(),
                 size: text.size.map(f32::from).unwrap_or(self.style.text_size),
                 bounds: layout.bounds(),
@@ -77,7 +35,7 @@ impl text::Renderer for Renderer {
                 horizontal_alignment: text.horizontal_alignment,
                 vertical_alignment: text.vertical_alignment,
             },
-            MouseCursor::OutOfBounds,
+            iced_native::MouseCursor::OutOfBounds,
         )
     }
 }

@@ -2,7 +2,7 @@
 use std::hash::Hash;
 
 use crate::input::{mouse, ButtonState};
-use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Point, Widget};
 
 pub use iced_core::Checkbox;
 
@@ -10,8 +10,12 @@ impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(&self)
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        renderer.layout(&self, limits)
     }
 
     fn on_event(
@@ -63,7 +67,11 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Checkbox`]: struct.Checkbox.html
-    fn node<Message>(&self, checkbox: &Checkbox<Message>) -> Node;
+    fn layout<Message>(
+        &self,
+        checkbox: &Checkbox<Message>,
+        limits: &layout::Limits,
+    ) -> layout::Node;
 
     /// Draws a [`Checkbox`].
     ///

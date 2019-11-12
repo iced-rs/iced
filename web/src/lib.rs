@@ -7,7 +7,7 @@ pub mod widget;
 
 pub use bus::Bus;
 pub use element::Element;
-pub use iced_core::{Align, Background, Color, Justify, Length};
+pub use iced_core::{Align, Background, Color, Length};
 pub use widget::*;
 
 pub trait Application {

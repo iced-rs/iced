@@ -1,8 +1,4 @@
-use iced::{
-    button, scrollable, slider, text::HorizontalAlignment, text_input, Align,
-    Background, Button, Checkbox, Color, Column, Element, Image,
-    Justify, Length, Radio, Row, Scrollable, Slider, Text, TextInput,
-};
+use iced::{ button, scrollable, slider, text::HorizontalAlignment, text_input, Background, Button, Checkbox, Color, Column, Container, Element, Image, Length, Radio, Row, Scrollable, Slider, Text, TextInput, };
 
 pub struct Tour {
     steps: Steps,
@@ -19,7 +15,7 @@ impl Tour {
             scroll: scrollable::State::new(),
             back_button: button::State::new(),
             next_button: button::State::new(),
-            debug: false,
+            debug: true,
         }
     }
 }
@@ -80,28 +76,26 @@ impl iced::Application for Tour {
             );
         }
 
-        let element: Element<_> = Column::new()
-            .max_width(Length::Units(540))
+        let content: Element<_> = Column::new()
+            .max_width(540)
             .spacing(20)
             .padding(20)
             .push(steps.view(self.debug).map(Message::StepMessage))
             .push(controls)
             .into();
 
-        let element = if self.debug {
-            element.explain(Color::BLACK)
+        let content = if self.debug {
+            content.explain(Color::BLACK)
         } else {
-            element
+            content
         };
 
-        Column::new()
+        let scrollable = Scrollable::new(scroll)
+            .push(Container::new(content).width(Length::Fill).center_x());
+
+        Container::new(scrollable)
             .height(Length::Fill)
-            .justify_content(Justify::Center)
-            .push(
-                Scrollable::new(scroll)
-                    .align_items(Align::Center)
-                    .push(element),
-            )
+            .center_y()
             .into()
     }
 }
@@ -335,10 +329,7 @@ impl<'a> Step {
     }
 
     fn container(title: &str) -> Column<'a, StepMessage> {
-        Column::new()
-            .spacing(20)
-            .align_items(Align::Stretch)
-            .push(Text::new(title).size(50))
+        Column::new().spacing(20).push(Text::new(title).size(50))
     }
 
     fn welcome() -> Column<'a, StepMessage> {
@@ -641,19 +632,22 @@ impl<'a> Step {
     }
 }
 
-fn ferris(width: u16) -> Image {
-    // This should go away once we unify resource loading on native
-    // platforms
-    if cfg!(target_arch = "wasm32") {
-        Image::new("resources/ferris.png")
-    } else {
-        Image::new(format!(
-            "{}/examples/resources/ferris.png",
-            env!("CARGO_MANIFEST_DIR")
-        ))
-    }
-    .width(Length::Units(width))
-    .align_self(Align::Center)
+fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
+    Container::new(
+        // This should go away once we unify resource loading on native
+        // platforms
+        if cfg!(target_arch = "wasm32") {
+            Image::new("resources/ferris.png")
+        } else {
+            Image::new(format!(
+                "{}/examples/resources/ferris.png",
+                env!("CARGO_MANIFEST_DIR")
+            ))
+        }
+        .width(Length::Units(width)),
+    )
+    .width(Length::Fill)
+    .center_x()
 }
 
 fn button<'a, Message>(

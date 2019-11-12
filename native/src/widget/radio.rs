@@ -1,6 +1,6 @@
 //! Create choices using radio buttons.
 use crate::input::{mouse, ButtonState};
-use crate::{Element, Event, Hasher, Layout, Node, Point, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
 
 use std::hash::Hash;
 
@@ -11,8 +11,16 @@ where
     Renderer: self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(&self)
+    fn width(&self) -> Length {
+        Length::Fill
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        renderer.layout(&self, limits)
     }
 
     fn on_event(
@@ -62,7 +70,11 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`Node`]: ../../struct.Node.html
     /// [`Radio`]: struct.Radio.html
-    fn node<Message>(&self, radio: &Radio<Message>) -> Node;
+    fn layout<Message>(
+        &self,
+        radio: &Radio<Message>,
+        limits: &layout::Limits,
+    ) -> layout::Node;
 
     /// Draws a [`Radio`] button.
     ///
