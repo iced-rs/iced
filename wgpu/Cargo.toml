@@ -14,5 +14,5 @@ wgpu_glyph = { version = "0.5", git = "https://github.com/hecrj/wgpu_glyph", bra
 raw-window-handle = "0.3"
 image = "0.22"
 glam = "0.8"
-font-kit = "0.4"
+font-kit = { git = "https://github.com/simlay/font-kit", branch = "add-ios-support" }
 log = "0.4"

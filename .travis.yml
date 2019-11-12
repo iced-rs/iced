@@ -7,9 +7,32 @@ matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
+
+  include:
+    # iOS
+    - env: TARGET=x86_64-apple-ios
+      os: osx
+      rust: nightly
+    - env: TARGET=x86_64-apple-ios
+      os: osx
+      rust: stable
+
+    # Xcode
+    - env: TARGET=x86_64-apple-ios
+      rust: stable
+      os: osx
+      osx_image: xcode11.2
+      xcode_destination: platform=iOS Simulator,name=iPhone 11 Pro,OS=13.2
+      script:
+        - make -C examples/ios-example ci
+
 before_install:
   - |
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
       sudo apt-get -qq update
       sudo apt-get install -y libasound2-dev libudev-dev
     fi
+
+install:
+  - rustup self update
+  - [ -n "${TARGET}" ] && rustup target add $TARGET; true

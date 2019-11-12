@@ -25,6 +25,7 @@ members = [
     "web",
     "wgpu",
     "winit",
+    "examples/ios-example/rust",
 ]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

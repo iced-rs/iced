@@ -76,7 +76,7 @@ pub trait Application {
         window.request_redraw();
 
         event_loop.run(move |event, _, control_flow| match event {
-            event::Event::MainEventsCleared => {
+            event::Event::EventsCleared => {
                 // TODO: We should be able to keep a user interface alive
                 // between events once we remove state references.
                 //
@@ -141,39 +141,6 @@ pub trait Application {
                 }
 
                 window.request_redraw();
-            }
-            event::Event::RedrawRequested(_) => {
-                debug.render_started();
-
-                if let Some(new_size) = new_size.take() {
-                    let dpi = window.hidpi_factor();
-                    let (width, height) = to_physical(new_size, dpi);
-
-                    target.resize(
-                        width,
-                        height,
-                        window.hidpi_factor() as f32,
-                        &renderer,
-                    );
-
-                    size = new_size;
-                }
-
-                let new_mouse_cursor =
-                    renderer.draw(&primitive, &debug.overlay(), &mut target);
-
-                debug.render_finished();
-
-                if new_mouse_cursor != mouse_cursor {
-                    window.set_cursor_icon(conversion::mouse_cursor(
-                        new_mouse_cursor,
-                    ));
-
-                    mouse_cursor = new_mouse_cursor;
-                }
-
-                // TODO: Handle animations!
-                // Maybe we can use `ControlFlow::WaitUntil` for this.
             }
             event::Event::WindowEvent {
                 event: window_event,
@@ -250,6 +217,39 @@ pub trait Application {
                     new_size = Some(size.into());
 
                     log::debug!("Resized: {:?}", new_size);
+                }
+                event::WindowEvent::RedrawRequested => {
+                    debug.render_started();
+
+                    if let Some(new_size) = new_size.take() {
+                        let dpi = window.hidpi_factor();
+                        let (width, height) = to_physical(new_size, dpi);
+
+                        target.resize(
+                            width,
+                            height,
+                            window.hidpi_factor() as f32,
+                            &renderer,
+                            );
+
+                        size = new_size;
+                    }
+
+                    let new_mouse_cursor =
+                        renderer.draw(&primitive, &debug.overlay(), &mut target);
+
+                    debug.render_finished();
+
+                    if new_mouse_cursor != mouse_cursor {
+                        window.set_cursor_icon(conversion::mouse_cursor(
+                                new_mouse_cursor,
+                                ));
+
+                        mouse_cursor = new_mouse_cursor;
+                    }
+
+                    // TODO: Handle animations!
+                    // Maybe we can use `ControlFlow::WaitUntil` for this.
                 }
                 _ => {}
             },
