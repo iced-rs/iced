@@ -153,7 +153,7 @@ impl Task {
             }
             TaskMessage::Edit => {
                 self.state = TaskState::Editing {
-                    text_input: text_input::State::focused(&self.description),
+                    text_input: text_input::State::focused(),
                     delete_button: button::State::new(),
                 };
             }

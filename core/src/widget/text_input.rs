@@ -91,10 +91,12 @@ impl State {
         Self::default()
     }
 
-    pub fn focused(value: &str) -> Self {
+    pub fn focused() -> Self {
+        use std::usize;
+
         Self {
             is_focused: true,
-            cursor_position: Value::new(value).len(),
+            cursor_position: usize::MAX,
         }
     }
 
