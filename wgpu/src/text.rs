@@ -1,10 +1,14 @@
 mod font;
 
 use crate::Transformation;
+
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 pub struct Pipeline {
-    draw_brush: wgpu_glyph::GlyphBrush<'static, ()>,
+    draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
+    draw_font_map: RefCell<HashMap<String, wgpu_glyph::FontId>>,
+
     measure_brush: RefCell<glyph_brush::GlyphBrush<'static, ()>>,
 }
 
@@ -23,8 +27,8 @@ impl Pipeline {
 
         let draw_brush =
             wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(vec![
-                default_font.clone(),
                 mono_font,
+                default_font.clone(),
             ])
             .initial_cache_size((2048, 2048))
             .build(device, wgpu::TextureFormat::Bgra8UnormSrgb);
@@ -34,17 +38,19 @@ impl Pipeline {
                 .build();
 
         Pipeline {
-            draw_brush,
+            draw_brush: RefCell::new(draw_brush),
+            draw_font_map: RefCell::new(HashMap::new()),
+
             measure_brush: RefCell::new(measure_brush),
         }
     }
 
     pub fn overlay_font(&self) -> wgpu_glyph::FontId {
-        wgpu_glyph::FontId(1)
+        wgpu_glyph::FontId(0)
     }
 
     pub fn queue(&mut self, section: wgpu_glyph::Section) {
-        self.draw_brush.queue(section);
+        self.draw_brush.borrow_mut().queue(section);
     }
 
     pub fn draw_queued(
@@ -56,6 +62,7 @@ impl Pipeline {
         region: wgpu_glyph::Region,
     ) {
         self.draw_brush
+            .borrow_mut()
             .draw_queued_with_transform_and_scissoring(
                 device,
                 encoder,
@@ -66,8 +73,31 @@ impl Pipeline {
             .expect("Draw text");
     }
 
-    pub fn measure(&self, section: &wgpu_glyph::Section<'_>) -> (f32, f32) {
+    pub fn measure(
+        &self,
+        content: &str,
+        size: f32,
+        font: iced_native::Font,
+        bounds: iced_native::Size,
+    ) -> (f32, f32) {
         use wgpu_glyph::GlyphCruncher;
+
+        let wgpu_glyph::FontId(font_id) = self.find_font(font);
+
+        let section = wgpu_glyph::Section {
+            text: content,
+            scale: wgpu_glyph::Scale { x: size, y: size },
+            bounds: (bounds.width, bounds.height),
+
+            // TODO: This is a bit hacky. We are loading the debug font as the
+            // first font in the `draw_brush`. The `measure_brush` does not
+            // contain this font.
+            //
+            // This should go away once we improve the debug view and integrate
+            // it as just another UI app.
+            font_id: wgpu_glyph::FontId(font_id - 1),
+            ..Default::default()
+        };
 
         if let Some(bounds) =
             self.measure_brush.borrow_mut().glyph_bounds(section)
@@ -93,7 +123,6 @@ impl Pipeline {
     }
 
     pub fn clear_measurement_cache(&mut self) {
-        // Trim measurements cache
         // TODO: We should probably use a `GlyphCalculator` for this. However,
         // it uses a lifetimed `GlyphCalculatorGuard` with side-effects on drop.
         // This makes stuff quite inconvenient. A manual method for trimming the
@@ -102,5 +131,28 @@ impl Pipeline {
             .borrow_mut()
             .process_queued(|_, _| {}, |_| {})
             .expect("Trim text measurements");
+    }
+
+    pub fn find_font(&self, font: iced_native::Font) -> wgpu_glyph::FontId {
+        match font {
+            iced_native::Font::Default => wgpu_glyph::FontId(1),
+            iced_native::Font::External { name, bytes } => {
+                if let Some(font_id) = self.draw_font_map.borrow().get(name) {
+                    return *font_id;
+                }
+
+                // TODO: Find a way to share font data
+                let _ = self.measure_brush.borrow_mut().add_font_bytes(bytes);
+
+                let font_id =
+                    self.draw_brush.borrow_mut().add_font_bytes(bytes);
+
+                self.draw_font_map
+                    .borrow_mut()
+                    .insert(String::from(name), font_id);
+
+                font_id
+            }
+        }
     }
 }

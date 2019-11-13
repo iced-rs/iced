@@ -1,8 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{layout, text, Color, Layout, MouseCursor, Size, Text};
 
-use wgpu_glyph::Section;
-
 use std::f32;
 
 // TODO: Obtain from renderer configuration
@@ -14,14 +12,9 @@ impl text::Renderer for Renderer {
         let size = text.size.map(f32::from).unwrap_or(DEFAULT_TEXT_SIZE);
         let bounds = limits.max();
 
-        let section = Section {
-            text: &text.content,
-            scale: wgpu_glyph::Scale { x: size, y: size },
-            bounds: (bounds.width, bounds.height),
-            ..Default::default()
-        };
-
-        let (width, height) = self.text_pipeline.measure(&section);
+        let (width, height) =
+            self.text_pipeline
+                .measure(&text.content, size, text.font, bounds);
 
         let size = limits.resolve(Size::new(width, height));
 
@@ -35,6 +28,7 @@ impl text::Renderer for Renderer {
                 size: text.size.map(f32::from).unwrap_or(DEFAULT_TEXT_SIZE),
                 bounds: layout.bounds(),
                 color: text.color.unwrap_or(Color::BLACK),
+                font: text.font,
                 horizontal_alignment: text.horizontal_alignment,
                 vertical_alignment: text.vertical_alignment,
             },

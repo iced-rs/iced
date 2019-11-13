@@ -1,4 +1,4 @@
-use iced_native::{text, Background, Color, Rectangle, Vector};
+use iced_native::{text, Background, Color, Font, Rectangle, Vector};
 
 #[derive(Debug, Clone)]
 pub enum Primitive {
@@ -11,6 +11,7 @@ pub enum Primitive {
         bounds: Rectangle,
         color: Color,
         size: f32,
+        font: Font,
         horizontal_alignment: text::HorizontalAlignment,
         vertical_alignment: text::VerticalAlignment,
     },

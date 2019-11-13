@@ -147,6 +147,7 @@ impl Renderer {
                 bounds,
                 size,
                 color,
+                font,
                 horizontal_alignment,
                 vertical_alignment,
             } => {
@@ -179,6 +180,7 @@ impl Renderer {
                     bounds: (bounds.width, bounds.height),
                     scale: wgpu_glyph::Scale { x: *size, y: *size },
                     color: color.into_linear(),
+                    font_id: self.text_pipeline.find_font(*font),
                     layout: wgpu_glyph::Layout::default()
                         .h_align(match horizontal_alignment {
                             iced_native::text::HorizontalAlignment::Left => {

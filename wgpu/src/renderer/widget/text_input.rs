@@ -2,7 +2,7 @@ use crate::{Primitive, Renderer};
 
 use iced_native::{
     text::HorizontalAlignment, text::VerticalAlignment, text_input, Background,
-    Color, MouseCursor, Point, Rectangle, TextInput, Vector,
+    Color, Font, MouseCursor, Point, Rectangle, Size, TextInput, Vector,
 };
 use std::f32;
 
@@ -60,6 +60,7 @@ impl text_input::Renderer for Renderer {
                 [0.3, 0.3, 0.3]
             }
             .into(),
+            font: Font::Default,
             bounds: Rectangle {
                 width: f32::INFINITY,
                 ..text_bounds
@@ -70,20 +71,17 @@ impl text_input::Renderer for Renderer {
         };
 
         let (contents_primitive, offset) = if text_input.state.is_focused {
-            use wgpu_glyph::{Scale, Section};
-
             let text_before_cursor = &text_input
                 .value
                 .until(text_input.state.cursor_position(&text_input.value))
                 .to_string();
 
-            let (mut text_value_width, _) =
-                self.text_pipeline.measure(&Section {
-                    text: text_before_cursor,
-                    bounds: (f32::INFINITY, text_bounds.height),
-                    scale: Scale { x: size, y: size },
-                    ..Default::default()
-                });
+            let (mut text_value_width, _) = self.text_pipeline.measure(
+                text_before_cursor,
+                size,
+                Font::Default,
+                Size::new(f32::INFINITY, text_bounds.height),
+            );
 
             let spaces_at_the_end =
                 text_before_cursor.len() - text_before_cursor.trim_end().len();
