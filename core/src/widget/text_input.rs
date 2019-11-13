@@ -91,6 +91,13 @@ impl State {
         Self::default()
     }
 
+    pub fn focused(value: &str) -> Self {
+        Self {
+            is_focused: true,
+            cursor_position: Value::new(value).len(),
+        }
+    }
+
     pub fn move_cursor_right(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
@@ -105,6 +112,10 @@ impl State {
         if current > 0 {
             self.cursor_position = current - 1;
         }
+    }
+
+    pub fn move_cursor_to_end(&mut self, value: &Value) {
+        self.cursor_position = value.len();
     }
 
     pub fn cursor_position(&self, value: &Value) -> usize {
