@@ -27,7 +27,7 @@ where
             .width(self.width)
             .height(self.height);
 
-        let mut content = self.content.layout(renderer, &limits);
+        let mut content = self.content.layout(renderer, &limits.loose());
         let size = limits.resolve(content.size());
 
         content.align(self.horizontal_alignment, self.vertical_alignment, size);
