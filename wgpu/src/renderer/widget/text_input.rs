@@ -70,41 +70,26 @@ impl text_input::Renderer for Renderer {
         };
 
         let (contents_primitive, offset) = if text_input.state.is_focused {
-            use wgpu_glyph::{GlyphCruncher, Scale, Section};
+            use wgpu_glyph::{Scale, Section};
 
             let text_before_cursor = &text_input
                 .value
                 .until(text_input.state.cursor_position(&text_input.value))
                 .to_string();
 
-            let mut text_value_width = self
-                .text_measurements
-                .borrow_mut()
-                .glyph_bounds(Section {
+            let (mut text_value_width, _) =
+                self.text_pipeline.measure(&Section {
                     text: text_before_cursor,
                     bounds: (f32::INFINITY, text_bounds.height),
                     scale: Scale { x: size, y: size },
                     ..Default::default()
-                })
-                .map(|bounds| bounds.width().round())
-                .unwrap_or(0.0);
+                });
 
             let spaces_at_the_end =
                 text_before_cursor.len() - text_before_cursor.trim_end().len();
 
             if spaces_at_the_end > 0 {
-                let space_width = {
-                    let glyph_brush = self.text_measurements.borrow();
-
-                    // TODO: Select appropriate font
-                    let font = &glyph_brush.fonts()[0];
-
-                    font.glyph(' ')
-                        .scaled(Scale { x: size, y: size })
-                        .h_metrics()
-                        .advance_width
-                };
-
+                let space_width = self.text_pipeline.space_width(size);
                 text_value_width += spaces_at_the_end as f32 * space_width;
             }
 

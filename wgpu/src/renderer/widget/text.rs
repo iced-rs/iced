@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{layout, text, Color, Layout, MouseCursor, Size, Text};
 
-use wgpu_glyph::{GlyphCruncher, Section};
+use wgpu_glyph::Section;
 
 use std::f32;
 
@@ -21,13 +21,7 @@ impl text::Renderer for Renderer {
             ..Default::default()
         };
 
-        let (width, height) = if let Some(bounds) =
-            self.text_measurements.borrow_mut().glyph_bounds(&section)
-        {
-            (bounds.width().ceil(), bounds.height().ceil())
-        } else {
-            (0.0, 0.0)
-        };
+        let (width, height) = self.text_pipeline.measure(&section);
 
         let size = limits.resolve(Size::new(width, height));
 
