@@ -12,7 +12,7 @@ impl button::Renderer for Renderer {
     ) -> layout::Node {
         let padding = f32::from(button.padding);
         let limits = limits
-            .min_width(100)
+            .min_width(button.min_width)
             .width(button.width)
             .height(Length::Shrink)
             .pad(padding);
@@ -56,28 +56,29 @@ impl button::Renderer for Renderer {
         };
 
         (
-            Primitive::Group {
-                primitives: vec![
-                    Primitive::Quad {
-                        bounds: Rectangle {
-                            x: bounds.x + 1.0,
-                            y: bounds.y + shadow_offset,
-                            ..bounds
+            match button.background {
+                None => content,
+                Some(background) => Primitive::Group {
+                    primitives: vec![
+                        Primitive::Quad {
+                            bounds: Rectangle {
+                                x: bounds.x + 1.0,
+                                y: bounds.y + shadow_offset,
+                                ..bounds
+                            },
+                            background: Background::Color(
+                                [0.0, 0.0, 0.0, 0.5].into(),
+                            ),
+                            border_radius: button.border_radius,
                         },
-                        background: Background::Color(
-                            [0.0, 0.0, 0.0, 0.5].into(),
-                        ),
-                        border_radius: button.border_radius,
-                    },
-                    Primitive::Quad {
-                        bounds,
-                        background: button.background.unwrap_or(
-                            Background::Color([0.8, 0.8, 0.8].into()),
-                        ),
-                        border_radius: button.border_radius,
-                    },
-                    content,
-                ],
+                        Primitive::Quad {
+                            bounds,
+                            background,
+                            border_radius: button.border_radius,
+                        },
+                        content,
+                    ],
+                },
             },
             if is_mouse_over {
                 MouseCursor::Pointer

@@ -19,6 +19,8 @@ pub struct Button<'a, Message, Element> {
 
     pub width: Length,
 
+    pub min_width: u32,
+
     pub padding: u16,
 
     pub background: Option<Background>,
@@ -52,6 +54,7 @@ impl<'a, Message, Element> Button<'a, Message, Element> {
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
+            min_width: 0,
             padding: 0,
             background: None,
             border_radius: 0,
@@ -63,6 +66,11 @@ impl<'a, Message, Element> Button<'a, Message, Element> {
     /// [`Button`]: struct.Button.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
+        self
+    }
+
+    pub fn min_width(mut self, min_width: u32) -> Self {
+        self.min_width = min_width;
         self
     }
 
