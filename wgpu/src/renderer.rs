@@ -344,11 +344,27 @@ impl Renderer {
             for text in layer.text.iter() {
                 // Target physical coordinates directly to avoid blurry text
                 let text = wgpu_glyph::Section {
+                    // TODO: We `round` here to avoid rerasterizing text when
+                    // its position changes slightly. This can make text feel a
+                    // bit "jumpy". We may be able to do better once we improve
+                    // our text rendering/caching pipeline.
                     screen_position: (
                         (text.screen_position.0 * dpi).round(),
                         (text.screen_position.1 * dpi).round(),
                     ),
-                    bounds: (text.bounds.0 * dpi, text.bounds.1 * dpi),
+                    // TODO: Fix precision issues with some DPI factors.
+                    //
+                    // The `ceil` here can cause some words to render on the
+                    // same line when they should not.
+                    //
+                    // Ideally, `wgpu_glyph` should be able to compute layout
+                    // using logical positions, and then apply the proper
+                    // DPI scaling. This would ensure that both measuring and
+                    // rendering follow the same layout rules.
+                    bounds: (
+                        (text.bounds.0 * dpi).ceil(),
+                        (text.bounds.1 * dpi).ceil(),
+                    ),
                     scale: wgpu_glyph::Scale {
                         x: text.scale.x * dpi,
                         y: text.scale.y * dpi,

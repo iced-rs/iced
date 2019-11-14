@@ -91,7 +91,7 @@ impl Pipeline {
 
             // TODO: This is a bit hacky. We are loading the debug font as the
             // first font in the `draw_brush`. The `measure_brush` does not
-            // contain this font.
+            // contain this font, hence we subtract 1.
             //
             // This should go away once we improve the debug view and integrate
             // it as just another UI app.
