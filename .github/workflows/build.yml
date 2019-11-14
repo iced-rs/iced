@@ -29,7 +29,7 @@ jobs:
         name: todos-windows
         path: target/release/examples/todos.exe
     - name: Archive todos binary (Linux)
-      if: matrix.os == 'linux-latest'
+      if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v1
       with:
         name: todos-linux
