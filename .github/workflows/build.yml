@@ -14,10 +14,11 @@ jobs:
     - uses: hecrj/setup-rust-action@v1
       with:
         rust-version: ${{ matrix.rust }}
+    - uses: actions/checkout@master
     - name: Enable Link Time Optimizations
       run: |
-        echo -e "[profile.release]\nlto = true" >> Cargo.toml
-    - uses: actions/checkout@master
+        echo "[profile.release]" >> Cargo.toml
+        echo "lto = true" >> Cargo.toml
     - name: Build todos example
       run: |
         cargo build --verbose --release --example todos
