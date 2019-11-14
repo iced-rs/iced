@@ -12,11 +12,6 @@ jobs:
       with:
         rust-version: ${{ matrix.rust }}
         targets: ${{ matrix.targets }}
-    - name: Install libinput
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get -qq update
-        sudo apt-get install -y libasound2-dev libudev-dev
     - uses: actions/checkout@master
     - name: Run tests
       run: |
