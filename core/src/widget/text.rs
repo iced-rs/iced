@@ -1,5 +1,5 @@
 //! Write some text for your users to read.
-use crate::{Color, Length};
+use crate::{Color, Font, Length};
 
 /// A paragraph of text.
 ///
@@ -16,6 +16,7 @@ pub struct Text {
     pub content: String,
     pub size: Option<u16>,
     pub color: Option<Color>,
+    pub font: Font,
     pub width: Length,
     pub height: Length,
     pub horizontal_alignment: HorizontalAlignment,
@@ -31,6 +32,7 @@ impl Text {
             content: String::from(label),
             size: None,
             color: None,
+            font: Font::Default,
             width: Length::Fill,
             height: Length::Shrink,
             horizontal_alignment: HorizontalAlignment::Left,
@@ -51,6 +53,11 @@ impl Text {
     /// [`Text`]: struct.Text.html
     pub fn color<C: Into<Color>>(mut self, color: C) -> Self {
         self.color = Some(color.into());
+        self
+    }
+
+    pub fn font(mut self, font: Font) -> Self {
+        self.font = font;
         self
     }
 

@@ -1,8 +1,8 @@
-mod font;
 mod image;
 mod primitive;
 mod quad;
 mod renderer;
+mod text;
 mod transformation;
 
 pub(crate) use crate::image::Image;
