@@ -1,0 +1,35 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+jobs:
+  todos:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        rust: [stable]
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+      with:
+        rust-version: ${{ matrix.rust }}
+    - name: Enable Link Time Optimizations
+      run: |
+        echo -e "[profile.release]\nlto = true" >> Cargo.toml
+    - uses: actions/checkout@master
+    - name: Build todos example
+      run: |
+        cargo build --verbose --release --example todos
+    - name: Archive todos binary
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v1
+      with:
+        name: todos
+        path: target/release/examples/todos.exe
+    - name: Archive todos binary
+      if: matrix.os != 'windows-latest'
+      uses: actions/upload-artifact@v1
+      with:
+        name: todos
+        path: target/release/examples/todos
