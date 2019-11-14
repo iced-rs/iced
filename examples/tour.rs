@@ -671,6 +671,7 @@ fn button<'a, Message>(
     )
     .padding(12)
     .border_radius(12)
+    .min_width(100)
 }
 
 fn primary_button<'a, Message>(

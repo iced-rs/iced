@@ -11,6 +11,10 @@ where
     Renderer: self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
+    fn width(&self) -> Length {
+        self.width
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,
@@ -46,6 +50,10 @@ where
             }) => {
                 self.state.is_focused =
                     layout.bounds().contains(cursor_position);
+
+                if self.state.cursor_position(&self.value) == 0 {
+                    self.state.move_cursor_to_end(&self.value);
+                }
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused && !c.is_control() =>

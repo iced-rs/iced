@@ -1,6 +1,7 @@
 use iced::{
-    scrollable, text::HorizontalAlignment, text_input, Application, Checkbox,
-    Color, Column, Container, Element, Length, Scrollable, Text, TextInput,
+    button, scrollable, text::HorizontalAlignment, text_input, Align,
+    Application, Background, Button, Checkbox, Color, Column, Container,
+    Element, Font, Length, Row, Scrollable, Text, TextInput,
 };
 
 pub fn main() {
@@ -19,7 +20,7 @@ struct Todos {
 pub enum Message {
     InputChanged(String),
     CreateTask,
-    TaskChanged(usize, bool),
+    TaskMessage(usize, TaskMessage),
 }
 
 impl Application for Todos {
@@ -40,9 +41,12 @@ impl Application for Todos {
                     self.input_value.clear();
                 }
             }
-            Message::TaskChanged(i, completed) => {
+            Message::TaskMessage(i, TaskMessage::Delete) => {
+                self.tasks.remove(i);
+            }
+            Message::TaskMessage(i, task_message) => {
                 if let Some(task) = self.tasks.get_mut(i) {
-                    task.completed = completed;
+                    task.update(task_message);
                 }
             }
         }
@@ -66,15 +70,29 @@ impl Application for Todos {
         .size(30)
         .on_submit(Message::CreateTask);
 
-        let tasks = self.tasks.iter_mut().enumerate().fold(
-            Column::new().spacing(20),
-            |column, (i, task)| {
-                column.push(
-                    task.view()
-                        .map(move |state| Message::TaskChanged(i, state)),
+        let tasks: Element<_> =
+            if self.tasks.len() > 0 {
+                self.tasks
+                    .iter_mut()
+                    .enumerate()
+                    .fold(Column::new().spacing(20), |column, (i, task)| {
+                        column.push(task.view().map(move |message| {
+                            Message::TaskMessage(i, message)
+                        }))
+                    })
+                    .into()
+            } else {
+                Container::new(
+                    Text::new("You do not have any tasks! :D")
+                        .size(25)
+                        .horizontal_alignment(HorizontalAlignment::Center)
+                        .color([0.7, 0.7, 0.7]),
                 )
-            },
-        );
+                .width(Length::Fill)
+                .height(Length::Units(200))
+                .center_y()
+                .into()
+            };
 
         let content = Column::new()
             .max_width(800)
@@ -94,6 +112,27 @@ impl Application for Todos {
 struct Task {
     description: String,
     completed: bool,
+    state: TaskState,
+}
+
+#[derive(Debug)]
+pub enum TaskState {
+    Idle {
+        edit_button: button::State,
+    },
+    Editing {
+        text_input: text_input::State,
+        delete_button: button::State,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum TaskMessage {
+    Completed(bool),
+    Edit,
+    DescriptionEdited(String),
+    FinishEdition,
+    Delete,
 }
 
 impl Task {
@@ -101,12 +140,97 @@ impl Task {
         Task {
             description,
             completed: false,
+            state: TaskState::Idle {
+                edit_button: button::State::new(),
+            },
         }
     }
 
-    fn view(&mut self) -> Element<bool> {
-        Checkbox::new(self.completed, &self.description, |checked| checked)
-            .into()
+    fn update(&mut self, message: TaskMessage) {
+        match message {
+            TaskMessage::Completed(completed) => {
+                self.completed = completed;
+            }
+            TaskMessage::Edit => {
+                self.state = TaskState::Editing {
+                    text_input: text_input::State::focused(),
+                    delete_button: button::State::new(),
+                };
+            }
+            TaskMessage::DescriptionEdited(new_description) => {
+                self.description = new_description;
+            }
+            TaskMessage::FinishEdition => {
+                if !self.description.is_empty() {
+                    self.state = TaskState::Idle {
+                        edit_button: button::State::new(),
+                    }
+                }
+            }
+            TaskMessage::Delete => {}
+        }
+    }
+
+    fn view(&mut self) -> Element<TaskMessage> {
+        match &mut self.state {
+            TaskState::Idle { edit_button } => {
+                let checkbox = Checkbox::new(
+                    self.completed,
+                    &self.description,
+                    TaskMessage::Completed,
+                );
+
+                Row::new()
+                    .spacing(20)
+                    .align_items(Align::Center)
+                    .push(checkbox)
+                    .push(
+                        Button::new(
+                            edit_button,
+                            edit_icon().color([0.5, 0.5, 0.5]),
+                        )
+                        .on_press(TaskMessage::Edit)
+                        .padding(10),
+                    )
+                    .into()
+            }
+            TaskState::Editing {
+                text_input,
+                delete_button,
+            } => {
+                let text_input = TextInput::new(
+                    text_input,
+                    "Describe your task...",
+                    &self.description,
+                    TaskMessage::DescriptionEdited,
+                )
+                .on_submit(TaskMessage::FinishEdition)
+                .padding(10);
+
+                Row::new()
+                    .spacing(20)
+                    .align_items(Align::Center)
+                    .push(text_input)
+                    .push(
+                        Button::new(
+                            delete_button,
+                            Row::new()
+                                .spacing(10)
+                                .push(delete_icon().color(Color::WHITE))
+                                .push(
+                                    Text::new("Delete")
+                                        .width(Length::Shrink)
+                                        .color(Color::WHITE),
+                                ),
+                        )
+                        .on_press(TaskMessage::Delete)
+                        .padding(10)
+                        .border_radius(5)
+                        .background(Background::Color([0.8, 0.2, 0.2].into())),
+                    )
+                    .into()
+            }
+        }
     }
 }
 
@@ -117,3 +241,25 @@ const GRAY: Color = Color {
     b: 0.5,
     a: 1.0,
 };
+
+// Fonts
+const ICONS: Font = Font::External {
+    name: "Icons",
+    bytes: include_bytes!("./resources/icons.ttf"),
+};
+
+fn icon(unicode: char) -> Text {
+    Text::new(&unicode.to_string())
+        .font(ICONS)
+        .width(Length::Units(20))
+        .horizontal_alignment(HorizontalAlignment::Center)
+        .size(20)
+}
+
+fn edit_icon() -> Text {
+    icon('\u{F303}')
+}
+
+fn delete_icon() -> Text {
+    icon('\u{F1F8}')
+}

@@ -2,7 +2,7 @@
 use std::hash::Hash;
 
 use crate::input::{mouse, ButtonState};
-use crate::{layout, Element, Event, Hasher, Layout, Point, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
 
 pub use iced_core::Checkbox;
 
@@ -10,6 +10,10 @@ impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
 where
     Renderer: self::Renderer,
 {
+    fn width(&self) -> Length {
+        Length::Fill
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,
