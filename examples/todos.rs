@@ -13,13 +13,16 @@ struct Todos {
     scroll: scrollable::State,
     input: text_input::State,
     input_value: String,
+    filter: Filter,
     tasks: Vec<Task>,
+    controls: Controls,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     InputChanged(String),
     CreateTask,
+    FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
 }
 
@@ -41,6 +44,9 @@ impl Application for Todos {
                     self.input_value.clear();
                 }
             }
+            Message::FilterChanged(filter) => {
+                self.filter = filter;
+            }
             Message::TaskMessage(i, TaskMessage::Delete) => {
                 self.tasks.remove(i);
             }
@@ -55,26 +61,39 @@ impl Application for Todos {
     }
 
     fn view(&mut self) -> Element<Message> {
+        let Todos {
+            scroll,
+            input,
+            input_value,
+            filter,
+            tasks,
+            controls,
+        } = self;
+
         let title = Text::new("todos")
             .size(100)
-            .color(GRAY)
+            .color([0.5, 0.5, 0.5])
             .horizontal_alignment(HorizontalAlignment::Center);
 
         let input = TextInput::new(
-            &mut self.input,
+            input,
             "What needs to be done?",
-            &self.input_value,
+            input_value,
             Message::InputChanged,
         )
         .padding(15)
         .size(30)
         .on_submit(Message::CreateTask);
 
+        let controls = controls.view(&tasks, *filter);
+        let filtered_tasks = tasks.iter().filter(|task| filter.matches(task));
+
         let tasks: Element<_> =
-            if self.tasks.len() > 0 {
-                self.tasks
+            if filtered_tasks.count() > 0 {
+                tasks
                     .iter_mut()
                     .enumerate()
+                    .filter(|(_, task)| filter.matches(task))
                     .fold(Column::new().spacing(20), |column, (i, task)| {
                         column.push(task.view().map(move |message| {
                             Message::TaskMessage(i, message)
@@ -82,16 +101,11 @@ impl Application for Todos {
                     })
                     .into()
             } else {
-                Container::new(
-                    Text::new("You do not have any tasks! :D")
-                        .size(25)
-                        .horizontal_alignment(HorizontalAlignment::Center)
-                        .color([0.7, 0.7, 0.7]),
-                )
-                .width(Length::Fill)
-                .height(Length::Units(200))
-                .center_y()
-                .into()
+                empty_message(match filter {
+                    Filter::All => "You have not created a task yet...",
+                    Filter::Active => "All your tasks are done! :D",
+                    Filter::Completed => "You have not completed a task yet...",
+                })
             };
 
         let content = Column::new()
@@ -99,9 +113,10 @@ impl Application for Todos {
             .spacing(20)
             .push(title)
             .push(input)
+            .push(controls)
             .push(tasks);
 
-        Scrollable::new(&mut self.scroll)
+        Scrollable::new(scroll)
             .padding(40)
             .push(Container::new(content).width(Length::Fill).center_x())
             .into()
@@ -234,18 +249,115 @@ impl Task {
     }
 }
 
-// Colors
-const GRAY: Color = Color {
-    r: 0.5,
-    g: 0.5,
-    b: 0.5,
-    a: 1.0,
-};
+#[derive(Debug, Default)]
+pub struct Controls {
+    all_button: button::State,
+    active_button: button::State,
+    completed_button: button::State,
+}
+
+impl Controls {
+    fn view(&mut self, tasks: &[Task], current_filter: Filter) -> Row<Message> {
+        let Controls {
+            all_button,
+            active_button,
+            completed_button,
+        } = self;
+
+        let tasks_left = tasks.iter().filter(|task| !task.completed).count();
+
+        let filter_button = |state, label, filter, current_filter| {
+            let label = Text::new(label).size(16).width(Length::Shrink);
+            let button = if filter == current_filter {
+                Button::new(state, label.color(Color::WHITE))
+                    .background(Background::Color([0.2, 0.2, 0.7].into()))
+            } else {
+                Button::new(state, label)
+            };
+
+            button
+                .on_press(Message::FilterChanged(filter))
+                .padding(8)
+                .border_radius(10)
+        };
+
+        Row::new()
+            .spacing(20)
+            .align_items(Align::Center)
+            .push(
+                Text::new(&format!(
+                    "{} {} left",
+                    tasks_left,
+                    if tasks_left == 1 { "task" } else { "tasks" }
+                ))
+                .size(16),
+            )
+            .push(
+                Row::new()
+                    .width(Length::Shrink)
+                    .spacing(10)
+                    .push(filter_button(
+                        all_button,
+                        "All",
+                        Filter::All,
+                        current_filter,
+                    ))
+                    .push(filter_button(
+                        active_button,
+                        "Active",
+                        Filter::Active,
+                        current_filter,
+                    ))
+                    .push(filter_button(
+                        completed_button,
+                        "Completed",
+                        Filter::Completed,
+                        current_filter,
+                    )),
+            )
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Filter {
+    All,
+    Active,
+    Completed,
+}
+
+impl Default for Filter {
+    fn default() -> Self {
+        Filter::All
+    }
+}
+
+impl Filter {
+    fn matches(&self, task: &Task) -> bool {
+        match self {
+            Filter::All => true,
+            Filter::Active => !task.completed,
+            Filter::Completed => task.completed,
+        }
+    }
+}
+
+fn empty_message(message: &str) -> Element<'static, Message> {
+    Container::new(
+        Text::new(message)
+            .size(25)
+            .horizontal_alignment(HorizontalAlignment::Center)
+            .color([0.7, 0.7, 0.7]),
+    )
+    .width(Length::Fill)
+    .height(Length::Units(200))
+    .center_y()
+    .into()
+}
 
 // Fonts
 const ICONS: Font = Font::External {
     name: "Icons",
-    bytes: include_bytes!("./resources/icons.ttf"),
+    bytes: include_bytes!("resources/icons.ttf"),
 };
 
 fn icon(unicode: char) -> Text {
