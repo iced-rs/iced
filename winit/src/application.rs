@@ -1,12 +1,13 @@
 use crate::{
-    column, conversion,
+    conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    Cache, Column, Debug, Element, Event, Length, MouseCursor, UserInterface,
+    Cache, Container, Debug, Element, Event, Length, MouseCursor,
+    UserInterface,
 };
 
 pub trait Application {
-    type Renderer: Windowed + column::Renderer;
+    type Renderer: Windowed;
 
     type Message: std::fmt::Debug;
 
@@ -60,7 +61,7 @@ pub trait Application {
         let user_interface = UserInterface::build(
             document(&mut self, size, &mut debug),
             Cache::default(),
-            &renderer,
+            &mut renderer,
         );
         debug.layout_finished();
 
@@ -86,7 +87,7 @@ pub trait Application {
                 let mut user_interface = UserInterface::build(
                     document(&mut self, size, &mut debug),
                     cache.take().unwrap(),
-                    &renderer,
+                    &mut renderer,
                 );
                 debug.layout_finished();
 
@@ -129,7 +130,7 @@ pub trait Application {
                     let user_interface = UserInterface::build(
                         document(&mut self, size, &mut debug),
                         temp_cache,
-                        &renderer,
+                        &mut renderer,
                     );
                     debug.layout_finished();
 
@@ -282,9 +283,8 @@ where
     let view = application.view();
     debug.view_finished();
 
-    Column::new()
+    Container::new(view)
         .width(Length::Units(size.width.round() as u16))
         .height(Length::Units(size.height.round() as u16))
-        .push(view)
         .into()
 }

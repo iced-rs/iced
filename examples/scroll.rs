@@ -1,6 +1,6 @@
 use iced::{
-    button, scrollable, Align, Application, Button, Column, Element, Image,
-    Justify, Length, Scrollable, Text,
+    button, scrollable, Align, Application, Button, Container, Element, Image,
+    Length, Scrollable, Text,
 };
 
 pub fn main() {
@@ -65,11 +65,10 @@ impl Application for Example {
                     .border_radius(5),
             );
 
-        Column::new()
+        Container::new(content)
+            .width(Length::Fill)
             .height(Length::Fill)
-            .justify_content(Justify::Center)
-            .padding(20)
-            .push(content)
+            .center_y()
             .into()
     }
 }

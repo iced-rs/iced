@@ -1,20 +1,22 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    slider, Background, Color, Layout, Length, MouseCursor, Node, Point,
-    Rectangle, Slider, Style,
+    layout, slider, Background, Color, Layout, Length, MouseCursor, Point,
+    Rectangle, Size, Slider,
 };
 
 const HANDLE_WIDTH: f32 = 8.0;
 const HANDLE_HEIGHT: f32 = 22.0;
 
 impl slider::Renderer for Renderer {
-    fn node<Message>(&self, slider: &Slider<Message>) -> Node {
-        let style = Style::default()
-            .width(slider.width)
-            .height(Length::Units(HANDLE_HEIGHT as u16))
-            .min_width(Length::Units(100));
+    fn layout<Message>(
+        &self,
+        slider: &Slider<Message>,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits.width(slider.width).height(Length::Units(30));
+        let size = limits.resolve(Size::ZERO);
 
-        Node::new(style)
+        layout::Node::new(size)
     }
 
     fn draw<Message>(

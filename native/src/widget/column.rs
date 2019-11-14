@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use crate::{Element, Event, Hasher, Layout, Node, Point, Style, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
 
 /// A container that distributes its contents vertically.
 pub type Column<'a, Message, Renderer> =
@@ -11,42 +11,30 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        let mut children: Vec<Node> = self
-            .children
-            .iter()
-            .map(|child| {
-                let mut node = child.widget.node(renderer);
+    fn width(&self) -> Length {
+        self.width
+    }
 
-                let mut style = node.0.style();
-                style.margin.bottom =
-                    stretch::style::Dimension::Points(f32::from(self.spacing));
-
-                node.0.set_style(style);
-                node
-            })
-            .collect();
-
-        if let Some(node) = children.last_mut() {
-            let mut style = node.0.style();
-            style.margin.bottom = stretch::style::Dimension::Undefined;
-
-            node.0.set_style(style);
-        }
-
-        let mut style = Style::default()
-            .width(self.width)
-            .height(self.height)
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits
             .max_width(self.max_width)
             .max_height(self.max_height)
-            .padding(self.padding)
-            .align_self(self.align_self)
-            .align_items(self.align_items)
-            .justify_content(self.justify_content);
+            .width(self.width)
+            .height(self.height);
 
-        style.0.flex_direction = stretch::style::FlexDirection::Column;
-
-        Node::with_children(style, children)
+        layout::flex::resolve(
+            layout::flex::Axis::Vertical,
+            renderer,
+            &limits,
+            self.padding as f32,
+            self.spacing as f32,
+            self.align_items,
+            &self.children,
+        )
     }
 
     fn on_event(
@@ -85,9 +73,7 @@ where
         self.height.hash(state);
         self.max_width.hash(state);
         self.max_height.hash(state);
-        self.align_self.hash(state);
         self.align_items.hash(state);
-        self.justify_content.hash(state);
         self.spacing.hash(state);
 
         for child in &self.children {

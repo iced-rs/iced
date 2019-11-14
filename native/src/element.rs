@@ -1,6 +1,6 @@
-use stretch::{geometry, result};
-
-use crate::{renderer, Color, Event, Hasher, Layout, Node, Point, Widget};
+use crate::{
+    layout, renderer, Color, Event, Hasher, Layout, Length, Point, Widget,
+};
 
 /// A generic [`Widget`].
 ///
@@ -41,8 +41,20 @@ where
         }
     }
 
-    pub fn node(&self, renderer: &Renderer) -> Node {
-        self.widget.node(renderer)
+    pub fn width(&self) -> Length {
+        self.widget.width()
+    }
+
+    pub fn height(&self) -> Length {
+        self.widget.height()
+    }
+
+    pub fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.widget.layout(renderer, limits)
     }
 
     pub fn draw(
@@ -116,7 +128,7 @@ where
     /// #
     /// # mod iced_wgpu {
     /// #     use iced_native::{
-    /// #         text, row, Text, Node, Point, Rectangle, Style, Layout, Row
+    /// #         text, row, layout, Text, Size, Point, Rectangle, Layout, Row
     /// #     };
     /// #     pub struct Renderer;
     /// #
@@ -132,8 +144,12 @@ where
     /// #     }
     /// #
     /// #     impl text::Renderer for Renderer {
-    /// #         fn node(&self, _text: &Text) -> Node {
-    /// #             Node::new(Style::default())
+    /// #         fn layout(
+    /// #             &self,
+    /// #             _text: &Text,
+    /// #             _limits: &layout::Limits,
+    /// #         ) -> layout::Node {
+    /// #             layout::Node::new(Size::ZERO)
     /// #         }
     /// #
     /// #         fn draw(
@@ -247,12 +263,6 @@ where
         }
     }
 
-    pub(crate) fn compute_layout(&self, renderer: &Renderer) -> result::Layout {
-        let node = self.widget.node(renderer);
-
-        node.0.compute_layout(geometry::Size::undefined()).unwrap()
-    }
-
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
@@ -289,8 +299,12 @@ where
     A: Clone,
     Renderer: crate::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        self.widget.node(renderer)
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.widget.layout(renderer, limits)
     }
 
     fn on_event(
@@ -361,8 +375,12 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer + renderer::Debugger,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        self.element.widget.node(renderer)
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.element.widget.layout(renderer, limits)
     }
 
     fn on_event(

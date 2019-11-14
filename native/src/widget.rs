@@ -31,12 +31,16 @@ pub mod slider;
 pub mod text;
 pub mod text_input;
 
+mod container;
+
 #[doc(no_inline)]
 pub use button::Button;
 #[doc(no_inline)]
 pub use checkbox::Checkbox;
 #[doc(no_inline)]
 pub use column::Column;
+#[doc(no_inline)]
+pub use container::Container;
 #[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]
@@ -52,7 +56,7 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{Event, Hasher, Layout, Node, Point};
+use crate::{layout, Event, Hasher, Layout, Length, Point};
 
 /// A component that displays information and allows interaction.
 ///
@@ -73,7 +77,19 @@ where
     /// [`Node`]: ../struct.Node.html
     /// [`Widget`]: trait.Widget.html
     /// [`Layout`]: ../struct.Layout.html
-    fn node(&self, renderer: &Renderer) -> Node;
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node;
+
+    fn width(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     ///

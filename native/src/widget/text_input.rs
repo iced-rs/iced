@@ -1,6 +1,6 @@
 use crate::{
     input::{keyboard, mouse, ButtonState},
-    Element, Event, Hasher, Layout, Length, Node, Point, Rectangle, Style,
+    layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
     Widget,
 };
 
@@ -11,19 +11,24 @@ where
     Renderer: self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        let text_bounds =
-            Node::new(Style::default().width(Length::Fill).height(
-                Length::Units(self.size.unwrap_or(renderer.default_size())),
-            ));
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let padding = self.padding as f32;
+        let text_size = self.size.unwrap_or(renderer.default_size());
 
-        Node::with_children(
-            Style::default()
-                .width(self.width)
-                .max_width(self.width)
-                .padding(self.padding),
-            vec![text_bounds],
-        )
+        let limits = limits
+            .pad(padding)
+            .width(self.width)
+            .height(Length::Units(text_size));
+
+        let mut text = layout::Node::new(limits.resolve(Size::ZERO));
+        text.bounds.x = padding;
+        text.bounds.y = padding;
+
+        layout::Node::with_children(text.size().pad(padding), vec![text])
     }
 
     fn on_event(

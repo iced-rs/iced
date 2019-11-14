@@ -5,7 +5,7 @@
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
 
-use crate::{Align, Background, Length};
+use crate::{Background, Length};
 
 /// A generic widget that produces a message when clicked.
 pub struct Button<'a, Message, Element> {
@@ -24,8 +24,6 @@ pub struct Button<'a, Message, Element> {
     pub background: Option<Background>,
 
     pub border_radius: u16,
-
-    pub align_self: Option<Align>,
 }
 
 impl<'a, Message, Element> std::fmt::Debug for Button<'a, Message, Element>
@@ -57,7 +55,6 @@ impl<'a, Message, Element> Button<'a, Message, Element> {
             padding: 0,
             background: None,
             border_radius: 0,
-            align_self: None,
         }
     }
 
@@ -81,17 +78,6 @@ impl<'a, Message, Element> Button<'a, Message, Element> {
 
     pub fn border_radius(mut self, border_radius: u16) -> Self {
         self.border_radius = border_radius;
-        self
-    }
-
-    /// Sets the alignment of the [`Button`] itself.
-    ///
-    /// This is useful if you want to override the default alignment given by
-    /// the parent container.
-    ///
-    /// [`Button`]: struct.Button.html
-    pub fn align_self(mut self, align: Align) -> Self {
-        self.align_self = Some(align);
         self
     }
 

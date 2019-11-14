@@ -1,4 +1,6 @@
-use crate::{Align, Justify, Length};
+use crate::{Align, Length};
+
+use std::u32;
 
 /// A container that distributes its contents horizontally.
 ///
@@ -10,11 +12,9 @@ pub struct Row<Element> {
     pub padding: u16,
     pub width: Length,
     pub height: Length,
-    pub max_width: Length,
-    pub max_height: Length,
-    pub align_self: Option<Align>,
+    pub max_width: u32,
+    pub max_height: u32,
     pub align_items: Align,
-    pub justify_content: Justify,
     pub children: Vec<Element>,
 }
 
@@ -28,11 +28,9 @@ impl<Element> Row<Element> {
             padding: 0,
             width: Length::Fill,
             height: Length::Shrink,
-            max_width: Length::Shrink,
-            max_height: Length::Shrink,
-            align_self: None,
+            max_width: u32::MAX,
+            max_height: u32::MAX,
             align_items: Align::Start,
-            justify_content: Justify::Start,
             children: Vec::new(),
         }
     }
@@ -74,7 +72,7 @@ impl<Element> Row<Element> {
     /// Sets the maximum width of the [`Row`].
     ///
     /// [`Row`]: struct.Row.html
-    pub fn max_width(mut self, max_width: Length) -> Self {
+    pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
@@ -82,19 +80,8 @@ impl<Element> Row<Element> {
     /// Sets the maximum height of the [`Row`].
     ///
     /// [`Row`]: struct.Row.html
-    pub fn max_height(mut self, max_height: Length) -> Self {
+    pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
-        self
-    }
-
-    /// Sets the alignment of the [`Row`] itself.
-    ///
-    /// This is useful if you want to override the default alignment given by
-    /// the parent container.
-    ///
-    /// [`Row`]: struct.Row.html
-    pub fn align_self(mut self, align: Align) -> Self {
-        self.align_self = Some(align);
         self
     }
 
@@ -103,15 +90,6 @@ impl<Element> Row<Element> {
     /// [`Row`]: struct.Row.html
     pub fn align_items(mut self, align: Align) -> Self {
         self.align_items = align;
-        self
-    }
-
-    /// Sets the horizontal distribution strategy for the contents of the
-    /// [`Row`] .
-    ///
-    /// [`Row`]: struct.Row.html
-    pub fn justify_content(mut self, justify: Justify) -> Self {
-        self.justify_content = justify;
         self
     }
 

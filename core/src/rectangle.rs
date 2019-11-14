@@ -1,7 +1,7 @@
 use crate::Point;
 
 /// A rectangle.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Rectangle<T = f32> {
     /// X coordinate of the top-left corner.
     pub x: T,

@@ -1,11 +1,13 @@
 use crate::{
     column,
     input::{mouse, ButtonState},
-    Element, Event, Hasher, Layout, Node, Point, Rectangle, Style, Widget,
+    layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
+    Widget,
 };
 
 pub use iced_core::scrollable::State;
 
+use std::f32;
 use std::hash::Hash;
 
 /// A scrollable [`Column`].
@@ -19,26 +21,25 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer + column::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        let mut content = self.content.node(renderer);
-
-        {
-            let mut style = content.0.style();
-            style.flex_shrink = 0.0;
-
-            content.0.set_style(style);
-        }
-
-        let mut style = Style::default()
-            .width(self.content.width)
-            .max_width(self.content.max_width)
-            .height(self.height)
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits
             .max_height(self.max_height)
-            .align_self(self.align_self);
+            .width(Length::Fill)
+            .height(self.height);
 
-        style.0.flex_direction = stretch::style::FlexDirection::Column;
+        let child_limits = layout::Limits::new(
+            Size::new(limits.min().width, 0.0),
+            Size::new(limits.max().width, f32::INFINITY),
+        );
 
-        Node::with_children(style, vec![content])
+        let content = self.content.layout(renderer, &child_limits);
+        let size = limits.resolve(content.size());
+
+        layout::Node::with_children(size, vec![content])
     }
 
     fn on_event(
@@ -167,7 +168,6 @@ where
 
         self.height.hash(state);
         self.max_height.hash(state);
-        self.align_self.hash(state);
 
         self.content.hash_layout(state)
     }

@@ -1,7 +1,6 @@
-use crate::{input::mouse, Element, Event, Layout, Point};
+use crate::{input::mouse, layout, Element, Event, Layout, Point, Size};
 
 use std::hash::Hasher;
-use stretch::{geometry, result};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -15,7 +14,7 @@ use stretch::{geometry, result};
 pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,
     root: Element<'a, Message, Renderer>,
-    layout: result::Layout,
+    layout: layout::Node,
     cursor_position: Point,
 }
 
@@ -98,7 +97,7 @@ where
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
         cache: Cache,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
     ) -> Self {
         let root = root.into();
 
@@ -110,7 +109,11 @@ where
         let layout = if hash == cache.hash {
             cache.layout
         } else {
-            root.compute_layout(renderer)
+            let layout_start = std::time::Instant::now();
+            let layout = renderer.layout(&root);
+            dbg!(std::time::Instant::now() - layout_start);
+
+            layout
         };
 
         UserInterface {
@@ -326,7 +329,7 @@ where
 #[derive(Debug, Clone)]
 pub struct Cache {
     hash: u64,
-    layout: result::Layout,
+    layout: layout::Node,
     cursor_position: Point,
 }
 
@@ -339,16 +342,9 @@ impl Cache {
     /// [`Cache`]: struct.Cache.html
     /// [`UserInterface`]: struct.UserInterface.html
     pub fn new() -> Cache {
-        use crate::{Node, Style};
-
-        let empty_node = Node::new(Style::default());
-
         Cache {
             hash: 0,
-            layout: empty_node
-                .0
-                .compute_layout(geometry::Size::undefined())
-                .unwrap(),
+            layout: layout::Node::new(Size::new(0.0, 0.0)),
             cursor_position: Point::new(-1.0, -1.0),
         }
     }

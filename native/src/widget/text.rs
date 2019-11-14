@@ -1,5 +1,5 @@
 //! Write some text for your users to read.
-use crate::{Element, Hasher, Layout, Node, Point, Widget};
+use crate::{layout, Element, Hasher, Layout, Length, Point, Widget};
 
 use std::hash::Hash;
 
@@ -9,8 +9,16 @@ impl<Message, Renderer> Widget<Message, Renderer> for Text
 where
     Renderer: self::Renderer,
 {
-    fn node(&self, renderer: &Renderer) -> Node {
-        renderer.node(&self)
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        renderer.layout(&self, limits)
     }
 
     fn draw(
@@ -49,7 +57,7 @@ pub trait Renderer: crate::Renderer {
     /// [`Style`]: ../../struct.Style.html
     /// [`Text`]: struct.Text.html
     /// [`Node::with_measure`]: ../../struct.Node.html#method.with_measure
-    fn node(&self, text: &Text) -> Node;
+    fn layout(&self, text: &Text, limits: &layout::Limits) -> layout::Node;
 
     /// Draws a [`Text`] fragment.
     ///

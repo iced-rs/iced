@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    scrollable, Background, Layout, MouseCursor, Point, Rectangle,
-    Scrollable, Vector, Widget,
+    scrollable, Background, Layout, MouseCursor, Point, Rectangle, Scrollable,
+    Vector, Widget,
 };
 
 const SCROLLBAR_WIDTH: u16 = 10;
