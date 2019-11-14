@@ -22,15 +22,21 @@ jobs:
     - name: Build todos example
       run: |
         cargo build --verbose --release --example todos
-    - name: Archive todos binary
+    - name: Archive todos binary (Windows)
       if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v1
       with:
-        name: todos
+        name: todos-windows
         path: target/release/examples/todos.exe
-    - name: Archive todos binary
-      if: matrix.os != 'windows-latest'
+    - name: Archive todos binary (Linux)
+      if: matrix.os == 'linux-latest'
       uses: actions/upload-artifact@v1
       with:
-        name: todos
+        name: todos-linux
+        path: target/release/examples/todos
+    - name: Archive todos binary (macOS)
+      if: matrix.os == 'macOS-latest'
+      uses: actions/upload-artifact@v1
+      with:
+        name: todos-macos
         path: target/release/examples/todos
