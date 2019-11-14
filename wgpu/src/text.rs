@@ -5,6 +5,13 @@ use crate::Transformation;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
+    name: "iced_wgpu icons",
+    bytes: include_bytes!("text/icons.ttf"),
+};
+
+pub const CHECKMARK_ICON: char = '\u{F00C}';
+
 pub struct Pipeline {
     draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
     draw_font_map: RefCell<HashMap<String, wgpu_glyph::FontId>>,
@@ -91,10 +98,10 @@ impl Pipeline {
 
             // TODO: This is a bit hacky. We are loading the debug font as the
             // first font in the `draw_brush`. The `measure_brush` does not
-            // contain this font, hence we subtract 1.
+            // contain this, hence we subtract 1.
             //
-            // This should go away once we improve the debug view and integrate
-            // it as just another UI app.
+            // This should go away once we unify `draw_brush` and
+            // `measure_brush`.
             font_id: wgpu_glyph::FontId(font_id - 1),
             ..Default::default()
         };

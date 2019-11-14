@@ -357,7 +357,7 @@ fn empty_message(message: &str) -> Element<'static, Message> {
 // Fonts
 const ICONS: Font = Font::External {
     name: "Icons",
-    bytes: include_bytes!("./resources/icons.ttf"),
+    bytes: include_bytes!("resources/icons.ttf"),
 };
 
 fn icon(unicode: char) -> Text {

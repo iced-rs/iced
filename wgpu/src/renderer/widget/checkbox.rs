@@ -74,14 +74,15 @@ impl checkbox::Renderer for Renderer {
         (
             Primitive::Group {
                 primitives: if checkbox.is_checked {
-                    // TODO: Draw an actual icon
-                    let (check, _) = text::Renderer::draw(
-                        self,
-                        &Text::new("X")
-                            .horizontal_alignment(HorizontalAlignment::Center)
-                            .vertical_alignment(VerticalAlignment::Center),
-                        checkbox_layout,
-                    );
+                    let check = Primitive::Text {
+                        content: crate::text::CHECKMARK_ICON.to_string(),
+                        font: crate::text::BUILTIN_ICONS,
+                        size: checkbox_bounds.height * 0.7,
+                        bounds: checkbox_bounds,
+                        color: [0.3, 0.3, 0.3].into(),
+                        horizontal_alignment: HorizontalAlignment::Center,
+                        vertical_alignment: VerticalAlignment::Center,
+                    };
 
                     vec![checkbox_border, checkbox_box, check, label]
                 } else {
