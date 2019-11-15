@@ -11,16 +11,24 @@ jobs:
     - name: Install cargo-deb
       run: cargo install cargo-deb
     - uses: actions/checkout@master
-    - name: Enable Link Time Optimizations and strip debug symbols
+    - name: Enable Link Time Optimizations
       run: |
         echo "[profile.release]" >> Cargo.toml
         echo "lto = true" >> Cargo.toml
-        echo "debug = false" >> Cargo.toml
     - name: Add .deb package metadata
       run: |
         echo '[package.metadata.deb.variants.todos]' >> Cargo.toml
         echo 'extended-description = "A simple Todo app built with Iced, a cross-platform GUI library for Rust"' >> Cargo.toml
-        echo 'assets = [["target/release/examples/todos", "usr/bin/", "755"]]' >> Cargo.toml
+        echo 'assets = [' >> Cargo.toml
+        echo '["target/release/examples/todos", "usr/bin/iced-todos", "755"],' >> Cargo.toml
+        echo '["iced-todos.desktop", "usr/share/applications/", "644"]' >> Cargo.toml
+        echo ']' >> Cargo.toml
+    - name: Create .desktop file
+      run: |
+        echo '[Desktop Entry]' >> iced-todos.desktop
+        echo 'Name=Todos - Iced' >> iced-todos.desktop
+        echo 'Exec=iced-todos' >> iced-todos.desktop
+        echo 'Type=Application' >> iced-todos.desktop
     - name: Build todos binary
       run: cargo build --verbose --release --example todos
     - name: Build todos .deb package
@@ -43,11 +51,15 @@ jobs:
     steps:
     - uses: hecrj/setup-rust-action@v1
     - uses: actions/checkout@master
-    - name: Enable Link Time Optimizations and strip debug symbols
+    - name: Enable Link Time Optimizations
       run: |
         echo "[profile.release]" >> Cargo.toml
         echo "lto = true" >> Cargo.toml
-        echo "debug = false" >> Cargo.toml
+    - name: Enable static CRT linkage
+      run: |
+        mkdir .cargo
+        echo '[target.x86_64-pc-windows-msvc]' >> .cargo/config
+        echo 'rustflags = ["-Ctarget-feature=+crt-static"]' >> .cargo/config
     - name: Build todos binary
       run: cargo build --verbose --release --example todos
     - name: Archive todos binary
@@ -61,14 +73,13 @@ jobs:
     steps:
     - uses: hecrj/setup-rust-action@v1
     - uses: actions/checkout@master
-    - name: Enable Link Time Optimizations and strip debug symbols
+    - name: Enable Link Time Optimizations
       run: |
         echo "[profile.release]" >> Cargo.toml
         echo "lto = true" >> Cargo.toml
-        echo "debug = false" >> Cargo.toml
     - name: Build todos binary
       env:
-        MACOSX_DEPLOYMENT_TARGET: 10.7
+        MACOSX_DEPLOYMENT_TARGET: 10.14
       run: cargo build --verbose --release --example todos
     - name: Archive todos binary
       uses: actions/upload-artifact@v1
