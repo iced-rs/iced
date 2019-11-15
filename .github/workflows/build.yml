@@ -4,39 +4,74 @@ on:
     branches:
       - master
 jobs:
-  todos:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        rust: [stable]
+  todos_linux:
+    runs-on: ubuntu-latest
     steps:
     - uses: hecrj/setup-rust-action@v1
-      with:
-        rust-version: ${{ matrix.rust }}
+    - name: Install cargo-deb
+      run: cargo install cargo-deb
     - uses: actions/checkout@master
-    - name: Enable Link Time Optimizations
+    - name: Enable Link Time Optimizations and strip debug symbols
       run: |
         echo "[profile.release]" >> Cargo.toml
         echo "lto = true" >> Cargo.toml
-    - name: Build todos example
+        echo "debug = false" >> Cargo.toml
+    - name: Add .deb package metadata
       run: |
-        cargo build --verbose --release --example todos
-    - name: Archive todos binary (Windows)
-      if: matrix.os == 'windows-latest'
+        echo '[package.metadata.deb.variants.todos]' >> Cargo.toml
+        echo 'extended-description = "A simple Todo app built with Iced, a cross-platform GUI library for Rust"' >> Cargo.toml
+        echo 'assets = [["target/release/examples/todos", "usr/bin/", "755"]]' >> Cargo.toml
+    - name: Build todos binary
+      run: cargo build --verbose --release --locked --example todos
+    - name: Build todos .deb package
+      run: cargo deb --variant todos -- --locked --example todos
+    - name: Rename todos .deb package
+      run: mv target/debian/*.deb target/debian/iced_todos-x86_64-debian-linux-gnu.deb
+    - name: Archive todos binary
       uses: actions/upload-artifact@v1
       with:
-        name: todos-windows
-        path: target/release/examples/todos.exe
-    - name: Archive todos binary (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v1
-      with:
-        name: todos-linux
+        name: todos-x86_64-unknown-linux-gnu
         path: target/release/examples/todos
-    - name: Archive todos binary (macOS)
-      if: matrix.os == 'macOS-latest'
+    - name: Archive todos .deb package
       uses: actions/upload-artifact@v1
       with:
-        name: todos-macos
+        name: todos-x86_64-debian-linux-gnu
+        path: target/debian/iced_todos-x86_64-debian-linux-gnu.deb
+
+  todos_windows:
+    runs-on: windows-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+    - uses: actions/checkout@master
+    - name: Enable Link Time Optimizations and strip debug symbols
+      run: |
+        echo "[profile.release]" >> Cargo.toml
+        echo "lto = true" >> Cargo.toml
+        echo "debug = false" >> Cargo.toml
+    - name: Build todos binary
+      run: cargo build --verbose --release --locked --example todos
+    - name: Archive todos binary
+      uses: actions/upload-artifact@v1
+      with:
+        name: todos-x86_64-pc-windows-msvc
+        path: target/release/examples/todos.exe
+
+  todos_macos:
+    runs-on: macOS-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+    - uses: actions/checkout@master
+    - name: Enable Link Time Optimizations and strip debug symbols
+      run: |
+        echo "[profile.release]" >> Cargo.toml
+        echo "lto = true" >> Cargo.toml
+        echo "debug = false" >> Cargo.toml
+    - name: Build todos binary
+      env:
+        MACOSX_DEPLOYMENT_TARGET: 10.7
+      run: cargo build --verbose --release --locked --example todos
+    - name: Archive todos binary
+      uses: actions/upload-artifact@v1
+      with:
+        name: todos-x86_64-apple-darwin
         path: target/release/examples/todos
