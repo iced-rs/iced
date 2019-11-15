@@ -31,15 +31,15 @@ jobs:
         echo 'Type=Application' >> iced-todos.desktop
     - name: Build todos binary
       run: cargo build --verbose --release --example todos
-    - name: Build todos .deb package
-      run: cargo deb --variant todos -- --example todos
-    - name: Rename todos .deb package
-      run: mv target/debian/*.deb target/debian/iced_todos-x86_64-debian-linux-gnu.deb
     - name: Archive todos binary
       uses: actions/upload-artifact@v1
       with:
         name: todos-x86_64-unknown-linux-gnu
         path: target/release/examples/todos
+    - name: Build todos .deb package
+      run: cargo deb --variant todos -- --example todos
+    - name: Rename todos .deb package
+      run: mv target/debian/*.deb target/debian/iced_todos-x86_64-debian-linux-gnu.deb
     - name: Archive todos .deb package
       uses: actions/upload-artifact@v1
       with:
