@@ -7,7 +7,7 @@
 //! [`Class`]: enum.Class.html
 
 use crate::input::{mouse, ButtonState};
-use crate::{layout, Element, Event, Hasher, Layout, Point, Widget};
+use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
 use std::hash::Hash;
 
 pub use iced_core::button::State;
@@ -21,6 +21,14 @@ where
     Renderer: self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,

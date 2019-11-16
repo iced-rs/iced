@@ -1,6 +1,6 @@
 //! Display images in your user interface.
 
-use crate::{layout, Element, Hasher, Layout, Point, Widget};
+use crate::{layout, Element, Hasher, Layout, Length, Point, Widget};
 
 use std::hash::Hash;
 
@@ -10,6 +10,14 @@ impl<Message, Renderer> Widget<Message, Renderer> for Image
 where
     Renderer: self::Renderer,
 {
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,
