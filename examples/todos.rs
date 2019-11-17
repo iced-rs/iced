@@ -41,7 +41,10 @@ impl Application for Todos {
     type Message = Message;
 
     fn new() -> (Todos, Command<Message>) {
-        (Todos::Loading, Command::perform(load(), Message::Loaded))
+        (
+            Todos::Loading,
+            Command::perform(SavedState::load(), Message::Loaded),
+        )
     }
 
     fn title(&self) -> String {
@@ -115,11 +118,12 @@ impl Application for Todos {
                     state.saving = true;
 
                     Command::perform(
-                        save(SavedState {
+                        SavedState {
                             input_value: state.input_value.clone(),
                             filter: state.filter,
                             tasks: state.tasks.clone(),
-                        }),
+                        }
+                        .save(),
                         Message::Saved,
                     )
                 } else {
@@ -483,39 +487,10 @@ struct SavedState {
     tasks: Vec<Task>,
 }
 
-fn save_path() -> std::path::PathBuf {
-    let mut path = if let Some(project_dirs) =
-        directories::ProjectDirs::from("rs", "Iced", "Todos")
-    {
-        project_dirs.data_dir().into()
-    } else {
-        std::env::current_dir()
-            .expect("The current directory is not accessible")
-    };
-
-    path.push("todos.json");
-
-    path
-}
-
 #[derive(Debug, Clone)]
 enum LoadError {
     FileError,
     FormatError,
-}
-
-async fn load() -> Result<SavedState, LoadError> {
-    use std::io::Read;
-
-    let mut contents = String::new();
-
-    let mut file =
-        std::fs::File::open(save_path()).map_err(|_| LoadError::FileError)?;
-
-    file.read_to_string(&mut contents)
-        .map_err(|_| LoadError::FileError)?;
-
-    serde_json::from_str(&contents).map_err(|_| LoadError::FormatError)
 }
 
 #[derive(Debug, Clone)]
@@ -526,26 +501,57 @@ enum SaveError {
     FormatError,
 }
 
-async fn save(state: SavedState) -> Result<(), SaveError> {
-    use std::io::Write;
+impl SavedState {
+    fn path() -> std::path::PathBuf {
+        let mut path = if let Some(project_dirs) =
+            directories::ProjectDirs::from("rs", "Iced", "Todos")
+        {
+            project_dirs.data_dir().into()
+        } else {
+            std::env::current_dir()
+                .expect("The current directory is not accessible")
+        };
 
-    let json = serde_json::to_string_pretty(&state)
-        .map_err(|_| SaveError::FormatError)?;
+        path.push("todos.json");
 
-    let save_path = save_path();
-    let save_dir = save_path.parent().ok_or(SaveError::DirectoryError)?;
+        path
+    }
 
-    std::fs::create_dir_all(save_dir).map_err(|_| SaveError::DirectoryError)?;
+    async fn load() -> Result<SavedState, LoadError> {
+        use std::io::Read;
 
-    let mut file =
-        std::fs::File::create(save_path).map_err(|_| SaveError::FileError)?;
+        let mut contents = String::new();
 
-    file.write_all(json.as_bytes())
-        .map_err(|_| SaveError::WriteError)?;
+        let mut file = std::fs::File::open(Self::path())
+            .map_err(|_| LoadError::FileError)?;
 
-    // This is a simple way to save at most once every couple seconds
-    // We will be able to get rid of it once we implement event subscriptions
-    std::thread::sleep(std::time::Duration::from_secs(2));
+        file.read_to_string(&mut contents)
+            .map_err(|_| LoadError::FileError)?;
 
-    Ok(())
+        serde_json::from_str(&contents).map_err(|_| LoadError::FormatError)
+    }
+
+    async fn save(self) -> Result<(), SaveError> {
+        use std::io::Write;
+
+        let json = serde_json::to_string_pretty(&self)
+            .map_err(|_| SaveError::FormatError)?;
+
+        let path = Self::path();
+        let dir = path.parent().ok_or(SaveError::DirectoryError)?;
+
+        std::fs::create_dir_all(dir).map_err(|_| SaveError::DirectoryError)?;
+
+        let mut file =
+            std::fs::File::create(path).map_err(|_| SaveError::FileError)?;
+
+        file.write_all(json.as_bytes())
+            .map_err(|_| SaveError::WriteError)?;
+
+        // This is a simple way to save at most once every couple seconds
+        // We will be able to get rid of it once we implement event subscriptions
+        std::thread::sleep(std::time::Duration::from_secs(2));
+
+        Ok(())
+    }
 }
