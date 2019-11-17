@@ -1,12 +1,12 @@
 use iced::{
-    button, scrollable, Align, Application, Button, Container, Element, Image,
-    Length, Scrollable, Text,
+    button, scrollable, Align, Application, Button, Command, Container,
+    Element, Image, Length, Scrollable, Text,
 };
 
 pub fn main() {
     env_logger::init();
 
-    Example::default().run()
+    Example::run()
 }
 
 #[derive(Default)]
@@ -25,16 +25,22 @@ pub enum Message {
 impl Application for Example {
     type Message = Message;
 
+    fn new() -> (Example, Command<Message>) {
+        (Example::default(), Command::none())
+    }
+
     fn title(&self) -> String {
         String::from("Scroll - Iced")
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::AddItem => {
                 self.item_count += 1;
             }
         }
+
+        Command::none()
     }
 
     fn view(&mut self) -> Element<Message> {

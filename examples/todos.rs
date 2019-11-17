@@ -1,11 +1,11 @@
 use iced::{
     button, scrollable, text::HorizontalAlignment, text_input, Align,
-    Application, Background, Button, Checkbox, Color, Column, Container,
-    Element, Font, Length, Row, Scrollable, Text, TextInput,
+    Application, Background, Button, Checkbox, Color, Column, Command,
+    Container, Element, Font, Length, Row, Scrollable, Text, TextInput,
 };
 
 pub fn main() {
-    Todos::default().run()
+    Todos::run()
 }
 
 #[derive(Debug, Default)]
@@ -29,11 +29,15 @@ pub enum Message {
 impl Application for Todos {
     type Message = Message;
 
+    fn new() -> (Todos, Command<Message>) {
+        (Todos::default(), Command::none())
+    }
+
     fn title(&self) -> String {
         String::from("Todos - Iced")
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::InputChanged(value) => {
                 self.input_value = value;
@@ -58,6 +62,8 @@ impl Application for Todos {
         }
 
         dbg!(self);
+
+        Command::none()
     }
 
     fn view(&mut self) -> Element<Message> {

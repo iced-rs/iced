@@ -2,24 +2,26 @@ use crate::{
     conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    Cache, Container, Debug, Element, Event, Length, MouseCursor,
+    Cache, Command, Container, Debug, Element, Event, Length, MouseCursor,
     UserInterface,
 };
 
-pub trait Application {
+pub trait Application: Sized {
     type Renderer: Windowed;
 
-    type Message: std::fmt::Debug;
+    type Message: std::fmt::Debug + Send;
+
+    fn new() -> (Self, Command<Self::Message>);
 
     fn title(&self) -> String;
 
-    fn update(&mut self, message: Self::Message);
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
     fn view(&mut self) -> Element<Self::Message, Self::Renderer>;
 
-    fn run(mut self)
+    fn run()
     where
-        Self: 'static + Sized,
+        Self: 'static,
     {
         use winit::{
             event::{self, WindowEvent},
@@ -28,10 +30,18 @@ pub trait Application {
         };
 
         let mut debug = Debug::new();
-        let mut title = self.title();
 
         debug.startup_started();
-        let event_loop = EventLoop::new();
+        let event_loop = EventLoop::with_user_event();
+        let proxy = event_loop.create_proxy();
+        let mut thread_pool =
+            futures::executor::ThreadPool::new().expect("Create thread pool");
+        let mut external_messages = Vec::new();
+
+        let (mut application, init_command) = Self::new();
+        spawn(init_command, &mut thread_pool, &proxy);
+
+        let mut title = application.title();
 
         // TODO: Ask for window settings and configure this properly
         let window = WindowBuilder::new()
@@ -59,7 +69,7 @@ pub trait Application {
 
         debug.layout_started();
         let user_interface = UserInterface::build(
-            document(&mut self, size, &mut debug),
+            document(&mut application, size, &mut debug),
             Cache::default(),
             &mut renderer,
         );
@@ -85,15 +95,16 @@ pub trait Application {
                 // handled.
                 debug.layout_started();
                 let mut user_interface = UserInterface::build(
-                    document(&mut self, size, &mut debug),
+                    document(&mut application, size, &mut debug),
                     cache.take().unwrap(),
                     &mut renderer,
                 );
                 debug.layout_finished();
 
                 debug.event_processing_started();
-                let messages =
+                let mut messages =
                     user_interface.update(&renderer, events.drain(..));
+                messages.extend(external_messages.drain(..));
                 debug.event_processing_finished();
 
                 if messages.is_empty() {
@@ -113,12 +124,14 @@ pub trait Application {
                         debug.log_message(&message);
 
                         debug.update_started();
-                        self.update(message);
+                        let command = application.update(message);
+
+                        spawn(command, &mut thread_pool, &proxy);
                         debug.update_finished();
                     }
 
                     // Update window title
-                    let new_title = self.title();
+                    let new_title = application.title();
 
                     if title != new_title {
                         window.set_title(&new_title);
@@ -128,7 +141,7 @@ pub trait Application {
 
                     debug.layout_started();
                     let user_interface = UserInterface::build(
-                        document(&mut self, size, &mut debug),
+                        document(&mut application, size, &mut debug),
                         temp_cache,
                         &mut renderer,
                     );
@@ -142,6 +155,9 @@ pub trait Application {
                 }
 
                 window.request_redraw();
+            }
+            event::Event::UserEvent(message) => {
+                external_messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
                 debug.render_started();
@@ -287,4 +303,26 @@ where
         .width(Length::Units(size.width.round() as u16))
         .height(Length::Units(size.height.round() as u16))
         .into()
+}
+
+fn spawn<Message: Send>(
+    command: Command<Message>,
+    thread_pool: &mut futures::executor::ThreadPool,
+    proxy: &winit::event_loop::EventLoopProxy<Message>,
+) {
+    use futures::FutureExt;
+
+    let futures = command.futures();
+
+    for future in futures {
+        let proxy = proxy.clone();
+
+        let future = future.map(move |message| {
+            proxy
+                .send_event(message)
+                .expect("Send command result to event loop");
+        });
+
+        thread_pool.spawn_ok(future);
+    }
 }
