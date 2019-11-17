@@ -11,7 +11,7 @@ impl<T> Command<T> {
         }
     }
 
-    pub fn attempt<A>(
+    pub fn perform<A>(
         future: impl Future<Output = T> + 'static + Send,
         f: impl Fn(T) -> A + 'static + Send,
     ) -> Command<A> {

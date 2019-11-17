@@ -41,7 +41,7 @@ impl Application for Todos {
     type Message = Message;
 
     fn new() -> (Todos, Command<Message>) {
-        (Todos::Loading, Command::attempt(load(), Message::Loaded))
+        (Todos::Loading, Command::perform(load(), Message::Loaded))
     }
 
     fn title(&self) -> String {
@@ -114,7 +114,7 @@ impl Application for Todos {
                     state.dirty = false;
                     state.saving = true;
 
-                    Command::attempt(
+                    Command::perform(
                         save(SavedState {
                             input_value: state.input_value.clone(),
                             filter: state.filter,
