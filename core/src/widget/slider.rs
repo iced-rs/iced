@@ -31,19 +31,12 @@ use std::rc::Rc;
 /// ```
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
+#[allow(missing_docs)]
 pub struct Slider<'a, Message> {
-    /// The state of the slider
     pub state: &'a mut State,
-
-    /// The range of the slider
     pub range: RangeInclusive<f32>,
-
-    /// The current value of the slider
     pub value: f32,
-
-    /// The function to produce messages on change
     pub on_change: Rc<Box<dyn Fn(f32) -> Message>>,
-
     pub width: Length,
 }
 
@@ -53,6 +46,7 @@ impl<'a, Message> std::fmt::Debug for Slider<'a, Message> {
             .field("state", &self.state)
             .field("range", &self.range)
             .field("value", &self.value)
+            .field("width", &self.width)
             .finish()
     }
 }
@@ -102,6 +96,9 @@ impl<'a, Message> Slider<'a, Message> {
 /// [`Slider`]: struct.Slider.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
+    /// Whether the [`Slider`] is currently being dragged or not.
+    ///
+    /// [`Slider`]: struct.Slider.html
     pub is_dragging: bool,
 }
 

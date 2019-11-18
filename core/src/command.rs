@@ -1,16 +1,30 @@
 use futures::future::{BoxFuture, Future, FutureExt};
 
+/// A collection of async operations.
+///
+/// You should be able to turn a future easily into a [`Command`], eiter by
+/// using the `From` trait or [`Command::perform`].
+///
+/// [`Command`]: struct.Command.html
 pub struct Command<T> {
     futures: Vec<BoxFuture<'static, T>>,
 }
 
 impl<T> Command<T> {
+    /// Creates an empty [`Command`].
+    ///
+    /// In other words, a [`Command`] that does nothing.
+    ///
+    /// [`Command`]: struct.Command.html
     pub fn none() -> Self {
         Self {
             futures: Vec::new(),
         }
     }
 
+    /// Creates a [`Command`] that performs the action of the given future.
+    ///
+    /// [`Command`]: struct.Command.html
     pub fn perform<A>(
         future: impl Future<Output = T> + 'static + Send,
         f: impl Fn(T) -> A + 'static + Send,
@@ -20,12 +34,21 @@ impl<T> Command<T> {
         }
     }
 
+    /// Creates a [`Command`] that performs the actions of all the givens
+    /// futures.
+    ///
+    /// Once this command is run, all the futures will be exectued at once.
+    ///
+    /// [`Command`]: struct.Command.html
     pub fn batch(commands: impl Iterator<Item = Command<T>>) -> Self {
         Self {
             futures: commands.flat_map(|command| command.futures).collect(),
         }
     }
 
+    /// Converts a [`Command`] into its underlying list of futures.
+    ///
+    /// [`Command`]: struct.Command.html
     pub fn futures(self) -> Vec<BoxFuture<'static, T>> {
         self.futures
     }

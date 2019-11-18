@@ -8,40 +8,22 @@
 use crate::{Background, Length};
 
 /// A generic widget that produces a message when clicked.
+#[allow(missing_docs)]
+#[derive(Debug)]
 pub struct Button<'a, Message, Element> {
-    /// The current state of the button
     pub state: &'a mut State,
-
     pub content: Element,
-
-    /// The message to produce when the button is pressed
     pub on_press: Option<Message>,
-
     pub width: Length,
-
     pub min_width: u32,
-
     pub padding: u16,
-
     pub background: Option<Background>,
-
     pub border_radius: u16,
 }
 
-impl<'a, Message, Element> std::fmt::Debug for Button<'a, Message, Element>
-where
-    Message: std::fmt::Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Button")
-            .field("state", &self.state)
-            .field("on_press", &self.on_press)
-            .finish()
-    }
-}
-
 impl<'a, Message, Element> Button<'a, Message, Element> {
-    /// Creates a new [`Button`] with some local [`State`] and the given label.
+    /// Creates a new [`Button`] with some local [`State`] and the given
+    /// content.
     ///
     /// [`Button`]: struct.Button.html
     /// [`State`]: struct.State.html
@@ -69,21 +51,34 @@ impl<'a, Message, Element> Button<'a, Message, Element> {
         self
     }
 
+    /// Sets the minimum width of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
     pub fn min_width(mut self, min_width: u32) -> Self {
         self.min_width = min_width;
         self
     }
 
+    /// Sets the padding of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
         self
     }
 
+    /// Sets the [`Background`] of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
+    /// [`Background`]: ../../struct.Background.html
     pub fn background(mut self, background: Background) -> Self {
         self.background = Some(background);
         self
     }
 
+    /// Sets the border radius of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
     pub fn border_radius(mut self, border_radius: u16) -> Self {
         self.border_radius = border_radius;
         self
@@ -103,6 +98,9 @@ impl<'a, Message, Element> Button<'a, Message, Element> {
 /// [`Button`]: struct.Button.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
+    /// Whether the [`Button`] is currently being pressed.
+    ///
+    /// [`Button`]: struct.Button.html
     pub is_pressed: bool,
 }
 
@@ -112,13 +110,5 @@ impl State {
     /// [`State`]: struct.State.html
     pub fn new() -> State {
         State::default()
-    }
-
-    /// Returns whether the associated [`Button`] is currently being pressed or
-    /// not.
-    ///
-    /// [`Button`]: struct.Button.html
-    pub fn is_pressed(&self) -> bool {
-        self.is_pressed
     }
 }

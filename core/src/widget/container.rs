@@ -2,7 +2,11 @@ use crate::{Align, Length};
 
 use std::u32;
 
+/// An element decorating some content.
+///
+/// It is normally used for alignment purposes.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub struct Container<Element> {
     pub width: Length,
     pub height: Length,

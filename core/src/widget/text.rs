@@ -12,6 +12,7 @@ use crate::{Color, Font, Length};
 ///     .size(40);
 /// ```
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct Text {
     pub content: String,
     pub size: Option<u16>,
@@ -48,14 +49,19 @@ impl Text {
         self
     }
 
-    /// Sets the `Color` of the [`Text`].
+    /// Sets the [`Color`] of the [`Text`].
     ///
     /// [`Text`]: struct.Text.html
+    /// [`Color`]: ../../struct.Color.html
     pub fn color<C: Into<Color>>(mut self, color: C) -> Self {
         self.color = Some(color.into());
         self
     }
 
+    /// Sets the [`Font`] of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    /// [`Font`]: ../../struct.Font.html
     pub fn font(mut self, font: Font) -> Self {
         self.font = font;
         self

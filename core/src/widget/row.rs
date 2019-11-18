@@ -7,6 +7,7 @@ use std::u32;
 /// A [`Row`] will try to fill the horizontal space of its container.
 ///
 /// [`Row`]: struct.Row.html
+#[allow(missing_docs)]
 pub struct Row<Element> {
     pub spacing: u16,
     pub padding: u16,
