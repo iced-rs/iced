@@ -69,6 +69,10 @@ pub trait Widget<Message, Renderer>: std::fmt::Debug
 where
     Renderer: crate::Renderer,
 {
+    fn width(&self) -> Length;
+
+    fn height(&self) -> Length;
+
     /// Returns the [`Node`] of the [`Widget`].
     ///
     /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
@@ -82,14 +86,6 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node;
-
-    fn width(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
-    }
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     ///
