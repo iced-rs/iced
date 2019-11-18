@@ -80,7 +80,7 @@ where
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct State {
     pub is_focused: bool,
     cursor_position: usize,

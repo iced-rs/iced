@@ -1,25 +1,36 @@
 use iced::{
     button, scrollable, text::HorizontalAlignment, text_input, Align,
-    Application, Background, Button, Checkbox, Color, Column, Container,
-    Element, Font, Length, Row, Scrollable, Text, TextInput,
+    Application, Background, Button, Checkbox, Color, Column, Command,
+    Container, Element, Font, Length, Row, Scrollable, Text, TextInput,
 };
+use serde::{Deserialize, Serialize};
 
 pub fn main() {
-    Todos::default().run()
+    Todos::run()
+}
+
+#[derive(Debug)]
+enum Todos {
+    Loading,
+    Loaded(State),
 }
 
 #[derive(Debug, Default)]
-struct Todos {
+struct State {
     scroll: scrollable::State,
     input: text_input::State,
     input_value: String,
     filter: Filter,
     tasks: Vec<Task>,
     controls: Controls,
+    dirty: bool,
+    saving: bool,
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+enum Message {
+    Loaded(Result<SavedState, LoadError>),
+    Saved(Result<(), SaveError>),
     InputChanged(String),
     CreateTask,
     FilterChanged(Filter),
@@ -29,108 +40,180 @@ pub enum Message {
 impl Application for Todos {
     type Message = Message;
 
-    fn title(&self) -> String {
-        String::from("Todos - Iced")
+    fn new() -> (Todos, Command<Message>) {
+        (
+            Todos::Loading,
+            Command::perform(SavedState::load(), Message::Loaded),
+        )
     }
 
-    fn update(&mut self, message: Message) {
-        match message {
-            Message::InputChanged(value) => {
-                self.input_value = value;
-            }
-            Message::CreateTask => {
-                if !self.input_value.is_empty() {
-                    self.tasks.push(Task::new(self.input_value.clone()));
-                    self.input_value.clear();
+    fn title(&self) -> String {
+        let dirty = match self {
+            Todos::Loading => false,
+            Todos::Loaded(state) => state.dirty,
+        };
+
+        format!("Todos{} - Iced", if dirty { "*" } else { "" })
+    }
+
+    fn update(&mut self, message: Message) -> Command<Message> {
+        match self {
+            Todos::Loading => {
+                match message {
+                    Message::Loaded(Ok(state)) => {
+                        *self = Todos::Loaded(State {
+                            input_value: state.input_value,
+                            filter: state.filter,
+                            tasks: state.tasks,
+                            ..State::default()
+                        });
+                    }
+                    Message::Loaded(Err(_)) => {
+                        *self = Todos::Loaded(State::default());
+                    }
+                    _ => {}
                 }
+
+                Command::none()
             }
-            Message::FilterChanged(filter) => {
-                self.filter = filter;
-            }
-            Message::TaskMessage(i, TaskMessage::Delete) => {
-                self.tasks.remove(i);
-            }
-            Message::TaskMessage(i, task_message) => {
-                if let Some(task) = self.tasks.get_mut(i) {
-                    task.update(task_message);
+            Todos::Loaded(state) => {
+                let mut saved = false;
+
+                match message {
+                    Message::InputChanged(value) => {
+                        state.input_value = value;
+                    }
+                    Message::CreateTask => {
+                        if !state.input_value.is_empty() {
+                            state
+                                .tasks
+                                .push(Task::new(state.input_value.clone()));
+                            state.input_value.clear();
+                        }
+                    }
+                    Message::FilterChanged(filter) => {
+                        state.filter = filter;
+                    }
+                    Message::TaskMessage(i, TaskMessage::Delete) => {
+                        state.tasks.remove(i);
+                    }
+                    Message::TaskMessage(i, task_message) => {
+                        if let Some(task) = state.tasks.get_mut(i) {
+                            task.update(task_message);
+                        }
+                    }
+                    Message::Saved(_) => {
+                        state.saving = false;
+                        saved = true;
+                    }
+                    _ => {}
+                }
+
+                if !saved {
+                    state.dirty = true;
+                }
+
+                if state.dirty && !state.saving {
+                    state.dirty = false;
+                    state.saving = true;
+
+                    Command::perform(
+                        SavedState {
+                            input_value: state.input_value.clone(),
+                            filter: state.filter,
+                            tasks: state.tasks.clone(),
+                        }
+                        .save(),
+                        Message::Saved,
+                    )
+                } else {
+                    Command::none()
                 }
             }
         }
-
-        dbg!(self);
     }
 
     fn view(&mut self) -> Element<Message> {
-        let Todos {
-            scroll,
-            input,
-            input_value,
-            filter,
-            tasks,
-            controls,
-        } = self;
+        match self {
+            Todos::Loading => loading_message(),
+            Todos::Loaded(State {
+                scroll,
+                input,
+                input_value,
+                filter,
+                tasks,
+                controls,
+                ..
+            }) => {
+                let title = Text::new("todos")
+                    .size(100)
+                    .color([0.5, 0.5, 0.5])
+                    .horizontal_alignment(HorizontalAlignment::Center);
 
-        let title = Text::new("todos")
-            .size(100)
-            .color([0.5, 0.5, 0.5])
-            .horizontal_alignment(HorizontalAlignment::Center);
+                let input = TextInput::new(
+                    input,
+                    "What needs to be done?",
+                    input_value,
+                    Message::InputChanged,
+                )
+                .padding(15)
+                .size(30)
+                .on_submit(Message::CreateTask);
 
-        let input = TextInput::new(
-            input,
-            "What needs to be done?",
-            input_value,
-            Message::InputChanged,
-        )
-        .padding(15)
-        .size(30)
-        .on_submit(Message::CreateTask);
+                let controls = controls.view(&tasks, *filter);
+                let filtered_tasks =
+                    tasks.iter().filter(|task| filter.matches(task));
 
-        let controls = controls.view(&tasks, *filter);
-        let filtered_tasks = tasks.iter().filter(|task| filter.matches(task));
-
-        let tasks: Element<_> =
-            if filtered_tasks.count() > 0 {
-                tasks
-                    .iter_mut()
-                    .enumerate()
-                    .filter(|(_, task)| filter.matches(task))
-                    .fold(Column::new().spacing(20), |column, (i, task)| {
-                        column.push(task.view().map(move |message| {
-                            Message::TaskMessage(i, message)
-                        }))
+                let tasks: Element<_> = if filtered_tasks.count() > 0 {
+                    tasks
+                        .iter_mut()
+                        .enumerate()
+                        .filter(|(_, task)| filter.matches(task))
+                        .fold(Column::new().spacing(20), |column, (i, task)| {
+                            column.push(task.view().map(move |message| {
+                                Message::TaskMessage(i, message)
+                            }))
+                        })
+                        .into()
+                } else {
+                    empty_message(match filter {
+                        Filter::All => "You have not created a task yet...",
+                        Filter::Active => "All your tasks are done! :D",
+                        Filter::Completed => {
+                            "You have not completed a task yet..."
+                        }
                     })
+                };
+
+                let content = Column::new()
+                    .max_width(800)
+                    .spacing(20)
+                    .push(title)
+                    .push(input)
+                    .push(controls)
+                    .push(tasks);
+
+                Scrollable::new(scroll)
+                    .padding(40)
+                    .push(
+                        Container::new(content).width(Length::Fill).center_x(),
+                    )
                     .into()
-            } else {
-                empty_message(match filter {
-                    Filter::All => "You have not created a task yet...",
-                    Filter::Active => "All your tasks are done! :D",
-                    Filter::Completed => "You have not completed a task yet...",
-                })
-            };
-
-        let content = Column::new()
-            .max_width(800)
-            .spacing(20)
-            .push(title)
-            .push(input)
-            .push(controls)
-            .push(tasks);
-
-        Scrollable::new(scroll)
-            .padding(40)
-            .push(Container::new(content).width(Length::Fill).center_x())
-            .into()
+            }
+        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Task {
     description: String,
     completed: bool,
+
+    #[serde(skip)]
     state: TaskState,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TaskState {
     Idle {
         edit_button: button::State,
@@ -139,6 +222,14 @@ pub enum TaskState {
         text_input: text_input::State,
         delete_button: button::State,
     },
+}
+
+impl Default for TaskState {
+    fn default() -> Self {
+        TaskState::Idle {
+            edit_button: button::State::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -249,7 +340,7 @@ impl Task {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Controls {
     all_button: button::State,
     active_button: button::State,
@@ -318,7 +409,7 @@ impl Controls {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Filter {
     All,
     Active,
@@ -339,6 +430,18 @@ impl Filter {
             Filter::Completed => task.completed,
         }
     }
+}
+
+fn loading_message() -> Element<'static, Message> {
+    Container::new(
+        Text::new("Loading...")
+            .horizontal_alignment(HorizontalAlignment::Center)
+            .size(50),
+    )
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .center_y()
+    .into()
 }
 
 fn empty_message(message: &str) -> Element<'static, Message> {
@@ -374,4 +477,81 @@ fn edit_icon() -> Text {
 
 fn delete_icon() -> Text {
     icon('\u{F1F8}')
+}
+
+// Persistence
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SavedState {
+    input_value: String,
+    filter: Filter,
+    tasks: Vec<Task>,
+}
+
+#[derive(Debug, Clone)]
+enum LoadError {
+    FileError,
+    FormatError,
+}
+
+#[derive(Debug, Clone)]
+enum SaveError {
+    DirectoryError,
+    FileError,
+    WriteError,
+    FormatError,
+}
+
+impl SavedState {
+    fn path() -> std::path::PathBuf {
+        let mut path = if let Some(project_dirs) =
+            directories::ProjectDirs::from("rs", "Iced", "Todos")
+        {
+            project_dirs.data_dir().into()
+        } else {
+            std::env::current_dir()
+                .expect("The current directory is not accessible")
+        };
+
+        path.push("todos.json");
+
+        path
+    }
+
+    async fn load() -> Result<SavedState, LoadError> {
+        use std::io::Read;
+
+        let mut contents = String::new();
+
+        let mut file = std::fs::File::open(Self::path())
+            .map_err(|_| LoadError::FileError)?;
+
+        file.read_to_string(&mut contents)
+            .map_err(|_| LoadError::FileError)?;
+
+        serde_json::from_str(&contents).map_err(|_| LoadError::FormatError)
+    }
+
+    async fn save(self) -> Result<(), SaveError> {
+        use std::io::Write;
+
+        let json = serde_json::to_string_pretty(&self)
+            .map_err(|_| SaveError::FormatError)?;
+
+        let path = Self::path();
+        let dir = path.parent().ok_or(SaveError::DirectoryError)?;
+
+        std::fs::create_dir_all(dir).map_err(|_| SaveError::DirectoryError)?;
+
+        let mut file =
+            std::fs::File::create(path).map_err(|_| SaveError::FileError)?;
+
+        file.write_all(json.as_bytes())
+            .map_err(|_| SaveError::WriteError)?;
+
+        // This is a simple way to save at most once every couple seconds
+        // We will be able to get rid of it once we implement event subscriptions
+        std::thread::sleep(std::time::Duration::from_secs(2));
+
+        Ok(())
+    }
 }
