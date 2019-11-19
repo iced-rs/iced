@@ -1,0 +1,47 @@
+digraph G {
+  fontname = "Roboto";
+  newrank=true;
+  node[fontname = "Roboto", style=filled, fontcolor=white, color="#474973"];
+
+  subgraph cluster_1 {
+    label = "renderers  ";
+    labelloc = "b";
+    labeljust = "r";
+    fontcolor = "#ffffff";
+    color="#8797AF";
+    bgcolor="#8797AF";
+    style=rounded;
+    node [fillcolor=white, color=white, fontcolor=black];
+
+    etc_1 [label="...", style=empty, shape=none, fontcolor=white];
+    iced_wgpu;
+  }
+
+  subgraph cluster_2 {
+    label = "shells  ";
+    labelloc = "b";
+    labeljust = "r";
+    fontcolor = "#ffffff";
+    color="#8797AF";
+    bgcolor="#8797AF";
+    style=rounded;
+    node [fillcolor=white, color=white, fontcolor=black];
+
+    etc_2 [label="...", style=empty, shape=none, fontcolor=white];
+    iced_winit;
+  }
+
+  subgraph cluster_3 {
+    style=invis;
+    margin=20;
+    iced;
+  }
+
+  { rank = same; iced_wgpu iced_winit etc_1 etc_2 }
+
+  iced_winit -> iced;
+  iced_wgpu -> iced;
+  iced_web -> iced;
+
+  iced [width=1, height=0.6, style="filled", fontcolor=white, color="#474973"];
+}

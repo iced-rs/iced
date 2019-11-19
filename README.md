@@ -3,8 +3,9 @@
 [![Documentation](https://docs.rs/iced/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+[![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
 
-A renderer-agnostic GUI library for Rust focused on simplicity and type-safety.
+A cross-platform GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
 [![Tour - Iced][gui_gif]][gui_gfycat]
@@ -17,15 +18,31 @@ Inspired by [Elm].
 [coffee_gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
 
 ## Features
-  * Simple, easy-to-use, renderer-agnostic API
-  * Responsive, flexbox-based layouting
+  * Simple, easy-to-use, batteries-included API
   * Type-safe, reactive programming model
-  * Built-in widgets
-  * Custom widget support
+  * Cross-platform support (Windows, macOS, Linux, and the Web)
+  * Responsive layout
+  * Built-in widgets (including [text inputs], [scrollables], and more!)
+  * Custom widget support (create your own!)
+  * [Debug overlay with performance metrics]
+  * First-class support for async actions (use futures!)
+  * [Modular ecosystem] split into reusable parts:
+    * A [default renderer] supporting Vulkan, Metal, DX11, and DX12
+    * A [renderer-agnostic native runtime] enabling integration with existing systems
+    * A [web runtime] leveraging the DOM
 
-__Iced is in a experimental stage.__ [Take a look at the roadmap],
-[check out the issues], and [feel free to contribute!].
+__Iced is currently experimental software.__ [Take a look at the roadmap],
+[check out the issues], and [feel free to contribute!]
 
+[text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
+[scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
+[Debug overlay with performance metrics]: https://gfycat.com/artisticdiligenthorseshoebat-rust-gui
+[Modular ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
+[renderer-agnostic native runtime]: https://github.com/hecrj/iced/tree/master/native
+[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[Default renderer]: https://github.com/hecrj/iced/tree/master/wgpu
+[`dodrio`]: https://github.com/fitzgen/dodrio
+[web runtime]: https://github.com/hecrj/iced/tree/master/web
 [Take a look at the roadmap]: https://github.com/hecrj/iced/blob/master/ROADMAP.md
 [check out the issues]: https://github.com/hecrj/iced/issues
 [feel free to contribute!]: #contributing--feedback
@@ -139,7 +156,7 @@ to:
   1. Take the result of our __view logic__ and layout its widgets.
   1. Process events from our system and produce __messages__ for our
      __update logic__.
-  1. Draw the resulting user interface using our chosen __renderer__.
+  1. Draw the resulting user interface.
 
 Browse the [documentation] and the [examples] to learn more!
 
@@ -147,40 +164,51 @@ Browse the [documentation] and the [examples] to learn more!
 Iced was originally born as an attempt at bringing the simplicity of [Elm] and
 [The Elm Architecture] into [Coffee], a 2D game engine I am working on.
 
-The core of the library was implemented during May in [this pull request], using
-[`stretch`] for flexbox-based layouting. It was later released as the main
-feature of [Coffee 0.3.0].
+The core of the library was implemented during May in [this pull request].
+[The first alpha version] was eventually released as
+[a renderer-agnostic GUI library]. The library did not provide a renderer and
+implemented the current [tour example] on top of [`ggez`], a game library.
 
-After release, different folks suggested me to split the new [`ui` module] into
-its own standalone crate, as it could potentially benefit other engines and
-applications. I thought it was a great idea, and after a bit of work... Iced is
-here!
+Since then, the focus has shifted towards providing a batteries-included,
+end-user-oriented GUI library, while keeping [the ecosystem] modular.
 
-Iced consists of different crates which offer different layers of abstractions
-for our users. This modular architecture helps us keep implementation details
-hidden and decoupled, which should allow us to rewrite or change strategies in
-the future.
+Currently, Iced is a cross-platform GUI library built on top of smaller crates:
 
-![Iced ecosystem](https://github.com/hecrj/iced/raw/master/docs/crates_graph.png)
+  - [`iced_core`], a bunch of basic types that can be reused in different runtimes.
+  - [`iced_native`], a renderer-agnostic native runtime implementing widget
+    logic and a layout engine inspired by [`druid`].
+  - [`iced_web`], an experimental web runtime that targets the DOM thanks to
+    [`dodrio`].
+  - [`iced_wgpu`], a renderer leveraging [`wgpu`], [`wgpu_glyph`], and
+    [`font-kit`].
+  - [`iced_winit`], a windowing shell on top of [`winit`].
 
-Read [the roadmap] if you want to learn more!
+[![Iced ecosystem](docs/graphs/ecosystem.png)](https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md)
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
-[`stretch`]: https://github.com/vislyhq/stretch
-[Coffee 0.3.0]: https://github.com/hecrj/coffee/releases/tag/0.3.0
-[`ui` module]: https://docs.rs/coffee/0.3.2/coffee/ui/index.html
-[the roadmap]: https://github.com/hecrj/iced/blob/master/ROADMAP.md
+[The first alpha version]: https://github.com/hecrj/iced/tree/0.1.0-alpha
+[a renderer-agnostic GUI library]: https://www.reddit.com/r/rust/comments/czzjnv/iced_a_rendereragnostic_gui_library_focused_on/
+[tour example]: https://github.com/hecrj/iced/blob/master/examples/tour.rs
+[`ggez`]: https://github.com/ggez/ggez
+[the ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
+[`iced_core`]: https://github.com/hecrj/iced/tree/master/core
+[`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+[`iced_web`]: https://github.com/hecrj/iced/tree/master/web
+[`iced_wgpu`]: https://github.com/hecrj/iced/tree/master/wgpu
+[`iced_winit`]: https://github.com/hecrj/iced/tree/master/winit
+[`druid`]: https://github.com/xi-editor/druid
+[`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
+[`font-kit`]: https://github.com/servo/font-kit
+[`winit`]: https://github.com/rust-windowing/winit
 
 ## Contributing / Feedback
-If you want to contribute, you are more than welcome to be a part of the
-project! Check out [the roadmap] and [the current issues] if you want to find
-something to work on. Try to share you thoughts first! Feel free to open a new
-issue if you want to discuss new ideas.
+Contributions are greatly appreciated! If you want to contribute, please
+read our [contributing guidelines] for more details.
 
-Any kind of feedback is welcome! You can open an issue or, if you want to talk,
-you can find me (and a bunch of awesome folks) over the `#games-and-graphics`
-and `#gui-and-ui` channels in the [Rust Community Discord]. I go by
-`@lone_scientist` there.
+Feedback is also welcome! You can open an issue or, if you want to talk,
+come chat to our [Zulip server]. Moreover, you can find me (and a bunch of
+awesome folks) over the `#games-and-graphics` and `#gui-and-ui` channels in
+the [Rust Community Discord]. I go by `lone_scientist#9554` there.
 
 [documentation]: https://docs.rs/iced
 [examples]: https://github.com/hecrj/iced/tree/master/examples
@@ -188,4 +216,6 @@ and `#gui-and-ui` channels in the [Rust Community Discord]. I go by
 [Elm]: https://elm-lang.org/
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
 [the current issues]: https://github.com/hecrj/iced/issues
+[contributing guidelines]: https://github.com/hecrj/iced/blob/master/CONTRIBUTING.md
+[Zulip server]: https://iced.zulipchat.com/
 [Rust Community Discord]: https://bit.ly/rust-community
