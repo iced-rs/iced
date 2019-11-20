@@ -20,7 +20,7 @@ Inspired by [Elm].
 ## Features
   * Simple, easy-to-use, batteries-included API
   * Type-safe, reactive programming model
-  * Cross-platform support (Windows, macOS, Linux, and the Web)
+  * [Cross-platform support] (Windows, macOS, Linux, and the Web)
   * Responsive layout
   * Built-in widgets (including [text inputs], [scrollables], and more!)
   * Custom widget support (create your own!)
@@ -34,6 +34,7 @@ Inspired by [Elm].
 __Iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
 
+[Cross-platform support]: https://github.com/hecrj/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
 [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
 [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 [Debug overlay with performance metrics]: https://gfycat.com/artisticdiligenthorseshoebat-rust-gui
