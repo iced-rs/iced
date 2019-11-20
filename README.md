@@ -8,14 +8,14 @@
 A cross-platform GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
-[![Tour - Iced][gui_gif]][gui_gfycat]
-[![Tour - Coffee][coffee_gui_gif]][coffee_gui_gfycat]
-
-[gui_gif]: https://thumbs.gfycat.com/VeneratedSourAurochs-small.gif
-[gui_gfycat]: https://gfycat.com/veneratedsouraurochs
-
-[coffee_gui_gif]: https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif
-[coffee_gui_gfycat]: https://gfycat.com/gloomyweakhammerheadshark
+<div align="center">
+  <a href="https://gfycat.com/littlesanehalicore">
+    <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" height="350px">
+  </a>
+  <a href="https://gfycat.com/politeadorableiberianmole">
+    <img src="https://thumbs.gfycat.com/PoliteAdorableIberianmole-small.gif">
+  </a>
+</div>
 
 ## Features
   * Simple, easy-to-use, batteries-included API
