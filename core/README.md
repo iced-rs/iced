@@ -11,3 +11,15 @@ This crate is meant to be a starting point for an Iced runtime.
 ![iced_core](../docs/graphs/core.png)
 
 [documentation]: https://docs.rs/iced_core
+
+## Installation
+Add `iced_core` as a dependency in your `Cargo.toml`:
+
+```toml
+iced_core = "0.1.0"
+```
+
+__Iced moves fast and the `master` branch can contain breaking changes!__ If
+you want to learn about a specific release, check out [the release list].
+
+[the release list]: https://github.com/hecrj/iced/releases

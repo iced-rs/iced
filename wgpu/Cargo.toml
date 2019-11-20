@@ -1,6 +1,6 @@
 [package]
 name = "iced_wgpu"
-version = "0.1.0-alpha"
+version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A wgpu renderer for Iced"
@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/hecrj/iced"
 
 [dependencies]
-iced_native = { version = "0.1.0-alpha", path = "../native" }
+iced_native = { version = "0.1.0", path = "../native" }
 wgpu = "0.4"
 glyph_brush = "0.6"
 wgpu_glyph = { version = "0.5", git = "https://github.com/hecrj/wgpu_glyph", branch = "feature/scissoring" }

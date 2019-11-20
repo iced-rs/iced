@@ -27,8 +27,9 @@ Inspired by [Elm].
   * [Debug overlay with performance metrics]
   * First-class support for async actions (use futures!)
   * [Modular ecosystem] split into reusable parts:
-    * A [default renderer] supporting Vulkan, Metal, DX11, and DX12
     * A [renderer-agnostic native runtime] enabling integration with existing systems
+    * A [built-in renderer] supporting Vulkan, Metal, DX11, and DX12
+    * A [windowing shell]
     * A [web runtime] leveraging the DOM
 
 __Iced is currently experimental software.__ [Take a look at the roadmap],
@@ -41,7 +42,8 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 [Modular ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
 [renderer-agnostic native runtime]: https://github.com/hecrj/iced/tree/master/native
 [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-[Default renderer]: https://github.com/hecrj/iced/tree/master/wgpu
+[built-in renderer]: https://github.com/hecrj/iced/tree/master/wgpu
+[windowing shell]: https://github.com/hecrj/iced/tree/master/winit
 [`dodrio`]: https://github.com/fitzgen/dodrio
 [web runtime]: https://github.com/hecrj/iced/tree/master/web
 [Take a look at the roadmap]: https://github.com/hecrj/iced/blob/master/ROADMAP.md
@@ -52,7 +54,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.1"
+iced = "0.1.0-beta"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

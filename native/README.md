@@ -21,3 +21,15 @@ To achieve this, it introduces a bunch of reusable interfaces:
 [`iced_winit`]: ../winit
 [`druid`]: https://github.com/xi-editor/druid
 [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
+
+## Installation
+Add `iced_native` as a dependency in your `Cargo.toml`:
+
+```toml
+iced_native = "0.1.0"
+```
+
+__Iced moves fast and the `master` branch can contain breaking changes!__ If
+you want to learn about a specific release, check out [the release list].
+
+[the release list]: https://github.com/hecrj/iced/releases

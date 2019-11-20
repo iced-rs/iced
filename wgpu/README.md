@@ -22,6 +22,18 @@ Currently, `iced_wgpu` supports the following primitives:
 [WebGPU API]: https://gpuweb.github.io/gpuweb/
 [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
 
+## Installation
+Add `iced_wgpu` as a dependency in your `Cargo.toml`:
+
+```toml
+iced_wgpu = "0.1.0"
+```
+
+__Iced moves fast and the `master` branch can contain breaking changes!__ If
+you want to learn about a specific release, check out [the release list].
+
+[the release list]: https://github.com/hecrj/iced/releases
+
 ## Current limitations
 
 The current implementation is quite naive, it uses:
