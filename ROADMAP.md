@@ -1,5 +1,5 @@
 # Roadmap
-This document describes the current state of Iced and some of the most important next steps we should take before it can become a production-ready GUI library. This list keeps the short term new features in sight in order to coordinate work. Therefore, it is not meant to be exhaustive.
+This document describes the current state of Iced and some of the most important next steps we should take before it can become a production-ready GUI library. This list keeps the short term new features in sight in order to coordinate work and discussion. Therefore, it is not meant to be exhaustive.
 
 ## Next steps
 Most of the work related to these features needs to happen in the `iced_native` path of the ecosystem, as the web already supports many of them.
@@ -10,12 +10,13 @@ Once a step is completed, it is collapsed and added to this list:
   * [x] Text input widget ([#25])
   * [x] TodoMVC example ([#26])
   * [x] Async actions ([#27])
-  * [x] Custom layout engine
+  * [x] Custom layout engine ([#52])
 
 [#24]: https://github.com/hecrj/iced/issues/24
 [#25]: https://github.com/hecrj/iced/issues/25
 [#26]: https://github.com/hecrj/iced/issues/26
 [#28]: https://github.com/hecrj/iced/issues/28
+[#52]: https://github.com/hecrj/iced/pull/52
 
 ### Multi-window support ([#27])
 Open and control multiple windows at runtime.
