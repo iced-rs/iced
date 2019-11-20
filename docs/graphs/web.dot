@@ -1,12 +1,12 @@
 digraph G {
   fontname = "Roboto";
   newrank=true;
-  node[fontname = "Roboto", style=filled, fontcolor=white, color="#474973"];
+  node[fontname = "Roboto", style="filled", fontcolor="#333333", fillcolor=white, color="#333333"];
+  edge[color="#333333"];
 
   iced_core -> iced_web [style=dashed];
 
   iced_web -> iced;
 
-  iced_core [style=dashed, fontcolor=black];
-  iced [width=1, height=0.6, style="filled", fontcolor=white, color="#474973"];
+  iced_core [style=dashed];
 }

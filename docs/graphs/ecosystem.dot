@@ -1,19 +1,19 @@
 digraph G {
   fontname = "Roboto";
   newrank=true;
-  node[fontname = "Roboto", style=filled, fontcolor=white, color="#474973"];
+  node[fontname = "Roboto", style="filled", fontcolor="#333333", fillcolor=white, color="#333333"];
+  edge[color="#333333"];
 
   subgraph cluster_1 {
     label = "renderers  ";
     labelloc = "b";
     labeljust = "r";
-    fontcolor = "#ffffff";
-    color="#8797AF";
-    bgcolor="#8797AF";
+    fontcolor = "#0366d6";
+    color="#f6f8fa";
+    bgcolor="#f6f8fa";
     style=rounded;
-    node [fillcolor=white, color=white, fontcolor=black];
 
-    etc_1 [label="...", style=empty, shape=none, fontcolor=white];
+    etc_1 [label="...", style=solid, shape=none];
     iced_wgpu;
   }
 
@@ -21,13 +21,12 @@ digraph G {
     label = "shells  ";
     labelloc = "b";
     labeljust = "r";
-    fontcolor = "#ffffff";
-    color="#8797AF";
-    bgcolor="#8797AF";
+    fontcolor = "#0366d6";
+    color="#f6f8fa";
+    bgcolor="#f6f8fa";
     style=rounded;
-    node [fillcolor=white, color=white, fontcolor=black];
 
-    etc_2 [label="...", style=empty, shape=none, fontcolor=white];
+    etc_2 [label="...", style=solid, shape=none];
     iced_winit;
   }
 
@@ -51,9 +50,7 @@ digraph G {
 
   iced -> "cross-platform application";
 
-  iced_core [style=dashed, fontcolor=black];
-  iced [width=1, height=0.6, style="filled", fontcolor=white, color="#474973"];
+  iced_core [style=dashed];
 
-
-  "cross-platform application" [shape=box3d, style="solid", width=2.8, height=0.6, fontcolor="#474973"];
+  "cross-platform application" [shape=box, width=2.8, height=0.6];
 }
