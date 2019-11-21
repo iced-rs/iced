@@ -58,6 +58,14 @@ impl<Message, Renderer> Widget<Message, Renderer> for Image
 where
     Renderer: self::Renderer,
 {
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,

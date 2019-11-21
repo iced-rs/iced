@@ -105,6 +105,14 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer + column::Renderer,
 {
+    fn width(&self) -> Length {
+        Length::Fill
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,

@@ -255,6 +255,14 @@ where
     A: Clone,
     Renderer: crate::Renderer,
 {
+    fn width(&self) -> Length {
+        self.widget.width()
+    }
+
+    fn height(&self) -> Length {
+        self.widget.height()
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,
@@ -320,6 +328,14 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer + renderer::Debugger,
 {
+    fn width(&self) -> Length {
+        self.element.widget.width()
+    }
+
+    fn height(&self) -> Length {
+        self.element.widget.height()
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,

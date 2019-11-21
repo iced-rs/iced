@@ -118,6 +118,10 @@ where
         self.width
     }
 
+    fn height(&self) -> Length {
+        self.height
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,

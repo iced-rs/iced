@@ -86,6 +86,10 @@ where
         self.width
     }
 
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,
