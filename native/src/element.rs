@@ -17,14 +17,6 @@ pub struct Element<'a, Message, Renderer> {
     pub(crate) widget: Box<dyn Widget<Message, Renderer> + 'a>,
 }
 
-impl<'a, Message, Renderer> std::fmt::Debug for Element<'a, Message, Renderer> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Element")
-            .field("widget", &self.widget)
-            .finish()
-    }
-}
-
 impl<'a, Message, Renderer> Element<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
@@ -127,37 +119,7 @@ where
     /// # }
     /// #
     /// # mod iced_wgpu {
-    /// #     use iced_native::{
-    /// #         text, row, layout, Text, Size, Point, Rectangle, Layout, Row
-    /// #     };
-    /// #     pub struct Renderer;
-    /// #
-    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
-    /// #
-    /// #     impl iced_native::row::Renderer for Renderer {
-    /// #         fn draw<Message>(
-    /// #             &mut self,
-    /// #             _column: &Row<'_, Message, Self>,
-    /// #             _layout: Layout<'_>,
-    /// #             _cursor_position: Point,
-    /// #         ) {}
-    /// #     }
-    /// #
-    /// #     impl text::Renderer for Renderer {
-    /// #         fn layout(
-    /// #             &self,
-    /// #             _text: &Text,
-    /// #             _limits: &layout::Limits,
-    /// #         ) -> layout::Node {
-    /// #             layout::Node::new(Size::ZERO)
-    /// #         }
-    /// #
-    /// #         fn draw(
-    /// #             &mut self,
-    /// #             _text: &Text,
-    /// #             _layout: Layout<'_>,
-    /// #         ) {}
-    /// #     }
+    /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
     /// # use counter::Counter;
@@ -273,12 +235,6 @@ struct Map<'a, A, B, Renderer> {
     mapper: Box<dyn Fn(A) -> B>,
 }
 
-impl<'a, A, B, Renderer> std::fmt::Debug for Map<'a, A, B, Renderer> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Map").field("widget", &self.widget).finish()
-    }
-}
-
 impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     pub fn new<F>(
         widget: Box<dyn Widget<A, Renderer> + 'a>,
@@ -348,17 +304,6 @@ where
 struct Explain<'a, Message, Renderer: crate::Renderer> {
     element: Element<'a, Message, Renderer>,
     color: Color,
-}
-
-impl<'a, Message, Renderer> std::fmt::Debug for Explain<'a, Message, Renderer>
-where
-    Renderer: crate::Renderer,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Explain")
-            .field("element", &self.element)
-            .finish()
-    }
 }
 
 impl<'a, Message, Renderer> Explain<'a, Message, Renderer>

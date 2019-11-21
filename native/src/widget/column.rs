@@ -1,10 +1,113 @@
 use std::hash::Hash;
 
-use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
+use crate::{
+    layout, Align, Element, Event, Hasher, Layout, Length, Point, Widget,
+};
+
+use std::u32;
 
 /// A container that distributes its contents vertically.
-pub type Column<'a, Message, Renderer> =
-    iced_core::Column<Element<'a, Message, Renderer>>;
+///
+/// A [`Column`] will try to fill the horizontal space of its container.
+///
+/// [`Column`]: struct.Column.html
+pub struct Column<'a, Message, Renderer> {
+    spacing: u16,
+    padding: u16,
+    width: Length,
+    height: Length,
+    max_width: u32,
+    max_height: u32,
+    align_items: Align,
+    children: Vec<Element<'a, Message, Renderer>>,
+}
+
+impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
+    /// Creates an empty [`Column`].
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn new() -> Self {
+        Column {
+            spacing: 0,
+            padding: 0,
+            width: Length::Fill,
+            height: Length::Shrink,
+            max_width: u32::MAX,
+            max_height: u32::MAX,
+            align_items: Align::Start,
+            children: Vec::new(),
+        }
+    }
+
+    /// Sets the vertical spacing _between_ elements.
+    ///
+    /// Custom margins per element do not exist in Iced. You should use this
+    /// method instead! While less flexible, it helps you keep spacing between
+    /// elements consistent.
+    pub fn spacing(mut self, units: u16) -> Self {
+        self.spacing = units;
+        self
+    }
+
+    /// Sets the padding of the [`Column`].
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn padding(mut self, units: u16) -> Self {
+        self.padding = units;
+        self
+    }
+
+    /// Sets the width of the [`Column`].
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Sets the height of the [`Column`].
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = height;
+        self
+    }
+
+    /// Sets the maximum width of the [`Column`].
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn max_width(mut self, max_width: u32) -> Self {
+        self.max_width = max_width;
+        self
+    }
+
+    /// Sets the maximum height of the [`Column`] in pixels.
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn max_height(mut self, max_height: u32) -> Self {
+        self.max_height = max_height;
+        self
+    }
+
+    /// Sets the horizontal alignment of the contents of the [`Column`] .
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn align_items(mut self, align: Align) -> Self {
+        self.align_items = align;
+        self
+    }
+
+    /// Adds an element to the [`Column`].
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn push<E>(mut self, child: E) -> Self
+    where
+        E: Into<Element<'a, Message, Renderer>>,
+    {
+        self.children.push(child.into());
+        self
+    }
+}
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Column<'a, Message, Renderer>
@@ -64,7 +167,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(&self, layout, cursor_position)
+        renderer.draw(&self.children, layout, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -85,7 +188,7 @@ where
 pub trait Renderer: crate::Renderer + Sized {
     fn draw<Message>(
         &mut self,
-        row: &Column<'_, Message, Self>,
+        content: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output;

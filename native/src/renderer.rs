@@ -21,9 +21,13 @@
 //! [`checkbox::Renderer`]: ../widget/checkbox/trait.Renderer.html
 
 mod debugger;
+#[cfg(debug_assertions)]
+mod null;
 mod windowed;
 
 pub use debugger::Debugger;
+#[cfg(debug_assertions)]
+pub use null::Null;
 pub use windowed::{Target, Windowed};
 
 use crate::{layout, Element};

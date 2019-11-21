@@ -14,8 +14,8 @@
 //! [repository]: https://github.com/hecrj/iced
 //!
 //! # Usage
-//! Inspired by [The Elm Architecture], Iced expects you to split user interfaces
-//! into four different concepts:
+//! Inspired by [The Elm Architecture], Iced expects you to split user
+//! interfaces into four different concepts:
 //!
 //!   * __State__ — the state of your application
 //!   * __Messages__ — user interactions or meaningful events that you care
@@ -25,8 +25,8 @@
 //!   * __Update logic__ — a way to react to __messages__ and update your
 //!   __state__
 //!
-//! We can build something to see how this works! Let's say we want a simple counter
-//! that can be incremented and decremented using two buttons.
+//! We can build something to see how this works! Let's say we want a simple
+//! counter that can be incremented and decremented using two buttons.
 //!
 //! We start by modelling the __state__ of our application:
 //!
@@ -76,49 +76,7 @@
 //! # }
 //! #
 //! # mod iced_wgpu {
-//! #     use iced_native::{
-//! #         button, text, layout, Button, Text, Point, Rectangle, Color, Layout, Size
-//! #     };
-//! #
-//! #     pub struct Renderer {}
-//! #
-//! #     impl iced_native::Renderer for Renderer {
-//! #         type Output = ();
-//! #     }
-//! #
-//! #     impl button::Renderer for Renderer {
-//! #         fn layout<Message>(
-//! #             &self,
-//! #             _button: &Button<'_, Message, Self>,
-//! #             _limits: &layout::Limits,
-//! #         ) -> layout::Node {
-//! #             layout::Node::new(Size::ZERO)
-//! #         }
-//! #
-//! #         fn draw<Message>(
-//! #             &mut self,
-//! #             _button: &Button<'_, Message, Self>,
-//! #             _layout: Layout<'_>,
-//! #             _cursor_position: Point,
-//! #         ) {}
-//! #     }
-//! #
-//! #     impl text::Renderer for Renderer {
-//! #         fn layout(
-//! #             &self,
-//! #             _text: &Text,
-//! #             _limits: &layout::Limits,
-//! #         ) -> layout::Node {
-//! #             layout::Node::new(Size::ZERO)
-//! #         }
-//! #
-//! #         fn draw(
-//! #             &mut self,
-//! #             _text: &Text,
-//! #             _layout: Layout<'_>,
-//! #         ) {
-//! #         }
-//! #     }
+//! #     pub use iced_native::renderer::Null as Renderer;
 //! # }
 //! use iced_native::{Button, Column, Text};
 //! use iced_wgpu::Renderer; // Iced does not include a renderer! We need to bring our own!
@@ -183,8 +141,8 @@
 //! }
 //! ```
 //!
-//! And that's everything! We just wrote a whole user interface. Iced is now able
-//! to:
+//! And that's everything! We just wrote a whole user interface. Iced is now
+//! able to:
 //!
 //!   1. Take the result of our __view logic__ and layout its widgets.
 //!   1. Process events from our system and produce __messages__ for our
@@ -199,7 +157,7 @@
 //! [examples]: https://github.com/hecrj/iced/tree/master/examples
 //! [`UserInterface`]: struct.UserInterface.html
 //#![deny(missing_docs)]
-#![deny(missing_debug_implementations)]
+//#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
@@ -216,7 +174,8 @@ mod size;
 mod user_interface;
 
 pub use iced_core::{
-    Align, Background, Color, Command, Font, Length, Point, Rectangle, Vector,
+    Align, Background, Color, Command, Font, HorizontalAlignment, Length,
+    Point, Rectangle, Vector, VerticalAlignment,
 };
 
 pub use element::Element;

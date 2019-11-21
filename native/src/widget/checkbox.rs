@@ -1,14 +1,72 @@
 //! Show toggle controls using checkboxes.
 use std::hash::Hash;
 
-use crate::input::{mouse, ButtonState};
-use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
+use crate::{
+    input::{mouse, ButtonState},
+    layout, row, text, Align, Color, Element, Event, Font, Hasher,
+    HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
+    VerticalAlignment, Widget,
+};
 
-pub use iced_core::Checkbox;
+/// A box that can be checked.
+///
+/// # Example
+///
+/// ```
+/// # use iced_native::Checkbox;
+///
+/// pub enum Message {
+///     CheckboxToggled(bool),
+/// }
+///
+/// let is_checked = true;
+///
+/// Checkbox::new(is_checked, "Toggle me!", Message::CheckboxToggled);
+/// ```
+///
+/// ![Checkbox drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/checkbox.png?raw=true)
+pub struct Checkbox<Message> {
+    is_checked: bool,
+    on_toggle: Box<dyn Fn(bool) -> Message>,
+    label: String,
+    label_color: Option<Color>,
+}
+
+impl<Message> Checkbox<Message> {
+    /// Creates a new [`Checkbox`].
+    ///
+    /// It expects:
+    ///   * a boolean describing whether the [`Checkbox`] is checked or not
+    ///   * the label of the [`Checkbox`]
+    ///   * a function that will be called when the [`Checkbox`] is toggled. It
+    ///     will receive the new state of the [`Checkbox`] and must produce a
+    ///     `Message`.
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn new<F>(is_checked: bool, label: &str, f: F) -> Self
+    where
+        F: 'static + Fn(bool) -> Message,
+    {
+        Checkbox {
+            is_checked,
+            on_toggle: Box::new(f),
+            label: String::from(label),
+            label_color: None,
+        }
+    }
+
+    /// Sets the color of the label of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
+        self.label_color = Some(color.into());
+        self
+    }
+}
 
 impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer + text::Renderer + row::Renderer,
 {
     fn width(&self) -> Length {
         Length::Fill
@@ -19,7 +77,18 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        renderer.layout(&self, limits)
+        let size = self::Renderer::default_size(renderer);
+
+        Row::<(), Renderer>::new()
+            .spacing(15)
+            .align_items(Align::Center)
+            .push(
+                Row::new()
+                    .width(Length::Units(size as u16))
+                    .height(Length::Units(size as u16)),
+            )
+            .push(Text::new(&self.label))
+            .layout(renderer, limits)
     }
 
     fn on_event(
@@ -51,7 +120,33 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(&self, layout, cursor_position)
+        let bounds = layout.bounds();
+        let mut children = layout.children();
+
+        let checkbox_layout = children.next().unwrap();
+        let label_layout = children.next().unwrap();
+        let checkbox_bounds = checkbox_layout.bounds();
+
+        let label = text::Renderer::draw(
+            renderer,
+            label_layout.bounds(),
+            &self.label,
+            text::Renderer::default_size(renderer),
+            Font::Default,
+            self.label_color,
+            HorizontalAlignment::Left,
+            VerticalAlignment::Center,
+        );
+
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        self::Renderer::draw(
+            renderer,
+            checkbox_bounds,
+            self.is_checked,
+            is_mouse_over,
+            label,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -67,15 +162,7 @@ where
 /// [`Checkbox`]: struct.Checkbox.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
-    /// Creates a [`Node`] for the provided [`Checkbox`].
-    ///
-    /// [`Node`]: ../../struct.Node.html
-    /// [`Checkbox`]: struct.Checkbox.html
-    fn layout<Message>(
-        &self,
-        checkbox: &Checkbox<Message>,
-        limits: &layout::Limits,
-    ) -> layout::Node;
+    fn default_size(&self) -> u32;
 
     /// Draws a [`Checkbox`].
     ///
@@ -86,18 +173,19 @@ pub trait Renderer: crate::Renderer {
     ///   * whether the [`Checkbox`] is checked or not
     ///
     /// [`Checkbox`]: struct.Checkbox.html
-    fn draw<Message>(
+    fn draw(
         &mut self,
-        checkbox: &Checkbox<Message>,
-        layout: Layout<'_>,
-        cursor_position: Point,
+        bounds: Rectangle,
+        is_checked: bool,
+        is_mouse_over: bool,
+        label: Self::Output,
     ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Checkbox<Message>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer + text::Renderer + row::Renderer,
     Message: 'static,
 {
     fn from(checkbox: Checkbox<Message>) -> Element<'a, Message, Renderer> {

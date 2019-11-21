@@ -1,7 +1,7 @@
 use iced::{
-    button, scrollable, text::HorizontalAlignment, text_input, Align,
-    Application, Background, Button, Checkbox, Color, Column, Command,
-    Container, Element, Font, Length, Row, Scrollable, Text, TextInput,
+    button, scrollable, text_input, Align, Application, Background, Button,
+    Checkbox, Color, Column, Command, Container, Element, Font,
+    HorizontalAlignment, Length, Row, Scrollable, Text, TextInput,
 };
 use serde::{Deserialize, Serialize};
 
@@ -549,7 +549,8 @@ impl SavedState {
             .map_err(|_| SaveError::WriteError)?;
 
         // This is a simple way to save at most once every couple seconds
-        // We will be able to get rid of it once we implement event subscriptions
+        // We will be able to get rid of it once we implement event
+        // subscriptions
         std::thread::sleep(std::time::Duration::from_secs(2));
 
         Ok(())

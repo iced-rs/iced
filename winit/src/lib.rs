@@ -1,3 +1,4 @@
+#[doc(no_inline)]
 pub use iced_native::*;
 pub use winit;
 

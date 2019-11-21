@@ -12,7 +12,6 @@
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
-pub mod widget;
 
 mod align;
 mod background;
@@ -23,7 +22,7 @@ mod point;
 mod rectangle;
 mod vector;
 
-pub use align::Align;
+pub use align::{Align, HorizontalAlignment, VerticalAlignment};
 pub use background::Background;
 pub use color::Color;
 pub use font::Font;
@@ -31,7 +30,6 @@ pub use length::Length;
 pub use point::Point;
 pub use rectangle::Rectangle;
 pub use vector::Vector;
-pub use widget::*;
 
 #[cfg(feature = "command")]
 mod command;

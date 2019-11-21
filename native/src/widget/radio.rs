@@ -1,15 +1,82 @@
 //! Create choices using radio buttons.
-use crate::input::{mouse, ButtonState};
-use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
+use crate::{
+    input::{mouse, ButtonState},
+    layout, row, text, Align, Color, Element, Event, Font, Hasher,
+    HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
+    VerticalAlignment, Widget,
+};
 
 use std::hash::Hash;
 
-pub use iced_core::Radio;
+/// A circular button representing a choice.
+///
+/// # Example
+/// ```
+/// # use iced_native::Radio;
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// pub enum Choice {
+///     A,
+///     B,
+/// }
+///
+/// #[derive(Debug, Clone, Copy)]
+/// pub enum Message {
+///     RadioSelected(Choice),
+/// }
+///
+/// let selected_choice = Some(Choice::A);
+///
+/// Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected);
+///
+/// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
+/// ```
+///
+/// ![Radio buttons drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
+pub struct Radio<Message> {
+    is_selected: bool,
+    on_click: Message,
+    label: String,
+    label_color: Option<Color>,
+}
+
+impl<Message> Radio<Message> {
+    /// Creates a new [`Radio`] button.
+    ///
+    /// It expects:
+    ///   * the value related to the [`Radio`] button
+    ///   * the label of the [`Radio`] button
+    ///   * the current selected value
+    ///   * a function that will be called when the [`Radio`] is selected. It
+    ///   receives the value of the radio and must produce a `Message`.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn new<F, V>(value: V, label: &str, selected: Option<V>, f: F) -> Self
+    where
+        V: Eq + Copy,
+        F: 'static + Fn(V) -> Message,
+    {
+        Radio {
+            is_selected: Some(value) == selected,
+            on_click: f(value),
+            label: String::from(label),
+            label_color: None,
+        }
+    }
+
+    /// Sets the `Color` of the label of the [`Radio`].
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
+        self.label_color = Some(color.into());
+        self
+    }
+}
 
 impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message>
 where
-    Renderer: self::Renderer,
-    Message: Clone + std::fmt::Debug,
+    Renderer: self::Renderer + text::Renderer + row::Renderer,
+    Message: Clone,
 {
     fn width(&self) -> Length {
         Length::Fill
@@ -20,7 +87,18 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        renderer.layout(&self, limits)
+        let size = self::Renderer::default_size(renderer);
+
+        Row::<(), Renderer>::new()
+            .spacing(15)
+            .align_items(Align::Center)
+            .push(
+                Row::new()
+                    .width(Length::Units(size as u16))
+                    .height(Length::Units(size as u16)),
+            )
+            .push(Text::new(&self.label))
+            .layout(renderer, limits)
     }
 
     fn on_event(
@@ -50,7 +128,33 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(&self, layout, cursor_position)
+        let bounds = layout.bounds();
+        let mut children = layout.children();
+
+        let radio_layout = children.next().unwrap();
+        let label_layout = children.next().unwrap();
+        let radio_bounds = radio_layout.bounds();
+
+        let label = text::Renderer::draw(
+            renderer,
+            label_layout.bounds(),
+            &self.label,
+            text::Renderer::default_size(renderer),
+            Font::Default,
+            self.label_color,
+            HorizontalAlignment::Left,
+            VerticalAlignment::Center,
+        );
+
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        self::Renderer::draw(
+            renderer,
+            radio_bounds,
+            self.is_selected,
+            is_mouse_over,
+            label,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -66,15 +170,7 @@ where
 /// [`Radio`]: struct.Radio.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
-    /// Creates a [`Node`] for the provided [`Radio`].
-    ///
-    /// [`Node`]: ../../struct.Node.html
-    /// [`Radio`]: struct.Radio.html
-    fn layout<Message>(
-        &self,
-        radio: &Radio<Message>,
-        limits: &layout::Limits,
-    ) -> layout::Node;
+    fn default_size(&self) -> u32;
 
     /// Draws a [`Radio`] button.
     ///
@@ -85,21 +181,22 @@ pub trait Renderer: crate::Renderer {
     ///   * whether the [`Radio`] is selected or not
     ///
     /// [`Radio`]: struct.Radio.html
-    fn draw<Message>(
+    fn draw(
         &mut self,
-        radio: &Radio<Message>,
-        layout: Layout<'_>,
-        cursor_position: Point,
+        bounds: Rectangle,
+        is_selected: bool,
+        is_mouse_over: bool,
+        label: Self::Output,
     ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Radio<Message>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
-    Message: 'static + Clone + std::fmt::Debug,
+    Renderer: self::Renderer + row::Renderer + text::Renderer,
+    Message: 'static + Clone,
 {
-    fn from(checkbox: Radio<Message>) -> Element<'a, Message, Renderer> {
-        Element::new(checkbox)
+    fn from(radio: Radio<Message>) -> Element<'a, Message, Renderer> {
+        Element::new(radio)
     }
 }

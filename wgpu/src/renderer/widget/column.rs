@@ -1,10 +1,10 @@
 use crate::{Primitive, Renderer};
-use iced_native::{column, Column, Layout, MouseCursor, Point};
+use iced_native::{column, Element, Layout, MouseCursor, Point};
 
 impl column::Renderer for Renderer {
     fn draw<Message>(
         &mut self,
-        column: &Column<'_, Message, Self>,
+        content: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
@@ -12,8 +12,7 @@ impl column::Renderer for Renderer {
 
         (
             Primitive::Group {
-                primitives: column
-                    .children
+                primitives: content
                     .iter()
                     .zip(layout.children())
                     .map(|(child, layout)| {

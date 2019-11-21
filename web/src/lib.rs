@@ -7,7 +7,10 @@ pub mod widget;
 
 pub use bus::Bus;
 pub use element::Element;
-pub use iced_core::{Align, Background, Color, Length};
+pub use iced_core::{
+    Align, Background, Color, Font, HorizontalAlignment, Length,
+    VerticalAlignment,
+};
 pub use widget::*;
 
 pub trait Application {

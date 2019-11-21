@@ -1,5 +1,5 @@
 #[cfg_attr(target_arch = "wasm32", path = "web.rs")]
-#[cfg_attr(not(target_arch = "wasm32"), path = "winit.rs")]
+#[cfg_attr(not(target_arch = "wasm32"), path = "native.rs")]
 mod platform;
 
 pub use platform::*;
@@ -34,7 +34,7 @@ impl<A> iced_winit::Application for Instance<A>
 where
     A: Application,
 {
-    type Renderer = Renderer;
+    type Renderer = iced_wgpu::Renderer;
     type Message = A::Message;
 
     fn new() -> (Self, Command<A::Message>) {

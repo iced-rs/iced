@@ -1,8 +1,8 @@
 use crate::{Primitive, Renderer};
 
 use iced_native::{
-    text::HorizontalAlignment, text::VerticalAlignment, text_input, Background,
-    Color, Font, MouseCursor, Point, Rectangle, Size, TextInput, Vector,
+    text_input, Background, Color, Font, HorizontalAlignment, MouseCursor,
+    Point, Rectangle, Size, Vector, VerticalAlignment,
 };
 use std::f32;
 
@@ -12,19 +12,22 @@ impl text_input::Renderer for Renderer {
         20
     }
 
-    fn draw<Message>(
+    fn draw(
         &mut self,
-        text_input: &TextInput<Message>,
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
+        size: u16,
+        placeholder: &str,
+        value: &text_input::Value,
+        state: &text_input::State,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
         let border = Primitive::Quad {
             bounds,
             background: Background::Color(
-                if is_mouse_over || text_input.state.is_focused {
+                if is_mouse_over || state.is_focused() {
                     [0.5, 0.5, 0.5]
                 } else {
                     [0.7, 0.7, 0.7]
@@ -45,12 +48,12 @@ impl text_input::Renderer for Renderer {
             border_radius: 5,
         };
 
-        let size = f32::from(text_input.size.unwrap_or(self.default_size()));
-        let text = text_input.value.to_string();
+        let size = f32::from(size);
+        let text = value.to_string();
 
-        let value = Primitive::Text {
+        let text_value = Primitive::Text {
             content: if text.is_empty() {
-                text_input.placeholder.clone()
+                placeholder.to_string()
             } else {
                 text.clone()
             },
@@ -70,14 +73,12 @@ impl text_input::Renderer for Renderer {
             vertical_alignment: VerticalAlignment::Center,
         };
 
-        let (contents_primitive, offset) = if text_input.state.is_focused {
-            let text_before_cursor = &text_input
-                .value
-                .until(text_input.state.cursor_position(&text_input.value))
-                .to_string();
+        let (contents_primitive, offset) = if state.is_focused() {
+            let text_before_cursor =
+                value.until(state.cursor_position(value)).to_string();
 
             let (mut text_value_width, _) = self.text_pipeline.measure(
-                text_before_cursor,
+                &text_before_cursor,
                 size,
                 Font::Default,
                 Size::new(f32::INFINITY, text_bounds.height),
@@ -104,7 +105,7 @@ impl text_input::Renderer for Renderer {
 
             (
                 Primitive::Group {
-                    primitives: vec![value, cursor],
+                    primitives: vec![text_value, cursor],
                 },
                 Vector::new(
                     ((text_value_width + 5.0) - text_bounds.width).max(0.0)
@@ -113,7 +114,7 @@ impl text_input::Renderer for Renderer {
                 ),
             )
         } else {
-            (value, Vector::new(0, 0))
+            (text_value, Vector::new(0, 0))
         };
 
         let contents = Primitive::Clip {

@@ -1,8 +1,7 @@
 use iced::{
-    button, scrollable, slider, text::HorizontalAlignment, text_input,
-    Application, Background, Button, Checkbox, Color, Column, Command,
-    Container, Element, Image, Length, Radio, Row, Scrollable, Slider, Text,
-    TextInput,
+    button, scrollable, slider, text_input, Application, Background, Button,
+    Checkbox, Color, Column, Command, Container, Element, HorizontalAlignment,
+    Image, Length, Radio, Row, Scrollable, Slider, Text, TextInput,
 };
 
 pub fn main() {

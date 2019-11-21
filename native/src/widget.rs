@@ -65,7 +65,7 @@ use crate::{layout, Event, Hasher, Layout, Length, Point};
 ///
 /// [`Widget`]: trait.Widget.html
 /// [`Element`]: ../struct.Element.html
-pub trait Widget<Message, Renderer>: std::fmt::Debug
+pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
