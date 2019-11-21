@@ -109,11 +109,7 @@ where
         let layout = if hash == cache.hash {
             cache.layout
         } else {
-            let layout_start = std::time::Instant::now();
-            let layout = renderer.layout(&root);
-            dbg!(std::time::Instant::now() - layout_start);
-
-            layout
+            renderer.layout(&root)
         };
 
         UserInterface {

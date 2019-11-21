@@ -29,7 +29,7 @@ impl Application for Tour {
                 scroll: scrollable::State::new(),
                 back_button: button::State::new(),
                 next_button: button::State::new(),
-                debug: true,
+                debug: false,
             },
             Command::none(),
         )

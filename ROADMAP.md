@@ -1,149 +1,22 @@
 # Roadmap
-This document describes the current state of Iced and some of the most important next steps we should take before it can become a production-ready GUI library.
-
-## Context
-Before we get into the actual roadmap, let's quickly review what is the current state of the library.
-
-### Users
-
-Iced is meant to be used by 2 different types of users:
-
-- __End-users__. They should be able to:
-  - get started quickly,
-  - have many widgets available,
-  - keep things simple,
-  - and build applications that are __maintainable__ and __performant__.
-- __GUI toolkit developers / Ecosystem contributors__. They should be able to:
-  - build new kinds of widgets,
-  - implement custom runtimes,
-  - integrate existing runtimes in their own system (like game engines),
-  - and create their own custom renderers.
-
-### Current state
-Iced consists of different crates which offer different layers of abstractions for our users. This modular architecture helps us keep implementation details hidden and decoupled, which should allow us to rewrite or change strategies in the future.
-
-![Crates graph](docs/crates_graph.png)
-
-#### `iced_core`
-
-`iced_core` holds most of the reusable types of the public API. For instance, common widgets (like `Column`, `Row`, `Button`...) and basic data types (`Point`, `Rectangle`, `Length`...).
-
-This crate is meant to be a starting point for an Iced runtime.
-
-#### `iced_native`
-`iced_native` takes `iced_core` and builds a native runtime on top of it, featuring:
-- A flexbox-based layout engine, powered by [`stretch`]
-- Event handling for all the built-in widgets
-- A renderer-agnostic API
-
-To achieve this, it introduces a bunch of reusable interfaces:
-- A `Widget` trait, which is used to implement new widgets: from layout requirements to event and drawing logic.
-- A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
-- A `Windowed` trait, which can be implemented by graphical renderers that target _windows_. Window-based runtimes can use this trait to stay renderer-agnostic.
-
-[`stretch`]: https://github.com/vislyhq/stretch
-
-#### `iced_web`
-`iced_web` takes `iced_core` and builds a WebAssembly runtime on top. It achieves this by introducing a `Widget` trait that can be used to produce VDOM nodes.
-
-The crate is a quite simple abstraction layer over [`dodrio`].
-
-[`dodrio`]: https://github.com/fitzgen/dodrio
-
-#### `iced_wgpu`
-`iced_wgpu` is a [`wgpu`] renderer for `iced_native`. It is meant to become the default renderer of Iced in native platforms.
-
-[`wgpu`] supports most modern graphics backends: Vulkan, Metal, DX11, and DX12 (OpenGL and WebGL are still WIP). Additionally, it will support the incoming [WebGPU API].
-
-Currently, `iced_wgpu` only supports a couple of primitives:
-- Text, which is rendered using [`wgpu_glyph`].
-- Quads or rectangles, with rounded borders and a solid background color.
-
-[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-[WebGPU API]: https://gpuweb.github.io/gpuweb/
-[`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
-
-#### `iced_winit`
-`iced_winit` offers some convenient abstractions on top of `iced_native` to quickstart development when using [`winit`].
-
-It exposes a renderer-agnostic `Application` trait that can be implemented and then run with a simple call. The use of this trait is optional. A `conversion` module is provided for users that decide to implement a custom event loop.
-
-[`winit`]: https://github.com/rust-windowing/winit
-
-#### `iced`
-Finally, `iced` unifies everything into a simple abstraction to create cross-platform applications:
-
-- On native, it uses `iced_winit` and `iced_wgpu`.
-- On the web, it uses `iced_web`.
-
-This is the crate meant to be used by __end-users__.
-
+This document describes the current state of Iced and some of the most important next steps we should take before it can become a production-ready GUI library. This list keeps the short term new features in sight in order to coordinate work and discussion. Therefore, it is not meant to be exhaustive.
 
 ## Next steps
-This section describes some important features that should be implemented before Iced can be considered production-ready (before a 1.0 release).
-
 Most of the work related to these features needs to happen in the `iced_native` path of the ecosystem, as the web already supports many of them.
 
-### Scrollables / Clippables ([#24])
-Content that can take a (practically) infinite amount of space and can be viewed using a scrollbar. This is a very basic feature.
+Once a step is completed, it is collapsed and added to this list:
 
-The end-user API could look like this:
-
-```rust
-Column::new()
-    .push(content)
-    .scroll(&mut self.scroll_state);
-```
-
-The challenge here is __composability__. Nested scrollables should work as expected.
-
-When it comes to `iced_native`, we may need to add the concept of _event propagation_, so mouse wheel events can be captured by the inner-most scrollable and stop propagation.
-
-When it comes to `iced_wgpu`, we should be able to use scissoring and transformations. [`wgpu`] has a [`RenderPass::set_scissor_rect`] that should work nicely.
-
-The main issue here will be [`wgpu_glyph`], which is used currently to render text primitives. [`wgpu_glyph`] is powered by [`glyph-brush`], which caches glyphs to render text very fast. However, the current cache model does not seem to be composable (i.e. once you issue a draw call the cache is purged). We will need to change it (and potentially contribute) to accommodate for this use case.
+  * [x] Scrollables / Clippables ([#24])
+  * [x] Text input widget ([#25])
+  * [x] TodoMVC example ([#26])
+  * [x] Async actions ([#27])
+  * [x] Custom layout engine ([#52])
 
 [#24]: https://github.com/hecrj/iced/issues/24
-[`RenderPass::set_scissor_rect`]: https://docs.rs/wgpu/0.3.0/src/wgpu/lib.rs.html#1246-1248
-[`glyph-brush`]: https://github.com/alexheretic/glyph-brush
-
-### Text input widget ([#25])
-A widget where the user can type raw text and passwords.
-
-This widget will have a quite complex event logic, potentially coupled with text rendering. Some examples are:
-- Text cursor positioning based on a mouse click
-- Text selection
-- Clipboard interaction (copy & paste)
-- Text editing shortcuts (go to start, go to end, etc.)
-
-It also needs scrollable / clippable text support, as the introduced text may not fit the input and scrolling based on the text cursor will need to be implemented.
-
-Additionally, the text cursor should blink at a regular interval, which can be considered an _animation_.
-
-I think we should start simple here, and build a text widget with the most basic functionality: click to focus and type to fill. We can improve the implementation with time as the library matures.
-
-The end-user API could look like this:
-
-```rust
-pub enum Message {
-    TextChanged(String),
-}
-
-let text_input = text_input::State::new();
-let text = "Hello";
-
-TextInput::new(&mut text_input, &text, Message::TextChanged);
-```
-
 [#25]: https://github.com/hecrj/iced/issues/25
-
-### TodoMVC example ([#26])
-Once we have scrollables support and a text widget, we could build a [TodoMVC] example. It seems to be a very simple example and could showcase the API quite well.
-
-We could also consider releasing a `0.1.0` version at this point and share it as a milestone on different social platforms.
-
 [#26]: https://github.com/hecrj/iced/issues/26
-[TodoMVC]: http://todomvc.com/
+[#28]: https://github.com/hecrj/iced/issues/28
+[#52]: https://github.com/hecrj/iced/pull/52
 
 ### Multi-window support ([#27])
 Open and control multiple windows at runtime.
@@ -153,46 +26,6 @@ I think this could be achieved by implementing an additional trait in `iced_wini
 This approach should also allow us to perform custom optimizations for this particular use case.
 
 [#27]: https://github.com/hecrj/iced/issues/27
-
-### Async actions ([#28])
-Most applications need to perform work in the background, without freezing the UI while they work. The current architecture can be easily extended to achieve this.
-
-We can let users return an asynchronous action (i.e. a future) producing a `Message` in `Application::update`. The runtime will spawn each returned action in a thread pool and, once it finishes, feed the produced message back to `update`. This is also how [Elm] does it.
-
-When it comes to implementing this, [`winit`] already supports user-specific events that can be sent from another thread. Accommodating `iced_winit` for this functionality should not be too complicated.
-
-[Elm]: https://elm-lang.org/
-
-Here is an example of how the end-user API could look:
-
-```rust
-impl Application for WeatherReport {
-    fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
-            Message::Refresh => {
-                self.state = State::Loading;
-
-                Command::from_future(
-                    Weather::request(self.location),
-                    Message::ReportReceived,
-                )
-            }
-            Message::ReportReceived(Ok(report)) => {
-                self.state = State::Show(report);
-
-                Command::none()
-            },
-            Message::ReportReceived(Err(error)) => {
-                self.state = State::Error(error);
-
-                Command::none()
-            }
-        }
-    }
-}
-```
-
-[#28]: https://github.com/hecrj/iced/issues/28
 
 ### Event subscriptions ([#29])
 Besides performing async actions on demand, most applications also need to listen to events passively. An example of this could be a WebSocket connection, where messages can come in at any time.
@@ -233,7 +66,7 @@ In the long run, we could expose a renderer-agnostic abstraction to perform the 
 [#32]: https://github.com/hecrj/iced/issues/32
 
 ### Text shaping and font fallback ([#33])
-[`wgpu_glyph`] uses [`glyph-brush`], which in turn uses [`rusttype`]. While the current implementation is able to layout text quite nicely, it does not perform any [text shaping].
+[`wgpu_glyph`] uses [`glyph_brush`], which in turn uses [`rusttype`]. While the current implementation is able to layout text quite nicely, it does not perform any [text shaping].
 
 [Text shaping] with font fallback is a necessary feature for any serious GUI toolkit. It unlocks support to truly localize your application, supporting many different scripts.
 
@@ -303,5 +136,8 @@ This could be very useful to build very performant user interfaces with a lot of
 
 [Elm does it very well!](https://guide.elm-lang.org/optimization/lazy.html)
 
-### Build a custom layout engine
-It may be possible to build an optimized layout engine only for `iced_native` if it turns out that there are some flexbox features we end up not using.
+[Elm]: https://elm-lang.org/
+[`winit`]: https://github.com/rust-windowing/winit
+[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
+[`glyph_brush`]: https://github.com/alexheretic/glyph-brush
