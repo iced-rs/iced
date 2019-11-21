@@ -213,6 +213,9 @@ come chat to our [Zulip server]. Moreover, you can find me (and a bunch of
 awesome folks) over the `#games-and-graphics` and `#gui-and-ui` channels in
 the [Rust Community Discord]. I go by `lone_scientist#9554` there.
 
+## Sponsors
+The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
+
 [documentation]: https://docs.rs/iced
 [examples]: https://github.com/hecrj/iced/tree/master/examples
 [Coffee]: https://github.com/hecrj/coffee
@@ -222,3 +225,5 @@ the [Rust Community Discord]. I go by `lone_scientist#9554` there.
 [contributing guidelines]: https://github.com/hecrj/iced/blob/master/CONTRIBUTING.md
 [Zulip server]: https://iced.zulipchat.com/
 [Rust Community Discord]: https://bit.ly/rust-community
+[Cryptowatch]: https://cryptowat.ch/charts
+[Kraken.com]: https://kraken.com/
