@@ -1,8 +1,27 @@
+//! Allow your users to perform actions by pressing a button.
+//!
+//! A [`Button`] has some local [`State`].
+//!
+//! [`Button`]: struct.Button.html
+//! [`State`]: struct.State.html
 use crate::{Background, Bus, Element, Length, Widget};
 
 use dodrio::bumpalo;
 
-/// A generic widget that produces a message when clicked.
+/// A generic widget that produces a message when pressed.
+///
+/// ```
+/// # use iced_web::{button, Button, Text};
+/// #
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// let mut state = button::State::new();
+/// let button = Button::new(&mut state, Text::new("Press me!"))
+///     .on_press(Message::ButtonPressed);
+/// ```
+#[allow(missing_debug_implementations)]
 pub struct Button<'a, Message> {
     content: Element<'a, Message>,
     on_press: Option<Message>,

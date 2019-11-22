@@ -19,6 +19,7 @@ use dodrio::bumpalo;
 /// ```
 ///
 /// ![Checkbox drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/checkbox.png?raw=true)
+#[allow(missing_debug_implementations)]
 pub struct Checkbox<Message> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,

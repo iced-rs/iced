@@ -1,8 +1,37 @@
+//! Display an interactive selector of a single value from a range of values.
+//!
+//! A [`Slider`] has some local [`State`].
+//!
+//! [`Slider`]: struct.Slider.html
+//! [`State`]: struct.State.html
 use crate::{Bus, Element, Length, Widget};
 
 use dodrio::bumpalo;
 use std::{ops::RangeInclusive, rc::Rc};
 
+/// An horizontal bar and a handle that selects a single value from a range of
+/// values.
+///
+/// A [`Slider`] will try to fill the horizontal space of its container.
+///
+/// [`Slider`]: struct.Slider.html
+///
+/// # Example
+/// ```
+/// # use iced_web::{slider, Slider};
+/// #
+/// pub enum Message {
+///     SliderChanged(f32),
+/// }
+///
+/// let state = &mut slider::State::new();
+/// let value = 50.0;
+///
+/// Slider::new(state, 0.0..=100.0, value, Message::SliderChanged);
+/// ```
+///
+/// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
+#[allow(missing_debug_implementations)]
 pub struct Slider<'a, Message> {
     _state: &'a mut State,
     range: RangeInclusive<f32>,
@@ -108,9 +137,16 @@ where
     }
 }
 
+/// The local state of a [`Slider`].
+///
+/// [`Slider`]: struct.Slider.html
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State;
 
 impl State {
+    /// Creates a new [`State`].
+    ///
+    /// [`State`]: struct.State.html
     pub fn new() -> Self {
         Self
     }
