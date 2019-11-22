@@ -19,7 +19,12 @@
 //!   shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
 //!
 //! # Usage
-//! Check out the [`UserInterface`] type to learn how to wire everything up!
+//! The strategy to use this crate depends on your particular use case. If you
+//! want to:
+//! - Implement a custom shell or integrate it in your own system, you should
+//!   check out the [`UserInterface`] type.
+//! - Build a new renderer, see the [renderer] module.
+//! - Build a custom widget, start at the [`Widget`] trait.
 //!
 //! [`iced_core`]: https://github.com/hecrj/iced/tree/master/core
 //! [`iced_winit`]: https://github.com/hecrj/iced/tree/master/winit
@@ -28,6 +33,7 @@
 //! [`Widget`]: widget/trait.Widget.html
 //! [`Windowed`]: renderer/trait.Windowed.html
 //! [`UserInterface`]: struct.UserInterface.html
+//! [renderer]: renderer/index.html
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
