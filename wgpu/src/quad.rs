@@ -3,6 +3,7 @@ use iced_native::Rectangle;
 
 use std::mem;
 
+#[derive(Debug)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     constants: wgpu::BindGroup,

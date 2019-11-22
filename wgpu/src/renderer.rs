@@ -14,6 +14,10 @@ mod widget;
 
 pub use target::Target;
 
+/// A [`wgpu`] renderer.
+///
+/// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+#[derive(Debug)]
 pub struct Renderer {
     device: Device,
     queue: Queue,
@@ -22,7 +26,7 @@ pub struct Renderer {
     text_pipeline: text::Pipeline,
 }
 
-pub struct Layer<'a> {
+struct Layer<'a> {
     bounds: Rectangle<u32>,
     offset: Vector<u32>,
     quads: Vec<Quad>,
@@ -304,7 +308,7 @@ impl Renderer {
         &mut self,
         dpi: f32,
         transformation: Transformation,
-        layer: &Layer,
+        layer: &Layer<'_>,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
     ) {

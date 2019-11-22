@@ -2,8 +2,7 @@ mod font;
 
 use crate::Transformation;
 
-use std::cell::RefCell;
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
     name: "iced_wgpu icons",
@@ -12,6 +11,7 @@ pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
 
 pub const CHECKMARK_ICON: char = '\u{F00C}';
 
+#[derive(Debug)]
 pub struct Pipeline {
     draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
     draw_font_map: RefCell<HashMap<String, wgpu_glyph::FontId>>,
@@ -56,7 +56,7 @@ impl Pipeline {
         wgpu_glyph::FontId(0)
     }
 
-    pub fn queue(&mut self, section: wgpu_glyph::Section) {
+    pub fn queue(&mut self, section: wgpu_glyph::Section<'_>) {
         self.draw_brush.borrow_mut().queue(section);
     }
 
@@ -134,7 +134,8 @@ impl Pipeline {
         // it uses a lifetimed `GlyphCalculatorGuard` with side-effects on drop.
         // This makes stuff quite inconvenient. A manual method for trimming the
         // cache would make our lives easier.
-        self.measure_brush
+        let _ = self
+            .measure_brush
             .borrow_mut()
             .process_queued(|_, _| {}, |_| {})
             .expect("Trim text measurements");
@@ -154,7 +155,8 @@ impl Pipeline {
                 let font_id =
                     self.draw_brush.borrow_mut().add_font_bytes(bytes);
 
-                self.draw_font_map
+                let _ = self
+                    .draw_font_map
                     .borrow_mut()
                     .insert(String::from(name), font_id);
 
