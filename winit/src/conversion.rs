@@ -1,6 +1,16 @@
-use crate::input::{keyboard::KeyCode, mouse, ButtonState};
-use crate::MouseCursor;
+//! Convert [`winit`] types to [`iced_native`] types, and viceversa.
+//!
+//! [`winit`]: https://github.com/rust-windowing/winit
+//! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+use crate::{
+    input::{keyboard::KeyCode, mouse, ButtonState},
+    MouseCursor,
+};
 
+/// Convert a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn mouse_cursor(mouse_cursor: MouseCursor) -> winit::window::CursorIcon {
     match mouse_cursor {
         MouseCursor::OutOfBounds => winit::window::CursorIcon::Default,
@@ -13,6 +23,10 @@ pub fn mouse_cursor(mouse_cursor: MouseCursor) -> winit::window::CursorIcon {
     }
 }
 
+/// Convert a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     match mouse_button {
         winit::event::MouseButton::Left => mouse::Button::Left,
@@ -22,6 +36,10 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     }
 }
 
+/// Convert an `ElementState` from [`winit`] to an [`iced_native`] button state.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn button_state(element_state: winit::event::ElementState) -> ButtonState {
     match element_state {
         winit::event::ElementState::Pressed => ButtonState::Pressed,
@@ -29,6 +47,10 @@ pub fn button_state(element_state: winit::event::ElementState) -> ButtonState {
     }
 }
 
+/// Convert a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn key_code(virtual_keycode: winit::event::VirtualKeyCode) -> KeyCode {
     match virtual_keycode {
         winit::event::VirtualKeyCode::Key1 => KeyCode::Key1,

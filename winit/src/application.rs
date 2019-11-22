@@ -6,19 +6,72 @@ use crate::{
     UserInterface,
 };
 
+/// An interactive, native cross-platform application.
+///
+/// This trait is the main entrypoint of Iced. Once implemented, you can run
+/// your GUI application by simply calling [`run`](#method.run). It will run in
+/// its own window.
+///
+/// An [`Application`](trait.Application.html) can execute asynchronous actions
+/// by returning a [`Command`](struct.Command.html) in some of its methods.
 pub trait Application: Sized {
+    /// The renderer to use to draw the [`Application`].
+    ///
+    /// [`Application`]: trait.Application.html
     type Renderer: Windowed;
 
+    /// The type of __messages__ your [`Application`] will produce.
+    ///
+    /// [`Application`]: trait.Application.html
     type Message: std::fmt::Debug + Send;
 
+    /// Initializes the [`Application`].
+    ///
+    /// Here is where you should return the initial state of your app.
+    ///
+    /// Additionally, you can return a [`Command`](struct.Command.html) if you
+    /// need to perform some async action in the background on startup. This is
+    /// useful if you want to load state from a file, perform an initial HTTP
+    /// request, etc.
+    ///
+    /// [`Application`]: trait.Application.html
     fn new() -> (Self, Command<Self::Message>);
 
+    /// Returns the current title of the [`Application`].
+    ///
+    /// This title can be dynamic! The runtime will automatically update the
+    /// title of your application when necessary.
+    ///
+    /// [`Application`]: trait.Application.html
     fn title(&self) -> String;
 
+    /// Handles a __message__ and updates the state of the [`Application`].
+    ///
+    /// This is where you define your __update logic__. All the __messages__,
+    /// produced by either user interactions or commands, will be handled by
+    /// this method.
+    ///
+    /// Any [`Command`] returned will be executed immediately in the background.
+    ///
+    /// [`Application`]: trait.Application.html
+    /// [`Command`]: struct.Command.html
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
-    fn view(&mut self) -> Element<Self::Message, Self::Renderer>;
+    /// Returns the widgets to display in the [`Application`].
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
+    ///
+    /// [`Application`]: trait.Application.html
+    fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer>;
 
+    /// Runs the [`Application`].
+    ///
+    /// This method will take control of the current thread and __will NOT
+    /// return__.
+    ///
+    /// It should probably be that last thing you call in your `main` function.
+    ///
+    /// [`Application`]: trait.Application.html
     fn run()
     where
         Self: 'static,
