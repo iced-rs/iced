@@ -12,6 +12,7 @@ use std::u32;
 /// A [`Column`] will try to fill the horizontal space of its container.
 ///
 /// [`Column`]: struct.Column.html
+#[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Renderer> {
     spacing: u16,
     padding: u16,

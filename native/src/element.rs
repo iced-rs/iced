@@ -13,6 +13,7 @@ use crate::{
 /// [built-in widget]: widget/index.html#built-in-widgets
 /// [`Widget`]: widget/trait.Widget.html
 /// [`Element`]: struct.Element.html
+#[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Renderer> {
     pub(crate) widget: Box<dyn Widget<Message, Renderer> + 'a>,
 }

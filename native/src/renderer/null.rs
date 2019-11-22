@@ -5,6 +5,7 @@ use crate::{
 };
 
 /// A renderer that does nothing.
+#[derive(Debug, Clone, Copy)]
 pub struct Null;
 
 impl Renderer for Null {

@@ -12,7 +12,20 @@ use crate::{
 };
 use std::hash::Hash;
 
-/// A generic widget that produces a message when clicked.
+/// A generic widget that produces a message when pressed.
+///
+/// ```
+/// # use iced_native::{button, Button};
+///
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// let mut state = button::State::new();
+/// let button = Button::new(&mut state, Text::new("Press me!"))
+///     .on_press(Message::ButtonPressed);
+/// ```
+#[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,

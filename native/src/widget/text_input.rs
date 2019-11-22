@@ -30,6 +30,7 @@ use crate::{
 ///     Message::TextInputChanged,
 /// );
 /// ```
+#[allow(missing_debug_implementations)]
 pub struct TextInput<'a, Message> {
     state: &'a mut State,
     placeholder: String,

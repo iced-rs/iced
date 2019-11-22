@@ -29,7 +29,7 @@
 //! [`Windowed`]: renderer/trait.Windowed.html
 //! [`UserInterface`]: struct.UserInterface.html
 #![deny(missing_docs)]
-//#![deny(missing_debug_implementations)]
+#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]

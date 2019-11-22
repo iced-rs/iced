@@ -10,7 +10,7 @@ use std::u32;
 /// An element decorating some content.
 ///
 /// It is normally used for alignment purposes.
-#[allow(missing_docs)]
+#[allow(missing_debug_implementations)]
 pub struct Container<'a, Message, Renderer> {
     width: Length,
     height: Length,

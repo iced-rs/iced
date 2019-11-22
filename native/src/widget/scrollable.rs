@@ -10,6 +10,7 @@ use std::{f32, hash::Hash, u32};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
+#[allow(missing_debug_implementations)]
 pub struct Scrollable<'a, Message, Renderer> {
     state: &'a mut State,
     height: Length,

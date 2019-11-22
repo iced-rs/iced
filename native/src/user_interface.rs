@@ -10,6 +10,7 @@ use std::hash::Hasher;
 /// charge of using this type in your system in any way you want.
 ///
 /// [`Layout`]: struct.Layout.html
+#[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,
     root: Element<'a, Message, Renderer>,
