@@ -32,9 +32,9 @@ impl Text {
     /// Create a new fragment of [`Text`] with the given contents.
     ///
     /// [`Text`]: struct.Text.html
-    pub fn new(label: &str) -> Self {
+    pub fn new<T: Into<String>>(label: T) -> Self {
         Text {
-            content: String::from(label),
+            content: label.into(),
             size: None,
             color: None,
             font: Font::Default,
@@ -174,8 +174,15 @@ where
 /// [renderer]: ../../renderer/index.html
 /// [`UserInterface`]: ../../struct.UserInterface.html
 pub trait Renderer: crate::Renderer {
+    /// Returns the default size of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
     fn default_size(&self) -> u16;
 
+    /// Measures the [`Text`] in the given bounds and returns the minimum
+    /// boundaries that can fit the contents.
+    ///
+    /// [`Text`]: struct.Text.html
     fn measure(
         &self,
         content: &str,

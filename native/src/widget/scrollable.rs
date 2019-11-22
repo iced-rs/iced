@@ -1,3 +1,4 @@
+//! Navigate an endless amount of content with a scrollbar.
 use crate::{
     column,
     input::{mouse, ButtonState},
@@ -361,7 +362,18 @@ impl State {
     }
 }
 
+/// The renderer of a [`Scrollable`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`Scrollable`] in your user interface.
+///
+/// [`Scrollable`]: struct.Scrollable.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// Returns whether the mouse is over the scrollbar given the bounds of
+    /// the [`Scrollable`] and its contents.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
     fn is_mouse_over_scrollbar(
         &self,
         bounds: Rectangle,
@@ -369,6 +381,18 @@ pub trait Renderer: crate::Renderer + Sized {
         cursor_position: Point,
     ) -> bool;
 
+    /// Draws the [`Scrollable`].
+    ///
+    /// It receives:
+    /// - the [`State`] of the [`Scrollable`]
+    /// - the bounds of the [`Scrollable`]
+    /// - whether the mouse is over the [`Scrollable`] or not
+    /// - whether the mouse is over the scrollbar or not
+    /// - the scrolling offset
+    /// - the drawn content
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    /// [`State`]: struct.State.html
     fn draw(
         &mut self,
         scrollable: &State,

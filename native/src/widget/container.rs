@@ -1,3 +1,4 @@
+//! Decorate content and apply alignment.
 use std::hash::Hash;
 
 use crate::{

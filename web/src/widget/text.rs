@@ -30,9 +30,9 @@ impl Text {
     /// Create a new fragment of [`Text`] with the given contents.
     ///
     /// [`Text`]: struct.Text.html
-    pub fn new(label: &str) -> Self {
+    pub fn new<T: Into<String>>(label: T) -> Self {
         Text {
-            content: String::from(label),
+            content: label.into(),
             size: None,
             color: None,
             font: Font::Default,

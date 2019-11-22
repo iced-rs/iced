@@ -166,15 +166,18 @@ where
 /// [`Checkbox`]: struct.Checkbox.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// Returns the default size of a [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
     fn default_size(&self) -> u32;
 
     /// Draws a [`Checkbox`].
     ///
     /// It receives:
-    ///   * the current cursor position
     ///   * the bounds of the [`Checkbox`]
-    ///   * the bounds of the label of the [`Checkbox`]
-    ///   * whether the [`Checkbox`] is checked or not
+    ///   * whether the [`Checkbox`] is selected or not
+    ///   * whether the mouse is over the [`Checkbox`] or not
+    ///   * the drawn label of the [`Checkbox`]
     ///
     /// [`Checkbox`]: struct.Checkbox.html
     fn draw(

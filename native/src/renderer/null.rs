@@ -4,6 +4,7 @@ use crate::{
     Rectangle, Renderer, Size, VerticalAlignment,
 };
 
+/// A renderer that does nothing.
 pub struct Null;
 
 impl Renderer for Null {

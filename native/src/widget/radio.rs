@@ -174,15 +174,18 @@ where
 /// [`Radio`]: struct.Radio.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// Returns the default size of a [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
     fn default_size(&self) -> u32;
 
     /// Draws a [`Radio`] button.
     ///
     /// It receives:
-    ///   * the current cursor position
     ///   * the bounds of the [`Radio`]
-    ///   * the bounds of the label of the [`Radio`]
     ///   * whether the [`Radio`] is selected or not
+    ///   * whether the mouse is over the [`Radio`] or not
+    ///   * the drawn label of the [`Radio`]
     ///
     /// [`Radio`]: struct.Radio.html
     fn draw(

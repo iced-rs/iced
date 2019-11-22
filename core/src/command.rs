@@ -2,7 +2,7 @@ use futures::future::{BoxFuture, Future, FutureExt};
 
 /// A collection of async operations.
 ///
-/// You should be able to turn a future easily into a [`Command`], eiter by
+/// You should be able to turn a future easily into a [`Command`], either by
 /// using the `From` trait or [`Command::perform`].
 ///
 /// [`Command`]: struct.Command.html

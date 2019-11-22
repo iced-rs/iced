@@ -1,3 +1,4 @@
+//! Distribute content vertically.
 use std::hash::Hash;
 
 use crate::{
@@ -189,7 +190,23 @@ where
     }
 }
 
+/// The renderer of a [`Column`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`Column`] in your user interface.
+///
+/// [`Column`]: struct.Column.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// Draws a [`Column`].
+    ///
+    /// It receives:
+    /// - the children of the [`Column`]
+    /// - the [`Layout`] of the [`Column`] and its children
+    /// - the cursor position
+    ///
+    /// [`Column`]: struct.Row.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,
         content: &[Element<'_, Message, Self>],

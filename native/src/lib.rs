@@ -1,162 +1,34 @@
-//! Iced is a renderer-agnostic GUI library focused on simplicity and
-//! type-safety. Inspired by [Elm].
+//! A renderer-agnostic native GUI runtime.
 //!
-//! # Features
-//!   * Simple, easy-to-use, renderer-agnostic API
-//!   * Responsive, flexbox-based layouting
-//!   * Type-safe, reactive programming model
-//!   * Built-in widgets
-//!   * Custom widget support
+//! ![`iced_native` crate graph](https://github.com/hecrj/iced/blob/cae26cb7bc627f4a5b3bcf1cd023a0c552e8c65e/docs/graphs/native.png?raw=true)
 //!
-//! Check out the [repository] and the [examples] for more details!
+//! `iced_native` takes [`iced_core`] and builds a native runtime on top of it,
+//! featuring:
 //!
-//! [examples]: https://github.com/hecrj/iced/tree/0.1.0/examples
-//! [repository]: https://github.com/hecrj/iced
+//! - A custom layout engine, greatly inspired by [`druid`]
+//! - Event handling for all the built-in widgets
+//! - A renderer-agnostic API
+//!
+//! To achieve this, it introduces a bunch of reusable interfaces:
+//!
+//! - A [`Widget`] trait, which is used to implement new widgets: from layout
+//!   requirements to event and drawing logic.
+//! - A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
+//! - A [`Windowed`] trait, leveraging [`raw-window-handle`], which can be
+//!   implemented by graphical renderers that target _windows_. Window-based
+//!   shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
 //!
 //! # Usage
-//! Inspired by [The Elm Architecture], Iced expects you to split user
-//! interfaces into four different concepts:
-//!
-//!   * __State__ — the state of your application
-//!   * __Messages__ — user interactions or meaningful events that you care
-//!   about
-//!   * __View logic__ — a way to display your __state__ as widgets that
-//!   may produce __messages__ on user interaction
-//!   * __Update logic__ — a way to react to __messages__ and update your
-//!   __state__
-//!
-//! We can build something to see how this works! Let's say we want a simple
-//! counter that can be incremented and decremented using two buttons.
-//!
-//! We start by modelling the __state__ of our application:
-//!
-//! ```
-//! use iced_native::button;
-//!
-//! struct Counter {
-//!     // The counter value
-//!     value: i32,
-//!
-//!     // The local state of the two buttons
-//!     increment_button: button::State,
-//!     decrement_button: button::State,
-//! }
-//! ```
-//!
-//! Next, we need to define the possible user interactions of our counter:
-//! the button presses. These interactions are our __messages__:
-//!
-//! ```
-//! #[derive(Debug, Clone, Copy)]
-//! pub enum Message {
-//!     IncrementPressed,
-//!     DecrementPressed,
-//! }
-//! ```
-//!
-//! Now, let's show the actual counter by putting it all together in our
-//! __view logic__:
-//!
-//! ```
-//! # use iced_native::button;
-//! #
-//! # struct Counter {
-//! #     // The counter value
-//! #     value: i32,
-//! #
-//! #     // The local state of the two buttons
-//! #     increment_button: button::State,
-//! #     decrement_button: button::State,
-//! # }
-//! #
-//! # #[derive(Debug, Clone, Copy)]
-//! # pub enum Message {
-//! #     IncrementPressed,
-//! #     DecrementPressed,
-//! # }
-//! #
-//! # mod iced_wgpu {
-//! #     pub use iced_native::renderer::Null as Renderer;
-//! # }
-//! use iced_native::{Button, Column, Text};
-//! use iced_wgpu::Renderer; // Iced does not include a renderer! We need to bring our own!
-//!
-//! impl Counter {
-//!     pub fn view(&mut self) -> Column<Message, Renderer> {
-//!         // We use a column: a simple vertical layout
-//!         Column::new()
-//!             .push(
-//!                 // The increment button. We tell it to produce an
-//!                 // `IncrementPressed` message when pressed
-//!                 Button::new(&mut self.increment_button, Text::new("+"))
-//!                     .on_press(Message::IncrementPressed),
-//!             )
-//!             .push(
-//!                 // We show the value of the counter here
-//!                 Text::new(&self.value.to_string()).size(50),
-//!             )
-//!             .push(
-//!                 // The decrement button. We tell it to produce a
-//!                 // `DecrementPressed` message when pressed
-//!                 Button::new(&mut self.decrement_button, Text::new("-"))
-//!                     .on_press(Message::DecrementPressed),
-//!             )
-//!     }
-//! }
-//! ```
-//!
-//! Finally, we need to be able to react to any produced __messages__ and change
-//! our __state__ accordingly in our __update logic__:
-//!
-//! ```
-//! # use iced_native::button;
-//! #
-//! # struct Counter {
-//! #     // The counter value
-//! #     value: i32,
-//! #
-//! #     // The local state of the two buttons
-//! #     increment_button: button::State,
-//! #     decrement_button: button::State,
-//! # }
-//! #
-//! # #[derive(Debug, Clone, Copy)]
-//! # pub enum Message {
-//! #     IncrementPressed,
-//! #     DecrementPressed,
-//! # }
-//! impl Counter {
-//!     // ...
-//!
-//!     pub fn update(&mut self, message: Message) {
-//!         match message {
-//!             Message::IncrementPressed => {
-//!                 self.value += 1;
-//!             }
-//!             Message::DecrementPressed => {
-//!                 self.value -= 1;
-//!             }
-//!         }
-//!     }
-//! }
-//! ```
-//!
-//! And that's everything! We just wrote a whole user interface. Iced is now
-//! able to:
-//!
-//!   1. Take the result of our __view logic__ and layout its widgets.
-//!   1. Process events from our system and produce __messages__ for our
-//!      __update logic__.
-//!   1. Draw the resulting user interface using our chosen __renderer__.
-//!
 //! Check out the [`UserInterface`] type to learn how to wire everything up!
 //!
-//! [Elm]: https://elm-lang.org/
-//! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-//! [documentation]: https://docs.rs/iced
-//! [examples]: https://github.com/hecrj/iced/tree/master/examples
+//! [`iced_core`]: https://github.com/hecrj/iced/tree/master/core
+//! [`iced_winit`]: https://github.com/hecrj/iced/tree/master/winit
+//! [`druid`]: https://github.com/xi-editor/druid
+//! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
+//! [`Widget`]: widget/trait.Widget.html
+//! [`Windowed`]: renderer/trait.Windowed.html
 //! [`UserInterface`]: struct.UserInterface.html
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 //#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]

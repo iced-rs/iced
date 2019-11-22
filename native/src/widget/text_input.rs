@@ -10,7 +10,26 @@ use crate::{
     Widget,
 };
 
-/// A widget that can be filled with text by using a keyboard.
+/// A field that can be filled with text.
+///
+/// # Example
+/// ```
+/// # use iced_native::{text_input, TextInput};
+/// #
+/// enum Message {
+///     TextInputChanged(String),
+/// }
+///
+/// let mut state = text_input::State::new();
+/// let value = "Some text";
+///
+/// let input = TextInput::new(
+///     &mut state,
+///     "This is the placeholder...",
+///     value,
+///     Message::TextInputChanged,
+/// );
+/// ```
 pub struct TextInput<'a, Message> {
     state: &'a mut State,
     placeholder: String,
@@ -26,7 +45,14 @@ pub struct TextInput<'a, Message> {
 impl<'a, Message> TextInput<'a, Message> {
     /// Creates a new [`TextInput`].
     ///
+    /// It expects:
+    /// - some [`State`]
+    /// - a placeholder
+    /// - the current value
+    /// - a function that produces a message when the [`TextInput`] changes
+    ///
     /// [`TextInput`]: struct.TextInput.html
+    /// [`State`]: struct.State.html
     pub fn new<F>(
         state: &'a mut State,
         placeholder: &str,
@@ -232,9 +258,32 @@ where
     }
 }
 
+/// The renderer of a [`TextInput`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`TextInput`] in your user interface.
+///
+/// [`TextInput`]: struct.TextInput.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// Returns the default size of the text of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
     fn default_size(&self) -> u16;
 
+    /// Draws a [`TextInput`].
+    ///
+    /// It receives:
+    /// - its bounds of the [`TextInput`]
+    /// - the bounds of the text (i.e. the current value)
+    /// - the cursor position
+    /// - the placeholder to show when the value is empty
+    /// - the current [`Value`]
+    /// - the current [`State`]
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    /// [`Value`]: struct.Value.html
+    /// [`State`]: struct.State.html
     fn draw(
         &mut self,
         bounds: Rectangle,
@@ -289,6 +338,9 @@ impl State {
         }
     }
 
+    /// Returns whether the [`TextInput`] is currently focused or not.
+    ///
+    /// [`TextInput`]: struct.TextInput.html
     pub fn is_focused(&self) -> bool {
         self.is_focused
     }
@@ -303,7 +355,7 @@ impl State {
     /// Moves the cursor of a [`TextInput`] to the right.
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn move_cursor_right(&mut self, value: &Value) {
+    pub(crate) fn move_cursor_right(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
         if current < value.len() {
@@ -314,7 +366,7 @@ impl State {
     /// Moves the cursor of a [`TextInput`] to the left.
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn move_cursor_left(&mut self, value: &Value) {
+    pub(crate) fn move_cursor_left(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
         if current > 0 {
@@ -325,7 +377,7 @@ impl State {
     /// Moves the cursor of a [`TextInput`] to the end.
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn move_cursor_to_end(&mut self, value: &Value) {
+    pub(crate) fn move_cursor_to_end(&mut self, value: &Value) {
         self.cursor_position = value.len();
     }
 }

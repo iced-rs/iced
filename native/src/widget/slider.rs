@@ -13,6 +13,28 @@ use crate::{
 
 use std::{hash::Hash, ops::RangeInclusive};
 
+/// An horizontal bar and a handle that selects a single value from a range of
+/// values.
+///
+/// A [`Slider`] will try to fill the horizontal space of its container.
+///
+/// [`Slider`]: struct.Slider.html
+///
+/// # Example
+/// ```
+/// # use iced_native::{slider, Slider};
+/// #
+/// pub enum Message {
+///     SliderChanged(f32),
+/// }
+///
+/// let state = &mut slider::State::new();
+/// let value = 50.0;
+///
+/// Slider::new(state, 0.0..=100.0, value, Message::SliderChanged);
+/// ```
+///
+/// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 pub struct Slider<'a, Message> {
     state: &'a mut State,
     range: RangeInclusive<f32>,
@@ -180,6 +202,9 @@ where
 /// [`Slider`]: struct.Slider.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// Returns the height of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
     fn height(&self) -> u32;
 
     /// Draws a [`Slider`].

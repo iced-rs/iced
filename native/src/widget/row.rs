@@ -1,3 +1,4 @@
+//! Distribute content horizontally.
 use std::hash::Hash;
 
 use crate::{
@@ -192,7 +193,23 @@ where
     }
 }
 
+/// The renderer of a [`Row`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`Row`] in your user interface.
+///
+/// [`Row`]: struct.Row.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// Draws a [`Row`].
+    ///
+    /// It receives:
+    /// - the children of the [`Row`]
+    /// - the [`Layout`] of the [`Row`] and its children
+    /// - the cursor position
+    ///
+    /// [`Row`]: struct.Row.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,
         children: &[Element<'_, Message, Self>],

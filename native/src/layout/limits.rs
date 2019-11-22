@@ -1,5 +1,6 @@
 use crate::{Length, Size};
 
+/// A set of size constraints for layouting.
 #[derive(Debug, Clone, Copy)]
 pub struct Limits {
     min: Size,
@@ -8,12 +9,17 @@ pub struct Limits {
 }
 
 impl Limits {
+    /// No limits
     pub const NONE: Limits = Limits {
         min: Size::ZERO,
         max: Size::INFINITY,
         fill: Size::INFINITY,
     };
 
+    /// Creates new [`Limits`] with the given minimum and maximum [`Size`].
+    ///
+    /// [`Limits`]: struct.Limits.html
+    /// [`Size`]: ../struct.Size.html
     pub fn new(min: Size, max: Size) -> Limits {
         Limits {
             min,
@@ -22,14 +28,25 @@ impl Limits {
         }
     }
 
+    /// Returns the minimum [`Size`] of the [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
+    /// [`Size`]: ../struct.Size.html
     pub fn min(&self) -> Size {
         self.min
     }
 
+    /// Returns the maximum [`Size`] of the [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
+    /// [`Size`]: ../struct.Size.html
     pub fn max(&self) -> Size {
         self.max
     }
 
+    /// Applies a width constraint to the current [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
     pub fn width(mut self, width: Length) -> Limits {
         match width {
             Length::Shrink => {
@@ -51,6 +68,9 @@ impl Limits {
         self
     }
 
+    /// Applies a height constraint to the current [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
     pub fn height(mut self, height: Length) -> Limits {
         match height {
             Length::Shrink => {
@@ -72,6 +92,9 @@ impl Limits {
         self
     }
 
+    /// Applies a minimum width constraint to the current [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
     pub fn min_width(mut self, min_width: u32) -> Limits {
         self.min.width =
             self.min.width.max(min_width as f32).min(self.max.width);
@@ -79,6 +102,9 @@ impl Limits {
         self
     }
 
+    /// Applies a maximum width constraint to the current [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
     pub fn max_width(mut self, max_width: u32) -> Limits {
         self.max.width =
             self.max.width.min(max_width as f32).max(self.min.width);
@@ -86,6 +112,19 @@ impl Limits {
         self
     }
 
+    /// Applies a minimum height constraint to the current [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
+    pub fn min_height(mut self, min_height: u32) -> Limits {
+        self.min.height =
+            self.min.height.max(min_height as f32).min(self.max.height);
+
+        self
+    }
+
+    /// Applies a maximum height constraint to the current [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
     pub fn max_height(mut self, max_height: u32) -> Limits {
         self.max.height =
             self.max.height.min(max_height as f32).max(self.min.height);
@@ -93,10 +132,17 @@ impl Limits {
         self
     }
 
+    /// Shrinks the current [`Limits`] to account for the given padding.
+    ///
+    /// [`Limits`]: struct.Limits.html
     pub fn pad(&self, padding: f32) -> Limits {
         self.shrink(Size::new(padding * 2.0, padding * 2.0))
     }
 
+    /// Shrinks the current [`Limits`] by the given [`Size`].
+    ///
+    /// [`Limits`]: struct.Limits.html
+    /// [`Size`]: ../struct.Size.html
     pub fn shrink(&self, size: Size) -> Limits {
         let min = Size::new(
             (self.min().width - size.width).max(0.0),
@@ -116,6 +162,9 @@ impl Limits {
         Limits { min, max, fill }
     }
 
+    /// Removes the minimum width constraint for the current [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
     pub fn loose(&self) -> Limits {
         Limits {
             min: Size::ZERO,
@@ -124,6 +173,10 @@ impl Limits {
         }
     }
 
+    /// Computes the resulting [`Size`] that fits the [`Limits`] given the
+    /// intrinsic size of some content.
+    ///
+    /// [`Limits`]: struct.Limits.html
     pub fn resolve(&self, intrinsic_size: Size) -> Size {
         Size::new(
             intrinsic_size

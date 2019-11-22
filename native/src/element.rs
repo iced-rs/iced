@@ -33,31 +33,6 @@ where
         }
     }
 
-    pub fn width(&self) -> Length {
-        self.widget.width()
-    }
-
-    pub fn height(&self) -> Length {
-        self.widget.height()
-    }
-
-    pub fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.widget.layout(renderer, limits)
-    }
-
-    pub fn draw(
-        &self,
-        renderer: &mut Renderer,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> Renderer::Output {
-        self.widget.draw(renderer, layout, cursor_position)
-    }
-
     /// Applies a transformation to the produced message of the [`Element`].
     ///
     /// This method is useful when you want to decouple different parts of your
@@ -223,6 +198,45 @@ where
         Element {
             widget: Box::new(Explain::new(self, color.into())),
         }
+    }
+
+    /// Returns the width of the [`Element`].
+    ///
+    /// [`Element`]: struct.Element.html
+    pub fn width(&self) -> Length {
+        self.widget.width()
+    }
+
+    /// Returns the height of the [`Element`].
+    ///
+    /// [`Element`]: struct.Element.html
+    pub fn height(&self) -> Length {
+        self.widget.height()
+    }
+
+    /// Computes the layout of the [`Element`] in the given [`Limits`].
+    ///
+    /// [`Element`]: struct.Element.html
+    /// [`Limits`]: layout/struct.Limits.html
+    pub fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.widget.layout(renderer, limits)
+    }
+
+    /// Draws the [`Element`] and its children using the given [`Layout`].
+    ///
+    /// [`Element`]: struct.Element.html
+    /// [`Layout`]: layout/struct.Layout.html
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Renderer::Output {
+        self.widget.draw(renderer, layout, cursor_position)
     }
 
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {

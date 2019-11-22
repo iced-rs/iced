@@ -34,11 +34,16 @@ pub enum Event {
     },
 
     /// The mouse wheel was scrolled.
-    WheelScrolled { delta: ScrollDelta },
+    WheelScrolled {
+        /// The scroll movement.
+        delta: ScrollDelta,
+    },
 }
 
+/// A scroll movement.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ScrollDelta {
+    /// A line-based scroll movement
     Lines {
         /// The number of horizontal lines scrolled
         x: f32,
@@ -46,6 +51,7 @@ pub enum ScrollDelta {
         /// The number of vertical lines scrolled
         y: f32,
     },
+    /// A pixel-based scroll movement
     Pixels {
         /// The number of horizontal pixels scrolled
         x: f32,

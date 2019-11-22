@@ -1,3 +1,4 @@
+//! Distribute elements using a flex-based layout.
 // This code is heavily inspired by the [`druid`] codebase.
 //
 // [`druid`]: https://github.com/xi-editor/druid
@@ -20,9 +21,13 @@ use crate::{
     Align, Element, Size,
 };
 
+/// The main axis of a flex layout.
 #[derive(Debug)]
 pub enum Axis {
+    /// The horizontal axis
     Horizontal,
+
+    /// The vertical axis
     Vertical,
 }
 
@@ -49,7 +54,12 @@ impl Axis {
     }
 }
 
-// TODO: Remove `Message` type parameter
+/// Computes the flex layout with the given axis and limits, applying spacing,
+/// padding and alignment to the items as needed.
+///
+/// It returns a new layout [`Node`].
+///
+/// [`Node`]: ../struct.Node.html
 pub fn resolve<Message, Renderer>(
     axis: Axis,
     renderer: &Renderer,
@@ -57,7 +67,7 @@ pub fn resolve<Message, Renderer>(
     padding: f32,
     spacing: f32,
     align_items: Align,
-    children: &[Element<'_, Message, Renderer>],
+    items: &[Element<'_, Message, Renderer>],
 ) -> Node
 where
     Renderer: crate::Renderer,
@@ -65,14 +75,14 @@ where
     let limits = limits.pad(padding);
 
     let mut total_non_fill =
-        spacing as f32 * (children.len() as i32 - 1).max(0) as f32;
+        spacing as f32 * (items.len() as i32 - 1).max(0) as f32;
     let mut fill_sum = 0;
     let mut cross = axis.cross(limits.min());
 
-    let mut nodes: Vec<Node> = Vec::with_capacity(children.len());
-    nodes.resize(children.len(), Node::default());
+    let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
+    nodes.resize(items.len(), Node::default());
 
-    for (i, child) in children.iter().enumerate() {
+    for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
             Axis::Horizontal => child.width(),
             Axis::Vertical => child.height(),
@@ -97,7 +107,7 @@ where
     let available = axis.main(limits.max());
     let remaining = (available - total_non_fill).max(0.0);
 
-    for (i, child) in children.iter().enumerate() {
+    for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
             Axis::Horizontal => child.width(),
             Axis::Vertical => child.height(),

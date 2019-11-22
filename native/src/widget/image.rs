@@ -116,6 +116,9 @@ where
 /// [`Image`]: struct.Image.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// Returns the dimensions of an [`Image`] located on the given path.
+    ///
+    /// [`Image`]: struct.Image.html
     fn dimensions(&self, path: &str) -> (u32, u32);
 
     /// Draws an [`Image`].

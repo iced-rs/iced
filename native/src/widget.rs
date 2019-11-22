@@ -23,6 +23,7 @@
 pub mod button;
 pub mod checkbox;
 pub mod column;
+pub mod container;
 pub mod image;
 pub mod radio;
 pub mod row;
@@ -30,8 +31,6 @@ pub mod scrollable;
 pub mod slider;
 pub mod text;
 pub mod text_input;
-
-mod container;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -69,8 +68,14 @@ pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
+    /// Returns the width of the [`Widget`].
+    ///
+    /// [`Widget`]: trait.Widget.html
     fn width(&self) -> Length;
 
+    /// Returns the height of the [`Widget`].
+    ///
+    /// [`Widget`]: trait.Widget.html
     fn height(&self) -> Length;
 
     /// Returns the [`Node`] of the [`Widget`].
