@@ -4,7 +4,6 @@
 //!
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
-
 use crate::{
     input::{mouse, ButtonState},
     layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,

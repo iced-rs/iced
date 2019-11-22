@@ -4,7 +4,6 @@
 //!
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
-
 use crate::{
     input::{mouse, ButtonState},
     layout, Background, Element, Event, Hasher, Layout, Length, Point,
@@ -15,8 +14,11 @@ use std::hash::Hash;
 /// A generic widget that produces a message when pressed.
 ///
 /// ```
-/// # use iced_native::{button, Button};
-///
+/// # use iced_native::{button, Text};
+/// #
+/// # type Button<'a, Message> =
+/// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
+/// #
 /// enum Message {
 ///     ButtonPressed,
 /// }
