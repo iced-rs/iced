@@ -4,7 +4,7 @@
 //!
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
-use crate::{Background, Bus, Element, Length, Widget};
+use crate::{style, Background, Bus, Color, Element, Length, Style, Widget};
 
 use dodrio::bumpalo;
 
@@ -120,23 +120,54 @@ impl State {
 
 impl<'a, Message> Widget<Message> for Button<'a, Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Clone,
 {
     fn node<'b>(
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
+        style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let mut node =
-            button(bump).children(vec![self.content.node(bump, bus)]);
+        let padding_class =
+            style_sheet.insert(bump, Style::Padding(self.padding));
 
-        if let Some(on_press) = self.on_press {
+        let background = match self.background {
+            None => String::from("none"),
+            Some(background) => match background {
+                Background::Color(Color { r, g, b, a }) => format!(
+                    "rgba({}, {}, {}, {})",
+                    255.0 * r,
+                    255.0 * g,
+                    255.0 * b,
+                    a
+                ),
+            },
+        };
+
+        let mut node = button(bump)
+            .attr(
+                "class",
+                bumpalo::format!(in bump, "{}", padding_class).into_bump_str(),
+            )
+            .attr(
+                "style",
+                bumpalo::format!(
+                    in bump,
+                    "background: {}; border-radius: {}px",
+                    background,
+                    self.border_radius
+                )
+                .into_bump_str(),
+            )
+            .children(vec![self.content.node(bump, bus, style_sheet)]);
+
+        if let Some(on_press) = self.on_press.clone() {
             let event_bus = bus.clone();
 
             node = node.on("click", move |root, vdom, _event| {
-                event_bus.publish(on_press, root);
+                event_bus.publish(on_press.clone(), root);
 
                 vdom.schedule_render();
             });
@@ -150,7 +181,7 @@ where
 
 impl<'a, Message> From<Button<'a, Message>> for Element<'a, Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Clone,
 {
     fn from(button: Button<'a, Message>) -> Element<'a, Message> {
         Element::new(button)

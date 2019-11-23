@@ -61,15 +61,18 @@ use std::cell::RefCell;
 
 mod bus;
 mod element;
+
+pub mod style;
 pub mod widget;
 
 pub use bus::Bus;
 pub use dodrio;
 pub use element::Element;
 pub use iced_core::{
-    Align, Background, Color, Font, HorizontalAlignment, Length,
+    Align, Background, Color, Command, Font, HorizontalAlignment, Length,
     VerticalAlignment,
 };
+pub use style::Style;
 pub use widget::*;
 
 /// An interactive web application.
@@ -86,6 +89,28 @@ pub trait Application {
     /// [`Application`]: trait.Application.html
     type Message;
 
+    /// Initializes the [`Application`].
+    ///
+    /// Here is where you should return the initial state of your app.
+    ///
+    /// Additionally, you can return a [`Command`](struct.Command.html) if you
+    /// need to perform some async action in the background on startup. This is
+    /// useful if you want to load state from a file, perform an initial HTTP
+    /// request, etc.
+    ///
+    /// [`Application`]: trait.Application.html
+    fn new() -> (Self, Command<Self::Message>)
+    where
+        Self: Sized;
+
+    /// Returns the current title of the [`Application`].
+    ///
+    /// This title can be dynamic! The runtime will automatically update the
+    /// title of your application when necessary.
+    ///
+    /// [`Application`]: trait.Application.html
+    fn title(&self) -> String;
+
     /// Handles a __message__ and updates the state of the [`Application`].
     ///
     /// This is where you define your __update logic__. All the __messages__,
@@ -96,7 +121,7 @@ pub trait Application {
     ///
     /// [`Application`]: trait.Application.html
     /// [`Command`]: struct.Command.html
-    fn update(&mut self, message: Self::Message);
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
     /// Returns the widgets to display in the [`Application`].
     ///
@@ -108,16 +133,19 @@ pub trait Application {
     /// Runs the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    fn run(self)
+    fn run()
     where
         Self: 'static + Sized,
     {
-        let app = Instance::new(self);
+        // TODO: Spawn command
+        let (app, _command) = Self::new();
+
+        let instance = Instance::new(app);
 
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         let body = document.body().unwrap();
-        let vdom = dodrio::Vdom::new(&body, app);
+        let vdom = dodrio::Vdom::new(&body, instance);
 
         vdom.forget();
     }
@@ -135,7 +163,8 @@ impl<Message> Instance<Message> {
     }
 
     fn update(&mut self, message: Message) {
-        self.ui.borrow_mut().update(message);
+        // TODO: Spawn command
+        let _command = self.ui.borrow_mut().update(message);
     }
 }
 
@@ -150,9 +179,17 @@ where
     where
         'a: 'bump,
     {
+        use dodrio::builder::*;
+
         let mut ui = self.ui.borrow_mut();
         let element = ui.view();
+        let mut style_sheet = style::Sheet::new();
 
-        element.widget.node(bump, &Bus::new())
+        let node = element.widget.node(bump, &Bus::new(), &mut style_sheet);
+
+        div(bump)
+            .attr("style", "width: 100%; height: 100%")
+            .children(vec![style_sheet.node(bump), node])
+            .finish()
     }
 }

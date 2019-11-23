@@ -1,4 +1,4 @@
-use crate::{Bus, Color, Element, Widget};
+use crate::{style, Bus, Color, Element, Widget};
 
 use dodrio::bumpalo;
 
@@ -61,12 +61,13 @@ impl<Message> Checkbox<Message> {
 
 impl<Message> Widget<Message> for Checkbox<Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Clone,
 {
     fn node<'b>(
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
+        _style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
@@ -82,7 +83,7 @@ where
                     .attr("type", "checkbox")
                     .bool_attr("checked", self.is_checked)
                     .on("click", move |root, vdom, _event| {
-                        event_bus.publish(msg, root);
+                        event_bus.publish(msg.clone(), root);
 
                         vdom.schedule_render();
                     })
@@ -95,7 +96,7 @@ where
 
 impl<'a, Message> From<Checkbox<Message>> for Element<'a, Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Clone,
 {
     fn from(checkbox: Checkbox<Message>) -> Element<'a, Message> {
         Element::new(checkbox)

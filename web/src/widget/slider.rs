@@ -4,7 +4,7 @@
 //!
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
-use crate::{Bus, Element, Length, Widget};
+use crate::{style, Bus, Element, Length, Widget};
 
 use dodrio::bumpalo;
 use std::{ops::RangeInclusive, rc::Rc};
@@ -82,12 +82,13 @@ impl<'a, Message> Slider<'a, Message> {
 
 impl<'a, Message> Widget<Message> for Slider<'a, Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Clone,
 {
     fn node<'b>(
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
+        _style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;
@@ -103,34 +104,33 @@ where
 
         // TODO: Make `step` configurable
         // TODO: Complete styling
-        label(bump)
-            .children(vec![input(bump)
-                .attr("type", "range")
-                .attr("step", "0.01")
-                .attr("min", min.into_bump_str())
-                .attr("max", max.into_bump_str())
-                .attr("value", value.into_bump_str())
-                .on("input", move |root, vdom, event| {
-                    let slider = match event.target().and_then(|t| {
-                        t.dyn_into::<web_sys::HtmlInputElement>().ok()
-                    }) {
-                        None => return,
-                        Some(slider) => slider,
-                    };
+        input(bump)
+            .attr("type", "range")
+            .attr("step", "0.01")
+            .attr("min", min.into_bump_str())
+            .attr("max", max.into_bump_str())
+            .attr("value", value.into_bump_str())
+            .attr("style", "width: 100%")
+            .on("input", move |root, vdom, event| {
+                let slider = match event.target().and_then(|t| {
+                    t.dyn_into::<web_sys::HtmlInputElement>().ok()
+                }) {
+                    None => return,
+                    Some(slider) => slider,
+                };
 
-                    if let Ok(value) = slider.value().parse::<f32>() {
-                        event_bus.publish(on_change(value), root);
-                        vdom.schedule_render();
-                    }
-                })
-                .finish()])
+                if let Ok(value) = slider.value().parse::<f32>() {
+                    event_bus.publish(on_change(value), root);
+                    vdom.schedule_render();
+                }
+            })
             .finish()
     }
 }
 
 impl<'a, Message> From<Slider<'a, Message>> for Element<'a, Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Clone,
 {
     fn from(slider: Slider<'a, Message>) -> Element<'a, Message> {
         Element::new(slider)

@@ -140,7 +140,7 @@ pub trait Application: Sized {
         <Instance<Self> as iced_winit::Application>::run();
 
         #[cfg(target_arch = "wasm32")]
-        iced_web::Application::run(Instance(self));
+        <Instance<Self> as iced_web::Application>::run();
     }
 }
 
@@ -180,11 +180,21 @@ where
 {
     type Message = A::Message;
 
-    fn update(&mut self, message: Self::Message) {
-        self.0.update(message);
+    fn new() -> (Self, Command<A::Message>) {
+        let (app, command) = A::new();
+
+        (Instance(app), command)
     }
 
-    fn view(&mut self) -> Element<Self::Message> {
+    fn title(&self) -> String {
+        self.0.title()
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        self.0.update(message)
+    }
+
+    fn view(&mut self) -> Element<'_, Self::Message> {
         self.0.view()
     }
 }

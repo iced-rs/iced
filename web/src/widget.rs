@@ -14,14 +14,17 @@
 //! ```
 //!
 //! [`Widget`]: trait.Widget.html
-use crate::Bus;
+use crate::{style, Bus};
 use dodrio::bumpalo;
 
 pub mod button;
+pub mod scrollable;
 pub mod slider;
+pub mod text_input;
 
 mod checkbox;
 mod column;
+mod container;
 mod image;
 mod radio;
 mod row;
@@ -29,15 +32,18 @@ mod text;
 
 #[doc(no_inline)]
 pub use button::Button;
-
+#[doc(no_inline)]
+pub use scrollable::Scrollable;
 #[doc(no_inline)]
 pub use slider::Slider;
-
 #[doc(no_inline)]
 pub use text::Text;
+#[doc(no_inline)]
+pub use text_input::TextInput;
 
 pub use checkbox::Checkbox;
 pub use column::Column;
+pub use container::Container;
 pub use image::Image;
 pub use radio::Radio;
 pub use row::Row;
@@ -56,5 +62,6 @@ pub trait Widget<Message> {
         &self,
         bump: &'b bumpalo::Bump,
         _bus: &Bus<Message>,
+        style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b>;
 }

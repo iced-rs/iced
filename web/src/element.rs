@@ -1,4 +1,4 @@
-use crate::{Bus, Color, Widget};
+use crate::{style, Bus, Color, Widget};
 
 use dodrio::bumpalo;
 use std::rc::Rc;
@@ -57,8 +57,9 @@ impl<'a, Message> Element<'a, Message> {
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
+        style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
-        self.widget.node(bump, bus)
+        self.widget.node(bump, bus, style_sheet)
     }
 }
 
@@ -88,7 +89,9 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<B>,
+        style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
-        self.widget.node(bump, &bus.map(self.mapper.clone()))
+        self.widget
+            .node(bump, &bus.map(self.mapper.clone()), style_sheet)
     }
 }
