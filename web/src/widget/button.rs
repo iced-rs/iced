@@ -4,7 +4,7 @@
 //!
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
-use crate::{style, Background, Bus, Color, Element, Length, Style, Widget};
+use crate::{style, Background, Bus, Element, Length, Style, Widget};
 
 use dodrio::bumpalo;
 
@@ -136,13 +136,7 @@ where
         let background = match self.background {
             None => String::from("none"),
             Some(background) => match background {
-                Background::Color(Color { r, g, b, a }) => format!(
-                    "rgba({}, {}, {}, {})",
-                    255.0 * r,
-                    255.0 * g,
-                    255.0 * b,
-                    a
-                ),
+                Background::Color(color) => style::color(color),
             },
         };
 
@@ -155,9 +149,10 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "background: {}; border-radius: {}px",
+                    "background: {}; border-radius: {}px; min-width: {}px",
                     background,
-                    self.border_radius
+                    self.border_radius,
+                    self.min_width
                 )
                 .into_bump_str(),
             )
