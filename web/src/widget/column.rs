@@ -1,4 +1,4 @@
-use crate::{Align, Bus, Element, Length, Widget};
+use crate::{style, Align, Bus, Element, Length, Style, Widget};
 
 use dodrio::bumpalo;
 use std::u32;
@@ -112,18 +112,42 @@ impl<'a, Message> Widget<Message> for Column<'a, Message> {
         &self,
         bump: &'b bumpalo::Bump,
         publish: &Bus<Message>,
+        style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
         let children: Vec<_> = self
             .children
             .iter()
-            .map(|element| element.widget.node(bump, publish))
+            .map(|element| element.widget.node(bump, publish, style_sheet))
             .collect();
+
+        let column_class = style_sheet.insert(bump, Style::Column);
+
+        let spacing_class =
+            style_sheet.insert(bump, Style::Spacing(self.spacing));
+
+        let padding_class =
+            style_sheet.insert(bump, Style::Padding(self.padding));
+
+        let width = style::length(self.width);
+        let height = style::length(self.height);
 
         // TODO: Complete styling
         div(bump)
-            .attr("style", "display: flex; flex-direction: column")
+            .attr(
+                "class",
+                bumpalo::format!(in bump, "{} {} {}", column_class, spacing_class, padding_class)
+                    .into_bump_str(),
+            )
+            .attr("style", bumpalo::format!(
+                    in bump,
+                    "width: {}; height: {}; max-width: {}px",
+                    width,
+                    height,
+                    self.max_width
+                ).into_bump_str()
+            )
             .children(children)
             .finish()
     }

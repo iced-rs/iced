@@ -15,7 +15,7 @@ pub struct Bus<Message> {
 
 impl<Message> Bus<Message>
 where
-    Message: 'static,
+    Message: 'static + Clone,
 {
     pub(crate) fn new() -> Self {
         Self {

@@ -1,4 +1,4 @@
-use crate::{Bus, Color, Widget};
+use crate::{style, Bus, Color, Widget};
 
 use dodrio::bumpalo;
 use std::rc::Rc;
@@ -38,8 +38,8 @@ impl<'a, Message> Element<'a, Message> {
     /// [`Element`]: struct.Element.html
     pub fn map<F, B>(self, f: F) -> Element<'a, B>
     where
-        Message: 'static,
-        B: 'static,
+        Message: 'static + Clone,
+        B: 'static + Clone,
         F: 'static + Fn(Message) -> B,
     {
         Element {
@@ -57,8 +57,9 @@ impl<'a, Message> Element<'a, Message> {
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
+        style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
-        self.widget.node(bump, bus)
+        self.widget.node(bump, bus, style_sheet)
     }
 }
 
@@ -81,14 +82,16 @@ impl<'a, A, B> Map<'a, A, B> {
 
 impl<'a, A, B> Widget<B> for Map<'a, A, B>
 where
-    A: 'static,
-    B: 'static,
+    A: 'static + Clone,
+    B: 'static + Clone,
 {
     fn node<'b>(
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<B>,
+        style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
-        self.widget.node(bump, &bus.map(self.mapper.clone()))
+        self.widget
+            .node(bump, &bus.map(self.mapper.clone()), style_sheet)
     }
 }

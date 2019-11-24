@@ -1,4 +1,4 @@
-use crate::{Bus, Color, Element, Widget};
+use crate::{style, Bus, Color, Element, Widget};
 
 use dodrio::bumpalo;
 
@@ -70,29 +70,31 @@ impl<Message> Radio<Message> {
 
 impl<Message> Widget<Message> for Radio<Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Clone,
 {
     fn node<'b>(
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
+        _style_sheet: &mut style::Sheet<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
         let radio_label = bumpalo::format!(in bump, "{}", self.label);
 
         let event_bus = bus.clone();
-        let on_click = self.on_click;
+        let on_click = self.on_click.clone();
 
         // TODO: Complete styling
         label(bump)
-            .attr("style", "display: block")
+            .attr("style", "display: block; font-size: 20px")
             .children(vec![
                 input(bump)
                     .attr("type", "radio")
+                    .attr("style", "margin-right: 10px")
                     .bool_attr("checked", self.is_selected)
                     .on("click", move |root, vdom, _event| {
-                        event_bus.publish(on_click, root);
+                        event_bus.publish(on_click.clone(), root);
 
                         vdom.schedule_render();
                     })
@@ -105,7 +107,7 @@ where
 
 impl<'a, Message> From<Radio<Message>> for Element<'a, Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Clone,
 {
     fn from(radio: Radio<Message>) -> Element<'a, Message> {
         Element::new(radio)
