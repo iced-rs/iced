@@ -17,6 +17,8 @@ use std::hash::Hash;
 ///     .color([0.0, 0.0, 1.0])
 ///     .size(40);
 /// ```
+///
+/// ![Text drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
 #[derive(Debug, Clone)]
 pub struct Text {
     content: String,

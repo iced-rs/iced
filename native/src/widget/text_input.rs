@@ -16,6 +16,7 @@ use crate::{
 /// ```
 /// # use iced_native::{text_input, TextInput};
 /// #
+/// #[derive(Debug, Clone)]
 /// enum Message {
 ///     TextInputChanged(String),
 /// }
@@ -31,6 +32,7 @@ use crate::{
 /// )
 /// .padding(10);
 /// ```
+/// ![Text input drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct TextInput<'a, Message> {
     state: &'a mut State,

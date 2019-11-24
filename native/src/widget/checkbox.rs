@@ -24,7 +24,7 @@ use crate::{
 /// Checkbox::new(is_checked, "Toggle me!", Message::CheckboxToggled);
 /// ```
 ///
-/// ![Checkbox drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/checkbox.png?raw=true)
+/// ![Checkbox drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct Checkbox<Message> {
     is_checked: bool,

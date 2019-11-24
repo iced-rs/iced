@@ -32,7 +32,7 @@ use std::hash::Hash;
 /// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
 /// ```
 ///
-/// ![Radio buttons drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
+/// ![Radio buttons drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct Radio<Message> {
     is_selected: bool,
