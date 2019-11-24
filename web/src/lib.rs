@@ -143,7 +143,10 @@ pub trait Application {
         instance.spawn(command);
 
         let window = web_sys::window().unwrap();
+
         let document = window.document().unwrap();
+        document.set_title(&instance.title);
+
         let body = document.body().unwrap();
         let vdom = dodrio::Vdom::new(&body, instance);
 
@@ -153,6 +156,7 @@ pub trait Application {
 
 #[derive(Clone)]
 struct Instance<Message> {
+    title: String,
     ui: Rc<RefCell<Box<dyn Application<Message = Message>>>>,
 }
 
@@ -162,14 +166,25 @@ where
 {
     fn new(ui: impl Application<Message = Message> + 'static) -> Self {
         Self {
+            title: ui.title(),
             ui: Rc::new(RefCell::new(Box::new(ui))),
         }
     }
 
     fn update(&mut self, message: Message) {
         let command = self.ui.borrow_mut().update(message);
+        let title = self.ui.borrow().title();
 
         self.spawn(command);
+
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+
+        if self.title != title {
+            document.set_title(&title);
+
+            self.title = title;
+        }
     }
 
     fn spawn(&mut self, command: Command<Message>) {
