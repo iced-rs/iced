@@ -622,11 +622,19 @@ impl<'a> Step {
                 "Give it a shot! Check the following checkbox to be able to \
                  see element boundaries.",
             ))
-            .push(Checkbox::new(
-                debug,
-                "Explain layout",
-                StepMessage::DebugToggled,
-            ))
+            .push(if cfg!(target_arch = "wasm32") {
+                Element::new(
+                    Text::new("Not available on web yet!")
+                        .color([0.7, 0.7, 0.7])
+                        .horizontal_alignment(HorizontalAlignment::Center),
+                )
+            } else {
+                Element::new(Checkbox::new(
+                    debug,
+                    "Explain layout",
+                    StepMessage::DebugToggled,
+                ))
+            })
             .push(Text::new("Feel free to go back and take a look."))
     }
 
