@@ -28,7 +28,8 @@ use crate::{
 ///     "This is the placeholder...",
 ///     value,
 ///     Message::TextInputChanged,
-/// );
+/// )
+/// .padding(10);
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct TextInput<'a, Message> {

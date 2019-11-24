@@ -14,7 +14,7 @@ use crate::{
 ///
 /// ```
 /// # use iced_native::Checkbox;
-///
+/// #
 /// pub enum Message {
 ///     CheckboxToggled(bool),
 /// }

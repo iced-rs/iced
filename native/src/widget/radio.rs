@@ -13,7 +13,7 @@ use std::hash::Hash;
 /// # Example
 /// ```
 /// # use iced_native::Radio;
-///
+/// #
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {
 ///     A,

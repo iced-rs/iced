@@ -12,8 +12,9 @@ use std::hash::Hash;
 ///
 /// ```
 /// # use iced_native::Text;
-///
+/// #
 /// Text::new("I <3 iced!")
+///     .color([0.0, 0.0, 1.0])
 ///     .size(40);
 /// ```
 #[derive(Debug, Clone)]

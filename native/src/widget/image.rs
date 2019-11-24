@@ -10,19 +10,16 @@ use std::hash::Hash;
 ///
 /// ```
 /// # use iced_native::Image;
-///
+/// #
 /// let image = Image::new("resources/ferris.png");
 /// ```
+///
+/// <img src="https://github.com/hecrj/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[derive(Debug)]
 pub struct Image {
-    /// The image path
-    pub path: String,
-
-    /// The width of the image
-    pub width: Length,
-
-    /// The height of the image
-    pub height: Length,
+    path: String,
+    width: Length,
+    height: Length,
 }
 
 impl Image {
@@ -99,7 +96,7 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(&self, layout)
+        renderer.draw(&self.path, layout)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -124,7 +121,7 @@ pub trait Renderer: crate::Renderer {
     /// Draws an [`Image`].
     ///
     /// [`Image`]: struct.Image.html
-    fn draw(&mut self, image: &Image, layout: Layout<'_>) -> Self::Output;
+    fn draw(&mut self, path: &str, layout: Layout<'_>) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>
