@@ -25,6 +25,9 @@ impl Color {
         a: 1.0,
     };
 
+    /// Converts the [`Color`] into its linear values.
+    ///
+    /// [`Color`]: struct.Color.html
     pub fn into_linear(self) -> [f32; 4] {
         // As described in:
         // https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation

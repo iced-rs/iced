@@ -23,6 +23,7 @@
 pub mod button;
 pub mod checkbox;
 pub mod column;
+pub mod container;
 pub mod image;
 pub mod radio;
 pub mod row;
@@ -30,8 +31,6 @@ pub mod scrollable;
 pub mod slider;
 pub mod text;
 pub mod text_input;
-
-mod container;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -65,12 +64,18 @@ use crate::{layout, Event, Hasher, Layout, Length, Point};
 ///
 /// [`Widget`]: trait.Widget.html
 /// [`Element`]: ../struct.Element.html
-pub trait Widget<Message, Renderer>: std::fmt::Debug
+pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
+    /// Returns the width of the [`Widget`].
+    ///
+    /// [`Widget`]: trait.Widget.html
     fn width(&self) -> Length;
 
+    /// Returns the height of the [`Widget`].
+    ///
+    /// [`Widget`]: trait.Widget.html
     fn height(&self) -> Length;
 
     /// Returns the [`Node`] of the [`Widget`].
@@ -78,9 +83,9 @@ where
     /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
     ///
-    /// [`Node`]: ../struct.Node.html
+    /// [`Node`]: ../layout/struct.Node.html
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../struct.Layout.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     fn layout(
         &self,
         renderer: &Renderer,
@@ -108,7 +113,7 @@ where
     /// its value cannot affect the overall [`Layout`] of the user interface.
     ///
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../struct.Layout.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     /// [`Text`]: text/struct.Text.html
     fn hash_layout(&self, state: &mut Hasher);
 
@@ -120,12 +125,13 @@ where
     ///   * the current cursor position
     ///   * a mutable `Message` list, allowing the [`Widget`] to produce
     ///   new messages based on user interaction.
+    ///   * the `Renderer`
     ///
     /// By default, it does nothing.
     ///
     /// [`Event`]: ../enum.Event.html
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../struct.Layout.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     fn on_event(
         &mut self,
         _event: Event,

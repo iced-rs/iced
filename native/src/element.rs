@@ -13,16 +13,9 @@ use crate::{
 /// [built-in widget]: widget/index.html#built-in-widgets
 /// [`Widget`]: widget/trait.Widget.html
 /// [`Element`]: struct.Element.html
+#[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Renderer> {
     pub(crate) widget: Box<dyn Widget<Message, Renderer> + 'a>,
-}
-
-impl<'a, Message, Renderer> std::fmt::Debug for Element<'a, Message, Renderer> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Element")
-            .field("widget", &self.widget)
-            .finish()
-    }
 }
 
 impl<'a, Message, Renderer> Element<'a, Message, Renderer>
@@ -39,31 +32,6 @@ where
         Element {
             widget: Box::new(widget),
         }
-    }
-
-    pub fn width(&self) -> Length {
-        self.widget.width()
-    }
-
-    pub fn height(&self) -> Length {
-        self.widget.height()
-    }
-
-    pub fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.widget.layout(renderer, limits)
-    }
-
-    pub fn draw(
-        &self,
-        renderer: &mut Renderer,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> Renderer::Output {
-        self.widget.draw(renderer, layout, cursor_position)
     }
 
     /// Applies a transformation to the produced message of the [`Element`].
@@ -127,37 +95,7 @@ where
     /// # }
     /// #
     /// # mod iced_wgpu {
-    /// #     use iced_native::{
-    /// #         text, row, layout, Text, Size, Point, Rectangle, Layout, Row
-    /// #     };
-    /// #     pub struct Renderer;
-    /// #
-    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
-    /// #
-    /// #     impl iced_native::row::Renderer for Renderer {
-    /// #         fn draw<Message>(
-    /// #             &mut self,
-    /// #             _column: &Row<'_, Message, Self>,
-    /// #             _layout: Layout<'_>,
-    /// #             _cursor_position: Point,
-    /// #         ) {}
-    /// #     }
-    /// #
-    /// #     impl text::Renderer for Renderer {
-    /// #         fn layout(
-    /// #             &self,
-    /// #             _text: &Text,
-    /// #             _limits: &layout::Limits,
-    /// #         ) -> layout::Node {
-    /// #             layout::Node::new(Size::ZERO)
-    /// #         }
-    /// #
-    /// #         fn draw(
-    /// #             &mut self,
-    /// #             _text: &Text,
-    /// #             _layout: Layout<'_>,
-    /// #         ) {}
-    /// #     }
+    /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
     /// # use counter::Counter;
@@ -263,6 +201,45 @@ where
         }
     }
 
+    /// Returns the width of the [`Element`].
+    ///
+    /// [`Element`]: struct.Element.html
+    pub fn width(&self) -> Length {
+        self.widget.width()
+    }
+
+    /// Returns the height of the [`Element`].
+    ///
+    /// [`Element`]: struct.Element.html
+    pub fn height(&self) -> Length {
+        self.widget.height()
+    }
+
+    /// Computes the layout of the [`Element`] in the given [`Limits`].
+    ///
+    /// [`Element`]: struct.Element.html
+    /// [`Limits`]: layout/struct.Limits.html
+    pub fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.widget.layout(renderer, limits)
+    }
+
+    /// Draws the [`Element`] and its children using the given [`Layout`].
+    ///
+    /// [`Element`]: struct.Element.html
+    /// [`Layout`]: layout/struct.Layout.html
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Renderer::Output {
+        self.widget.draw(renderer, layout, cursor_position)
+    }
+
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
@@ -271,12 +248,6 @@ where
 struct Map<'a, A, B, Renderer> {
     widget: Box<dyn Widget<A, Renderer> + 'a>,
     mapper: Box<dyn Fn(A) -> B>,
-}
-
-impl<'a, A, B, Renderer> std::fmt::Debug for Map<'a, A, B, Renderer> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Map").field("widget", &self.widget).finish()
-    }
 }
 
 impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
@@ -356,17 +327,6 @@ where
 struct Explain<'a, Message, Renderer: crate::Renderer> {
     element: Element<'a, Message, Renderer>,
     color: Color,
-}
-
-impl<'a, Message, Renderer> std::fmt::Debug for Explain<'a, Message, Renderer>
-where
-    Renderer: crate::Renderer,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Explain")
-            .field("element", &self.element)
-            .finish()
-    }
 }
 
 impl<'a, Message, Renderer> Explain<'a, Message, Renderer>

@@ -21,16 +21,32 @@
 //! [`checkbox::Renderer`]: ../widget/checkbox/trait.Renderer.html
 
 mod debugger;
+#[cfg(debug_assertions)]
+mod null;
 mod windowed;
 
 pub use debugger::Debugger;
+#[cfg(debug_assertions)]
+pub use null::Null;
 pub use windowed::{Target, Windowed};
 
 use crate::{layout, Element};
 
+/// A component that can take the state of a user interface and produce an
+/// output for its users.
 pub trait Renderer: Sized {
+    /// The type of output of the [`Renderer`].
+    ///
+    /// If you are implementing a graphical renderer, your output will most
+    /// likely be a tree of visual primitives.
+    ///
+    /// [`Renderer`]: trait.Renderer.html
     type Output;
 
+    /// Lays out the elements of a user interface.
+    ///
+    /// You should override this if you need to perform any operations before or
+    /// after layouting. For instance, trimming the measurements cache.
     fn layout<'a, Message>(
         &mut self,
         element: &Element<'a, Message, Self>,

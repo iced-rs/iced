@@ -1,5 +1,8 @@
 use crate::{Primitive, Renderer};
-use iced_native::{layout, text, Color, Layout, MouseCursor, Size, Text};
+use iced_native::{
+    text, Color, Font, HorizontalAlignment, MouseCursor, Rectangle, Size,
+    VerticalAlignment,
+};
 
 use std::f32;
 
@@ -7,30 +10,40 @@ use std::f32;
 const DEFAULT_TEXT_SIZE: f32 = 20.0;
 
 impl text::Renderer for Renderer {
-    fn layout(&self, text: &Text, limits: &layout::Limits) -> layout::Node {
-        let limits = limits.width(text.width).height(text.height);
-        let size = text.size.map(f32::from).unwrap_or(DEFAULT_TEXT_SIZE);
-        let bounds = limits.max();
-
-        let (width, height) =
-            self.text_pipeline
-                .measure(&text.content, size, text.font, bounds);
-
-        let size = limits.resolve(Size::new(width, height));
-
-        layout::Node::new(size)
+    fn default_size(&self) -> u16 {
+        DEFAULT_TEXT_SIZE as u16
     }
 
-    fn draw(&mut self, text: &Text, layout: Layout<'_>) -> Self::Output {
+    fn measure(
+        &self,
+        content: &str,
+        size: u16,
+        font: Font,
+        bounds: Size,
+    ) -> (f32, f32) {
+        self.text_pipeline
+            .measure(content, f32::from(size), font, bounds)
+    }
+
+    fn draw(
+        &mut self,
+        bounds: Rectangle,
+        content: &str,
+        size: u16,
+        font: Font,
+        color: Option<Color>,
+        horizontal_alignment: HorizontalAlignment,
+        vertical_alignment: VerticalAlignment,
+    ) -> Self::Output {
         (
             Primitive::Text {
-                content: text.content.clone(),
-                size: text.size.map(f32::from).unwrap_or(DEFAULT_TEXT_SIZE),
-                bounds: layout.bounds(),
-                color: text.color.unwrap_or(Color::BLACK),
-                font: text.font,
-                horizontal_alignment: text.horizontal_alignment,
-                vertical_alignment: text.vertical_alignment,
+                content: content.to_string(),
+                size: f32::from(size),
+                bounds,
+                color: color.unwrap_or(Color::BLACK),
+                font,
+                horizontal_alignment,
+                vertical_alignment,
             },
             MouseCursor::OutOfBounds,
         )

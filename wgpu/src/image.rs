@@ -1,11 +1,9 @@
 use crate::Transformation;
 use iced_native::Rectangle;
 
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::mem;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, mem, rc::Rc};
 
+#[derive(Debug)]
 pub struct Pipeline {
     cache: RefCell<HashMap<String, Memory>>,
 
@@ -207,7 +205,8 @@ impl Pipeline {
         if !self.cache.borrow().contains_key(path) {
             let image = image::open(path).expect("Load image").to_bgra();
 
-            self.cache
+            let _ = self
+                .cache
                 .borrow_mut()
                 .insert(path.to_string(), Memory::Host { image });
         }
@@ -308,6 +307,7 @@ impl Pipeline {
     }
 }
 
+#[derive(Debug)]
 enum Memory {
     Host {
         image: image::ImageBuffer<image::Bgra<u8>, Vec<u8>>,

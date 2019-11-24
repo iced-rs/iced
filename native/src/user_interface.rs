@@ -10,7 +10,7 @@ use std::hash::Hasher;
 /// charge of using this type in your system in any way you want.
 ///
 /// [`Layout`]: struct.Layout.html
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,
     root: Element<'a, Message, Renderer>,
@@ -52,7 +52,7 @@ where
     /// #     impl iced_native::column::Renderer for Renderer {
     /// #         fn draw<Message>(
     /// #             &mut self,
-    /// #             _column: &iced_native::Column<'_, Message, Self>,
+    /// #             _children: &[iced_native::Element<'_, Message, Self>],
     /// #             _layout: iced_native::Layout<'_>,
     /// #             _cursor_position: iced_native::Point,
     /// #         ) -> Self::Output {
@@ -129,8 +129,8 @@ where
     /// [`Event`]: enum.Event.html
     ///
     /// # Example
-    /// Let's allow our [counter](index.html#usage) to change state by completing
-    /// [the previous example](#example):
+    /// Let's allow our [counter](index.html#usage) to change state by
+    /// completing [the previous example](#example):
     ///
     /// ```no_run
     /// use iced_native::{UserInterface, Cache};
@@ -148,7 +148,7 @@ where
     /// #     impl iced_native::column::Renderer for Renderer {
     /// #         fn draw<Message>(
     /// #             &mut self,
-    /// #             _column: &iced_native::Column<'_, Message, Self>,
+    /// #             _children: &[iced_native::Element<'_, Message, Self>],
     /// #             _layout: iced_native::Layout<'_>,
     /// #             _cursor_position: iced_native::Point,
     /// #         ) -> Self::Output {
@@ -248,7 +248,7 @@ where
     /// #     impl iced_native::column::Renderer for Renderer {
     /// #         fn draw<Message>(
     /// #             &mut self,
-    /// #             _column: &iced_native::Column<'_, Message, Self>,
+    /// #             _children: &[iced_native::Element<'_, Message, Self>],
     /// #             _layout: iced_native::Layout<'_>,
     /// #             _cursor_position: iced_native::Point,
     /// #         ) -> Self::Output {

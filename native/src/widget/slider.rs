@@ -4,12 +4,101 @@
 //!
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
-use std::hash::Hash;
+use crate::{
+    input::{mouse, ButtonState},
+    layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
+    Widget,
+};
 
-use crate::input::{mouse, ButtonState};
-use crate::{layout, Element, Event, Hasher, Layout, Length, Point, Widget};
+use std::{hash::Hash, ops::RangeInclusive};
 
-pub use iced_core::slider::*;
+/// An horizontal bar and a handle that selects a single value from a range of
+/// values.
+///
+/// A [`Slider`] will try to fill the horizontal space of its container.
+///
+/// [`Slider`]: struct.Slider.html
+///
+/// # Example
+/// ```
+/// # use iced_native::{slider, Slider};
+/// #
+/// pub enum Message {
+///     SliderChanged(f32),
+/// }
+///
+/// let state = &mut slider::State::new();
+/// let value = 50.0;
+///
+/// Slider::new(state, 0.0..=100.0, value, Message::SliderChanged);
+/// ```
+///
+/// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
+#[allow(missing_debug_implementations)]
+pub struct Slider<'a, Message> {
+    state: &'a mut State,
+    range: RangeInclusive<f32>,
+    value: f32,
+    on_change: Box<dyn Fn(f32) -> Message>,
+    width: Length,
+}
+
+impl<'a, Message> Slider<'a, Message> {
+    /// Creates a new [`Slider`].
+    ///
+    /// It expects:
+    ///   * the local [`State`] of the [`Slider`]
+    ///   * an inclusive range of possible values
+    ///   * the current value of the [`Slider`]
+    ///   * a function that will be called when the [`Slider`] is dragged.
+    ///   It receives the new value of the [`Slider`] and must produce a
+    ///   `Message`.
+    ///
+    /// [`Slider`]: struct.Slider.html
+    /// [`State`]: struct.State.html
+    pub fn new<F>(
+        state: &'a mut State,
+        range: RangeInclusive<f32>,
+        value: f32,
+        on_change: F,
+    ) -> Self
+    where
+        F: 'static + Fn(f32) -> Message,
+    {
+        Slider {
+            state,
+            value: value.max(*range.start()).min(*range.end()),
+            range,
+            on_change: Box::new(on_change),
+            width: Length::Fill,
+        }
+    }
+
+    /// Sets the width of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+}
+
+/// The local state of a [`Slider`].
+///
+/// [`Slider`]: struct.Slider.html
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct State {
+    is_dragging: bool,
+}
+
+impl State {
+    /// Creates a new [`State`].
+    ///
+    /// [`State`]: struct.State.html
+    pub fn new() -> State {
+        State::default()
+    }
+}
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Slider<'a, Message>
 where
@@ -28,7 +117,13 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        renderer.layout(&self, limits)
+        let limits = limits
+            .width(self.width)
+            .height(Length::Units(renderer.height() as u16));
+
+        let size = limits.resolve(Size::ZERO);
+
+        layout::Node::new(size)
     }
 
     fn on_event(
@@ -85,7 +180,13 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(&self, layout, cursor_position)
+        renderer.draw(
+            layout.bounds(),
+            cursor_position,
+            self.range.clone(),
+            self.value,
+            self.state.is_dragging,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -101,15 +202,10 @@ where
 /// [`Slider`]: struct.Slider.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
-    /// Creates a [`Node`] for the provided [`Radio`].
+    /// Returns the height of the [`Slider`].
     ///
-    /// [`Node`]: ../../struct.Node.html
-    /// [`Radio`]: struct.Radio.html
-    fn layout<Message>(
-        &self,
-        slider: &Slider<'_, Message>,
-        limits: &layout::Limits,
-    ) -> layout::Node;
+    /// [`Slider`]: struct.Slider.html
+    fn height(&self) -> u32;
 
     /// Draws a [`Slider`].
     ///
@@ -123,11 +219,13 @@ pub trait Renderer: crate::Renderer {
     /// [`Slider`]: struct.Slider.html
     /// [`State`]: struct.State.html
     /// [`Class`]: enum.Class.html
-    fn draw<Message>(
+    fn draw(
         &mut self,
-        slider: &Slider<'_, Message>,
-        layout: Layout<'_>,
+        bounds: Rectangle,
         cursor_position: Point,
+        range: RangeInclusive<f32>,
+        value: f32,
+        is_dragging: bool,
     ) -> Self::Output;
 }
 

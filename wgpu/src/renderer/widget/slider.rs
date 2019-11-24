@@ -1,32 +1,22 @@
 use crate::{Primitive, Renderer};
-use iced_native::{
-    layout, slider, Background, Color, Layout, Length, MouseCursor, Point,
-    Rectangle, Size, Slider,
-};
+use iced_native::{slider, Background, Color, MouseCursor, Point, Rectangle};
 
 const HANDLE_WIDTH: f32 = 8.0;
 const HANDLE_HEIGHT: f32 = 22.0;
 
 impl slider::Renderer for Renderer {
-    fn layout<Message>(
-        &self,
-        slider: &Slider<Message>,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        let limits = limits.width(slider.width).height(Length::Units(30));
-        let size = limits.resolve(Size::ZERO);
-
-        layout::Node::new(size)
+    fn height(&self) -> u32 {
+        30
     }
 
-    fn draw<Message>(
+    fn draw(
         &mut self,
-        slider: &Slider<Message>,
-        layout: Layout<'_>,
+        bounds: Rectangle,
         cursor_position: Point,
+        range: std::ops::RangeInclusive<f32>,
+        value: f32,
+        is_dragging: bool,
     ) -> Self::Output {
-        let bounds = layout.bounds();
-
         let is_mouse_over = bounds.contains(cursor_position);
 
         let rail_y = bounds.y + (bounds.height / 2.0).round();
@@ -54,11 +44,10 @@ impl slider::Renderer for Renderer {
             },
         );
 
-        let (range_start, range_end) = slider.range.clone().into_inner();
+        let (range_start, range_end) = range.into_inner();
 
         let handle_offset = (bounds.width - HANDLE_WIDTH)
-            * ((slider.value - range_start)
-                / (range_end - range_start).max(1.0));
+            * ((value - range_start) / (range_end - range_start).max(1.0));
 
         let (handle_border, handle) = (
             Primitive::Quad {
@@ -79,7 +68,7 @@ impl slider::Renderer for Renderer {
                     height: HANDLE_HEIGHT,
                 },
                 background: Background::Color(
-                    if slider.state.is_dragging() {
+                    if is_dragging {
                         [0.85, 0.85, 0.85]
                     } else if is_mouse_over {
                         [0.90, 0.90, 0.90]
@@ -96,7 +85,7 @@ impl slider::Renderer for Renderer {
             Primitive::Group {
                 primitives: vec![rail_top, rail_bottom, handle_border, handle],
             },
-            if slider.state.is_dragging() {
+            if is_dragging {
                 MouseCursor::Grabbing
             } else if is_mouse_over {
                 MouseCursor::Grab

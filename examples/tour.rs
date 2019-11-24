@@ -1,8 +1,7 @@
 use iced::{
-    button, scrollable, slider, text::HorizontalAlignment, text_input,
-    Application, Background, Button, Checkbox, Color, Column, Command,
-    Container, Element, Image, Length, Radio, Row, Scrollable, Slider, Text,
-    TextInput,
+    button, scrollable, slider, text_input, Background, Button, Checkbox,
+    Color, Column, Container, Element, HorizontalAlignment, Image, Length,
+    Radio, Row, Sandbox, Scrollable, Slider, Text, TextInput,
 };
 
 pub fn main() {
@@ -19,27 +18,24 @@ pub struct Tour {
     debug: bool,
 }
 
-impl Application for Tour {
+impl Sandbox for Tour {
     type Message = Message;
 
-    fn new() -> (Tour, Command<Message>) {
-        (
-            Tour {
-                steps: Steps::new(),
-                scroll: scrollable::State::new(),
-                back_button: button::State::new(),
-                next_button: button::State::new(),
-                debug: false,
-            },
-            Command::none(),
-        )
+    fn new() -> Tour {
+        Tour {
+            steps: Steps::new(),
+            scroll: scrollable::State::new(),
+            back_button: button::State::new(),
+            next_button: button::State::new(),
+            debug: false,
+        }
     }
 
     fn title(&self) -> String {
         format!("{} - Iced", self.steps.title())
     }
 
-    fn update(&mut self, event: Message) -> Command<Message> {
+    fn update(&mut self, event: Message) {
         match event {
             Message::BackPressed => {
                 self.steps.go_back();
@@ -51,8 +47,6 @@ impl Application for Tour {
                 self.steps.update(step_msg, &mut self.debug);
             }
         }
-
-        Command::none()
     }
 
     fn view(&mut self) -> Element<Message> {

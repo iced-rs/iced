@@ -2,6 +2,8 @@ use crate::{Renderer, Transformation};
 
 use raw_window_handle::HasRawWindowHandle;
 
+/// A rendering target.
+#[derive(Debug)]
 pub struct Target {
     surface: wgpu::Surface,
     width: u16,
@@ -12,19 +14,19 @@ pub struct Target {
 }
 
 impl Target {
-    pub fn dimensions(&self) -> (u16, u16) {
+    pub(crate) fn dimensions(&self) -> (u16, u16) {
         (self.width, self.height)
     }
 
-    pub fn dpi(&self) -> f32 {
+    pub(crate) fn dpi(&self) -> f32 {
         self.dpi
     }
 
-    pub fn transformation(&self) -> Transformation {
+    pub(crate) fn transformation(&self) -> Transformation {
         self.transformation
     }
 
-    pub fn next_frame(&mut self) -> wgpu::SwapChainOutput {
+    pub(crate) fn next_frame(&mut self) -> wgpu::SwapChainOutput<'_> {
         self.swap_chain.get_next_texture()
     }
 }

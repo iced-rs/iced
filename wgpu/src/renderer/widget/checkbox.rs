@@ -1,63 +1,35 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    checkbox, layout, text, text::HorizontalAlignment, text::VerticalAlignment,
-    Align, Background, Checkbox, Column, Layout, Length, MouseCursor, Point,
-    Rectangle, Row, Text, Widget,
+    checkbox, Background, HorizontalAlignment, MouseCursor, Rectangle,
+    VerticalAlignment,
 };
 
 const SIZE: f32 = 28.0;
 
 impl checkbox::Renderer for Renderer {
-    fn layout<Message>(
-        &self,
-        checkbox: &Checkbox<Message>,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        Row::<(), Self>::new()
-            .spacing(15)
-            .align_items(Align::Center)
-            .push(
-                Column::new()
-                    .width(Length::Units(SIZE as u16))
-                    .height(Length::Units(SIZE as u16)),
-            )
-            .push(Text::new(&checkbox.label))
-            .layout(self, limits)
+    fn default_size(&self) -> u32 {
+        SIZE as u32
     }
 
-    fn draw<Message>(
+    fn draw(
         &mut self,
-        checkbox: &Checkbox<Message>,
-        layout: Layout<'_>,
-        cursor_position: Point,
+        bounds: Rectangle,
+        is_checked: bool,
+        is_mouse_over: bool,
+        (label, _): Self::Output,
     ) -> Self::Output {
-        let bounds = layout.bounds();
-        let mut children = layout.children();
-
-        let checkbox_layout = children.next().unwrap();
-        let label_layout = children.next().unwrap();
-        let checkbox_bounds = checkbox_layout.bounds();
-
-        let (label, _) = text::Renderer::draw(
-            self,
-            &Text::new(&checkbox.label),
-            label_layout,
-        );
-
-        let is_mouse_over = bounds.contains(cursor_position);
-
         let (checkbox_border, checkbox_box) = (
             Primitive::Quad {
-                bounds: checkbox_bounds,
+                bounds,
                 background: Background::Color([0.6, 0.6, 0.6].into()),
                 border_radius: 6,
             },
             Primitive::Quad {
                 bounds: Rectangle {
-                    x: checkbox_bounds.x + 1.0,
-                    y: checkbox_bounds.y + 1.0,
-                    width: checkbox_bounds.width - 2.0,
-                    height: checkbox_bounds.height - 2.0,
+                    x: bounds.x + 1.0,
+                    y: bounds.y + 1.0,
+                    width: bounds.width - 2.0,
+                    height: bounds.height - 2.0,
                 },
                 background: Background::Color(
                     if is_mouse_over {
@@ -73,12 +45,12 @@ impl checkbox::Renderer for Renderer {
 
         (
             Primitive::Group {
-                primitives: if checkbox.is_checked {
+                primitives: if is_checked {
                     let check = Primitive::Text {
                         content: crate::text::CHECKMARK_ICON.to_string(),
                         font: crate::text::BUILTIN_ICONS,
-                        size: checkbox_bounds.height * 0.7,
-                        bounds: checkbox_bounds,
+                        size: bounds.height * 0.7,
+                        bounds: bounds,
                         color: [0.3, 0.3, 0.3].into(),
                         horizontal_alignment: HorizontalAlignment::Center,
                         vertical_alignment: VerticalAlignment::Center,

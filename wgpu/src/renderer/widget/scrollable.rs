@@ -1,7 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    scrollable, Background, Layout, MouseCursor, Point, Rectangle, Scrollable,
-    Vector, Widget,
+    scrollable, Background, MouseCursor, Point, Rectangle, Vector,
 };
 
 const SCROLLBAR_WIDTH: u16 = 10;
@@ -28,33 +27,18 @@ impl scrollable::Renderer for Renderer {
             && scrollbar_bounds(bounds).contains(cursor_position)
     }
 
-    fn draw<Message>(
+    fn draw(
         &mut self,
-        scrollable: &Scrollable<'_, Message, Self>,
+        state: &scrollable::State,
         bounds: Rectangle,
-        content: Layout<'_>,
-        cursor_position: Point,
+        content_bounds: Rectangle,
+        is_mouse_over: bool,
+        is_mouse_over_scrollbar: bool,
+        offset: u32,
+        (content, mouse_cursor): Self::Output,
     ) -> Self::Output {
-        let is_mouse_over = bounds.contains(cursor_position);
-        let content_bounds = content.bounds();
-
-        let offset = scrollable.state.offset(bounds, content_bounds);
         let is_content_overflowing = content_bounds.height > bounds.height;
         let scrollbar_bounds = scrollbar_bounds(bounds);
-        let is_mouse_over_scrollbar = self.is_mouse_over_scrollbar(
-            bounds,
-            content_bounds,
-            cursor_position,
-        );
-
-        let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
-            Point::new(cursor_position.x, cursor_position.y + offset as f32)
-        } else {
-            Point::new(cursor_position.x, -1.0)
-        };
-
-        let (content, mouse_cursor) =
-            scrollable.content.draw(self, content, cursor_position);
 
         let clip = Primitive::Clip {
             bounds,
@@ -64,7 +48,7 @@ impl scrollable::Renderer for Renderer {
 
         (
             if is_content_overflowing
-                && (is_mouse_over || scrollable.state.is_scrollbar_grabbed())
+                && (is_mouse_over || state.is_scrollbar_grabbed())
             {
                 let ratio = bounds.height / content_bounds.height;
                 let scrollbar_height = bounds.height * ratio;
@@ -82,9 +66,7 @@ impl scrollable::Renderer for Renderer {
                     border_radius: 5,
                 };
 
-                if is_mouse_over_scrollbar
-                    || scrollable.state.is_scrollbar_grabbed()
-                {
+                if is_mouse_over_scrollbar || state.is_scrollbar_grabbed() {
                     let scrollbar_background = Primitive::Quad {
                         bounds: Rectangle {
                             x: scrollbar_bounds.x + f32::from(SCROLLBAR_MARGIN),
@@ -109,9 +91,7 @@ impl scrollable::Renderer for Renderer {
             } else {
                 clip
             },
-            if is_mouse_over_scrollbar
-                || scrollable.state.is_scrollbar_grabbed()
-            {
+            if is_mouse_over_scrollbar || state.is_scrollbar_grabbed() {
                 MouseCursor::Idle
             } else {
                 mouse_cursor

@@ -1,7 +1,7 @@
 use crate::{quad, text, Image, Primitive, Quad, Transformation};
 use iced_native::{
-    renderer::Debugger, renderer::Windowed, Background, Color, Layout,
-    MouseCursor, Point, Rectangle, Vector, Widget,
+    renderer::{Debugger, Windowed},
+    Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
 };
 
 use wgpu::{
@@ -14,6 +14,10 @@ mod widget;
 
 pub use target::Target;
 
+/// A [`wgpu`] renderer.
+///
+/// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+#[derive(Debug)]
 pub struct Renderer {
     device: Device,
     queue: Queue,
@@ -22,7 +26,7 @@ pub struct Renderer {
     text_pipeline: text::Pipeline,
 }
 
-pub struct Layer<'a> {
+struct Layer<'a> {
     bounds: Rectangle<u32>,
     offset: Vector<u32>,
     quads: Vec<Quad>,
@@ -152,21 +156,21 @@ impl Renderer {
                 vertical_alignment,
             } => {
                 let x = match horizontal_alignment {
-                    iced_native::text::HorizontalAlignment::Left => bounds.x,
-                    iced_native::text::HorizontalAlignment::Center => {
+                    iced_native::HorizontalAlignment::Left => bounds.x,
+                    iced_native::HorizontalAlignment::Center => {
                         bounds.x + bounds.width / 2.0
                     }
-                    iced_native::text::HorizontalAlignment::Right => {
+                    iced_native::HorizontalAlignment::Right => {
                         bounds.x + bounds.width
                     }
                 };
 
                 let y = match vertical_alignment {
-                    iced_native::text::VerticalAlignment::Top => bounds.y,
-                    iced_native::text::VerticalAlignment::Center => {
+                    iced_native::VerticalAlignment::Top => bounds.y,
+                    iced_native::VerticalAlignment::Center => {
                         bounds.y + bounds.height / 2.0
                     }
-                    iced_native::text::VerticalAlignment::Bottom => {
+                    iced_native::VerticalAlignment::Bottom => {
                         bounds.y + bounds.height
                     }
                 };
@@ -183,24 +187,24 @@ impl Renderer {
                     font_id: self.text_pipeline.find_font(*font),
                     layout: wgpu_glyph::Layout::default()
                         .h_align(match horizontal_alignment {
-                            iced_native::text::HorizontalAlignment::Left => {
+                            iced_native::HorizontalAlignment::Left => {
                                 wgpu_glyph::HorizontalAlign::Left
                             }
-                            iced_native::text::HorizontalAlignment::Center => {
+                            iced_native::HorizontalAlignment::Center => {
                                 wgpu_glyph::HorizontalAlign::Center
                             }
-                            iced_native::text::HorizontalAlignment::Right => {
+                            iced_native::HorizontalAlignment::Right => {
                                 wgpu_glyph::HorizontalAlign::Right
                             }
                         })
                         .v_align(match vertical_alignment {
-                            iced_native::text::VerticalAlignment::Top => {
+                            iced_native::VerticalAlignment::Top => {
                                 wgpu_glyph::VerticalAlign::Top
                             }
-                            iced_native::text::VerticalAlignment::Center => {
+                            iced_native::VerticalAlignment::Center => {
                                 wgpu_glyph::VerticalAlign::Center
                             }
-                            iced_native::text::VerticalAlignment::Bottom => {
+                            iced_native::VerticalAlignment::Bottom => {
                                 wgpu_glyph::VerticalAlign::Bottom
                             }
                         }),
@@ -304,7 +308,7 @@ impl Renderer {
         &mut self,
         dpi: f32,
         transformation: Transformation,
-        layer: &Layer,
+        layer: &Layer<'_>,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
     ) {

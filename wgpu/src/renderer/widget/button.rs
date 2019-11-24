@@ -1,52 +1,22 @@
 use crate::{Primitive, Renderer};
-use iced_native::{
-    button, layout, Background, Button, Layout, Length, MouseCursor, Point,
-    Rectangle,
-};
+use iced_native::{button, Background, MouseCursor, Point, Rectangle};
 
 impl button::Renderer for Renderer {
-    fn layout<Message>(
-        &self,
-        button: &Button<Message, Self>,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        let padding = f32::from(button.padding);
-        let limits = limits
-            .min_width(button.min_width)
-            .width(button.width)
-            .height(Length::Shrink)
-            .pad(padding);
-
-        let mut content = button.content.layout(self, &limits);
-
-        content.bounds.x = padding;
-        content.bounds.y = padding;
-
-        let size = limits.resolve(content.size()).pad(padding);
-
-        layout::Node::with_children(size, vec![content])
-    }
-
-    fn draw<Message>(
+    fn draw(
         &mut self,
-        button: &Button<Message, Self>,
-        layout: Layout<'_>,
+        bounds: Rectangle,
         cursor_position: Point,
+        is_pressed: bool,
+        background: Option<Background>,
+        border_radius: u16,
+        (content, _): Self::Output,
     ) -> Self::Output {
-        let bounds = layout.bounds();
-
-        let (content, _) = button.content.draw(
-            self,
-            layout.children().next().unwrap(),
-            cursor_position,
-        );
-
         let is_mouse_over = bounds.contains(cursor_position);
 
         // TODO: Render proper shadows
         // TODO: Make hovering and pressed styles configurable
         let shadow_offset = if is_mouse_over {
-            if button.state.is_pressed {
+            if is_pressed {
                 0.0
             } else {
                 2.0
@@ -56,7 +26,7 @@ impl button::Renderer for Renderer {
         };
 
         (
-            match button.background {
+            match background {
                 None => content,
                 Some(background) => Primitive::Group {
                     primitives: vec![
@@ -69,12 +39,12 @@ impl button::Renderer for Renderer {
                             background: Background::Color(
                                 [0.0, 0.0, 0.0, 0.5].into(),
                             ),
-                            border_radius: button.border_radius,
+                            border_radius,
                         },
                         Primitive::Quad {
                             bounds,
                             background,
-                            border_radius: button.border_radius,
+                            border_radius,
                         },
                         content,
                     ],
