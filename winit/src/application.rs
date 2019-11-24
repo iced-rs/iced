@@ -142,7 +142,7 @@ pub trait Application: Sized {
         window.request_redraw();
 
         event_loop.run(move |event, _, control_flow| match event {
-            event::Event::MainEventsCleared => {
+            event::Event::EventsCleared => {
                 // TODO: We should be able to keep a user interface alive
                 // between events once we remove state references.
                 //
@@ -209,12 +209,6 @@ pub trait Application: Sized {
                     cache = Some(user_interface.into_cache());
                 }
 
-                window.request_redraw();
-            }
-            event::Event::UserEvent(message) => {
-                external_messages.push(message);
-            }
-            event::Event::RedrawRequested(_) => {
                 debug.render_started();
 
                 if let Some(new_size) = new_size.take() {
@@ -246,6 +240,9 @@ pub trait Application: Sized {
 
                 // TODO: Handle animations!
                 // Maybe we can use `ControlFlow::WaitUntil` for this.
+            }
+            event::Event::UserEvent(message) => {
+                external_messages.push(message);
             }
             event::Event::WindowEvent {
                 event: window_event,
