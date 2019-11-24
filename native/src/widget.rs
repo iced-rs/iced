@@ -83,9 +83,9 @@ where
     /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
     ///
-    /// [`Node`]: ../struct.Node.html
+    /// [`Node`]: ../layout/struct.Node.html
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../struct.Layout.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     fn layout(
         &self,
         renderer: &Renderer,
@@ -113,7 +113,7 @@ where
     /// its value cannot affect the overall [`Layout`] of the user interface.
     ///
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../struct.Layout.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     /// [`Text`]: text/struct.Text.html
     fn hash_layout(&self, state: &mut Hasher);
 
@@ -125,12 +125,13 @@ where
     ///   * the current cursor position
     ///   * a mutable `Message` list, allowing the [`Widget`] to produce
     ///   new messages based on user interaction.
+    ///   * the `Renderer`
     ///
     /// By default, it does nothing.
     ///
     /// [`Event`]: ../enum.Event.html
     /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../struct.Layout.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     fn on_event(
         &mut self,
         _event: Event,
