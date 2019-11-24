@@ -286,7 +286,9 @@ pub trait Application: Sized {
                         ));
                     }
                 },
-                WindowEvent::ReceivedCharacter(c) => {
+                WindowEvent::ReceivedCharacter(c)
+                    if !is_private_use_character(c) =>
+                {
                     events.push(Event::Keyboard(
                         keyboard::Event::CharacterReceived(c),
                     ));
@@ -377,5 +379,16 @@ fn spawn<Message: Send>(
         });
 
         thread_pool.spawn_ok(future);
+    }
+}
+
+// As defined in: http://www.unicode.org/faq/private_use.html
+// TODO: Remove once https://github.com/rust-windowing/winit/pull/1254 lands
+fn is_private_use_character(c: char) -> bool {
+    match c {
+        '\u{E000}'..='\u{F8FF}'
+        | '\u{F0000}'..='\u{FFFFD}'
+        | '\u{100000}'..='\u{10FFFD}' => true,
+        _ => false,
     }
 }
