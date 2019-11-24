@@ -29,3 +29,4 @@ Moreover, Iced is in its infancy and, besides directly writing code, there are m
 [Zulip server]: https://iced.zulipchat.com/
 [Code is the Easy Part]: https://youtu.be/DSjbTC-hvqQ?t=1138
 [The Hard Parts of Open Source]: https://www.youtube.com/watch?v=o_4EX4dPppA
+[`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
