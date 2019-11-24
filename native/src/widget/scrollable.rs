@@ -295,7 +295,7 @@ where
 #[derive(Debug, Clone, Copy, Default)]
 pub struct State {
     scrollbar_grabbed_at: Option<Point>,
-    offset: u32,
+    offset: f32,
 }
 
 impl State {
@@ -321,10 +321,9 @@ impl State {
             return;
         }
 
-        self.offset = (self.offset as i32 - delta_y.round() as i32)
-            .max(0)
-            .min((content_bounds.height - bounds.height) as i32)
-            as u32;
+        self.offset = (self.offset - delta_y)
+            .max(0.0)
+            .min((content_bounds.height - bounds.height) as f32);
     }
 
     /// Moves the scroll position to a relative amount, given the bounds of
@@ -341,8 +340,8 @@ impl State {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
-        self.offset = ((content_bounds.height - bounds.height) * percentage)
-            .max(0.0) as u32;
+        self.offset =
+            ((content_bounds.height - bounds.height) * percentage).max(0.0);
     }
 
     /// Returns the current scrolling offset of the [`State`], given the bounds
@@ -354,7 +353,7 @@ impl State {
         let hidden_content =
             (content_bounds.height - bounds.height).max(0.0).round() as u32;
 
-        self.offset.min(hidden_content)
+        self.offset.min(hidden_content as f32) as u32
     }
 
     /// Returns whether the scrollbar is currently grabbed or not.
