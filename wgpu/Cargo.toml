@@ -11,7 +11,7 @@ repository = "https://github.com/hecrj/iced"
 iced_native = { version = "0.1.0", path = "../native" }
 wgpu = "0.4"
 glyph_brush = "0.6"
-wgpu_glyph = { version = "0.5", git = "https://github.com/hecrj/wgpu_glyph", branch = "feature/scissoring" }
+wgpu_glyph = "0.6"
 raw-window-handle = "0.3"
 image = "0.22"
 glam = "0.8"
