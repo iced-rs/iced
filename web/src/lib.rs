@@ -57,7 +57,7 @@
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
 use dodrio::bumpalo;
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 
 mod bus;
 mod element;
@@ -87,7 +87,7 @@ pub trait Application {
     /// The type of __messages__ your [`Application`] will produce.
     ///
     /// [`Application`]: trait.Application.html
-    type Message;
+    type Message: Clone;
 
     /// Initializes the [`Application`].
     ///
@@ -137,10 +137,10 @@ pub trait Application {
     where
         Self: 'static + Sized,
     {
-        // TODO: Spawn command
-        let (app, _command) = Self::new();
+        let (app, command) = Self::new();
+        let mut instance = Instance::new(app);
 
-        let instance = Instance::new(app);
+        instance.spawn(command);
 
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
@@ -151,26 +151,42 @@ pub trait Application {
     }
 }
 
+#[derive(Clone)]
 struct Instance<Message> {
-    ui: RefCell<Box<dyn Application<Message = Message>>>,
+    ui: Rc<RefCell<Box<dyn Application<Message = Message>>>>,
 }
 
-impl<Message> Instance<Message> {
+impl<Message> Instance<Message>
+where
+    Message: 'static + Clone,
+{
     fn new(ui: impl Application<Message = Message> + 'static) -> Self {
         Self {
-            ui: RefCell::new(Box::new(ui)),
+            ui: Rc::new(RefCell::new(Box::new(ui))),
         }
     }
 
     fn update(&mut self, message: Message) {
-        // TODO: Spawn command
-        let _command = self.ui.borrow_mut().update(message);
+        let command = self.ui.borrow_mut().update(message);
+
+        self.spawn(command);
+    }
+
+    fn spawn(&mut self, command: Command<Message>) {
+        use futures::FutureExt;
+
+        for future in command.futures() {
+            let mut instance = self.clone();
+            let future = future.map(move |message| instance.update(message));
+
+            wasm_bindgen_futures::spawn_local(future);
+        }
     }
 }
 
 impl<Message> dodrio::Render for Instance<Message>
 where
-    Message: 'static,
+    Message: 'static + Clone,
 {
     fn render<'a, 'bump>(
         &'a self,

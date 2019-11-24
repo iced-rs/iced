@@ -83,7 +83,7 @@ pub trait Application: Sized {
     /// The type of __messages__ your [`Application`] will produce.
     ///
     /// [`Application`]: trait.Application.html
-    type Message: std::fmt::Debug + Send;
+    type Message: std::fmt::Debug + Send + Clone;
 
     /// Initializes the [`Application`].
     ///
