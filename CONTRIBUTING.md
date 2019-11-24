@@ -6,7 +6,18 @@ The main advice for new contributors is to share your ideas with the community. 
 
 This is a very important step. It helps to coordinate work, get on the same page, and start building trust. Please, do not skip it! Remember that [Code is the Easy Part] and also [The Hard Parts of Open Source]!
 
-Iced is in its infancy and, besides directly writing code, there are many other different ways you can contribute. To name a few:
+Provided you get in touch first, all kinds of contributions are welcome! Here are a few interesting ideas:
+
+- New widgets: toggle, table, grid, color picker, video...
+- New renderers: `iced_piet` (already in the works!), `iced_skia`, `iced_raqote`, `iced_pathfinder`...
+- New shells: `iced_sdl` could be useful for gamedev!
+- Better style generation for `iced_web`
+- Optimizations for `iced_wgpu`
+- Alternative to [`wgpu_glyph`] for proper (shaped), efficient text rendering
+- Time travelling debugger built on top of Iced itself
+- Cool website to serve on https://iced.rs
+
+Moreover, Iced is in its infancy and, besides directly writing code, there are many other different ways you can contribute. To name a few:
 
 - Writing tutorials or blog posts
 - Improving the documentation
@@ -16,5 +27,5 @@ Iced is in its infancy and, besides directly writing code, there are many other 
 [the ecosystem overview]: ECOSYSTEM.md
 [the roadmap]: ROADMAP.md
 [Zulip server]: https://iced.zulipchat.com/
-[Code is the Easy Part]: https://youtu.be/DSjbTC-hvqQ?t=845
+[Code is the Easy Part]: https://youtu.be/DSjbTC-hvqQ?t=1138
 [The Hard Parts of Open Source]: https://www.youtube.com/watch?v=o_4EX4dPppA

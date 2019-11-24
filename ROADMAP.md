@@ -1,6 +1,8 @@
 # Roadmap
 This document describes the current state of Iced and some of the most important next steps we should take before it can become a production-ready GUI library. This list keeps the short term new features in sight in order to coordinate work and discussion. Therefore, it is not meant to be exhaustive.
 
+Before diving into the roadmap, check out [the ecosystem overview] to get an idea of the current state of the library.
+
 ## Next steps
 Most of the work related to these features needs to happen in the `iced_native` path of the ecosystem, as the web already supports many of them.
 
