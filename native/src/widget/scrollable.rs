@@ -163,7 +163,7 @@ where
                     match delta {
                         mouse::ScrollDelta::Lines { y, .. } => {
                             // TODO: Configurable speed (?)
-                            self.state.scroll(y * 15.0, bounds, content_bounds);
+                            self.state.scroll(y * 60.0, bounds, content_bounds);
                         }
                         mouse::ScrollDelta::Pixels { y, .. } => {
                             self.state.scroll(y, bounds, content_bounds);
