@@ -8,7 +8,7 @@ pub struct Pipeline {
     cache: RefCell<HashMap<String, Memory>>,
 
     pipeline: wgpu::RenderPipeline,
-    transform: wgpu::Buffer,
+    uniforms: wgpu::Buffer,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
     instances: wgpu::Buffer,
@@ -46,14 +46,16 @@ impl Pipeline {
                 ],
             });
 
-        let matrix: [f32; 16] = Transformation::identity().into();
+        let uniforms = Uniforms {
+            transform: Transformation::identity().into(),
+        };
 
-        let transform_buffer = device
+        let uniforms_buffer = device
             .create_buffer_mapped(
-                16,
+                1,
                 wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
             )
-            .fill_from_slice(&matrix[..]);
+            .fill_from_slice(&[uniforms]);
 
         let constant_bind_group =
             device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -62,8 +64,8 @@ impl Pipeline {
                     wgpu::Binding {
                         binding: 0,
                         resource: wgpu::BindingResource::Buffer {
-                            buffer: &transform_buffer,
-                            range: 0..64,
+                            buffer: &uniforms_buffer,
+                            range: 0..std::mem::size_of::<Uniforms>() as u64,
                         },
                     },
                     wgpu::Binding {
@@ -186,7 +188,7 @@ impl Pipeline {
             cache: RefCell::new(HashMap::new()),
 
             pipeline,
-            transform: transform_buffer,
+            uniforms: uniforms_buffer,
             vertices,
             indices,
             instances,
@@ -224,16 +226,18 @@ impl Pipeline {
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
     ) {
-        let transform_buffer = device
-            .create_buffer_mapped(16, wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(transformation.as_ref());
+        let uniforms_buffer = device
+            .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&[Uniforms {
+                transform: transformation.into(),
+            }]);
 
         encoder.copy_buffer_to_buffer(
-            &transform_buffer,
+            &uniforms_buffer,
             0,
-            &self.transform,
+            &self.uniforms,
             0,
-            16 * 4,
+            std::mem::size_of::<Uniforms>() as u64,
         );
 
         // TODO: Batch draw calls using a texture atlas
@@ -449,4 +453,10 @@ const QUAD_VERTS: [Vertex; 4] = [
 struct Instance {
     _position: [f32; 2],
     _scale: [f32; 2],
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+struct Uniforms {
+    transform: [f32; 16],
 }
