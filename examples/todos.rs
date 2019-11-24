@@ -508,8 +508,7 @@ impl SavedState {
         {
             project_dirs.data_dir().into()
         } else {
-            std::env::current_dir()
-                .expect("The current directory is not accessible")
+            std::env::current_dir().unwrap_or(std::path::PathBuf::new())
         };
 
         path.push("todos.json");
@@ -538,9 +537,11 @@ impl SavedState {
             .map_err(|_| SaveError::FormatError)?;
 
         let path = Self::path();
-        let dir = path.parent().ok_or(SaveError::DirectoryError)?;
 
-        std::fs::create_dir_all(dir).map_err(|_| SaveError::DirectoryError)?;
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)
+                .map_err(|_| SaveError::DirectoryError)?;
+        }
 
         let mut file =
             std::fs::File::create(path).map_err(|_| SaveError::FileError)?;
