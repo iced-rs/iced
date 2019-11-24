@@ -262,7 +262,7 @@ impl Pipeline {
                     0,
                     &self.instances,
                     0,
-                    mem::size_of::<Image>() as u64,
+                    mem::size_of::<Instance>() as u64,
                 );
 
                 {
