@@ -3,6 +3,8 @@ This document describes the current state of Iced and some of the most important
 
 Before diving into the roadmap, check out [the ecosystem overview] to get an idea of the current state of the library.
 
+[the ecosystem overview]: ECOSYSTEM.md
+
 ## Next steps
 Most of the work related to these features needs to happen in the `iced_native` path of the ecosystem, as the web already supports many of them.
 
