@@ -3,7 +3,7 @@ use crate::{
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
     Cache, Command, Container, Debug, Element, Event, Length, MouseCursor,
-    UserInterface,
+    Settings, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -72,7 +72,7 @@ pub trait Application: Sized {
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Application`]: trait.Application.html
-    fn run()
+    fn run(settings: Settings)
     where
         Self: 'static,
     {
@@ -96,13 +96,15 @@ pub trait Application: Sized {
 
         let mut title = application.title();
 
-        // TODO: Ask for window settings and configure this properly
+        let (width, height) = settings.window.size;
+
         let window = WindowBuilder::new()
             .with_title(&title)
             .with_inner_size(winit::dpi::LogicalSize {
-                width: 1280.0,
-                height: 1024.0,
+                width: f64::from(width),
+                height: f64::from(height),
             })
+            .with_resizable(settings.window.resizable)
             .build(&event_loop)
             .expect("Open window");
 

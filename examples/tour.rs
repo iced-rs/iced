@@ -1,13 +1,13 @@
 use iced::{
     button, scrollable, slider, text_input, Background, Button, Checkbox,
     Color, Column, Container, Element, HorizontalAlignment, Image, Length,
-    Radio, Row, Sandbox, Scrollable, Slider, Text, TextInput,
+    Radio, Row, Sandbox, Scrollable, Settings, Slider, Text, TextInput,
 };
 
 pub fn main() {
     env_logger::init();
 
-    Tour::run()
+    Tour::run(Settings::default())
 }
 
 pub struct Tour {

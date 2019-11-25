@@ -1,4 +1,4 @@
-use crate::{Command, Element};
+use crate::{Command, Element, Settings};
 
 /// An interactive cross-platform application.
 ///
@@ -19,10 +19,10 @@ use crate::{Command, Element};
 /// before](index.html#overview). We just need to fill in the gaps:
 ///
 /// ```no_run
-/// use iced::{button, Application, Button, Column, Command, Element, Text};
+/// use iced::{button, Application, Button, Column, Command, Element, Settings, Text};
 ///
 /// pub fn main() {
-///     Counter::run()
+///     Counter::run(Settings::default())
 /// }
 ///
 /// #[derive(Default)]
@@ -132,12 +132,12 @@ pub trait Application: Sized {
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Application`]: trait.Application.html
-    fn run()
+    fn run(settings: Settings)
     where
         Self: 'static,
     {
         #[cfg(not(target_arch = "wasm32"))]
-        <Instance<Self> as iced_winit::Application>::run();
+        <Instance<Self> as iced_winit::Application>::run(settings.into());
 
         #[cfg(target_arch = "wasm32")]
         <Instance<Self> as iced_web::Application>::run();

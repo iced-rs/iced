@@ -185,6 +185,9 @@ mod application;
 mod platform;
 mod sandbox;
 
+pub mod settings;
+
 pub use application::Application;
 pub use platform::*;
 pub use sandbox::Sandbox;
+pub use settings::Settings;
