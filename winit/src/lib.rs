@@ -26,10 +26,12 @@ pub use iced_native::*;
 pub use winit;
 
 pub mod conversion;
+pub mod settings;
 
 mod application;
 
 pub use application::Application;
+pub use settings::Settings;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.

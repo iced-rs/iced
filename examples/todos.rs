@@ -1,12 +1,12 @@
 use iced::{
     button, scrollable, text_input, Align, Application, Background, Button,
     Checkbox, Color, Column, Command, Container, Element, Font,
-    HorizontalAlignment, Length, Row, Scrollable, Text, TextInput,
+    HorizontalAlignment, Length, Row, Scrollable, Settings, Text, TextInput,
 };
 use serde::{Deserialize, Serialize};
 
 pub fn main() {
-    Todos::run()
+    Todos::run(Settings::default())
 }
 
 #[derive(Debug)]

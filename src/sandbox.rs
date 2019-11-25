@@ -1,4 +1,4 @@
-use crate::{Application, Command, Element};
+use crate::{Application, Command, Element, Settings};
 
 /// A sandboxed [`Application`].
 ///
@@ -19,10 +19,10 @@ use crate::{Application, Command, Element};
 /// to remove the use of [`Command`]:
 ///
 /// ```no_run
-/// use iced::{button, Button, Column, Element, Sandbox, Text};
+/// use iced::{button, Button, Column, Element, Sandbox, Settings, Text};
 ///
 /// pub fn main() {
-///     Counter::run()
+///     Counter::run(Settings::default())
 /// }
 ///
 /// #[derive(Default)]
@@ -121,11 +121,11 @@ pub trait Sandbox {
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Sandbox`]: trait.Sandbox.html
-    fn run()
+    fn run(settings: Settings)
     where
         Self: 'static + Sized,
     {
-        <Self as Application>::run()
+        <Self as Application>::run(settings)
     }
 }
 
