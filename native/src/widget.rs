@@ -47,7 +47,7 @@ pub use radio::Radio;
 #[doc(no_inline)]
 pub use row::Row;
 #[doc(no_inline)]
-pub use scrollable::Scrollable;
+pub use scrollable::{Scrollable, ScrollbarGrab};
 #[doc(no_inline)]
 pub use slider::Slider;
 #[doc(no_inline)]
