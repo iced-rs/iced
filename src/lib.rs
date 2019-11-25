@@ -22,7 +22,7 @@
 //! [Cross-platform support]: https://github.com/hecrj/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
 //! [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
 //! [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
-//! [Debug overlay with performance metrics]: https://gfycat.com/artisticdiligenthorseshoebat-rust-gui
+//! [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
 //! [Modular ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
 //! [renderer-agnostic native runtime]: https://github.com/hecrj/iced/tree/master/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
