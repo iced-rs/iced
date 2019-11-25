@@ -12,12 +12,13 @@ Provided you get in touch first, all kinds of contributions are welcome! Here ar
 - New renderers: `iced_piet` (already in the works!), `iced_skia`, `iced_raqote`, `iced_pathfinder`...
 - New shells: `iced_sdl` could be useful for gamedev!
 - Better style generation for `iced_web`
-- Optimizations for `iced_wgpu`
+- Optimizations for `iced_wgpu`: tiling, incremental rendering...
 - Alternative to [`wgpu_glyph`] for proper (shaped), efficient text rendering
 - Time travelling debugger built on top of Iced itself
+- Testing library
 - Cool website to serve on https://iced.rs
 
-Moreover, Iced is in its infancy and, besides directly writing code, there are many other different ways you can contribute. To name a few:
+Besides directly writing code, there are many other different ways you can contribute. To name a few:
 
 - Writing tutorials or blog posts
 - Improving the documentation
