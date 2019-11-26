@@ -30,15 +30,10 @@ impl Pipeline {
             .load(&[font::Family::SansSerif, font::Family::Serif])
             .unwrap_or_else(|_| FALLBACK_FONT.to_vec());
 
-        let mono_font = font_source
-            .load(&[font::Family::Monospace])
-            .unwrap_or_else(|_| FALLBACK_FONT.to_vec());
-
         let load_glyph_brush = |font: Vec<u8>| {
             let builder =
                 wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(vec![
-                    mono_font.clone(),
-                    font.clone(),
+                    font.clone()
                 ])?;
 
             Ok((
@@ -109,14 +104,7 @@ impl Pipeline {
             text: content,
             scale: wgpu_glyph::Scale { x: size, y: size },
             bounds: (bounds.width, bounds.height),
-
-            // TODO: This is a bit hacky. We are loading the debug font as the
-            // first font in the `draw_brush`. The `measure_brush` does not
-            // contain this, hence we subtract 1.
-            //
-            // This should go away once we unify `draw_brush` and
-            // `measure_brush`.
-            font_id: wgpu_glyph::FontId(font_id - 1),
+            font_id: wgpu_glyph::FontId(font_id),
             ..Default::default()
         };
 
@@ -157,7 +145,7 @@ impl Pipeline {
 
     pub fn find_font(&self, font: iced_native::Font) -> wgpu_glyph::FontId {
         match font {
-            iced_native::Font::Default => wgpu_glyph::FontId(1),
+            iced_native::Font::Default => wgpu_glyph::FontId(0),
             iced_native::Font::External { name, bytes } => {
                 if let Some(font_id) = self.draw_font_map.borrow().get(name) {
                     return *font_id;
