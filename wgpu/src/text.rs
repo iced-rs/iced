@@ -11,6 +11,8 @@ pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
 
 pub const CHECKMARK_ICON: char = '\u{F00C}';
 
+const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
+
 #[derive(Debug)]
 pub struct Pipeline {
     draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
@@ -26,23 +28,35 @@ impl Pipeline {
 
         let default_font = font_source
             .load(&[font::Family::SansSerif, font::Family::Serif])
-            .expect("Find sans-serif or serif font");
+            .unwrap_or_else(|_| FALLBACK_FONT.to_vec());
 
         let mono_font = font_source
             .load(&[font::Family::Monospace])
-            .expect("Find monospace font");
+            .unwrap_or_else(|_| FALLBACK_FONT.to_vec());
 
-        let draw_brush =
-            wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(vec![
-                mono_font,
-                default_font.clone(),
-            ])
+        let load_glyph_brush = |font: Vec<u8>| {
+            let builder =
+                wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(vec![
+                    mono_font.clone(),
+                    font.clone(),
+                ])?;
+
+            Ok((
+                builder,
+                glyph_brush::GlyphBrushBuilder::using_font_bytes(font).build(),
+            ))
+        };
+
+        let (brush_builder, measure_brush) = load_glyph_brush(default_font)
+            .unwrap_or_else(|_: wgpu_glyph::rusttype::Error| {
+                log::warn!("System font failed to load. Falling back to embedded font...");
+
+                load_glyph_brush(FALLBACK_FONT.to_vec()).expect("Load fallback font")
+            });
+
+        let draw_brush = brush_builder
             .initial_cache_size((2048, 2048))
             .build(device, wgpu::TextureFormat::Bgra8UnormSrgb);
-
-        let measure_brush =
-            glyph_brush::GlyphBrushBuilder::using_font_bytes(default_font)
-                .build();
 
         Pipeline {
             draw_brush: RefCell::new(draw_brush),
