@@ -3,7 +3,7 @@
 layout(location = 0) in vec2 v_Pos;
 layout(location = 1) in vec2 i_Pos;
 layout(location = 2) in vec2 i_Scale;
-layout(location = 3) in vec4 i_Color;
+layout(location = 3) in vec2 i_Color;
 layout(location = 4) in float i_BorderRadius;
 
 layout (set = 0, binding = 0) uniform Globals {
@@ -11,7 +11,7 @@ layout (set = 0, binding = 0) uniform Globals {
     float u_Scale;
 };
 
-layout(location = 0) out vec4 o_Color;
+layout(location = 0) out vec2 o_Color;
 layout(location = 1) out vec2 o_Pos;
 layout(location = 2) out vec2 o_Scale;
 layout(location = 3) out float o_BorderRadius;

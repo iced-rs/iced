@@ -218,7 +218,7 @@ where
             layout.bounds(),
             cursor_position,
             self.state.is_pressed,
-            self.background,
+            self.background.clone(),
             self.border_radius,
             content,
         )

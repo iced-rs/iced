@@ -223,8 +223,9 @@ impl Renderer {
                         bounds.y - layer.offset.y as f32,
                     ],
                     scale: [bounds.width, bounds.height],
-                    color: match background {
-                        Background::Color(color) => color.into_linear(),
+                    colors: match background {
+                        Background::Color(color) => vec![color.into_linear()],
+                        Background::Gradient(colors) => colors.iter().map(|c| c.into_linear()).collect(),
                     },
                     border_radius: *border_radius as f32,
                 });

@@ -449,6 +449,7 @@ const QUAD_VERTS: [Vertex; 4] = [
     },
 ];
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 struct Instance {
     _position: [f32; 2],

@@ -696,12 +696,22 @@ fn secondary_button<'a, Message>(
     state: &'a mut button::State,
     label: &str,
 ) -> Button<'a, Message> {
-    button(state, label).background(Background::Color(Color {
-        r: 0.4,
-        g: 0.4,
-        b: 0.4,
+    button(state, label).background(Background::Gradient(vec![Color {
+        r: 1.0,
+        g: 0.0,
+        b: 0.0,
         a: 1.0,
-    }))
+    }, Color {
+        r: 0.0,
+        g: 1.0,
+        b: 0.0,
+        a: 1.0,
+    }, Color {
+        r: 0.0,
+        g: 0.0,
+        b: 1.0,
+        a: 1.0,
+    }]))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
