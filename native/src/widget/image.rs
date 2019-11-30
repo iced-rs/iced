@@ -5,7 +5,7 @@ use crate::{layout, Element, Hasher, Layout, Length, Point, Size, Widget};
 use std::{
     hash::{Hash, Hasher as _},
     path::PathBuf,
-    rc::Rc,
+    sync::Arc,
 };
 
 /// A frame that displays an image while keeping aspect ratio.
@@ -76,20 +76,18 @@ where
 
         let aspect_ratio = width as f32 / height as f32;
 
-        // TODO: Deal with additional cases
-        let (width, height) = match (self.width, self.height) {
-            (Length::Units(width), _) => (
-                self.width,
-                Length::Units((width as f32 / aspect_ratio).round() as u16),
-            ),
-            (_, _) => {
-                (Length::Units(width as u16), Length::Units(height as u16))
-            }
-        };
+        let mut size = limits
+            .width(self.width)
+            .height(self.height)
+            .resolve(Size::new(width as f32, height as f32));
 
-        let mut size = limits.width(width).height(height).resolve(Size::ZERO);
+        let viewport_aspect_ratio = size.width / size.height;
 
-        size.height = size.width / aspect_ratio;
+        if viewport_aspect_ratio > aspect_ratio {
+            size.width = width as f32 * size.height / height as f32;
+        } else {
+            size.height = height as f32 * size.width / width as f32;
+        }
 
         layout::Node::new(size)
     }
@@ -115,7 +113,7 @@ where
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
-    data: Rc<Data>,
+    data: Arc<Data>,
 }
 
 impl Handle {
@@ -139,7 +137,7 @@ impl Handle {
 
         Handle {
             id: hasher.finish(),
-            data: Rc::new(data),
+            data: Arc::new(data),
         }
     }
 
@@ -173,13 +171,22 @@ impl From<&str> for Handle {
 /// The data of an [`Image`].
 ///
 /// [`Image`]: struct.Image.html
-#[derive(Debug, Clone, Hash)]
+#[derive(Clone, Hash)]
 pub enum Data {
     /// File data
     Path(PathBuf),
 
     /// In-memory data
     Bytes(Vec<u8>),
+}
+
+impl std::fmt::Debug for Data {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Data::Path(path) => write!(f, "Path({:?})", path),
+            Data::Bytes(_) => write!(f, "Bytes(...)"),
+        }
+    }
 }
 
 /// The renderer of an [`Image`].
