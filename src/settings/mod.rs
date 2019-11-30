@@ -1,5 +1,15 @@
 //! Configure your application.
 
+#[cfg(target_os = "windows")]
+#[path = "windows.rs"]
+pub mod platform;
+
+#[cfg(not(target_os = "windows"))]
+#[path = "not_windows.rs"]
+pub mod platform;
+
+pub use platform::PlatformSpecific;
+
 /// The settings of an application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Settings {
@@ -22,6 +32,9 @@ pub struct Window {
 
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
+
+    /// Platform specific Setting.
+    pub platform_specific: PlatformSpecific,
 }
 
 impl Default for Window {
@@ -30,6 +43,7 @@ impl Default for Window {
             size: (1024, 768),
             resizable: true,
             decorations: true,
+            platform_specific: Default::default(),
         }
     }
 }
@@ -42,6 +56,7 @@ impl From<Settings> for iced_winit::Settings {
                 size: settings.window.size,
                 resizable: settings.window.resizable,
                 decorations: settings.window.decorations,
+                platform_specific: settings.window.platform_specific.into(),
             },
         }
     }
