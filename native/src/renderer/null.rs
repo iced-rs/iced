@@ -61,11 +61,21 @@ impl text::Renderer for Null {
 }
 
 impl scrollable::Renderer for Null {
-    fn scrollbar_grab(
+    fn scrollbar_bounds(
         &self,
         _bounds: Rectangle,
         _content_bounds: Rectangle,
         _offset: u32,
+    ) -> (Rectangle, Rectangle) {
+        Default::default()
+    }
+
+    fn scrollbar_grab(
+        &self,
+        _bounds: Rectangle,
+        _content_bounds: Rectangle,
+        _background_bounds: Rectangle,
+        _scroller_bounds: Rectangle,
         _cursor_position: Point,
     ) -> Option<ScrollbarGrab> {
         None
