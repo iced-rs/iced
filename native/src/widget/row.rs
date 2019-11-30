@@ -28,7 +28,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Creates an empty [`Row`].
     ///
     /// [`Row`]: struct.Row.html
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Row {
             spacing: 0,
             padding: 0,
@@ -46,7 +46,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Custom margins per element do not exist in Iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
     /// elements consistent.
-    pub fn spacing(mut self, units: u16) -> Self {
+    pub const fn spacing(mut self, units: u16) -> Self {
         self.spacing = units;
         self
     }
@@ -54,7 +54,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Sets the padding of the [`Row`].
     ///
     /// [`Row`]: struct.Row.html
-    pub fn padding(mut self, units: u16) -> Self {
+    pub const fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self
     }
@@ -62,7 +62,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Sets the width of the [`Row`].
     ///
     /// [`Row`]: struct.Row.html
-    pub fn width(mut self, width: Length) -> Self {
+    pub const fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
@@ -70,7 +70,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Sets the height of the [`Row`].
     ///
     /// [`Row`]: struct.Row.html
-    pub fn height(mut self, height: Length) -> Self {
+    pub const fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
@@ -78,7 +78,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Sets the maximum width of the [`Row`].
     ///
     /// [`Row`]: struct.Row.html
-    pub fn max_width(mut self, max_width: u32) -> Self {
+    pub const fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
@@ -86,7 +86,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Sets the maximum height of the [`Row`].
     ///
     /// [`Row`]: struct.Row.html
-    pub fn max_height(mut self, max_height: u32) -> Self {
+    pub const fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
         self
     }
@@ -94,7 +94,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Sets the vertical alignment of the contents of the [`Row`] .
     ///
     /// [`Row`]: struct.Row.html
-    pub fn align_items(mut self, align: Align) -> Self {
+    pub const fn align_items(mut self, align: Align) -> Self {
         self.align_items = align;
         self
     }

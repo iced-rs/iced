@@ -16,7 +16,7 @@ impl<T> Vector<T> {
     /// Creates a new [`Vector`] with the given components.
     ///
     /// [`Vector`]: struct.Vector.html
-    pub fn new(x: T, y: T) -> Self {
+    pub const fn new(x: T, y: T) -> Self {
         Self { x, y }
     }
 }

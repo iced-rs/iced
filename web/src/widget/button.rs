@@ -113,8 +113,8 @@ impl State {
     /// Creates a new [`State`].
     ///
     /// [`State`]: struct.State.html
-    pub fn new() -> State {
-        State::default()
+    pub const fn new() -> State {
+        State
     }
 }
 

@@ -12,7 +12,7 @@ impl Node {
     ///
     /// [`Node`]: struct.Node.html
     /// [`Size`]: ../struct.Size.html
-    pub fn new(size: Size) -> Self {
+    pub const fn new(size: Size) -> Self {
         Self::with_children(size, Vec::new())
     }
 
@@ -20,7 +20,7 @@ impl Node {
     ///
     /// [`Node`]: struct.Node.html
     /// [`Size`]: ../struct.Size.html
-    pub fn with_children(size: Size, children: Vec<Node>) -> Self {
+    pub const fn with_children(size: Size, children: Vec<Node>) -> Self {
         Node {
             bounds: Rectangle {
                 x: 0.0,
@@ -36,14 +36,14 @@ impl Node {
     ///
     /// [`Node`]: struct.Node.html
     /// [`Size`]: ../struct.Size.html
-    pub fn size(&self) -> Size {
+    pub const fn size(&self) -> Size {
         Size::new(self.bounds.width, self.bounds.height)
     }
 
     /// Returns the bounds of the [`Node`].
     ///
     /// [`Node`]: struct.Node.html
-    pub fn bounds(&self) -> Rectangle {
+    pub const fn bounds(&self) -> Rectangle {
         self.bounds
     }
 

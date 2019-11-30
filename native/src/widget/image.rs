@@ -37,7 +37,7 @@ impl Image {
     /// Sets the width of the [`Image`] boundaries.
     ///
     /// [`Image`]: struct.Image.html
-    pub fn width(mut self, width: Length) -> Self {
+    pub const fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
@@ -45,7 +45,7 @@ impl Image {
     /// Sets the height of the [`Image`] boundaries.
     ///
     /// [`Image`]: struct.Image.html
-    pub fn height(mut self, height: Length) -> Self {
+    pub const fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }

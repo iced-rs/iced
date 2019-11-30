@@ -20,7 +20,7 @@ impl Limits {
     ///
     /// [`Limits`]: struct.Limits.html
     /// [`Size`]: ../struct.Size.html
-    pub fn new(min: Size, max: Size) -> Limits {
+    pub const fn new(min: Size, max: Size) -> Limits {
         Limits {
             min,
             max,
@@ -32,7 +32,7 @@ impl Limits {
     ///
     /// [`Limits`]: struct.Limits.html
     /// [`Size`]: ../struct.Size.html
-    pub fn min(&self) -> Size {
+    pub const fn min(&self) -> Size {
         self.min
     }
 
@@ -40,7 +40,7 @@ impl Limits {
     ///
     /// [`Limits`]: struct.Limits.html
     /// [`Size`]: ../struct.Size.html
-    pub fn max(&self) -> Size {
+    pub const fn max(&self) -> Size {
         self.max
     }
 
