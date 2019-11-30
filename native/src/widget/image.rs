@@ -141,7 +141,7 @@ impl Handle {
         }
     }
 
-    /// Returns the uniquie identifier of the [`Handle`].
+    /// Returns the unique identifier of the [`Handle`].
     ///
     /// [`Handle`]: struct.Handle.html
     pub fn id(&self) -> u64 {
