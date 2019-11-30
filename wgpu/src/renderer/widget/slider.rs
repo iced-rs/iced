@@ -31,6 +31,8 @@ impl slider::Renderer for Renderer {
                 },
                 background: Background::Color([0.6, 0.6, 0.6].into()),
                 border_radius: 0,
+                border_color: Color::BLACK,
+                border_width: 0,
             },
             Primitive::Quad {
                 bounds: Rectangle {
@@ -41,6 +43,8 @@ impl slider::Renderer for Renderer {
                 },
                 background: Background::Color(Color::WHITE),
                 border_radius: 0,
+                border_color: Color::BLACK,
+                border_width: 0,
             },
         );
 
@@ -49,41 +53,31 @@ impl slider::Renderer for Renderer {
         let handle_offset = (bounds.width - HANDLE_WIDTH)
             * ((value - range_start) / (range_end - range_start).max(1.0));
 
-        let (handle_border, handle) = (
-            Primitive::Quad {
-                bounds: Rectangle {
-                    x: bounds.x + handle_offset.round() - 1.0,
-                    y: rail_y - HANDLE_HEIGHT / 2.0 - 1.0,
-                    width: HANDLE_WIDTH + 2.0,
-                    height: HANDLE_HEIGHT + 2.0,
-                },
-                background: Background::Color([0.6, 0.6, 0.6].into()),
-                border_radius: 5,
+        let handle = Primitive::Quad {
+            bounds: Rectangle {
+                x: bounds.x + handle_offset.round(),
+                y: rail_y - HANDLE_HEIGHT / 2.0,
+                width: HANDLE_WIDTH,
+                height: HANDLE_HEIGHT,
             },
-            Primitive::Quad {
-                bounds: Rectangle {
-                    x: bounds.x + handle_offset.round(),
-                    y: rail_y - HANDLE_HEIGHT / 2.0,
-                    width: HANDLE_WIDTH,
-                    height: HANDLE_HEIGHT,
-                },
-                background: Background::Color(
-                    if is_dragging {
-                        [0.85, 0.85, 0.85]
-                    } else if is_mouse_over {
-                        [0.90, 0.90, 0.90]
-                    } else {
-                        [0.95, 0.95, 0.95]
-                    }
-                    .into(),
-                ),
-                border_radius: 4,
-            },
-        );
+            background: Background::Color(
+                if is_dragging {
+                    [0.85, 0.85, 0.85]
+                } else if is_mouse_over {
+                    [0.90, 0.90, 0.90]
+                } else {
+                    [0.95, 0.95, 0.95]
+                }
+                .into(),
+            ),
+            border_radius: 5,
+            border_color: [0.6, 0.6, 0.6].into(),
+            border_width: 1,
+        };
 
         (
             Primitive::Group {
-                primitives: vec![rail_top, rail_bottom, handle_border, handle],
+                primitives: vec![rail_top, rail_bottom, handle],
             },
             if is_dragging {
                 MouseCursor::Grabbing

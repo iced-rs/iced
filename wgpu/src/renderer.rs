@@ -215,6 +215,8 @@ impl Renderer {
                 bounds,
                 background,
                 border_radius,
+                border_color,
+                border_width,
             } => {
                 // TODO: Move some of this computations to the GPU (?)
                 layer.quads.push(Quad {
@@ -226,7 +228,9 @@ impl Renderer {
                     color: match background {
                         Background::Color(color) => color.into_linear(),
                     },
+                    border_color: border_color.into_linear(),
                     border_radius: *border_radius as f32,
+                    border_width: *border_width as f32,
                 });
             }
             Primitive::Image { path, bounds } => {
@@ -455,6 +459,8 @@ fn explain_layout(
         bounds: layout.bounds(),
         background: Background::Color([0.0, 0.0, 0.0, 0.05].into()),
         border_radius: 0,
+        border_color: Color::BLACK,
+        border_width: 0,
     });
 
     for child in layout.children() {

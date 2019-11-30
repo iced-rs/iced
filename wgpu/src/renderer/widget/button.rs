@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{button, Background, MouseCursor, Point, Rectangle};
+use iced_native::{button, Background, MouseCursor, Point, Rectangle, Color};
 
 impl button::Renderer for Renderer {
     fn draw(
@@ -40,11 +40,15 @@ impl button::Renderer for Renderer {
                                 [0.0, 0.0, 0.0, 0.5].into(),
                             ),
                             border_radius,
+                            border_color: Color::BLACK,
+                            border_width: 0,
                         },
                         Primitive::Quad {
                             bounds,
                             background,
                             border_radius,
+                            border_color: Color::BLACK,
+                            border_width: 0,
                         },
                         content,
                     ],
