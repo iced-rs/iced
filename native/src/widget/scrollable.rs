@@ -102,6 +102,17 @@ impl<'a, Message, Renderer> Scrollable<'a, Message, Renderer> {
     }
 }
 
+fn scroll_percentage(
+    bounds: Rectangle,
+    scroller_bounds: Rectangle,
+    scroller_grabbed_at: f32,
+    cursor_position: Point,
+) -> f32 {
+    (cursor_position.y + bounds.y
+        - scroller_bounds.height * scroller_grabbed_at)
+        / (bounds.height - scroller_bounds.height)
+}
+
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Scrollable<'a, Message, Renderer>
 where
@@ -195,12 +206,13 @@ where
                             }
                         };
 
-                        let scroll_percentage = (cursor_position.y + bounds.y
-                            - scroller_bounds.height * scroller_grabbed_at)
-                            / (bounds.height - scroller_bounds.height);
-
                         self.state.scroll_to(
-                            scroll_percentage,
+                            scroll_percentage(
+                                bounds,
+                                scroller_bounds,
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ),
                             bounds,
                             content_bounds,
                         );
@@ -216,12 +228,13 @@ where
                     if let Some(scroller_grabbed_at) =
                         self.state.scroller_grabbed_at
                     {
-                        let scroll_percentage = (cursor_position.y + bounds.y
-                            - scroller_bounds.height * scroller_grabbed_at)
-                            / (bounds.height - scroller_bounds.height);
-
                         self.state.scroll_to(
-                            scroll_percentage,
+                            scroll_percentage(
+                                bounds,
+                                scroller_bounds,
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ),
                             bounds,
                             content_bounds,
                         );
