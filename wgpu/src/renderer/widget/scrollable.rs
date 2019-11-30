@@ -36,31 +36,35 @@ fn scroller_bounds(
 }
 
 impl scrollable::Renderer for Renderer {
-    fn scrollbar_grab(
+    fn scrollbar_bounds(
         &self,
         bounds: Rectangle,
         content_bounds: Rectangle,
         offset: u32,
-        cursor_position: Point,
-    ) -> Option<(ScrollbarGrab, Rectangle)> {
+    ) -> (Rectangle, Rectangle) {
         let background_bounds = background_bounds(bounds);
+        let scroller_bounds =
+            scroller_bounds(bounds, content_bounds, background_bounds, offset);
+
+        (background_bounds, scroller_bounds)
+    }
+
+    fn scrollbar_grab(
+        &self,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        background_bounds: Rectangle,
+        scroller_bounds: Rectangle,
+        cursor_position: Point,
+    ) -> Option<ScrollbarGrab> {
         if content_bounds.height > bounds.height
             && background_bounds.contains(cursor_position)
         {
-            let scroller_bounds = scroller_bounds(
-                bounds,
-                content_bounds,
-                background_bounds,
-                offset,
-            );
-
-            let scrollbar_grab = if scroller_bounds.contains(cursor_position) {
+            Some(if scroller_bounds.contains(cursor_position) {
                 ScrollbarGrab::Scroller
             } else {
                 ScrollbarGrab::Background
-            };
-
-            Some((scrollbar_grab, scroller_bounds))
+            })
         } else {
             None
         }

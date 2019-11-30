@@ -151,10 +151,13 @@ where
         let content_bounds = content.bounds();
 
         let offset = self.state.offset(bounds, content_bounds);
+        let (background_bounds, scroller_bounds) =
+            renderer.scrollbar_bounds(bounds, content_bounds, offset);
         let scrollbar_grab = renderer.scrollbar_grab(
             bounds,
             content_bounds,
-            offset,
+            background_bounds,
+            scroller_bounds,
             cursor_position,
         );
 
@@ -183,10 +186,8 @@ where
                     state,
                 }) => match state {
                     ButtonState::Pressed => {
-                        let (scrollbar_grab, scroller_bounds) =
-                            scrollbar_grab.unwrap();
-
-                        let scroller_grabbed_at = match scrollbar_grab {
+                        let scroller_grabbed_at = match scrollbar_grab.unwrap()
+                        {
                             ScrollbarGrab::Background => 0.5,
                             ScrollbarGrab::Scroller => {
                                 (cursor_position.y - scroller_bounds.y)
@@ -194,18 +195,15 @@ where
                             }
                         };
 
-                        let scroll_percentage = (cursor_position.y
-                            - (scroller_bounds.height * scroller_grabbed_at))
-                            / (bounds.height
-                                - (scroller_bounds.height
-                                    * scroller_grabbed_at));
+                        let scroll_percentage = (cursor_position.y + bounds.y
+                            - scroller_bounds.height * scroller_grabbed_at)
+                            / (bounds.height - scroller_bounds.height);
 
-                        dbg!((scroll_percentage, scroller_grabbed_at));
-                        /*self.state.scroll_to(
+                        self.state.scroll_to(
                             scroll_percentage,
                             bounds,
                             content_bounds,
-                        );*/
+                        );
 
                         self.state.scroller_grabbed_at =
                             Some(scroller_grabbed_at);
@@ -214,24 +212,21 @@ where
                         self.state.scroller_grabbed_at = None;
                     }
                 },
-                /* TODO: Implement dragging to scroll
                 Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                    if let Some(scrollbar_grabbed_at) =
-                        self.state.scrollbar_grabbed_at
+                    if let Some(scroller_grabbed_at) =
+                        self.state.scroller_grabbed_at
                     {
-                        let ratio = content_bounds.height / bounds.height;
-                        let delta = scrollbar_grabbed_at.y - cursor_position.y;
+                        let scroll_percentage = (cursor_position.y + bounds.y
+                            - scroller_bounds.height * scroller_grabbed_at)
+                            / (bounds.height - scroller_bounds.height);
 
-                        self.state.scroll(
-                            delta * ratio,
+                        self.state.scroll_to(
+                            scroll_percentage,
                             bounds,
                             content_bounds,
                         );
-
-                        self.state.scrollbar_grabbed_at = Some(cursor_position);
                     }
                 }
-                */
                 _ => {}
             }
         }
@@ -273,8 +268,16 @@ where
         let offset = self.state.offset(bounds, content_bounds);
 
         let is_mouse_over = bounds.contains(cursor_position);
+        let (background_bounds, scroller_bounds) =
+            renderer.scrollbar_bounds(bounds, content_bounds, offset);
         let is_mouse_over_scrollbar = renderer
-            .scrollbar_grab(bounds, content_bounds, offset, cursor_position)
+            .scrollbar_grab(
+                bounds,
+                content_bounds,
+                background_bounds,
+                scroller_bounds,
+                cursor_position,
+            )
             .is_some();
 
         let content = {
@@ -399,18 +402,28 @@ pub enum ScrollbarGrab {
 /// [`Scrollable`]: struct.Scrollable.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// Returns the bounds of the scrollbar
+    /// - Background
+    /// - Movable Scroller
+    fn scrollbar_bounds(
+        &self,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        offset: u32,
+    ) -> (Rectangle, Rectangle);
+
     /// Returns what part of the scrollbar is being grabbed by the mouse
-    /// given the bounds of the [`Scrollable`] and its contents together
-    /// with the current scroller bounds.
+    /// given the bounds of the [`Scrollable`] and its contents.
     ///
     /// [`Scrollable`]: struct.Scrollable.html
     fn scrollbar_grab(
         &self,
         bounds: Rectangle,
         content_bounds: Rectangle,
-        offset: u32,
+        background_bounds: Rectangle,
+        scroller_bounds: Rectangle,
         cursor_position: Point,
-    ) -> Option<(ScrollbarGrab, Rectangle)>;
+    ) -> Option<ScrollbarGrab>;
 
     /// Draws the [`Scrollable`].
     ///

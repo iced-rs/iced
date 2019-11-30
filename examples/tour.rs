@@ -145,7 +145,7 @@ impl Steps {
                 Step::Debugger,
                 Step::End,
             ],
-            current: 6,
+            current: 0,
         }
     }
 
