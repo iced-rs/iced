@@ -105,6 +105,7 @@ pub trait Application: Sized {
                 height: f64::from(height),
             })
             .with_resizable(settings.window.resizable)
+            .with_decorations(settings.window.decorations)
             .build(&event_loop)
             .expect("Open window");
 

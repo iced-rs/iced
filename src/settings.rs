@@ -19,6 +19,9 @@ pub struct Window {
 
     /// Whether the window should be resizable or not.
     pub resizable: bool,
+
+    /// Whether the window should have a border, a title bar, etc.
+    pub decorations: bool,
 }
 
 impl Default for Window {
@@ -26,6 +29,7 @@ impl Default for Window {
         Window {
             size: (1024, 768),
             resizable: true,
+            decorations: true,
         }
     }
 }
@@ -37,6 +41,7 @@ impl From<Settings> for iced_winit::Settings {
             window: iced_winit::settings::Window {
                 size: settings.window.size,
                 resizable: settings.window.resizable,
+                decorations: settings.window.decorations,
             },
         }
     }
