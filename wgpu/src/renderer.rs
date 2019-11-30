@@ -127,6 +127,7 @@ impl Renderer {
         }
 
         self.queue.submit(&[encoder.finish()]);
+        self.image_pipeline.trim_cache();
 
         *mouse_cursor
     }

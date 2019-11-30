@@ -4,11 +4,16 @@ use iced_native::{
     Rectangle,
 };
 
-use std::{cell::RefCell, collections::HashMap, mem, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    mem,
+    rc::Rc,
+};
 
 #[derive(Debug)]
 pub struct Pipeline {
-    cache: RefCell<HashMap<u64, Memory>>,
+    cache: RefCell<Cache>,
 
     pipeline: wgpu::RenderPipeline,
     uniforms: wgpu::Buffer,
@@ -188,7 +193,7 @@ impl Pipeline {
         });
 
         Pipeline {
-            cache: RefCell::new(HashMap::new()),
+            cache: RefCell::new(Cache::new()),
 
             pipeline,
             uniforms: uniforms_buffer,
@@ -203,11 +208,11 @@ impl Pipeline {
     pub fn dimensions(&self, handle: &Handle) -> (u32, u32) {
         self.load(handle);
 
-        self.cache.borrow().get(&handle.id()).unwrap().dimensions()
+        self.cache.borrow_mut().get(handle).unwrap().dimensions()
     }
 
     fn load(&self, handle: &Handle) {
-        if !self.cache.borrow().contains_key(&handle.id()) {
+        if !self.cache.borrow().contains(&handle) {
             let memory = match handle.data() {
                 Data::Path(path) => {
                     if let Ok(image) = image::open(path) {
@@ -229,7 +234,7 @@ impl Pipeline {
                 }
             };
 
-            let _ = self.cache.borrow_mut().insert(handle.id(), memory);
+            let _ = self.cache.borrow_mut().insert(&handle, memory);
         }
     }
 
@@ -266,7 +271,7 @@ impl Pipeline {
             if let Some(texture) = self
                 .cache
                 .borrow_mut()
-                .get_mut(&image.handle.id())
+                .get(&image.handle)
                 .unwrap()
                 .upload(device, encoder, &self.texture_layout)
             {
@@ -329,6 +334,10 @@ impl Pipeline {
                 }
             }
         }
+    }
+
+    pub fn trim_cache(&mut self) {
+        self.cache.borrow_mut().trim();
     }
 }
 
@@ -437,6 +446,42 @@ impl Memory {
             Memory::NotFound => None,
             Memory::Invalid => None,
         }
+    }
+}
+
+#[derive(Debug)]
+struct Cache {
+    map: HashMap<u64, Memory>,
+    hits: HashSet<u64>,
+}
+
+impl Cache {
+    fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+            hits: HashSet::new(),
+        }
+    }
+
+    fn contains(&self, handle: &Handle) -> bool {
+        self.map.contains_key(&handle.id())
+    }
+
+    fn get(&mut self, handle: &Handle) -> Option<&mut Memory> {
+        let _ = self.hits.insert(handle.id());
+
+        self.map.get_mut(&handle.id())
+    }
+
+    fn insert(&mut self, handle: &Handle, memory: Memory) {
+        let _ = self.map.insert(handle.id(), memory);
+    }
+
+    fn trim(&mut self) {
+        let hits = &self.hits;
+
+        self.map.retain(|k, _| hits.contains(k));
+        self.hits.clear();
     }
 }
 
