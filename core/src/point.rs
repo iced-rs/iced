@@ -19,6 +19,18 @@ impl Point {
     }
 }
 
+impl From<[f32; 2]> for Point {
+    fn from([x, y]: [f32; 2]) -> Self {
+        Point { x, y }
+    }
+}
+
+impl From<[u16; 2]> for Point {
+    fn from([x, y]: [u16; 2]) -> Self {
+        Point::new(x.into(), y.into())
+    }
+}
+
 impl std::ops::Add<Vector> for Point {
     type Output = Self;
 

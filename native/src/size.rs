@@ -37,3 +37,15 @@ impl Size {
         }
     }
 }
+
+impl From<[f32; 2]> for Size {
+    fn from([width, height]: [f32; 2]) -> Self {
+        Size { width, height }
+    }
+}
+
+impl From<[u16; 2]> for Size {
+    fn from([width, height]: [u16; 2]) -> Self {
+        Size::new(width.into(), height.into())
+    }
+}
