@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{radio, Background, MouseCursor, Rectangle, Color};
+use iced_native::{radio, Background, Color, MouseCursor, Rectangle};
 
 const SIZE: f32 = 28.0;
 const DOT_SIZE: f32 = SIZE / 2.0;
