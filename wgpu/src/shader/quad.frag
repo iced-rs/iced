@@ -31,7 +31,7 @@ vec4 quadColor(in vec4 bg_color, in vec4 frame_color, float radius, float frame_
     float inner_radius = radius - frame_width;
     float alpha = 1.0 - smoothstep(radius - s, radius + s, d);
     float mix_factor = smoothstep(inner_radius - s, inner_radius + s, d);
-    vec4 c = mix(bg_color, frame_color, mix_factor);
+    vec4 c = mix(bg_color, frame_color, min(frame_width, mix_factor));
     return vec4(c.xyz, c.w * alpha);
 }
 
