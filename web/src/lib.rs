@@ -138,19 +138,9 @@ pub trait Application {
         Self: 'static + Sized,
     {
         let (app, command) = Self::new();
-        let mut instance = Instance::new(app);
 
-        instance.spawn(command);
-
-        let window = web_sys::window().unwrap();
-
-        let document = window.document().unwrap();
-        document.set_title(&instance.title);
-
-        let body = document.body().unwrap();
-        let vdom = dodrio::Vdom::new(&body, instance);
-
-        vdom.forget();
+        let instance = Instance::new(app);
+        instance.run(command);
     }
 }
 
@@ -158,6 +148,7 @@ pub trait Application {
 struct Instance<Message> {
     title: String,
     ui: Rc<RefCell<Box<dyn Application<Message = Message>>>>,
+    vdom: Rc<RefCell<Option<dodrio::VdomWeak>>>,
 }
 
 impl<Message> Instance<Message>
@@ -168,6 +159,7 @@ where
         Self {
             title: ui.title(),
             ui: Rc::new(RefCell::new(Box::new(ui))),
+            vdom: Rc::new(RefCell::new(None)),
         }
     }
 
@@ -192,10 +184,34 @@ where
 
         for future in command.futures() {
             let mut instance = self.clone();
-            let future = future.map(move |message| instance.update(message));
+
+            let future = future.map(move |message| {
+                instance.update(message);
+
+                if let Some(ref vdom) = *instance.vdom.borrow() {
+                    vdom.schedule_render();
+                }
+            });
 
             wasm_bindgen_futures::spawn_local(future);
         }
+    }
+
+    fn run(mut self, command: Command<Message>) {
+        let window = web_sys::window().unwrap();
+
+        let document = window.document().unwrap();
+        document.set_title(&self.title);
+
+        let body = document.body().unwrap();
+
+        let weak = self.vdom.clone();
+        self.spawn(command);
+
+        let vdom = dodrio::Vdom::new(&body, self);
+        *weak.borrow_mut() = Some(vdom.weak());
+
+        vdom.forget();
     }
 }
 
