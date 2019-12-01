@@ -248,6 +248,7 @@ impl Pipeline {
     }
 }
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Vertex {
     _position: [f32; 2],
@@ -270,6 +271,7 @@ const QUAD_VERTS: [Vertex; 4] = [
     },
 ];
 
+#[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Quad {
     pub position: [f32; 2],
