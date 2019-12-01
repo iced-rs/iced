@@ -4,14 +4,14 @@ version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A wgpu renderer for Iced"
-license = "MIT"
+license = "MIT AND OFL-1.1"
 repository = "https://github.com/hecrj/iced"
 
 [dependencies]
 iced_native = { version = "0.1.0", path = "../native" }
 wgpu = "0.4"
 glyph_brush = "0.6"
-wgpu_glyph = "0.6"
+wgpu_glyph = { version = "0.7", git = "https://github.com/hecrj/wgpu_glyph", branch = "fix/font-load-panic" }
 raw-window-handle = "0.3"
 image = "0.22"
 glam = "0.8"

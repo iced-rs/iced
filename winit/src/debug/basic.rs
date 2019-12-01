@@ -146,7 +146,7 @@ impl Debug {
         let mut lines = Vec::new();
 
         fn key_value<T: std::fmt::Debug>(key: &str, value: T) -> String {
-            format!("{: <30} {:?}", key, value)
+            format!("{} {:?}", key, value)
         }
 
         lines.push(format!(
