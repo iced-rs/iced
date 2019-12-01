@@ -1,15 +1,5 @@
 //! Configure your application.
 
-#[cfg(target_os = "windows")]
-#[path = "windows.rs"]
-pub mod platform;
-
-#[cfg(not(target_os = "windows"))]
-#[path = "not_windows.rs"]
-pub mod platform;
-
-pub use platform::PlatformSpecific;
-
 /// The settings of an application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Settings {
@@ -34,7 +24,7 @@ pub struct Window {
     pub decorations: bool,
 
     /// Platform specific Setting.
-    pub platform_specific: PlatformSpecific,
+    pub platform_specific: iced_winit::settings::PlatformSpecific,
 }
 
 impl Default for Window {
@@ -56,7 +46,7 @@ impl From<Settings> for iced_winit::Settings {
                 size: settings.window.size,
                 resizable: settings.window.resizable,
                 decorations: settings.window.decorations,
-                platform_specific: settings.window.platform_specific.into(),
+                platform_specific: settings.window.platform_specific,
             },
         }
     }
