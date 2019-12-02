@@ -162,12 +162,17 @@ where
         let content_bounds = content.bounds();
 
         let offset = self.state.offset(bounds, content_bounds);
-        let (background_bounds, scroller_bounds) =
-            renderer.scrollbar_bounds(bounds, content_bounds, offset);
-        let scrollbar_grab = renderer.scrollbar_grab(
+        let scrollbar_bounds = Renderer::scrollbar_bounds(bounds);
+        let scroller_bounds = Renderer::scroller_bounds(
             bounds,
             content_bounds,
-            background_bounds,
+            scrollbar_bounds,
+            offset,
+        );
+        let scrollbar_grab = ScrollbarItem::from_cursor_position(
+            bounds,
+            content_bounds,
+            scrollbar_bounds,
             scroller_bounds,
             cursor_position,
         );
@@ -190,7 +195,7 @@ where
             }
         }
 
-        if self.state.currently_grabbed() || scrollbar_grab.is_some() {
+        if self.state.is_scroller_grabbed() || scrollbar_grab.is_some() {
             match event {
                 Event::Mouse(mouse::Event::Input {
                     button: mouse::Button::Left,
@@ -199,8 +204,8 @@ where
                     ButtonState::Pressed => {
                         let scroller_grabbed_at = match scrollbar_grab.unwrap()
                         {
-                            ScrollbarGrab::Background => 0.5,
-                            ScrollbarGrab::Scroller => {
+                            ScrollbarItem::Background => 0.5,
+                            ScrollbarItem::Scroller => {
                                 (cursor_position.y - scroller_bounds.y)
                                     / scroller_bounds.height
                             }
@@ -245,7 +250,7 @@ where
         }
 
         let cursor_position = if is_mouse_over
-            && !(scrollbar_grab.is_some() || self.state.currently_grabbed())
+            && !(scrollbar_grab.is_some() || self.state.is_scroller_grabbed())
         {
             Point::new(
                 cursor_position.x,
@@ -281,17 +286,21 @@ where
         let offset = self.state.offset(bounds, content_bounds);
 
         let is_mouse_over = bounds.contains(cursor_position);
-        let (background_bounds, scroller_bounds) =
-            renderer.scrollbar_bounds(bounds, content_bounds, offset);
-        let is_mouse_over_scrollbar = renderer
-            .scrollbar_grab(
-                bounds,
-                content_bounds,
-                background_bounds,
-                scroller_bounds,
-                cursor_position,
-            )
-            .is_some();
+        let scrollbar_bounds = Renderer::scrollbar_bounds(bounds);
+        let scroller_bounds = Renderer::scroller_bounds(
+            bounds,
+            content_bounds,
+            scrollbar_bounds,
+            offset,
+        );
+        let is_mouse_over_scrollbar = ScrollbarItem::from_cursor_position(
+            bounds,
+            content_bounds,
+            scrollbar_bounds,
+            scroller_bounds,
+            cursor_position,
+        )
+        .is_some();
 
         let content = {
             let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
@@ -310,6 +319,8 @@ where
             content_layout.bounds(),
             is_mouse_over,
             is_mouse_over_scrollbar,
+            scrollbar_bounds,
+            scroller_bounds,
             offset,
             content,
         )
@@ -392,19 +403,39 @@ impl State {
         self.offset.min(hidden_content as f32) as u32
     }
 
-    /// Returns whether the scrollbar is currently grabbed or not.
-    pub fn currently_grabbed(&self) -> bool {
+    /// Returns whether the scroller is currently grabbed or not.
+    pub fn is_scroller_grabbed(&self) -> bool {
         self.scroller_grabbed_at.is_some()
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-/// What the mouse is grabbing on the scrollbar
-pub enum ScrollbarGrab {
-    /// The mouse is grabbing the background
+enum ScrollbarItem {
     Background,
-    /// The mouse is grabbing the scroller
     Scroller,
+}
+
+impl ScrollbarItem {
+    /// `None` means the cursor is not over any item
+    fn from_cursor_position(
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        scrollbar_bounds: Rectangle,
+        scroller_bounds: Rectangle,
+        cursor_position: Point,
+    ) -> Option<ScrollbarItem> {
+        if content_bounds.height > bounds.height
+            && scrollbar_bounds.contains(cursor_position)
+        {
+            Some(if scroller_bounds.contains(cursor_position) {
+                ScrollbarItem::Scroller
+            } else {
+                ScrollbarItem::Background
+            })
+        } else {
+            None
+        }
+    }
 }
 
 /// The renderer of a [`Scrollable`].
@@ -416,27 +447,16 @@ pub enum ScrollbarGrab {
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
     /// Returns the bounds of the scrollbar
-    /// - Background
-    /// - Movable Scroller
-    fn scrollbar_bounds(
-        &self,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-        offset: u32,
-    ) -> (Rectangle, Rectangle);
+    fn scrollbar_bounds(bounds: Rectangle) -> Rectangle;
 
-    /// Returns what part of the scrollbar is being grabbed by the mouse
-    /// given the bounds of the [`Scrollable`] and its contents.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
-    fn scrollbar_grab(
-        &self,
+    /// Returns the bounds of the scroller
+    /// "The part that you can drag around with your mouse to scroll"
+    fn scroller_bounds(
         bounds: Rectangle,
         content_bounds: Rectangle,
-        background_bounds: Rectangle,
-        scroller_bounds: Rectangle,
-        cursor_position: Point,
-    ) -> Option<ScrollbarGrab>;
+        scrollbar_bounds: Rectangle,
+        offset: u32,
+    ) -> Rectangle;
 
     /// Draws the [`Scrollable`].
     ///
@@ -457,6 +477,8 @@ pub trait Renderer: crate::Renderer + Sized {
         content_bounds: Rectangle,
         is_mouse_over: bool,
         is_mouse_over_scrollbar: bool,
+        scrollbar_bounds: Rectangle,
+        scroller_bounds: Rectangle,
         offset: u32,
         content: Self::Output,
     ) -> Self::Output;

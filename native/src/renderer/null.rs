@@ -1,7 +1,7 @@
 use crate::{
     button, checkbox, column, radio, row, scrollable, text, text_input,
     Background, Color, Element, Font, HorizontalAlignment, Layout, Point,
-    Rectangle, Renderer, ScrollbarGrab, Size, VerticalAlignment,
+    Rectangle, Renderer, Size, VerticalAlignment,
 };
 
 /// A renderer that does nothing.
@@ -61,24 +61,17 @@ impl text::Renderer for Null {
 }
 
 impl scrollable::Renderer for Null {
-    fn scrollbar_bounds(
-        &self,
-        _bounds: Rectangle,
-        _content_bounds: Rectangle,
-        _offset: u32,
-    ) -> (Rectangle, Rectangle) {
+    fn scrollbar_bounds(_bounds: Rectangle) -> Rectangle {
         Default::default()
     }
 
-    fn scrollbar_grab(
-        &self,
+    fn scroller_bounds(
         _bounds: Rectangle,
         _content_bounds: Rectangle,
-        _background_bounds: Rectangle,
-        _scroller_bounds: Rectangle,
-        _cursor_position: Point,
-    ) -> Option<ScrollbarGrab> {
-        None
+        _scrollbar_bounds: Rectangle,
+        _offset: u32,
+    ) -> Rectangle {
+        Default::default()
     }
 
     fn draw(
@@ -88,6 +81,8 @@ impl scrollable::Renderer for Null {
         _content_bounds: Rectangle,
         _is_mouse_over: bool,
         _is_mouse_over_scrollbar: bool,
+        _scrollbar_bounds: Rectangle,
+        _scroller_bounds: Rectangle,
         _offset: u32,
         _content: Self::Output,
     ) {
