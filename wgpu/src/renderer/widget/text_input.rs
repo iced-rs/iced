@@ -21,13 +21,14 @@ impl text_input::Renderer for Renderer {
         placeholder: &str,
         value: &text_input::Value,
         state: &text_input::State,
+        border_radius: u16,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
         let input = Primitive::Quad {
             bounds,
             background: Background::Color(Color::WHITE),
-            border_radius: 5,
+            border_radius,
             border_color: if is_mouse_over || state.is_focused() {
                 [0.5, 0.5, 0.5].into()
             } else {

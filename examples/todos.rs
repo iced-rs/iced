@@ -158,6 +158,7 @@ impl Application for Todos {
                 )
                 .padding(15)
                 .size(30)
+                .border_radius(5)
                 .on_submit(Message::CreateTask);
 
                 let controls = controls.view(&tasks, *filter);

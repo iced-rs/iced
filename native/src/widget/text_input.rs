@@ -44,6 +44,7 @@ pub struct TextInput<'a, Message> {
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
+    border_radius: u16,
 }
 
 impl<'a, Message> TextInput<'a, Message> {
@@ -76,6 +77,7 @@ impl<'a, Message> TextInput<'a, Message> {
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
+            border_radius: 0,
         }
     }
 
@@ -117,6 +119,14 @@ impl<'a, Message> TextInput<'a, Message> {
     /// [`TextInput`]: struct.TextInput.html
     pub fn on_submit(mut self, message: Message) -> Self {
         self.on_submit = Some(message);
+        self
+    }
+
+    /// Sets the border radius of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn border_radius(mut self, border_radius: u16) -> Self {
+        self.border_radius = border_radius;
         self
     }
 }
@@ -247,6 +257,7 @@ where
             &self.placeholder,
             &self.value,
             &self.state,
+            self.border_radius,
         )
     }
 
@@ -284,6 +295,8 @@ pub trait Renderer: crate::Renderer + Sized {
     /// - the placeholder to show when the value is empty
     /// - the current [`Value`]
     /// - the current [`State`]
+    /// - the border radius of the [`TextInput`]
+    /// 
     ///
     /// [`TextInput`]: struct.TextInput.html
     /// [`Value`]: struct.Value.html
@@ -297,6 +310,7 @@ pub trait Renderer: crate::Renderer + Sized {
         placeholder: &str,
         value: &Value,
         state: &State,
+        border_radius: u16,
     ) -> Self::Output;
 }
 

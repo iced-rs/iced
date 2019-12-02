@@ -97,6 +97,7 @@ impl text_input::Renderer for Null {
         _placeholder: &str,
         _value: &text_input::Value,
         _state: &text_input::State,
+        _border_radius: u16,
     ) -> Self::Output {
     }
 }
