@@ -1,5 +1,11 @@
 //! Configure your application.
 
+#[cfg_attr(target_os = "windows", path = "windows.rs")]
+#[cfg_attr(not(target_os = "windows"), path = "not_windows.rs")]
+mod platform;
+
+pub use platform::PlatformSpecific;
+
 /// The settings of an application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Settings {
@@ -17,6 +23,12 @@ pub struct Window {
 
     /// Whether the window should be resizable or not.
     pub resizable: bool,
+
+    /// Whether the window should have a border, a title bar, etc.
+    pub decorations: bool,
+
+    /// Platform specific settings.
+    pub platform_specific: platform::PlatformSpecific,
 }
 
 impl Default for Window {
@@ -24,6 +36,8 @@ impl Default for Window {
         Window {
             size: (1024, 768),
             resizable: true,
+            decorations: true,
+            platform_specific: Default::default(),
         }
     }
 }

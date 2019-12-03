@@ -96,17 +96,31 @@ pub trait Application: Sized {
 
         let mut title = application.title();
 
-        let (width, height) = settings.window.size;
+        let window = {
+            let mut window_builder = WindowBuilder::new();
 
-        let window = WindowBuilder::new()
-            .with_title(&title)
-            .with_inner_size(winit::dpi::LogicalSize {
-                width: f64::from(width),
-                height: f64::from(height),
-            })
-            .with_resizable(settings.window.resizable)
-            .build(&event_loop)
-            .expect("Open window");
+            let (width, height) = settings.window.size;
+
+            window_builder = window_builder
+                .with_title(&title)
+                .with_inner_size(winit::dpi::LogicalSize {
+                    width: f64::from(width),
+                    height: f64::from(height),
+                })
+                .with_resizable(settings.window.resizable)
+                .with_decorations(settings.window.decorations);
+
+            #[cfg(target_os = "windows")]
+            {
+                use winit::platform::windows::WindowBuilderExtWindows;
+
+                if let Some(parent) = settings.window.platform_specific.parent {
+                    window_builder = window_builder.with_parent_window(parent);
+                }
+            }
+
+            window_builder.build(&event_loop).expect("Open window")
+        };
 
         let dpi = window.hidpi_factor();
         let mut size = window.inner_size();
