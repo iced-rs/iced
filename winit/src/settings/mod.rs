@@ -1,12 +1,8 @@
 //! Configure your application.
 
-#[cfg(target_os = "windows")]
-#[path = "windows.rs"]
-pub mod platform;
-
-#[cfg(not(target_os = "windows"))]
-#[path = "not_windows.rs"]
-pub mod platform;
+#[cfg_attr(target_os = "windows", path = "windows.rs")]
+#[cfg_attr(not(target_os = "windows"), path = "not_windows.rs")]
+mod platform;
 
 pub use platform::PlatformSpecific;
 
@@ -31,7 +27,7 @@ pub struct Window {
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
 
-    /// Platform specific Setting.
+    /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
 }
 

@@ -96,25 +96,12 @@ pub trait Application: Sized {
 
         let mut title = application.title();
 
-        let (width, height) = settings.window.size;
-
-        #[cfg(not(target_os = "windows"))]
-        let window = WindowBuilder::new()
-            .with_title(&title)
-            .with_inner_size(winit::dpi::LogicalSize {
-                width: f64::from(width),
-                height: f64::from(height),
-            })
-            .with_resizable(settings.window.resizable)
-            .with_decorations(settings.window.decorations)
-            .build(&event_loop)
-            .expect("Open window");
-
-        #[cfg(target_os = "windows")]
         let window = {
-            use winit::platform::windows::WindowBuilderExtWindows;
+            let mut window_builder = WindowBuilder::new();
 
-            let mut window_builder = WindowBuilder::new()
+            let (width, height) = settings.window.size;
+
+            window_builder = window_builder
                 .with_title(&title)
                 .with_inner_size(winit::dpi::LogicalSize {
                     width: f64::from(width),
@@ -123,8 +110,13 @@ pub trait Application: Sized {
                 .with_resizable(settings.window.resizable)
                 .with_decorations(settings.window.decorations);
 
-            if let Some(parent) = settings.window.platform_specific.parent {
-                window_builder = window_builder.with_parent_window(parent);
+            #[cfg(target_os = "windows")]
+            {
+                use winit::platform::windows::WindowBuilderExtWindows;
+
+                if let Some(parent) = settings.window.platform_specific.parent {
+                    window_builder = window_builder.with_parent_window(parent);
+                }
             }
 
             window_builder.build(&event_loop).expect("Open window")
