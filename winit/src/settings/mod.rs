@@ -1,7 +1,10 @@
 //! Configure your application.
 
-#[cfg_attr(target_os = "windows", path = "windows.rs")]
-#[cfg_attr(not(target_os = "windows"), path = "not_windows.rs")]
+#[cfg(target_os = "windows")]
+#[path = "windows.rs"]
+mod platform;
+#[cfg(not(target_os = "windows"))]
+#[path = "not_windows.rs"]
 mod platform;
 
 pub use platform::PlatformSpecific;
