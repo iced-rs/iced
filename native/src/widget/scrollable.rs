@@ -454,12 +454,15 @@ pub trait Renderer: crate::Renderer + Sized {
     ///
     /// It receives:
     /// - the [`State`] of the [`Scrollable`]
-    /// - the bounds of the [`Scrollable`]
+    /// - the bounds of the [`Scrollable`] widget
+    /// - the bounds of the [`Scrollable`] content
     /// - whether the mouse is over the [`Scrollable`] or not
-    /// - whether the mouse is over the scrollbar or not
+    /// - whether the mouse is over the [`Scrollbar`] or not
+    /// - a optional [`Scrollbar`] to be rendered
     /// - the scrolling offset
     /// - the drawn content
     ///
+    /// [`Scrollbar`]: struct.Scrollbar.html
     /// [`Scrollable`]: struct.Scrollable.html
     /// [`State`]: struct.State.html
     fn draw(
