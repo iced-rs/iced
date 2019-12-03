@@ -19,6 +19,9 @@ pub struct Window {
 
     /// Whether the window should be resizable or not.
     pub resizable: bool,
+
+    /// Whether the window should have a border, a title bar, etc. or not.
+    pub decorations: bool,
 }
 
 impl Default for Window {
@@ -26,6 +29,7 @@ impl Default for Window {
         Window {
             size: (1024, 768),
             resizable: true,
+            decorations: true,
         }
     }
 }
@@ -33,9 +37,13 @@ impl Default for Window {
 #[cfg(not(target_arch = "wasm32"))]
 impl From<Settings> for iced_winit::Settings {
     fn from(settings: Settings) -> iced_winit::Settings {
-        let mut iced_winit_settings = iced_winit::settings::Settings::default();
-        iced_winit_settings.window.size = settings.window.size;
-        iced_winit_settings.window.resizable = settings.window.resizable;
-        iced_winit_settings
+        iced_winit::Settings {
+            window: iced_winit::settings::Window {
+                size: settings.window.size,
+                resizable: settings.window.resizable,
+                decorations: settings.window.decorations,
+                platform_specific: Default::default(),
+            },
+        }
     }
 }
