@@ -596,7 +596,8 @@ impl<'a> Step {
                     StepMessage::InputChanged,
                 )
                 .padding(10)
-                .size(30),
+                .size(30)
+                .border_radius(5),
             )
             .push(Text::new(
                 "A text input produces a message every time it changes. It is \

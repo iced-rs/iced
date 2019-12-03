@@ -9,37 +9,43 @@ layout(location = 5) in float v_BorderWidth;
 
 layout(location = 0) out vec4 o_Color;
 
-float rounded(vec2 coord, vec2 pos, vec2 size, float radius){
-    vec2 inner_size = size - vec2(2.0 * radius);
-    vec2 top_left = pos + vec2(radius);
-    vec2 bottom_right = top_left + inner_size;
-    
-    vec2 top_left_distance = top_left - coord;
-    vec2 bottom_right_distance = coord - bottom_right;
-    
-    vec2 distance = vec2(
-        max(max(top_left_distance.x, bottom_right_distance.x), 0.0),
-        max(max(top_left_distance.y, bottom_right_distance.y), 0.0)
-    );
-    
-    float d = sqrt(distance.x * distance.x + distance.y * distance.y);
-    return 1.0 - smoothstep(radius, radius + 0.5, d);
+float sdBox( in vec2 p, in vec2 b )
+{
+    vec2 d = abs(p)-b;
+    return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0);
+}
+
+float sdRoundedBox(in vec2 p, in vec2 b, in float r)
+{
+    return sdBox(p, b - r) - r;
+}
+
+float sdAnnularRoundedBox(in vec2 p, in vec2 b, in float r, in float w)
+{
+    return abs(sdRoundedBox(p, b - w, r - w)) - w;
+}
+
+float drawRoundedBox(in vec2 coord, in vec2 pos, in vec2 size, in float r, in float w)
+{
+    vec2 p = pos + w;
+    vec2 s = size - 2.0 * w;
+    return 1.0 - clamp(sdRoundedBox(coord + 0.5 - s / 2.0 - p, s/ 2.0, r - w), 0.0, 1.0);
+}
+
+float drawRoundedFrame(in vec2 coord, in vec2 pos, in vec2 size, in float r, in float w)
+{
+    return min(w, 1.0 - clamp(sdAnnularRoundedBox(coord + 0.5 - size / 2.0 - pos, size / 2.0, r, w / 2.0), 0.0, 1.0));
 }
 
 void main() {
     vec4 color = vec4(0);
 
     // border
-    float border = min(v_BorderWidth, rounded(gl_FragCoord.xy, v_Pos, v_Scale, v_BorderRadius));
-    color = mix(color, v_BorderColor, border);
-    
+    float frame = drawRoundedFrame(gl_FragCoord.xy, v_Pos, v_Scale, v_BorderRadius, v_BorderWidth);
+    color = mix(color, v_BorderColor, frame);
+
     // content
-    float content = rounded(
-        gl_FragCoord.xy, 
-        v_Pos + vec2(v_BorderWidth), 
-        v_Scale - vec2(v_BorderWidth * 2.0), 
-        max(v_BorderRadius - v_BorderWidth, 0.0)
-    );
+    float content = drawRoundedBox(gl_FragCoord.xy, v_Pos, v_Scale, v_BorderRadius, v_BorderWidth);
     color = mix(color, v_Color, content);
     
     o_Color = color;
