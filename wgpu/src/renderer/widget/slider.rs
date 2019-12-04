@@ -29,7 +29,7 @@ impl slider::Renderer for Renderer {
                     width: bounds.width,
                     height: 2.0,
                 },
-                background: Background::Color([0.6, 0.6, 0.6].into()),
+                background: Color::from_rgb(0.6, 0.6, 0.6).into(),
                 border_radius: 0,
             },
             Primitive::Quad {
@@ -57,7 +57,7 @@ impl slider::Renderer for Renderer {
                     width: HANDLE_WIDTH + 2.0,
                     height: HANDLE_HEIGHT + 2.0,
                 },
-                background: Background::Color([0.6, 0.6, 0.6].into()),
+                background: Color::from_rgb(0.6, 0.6, 0.6).into(),
                 border_radius: 5,
             },
             Primitive::Quad {

@@ -7,3 +7,9 @@ pub enum Background {
     Color(Color),
     // TODO: Add gradient and image variants
 }
+
+impl From<Color> for Background {
+    fn from(color: Color) -> Self {
+        Background::Color(color)
+    }
+}
