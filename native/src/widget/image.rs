@@ -102,7 +102,7 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        self.path.hash(state);
+        self.handle.hash(state);
         self.width.hash(state);
         self.height.hash(state);
     }
@@ -169,6 +169,12 @@ impl From<String> for Handle {
 impl From<&str> for Handle {
     fn from(path: &str) -> Handle {
         Handle::from_path(path)
+    }
+}
+
+impl Hash for Handle {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }
 
