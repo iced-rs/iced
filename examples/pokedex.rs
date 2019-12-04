@@ -1,5 +1,5 @@
 use iced::{
-    button, image, Align, Application, Background, Button, Color, Column,
+    button, image, Align, Application, Button, Color, Column,
     Command, Container, Element, Image, Length, Row, Settings, Text,
 };
 
@@ -225,7 +225,7 @@ impl From<reqwest::Error> for Error {
 
 fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
     Button::new(state, Text::new(text).color(Color::WHITE))
-        .background(Background::Color([0.11, 0.42, 0.87].into()))
+        .background(Color::from_rgb(0.11, 0.42, 0.87).into())
         .border_radius(10)
         .padding(10)
 }

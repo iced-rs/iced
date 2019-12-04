@@ -1,5 +1,5 @@
 use iced::{
-    button, scrollable, text_input, Align, Application, Background, Button,
+    button, scrollable, text_input, Align, Application, Button,
     Checkbox, Color, Column, Command, Container, Element, Font,
     HorizontalAlignment, Length, Row, Scrollable, Settings, Text, TextInput,
 };
@@ -332,7 +332,7 @@ impl Task {
                         .on_press(TaskMessage::Delete)
                         .padding(10)
                         .border_radius(5)
-                        .background(Background::Color([0.8, 0.2, 0.2].into())),
+                        .background(Color::from_rgb(0.8, 0.2, 0.2).into()),
                     )
                     .into()
             }
@@ -361,7 +361,7 @@ impl Controls {
             let label = Text::new(label).size(16).width(Length::Shrink);
             let button = if filter == current_filter {
                 Button::new(state, label.color(Color::WHITE))
-                    .background(Background::Color([0.2, 0.2, 0.7].into()))
+                    .background(Color::from_rgb(0.2, 0.2, 0.7).into())
             } else {
                 Button::new(state, label)
             };

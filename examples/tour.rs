@@ -1,5 +1,5 @@
 use iced::{
-    button, scrollable, slider, text_input, Background, Button, Checkbox,
+    button, scrollable, slider, text_input, Button, Checkbox,
     Color, Column, Container, Element, HorizontalAlignment, Image, Length,
     Radio, Row, Sandbox, Scrollable, Settings, Slider, Text, TextInput,
 };
@@ -684,24 +684,17 @@ fn primary_button<'a, Message>(
     state: &'a mut button::State,
     label: &str,
 ) -> Button<'a, Message> {
-    button(state, label).background(Background::Color(Color {
-        r: 0.11,
-        g: 0.42,
-        b: 0.87,
-        a: 1.0,
-    }))
+    button(state, label)
+        .background(Color::from_rgb(0.11, 0.42, 0.87).into())
 }
 
 fn secondary_button<'a, Message>(
     state: &'a mut button::State,
     label: &str,
 ) -> Button<'a, Message> {
-    button(state, label).background(Background::Color(Color {
-        r: 0.4,
-        g: 0.4,
-        b: 0.4,
-        a: 1.0,
-    }))
+    button(state, label)
+        .background(Color::from_rgb(0.4, 0.4, 0.4).into())
+
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
