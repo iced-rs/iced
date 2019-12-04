@@ -126,8 +126,11 @@ impl Handle {
 
     /// Creates an image [`Handle`] containing the image data directly.
     ///
+    /// This is useful if you already have your image loaded in-memory, maybe
+    /// because you downloaded or generated it procedurally.
+    ///
     /// [`Handle`]: struct.Handle.html
-    pub fn from_bytes(bytes: Vec<u8>) -> Handle {
+    pub fn from_memory(bytes: Vec<u8>) -> Handle {
         Self::from_data(Data::Bytes(bytes))
     }
 
