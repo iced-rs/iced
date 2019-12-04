@@ -61,13 +61,13 @@ impl text::Renderer for Null {
 }
 
 impl scrollable::Renderer for Null {
-    fn is_mouse_over_scrollbar(
+    fn scrollbar(
         &self,
         _bounds: Rectangle,
         _content_bounds: Rectangle,
-        _cursor_position: Point,
-    ) -> bool {
-        false
+        _offset: u32,
+    ) -> Option<scrollable::Scrollbar> {
+        None
     }
 
     fn draw(
@@ -77,6 +77,7 @@ impl scrollable::Renderer for Null {
         _content_bounds: Rectangle,
         _is_mouse_over: bool,
         _is_mouse_over_scrollbar: bool,
+        _scrollbar: Option<scrollable::Scrollbar>,
         _offset: u32,
         _content: Self::Output,
     ) {

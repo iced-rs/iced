@@ -27,3 +27,9 @@ impl Length {
         }
     }
 }
+
+impl From<u16> for Length {
+    fn from(units: u16) -> Self {
+        Length::Units(units)
+    }
+}

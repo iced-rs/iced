@@ -491,6 +491,7 @@ pub struct Image {
     pub scale: [f32; 2],
 }
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Vertex {
     _position: [f32; 2],
@@ -513,6 +514,7 @@ const QUAD_VERTS: [Vertex; 4] = [
     },
 ];
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 struct Instance {
     _position: [f32; 2],

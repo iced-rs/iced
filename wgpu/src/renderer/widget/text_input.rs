@@ -45,7 +45,7 @@ impl text_input::Renderer for Renderer {
                 height: bounds.height - 2.0,
             },
             background: Background::Color(Color::WHITE),
-            border_radius: 5,
+            border_radius: 4,
         };
 
         let size = f32::from(size);

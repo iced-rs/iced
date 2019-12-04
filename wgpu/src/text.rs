@@ -11,6 +11,8 @@ pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
 
 pub const CHECKMARK_ICON: char = '\u{F00C}';
 
+const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
+
 #[derive(Debug)]
 pub struct Pipeline {
     draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
@@ -26,23 +28,30 @@ impl Pipeline {
 
         let default_font = font_source
             .load(&[font::Family::SansSerif, font::Family::Serif])
-            .expect("Find sans-serif or serif font");
+            .unwrap_or_else(|_| FALLBACK_FONT.to_vec());
 
-        let mono_font = font_source
-            .load(&[font::Family::Monospace])
-            .expect("Find monospace font");
+        let load_glyph_brush = |font: Vec<u8>| {
+            let builder =
+                wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(vec![
+                    font.clone()
+                ])?;
 
-        let draw_brush =
-            wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(vec![
-                mono_font,
-                default_font.clone(),
-            ])
+            Ok((
+                builder,
+                glyph_brush::GlyphBrushBuilder::using_font_bytes(font).build(),
+            ))
+        };
+
+        let (brush_builder, measure_brush) = load_glyph_brush(default_font)
+            .unwrap_or_else(|_: wgpu_glyph::rusttype::Error| {
+                log::warn!("System font failed to load. Falling back to embedded font...");
+
+                load_glyph_brush(FALLBACK_FONT.to_vec()).expect("Load fallback font")
+            });
+
+        let draw_brush = brush_builder
             .initial_cache_size((2048, 2048))
             .build(device, wgpu::TextureFormat::Bgra8UnormSrgb);
-
-        let measure_brush =
-            glyph_brush::GlyphBrushBuilder::using_font_bytes(default_font)
-                .build();
 
         Pipeline {
             draw_brush: RefCell::new(draw_brush),
@@ -95,14 +104,7 @@ impl Pipeline {
             text: content,
             scale: wgpu_glyph::Scale { x: size, y: size },
             bounds: (bounds.width, bounds.height),
-
-            // TODO: This is a bit hacky. We are loading the debug font as the
-            // first font in the `draw_brush`. The `measure_brush` does not
-            // contain this, hence we subtract 1.
-            //
-            // This should go away once we unify `draw_brush` and
-            // `measure_brush`.
-            font_id: wgpu_glyph::FontId(font_id - 1),
+            font_id: wgpu_glyph::FontId(font_id),
             ..Default::default()
         };
 
@@ -143,7 +145,7 @@ impl Pipeline {
 
     pub fn find_font(&self, font: iced_native::Font) -> wgpu_glyph::FontId {
         match font {
-            iced_native::Font::Default => wgpu_glyph::FontId(1),
+            iced_native::Font::Default => wgpu_glyph::FontId(0),
             iced_native::Font::External { name, bytes } => {
                 if let Some(font_id) = self.draw_font_map.borrow().get(name) {
                     return *font_id;

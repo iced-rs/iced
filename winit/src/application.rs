@@ -96,21 +96,35 @@ pub trait Application: Sized {
 
         let mut title = application.title();
 
-        let (width, height) = settings.window.size;
+        let window = {
+            let mut window_builder = WindowBuilder::new();
 
-        let window = WindowBuilder::new()
-            .with_title(&title)
-            .with_inner_size(winit::dpi::LogicalSize {
-                width: f64::from(width),
-                height: f64::from(height),
-            })
-            .with_resizable(settings.window.resizable)
-            .build(&event_loop)
-            .expect("Open window");
+            let (width, height) = settings.window.size;
+
+            window_builder = window_builder
+                .with_title(&title)
+                .with_inner_size(winit::dpi::LogicalSize {
+                    width: f64::from(width),
+                    height: f64::from(height),
+                })
+                .with_resizable(settings.window.resizable)
+                .with_decorations(settings.window.decorations);
+
+            #[cfg(target_os = "windows")]
+            {
+                use winit::platform::windows::WindowBuilderExtWindows;
+
+                if let Some(parent) = settings.window.platform_specific.parent {
+                    window_builder = window_builder.with_parent_window(parent);
+                }
+            }
+
+            window_builder.build(&event_loop).expect("Open window")
+        };
 
         let dpi = window.hidpi_factor();
         let mut size = window.inner_size();
-        let mut new_size: Option<winit::dpi::LogicalSize> = None;
+        let mut resized = false;
 
         let mut renderer = Self::Renderer::new();
 
@@ -143,6 +157,11 @@ pub trait Application: Sized {
 
         event_loop.run(move |event, _, control_flow| match event {
             event::Event::MainEventsCleared => {
+                if events.is_empty() && external_messages.is_empty() && !resized
+                {
+                    return;
+                }
+
                 // TODO: We should be able to keep a user interface alive
                 // between events once we remove state references.
                 //
@@ -217,9 +236,9 @@ pub trait Application: Sized {
             event::Event::RedrawRequested(_) => {
                 debug.render_started();
 
-                if let Some(new_size) = new_size.take() {
+                if resized {
                     let dpi = window.hidpi_factor();
-                    let (width, height) = to_physical(new_size, dpi);
+                    let (width, height) = to_physical(size, dpi);
 
                     target.resize(
                         width,
@@ -228,7 +247,7 @@ pub trait Application: Sized {
                         &renderer,
                     );
 
-                    size = new_size;
+                    resized = false;
                 }
 
                 let new_mouse_cursor =
@@ -320,8 +339,9 @@ pub trait Application: Sized {
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }
-                WindowEvent::Resized(size) => {
-                    new_size = Some(size.into());
+                WindowEvent::Resized(new_size) => {
+                    size = new_size;
+                    resized = true;
 
                     log::debug!("Resized: {:?}", new_size);
                 }
