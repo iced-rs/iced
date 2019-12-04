@@ -150,12 +150,6 @@ where
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
-        let is_mouse_over_scrollbar = renderer.is_mouse_over_scrollbar(
-            bounds,
-            content_bounds,
-            cursor_position,
-        );
-
         // TODO: Event capture. Nested scrollables should capture scroll events.
         if is_mouse_over {
             match event {
@@ -174,49 +168,66 @@ where
             }
         }
 
-        if self.state.is_scrollbar_grabbed() || is_mouse_over_scrollbar {
+        let offset = self.state.offset(bounds, content_bounds);
+        let scrollbar = renderer.scrollbar(bounds, content_bounds, offset);
+        let is_mouse_over_scrollbar = scrollbar
+            .as_ref()
+            .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+            .unwrap_or(false);
+
+        if self.state.is_scroller_grabbed() {
             match event {
                 Event::Mouse(mouse::Event::Input {
                     button: mouse::Button::Left,
-                    state,
-                }) => match state {
-                    ButtonState::Pressed => {
-                        self.state.scroll_to(
-                            cursor_position.y / (bounds.y + bounds.height),
-                            bounds,
-                            content_bounds,
-                        );
-
-                        self.state.scrollbar_grabbed_at = Some(cursor_position);
-                    }
-                    ButtonState::Released => {
-                        self.state.scrollbar_grabbed_at = None;
-                    }
-                },
+                    state: ButtonState::Released,
+                }) => {
+                    self.state.scroller_grabbed_at = None;
+                }
                 Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                    if let Some(scrollbar_grabbed_at) =
-                        self.state.scrollbar_grabbed_at
+                    if let (Some(scrollbar), Some(scroller_grabbed_at)) =
+                        (scrollbar, self.state.scroller_grabbed_at)
                     {
-                        let ratio = content_bounds.height / bounds.height;
-                        let delta = scrollbar_grabbed_at.y - cursor_position.y;
-
-                        self.state.scroll(
-                            delta * ratio,
+                        self.state.scroll_to(
+                            scrollbar.scroll_percentage(
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ),
                             bounds,
                             content_bounds,
                         );
+                    }
+                }
+                _ => {}
+            }
+        } else if is_mouse_over_scrollbar {
+            match event {
+                Event::Mouse(mouse::Event::Input {
+                    button: mouse::Button::Left,
+                    state: ButtonState::Pressed,
+                }) => {
+                    if let Some(scrollbar) = scrollbar {
+                        if let Some(scroller_grabbed_at) =
+                            scrollbar.grab_scroller(cursor_position)
+                        {
+                            self.state.scroll_to(
+                                scrollbar.scroll_percentage(
+                                    scroller_grabbed_at,
+                                    cursor_position,
+                                ),
+                                bounds,
+                                content_bounds,
+                            );
 
-                        self.state.scrollbar_grabbed_at = Some(cursor_position);
+                            self.state.scroller_grabbed_at =
+                                Some(scroller_grabbed_at);
+                        }
                     }
                 }
                 _ => {}
             }
         }
 
-        let cursor_position = if is_mouse_over
-            && !(is_mouse_over_scrollbar
-                || self.state.scrollbar_grabbed_at.is_some())
-        {
+        let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
             Point::new(
                 cursor_position.x,
                 cursor_position.y
@@ -249,13 +260,13 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
         let offset = self.state.offset(bounds, content_bounds);
+        let scrollbar = renderer.scrollbar(bounds, content_bounds, offset);
 
         let is_mouse_over = bounds.contains(cursor_position);
-        let is_mouse_over_scrollbar = renderer.is_mouse_over_scrollbar(
-            bounds,
-            content_bounds,
-            cursor_position,
-        );
+        let is_mouse_over_scrollbar = scrollbar
+            .as_ref()
+            .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+            .unwrap_or(false);
 
         let content = {
             let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
@@ -274,6 +285,7 @@ where
             content_layout.bounds(),
             is_mouse_over,
             is_mouse_over_scrollbar,
+            scrollbar,
             offset,
             content,
         )
@@ -294,7 +306,7 @@ where
 /// [`Scrollable`]: struct.Scrollable.html
 #[derive(Debug, Clone, Copy, Default)]
 pub struct State {
-    scrollbar_grabbed_at: Option<Point>,
+    scroller_grabbed_at: Option<f32>,
     offset: f32,
 }
 
@@ -356,10 +368,66 @@ impl State {
         self.offset.min(hidden_content as f32) as u32
     }
 
-    /// Returns whether the scrollbar is currently grabbed or not.
-    pub fn is_scrollbar_grabbed(&self) -> bool {
-        self.scrollbar_grabbed_at.is_some()
+    /// Returns whether the scroller is currently grabbed or not.
+    pub fn is_scroller_grabbed(&self) -> bool {
+        self.scroller_grabbed_at.is_some()
     }
+}
+
+/// The scrollbar of a [`Scrollable`].
+///
+/// [`Scrollable`]: struct.Scrollable.html
+#[derive(Debug)]
+pub struct Scrollbar {
+    /// The bounds of the [`Scrollbar`].
+    ///
+    /// [`Scrollbar`]: struct.Scrollbar.html
+    pub bounds: Rectangle,
+
+    /// The bounds of the [`Scroller`].
+    ///
+    /// [`Scroller`]: struct.Scroller.html
+    pub scroller: Scroller,
+}
+
+impl Scrollbar {
+    fn is_mouse_over(&self, cursor_position: Point) -> bool {
+        self.bounds.contains(cursor_position)
+    }
+
+    fn grab_scroller(&self, cursor_position: Point) -> Option<f32> {
+        if self.bounds.contains(cursor_position) {
+            Some(if self.scroller.bounds.contains(cursor_position) {
+                (cursor_position.y - self.scroller.bounds.y)
+                    / self.scroller.bounds.height
+            } else {
+                0.5
+            })
+        } else {
+            None
+        }
+    }
+
+    fn scroll_percentage(
+        &self,
+        grabbed_at: f32,
+        cursor_position: Point,
+    ) -> f32 {
+        (cursor_position.y + self.bounds.y
+            - self.scroller.bounds.height * grabbed_at)
+            / (self.bounds.height - self.scroller.bounds.height)
+    }
+}
+
+/// The handle of a [`Scrollbar`].
+///
+/// [`Scrollbar`]: struct.Scrollbar.html
+#[derive(Debug, Clone, Copy)]
+pub struct Scroller {
+    /// The bounds of the [`Scroller`].
+    ///
+    /// [`Scroller`]: struct.Scrollbar.html
+    pub bounds: Rectangle,
 }
 
 /// The renderer of a [`Scrollable`].
@@ -370,27 +438,31 @@ impl State {
 /// [`Scrollable`]: struct.Scrollable.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
-    /// Returns whether the mouse is over the scrollbar given the bounds of
-    /// the [`Scrollable`] and its contents.
+    /// Returns the [`Scrollbar`] given the bounds and content bounds of a
+    /// [`Scrollable`].
     ///
+    /// [`Scrollbar`]: struct.Scrollbar.html
     /// [`Scrollable`]: struct.Scrollable.html
-    fn is_mouse_over_scrollbar(
+    fn scrollbar(
         &self,
         bounds: Rectangle,
         content_bounds: Rectangle,
-        cursor_position: Point,
-    ) -> bool;
+        offset: u32,
+    ) -> Option<Scrollbar>;
 
     /// Draws the [`Scrollable`].
     ///
     /// It receives:
     /// - the [`State`] of the [`Scrollable`]
-    /// - the bounds of the [`Scrollable`]
+    /// - the bounds of the [`Scrollable`] widget
+    /// - the bounds of the [`Scrollable`] content
     /// - whether the mouse is over the [`Scrollable`] or not
-    /// - whether the mouse is over the scrollbar or not
+    /// - whether the mouse is over the [`Scrollbar`] or not
+    /// - a optional [`Scrollbar`] to be rendered
     /// - the scrolling offset
     /// - the drawn content
     ///
+    /// [`Scrollbar`]: struct.Scrollbar.html
     /// [`Scrollable`]: struct.Scrollable.html
     /// [`State`]: struct.State.html
     fn draw(
@@ -400,6 +472,7 @@ pub trait Renderer: crate::Renderer + Sized {
         content_bounds: Rectangle,
         is_mouse_over: bool,
         is_mouse_over_scrollbar: bool,
+        scrollbar: Option<Scrollbar>,
         offset: u32,
         content: Self::Output,
     ) -> Self::Output;
