@@ -2,7 +2,11 @@
 
 use crate::{layout, Element, Hasher, Layout, Length, Point, Size, Widget};
 
-use std::hash::Hash;
+use std::{
+    hash::{Hash, Hasher as _},
+    path::PathBuf,
+    sync::Arc,
+};
 
 /// A frame that displays an image while keeping aspect ratio.
 ///
@@ -17,7 +21,7 @@ use std::hash::Hash;
 /// <img src="https://github.com/hecrj/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[derive(Debug)]
 pub struct Image {
-    path: String,
+    handle: Handle,
     width: Length,
     height: Length,
 }
@@ -26,9 +30,9 @@ impl Image {
     /// Creates a new [`Image`] with the given path.
     ///
     /// [`Image`]: struct.Image.html
-    pub fn new<T: Into<String>>(path: T) -> Self {
+    pub fn new<T: Into<Handle>>(handle: T) -> Self {
         Image {
-            path: path.into(),
+            handle: handle.into(),
             width: Length::Shrink,
             height: Length::Shrink,
         }
@@ -68,24 +72,22 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let (width, height) = renderer.dimensions(&self.path);
+        let (width, height) = renderer.dimensions(&self.handle);
 
         let aspect_ratio = width as f32 / height as f32;
 
-        // TODO: Deal with additional cases
-        let (width, height) = match (self.width, self.height) {
-            (Length::Units(width), _) => (
-                self.width,
-                Length::Units((width as f32 / aspect_ratio).round() as u16),
-            ),
-            (_, _) => {
-                (Length::Units(width as u16), Length::Units(height as u16))
-            }
-        };
+        let mut size = limits
+            .width(self.width)
+            .height(self.height)
+            .resolve(Size::new(width as f32, height as f32));
 
-        let mut size = limits.width(width).height(height).resolve(Size::ZERO);
+        let viewport_aspect_ratio = size.width / size.height;
 
-        size.height = size.width / aspect_ratio;
+        if viewport_aspect_ratio > aspect_ratio {
+            size.width = width as f32 * size.height / height as f32;
+        } else {
+            size.height = height as f32 * size.width / width as f32;
+        }
 
         layout::Node::new(size)
     }
@@ -96,13 +98,104 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(&self.path, layout)
+        renderer.draw(self.handle.clone(), layout)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        self.path.hash(state);
+        self.handle.hash(state);
         self.width.hash(state);
         self.height.hash(state);
+    }
+}
+
+/// An [`Image`] handle.
+///
+/// [`Image`]: struct.Image.html
+#[derive(Debug, Clone)]
+pub struct Handle {
+    id: u64,
+    data: Arc<Data>,
+}
+
+impl Handle {
+    /// Creates an image [`Handle`] pointing to the image of the given path.
+    ///
+    /// [`Handle`]: struct.Handle.html
+    pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
+        Self::from_data(Data::Path(path.into()))
+    }
+
+    /// Creates an image [`Handle`] containing the image data directly.
+    ///
+    /// This is useful if you already have your image loaded in-memory, maybe
+    /// because you downloaded or generated it procedurally.
+    ///
+    /// [`Handle`]: struct.Handle.html
+    pub fn from_memory(bytes: Vec<u8>) -> Handle {
+        Self::from_data(Data::Bytes(bytes))
+    }
+
+    fn from_data(data: Data) -> Handle {
+        let mut hasher = Hasher::default();
+        data.hash(&mut hasher);
+
+        Handle {
+            id: hasher.finish(),
+            data: Arc::new(data),
+        }
+    }
+
+    /// Returns the unique identifier of the [`Handle`].
+    ///
+    /// [`Handle`]: struct.Handle.html
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    /// Returns a reference to the image [`Data`].
+    ///
+    /// [`Data`]: enum.Data.html
+    pub fn data(&self) -> &Data {
+        &self.data
+    }
+}
+
+impl From<String> for Handle {
+    fn from(path: String) -> Handle {
+        Handle::from_path(path)
+    }
+}
+
+impl From<&str> for Handle {
+    fn from(path: &str) -> Handle {
+        Handle::from_path(path)
+    }
+}
+
+impl Hash for Handle {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+/// The data of an [`Image`].
+///
+/// [`Image`]: struct.Image.html
+#[derive(Clone, Hash)]
+pub enum Data {
+    /// File data
+    Path(PathBuf),
+
+    /// In-memory data
+    Bytes(Vec<u8>),
+}
+
+impl std::fmt::Debug for Data {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Data::Path(path) => write!(f, "Path({:?})", path),
+            Data::Bytes(_) => write!(f, "Bytes(...)"),
+        }
     }
 }
 
@@ -117,12 +210,12 @@ pub trait Renderer: crate::Renderer {
     /// Returns the dimensions of an [`Image`] located on the given path.
     ///
     /// [`Image`]: struct.Image.html
-    fn dimensions(&self, path: &str) -> (u32, u32);
+    fn dimensions(&self, handle: &Handle) -> (u32, u32);
 
     /// Draws an [`Image`].
     ///
     /// [`Image`]: struct.Image.html
-    fn draw(&mut self, path: &str, layout: Layout<'_>) -> Self::Output;
+    fn draw(&mut self, handle: Handle, layout: Layout<'_>) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>

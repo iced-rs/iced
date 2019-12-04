@@ -1,11 +1,19 @@
 use crate::Transformation;
-use iced_native::Rectangle;
+use iced_native::{
+    image::{Data, Handle},
+    Rectangle,
+};
 
-use std::{cell::RefCell, collections::HashMap, mem, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    mem,
+    rc::Rc,
+};
 
 #[derive(Debug)]
 pub struct Pipeline {
-    cache: RefCell<HashMap<String, Memory>>,
+    cache: RefCell<Cache>,
 
     pipeline: wgpu::RenderPipeline,
     uniforms: wgpu::Buffer,
@@ -185,7 +193,7 @@ impl Pipeline {
         });
 
         Pipeline {
-            cache: RefCell::new(HashMap::new()),
+            cache: RefCell::new(Cache::new()),
 
             pipeline,
             uniforms: uniforms_buffer,
@@ -197,23 +205,36 @@ impl Pipeline {
         }
     }
 
-    pub fn dimensions(&self, path: &str) -> (u32, u32) {
-        self.load(path);
+    pub fn dimensions(&self, handle: &Handle) -> (u32, u32) {
+        self.load(handle);
 
-        self.cache.borrow().get(path).unwrap().dimensions()
+        self.cache.borrow_mut().get(handle).unwrap().dimensions()
     }
 
-    fn load(&self, path: &str) {
-        if !self.cache.borrow().contains_key(path) {
-            let memory = if let Ok(image) = image::open(path) {
-                Memory::Host {
-                    image: image.to_bgra(),
+    fn load(&self, handle: &Handle) {
+        if !self.cache.borrow().contains(&handle) {
+            let memory = match handle.data() {
+                Data::Path(path) => {
+                    if let Ok(image) = image::open(path) {
+                        Memory::Host {
+                            image: image.to_bgra(),
+                        }
+                    } else {
+                        Memory::NotFound
+                    }
                 }
-            } else {
-                Memory::NotFound
+                Data::Bytes(bytes) => {
+                    if let Ok(image) = image::load_from_memory(&bytes) {
+                        Memory::Host {
+                            image: image.to_bgra(),
+                        }
+                    } else {
+                        Memory::Invalid
+                    }
+                }
             };
 
-            let _ = self.cache.borrow_mut().insert(path.to_string(), memory);
+            let _ = self.cache.borrow_mut().insert(&handle, memory);
         }
     }
 
@@ -245,12 +266,12 @@ impl Pipeline {
         //
         // [1]: https://github.com/nical/guillotiere
         for image in instances {
-            self.load(&image.path);
+            self.load(&image.handle);
 
             if let Some(texture) = self
                 .cache
                 .borrow_mut()
-                .get_mut(&image.path)
+                .get(&image.handle)
                 .unwrap()
                 .upload(device, encoder, &self.texture_layout)
             {
@@ -314,6 +335,10 @@ impl Pipeline {
             }
         }
     }
+
+    pub fn trim_cache(&mut self) {
+        self.cache.borrow_mut().trim();
+    }
 }
 
 #[derive(Debug)]
@@ -327,6 +352,7 @@ enum Memory {
         height: u32,
     },
     NotFound,
+    Invalid,
 }
 
 impl Memory {
@@ -335,6 +361,7 @@ impl Memory {
             Memory::Host { image } => image.dimensions(),
             Memory::Device { width, height, .. } => (*width, *height),
             Memory::NotFound => (1, 1),
+            Memory::Invalid => (1, 1),
         }
     }
 
@@ -417,12 +444,49 @@ impl Memory {
             }
             Memory::Device { bind_group, .. } => Some(bind_group.clone()),
             Memory::NotFound => None,
+            Memory::Invalid => None,
         }
     }
 }
 
+#[derive(Debug)]
+struct Cache {
+    map: HashMap<u64, Memory>,
+    hits: HashSet<u64>,
+}
+
+impl Cache {
+    fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+            hits: HashSet::new(),
+        }
+    }
+
+    fn contains(&self, handle: &Handle) -> bool {
+        self.map.contains_key(&handle.id())
+    }
+
+    fn get(&mut self, handle: &Handle) -> Option<&mut Memory> {
+        let _ = self.hits.insert(handle.id());
+
+        self.map.get_mut(&handle.id())
+    }
+
+    fn insert(&mut self, handle: &Handle, memory: Memory) {
+        let _ = self.map.insert(handle.id(), memory);
+    }
+
+    fn trim(&mut self) {
+        let hits = &self.hits;
+
+        self.map.retain(|k, _| hits.contains(k));
+        self.hits.clear();
+    }
+}
+
 pub struct Image {
-    pub path: String,
+    pub handle: Handle,
     pub position: [f32; 2],
     pub scale: [f32; 2],
 }

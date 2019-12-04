@@ -1,5 +1,5 @@
 use iced_native::{
-    Background, Color, Font, HorizontalAlignment, Rectangle, Vector,
+    image, Background, Color, Font, HorizontalAlignment, Rectangle, Vector,
     VerticalAlignment,
 };
 
@@ -41,8 +41,8 @@ pub enum Primitive {
     },
     /// An image primitive
     Image {
-        /// The path of the image
-        path: String,
+        /// The handle of the image
+        handle: image::Handle,
         /// The bounds of the image
         bounds: Rectangle,
     },

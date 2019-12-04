@@ -75,11 +75,16 @@ pub mod widget {
         pub use iced_winit::slider::{Slider, State};
     }
 
-    pub use iced_winit::{Checkbox, Image, Radio, Text};
+    pub mod image {
+        //! Display images in your user interface.
+        pub use iced_winit::image::{Handle, Image};
+    }
+
+    pub use iced_winit::{Checkbox, Radio, Text};
 
     #[doc(no_inline)]
     pub use {
-        button::Button, scrollable::Scrollable, slider::Slider,
+        button::Button, image::Image, scrollable::Scrollable, slider::Slider,
         text_input::TextInput,
     };
 

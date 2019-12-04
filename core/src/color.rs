@@ -25,6 +25,18 @@ impl Color {
         a: 1.0,
     };
 
+    /// Creates a [`Color`] from its RGB8 components.
+    ///
+    /// [`Color`]: struct.Color.html
+    pub fn from_rgb8(r: u8, g: u8, b: u8) -> Color {
+        Color {
+            r: f32::from(r) / 255.0,
+            g: f32::from(g) / 255.0,
+            b: f32::from(b) / 255.0,
+            a: 1.0,
+        }
+    }
+
     /// Converts the [`Color`] into its linear values.
     ///
     /// [`Color`]: struct.Color.html

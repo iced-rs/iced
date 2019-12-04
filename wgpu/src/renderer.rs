@@ -127,6 +127,7 @@ impl Renderer {
         }
 
         self.queue.submit(&[encoder.finish()]);
+        self.image_pipeline.trim_cache();
 
         *mouse_cursor
     }
@@ -229,9 +230,9 @@ impl Renderer {
                     border_radius: *border_radius as f32,
                 });
             }
-            Primitive::Image { path, bounds } => {
+            Primitive::Image { handle, bounds } => {
                 layer.images.push(Image {
-                    path: path.clone(),
+                    handle: handle.clone(),
                     position: [bounds.x, bounds.y],
                     scale: [bounds.width, bounds.height],
                 });
