@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `image::Handle` type with `from_path` and `from_memory` methods. [#90]
 - `image::Data` enum representing different kinds of image data. [#90]
+- `text_input::Renderer::measure_value` required method to measure the width of a `TextInput` value. [#108]
+- Click-based cursor positioning for `TextInput`. [#108]
+- `Home` and `End` keys support for `TextInput`. [#108]
 
 ### Changed
 - `Image::new` takes an `Into<image::Handle>` now instead of an `Into<String>`. [#90]
@@ -17,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Image` widget not keeping aspect ratio consistently. [#90]
 
 [#90]: https://github.com/hecrj/iced/pull/90
+[#108]: https://github.com/hecrj/iced/pull/108
 
 ## [0.1.0] - 2019-11-25
 ### Added
