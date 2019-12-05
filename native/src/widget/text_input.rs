@@ -238,6 +238,12 @@ where
                 keyboard::KeyCode::Right => {
                     self.state.move_cursor_right(&self.value);
                 }
+                keyboard::KeyCode::Home => {
+                    self.state.cursor_position = 0;
+                }
+                keyboard::KeyCode::End => {
+                    self.state.move_cursor_to_end(&self.value);
+                }
                 _ => {}
             },
             _ => {}
