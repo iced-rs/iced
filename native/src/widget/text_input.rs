@@ -160,7 +160,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
-        _renderer: &Renderer,
+        renderer: &Renderer,
     ) {
         match event {
             Event::Mouse(mouse::Event::Input {
@@ -170,8 +170,22 @@ where
                 self.state.is_focused =
                     layout.bounds().contains(cursor_position);
 
-                if self.state.cursor_position(&self.value) == 0 {
-                    self.state.move_cursor_to_end(&self.value);
+                if self.state.is_focused {
+                    let text_layout = layout.children().next().unwrap();
+                    let target = cursor_position.x - text_layout.bounds().x;
+
+                    if target < 0.0 {
+                        self.state.cursor_position = 0;
+                    } else {
+                        self.state.cursor_position = find_cursor_position(
+                            renderer,
+                            target,
+                            &self.value,
+                            self.size.unwrap_or(renderer.default_size()),
+                            0,
+                            self.value.len(),
+                        );
+                    }
                 }
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
@@ -274,6 +288,11 @@ pub trait Renderer: crate::Renderer + Sized {
     ///
     /// [`TextInput`]: struct.TextInput.html
     fn default_size(&self) -> u16;
+
+    /// Returns the width of the value of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    fn measure_value(&self, value: &str, size: u16) -> f32;
 
     /// Draws a [`TextInput`].
     ///
@@ -435,5 +454,58 @@ impl Value {
     /// [`Value`]: struct.Value.html
     pub fn remove(&mut self, index: usize) {
         let _ = self.0.remove(index);
+    }
+}
+
+// TODO: Reduce allocations
+fn find_cursor_position<Renderer: self::Renderer>(
+    renderer: &Renderer,
+    target: f32,
+    value: &Value,
+    size: u16,
+    start: usize,
+    end: usize,
+) -> usize {
+    if start >= end {
+        if start == 0 {
+            return 0;
+        }
+
+        let prev = value.until(start - 1);
+        let next = value.until(start);
+
+        let prev_width = renderer.measure_value(&prev.to_string(), size);
+        let next_width = renderer.measure_value(&next.to_string(), size);
+
+        if (target - next_width).abs() > (target - prev_width).abs() {
+            return start - 1;
+        } else {
+            return start;
+        }
+    }
+
+    let index = (end - start) / 2;
+    let subvalue = value.until(start + index);
+
+    let width = renderer.measure_value(&subvalue.to_string(), size);
+
+    if width > target {
+        find_cursor_position(
+            renderer,
+            target,
+            value,
+            size,
+            start,
+            start + index,
+        )
+    } else {
+        find_cursor_position(
+            renderer,
+            target,
+            value,
+            size,
+            start + index + 1,
+            end,
+        )
     }
 }
