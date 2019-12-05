@@ -477,7 +477,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
         let prev_width = renderer.measure_value(&prev.to_string(), size);
         let next_width = renderer.measure_value(&next.to_string(), size);
 
-        if (target - next_width).abs() > (target - prev_width).abs() {
+        if next_width - target > target - prev_width {
             return start - 1;
         } else {
             return start;
