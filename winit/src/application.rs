@@ -2,9 +2,10 @@ use crate::{
     conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    Cache, Command, Container, Debug, Element, Event, Length, MouseCursor,
-    Settings, UserInterface,
+    subscription, Cache, Command, Container, Debug, Element, Event, Length,
+    MouseCursor, Settings, Subscription, UserInterface,
 };
+use std::collections::HashMap;
 
 /// An interactive, native cross-platform application.
 ///
@@ -57,6 +58,9 @@ pub trait Application: Sized {
     /// [`Command`]: struct.Command.html
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
+    /// TODO
+    fn subscriptions(&self) -> Subscription<Self::Message>;
+
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
@@ -89,10 +93,14 @@ pub trait Application: Sized {
         let proxy = event_loop.create_proxy();
         let mut thread_pool =
             futures::executor::ThreadPool::new().expect("Create thread pool");
+        let mut alive_subscriptions = Subscriptions::new();
         let mut external_messages = Vec::new();
 
         let (mut application, init_command) = Self::new();
         spawn(init_command, &mut thread_pool, &proxy);
+
+        let subscriptions = application.subscriptions();
+        alive_subscriptions.update(subscriptions, &mut thread_pool, &proxy);
 
         let mut title = application.title();
 
@@ -203,6 +211,13 @@ pub trait Application: Sized {
                         spawn(command, &mut thread_pool, &proxy);
                         debug.update_finished();
                     }
+
+                    let subscriptions = application.subscriptions();
+                    alive_subscriptions.update(
+                        subscriptions,
+                        &mut thread_pool,
+                        &proxy,
+                    );
 
                     // Update window title
                     let new_title = application.title();
@@ -401,6 +416,66 @@ fn spawn<Message: Send>(
         });
 
         thread_pool.spawn_ok(future);
+    }
+}
+
+pub struct Subscriptions {
+    alive: HashMap<u64, Box<dyn subscription::Handle>>,
+}
+
+impl Subscriptions {
+    fn new() -> Self {
+        Self {
+            alive: HashMap::new(),
+        }
+    }
+
+    fn update<Message: Send>(
+        &mut self,
+        subscriptions: Subscription<Message>,
+        thread_pool: &mut futures::executor::ThreadPool,
+        proxy: &winit::event_loop::EventLoopProxy<Message>,
+    ) {
+        use futures::stream::StreamExt;
+
+        let definitions = subscriptions.definitions();
+        let mut alive = std::collections::HashSet::new();
+
+        for definition in definitions {
+            let id = definition.id();
+            let _ = alive.insert(id);
+
+            if !self.alive.contains_key(&id) {
+                let (stream, handle) = definition.stream();
+
+                let proxy =
+                    std::sync::Arc::new(std::sync::Mutex::new(proxy.clone()));
+
+                let future = stream.for_each(move |message| {
+                    proxy
+                        .lock()
+                        .expect("Acquire event loop proxy lock")
+                        .send_event(message)
+                        .expect("Send subscription result to event loop");
+
+                    futures::future::ready(())
+                });
+
+                thread_pool.spawn_ok(future);
+
+                let _ = self.alive.insert(id, handle);
+            }
+        }
+
+        self.alive.retain(|id, handle| {
+            let is_still_alive = alive.contains(&id);
+
+            if !is_still_alive {
+                handle.cancel();
+            }
+
+            is_still_alive
+        });
     }
 }
 

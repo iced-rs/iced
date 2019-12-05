@@ -1,4 +1,4 @@
-use crate::{Command, Element, Settings};
+use crate::{Command, Element, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -117,6 +117,11 @@ pub trait Application: Sized {
     /// [`Command`]: struct.Command.html
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
+    /// TODO
+    fn subscriptions(&self) -> Subscription<Self::Message> {
+        Subscription::none()
+    }
+
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
@@ -166,6 +171,10 @@ where
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
+    }
+
+    fn subscriptions(&self) -> Subscription<Self::Message> {
+        self.0.subscriptions()
     }
 
     fn view(&mut self) -> Element<'_, Self::Message> {

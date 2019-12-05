@@ -52,8 +52,8 @@ mod size;
 mod user_interface;
 
 pub use iced_core::{
-    Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    Point, Rectangle, Vector, VerticalAlignment,
+    subscription, Align, Background, Color, Command, Font, HorizontalAlignment,
+    Length, Point, Rectangle, Subscription, Vector, VerticalAlignment,
 };
 
 pub use element::Element;
