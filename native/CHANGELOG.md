@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `Image::new` takes an `Into<image::Handle>` now instead of an `Into<String>`. [#90]
+- `Button::background` takes an `Into<Background>` now instead of a `Background`.
 
 ### Fixed
 - `Image` widget not keeping aspect ratio consistently. [#90]

@@ -81,8 +81,8 @@ impl<'a, Message> Button<'a, Message> {
     ///
     /// [`Button`]: struct.Button.html
     /// [`Background`]: ../../struct.Background.html
-    pub fn background(mut self, background: Background) -> Self {
-        self.background = Some(background);
+    pub fn background<T: Into<Background>>(mut self, background: T) -> Self {
+        self.background = Some(background.into());
         self
     }
 
