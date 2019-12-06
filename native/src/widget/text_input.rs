@@ -468,46 +468,49 @@ impl Value {
     }
 
     /// Returns the position of the previous start of a word from the given
+    /// grapheme `index`.
+    ///
+    /// [`Value`]: struct.Value.html
+    pub fn previous_start_of_word(&self, index: usize) -> usize {
+        let previous_string =
+            &self.graphemes[..index.min(self.graphemes.len())].concat();
+
+        UnicodeSegmentation::split_word_bound_indices(&previous_string as &str)
+            .filter(|(_, word)| !word.trim_start().is_empty())
+            .next_back()
+            .map(|(i, previous_word)| {
+                index
+                    - UnicodeSegmentation::graphemes(previous_word, true)
+                        .count()
+                    - UnicodeSegmentation::graphemes(
+                        &previous_string[i + previous_word.len()..] as &str,
+                        true,
+                    )
+                    .count()
+            })
+            .unwrap_or(0)
+    }
+
+    /// Returns the position of the next end of a word from the given grapheme
     /// `index`.
     ///
     /// [`Value`]: struct.Value.html
-    pub fn previous_start_of_word(&self, mut index: usize) -> usize {
-        let mut skip_space = true;
+    pub fn next_end_of_word(&self, index: usize) -> usize {
+        let next_string = &self.graphemes[index..].concat();
 
-        while index > 0 {
-            if skip_space {
-                skip_space = self.graphemes[index - 1] == " ";
-            } else {
-                if self.graphemes[index - 1] == " " {
-                    break;
-                }
-            }
-
-            index -= 1;
-        }
-
-        index
-    }
-
-    /// Returns the position of the next end of a word from the given `index`.
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn next_end_of_word(&self, mut index: usize) -> usize {
-        let mut skip_space = true;
-
-        while index < self.graphemes.len() {
-            if skip_space {
-                skip_space = self.graphemes[index] == " ";
-            } else {
-                if self.graphemes[index] == " " {
-                    break;
-                }
-            }
-
-            index += 1;
-        }
-
-        index
+        UnicodeSegmentation::split_word_bound_indices(&next_string as &str)
+            .filter(|(_, word)| !word.trim_start().is_empty())
+            .next()
+            .map(|(i, next_word)| {
+                index
+                    + UnicodeSegmentation::graphemes(next_word, true).count()
+                    + UnicodeSegmentation::graphemes(
+                        &next_string[..i] as &str,
+                        true,
+                    )
+                    .count()
+            })
+            .unwrap_or(self.len())
     }
 
     /// Returns a new [`Value`] containing the graphemes until the given `index`.
@@ -532,12 +535,10 @@ impl Value {
     pub fn insert(&mut self, index: usize, c: char) {
         self.graphemes.insert(index, c.to_string());
 
-        self.graphemes = UnicodeSegmentation::graphemes(
-            self.graphemes.concat().as_ref() as &str,
-            true,
-        )
-        .map(String::from)
-        .collect();
+        self.graphemes =
+            UnicodeSegmentation::graphemes(&self.to_string() as &str, true)
+                .map(String::from)
+                .collect();
     }
 
     /// Removes the grapheme at the given `index`.
