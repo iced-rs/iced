@@ -17,3 +17,4 @@ image = "0.22"
 glam = "0.8"
 font-kit = "0.4"
 log = "0.4"
+resvg = { version = "0.8", features = ["raqote-backend"] }

@@ -3,6 +3,8 @@ use iced_native::{
     VerticalAlignment,
 };
 
+use crate::svg;
+
 /// A rendering primitive.
 #[derive(Debug, Clone)]
 pub enum Primitive {
@@ -44,6 +46,13 @@ pub enum Primitive {
         /// The handle of the image
         handle: image::Handle,
         /// The bounds of the image
+        bounds: Rectangle,
+    },
+    /// A svg icon primitive
+    Svg {
+        /// The handle of the icon
+        handle: svg::Handle,
+        /// The bounds of the icon
         bounds: Rectangle,
     },
     /// A clip primitive

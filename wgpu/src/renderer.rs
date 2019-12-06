@@ -1,4 +1,4 @@
-use crate::{quad, text, Image, Primitive, Quad, Transformation};
+use crate::{quad, text, Image, Primitive, Quad, Svg, Transformation};
 use iced_native::{
     renderer::{Debugger, Windowed},
     Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
@@ -23,6 +23,7 @@ pub struct Renderer {
     queue: Queue,
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
+    svg_pipeline: crate::svg::Pipeline,
     text_pipeline: text::Pipeline,
 }
 
@@ -31,6 +32,7 @@ struct Layer<'a> {
     offset: Vector<u32>,
     quads: Vec<Quad>,
     images: Vec<Image>,
+    svgs: Vec<Svg>,
     text: Vec<wgpu_glyph::Section<'a>>,
 }
 
@@ -41,6 +43,7 @@ impl<'a> Layer<'a> {
             offset,
             quads: Vec::new(),
             images: Vec::new(),
+            svgs: Vec::new(),
             text: Vec::new(),
         }
     }
@@ -64,12 +67,14 @@ impl Renderer {
         let text_pipeline = text::Pipeline::new(&mut device);
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
+        let svg_pipeline = crate::svg::Pipeline::new(&mut device);
 
         Self {
             device,
             queue,
             quad_pipeline,
             image_pipeline,
+            svg_pipeline,
             text_pipeline,
         }
     }
@@ -128,6 +133,7 @@ impl Renderer {
 
         self.queue.submit(&[encoder.finish()]);
         self.image_pipeline.trim_cache();
+        self.svg_pipeline.trim_cache();
 
         *mouse_cursor
     }
@@ -237,6 +243,13 @@ impl Renderer {
                     scale: [bounds.width, bounds.height],
                 });
             }
+            Primitive::Svg { handle, bounds } => {
+                layer.svgs.push(Svg {
+                    handle: handle.clone(),
+                    position: [bounds.x, bounds.y],
+                    scale: [bounds.width, bounds.height],
+                })
+            },
             Primitive::Clip {
                 bounds,
                 offset,
@@ -342,6 +355,25 @@ impl Renderer {
                 translated_and_scaled,
                 bounds,
                 target,
+            );
+        }
+
+        if layer.svgs.len() > 0 {
+            let translated = transformation
+                * Transformation::translate(
+                    -(layer.offset.x as f32),
+                    -(layer.offset.y as f32),
+                );
+
+            self.svg_pipeline.draw(
+                &mut self.device,
+                encoder,
+                &layer.svgs,
+                translated,
+                bounds,
+                target,
+                (dpi * 96.0) as u16,
+                (dpi * 20.0) as u16,
             );
         }
 
