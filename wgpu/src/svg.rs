@@ -4,12 +4,13 @@ use iced_native::{Hasher, Rectangle};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
+    fmt::Debug,
     hash::{Hash, Hasher as _},
     mem,
     path::PathBuf,
     rc::Rc,
+    u32,
 };
-use std::fmt::Debug;
 
 
 #[derive(Debug)]

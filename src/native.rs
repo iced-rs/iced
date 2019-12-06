@@ -80,11 +80,16 @@ pub mod widget {
         pub use iced_winit::image::{Handle, Image};
     }
 
+    pub mod icon {
+        //! Display icons in your user interface.
+        pub use iced_winit::icon::Icon;
+    }
+
     pub use iced_winit::{Checkbox, Radio, Text};
 
     #[doc(no_inline)]
     pub use {
-        button::Button, image::Image, scrollable::Scrollable, slider::Slider,
+        button::Button, icon::Icon, image::Image, scrollable::Scrollable, slider::Slider,
         text_input::TextInput,
     };
 

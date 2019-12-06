@@ -1,6 +1,7 @@
 mod button;
 mod checkbox;
 mod column;
+mod icon;
 mod image;
 mod radio;
 mod row;
