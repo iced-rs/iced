@@ -12,6 +12,24 @@ impl text_input::Renderer for Renderer {
         20
     }
 
+    fn measure_value(&self, value: &str, size: u16) -> f32 {
+        let (mut width, _) = self.text_pipeline.measure(
+            value,
+            f32::from(size),
+            Font::Default,
+            Size::INFINITY,
+        );
+
+        let spaces_at_the_end = value.len() - value.trim_end().len();
+
+        if spaces_at_the_end > 0 {
+            let space_width = self.text_pipeline.space_width(size as f32);
+            width += spaces_at_the_end as f32 * space_width;
+        }
+
+        width
+    }
+
     fn draw(
         &mut self,
         bounds: Rectangle,
@@ -48,7 +66,6 @@ impl text_input::Renderer for Renderer {
             border_radius: 4,
         };
 
-        let size = f32::from(size);
         let text = value.to_string();
 
         let text_value = Primitive::Text {
@@ -68,7 +85,7 @@ impl text_input::Renderer for Renderer {
                 width: f32::INFINITY,
                 ..text_bounds
             },
-            size,
+            size: f32::from(size),
             horizontal_alignment: HorizontalAlignment::Left,
             vertical_alignment: VerticalAlignment::Center,
         };
@@ -77,20 +94,8 @@ impl text_input::Renderer for Renderer {
             let text_before_cursor =
                 value.until(state.cursor_position(value)).to_string();
 
-            let (mut text_value_width, _) = self.text_pipeline.measure(
-                &text_before_cursor,
-                size,
-                Font::Default,
-                Size::new(f32::INFINITY, text_bounds.height),
-            );
-
-            let spaces_at_the_end =
-                text_before_cursor.len() - text_before_cursor.trim_end().len();
-
-            if spaces_at_the_end > 0 {
-                let space_width = self.text_pipeline.space_width(size);
-                text_value_width += spaces_at_the_end as f32 * space_width;
-            }
+            let text_value_width =
+                self.measure_value(&text_before_cursor, size);
 
             let cursor = Primitive::Quad {
                 bounds: Rectangle {

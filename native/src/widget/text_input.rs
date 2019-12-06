@@ -9,6 +9,7 @@ use crate::{
     layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
     Widget,
 };
+use unicode_segmentation::UnicodeSegmentation;
 
 /// A field that can be filled with text.
 ///
@@ -160,7 +161,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
-        _renderer: &Renderer,
+        renderer: &Renderer,
     ) {
         match event {
             Event::Mouse(mouse::Event::Input {
@@ -170,8 +171,22 @@ where
                 self.state.is_focused =
                     layout.bounds().contains(cursor_position);
 
-                if self.state.cursor_position(&self.value) == 0 {
-                    self.state.move_cursor_to_end(&self.value);
+                if self.state.is_focused {
+                    let text_layout = layout.children().next().unwrap();
+                    let target = cursor_position.x - text_layout.bounds().x;
+
+                    if target < 0.0 {
+                        self.state.cursor_position = 0;
+                    } else {
+                        self.state.cursor_position = find_cursor_position(
+                            renderer,
+                            target,
+                            &self.value,
+                            self.size.unwrap_or(renderer.default_size()),
+                            0,
+                            self.value.len(),
+                        );
+                    }
                 }
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
@@ -188,6 +203,7 @@ where
             Event::Keyboard(keyboard::Event::Input {
                 key_code,
                 state: ButtonState::Pressed,
+                modifiers,
             }) if self.state.is_focused => match key_code {
                 keyboard::KeyCode::Enter => {
                     if let Some(on_submit) = self.on_submit.clone() {
@@ -219,10 +235,24 @@ where
                     }
                 }
                 keyboard::KeyCode::Left => {
-                    self.state.move_cursor_left(&self.value);
+                    if modifiers.control {
+                        self.state.move_cursor_left_by_words(&self.value);
+                    } else {
+                        self.state.move_cursor_left(&self.value);
+                    }
                 }
                 keyboard::KeyCode::Right => {
-                    self.state.move_cursor_right(&self.value);
+                    if modifiers.control {
+                        self.state.move_cursor_right_by_words(&self.value);
+                    } else {
+                        self.state.move_cursor_right(&self.value);
+                    }
+                }
+                keyboard::KeyCode::Home => {
+                    self.state.cursor_position = 0;
+                }
+                keyboard::KeyCode::End => {
+                    self.state.move_cursor_to_end(&self.value);
                 }
                 _ => {}
             },
@@ -274,6 +304,11 @@ pub trait Renderer: crate::Renderer + Sized {
     ///
     /// [`TextInput`]: struct.TextInput.html
     fn default_size(&self) -> u16;
+
+    /// Returns the width of the value of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    fn measure_value(&self, value: &str, size: u16) -> f32;
 
     /// Draws a [`TextInput`].
     ///
@@ -356,6 +391,17 @@ impl State {
         self.cursor_position.min(value.len())
     }
 
+    /// Moves the cursor of a [`TextInput`] to the left.
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub(crate) fn move_cursor_left(&mut self, value: &Value) {
+        let current = self.cursor_position(value);
+
+        if current > 0 {
+            self.cursor_position = current - 1;
+        }
+    }
+
     /// Moves the cursor of a [`TextInput`] to the right.
     ///
     /// [`TextInput`]: struct.TextInput.html
@@ -367,15 +413,22 @@ impl State {
         }
     }
 
-    /// Moves the cursor of a [`TextInput`] to the left.
+    /// Moves the cursor of a [`TextInput`] to the previous start of a word.
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub(crate) fn move_cursor_left(&mut self, value: &Value) {
+    pub(crate) fn move_cursor_left_by_words(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
-        if current > 0 {
-            self.cursor_position = current - 1;
-        }
+        self.cursor_position = value.previous_start_of_word(current);
+    }
+
+    /// Moves the cursor of a [`TextInput`] to the next end of a word.
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub(crate) fn move_cursor_right_by_words(&mut self, value: &Value) {
+        let current = self.cursor_position(value);
+
+        self.cursor_position = value.next_end_of_word(current);
     }
 
     /// Moves the cursor of a [`TextInput`] to the end.
@@ -389,51 +442,162 @@ impl State {
 /// The value of a [`TextInput`].
 ///
 /// [`TextInput`]: struct.TextInput.html
-// TODO: Use `unicode-segmentation`
+// TODO: Reduce allocations, cache results (?)
 #[derive(Debug)]
-pub struct Value(Vec<char>);
+pub struct Value {
+    graphemes: Vec<String>,
+}
 
 impl Value {
     /// Creates a new [`Value`] from a string slice.
     ///
     /// [`Value`]: struct.Value.html
     pub fn new(string: &str) -> Self {
-        Self(string.chars().collect())
+        let graphemes = UnicodeSegmentation::graphemes(string, true)
+            .map(String::from)
+            .collect();
+
+        Self { graphemes }
     }
 
-    /// Returns the total amount of `char` in the [`Value`].
+    /// Returns the total amount of graphemes in the [`Value`].
     ///
     /// [`Value`]: struct.Value.html
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.graphemes.len()
     }
 
-    /// Returns a new [`Value`] containing the `char` until the given `index`.
+    /// Returns the position of the previous start of a word from the given
+    /// grapheme `index`.
+    ///
+    /// [`Value`]: struct.Value.html
+    pub fn previous_start_of_word(&self, index: usize) -> usize {
+        let previous_string =
+            &self.graphemes[..index.min(self.graphemes.len())].concat();
+
+        UnicodeSegmentation::split_word_bound_indices(&previous_string as &str)
+            .filter(|(_, word)| !word.trim_start().is_empty())
+            .next_back()
+            .map(|(i, previous_word)| {
+                index
+                    - UnicodeSegmentation::graphemes(previous_word, true)
+                        .count()
+                    - UnicodeSegmentation::graphemes(
+                        &previous_string[i + previous_word.len()..] as &str,
+                        true,
+                    )
+                    .count()
+            })
+            .unwrap_or(0)
+    }
+
+    /// Returns the position of the next end of a word from the given grapheme
+    /// `index`.
+    ///
+    /// [`Value`]: struct.Value.html
+    pub fn next_end_of_word(&self, index: usize) -> usize {
+        let next_string = &self.graphemes[index..].concat();
+
+        UnicodeSegmentation::split_word_bound_indices(&next_string as &str)
+            .filter(|(_, word)| !word.trim_start().is_empty())
+            .next()
+            .map(|(i, next_word)| {
+                index
+                    + UnicodeSegmentation::graphemes(next_word, true).count()
+                    + UnicodeSegmentation::graphemes(
+                        &next_string[..i] as &str,
+                        true,
+                    )
+                    .count()
+            })
+            .unwrap_or(self.len())
+    }
+
+    /// Returns a new [`Value`] containing the graphemes until the given `index`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn until(&self, index: usize) -> Self {
-        Self(self.0[..index.min(self.len())].to_vec())
+        let graphemes = self.graphemes[..index.min(self.len())].to_vec();
+
+        Self { graphemes }
     }
 
     /// Converts the [`Value`] into a `String`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn to_string(&self) -> String {
-        use std::iter::FromIterator;
-        String::from_iter(self.0.iter())
+        self.graphemes.concat()
     }
 
-    /// Inserts a new `char` at the given `index`.
+    /// Inserts a new `char` at the given grapheme `index`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn insert(&mut self, index: usize, c: char) {
-        self.0.insert(index, c);
+        self.graphemes.insert(index, c.to_string());
+
+        self.graphemes =
+            UnicodeSegmentation::graphemes(&self.to_string() as &str, true)
+                .map(String::from)
+                .collect();
     }
 
-    /// Removes the `char` at the given `index`.
+    /// Removes the grapheme at the given `index`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn remove(&mut self, index: usize) {
-        let _ = self.0.remove(index);
+        let _ = self.graphemes.remove(index);
+    }
+}
+
+// TODO: Reduce allocations
+fn find_cursor_position<Renderer: self::Renderer>(
+    renderer: &Renderer,
+    target: f32,
+    value: &Value,
+    size: u16,
+    start: usize,
+    end: usize,
+) -> usize {
+    if start >= end {
+        if start == 0 {
+            return 0;
+        }
+
+        let prev = value.until(start - 1);
+        let next = value.until(start);
+
+        let prev_width = renderer.measure_value(&prev.to_string(), size);
+        let next_width = renderer.measure_value(&next.to_string(), size);
+
+        if next_width - target > target - prev_width {
+            return start - 1;
+        } else {
+            return start;
+        }
+    }
+
+    let index = (end - start) / 2;
+    let subvalue = value.until(start + index);
+
+    let width = renderer.measure_value(&subvalue.to_string(), size);
+
+    if width > target {
+        find_cursor_position(
+            renderer,
+            target,
+            value,
+            size,
+            start,
+            start + index,
+        )
+    } else {
+        find_cursor_position(
+            renderer,
+            target,
+            value,
+            size,
+            start + index + 1,
+            end,
+        )
     }
 }

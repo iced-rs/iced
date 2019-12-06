@@ -89,6 +89,10 @@ impl text_input::Renderer for Null {
         20
     }
 
+    fn measure_value(&self, _value: &str, _size: u16) -> f32 {
+        0.0
+    }
+
     fn draw(
         &mut self,
         _bounds: Rectangle,
