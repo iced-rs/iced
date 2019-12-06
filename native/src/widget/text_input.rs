@@ -202,6 +202,7 @@ where
             Event::Keyboard(keyboard::Event::Input {
                 key_code,
                 state: ButtonState::Pressed,
+                modifiers,
             }) if self.state.is_focused => match key_code {
                 keyboard::KeyCode::Enter => {
                     if let Some(on_submit) = self.on_submit.clone() {
