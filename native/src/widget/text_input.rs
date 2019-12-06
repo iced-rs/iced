@@ -234,10 +234,18 @@ where
                     }
                 }
                 keyboard::KeyCode::Left => {
-                    self.state.move_cursor_left(&self.value);
+                    if modifiers.control {
+                        self.state.move_cursor_left_by_words(&self.value);
+                    } else {
+                        self.state.move_cursor_left(&self.value);
+                    }
                 }
                 keyboard::KeyCode::Right => {
-                    self.state.move_cursor_right(&self.value);
+                    if modifiers.control {
+                        self.state.move_cursor_right_by_words(&self.value);
+                    } else {
+                        self.state.move_cursor_right(&self.value);
+                    }
                 }
                 keyboard::KeyCode::Home => {
                     self.state.cursor_position = 0;
@@ -382,6 +390,17 @@ impl State {
         self.cursor_position.min(value.len())
     }
 
+    /// Moves the cursor of a [`TextInput`] to the left.
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub(crate) fn move_cursor_left(&mut self, value: &Value) {
+        let current = self.cursor_position(value);
+
+        if current > 0 {
+            self.cursor_position = current - 1;
+        }
+    }
+
     /// Moves the cursor of a [`TextInput`] to the right.
     ///
     /// [`TextInput`]: struct.TextInput.html
@@ -393,15 +412,22 @@ impl State {
         }
     }
 
-    /// Moves the cursor of a [`TextInput`] to the left.
+    /// Moves the cursor of a [`TextInput`] to the previous start of a word.
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub(crate) fn move_cursor_left(&mut self, value: &Value) {
+    pub(crate) fn move_cursor_left_by_words(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
-        if current > 0 {
-            self.cursor_position = current - 1;
-        }
+        self.cursor_position = value.previous_start_of_word(current);
+    }
+
+    /// Moves the cursor of a [`TextInput`] to the next end of a word.
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub(crate) fn move_cursor_right_by_words(&mut self, value: &Value) {
+        let current = self.cursor_position(value);
+
+        self.cursor_position = value.next_end_of_word(current);
     }
 
     /// Moves the cursor of a [`TextInput`] to the end.
@@ -432,6 +458,49 @@ impl Value {
     /// [`Value`]: struct.Value.html
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    /// Returns the position of the previous start of a word from the given
+    /// `index`.
+    ///
+    /// [`Value`]: struct.Value.html
+    pub fn previous_start_of_word(&self, mut index: usize) -> usize {
+        let mut skip_space = true;
+
+        while index > 0 {
+            if skip_space {
+                skip_space = self.0[index - 1] == ' ';
+            } else {
+                if self.0[index - 1] == ' ' {
+                    break;
+                }
+            }
+
+            index -= 1;
+        }
+
+        index
+    }
+
+    /// Returns the position of the next end of a word from the given `index`.
+    ///
+    /// [`Value`]: struct.Value.html
+    pub fn next_end_of_word(&self, mut index: usize) -> usize {
+        let mut skip_space = true;
+
+        while index < self.0.len() {
+            if skip_space {
+                skip_space = self.0[index] == ' ';
+            } else {
+                if self.0[index] == ' ' {
+                    break;
+                }
+            }
+
+            index += 1;
+        }
+
+        index
     }
 
     /// Returns a new [`Value`] containing the `char` until the given `index`.
