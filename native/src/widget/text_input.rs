@@ -9,6 +9,7 @@ use crate::{
     layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
     Widget,
 };
+use unicode_segmentation::UnicodeSegmentation;
 
 /// A field that can be filled with text.
 ///
@@ -441,23 +442,29 @@ impl State {
 /// The value of a [`TextInput`].
 ///
 /// [`TextInput`]: struct.TextInput.html
-// TODO: Use `unicode-segmentation`
+// TODO: Reduce allocations, cache results (?)
 #[derive(Debug)]
-pub struct Value(Vec<char>);
+pub struct Value {
+    graphemes: Vec<String>,
+}
 
 impl Value {
     /// Creates a new [`Value`] from a string slice.
     ///
     /// [`Value`]: struct.Value.html
     pub fn new(string: &str) -> Self {
-        Self(string.chars().collect())
+        let graphemes = UnicodeSegmentation::graphemes(string, true)
+            .map(String::from)
+            .collect();
+
+        Self { graphemes }
     }
 
-    /// Returns the total amount of `char` in the [`Value`].
+    /// Returns the total amount of graphemes in the [`Value`].
     ///
     /// [`Value`]: struct.Value.html
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.graphemes.len()
     }
 
     /// Returns the position of the previous start of a word from the given
@@ -469,9 +476,9 @@ impl Value {
 
         while index > 0 {
             if skip_space {
-                skip_space = self.0[index - 1] == ' ';
+                skip_space = self.graphemes[index - 1] == " ";
             } else {
-                if self.0[index - 1] == ' ' {
+                if self.graphemes[index - 1] == " " {
                     break;
                 }
             }
@@ -488,11 +495,11 @@ impl Value {
     pub fn next_end_of_word(&self, mut index: usize) -> usize {
         let mut skip_space = true;
 
-        while index < self.0.len() {
+        while index < self.graphemes.len() {
             if skip_space {
-                skip_space = self.0[index] == ' ';
+                skip_space = self.graphemes[index] == " ";
             } else {
-                if self.0[index] == ' ' {
+                if self.graphemes[index] == " " {
                     break;
                 }
             }
@@ -503,33 +510,41 @@ impl Value {
         index
     }
 
-    /// Returns a new [`Value`] containing the `char` until the given `index`.
+    /// Returns a new [`Value`] containing the graphemes until the given `index`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn until(&self, index: usize) -> Self {
-        Self(self.0[..index.min(self.len())].to_vec())
+        let graphemes = self.graphemes[..index.min(self.len())].to_vec();
+
+        Self { graphemes }
     }
 
     /// Converts the [`Value`] into a `String`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn to_string(&self) -> String {
-        use std::iter::FromIterator;
-        String::from_iter(self.0.iter())
+        self.graphemes.concat()
     }
 
-    /// Inserts a new `char` at the given `index`.
+    /// Inserts a new `char` at the given grapheme `index`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn insert(&mut self, index: usize, c: char) {
-        self.0.insert(index, c);
+        self.graphemes.insert(index, c.to_string());
+
+        self.graphemes = UnicodeSegmentation::graphemes(
+            self.graphemes.concat().as_ref() as &str,
+            true,
+        )
+        .map(String::from)
+        .collect();
     }
 
-    /// Removes the `char` at the given `index`.
+    /// Removes the grapheme at the given `index`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn remove(&mut self, index: usize) {
-        let _ = self.0.remove(index);
+        let _ = self.graphemes.remove(index);
     }
 }
 
