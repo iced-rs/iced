@@ -37,14 +37,12 @@ mod circle {
         fn layout(
             &self,
             _renderer: &Renderer,
-            limits: &layout::Limits,
+            _limits: &layout::Limits,
         ) -> layout::Node {
-            let size = limits
-                .width(Length::Units(self.radius * 2))
-                .height(Length::Units(self.radius * 2))
-                .resolve(Size::ZERO);
-
-            layout::Node::new(size)
+            layout::Node::new(Size::new(
+                f32::from(self.radius) * 2.0,
+                f32::from(self.radius) * 2.0,
+            ))
         }
 
         fn hash_layout(&self, state: &mut Hasher) {
@@ -59,11 +57,9 @@ mod circle {
             layout: Layout<'_>,
             _cursor_position: Point,
         ) -> (Primitive, MouseCursor) {
-            let bounds = layout.bounds();
-
             (
                 Primitive::Quad {
-                    bounds,
+                    bounds: layout.bounds(),
                     background: Background::Color(Color::BLACK),
                     border_radius: self.radius,
                 },
