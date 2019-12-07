@@ -39,6 +39,7 @@ pub struct TextInput<'a, Message> {
     state: &'a mut State,
     placeholder: String,
     value: Value,
+    is_secure: bool,
     width: Length,
     max_width: Length,
     padding: u16,
@@ -71,6 +72,7 @@ impl<'a, Message> TextInput<'a, Message> {
             state,
             placeholder: String::from(placeholder),
             value: Value::new(value),
+            is_secure: false,
             width: Length::Fill,
             max_width: Length::Shrink,
             padding: 0,
@@ -78,6 +80,14 @@ impl<'a, Message> TextInput<'a, Message> {
             on_change: Box::new(on_change),
             on_submit: None,
         }
+    }
+
+    /// Converts the [`TextInput`] into a secure password input.
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn password(mut self) -> Self {
+        self.is_secure = true;
+        self
     }
 
     /// Sets the width of the [`TextInput`].
@@ -177,6 +187,15 @@ where
 
                     if target < 0.0 {
                         self.state.cursor_position = 0;
+                    } else if self.is_secure {
+                        self.state.cursor_position = find_cursor_position(
+                            renderer,
+                            target,
+                            &self.value.secure(),
+                            self.size.unwrap_or(renderer.default_size()),
+                            0,
+                            self.value.len(),
+                        );
                     } else {
                         self.state.cursor_position = find_cursor_position(
                             renderer,
@@ -235,14 +254,14 @@ where
                     }
                 }
                 keyboard::KeyCode::Left => {
-                    if modifiers.control {
+                    if modifiers.control && !self.is_secure {
                         self.state.move_cursor_left_by_words(&self.value);
                     } else {
                         self.state.move_cursor_left(&self.value);
                     }
                 }
                 keyboard::KeyCode::Right => {
-                    if modifiers.control {
+                    if modifiers.control && !self.is_secure {
                         self.state.move_cursor_right_by_words(&self.value);
                     } else {
                         self.state.move_cursor_right(&self.value);
@@ -269,15 +288,27 @@ where
         let bounds = layout.bounds();
         let text_bounds = layout.children().next().unwrap().bounds();
 
-        renderer.draw(
-            bounds,
-            text_bounds,
-            cursor_position,
-            self.size.unwrap_or(renderer.default_size()),
-            &self.placeholder,
-            &self.value,
-            &self.state,
-        )
+        if self.is_secure {
+            renderer.draw(
+                bounds,
+                text_bounds,
+                cursor_position,
+                self.size.unwrap_or(renderer.default_size()),
+                &self.placeholder,
+                &self.value.secure(),
+                &self.state,
+            )
+        } else {
+            renderer.draw(
+                bounds,
+                text_bounds,
+                cursor_position,
+                self.size.unwrap_or(renderer.default_size()),
+                &self.placeholder,
+                &self.value,
+                &self.state,
+            )
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -546,6 +577,18 @@ impl Value {
     /// [`Value`]: struct.Value.html
     pub fn remove(&mut self, index: usize) {
         let _ = self.graphemes.remove(index);
+    }
+
+    /// Returns a new [`Value`] with all its graphemes replaced with the
+    /// dot ('•') character.
+    ///
+    /// [`Value`]: struct.Value.html
+    pub fn secure(&self) -> Self {
+        Self {
+            graphemes: std::iter::repeat(String::from("•"))
+                .take(self.graphemes.len())
+                .collect(),
+        }
     }
 }
 
