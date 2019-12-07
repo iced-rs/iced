@@ -1,12 +1,16 @@
 use crate::{
     button, checkbox, column, radio, row, scrollable, text, text_input,
-    Background, Color, Element, Font, HorizontalAlignment, Layout, Point,
-    Rectangle, Renderer, Size, VerticalAlignment,
+    Element, Font, HorizontalAlignment, Layout, Point, Rectangle,
+    Renderer, Size, VerticalAlignment,
 };
 
 /// A renderer that does nothing.
 #[derive(Debug, Clone, Copy)]
 pub struct Null;
+
+/// A style struct with no options.
+#[derive(Debug, Clone, Copy)]
+pub struct NullStyle;
 
 impl Renderer for Null {
     type Output = ();
@@ -33,9 +37,7 @@ impl row::Renderer for Null {
 }
 
 impl text::Renderer for Null {
-    fn default_size(&self) -> u16 {
-        20
-    }
+    type WidgetStyle = NullStyle;
 
     fn measure(
         &self,
@@ -53,7 +55,7 @@ impl text::Renderer for Null {
         _content: &str,
         _size: u16,
         _font: Font,
-        _color: Option<Color>,
+        _style: &Self::WidgetStyle,
         _horizontal_alignment: HorizontalAlignment,
         _vertical_alignment: VerticalAlignment,
     ) {
@@ -85,11 +87,18 @@ impl scrollable::Renderer for Null {
 }
 
 impl text_input::Renderer for Null {
+    type WidgetStyle = NullStyle;
+
     fn default_size(&self) -> u16 {
         20
     }
 
-    fn measure_value(&self, _value: &str, _size: u16) -> f32 {
+    fn measure_value(
+        &self,
+        _value: &str,
+        _size: u16,
+        _style: &Self::WidgetStyle,
+    ) -> f32 {
         0.0
     }
 
@@ -98,6 +107,7 @@ impl text_input::Renderer for Null {
         _bounds: Rectangle,
         _text_bounds: Rectangle,
         _cursor_position: Point,
+        _style: &Self::WidgetStyle,
         _size: u16,
         _placeholder: &str,
         _value: &text_input::Value,
@@ -107,19 +117,22 @@ impl text_input::Renderer for Null {
 }
 
 impl button::Renderer for Null {
+    type WidgetStyle = NullStyle;
+
     fn draw(
         &mut self,
         _bounds: Rectangle,
         _cursor_position: Point,
         _is_pressed: bool,
-        _background: Option<Background>,
-        _border_radius: u16,
+        _style: &Self::WidgetStyle,
         _content: Self::Output,
     ) -> Self::Output {
     }
 }
 
 impl radio::Renderer for Null {
+    type WidgetStyle = NullStyle;
+
     fn default_size(&self) -> u32 {
         20
     }
@@ -129,12 +142,15 @@ impl radio::Renderer for Null {
         _bounds: Rectangle,
         _is_selected: bool,
         _is_mouse_over: bool,
+        _style: &NullStyle,
         _label: Self::Output,
     ) {
     }
 }
 
 impl checkbox::Renderer for Null {
+    type WidgetStyle = NullStyle;
+
     fn default_size(&self) -> u32 {
         20
     }
@@ -144,6 +160,7 @@ impl checkbox::Renderer for Null {
         _bounds: Rectangle,
         _is_checked: bool,
         _is_mouse_over: bool,
+        _style: &NullStyle,
         _label: Self::Output,
     ) {
     }

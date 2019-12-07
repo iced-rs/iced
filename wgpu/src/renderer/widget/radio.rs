@@ -1,10 +1,12 @@
-use crate::{Primitive, Renderer};
-use iced_native::{radio, Background, MouseCursor, Rectangle};
+use crate::{Primitive, RadioStyle, Renderer};
+use iced_native::{radio, MouseCursor, Rectangle};
 
 const SIZE: f32 = 28.0;
 const DOT_SIZE: f32 = SIZE / 2.0;
 
 impl radio::Renderer for Renderer {
+    type WidgetStyle = RadioStyle;
+
     fn default_size(&self) -> u32 {
         SIZE as u32
     }
@@ -14,30 +16,29 @@ impl radio::Renderer for Renderer {
         bounds: Rectangle,
         is_selected: bool,
         is_mouse_over: bool,
+        style: &Self::WidgetStyle,
         (label, _): Self::Output,
     ) -> Self::Output {
         let (radio_border, radio_box) = (
             Primitive::Quad {
                 bounds,
-                background: Background::Color([0.6, 0.6, 0.6].into()),
+                background: if is_mouse_over {
+                    style.get_border_hovered_color()
+                } else {
+                    style.border_color
+                }
+                    .into(),
                 border_radius: (SIZE / 2.0) as u16,
             },
             Primitive::Quad {
                 bounds: Rectangle {
-                    x: bounds.x + 1.0,
-                    y: bounds.y + 1.0,
-                    width: bounds.width - 2.0,
-                    height: bounds.height - 2.0,
+                    x: bounds.x + style.border_width as f32,
+                    y: bounds.y + style.border_width as f32,
+                    width: bounds.width - (style.border_width * 2) as f32,
+                    height: bounds.height - (style.border_width * 2) as f32,
                 },
-                background: Background::Color(
-                    if is_mouse_over {
-                        [0.90, 0.90, 0.90]
-                    } else {
-                        [0.95, 0.95, 0.95]
-                    }
-                    .into(),
-                ),
-                border_radius: (SIZE / 2.0 - 1.0) as u16,
+                background: style.background,
+                border_radius: (SIZE / 2.0) as u16 - style.border_width,
             },
         );
 
@@ -51,7 +52,7 @@ impl radio::Renderer for Renderer {
                             width: bounds.width - DOT_SIZE,
                             height: bounds.height - DOT_SIZE,
                         },
-                        background: Background::Color([0.3, 0.3, 0.3].into()),
+                        background: style.dot_background,
                         border_radius: (DOT_SIZE / 2.0) as u16,
                     };
 

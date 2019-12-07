@@ -1,22 +1,29 @@
-use crate::{Primitive, Renderer};
+use crate::{Primitive, Renderer, TextInputStyle};
 
 use iced_native::{
-    text_input, Background, Color, Font, HorizontalAlignment, MouseCursor,
-    Point, Rectangle, Size, Vector, VerticalAlignment,
+    text_input, Background, Color, HorizontalAlignment, MouseCursor, Point,
+    Rectangle, Size, Vector, VerticalAlignment,
 };
 use std::f32;
 
 impl text_input::Renderer for Renderer {
+    type WidgetStyle = TextInputStyle;
+
     fn default_size(&self) -> u16 {
         // TODO: Make this configurable
         20
     }
 
-    fn measure_value(&self, value: &str, size: u16) -> f32 {
+    fn measure_value(
+        &self,
+        value: &str,
+        size: u16,
+        style: &Self::WidgetStyle,
+    ) -> f32 {
         let (mut width, _) = self.text_pipeline.measure(
             value,
             f32::from(size),
-            Font::Default,
+            style.font,
             Size::INFINITY,
         );
 
@@ -35,6 +42,7 @@ impl text_input::Renderer for Renderer {
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
+        style: &TextInputStyle,
         size: u16,
         placeholder: &str,
         value: &text_input::Value,
@@ -42,28 +50,31 @@ impl text_input::Renderer for Renderer {
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
+        let border_color = if is_mouse_over || state.is_focused() {
+            style.get_border_hovered_color()
+        } else {
+            style.border_color
+        };
+
         let border = Primitive::Quad {
             bounds,
-            background: Background::Color(
-                if is_mouse_over || state.is_focused() {
-                    [0.5, 0.5, 0.5]
-                } else {
-                    [0.7, 0.7, 0.7]
-                }
-                .into(),
-            ),
-            border_radius: 5,
+            background: Background::Color(border_color),
+            border_radius: style.border_radius,
         };
 
         let input = Primitive::Quad {
             bounds: Rectangle {
-                x: bounds.x + 1.0,
-                y: bounds.y + 1.0,
-                width: bounds.width - 2.0,
-                height: bounds.height - 2.0,
+                x: bounds.x + f32::from(style.border_width),
+                y: bounds.y + f32::from(style.border_width),
+                width: bounds.width - f32::from(style.border_width * 2),
+                height: bounds.height - f32::from(style.border_width * 2),
             },
-            background: Background::Color(Color::WHITE),
-            border_radius: 4,
+            background: if let Some(background) = style.background {
+                background
+            } else {
+                Background::Color(Color::WHITE)
+            },
+            border_radius: style.border_radius - style.border_width,
         };
 
         let text = value.to_string();
@@ -75,12 +86,11 @@ impl text_input::Renderer for Renderer {
                 text.clone()
             },
             color: if text.is_empty() {
-                [0.7, 0.7, 0.7]
+                style.placeholder_color
             } else {
-                [0.3, 0.3, 0.3]
-            }
-            .into(),
-            font: Font::Default,
+                style.text_color
+            },
+            font: style.font,
             bounds: Rectangle {
                 width: f32::INFINITY,
                 ..text_bounds
@@ -95,7 +105,7 @@ impl text_input::Renderer for Renderer {
                 value.until(state.cursor_position(value)).to_string();
 
             let text_value_width =
-                self.measure_value(&text_before_cursor, size);
+                self.measure_value(&text_before_cursor, size, style);
 
             let cursor = Primitive::Quad {
                 bounds: Rectangle {
@@ -104,8 +114,8 @@ impl text_input::Renderer for Renderer {
                     width: 1.0,
                     height: text_bounds.height,
                 },
-                background: Background::Color(Color::BLACK),
-                border_radius: 0,
+                background: Background::Color(style.text_color),
+                border_radius: 1,
             };
 
             (

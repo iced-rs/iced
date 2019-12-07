@@ -1,7 +1,8 @@
 use iced::{
-    button, scrollable, text_input, Align, Application, Button, Checkbox,
-    Color, Column, Command, Container, Element, Font, HorizontalAlignment,
-    Length, Row, Scrollable, Settings, Text, TextInput,
+    button, scrollable, text_input, Align, Application, Background, Button,
+    Checkbox, Color, Column, Command, Container, Element, Font,
+    HorizontalAlignment, Length, Palette, Row, Scrollable, Settings, Text,
+    TextInput, TextStyle,
 };
 use serde::{Deserialize, Serialize};
 
@@ -147,7 +148,6 @@ impl Application for Todos {
             }) => {
                 let title = Text::new("todos")
                     .size(100)
-                    .color([0.5, 0.5, 0.5])
                     .horizontal_alignment(HorizontalAlignment::Center);
 
                 let input = TextInput::new(
@@ -291,12 +291,9 @@ impl Task {
                     .align_items(Align::Center)
                     .push(checkbox)
                     .push(
-                        Button::new(
-                            edit_button,
-                            edit_icon().color([0.5, 0.5, 0.5]),
-                        )
-                        .on_press(TaskMessage::Edit)
-                        .padding(10),
+                        Button::new(edit_button, edit_icon())
+                            .on_press(TaskMessage::Edit)
+                            .padding(10),
                     )
                     .into()
             }
@@ -313,6 +310,8 @@ impl Task {
                 .on_submit(TaskMessage::FinishEdition)
                 .padding(10);
 
+                let palette = Palette::default();
+
                 Row::new()
                     .spacing(20)
                     .align_items(Align::Center)
@@ -322,17 +321,27 @@ impl Task {
                             delete_button,
                             Row::new()
                                 .spacing(10)
-                                .push(delete_icon().color(Color::WHITE))
+                                .push(delete_icon().change_style(|style| {
+                                    style.text_color = Color::WHITE
+                                }))
                                 .push(
-                                    Text::new("Delete")
-                                        .width(Length::Shrink)
-                                        .color(Color::WHITE),
+                                    Text::new_with_style(
+                                        "Delete",
+                                        TextStyle {
+                                            text_color: Color::WHITE,
+                                        },
+                                    )
+                                    .width(Length::Shrink),
                                 ),
                         )
                         .on_press(TaskMessage::Delete)
                         .padding(10)
-                        .border_radius(5)
-                        .background(Color::from_rgb(0.8, 0.2, 0.2)),
+                        .change_style(|style| {
+                            style.border_radius = 5;
+                            style.background =
+                                Some(Background::Color(palette.negative));
+                            style.border_color = palette.negative;
+                        }),
                     )
                     .into()
             }
@@ -349,6 +358,8 @@ pub struct Controls {
 
 impl Controls {
     fn view(&mut self, tasks: &[Task], current_filter: Filter) -> Row<Message> {
+        let palette = Palette::default();
+
         let Controls {
             all_button,
             active_button,
@@ -360,16 +371,17 @@ impl Controls {
         let filter_button = |state, label, filter, current_filter| {
             let label = Text::new(label).size(16).width(Length::Shrink);
             let button = if filter == current_filter {
-                Button::new(state, label.color(Color::WHITE))
-                    .background(Color::from_rgb(0.2, 0.2, 0.7))
+                Button::new(state, label).change_style(|style| {
+                    style.border_radius = 10;
+                    style.background =
+                        Some(Background::Color(palette.highlight));
+                })
             } else {
                 Button::new(state, label)
+                    .change_style(|style| style.border_radius = 10)
             };
 
-            button
-                .on_press(Message::FilterChanged(filter))
-                .padding(8)
-                .border_radius(10)
+            button.on_press(Message::FilterChanged(filter)).padding(8)
         };
 
         Row::new()
@@ -449,7 +461,9 @@ fn empty_message(message: &str) -> Element<'static, Message> {
         Text::new(message)
             .size(25)
             .horizontal_alignment(HorizontalAlignment::Center)
-            .color([0.7, 0.7, 0.7]),
+            .change_style(|style: &mut TextStyle| {
+                style.text_color = [0.7, 0.7, 0.7].into()
+            }),
     )
     .width(Length::Fill)
     .height(Length::Units(200))

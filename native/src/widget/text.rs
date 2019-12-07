@@ -1,7 +1,7 @@
 //! Write some text for your users to read.
 use crate::{
-    layout, Color, Element, Font, Hasher, HorizontalAlignment, Layout, Length,
-    Point, Rectangle, Size, VerticalAlignment, Widget,
+    layout, Element, Font, Hasher, HorizontalAlignment, Layout, Length, Point,
+    Rectangle, Size, VerticalAlignment, Widget,
 };
 
 use std::hash::Hash;
@@ -20,27 +20,30 @@ use std::hash::Hash;
 ///
 /// ![Text drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
 #[derive(Debug, Clone)]
-pub struct Text {
+pub struct Text<Style> {
     content: String,
-    size: Option<u16>,
-    color: Option<Color>,
     font: Font,
+    size: u16,
     width: Length,
     height: Length,
     horizontal_alignment: HorizontalAlignment,
     vertical_alignment: VerticalAlignment,
+    style: Style,
 }
 
-impl Text {
+impl<Style> Text<Style> {
     /// Create a new fragment of [`Text`] with the given contents.
     ///
     /// [`Text`]: struct.Text.html
-    pub fn new<T: Into<String>>(label: T) -> Self {
+    pub fn new(label: impl Into<String>) -> Self
+    where
+        Style: Default,
+    {
         Text {
             content: label.into(),
-            size: None,
-            color: None,
+            style: Style::default(),
             font: Font::Default,
+            size: 20,
             width: Length::Fill,
             height: Length::Shrink,
             horizontal_alignment: HorizontalAlignment::Left,
@@ -48,20 +51,37 @@ impl Text {
         }
     }
 
+    /// Create a new fragment of [`Text`] with the given contents and a custom
+    /// `style`.
+    ///
+    /// [`Text`]: struct.Text.html
+    /// [`Palette`]: ../struct.Palette.html
+    pub fn new_with_style(label: impl Into<String>, style: Style) -> Self {
+        Text {
+            content: label.into(),
+            style,
+            font: Font::Default,
+            size: 20,
+            width: Length::Fill,
+            height: Length::Shrink,
+            horizontal_alignment: HorizontalAlignment::Left,
+            vertical_alignment: VerticalAlignment::Top,
+        }
+    }
+
+    /// Changes the style of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    pub fn change_style(mut self, f: impl FnOnce(&mut Style)) -> Self {
+        f(&mut self.style);
+        self
+    }
+
     /// Sets the size of the [`Text`].
     ///
     /// [`Text`]: struct.Text.html
     pub fn size(mut self, size: u16) -> Self {
-        self.size = Some(size);
-        self
-    }
-
-    /// Sets the [`Color`] of the [`Text`].
-    ///
-    /// [`Text`]: struct.Text.html
-    /// [`Color`]: ../../struct.Color.html
-    pub fn color<C: Into<Color>>(mut self, color: C) -> Self {
-        self.color = Some(color.into());
+        self.size = size;
         self
     }
 
@@ -112,9 +132,9 @@ impl Text {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Text
+impl<Message, Renderer, Style> Widget<Message, Renderer> for Text<Style>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer<WidgetStyle = Style>,
 {
     fn width(&self) -> Length {
         self.width
@@ -131,12 +151,10 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
-        let size = self.size.unwrap_or(renderer.default_size());
-
         let bounds = limits.max();
 
         let (width, height) =
-            renderer.measure(&self.content, size, self.font, bounds);
+            renderer.measure(&self.content, self.size, self.font, bounds);
 
         let size = limits.resolve(Size::new(width, height));
 
@@ -152,9 +170,9 @@ where
         renderer.draw(
             layout.bounds(),
             &self.content,
-            self.size.unwrap_or(renderer.default_size()),
+            self.size,
             self.font,
-            self.color,
+            &self.style,
             self.horizontal_alignment,
             self.vertical_alignment,
         )
@@ -177,10 +195,11 @@ where
 /// [renderer]: ../../renderer/index.html
 /// [`UserInterface`]: ../../struct.UserInterface.html
 pub trait Renderer: crate::Renderer {
-    /// Returns the default size of the [`Text`].
+    /// Struct that consists of all style options the renderer supports for
+    /// [`Text`].
     ///
     /// [`Text`]: struct.Text.html
-    fn default_size(&self) -> u16;
+    type WidgetStyle;
 
     /// Measures the [`Text`] in the given bounds and returns the minimum
     /// boundaries that can fit the contents.
@@ -213,17 +232,18 @@ pub trait Renderer: crate::Renderer {
         content: &str,
         size: u16,
         font: Font,
-        color: Option<Color>,
+        style: &Self::WidgetStyle,
         horizontal_alignment: HorizontalAlignment,
         vertical_alignment: VerticalAlignment,
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Text> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Style> From<Text<Style>> for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer<WidgetStyle = Style>,
+    Style: 'static,
 {
-    fn from(text: Text) -> Element<'a, Message, Renderer> {
+    fn from(text: Text<Style>) -> Element<'a, Message, Renderer> {
         Element::new(text)
     }
 }

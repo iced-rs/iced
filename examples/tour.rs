@@ -1,7 +1,8 @@
 use iced::{
-    button, scrollable, slider, text_input, Button, Checkbox, Color, Column,
-    Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
-    Sandbox, Scrollable, Settings, Slider, Text, TextInput,
+    button, scrollable, slider, text_input, Background, Button, Checkbox,
+    Color, Column, Container, Element, HorizontalAlignment, Image, Length,
+    Radio, Row, Sandbox, Scrollable, Settings, Slider, Text, TextInput,
+    TextStyle,
 };
 
 pub fn main() {
@@ -492,7 +493,10 @@ impl<'a> Step {
             .padding(20)
             .spacing(20)
             .push(Text::new("And its color:"))
-            .push(Text::new(&format!("{:?}", color)).color(color))
+            .push(Text::new_with_style(
+                &format!("{:?}", color),
+                TextStyle { text_color: color },
+            ))
             .push(
                 Row::new()
                     .spacing(10)
@@ -646,7 +650,6 @@ impl<'a> Step {
             .push(if cfg!(target_arch = "wasm32") {
                 Element::new(
                     Text::new("Not available on web yet!")
-                        .color([0.7, 0.7, 0.7])
                         .horizontal_alignment(HorizontalAlignment::Center),
                 )
             } else {
@@ -686,33 +689,43 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
     .center_x()
 }
 
-fn button<'a, Message>(
+fn button<'a, Message: Clone>(
     state: &'a mut button::State,
     label: &str,
 ) -> Button<'a, Message> {
     Button::new(
         state,
-        Text::new(label)
-            .color(Color::WHITE)
-            .horizontal_alignment(HorizontalAlignment::Center),
+        Text::new(label).horizontal_alignment(HorizontalAlignment::Center),
     )
     .padding(12)
-    .border_radius(12)
     .min_width(100)
+    .change_style(|s| s.border_radius = 12)
 }
 
-fn primary_button<'a, Message>(
+fn primary_button<'a, Message: Clone>(
     state: &'a mut button::State,
     label: &str,
 ) -> Button<'a, Message> {
-    button(state, label).background(Color::from_rgb(0.11, 0.42, 0.87))
+    let background = Background::Color(Color {
+        r: 0.11,
+        g: 0.42,
+        b: 0.87,
+        a: 1.0,
+    });
+    button(state, label).change_style(|s| s.background = Some(background))
 }
 
-fn secondary_button<'a, Message>(
+fn secondary_button<'a, Message: Clone>(
     state: &'a mut button::State,
     label: &str,
 ) -> Button<'a, Message> {
-    button(state, label).background(Color::from_rgb(0.4, 0.4, 0.4))
+    let background = Background::Color(Color {
+        r: 0.4,
+        g: 0.4,
+        b: 0.4,
+        a: 1.0,
+    });
+    button(state, label).change_style(|s| s.background = Some(background))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

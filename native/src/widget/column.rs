@@ -111,10 +111,11 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, 'b, Message, Renderer> Widget<Message, Renderer>
     for Column<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
+    'b: 'a,
 {
     fn width(&self) -> Length {
         self.width
@@ -146,27 +147,6 @@ where
         )
     }
 
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        messages: &mut Vec<Message>,
-        renderer: &Renderer,
-    ) {
-        self.children.iter_mut().zip(layout.children()).for_each(
-            |(child, layout)| {
-                child.widget.on_event(
-                    event,
-                    layout,
-                    cursor_position,
-                    messages,
-                    renderer,
-                )
-            },
-        );
-    }
-
     fn draw(
         &self,
         renderer: &mut Renderer,
@@ -188,6 +168,27 @@ where
         for child in &self.children {
             child.widget.hash_layout(state);
         }
+    }
+
+    fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+        renderer: &Renderer,
+    ) {
+        self.children.iter_mut().zip(layout.children()).for_each(
+            |(child, layout)| {
+                child.widget.on_event(
+                    event,
+                    layout,
+                    cursor_position,
+                    messages,
+                    renderer,
+                )
+            },
+        );
     }
 }
 

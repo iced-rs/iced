@@ -35,15 +35,16 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, Message> {
+pub struct Slider<'a, Message, Style> {
     state: &'a mut State,
     range: RangeInclusive<f32>,
     value: f32,
     on_change: Box<dyn Fn(f32) -> Message>,
     width: Length,
+    style: Style,
 }
 
-impl<'a, Message> Slider<'a, Message> {
+impl<'a, Message, Style> Slider<'a, Message, Style> {
     /// Creates a new [`Slider`].
     ///
     /// It expects:
@@ -64,6 +65,7 @@ impl<'a, Message> Slider<'a, Message> {
     ) -> Self
     where
         F: 'static + Fn(f32) -> Message,
+        Style: Default,
     {
         Slider {
             state,
@@ -71,7 +73,49 @@ impl<'a, Message> Slider<'a, Message> {
             range,
             on_change: Box::new(on_change),
             width: Length::Fill,
+            style: Style::default(),
         }
+    }
+
+    /// Creates a new [`Slider`] with a custom `style`.
+    ///
+    /// It expects:
+    ///   * the local [`State`] of the [`Slider`]
+    ///   * an inclusive range of possible values
+    ///   * the current value of the [`Slider`]
+    ///   * a function that will be called when the [`Slider`] is dragged.
+    ///   * the custom style object
+    ///   It receives the new value of the [`Slider`] and must produce a
+    ///   `Message`.
+    ///
+    /// [`Slider`]: struct.Slider.html
+    /// [`State`]: struct.State.html
+    pub fn new_with_style<F>(
+        state: &'a mut State,
+        range: RangeInclusive<f32>,
+        value: f32,
+        on_change: F,
+        style: Style,
+    ) -> Self
+    where
+        F: 'static + Fn(f32) -> Message,
+    {
+        Slider {
+            state,
+            value: value.max(*range.start()).min(*range.end()),
+            range,
+            on_change: Box::new(on_change),
+            width: Length::Fill,
+            style,
+        }
+    }
+
+    /// Changes the style of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn change_style(mut self, f: impl FnOnce(&mut Style)) -> Self {
+        f(&mut self.style);
+        self
     }
 
     /// Sets the width of the [`Slider`].
@@ -100,9 +144,10 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Slider<'a, Message>
+impl<'a, Message, Renderer, Style> Widget<Message, Renderer>
+    for Slider<'a, Message, Style>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer<WidgetStyle = Style>,
 {
     fn width(&self) -> Length {
         self.width
@@ -124,6 +169,26 @@ where
         let size = limits.resolve(Size::ZERO);
 
         layout::Node::new(size)
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Renderer::Output {
+        renderer.draw(
+            layout.bounds(),
+            cursor_position,
+            self.range.clone(),
+            self.value,
+            self.state.is_dragging,
+            &self.style,
+        )
+    }
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        self.width.hash(state);
     }
 
     fn on_event(
@@ -173,25 +238,6 @@ where
             _ => {}
         }
     }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> Renderer::Output {
-        renderer.draw(
-            layout.bounds(),
-            cursor_position,
-            self.range.clone(),
-            self.value,
-            self.state.is_dragging,
-        )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.width.hash(state);
-    }
 }
 
 /// The renderer of a [`Slider`].
@@ -202,6 +248,12 @@ where
 /// [`Slider`]: struct.Slider.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// Struct that consists of all style options the renderer supports for
+    /// [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    type WidgetStyle;
+
     /// Returns the height of the [`Slider`].
     ///
     /// [`Slider`]: struct.Slider.html
@@ -226,16 +278,18 @@ pub trait Renderer: crate::Renderer {
         range: RangeInclusive<f32>,
         value: f32,
         is_dragging: bool,
+        style: &Self::WidgetStyle,
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Slider<'a, Message>>
+impl<'a, Message, Renderer, Style> From<Slider<'a, Message, Style>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer<WidgetStyle = Style>,
     Message: 'static,
+    Style: 'static,
 {
-    fn from(slider: Slider<'a, Message>) -> Element<'a, Message, Renderer> {
+    fn from(slider: Slider<'a, Message, Style>) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }
 }

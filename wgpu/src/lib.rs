@@ -28,6 +28,7 @@ mod image;
 mod primitive;
 mod quad;
 mod renderer;
+mod style;
 mod text;
 mod transformation;
 
@@ -37,3 +38,4 @@ pub(crate) use transformation::Transformation;
 
 pub use primitive::Primitive;
 pub use renderer::{Renderer, Target};
+pub use style::*;

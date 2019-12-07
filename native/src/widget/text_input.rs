@@ -35,20 +35,21 @@ use unicode_segmentation::UnicodeSegmentation;
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message> {
+pub struct TextInput<'a, Message, Style> {
     state: &'a mut State,
     placeholder: String,
     value: Value,
     is_secure: bool,
     width: Length,
     max_width: Length,
-    padding: u16,
     size: Option<u16>,
+    padding: u16,
     on_change: Box<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
+    style: Style,
 }
 
-impl<'a, Message> TextInput<'a, Message> {
+impl<'a, Message, Style> TextInput<'a, Message, Style> {
     /// Creates a new [`TextInput`].
     ///
     /// It expects:
@@ -67,6 +68,7 @@ impl<'a, Message> TextInput<'a, Message> {
     ) -> Self
     where
         F: 'static + Fn(String) -> Message,
+        Style: Default,
     {
         Self {
             state,
@@ -75,8 +77,45 @@ impl<'a, Message> TextInput<'a, Message> {
             is_secure: false,
             width: Length::Fill,
             max_width: Length::Shrink,
-            padding: 0,
+            style: Style::default(),
             size: None,
+            padding: 0,
+            on_change: Box::new(on_change),
+            on_submit: None,
+        }
+    }
+
+    /// Creates a new [`TextInput`] with a custom `style`.
+    ///
+    /// It expects:
+    /// - some [`State`]
+    /// - a placeholder
+    /// - the current value
+    /// - a function that produces a message when the [`TextInput`] changes
+    /// - the custom style object
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    /// [`State`]: struct.State.html
+    pub fn new_with_style<F>(
+        state: &'a mut State,
+        placeholder: &str,
+        value: &str,
+        on_change: F,
+        style: Style,
+    ) -> Self
+    where
+        F: 'static + Fn(String) -> Message,
+    {
+        Self {
+            state,
+            placeholder: String::from(placeholder),
+            value: Value::new(value),
+            is_secure: false,
+            width: Length::Fill,
+            max_width: Length::Shrink,
+            style,
+            size: None,
+            padding: 0,
             on_change: Box::new(on_change),
             on_submit: None,
         }
@@ -87,6 +126,14 @@ impl<'a, Message> TextInput<'a, Message> {
     /// [`TextInput`]: struct.TextInput.html
     pub fn password(mut self) -> Self {
         self.is_secure = true;
+        self
+    }
+
+    /// Changes the style of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn change_style(mut self, f: impl FnOnce(&mut Style)) -> Self {
+        f(&mut self.style);
         self
     }
 
@@ -132,10 +179,12 @@ impl<'a, Message> TextInput<'a, Message> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for TextInput<'a, Message>
+impl<'a, Message, Renderer, Style> Widget<Message, Renderer>
+    for TextInput<'a, Message, Style>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer<WidgetStyle = Style>,
     Message: Clone + std::fmt::Debug,
+    Style: 'static,
 {
     fn width(&self) -> Length {
         self.width
@@ -193,6 +242,7 @@ where
                             target,
                             &self.value.secure(),
                             self.size.unwrap_or(renderer.default_size()),
+                            &self.style,
                             0,
                             self.value.len(),
                         );
@@ -202,6 +252,7 @@ where
                             target,
                             &self.value,
                             self.size.unwrap_or(renderer.default_size()),
+                            &self.style,
                             0,
                             self.value.len(),
                         );
@@ -305,6 +356,7 @@ where
                 bounds,
                 text_bounds,
                 cursor_position,
+                &self.style,
                 self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
                 &self.value.secure(),
@@ -315,6 +367,7 @@ where
                 bounds,
                 text_bounds,
                 cursor_position,
+                &self.style,
                 self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
                 &self.value,
@@ -326,7 +379,7 @@ where
     fn hash_layout(&self, state: &mut Hasher) {
         use std::{any::TypeId, hash::Hash};
 
-        TypeId::of::<TextInput<'static, ()>>().hash(state);
+        TypeId::of::<TextInput<'static, (), Style>>().hash(state);
 
         self.width.hash(state);
         self.max_width.hash(state);
@@ -343,6 +396,12 @@ where
 /// [`TextInput`]: struct.TextInput.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// Struct that consists of all style options the renderer supports for
+    /// [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    type WidgetStyle;
+
     /// Returns the default size of the text of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
@@ -351,7 +410,12 @@ pub trait Renderer: crate::Renderer + Sized {
     /// Returns the width of the value of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
-    fn measure_value(&self, value: &str, size: u16) -> f32;
+    fn measure_value(
+        &self,
+        value: &str,
+        size: u16,
+        style: &Self::WidgetStyle,
+    ) -> f32;
 
     /// Draws a [`TextInput`].
     ///
@@ -371,6 +435,7 @@ pub trait Renderer: crate::Renderer + Sized {
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
+        style: &Self::WidgetStyle,
         size: u16,
         placeholder: &str,
         value: &Value,
@@ -378,14 +443,15 @@ pub trait Renderer: crate::Renderer + Sized {
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<TextInput<'a, Message>>
+impl<'a, Message, Renderer, Style> From<TextInput<'a, Message, Style>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: 'static + self::Renderer<WidgetStyle = Style>,
     Message: 'static + Clone + std::fmt::Debug,
+    Style: 'static,
 {
     fn from(
-        text_input: TextInput<'a, Message>,
+        text_input: TextInput<'a, Message, Style>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(text_input)
     }
@@ -556,7 +622,8 @@ impl Value {
             .unwrap_or(self.len())
     }
 
-    /// Returns a new [`Value`] containing the graphemes until the given `index`.
+    /// Returns a new [`Value`] containing the graphemes until the given
+    /// `index`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn until(&self, index: usize) -> Self {
@@ -610,6 +677,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
     target: f32,
     value: &Value,
     size: u16,
+    style: &Renderer::WidgetStyle,
     start: usize,
     end: usize,
 ) -> usize {
@@ -621,8 +689,8 @@ fn find_cursor_position<Renderer: self::Renderer>(
         let prev = value.until(start - 1);
         let next = value.until(start);
 
-        let prev_width = renderer.measure_value(&prev.to_string(), size);
-        let next_width = renderer.measure_value(&next.to_string(), size);
+        let prev_width = renderer.measure_value(&prev.to_string(), size, style);
+        let next_width = renderer.measure_value(&next.to_string(), size, style);
 
         if next_width - target > target - prev_width {
             return start - 1;
@@ -634,7 +702,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
     let index = (end - start) / 2;
     let subvalue = value.until(start + index);
 
-    let width = renderer.measure_value(&subvalue.to_string(), size);
+    let width = renderer.measure_value(&subvalue.to_string(), size, style);
 
     if width > target {
         find_cursor_position(
@@ -642,6 +710,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
             target,
             value,
             size,
+            style,
             start,
             start + index,
         )
@@ -651,6 +720,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
             target,
             value,
             size,
+            style,
             start + index + 1,
             end,
         )

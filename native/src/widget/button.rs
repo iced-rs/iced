@@ -6,18 +6,17 @@
 //! [`State`]: struct.State.html
 use crate::{
     input::{mouse, ButtonState},
-    layout, Background, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Widget,
+    layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 use std::hash::Hash;
 
 /// A generic widget that produces a message when pressed.
 ///
 /// ```
-/// # use iced_native::{button, Text};
+/// # use iced_native::{button, Text, TextRole};
 /// #
 /// # type Button<'a, Message> =
-/// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
+/// #     iced_native::Button<'a, Message, iced_native::renderer::Null, <iced_native::renderer::Null as iced_native::button::Renderer>::WidgetStyle>;
 /// #
 /// enum Message {
 ///     ButtonPressed,
@@ -28,7 +27,7 @@ use std::hash::Hash;
 ///     .on_press(Message::ButtonPressed);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer> {
+pub struct Button<'a, Message, Renderer, Style> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
@@ -37,17 +36,40 @@ pub struct Button<'a, Message, Renderer> {
     min_width: u32,
     min_height: u32,
     padding: u16,
-    background: Option<Background>,
-    border_radius: u16,
+    style: Style,
 }
 
-impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
+impl<'a, Message, Renderer, Style> Button<'a, Message, Renderer, Style> {
     /// Creates a new [`Button`] with some local [`State`] and the given
     /// content.
     ///
-    /// [`Button`]: struct.Button.html
+    /// [`Button`]: type.Button.html
     /// [`State`]: struct.State.html
     pub fn new<E>(state: &'a mut State, content: E) -> Self
+    where
+        E: Into<Element<'a, Message, Renderer>>,
+        Style: Default,
+    {
+        Button {
+            state,
+            content: content.into(),
+            on_press: None,
+            width: Length::Shrink,
+            height: Length::Shrink,
+            min_width: 0,
+            min_height: 0,
+            style: Style::default(),
+            padding: 10,
+        }
+    }
+
+    /// Creates a new [`Button`] with some local [`State`] and the given
+    /// content and a custom `style`.
+    ///
+    /// [`Button`]: type.Button.html
+    /// [`State`]: struct.State.html
+    /// [`Palette`]: ../struct.Palette.html
+    pub fn new_with_style<E>(state: &'a mut State, content: E, style: Style) -> Self
     where
         E: Into<Element<'a, Message, Renderer>>,
     {
@@ -59,9 +81,8 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
             height: Length::Shrink,
             min_width: 0,
             min_height: 0,
-            padding: 0,
-            background: None,
-            border_radius: 0,
+            style,
+            padding: 10,
         }
     }
 
@@ -81,7 +102,7 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
         self
     }
 
-    /// Sets the minimum width of the [`Button`].
+    /// Sets the min_width of the [`Button`].
     ///
     /// [`Button`]: struct.Button.html
     pub fn min_width(mut self, min_width: u32) -> Self {
@@ -97,28 +118,19 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
         self
     }
 
+    /// Changes the style of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
+    pub fn change_style(mut self, f: impl FnOnce(&mut Style)) -> Self {
+        f(&mut self.style);
+        self
+    }
+
     /// Sets the padding of the [`Button`].
     ///
     /// [`Button`]: struct.Button.html
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
-        self
-    }
-
-    /// Sets the [`Background`] of the [`Button`].
-    ///
-    /// [`Button`]: struct.Button.html
-    /// [`Background`]: ../../struct.Background.html
-    pub fn background<T: Into<Background>>(mut self, background: T) -> Self {
-        self.background = Some(background.into());
-        self
-    }
-
-    /// Sets the border radius of the [`Button`].
-    ///
-    /// [`Button`]: struct.Button.html
-    pub fn border_radius(mut self, border_radius: u16) -> Self {
-        self.border_radius = border_radius;
         self
     }
 
@@ -148,10 +160,10 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Button<'a, Message, Renderer>
+impl<'a, Message, Renderer, Style> Widget<Message, Renderer>
+    for Button<'a, Message, Renderer, Style>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer<WidgetStyle = Style>,
     Message: Clone,
 {
     fn width(&self) -> Length {
@@ -183,6 +195,32 @@ where
         let size = limits.resolve(content.size()).pad(padding);
 
         layout::Node::with_children(size, vec![content])
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Renderer::Output {
+        let content = self.content.draw(
+            renderer,
+            layout.children().next().unwrap(),
+            cursor_position,
+        );
+
+        renderer.draw(
+            layout.bounds(),
+            cursor_position,
+            self.state.is_pressed,
+            &self.style,
+            content,
+        )
+    }
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        self.width.hash(state);
+        self.content.hash_layout(state);
     }
 
     fn on_event(
@@ -222,33 +260,6 @@ where
             _ => {}
         }
     }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> Renderer::Output {
-        let content = self.content.draw(
-            renderer,
-            layout.children().next().unwrap(),
-            cursor_position,
-        );
-
-        renderer.draw(
-            layout.bounds(),
-            cursor_position,
-            self.state.is_pressed,
-            self.background,
-            self.border_radius,
-            content,
-        )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.width.hash(state);
-        self.content.hash_layout(state);
-    }
 }
 
 /// The renderer of a [`Button`].
@@ -259,6 +270,12 @@ where
 /// [`Button`]: struct.Button.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// Struct that consists of all style options the renderer supports for
+    /// [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
+    type WidgetStyle;
+
     /// Draws a [`Button`].
     ///
     /// [`Button`]: struct.Button.html
@@ -267,20 +284,20 @@ pub trait Renderer: crate::Renderer + Sized {
         bounds: Rectangle,
         cursor_position: Point,
         is_pressed: bool,
-        background: Option<Background>,
-        border_radius: u16,
+        style: &Self::WidgetStyle,
         content: Self::Output,
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
+impl<'a, Message, Renderer, Style> From<Button<'a, Message, Renderer, Style>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: 'static + self::Renderer<WidgetStyle = Style>,
     Message: 'static + Clone,
+    Style: 'static,
 {
     fn from(
-        button: Button<'a, Message, Renderer>,
+        button: Button<'a, Message, Renderer, Style>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(button)
     }

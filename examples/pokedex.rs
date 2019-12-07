@@ -1,6 +1,6 @@
 use iced::{
-    button, image, Align, Application, Button, Color, Column, Command,
-    Container, Element, Image, Length, Row, Settings, Text,
+    button, image, Align, Application, Button, Column, Command, Container,
+    Element, Image, Length, Row, Settings, Text,
 };
 
 pub fn main() {
@@ -139,7 +139,9 @@ impl Pokemon {
                                 Text::new(format!("#{}", self.number))
                                     .width(Length::Shrink)
                                     .size(20)
-                                    .color([0.5, 0.5, 0.5]),
+                                    .change_style(|s| {
+                                        s.text_color = [0.5, 0.5, 0.5].into()
+                                    }),
                             ),
                     )
                     .push(Text::new(&self.description)),
@@ -224,8 +226,7 @@ impl From<reqwest::Error> for Error {
 }
 
 fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
-    Button::new(state, Text::new(text).color(Color::WHITE))
-        .background(Color::from_rgb(0.11, 0.42, 0.87))
-        .border_radius(10)
+    Button::new(state, Text::new(text))
+        .change_style(|s| s.border_radius = 10)
         .padding(10)
 }

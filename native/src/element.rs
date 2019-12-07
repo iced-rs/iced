@@ -1,5 +1,6 @@
 use crate::{
-    layout, renderer, Color, Event, Hasher, Layout, Length, Point, Widget,
+    layout, renderer, Color, Event, Hasher, Layout, Length, Point,
+    Widget,
 };
 
 /// A generic [`Widget`].
@@ -72,7 +73,7 @@ where
     /// # }
     /// #[derive(Debug, Clone, Copy)]
     /// pub enum Message {
-    ///     Counter(usize, counter::Message)
+    ///     Counter(usize, counter::Message),
     /// }
     /// ```
     ///

@@ -1,18 +1,13 @@
-use crate::{Primitive, Renderer};
+use crate::{Primitive, Renderer, TextStyle};
 use iced_native::{
-    text, Color, Font, HorizontalAlignment, MouseCursor, Rectangle, Size,
+    text, Font, HorizontalAlignment, MouseCursor, Rectangle, Size,
     VerticalAlignment,
 };
 
 use std::f32;
 
-// TODO: Obtain from renderer configuration
-const DEFAULT_TEXT_SIZE: f32 = 20.0;
-
 impl text::Renderer for Renderer {
-    fn default_size(&self) -> u16 {
-        DEFAULT_TEXT_SIZE as u16
-    }
+    type WidgetStyle = TextStyle;
 
     fn measure(
         &self,
@@ -31,7 +26,7 @@ impl text::Renderer for Renderer {
         content: &str,
         size: u16,
         font: Font,
-        color: Option<Color>,
+        style: &TextStyle,
         horizontal_alignment: HorizontalAlignment,
         vertical_alignment: VerticalAlignment,
     ) -> Self::Output {
@@ -40,7 +35,7 @@ impl text::Renderer for Renderer {
                 content: content.to_string(),
                 size: f32::from(size),
                 bounds,
-                color: color.unwrap_or(Color::BLACK),
+                color: style.text_color,
                 font,
                 horizontal_alignment,
                 vertical_alignment,

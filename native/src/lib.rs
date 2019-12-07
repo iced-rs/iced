@@ -53,7 +53,7 @@ mod user_interface;
 
 pub use iced_core::{
     Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    Point, Rectangle, Vector, VerticalAlignment,
+    Palette, Point, Rectangle, Vector, VerticalAlignment,
 };
 
 pub use element::Element;

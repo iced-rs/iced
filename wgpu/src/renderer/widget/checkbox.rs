@@ -1,4 +1,4 @@
-use crate::{Primitive, Renderer};
+use crate::{CheckboxStyle, Primitive, Renderer};
 use iced_native::{
     checkbox, Background, HorizontalAlignment, MouseCursor, Rectangle,
     VerticalAlignment,
@@ -7,6 +7,8 @@ use iced_native::{
 const SIZE: f32 = 28.0;
 
 impl checkbox::Renderer for Renderer {
+    type WidgetStyle = CheckboxStyle;
+
     fn default_size(&self) -> u32 {
         SIZE as u32
     }
@@ -16,30 +18,30 @@ impl checkbox::Renderer for Renderer {
         bounds: Rectangle,
         is_checked: bool,
         is_mouse_over: bool,
+        style: &Self::WidgetStyle,
         (label, _): Self::Output,
     ) -> Self::Output {
         let (checkbox_border, checkbox_box) = (
             Primitive::Quad {
                 bounds,
-                background: Background::Color([0.6, 0.6, 0.6].into()),
-                border_radius: 6,
+                background: Background::Color(
+                    if is_mouse_over {
+                        style.get_border_hovered_color()
+                    } else {
+                        style.border_color
+                    }
+                ),
+                border_radius: style.border_radius,
             },
             Primitive::Quad {
                 bounds: Rectangle {
-                    x: bounds.x + 1.0,
-                    y: bounds.y + 1.0,
-                    width: bounds.width - 2.0,
-                    height: bounds.height - 2.0,
+                    x: bounds.x + style.border_width as f32,
+                    y: bounds.y + style.border_width as f32,
+                    width: bounds.width - (style.border_width * 2) as f32,
+                    height: bounds.height - (style.border_width * 2) as f32,
                 },
-                background: Background::Color(
-                    if is_mouse_over {
-                        [0.90, 0.90, 0.90]
-                    } else {
-                        [0.95, 0.95, 0.95]
-                    }
-                    .into(),
-                ),
-                border_radius: 5,
+                background: style.background,
+                border_radius: (style.border_radius - 1).max(0),
             },
         );
 
@@ -51,7 +53,7 @@ impl checkbox::Renderer for Renderer {
                         font: crate::text::BUILTIN_ICONS,
                         size: bounds.height * 0.7,
                         bounds: bounds,
-                        color: [0.3, 0.3, 0.3].into(),
+                        color: style.checked_color,
                         horizontal_alignment: HorizontalAlignment::Center,
                         vertical_alignment: VerticalAlignment::Center,
                     };

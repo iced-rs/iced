@@ -1,6 +1,6 @@
 pub use iced_winit::{
     Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    VerticalAlignment,
+    Palette, VerticalAlignment,
 };
 
 pub mod widget {
@@ -33,9 +33,13 @@ pub mod widget {
         /// A widget that produces a message when clicked.
         ///
         /// This is an alias of an `iced_native` button with a default
-        /// `Renderer`.
-        pub type Button<'a, Message> =
-            iced_winit::Button<'a, Message, iced_wgpu::Renderer>;
+        /// `Renderer` and `Style`.
+        pub type Button<'a, Message> = iced_winit::Button<
+            'a,
+            Message,
+            iced_wgpu::Renderer,
+            <iced_wgpu::Renderer as iced_winit::button::Renderer>::WidgetStyle,
+        >;
 
         pub use iced_winit::button::State;
     }
@@ -59,9 +63,18 @@ pub mod widget {
         //!
         //! A [`TextInput`] has some local [`State`].
         //!
-        //! [`TextInput`]: struct.TextInput.html
+        //! [`TextInput`]: type.TextInput.html
         //! [`State`]: struct.State.html
-        pub use iced_winit::text_input::{State, TextInput};
+
+        /// This is an alias of an `iced_native` text input with a default
+        /// `Style`.
+        pub type TextInput<'a, Message> = iced_winit::TextInput<
+            'a,
+            Message,
+            <iced_wgpu::Renderer as iced_winit::text_input::Renderer>::WidgetStyle,
+        >;
+
+        pub use iced_winit::text_input::State;
     }
 
     pub mod slider {
@@ -70,9 +83,52 @@ pub mod widget {
         //!
         //! A [`Slider`] has some local [`State`].
         //!
-        //! [`Slider`]: struct.Slider.html
+        //! [`Slider`]: type.Slider.html
         //! [`State`]: struct.State.html
-        pub use iced_winit::slider::{Slider, State};
+
+        /// This is an alias of an `iced_native` slider with a default
+        /// `Style`.
+        pub type Slider<'a, Message> = iced_winit::Slider<
+            'a,
+            Message,
+            <iced_wgpu::Renderer as iced_winit::slider::Renderer>::WidgetStyle,
+        >;
+
+        pub use iced_winit::slider::State;
+    }
+
+    pub mod checkbox {
+        //! Display a box that can be checked and an associated label with some
+        //! text.
+
+        /// This is an alias of an `iced_native` checkbox with a default
+        /// `Style`.
+        pub type Checkbox<Message> = iced_winit::Checkbox<
+            Message,
+            <iced_wgpu::Renderer as iced_winit::checkbox::Renderer>::WidgetStyle,
+        >;
+    }
+
+    pub mod text {
+        //! Display a text snippet.
+
+        /// This is an alias of an `iced_native` text with a default
+        /// `Style`.
+        pub type Text = iced_winit::Text<
+            <iced_wgpu::Renderer as iced_winit::text::Renderer>::WidgetStyle,
+        >;
+    }
+
+    pub mod radio {
+        //! Display an option button that can be turned on or off and an
+        //! associated label with some text.
+
+        /// This is an alias of an `iced_native` radio with a default
+        /// `Style`.
+        pub type Radio<Message> = iced_winit::Radio<
+            Message,
+            <iced_wgpu::Renderer as iced_winit::radio::Renderer>::WidgetStyle,
+        >;
     }
 
     pub mod image {
@@ -80,11 +136,10 @@ pub mod widget {
         pub use iced_winit::image::{Handle, Image};
     }
 
-    pub use iced_winit::{Checkbox, Radio, Text};
-
     #[doc(no_inline)]
     pub use {
-        button::Button, image::Image, scrollable::Scrollable, slider::Slider,
+        button::Button, checkbox::Checkbox, image::Image, radio::Radio,
+        scrollable::Scrollable, slider::Slider, text::Text,
         text_input::TextInput,
     };
 
@@ -108,8 +163,17 @@ pub mod widget {
         iced_winit::Container<'a, Message, iced_wgpu::Renderer>;
 }
 
+pub mod style {
+    //! Provides styling for your widgets.
+
+    pub use iced_wgpu::*;
+}
+
 #[doc(no_inline)]
 pub use widget::*;
+
+#[doc(no_inline)]
+pub use style::*;
 
 /// A generic widget.
 ///
