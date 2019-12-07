@@ -254,14 +254,26 @@ where
                     }
                 }
                 keyboard::KeyCode::Left => {
-                    if modifiers.control && !self.is_secure {
+                    let jump_modifier_pressed = if cfg!(target_os = "macos") {
+                        modifiers.alt
+                    } else {
+                        modifiers.control
+                    };
+
+                    if jump_modifier_pressed && !self.is_secure {
                         self.state.move_cursor_left_by_words(&self.value);
                     } else {
                         self.state.move_cursor_left(&self.value);
                     }
                 }
                 keyboard::KeyCode::Right => {
-                    if modifiers.control && !self.is_secure {
+                    let jump_modifier_pressed = if cfg!(target_os = "macos") {
+                        modifiers.alt
+                    } else {
+                        modifiers.control
+                    };
+
+                    if jump_modifier_pressed && !self.is_secure {
                         self.state.move_cursor_right_by_words(&self.value);
                     } else {
                         self.state.move_cursor_right(&self.value);
