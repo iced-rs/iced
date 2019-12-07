@@ -2,60 +2,51 @@
 
 /// An event subscription.
 pub struct Subscription<T> {
-    definitions: Vec<Box<dyn Definition<Message = T>>>,
+    handles: Vec<Box<dyn Handle<Output = T>>>,
 }
 
 impl<T> Subscription<T> {
     pub fn none() -> Self {
         Self {
-            definitions: Vec::new(),
+            handles: Vec::new(),
         }
     }
 
     pub fn batch(subscriptions: impl Iterator<Item = Subscription<T>>) -> Self {
         Self {
-            definitions: subscriptions
-                .flat_map(|subscription| subscription.definitions)
+            handles: subscriptions
+                .flat_map(|subscription| subscription.handles)
                 .collect(),
         }
     }
 
-    pub fn definitions(self) -> Vec<Box<dyn Definition<Message = T>>> {
-        self.definitions
+    pub fn handles(self) -> Vec<Box<dyn Handle<Output = T>>> {
+        self.handles
     }
 }
 
 impl<T, A> From<A> for Subscription<T>
 where
-    A: Definition<Message = T> + 'static,
+    A: Handle<Output = T> + 'static,
 {
-    fn from(definition: A) -> Self {
+    fn from(handle: A) -> Self {
         Self {
-            definitions: vec![Box::new(definition)],
+            handles: vec![Box::new(handle)],
         }
     }
 }
 
-/// The definition of an event subscription.
-pub trait Definition {
-    type Message;
+/// The handle of an event subscription.
+pub trait Handle {
+    type Output;
 
     fn id(&self) -> u64;
 
-    fn stream(
-        &self,
-    ) -> (
-        futures::stream::BoxStream<'static, Self::Message>,
-        Box<dyn Handle>,
-    );
-}
-
-pub trait Handle {
-    fn cancel(&mut self);
+    fn stream(&self) -> futures::stream::BoxStream<'static, Self::Output>;
 }
 
 impl<T> std::fmt::Debug for Subscription<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Command").finish()
+        f.debug_struct("Subscription").finish()
     }
 }

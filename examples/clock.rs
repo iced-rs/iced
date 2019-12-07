@@ -82,7 +82,7 @@ impl Application for Clock {
 }
 
 mod time {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     pub fn every<Message>(
         duration: std::time::Duration,
@@ -108,59 +108,30 @@ mod time {
         >,
     }
 
-    struct TickState {
-        alive: Arc<Mutex<bool>>,
-    }
-
-    impl iced::subscription::Handle for TickState {
-        fn cancel(&mut self) {
-            match self.alive.lock() {
-                Ok(mut guard) => *guard = false,
-                _ => {}
-            }
-        }
-    }
-
-    impl<Message> iced::subscription::Definition for Tick<Message>
+    impl<Message> iced::subscription::Handle for Tick<Message>
     where
         Message: 'static,
     {
-        type Message = Message;
+        type Output = Message;
 
         fn id(&self) -> u64 {
             0
         }
 
-        fn stream(
-            &self,
-        ) -> (
-            futures::stream::BoxStream<'static, Message>,
-            Box<dyn iced::subscription::Handle>,
-        ) {
+        fn stream(&self) -> futures::stream::BoxStream<'static, Message> {
             use futures::StreamExt;
 
             let duration = self.duration.clone();
             let function = self.message.clone();
-            let alive = Arc::new(Mutex::new(true));
 
-            let state = TickState {
-                alive: alive.clone(),
-            };
+            let stream =
+                futures::stream::iter(std::iter::repeat(())).map(move |_| {
+                    std::thread::sleep(duration);
 
-            let stream = futures::stream::poll_fn(move |_| {
-                std::thread::sleep(duration);
+                    function(chrono::Local::now())
+                });
 
-                if !*alive.lock().unwrap() {
-                    return std::task::Poll::Ready(None);
-                }
-
-                let now = chrono::Local::now();
-
-                std::task::Poll::Ready(Some(now))
-            })
-            .map(move |time| function(time));
-
-            (stream.boxed(), Box::new(state))
+            stream.boxed()
         }
     }
 }
