@@ -140,6 +140,7 @@ impl Steps {
                 Step::Scrollable,
                 Step::TextInput {
                     value: String::new(),
+                    is_secure: false,
                     state: text_input::State::new(),
                 },
                 Step::Debugger,
@@ -210,6 +211,7 @@ enum Step {
     Scrollable,
     TextInput {
         value: String,
+        is_secure: bool,
         state: text_input::State,
     },
     Debugger,
@@ -226,6 +228,7 @@ pub enum StepMessage {
     LanguageSelected(Language),
     ImageWidthChanged(f32),
     InputChanged(String),
+    ToggleSecureInput(bool),
     DebugToggled(bool),
 }
 
@@ -275,6 +278,12 @@ impl<'a> Step {
             StepMessage::InputChanged(new_value) => {
                 if let Step::TextInput { value, .. } = self {
                     *value = new_value;
+                }
+            }
+
+            StepMessage::ToggleSecureInput(toggle) => {
+                if let Step::TextInput { is_secure, .. } = self {
+                    *is_secure = toggle;
                 }
             }
         };
@@ -328,7 +337,11 @@ impl<'a> Step {
                 spacing,
             } => Self::rows_and_columns(*layout, spacing_slider, *spacing),
             Step::Scrollable => Self::scrollable(),
-            Step::TextInput { value, state } => Self::text_input(value, state),
+            Step::TextInput {
+                value,
+                is_secure,
+                state,
+            } => Self::text_input(value, *is_secure, state),
             Step::Debugger => Self::debugger(debug),
             Step::End => Self::end(),
         }
@@ -582,22 +595,31 @@ impl<'a> Step {
 
     fn text_input(
         value: &str,
+        is_secure: bool,
         state: &'a mut text_input::State,
     ) -> Column<'a, StepMessage> {
+        let text_input = TextInput::new(
+            state,
+            "Type something to continue...",
+            value,
+            StepMessage::InputChanged,
+        )
+        .padding(10)
+        .size(30);
         Self::container("Text input")
             .push(Text::new(
                 "Use a text input to ask for different kinds of information.",
             ))
-            .push(
-                TextInput::new(
-                    state,
-                    "Type something to continue...",
-                    value,
-                    StepMessage::InputChanged,
-                )
-                .padding(10)
-                .size(30),
-            )
+            .push(if is_secure {
+                text_input.password()
+            } else {
+                text_input
+            })
+            .push(Checkbox::new(
+                is_secure,
+                "Enable password mode",
+                StepMessage::ToggleSecureInput,
+            ))
             .push(Text::new(
                 "A text input produces a message every time it changes. It is \
                  very easy to keep track of its contents:",
