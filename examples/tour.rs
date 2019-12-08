@@ -280,7 +280,6 @@ impl<'a> Step {
                     *value = new_value;
                 }
             }
-
             StepMessage::ToggleSecureInput(toggle) => {
                 if let Step::TextInput { is_secure, .. } = self {
                     *is_secure = toggle;

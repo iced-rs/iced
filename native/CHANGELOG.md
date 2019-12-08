@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Home` and `End` keys support for `TextInput`. [#108]
 - `Ctrl+Left` and `Ctrl+Right` cursor word jump for `TextInput`. [#108]
 - `keyboard::ModifiersState` struct which contains the state of the keyboard modifiers. [#108]
+- `TextInput::password` method to enable secure password input mode. [#113]
 
 ### Changed
 - `Image::new` takes an `Into<image::Handle>` now instead of an `Into<String>`. [#90]
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#90]: https://github.com/hecrj/iced/pull/90
 [#108]: https://github.com/hecrj/iced/pull/108
+[#113]: https://github.com/hecrj/iced/pull/113
 
 
 ## [0.1.0] - 2019-11-25
