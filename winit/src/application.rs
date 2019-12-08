@@ -334,6 +334,7 @@ pub trait Application: Sized {
                         winit::event::KeyboardInput {
                             virtual_keycode: Some(virtual_keycode),
                             state,
+                            modifiers,
                             ..
                         },
                     ..
@@ -349,6 +350,7 @@ pub trait Application: Sized {
                     events.push(Event::Keyboard(keyboard::Event::Input {
                         key_code: conversion::key_code(virtual_keycode),
                         state: conversion::button_state(state),
+                        modifiers: conversion::modifiers_state(modifiers),
                     }));
                 }
                 WindowEvent::CloseRequested => {

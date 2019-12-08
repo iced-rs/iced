@@ -3,7 +3,10 @@
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::{
-    input::{keyboard::KeyCode, mouse, ButtonState},
+    input::{
+        keyboard::{KeyCode, ModifiersState},
+        mouse, ButtonState,
+    },
     MouseCursor,
 };
 
@@ -44,6 +47,21 @@ pub fn button_state(element_state: winit::event::ElementState) -> ButtonState {
     match element_state {
         winit::event::ElementState::Pressed => ButtonState::Pressed,
         winit::event::ElementState::Released => ButtonState::Released,
+    }
+}
+
+/// Convert some `ModifiersState` from [`winit`] to an [`iced_native`] modifiers state.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+pub fn modifiers_state(
+    modifiers: winit::event::ModifiersState,
+) -> ModifiersState {
+    ModifiersState {
+        shift: modifiers.shift,
+        control: modifiers.ctrl,
+        alt: modifiers.alt,
+        logo: modifiers.logo,
     }
 }
 
