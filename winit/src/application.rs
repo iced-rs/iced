@@ -184,6 +184,10 @@ pub trait Application: Sized {
                 debug.layout_finished();
 
                 debug.event_processing_started();
+                events
+                    .iter()
+                    .for_each(|event| alive_subscriptions.send_event(*event));
+
                 let mut messages =
                     user_interface.update(&renderer, events.drain(..));
                 messages.extend(external_messages.drain(..));
@@ -207,7 +211,6 @@ pub trait Application: Sized {
 
                         debug.update_started();
                         let command = application.update(message);
-
                         spawn(command, &mut thread_pool, &proxy);
                         debug.update_finished();
                     }
@@ -422,7 +425,12 @@ fn spawn<Message: Send>(
 }
 
 pub struct Subscriptions {
-    alive: HashMap<u64, futures::channel::oneshot::Sender<()>>,
+    alive: HashMap<u64, Connection>,
+}
+
+pub struct Connection {
+    _cancel: futures::channel::oneshot::Sender<()>,
+    listener: Option<futures::channel::mpsc::Sender<Event>>,
 }
 
 impl Subscriptions {
@@ -440,17 +448,19 @@ impl Subscriptions {
     ) {
         use futures::{future::FutureExt, stream::StreamExt};
 
-        let handles = subscriptions.handles();
+        let connections = subscriptions.connections();
         let mut alive = std::collections::HashSet::new();
 
-        for handle in handles {
-            let id = handle.id();
+        for connection in connections {
+            let id = connection.id();
             let _ = alive.insert(id);
 
             if !self.alive.contains_key(&id) {
                 let (cancel, cancelled) = futures::channel::oneshot::channel();
+                let (event_sender, event_receiver) =
+                    futures::channel::mpsc::channel(100);
 
-                let stream = handle.stream();
+                let stream = connection.stream(event_receiver);
 
                 let proxy =
                     std::sync::Arc::new(std::sync::Mutex::new(proxy.clone()));
@@ -471,11 +481,35 @@ impl Subscriptions {
 
                 thread_pool.spawn_ok(future);
 
-                let _ = self.alive.insert(id, cancel);
+                let _ = self.alive.insert(
+                    id,
+                    Connection {
+                        _cancel: cancel,
+                        listener: if event_sender.is_closed() {
+                            None
+                        } else {
+                            Some(event_sender)
+                        },
+                    },
+                );
             }
         }
 
         self.alive.retain(|id, _| alive.contains(&id));
+    }
+
+    fn send_event(&mut self, event: Event) {
+        self.alive
+            .values_mut()
+            .filter_map(|connection| connection.listener.as_mut())
+            .for_each(|listener| {
+                if let Err(error) = listener.try_send(event) {
+                    log::warn!(
+                        "Error sending event to subscription: {:?}",
+                        error
+                    );
+                }
+            });
     }
 }
 

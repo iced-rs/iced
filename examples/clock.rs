@@ -4,6 +4,8 @@ use iced::{
 };
 
 pub fn main() {
+    env_logger::init();
+
     Clock::run(Settings::default())
 }
 
@@ -108,30 +110,26 @@ mod time {
         >,
     }
 
-    impl<Message> iced::subscription::Handle for Tick<Message>
+    impl<Message> iced_native::subscription::Connection for Tick<Message>
     where
         Message: 'static,
     {
+        type Input = iced_native::subscription::Input;
         type Output = Message;
 
         fn id(&self) -> u64 {
             0
         }
 
-        fn stream(&self) -> futures::stream::BoxStream<'static, Message> {
+        fn stream(
+            &self,
+            input: iced_native::subscription::Input,
+        ) -> futures::stream::BoxStream<'static, Message> {
             use futures::StreamExt;
 
-            let duration = self.duration.clone();
             let function = self.message.clone();
 
-            let stream =
-                futures::stream::iter(std::iter::repeat(())).map(move |_| {
-                    std::thread::sleep(duration);
-
-                    function(chrono::Local::now())
-                });
-
-            stream.boxed()
+            input.map(move |_| function(chrono::Local::now())).boxed()
         }
     }
 }

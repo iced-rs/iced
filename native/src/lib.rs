@@ -34,7 +34,7 @@
 //! [`Windowed`]: renderer/trait.Windowed.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]
@@ -42,6 +42,7 @@
 pub mod input;
 pub mod layout;
 pub mod renderer;
+pub mod subscription;
 pub mod widget;
 
 mod element;
@@ -52,8 +53,8 @@ mod size;
 mod user_interface;
 
 pub use iced_core::{
-    subscription, Align, Background, Color, Command, Font, HorizontalAlignment,
-    Length, Point, Rectangle, Subscription, Vector, VerticalAlignment,
+    Align, Background, Color, Command, Font, HorizontalAlignment, Length,
+    Point, Rectangle, Vector, VerticalAlignment,
 };
 
 pub use element::Element;
@@ -63,5 +64,6 @@ pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
 pub use renderer::Renderer;
 pub use size::Size;
+pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;
