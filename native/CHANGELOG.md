@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Ctrl+Left` and `Ctrl+Right` cursor word jump for `TextInput`. [#108]
 - `keyboard::ModifiersState` struct which contains the state of the keyboard modifiers. [#108]
 - `TextInput::password` method to enable secure password input mode. [#113]
+- `Button::height` and `Button::min_height` methods to control the height of a button.
 
 ### Changed
 - `Image::new` takes an `Into<image::Handle>` now instead of an `Into<String>`. [#90]

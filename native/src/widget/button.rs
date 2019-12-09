@@ -33,7 +33,9 @@ pub struct Button<'a, Message, Renderer> {
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
     width: Length,
+    height: Length,
     min_width: u32,
+    min_height: u32,
     padding: u16,
     background: Option<Background>,
     border_radius: u16,
@@ -54,7 +56,9 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
+            height: Length::Shrink,
             min_width: 0,
+            min_height: 0,
             padding: 0,
             background: None,
             border_radius: 0,
@@ -69,11 +73,27 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
         self
     }
 
+    /// Sets the height of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = height;
+        self
+    }
+
     /// Sets the minimum width of the [`Button`].
     ///
     /// [`Button`]: struct.Button.html
     pub fn min_width(mut self, min_width: u32) -> Self {
         self.min_width = min_width;
+        self
+    }
+
+    /// Sets the minimum height of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
+    pub fn min_height(mut self, min_height: u32) -> Self {
+        self.min_height = min_height;
         self
     }
 
@@ -139,7 +159,7 @@ where
     }
 
     fn height(&self) -> Length {
-        Length::Shrink
+        self.height
     }
 
     fn layout(
@@ -150,8 +170,9 @@ where
         let padding = f32::from(self.padding);
         let limits = limits
             .min_width(self.min_width)
+            .min_height(self.min_height)
             .width(self.width)
-            .height(Length::Shrink)
+            .height(self.height)
             .pad(padding);
 
         let mut content = self.content.layout(renderer, &limits);
