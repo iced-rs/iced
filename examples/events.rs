@@ -6,42 +6,40 @@ use iced::{
 pub fn main() {
     env_logger::init();
 
-    Clock::run(Settings::default())
+    Events::run(Settings::default())
 }
 
-#[derive(Debug)]
-struct Clock {
-    time: chrono::DateTime<chrono::Local>,
+#[derive(Debug, Default)]
+struct Events {
+    last: Vec<iced_native::Event>,
     enabled: bool,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    Ticked(chrono::DateTime<chrono::Local>),
+    EventOccurred(iced_native::Event),
     Toggled(bool),
 }
 
-impl Application for Clock {
+impl Application for Events {
     type Message = Message;
 
-    fn new() -> (Clock, Command<Message>) {
-        (
-            Clock {
-                time: chrono::Local::now(),
-                enabled: false,
-            },
-            Command::none(),
-        )
+    fn new() -> (Events, Command<Message>) {
+        (Events::default(), Command::none())
     }
 
     fn title(&self) -> String {
-        String::from("Clock - Iced")
+        String::from("Events - Iced")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Ticked(time) => {
-                self.time = time;
+            Message::EventOccurred(event) => {
+                self.last.push(event);
+
+                if self.last.len() > 5 {
+                    let _ = self.last.remove(0);
+                }
             }
             Message::Toggled(enabled) => {
                 self.enabled = enabled;
@@ -53,16 +51,23 @@ impl Application for Clock {
 
     fn subscriptions(&self) -> Subscription<Message> {
         if self.enabled {
-            time::every(std::time::Duration::from_millis(500), Message::Ticked)
+            events::all(Message::EventOccurred)
         } else {
             Subscription::none()
         }
     }
 
     fn view(&mut self) -> Element<Message> {
-        let clock = Text::new(format!("{}", self.time.format("%H:%M:%S")))
-            .size(40)
-            .width(Length::Shrink);
+        let events = self.last.iter().fold(
+            Column::new().width(Length::Shrink).spacing(10),
+            |column, event| {
+                column.push(
+                    Text::new(format!("{:?}", event))
+                        .size(40)
+                        .width(Length::Shrink),
+                )
+            },
+        );
 
         let toggle = Checkbox::new(self.enabled, "Enabled", Message::Toggled)
             .width(Length::Shrink);
@@ -71,7 +76,7 @@ impl Application for Clock {
             .width(Length::Shrink)
             .align_items(Align::Center)
             .spacing(20)
-            .push(clock)
+            .push(events)
             .push(toggle);
 
         Container::new(content)
@@ -83,34 +88,23 @@ impl Application for Clock {
     }
 }
 
-mod time {
+mod events {
     use std::sync::Arc;
 
-    pub fn every<Message>(
-        duration: std::time::Duration,
-        f: impl Fn(chrono::DateTime<chrono::Local>) -> Message
-            + 'static
-            + Send
-            + Sync,
+    pub fn all<Message>(
+        f: impl Fn(iced_native::Event) -> Message + 'static + Send + Sync,
     ) -> iced::Subscription<Message>
     where
         Message: Send + 'static,
     {
-        Tick {
-            duration,
-            message: Arc::new(f),
-        }
-        .into()
+        All(Arc::new(f)).into()
     }
 
-    struct Tick<Message> {
-        duration: std::time::Duration,
-        message: Arc<
-            dyn Fn(chrono::DateTime<chrono::Local>) -> Message + Send + Sync,
-        >,
-    }
+    struct All<Message>(
+        Arc<dyn Fn(iced_native::Event) -> Message + Send + Sync>,
+    );
 
-    impl<Message> iced_native::subscription::Connection for Tick<Message>
+    impl<Message> iced_native::subscription::Connection for All<Message>
     where
         Message: 'static,
     {
@@ -127,9 +121,9 @@ mod time {
         ) -> futures::stream::BoxStream<'static, Message> {
             use futures::StreamExt;
 
-            let function = self.message.clone();
+            let function = self.0.clone();
 
-            input.map(move |_| function(chrono::Local::now())).boxed()
+            input.map(move |event| function(event)).boxed()
         }
     }
 }
