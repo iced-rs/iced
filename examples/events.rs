@@ -95,15 +95,15 @@ mod events {
 
     struct All;
 
-    impl<H>
-        iced_native::subscription::Recipe<H, iced_native::subscription::Input>
-        for All
-    where
-        H: std::hash::Hasher,
+    impl
+        iced_native::subscription::Recipe<
+            iced_native::Hasher,
+            iced_native::subscription::Input,
+        > for All
     {
         type Output = iced_native::Event;
 
-        fn hash(&self, state: &mut H) {
+        fn hash(&self, state: &mut iced_native::Hasher) {
             use std::hash::Hash;
 
             std::any::TypeId::of::<All>().hash(state);
