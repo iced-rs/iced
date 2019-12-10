@@ -2,8 +2,8 @@ use crate::{
     conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    Cache, Command, Container, Debug, Element, Event, Length, MouseCursor,
-    Settings, Subscription, UserInterface,
+    Cache, Command, Container, Debug, Element, Event, Hasher, Length,
+    MouseCursor, Settings, Subscription, UserInterface,
 };
 use std::collections::HashMap;
 
@@ -448,11 +448,19 @@ impl Subscriptions {
     ) {
         use futures::{future::FutureExt, stream::StreamExt};
 
-        let connections = subscriptions.connections();
+        let recipes = subscriptions.recipes();
         let mut alive = std::collections::HashSet::new();
 
-        for connection in connections {
-            let id = connection.id();
+        for recipe in recipes {
+            let id = {
+                use std::hash::Hasher as _;
+
+                let mut hasher = Hasher::default();
+                recipe.hash(&mut hasher);
+
+                hasher.finish()
+            };
+
             let _ = alive.insert(id);
 
             if !self.alive.contains_key(&id) {
@@ -460,7 +468,7 @@ impl Subscriptions {
                 let (event_sender, event_receiver) =
                     futures::channel::mpsc::channel(100);
 
-                let stream = connection.stream(event_receiver);
+                let stream = recipe.stream(event_receiver);
 
                 let proxy =
                     std::sync::Arc::new(std::sync::Mutex::new(proxy.clone()));

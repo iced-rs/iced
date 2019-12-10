@@ -51,7 +51,7 @@ impl Application for Events {
 
     fn subscriptions(&self) -> Subscription<Message> {
         if self.enabled {
-            events::all(Message::EventOccurred)
+            events::all().map(Message::EventOccurred)
         } else {
             Subscription::none()
         }
@@ -89,41 +89,33 @@ impl Application for Events {
 }
 
 mod events {
-    use std::sync::Arc;
-
-    pub fn all<Message>(
-        f: impl Fn(iced_native::Event) -> Message + 'static + Send + Sync,
-    ) -> iced::Subscription<Message>
-    where
-        Message: Send + 'static,
-    {
-        All(Arc::new(f)).into()
+    pub fn all() -> iced::Subscription<iced_native::Event> {
+        iced::Subscription::from_recipe(All)
     }
 
-    struct All<Message>(
-        Arc<dyn Fn(iced_native::Event) -> Message + Send + Sync>,
-    );
+    struct All;
 
-    impl<Message> iced_native::subscription::Connection for All<Message>
+    impl<H>
+        iced_native::subscription::Recipe<H, iced_native::subscription::Input>
+        for All
     where
-        Message: 'static,
+        H: std::hash::Hasher,
     {
-        type Input = iced_native::subscription::Input;
-        type Output = Message;
+        type Output = iced_native::Event;
 
-        fn id(&self) -> u64 {
-            0
+        fn hash(&self, state: &mut H) {
+            use std::hash::Hash;
+
+            std::any::TypeId::of::<All>().hash(state);
         }
 
         fn stream(
             &self,
             input: iced_native::subscription::Input,
-        ) -> futures::stream::BoxStream<'static, Message> {
+        ) -> futures::stream::BoxStream<'static, Self::Output> {
             use futures::StreamExt;
 
-            let function = self.0.clone();
-
-            input.map(move |event| function(event)).boxed()
+            input.boxed()
         }
     }
 }
