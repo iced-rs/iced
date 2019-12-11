@@ -1,8 +1,12 @@
 //! Display an icon.
-use crate::{layout, Element, Hasher, Layout, Length, Point, Rectangle, Widget};
+use crate::{
+    layout, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
+};
 
-use std::hash::Hash;
-use std::path::{Path, PathBuf};
+use std::{
+    hash::Hash,
+    path::{Path, PathBuf},
+};
 
 /// A simple icon_loader widget.
 #[derive(Debug, Clone)]
@@ -63,10 +67,7 @@ where
     ) -> Renderer::Output {
         let bounds = layout.bounds();
 
-        renderer.draw(
-            bounds,
-            self.path.as_path(),
-        )
+        renderer.draw(bounds, self.path.as_path())
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -86,11 +87,7 @@ pub trait Renderer: crate::Renderer {
     /// Draws an [`Icon`].
     ///
     /// [`Icon`]: struct.Icon.html
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        path: &Path,
-    ) -> Self::Output;
+    fn draw(&mut self, bounds: Rectangle, path: &Path) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Icon> for Element<'a, Message, Renderer>

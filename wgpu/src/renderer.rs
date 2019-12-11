@@ -243,13 +243,11 @@ impl Renderer {
                     scale: [bounds.width, bounds.height],
                 });
             }
-            Primitive::Svg { handle, bounds } => {
-                layer.svgs.push(Svg {
-                    handle: handle.clone(),
-                    position: [bounds.x, bounds.y],
-                    scale: [bounds.width, bounds.height],
-                })
-            },
+            Primitive::Svg { handle, bounds } => layer.svgs.push(Svg {
+                handle: handle.clone(),
+                position: [bounds.x, bounds.y],
+                scale: [bounds.width, bounds.height],
+            }),
             Primitive::Clip {
                 bounds,
                 offset,

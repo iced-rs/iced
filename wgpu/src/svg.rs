@@ -12,7 +12,6 @@ use std::{
     u32,
 };
 
-
 #[derive(Debug)]
 pub struct Pipeline {
     cache: RefCell<Cache>,
@@ -220,10 +219,11 @@ impl Pipeline {
             opt.usvg.dpi = handle.dpi as f64;
             opt.usvg.font_size = handle.font_size as f64;
 
-            let mem = match resvg::usvg::Tree::from_file(&handle.path, &opt.usvg) {
-                Ok(tree) => Memory::Host { tree },
-                Err(_) => Memory::Invalid
-            };
+            let mem =
+                match resvg::usvg::Tree::from_file(&handle.path, &opt.usvg) {
+                    Ok(tree) => Memory::Host { tree },
+                    Err(_) => Memory::Invalid,
+                };
 
             let _ = self.cache.borrow_mut().insert(&handle, mem);
         }
@@ -265,12 +265,14 @@ impl Pipeline {
 
             self.load(&handle);
 
-            if let Some(texture) = self
-                .cache
-                .borrow_mut()
-                .get(&handle)
-                .unwrap()
-                .upload(device, encoder, &self.texture_layout, svg.scale[0] as u32, svg.scale[1] as u32)
+            if let Some(texture) =
+                self.cache.borrow_mut().get(&handle).unwrap().upload(
+                    device,
+                    encoder,
+                    &self.texture_layout,
+                    svg.scale[0] as u32,
+                    svg.scale[1] as u32,
+                )
             {
                 let instance_buffer = device
                     .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
@@ -409,12 +411,8 @@ impl Hash for Handle {
 }
 
 enum Memory {
-    Host {
-        tree: resvg::usvg::Tree,
-    },
-    Device {
-        bind_group: Rc<wgpu::BindGroup>,
-    },
+    Host { tree: resvg::usvg::Tree },
+    Device { bind_group: Rc<wgpu::BindGroup> },
     NotFound,
     Invalid,
 }
@@ -426,7 +424,7 @@ impl Memory {
         encoder: &mut wgpu::CommandEncoder,
         texture_layout: &wgpu::BindGroupLayout,
         width: u32,
-        height: u32
+        height: u32,
     ) -> Option<Rc<wgpu::BindGroup>> {
         match self {
             Memory::Host { tree } => {
@@ -447,10 +445,17 @@ impl Memory {
                         | wgpu::TextureUsage::SAMPLED,
                 });
 
-                let mut canvas = resvg::raqote::DrawTarget::new(width as i32, height as i32);
+                let mut canvas =
+                    resvg::raqote::DrawTarget::new(width as i32, height as i32);
                 let opt = resvg::Options::default();
-                let screen_size = resvg::ScreenSize::new(width, height).unwrap();
-                resvg::backend_raqote::render_to_canvas(tree, &opt, screen_size, &mut canvas);
+                let screen_size =
+                    resvg::ScreenSize::new(width, height).unwrap();
+                resvg::backend_raqote::render_to_canvas(
+                    tree,
+                    &opt,
+                    screen_size,
+                    &mut canvas,
+                );
                 let slice = canvas.get_data();
                 let temp_buf = device
                     .create_buffer_mapped(
@@ -506,7 +511,10 @@ impl Memory {
 }
 
 impl Debug for Memory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> Result<(), std::fmt::Error> {
         match self {
             Memory::Host { .. } => write!(f, "Memory::Host"),
             Memory::Device { .. } => write!(f, "Memory::Device"),

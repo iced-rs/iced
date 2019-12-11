@@ -89,8 +89,8 @@ pub mod widget {
 
     #[doc(no_inline)]
     pub use {
-        button::Button, icon::Icon, image::Image, scrollable::Scrollable, slider::Slider,
-        text_input::TextInput,
+        button::Button, icon::Icon, image::Image, scrollable::Scrollable,
+        slider::Slider, text_input::TextInput,
     };
 
     /// A container that distributes its contents vertically.
