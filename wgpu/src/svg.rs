@@ -216,8 +216,6 @@ impl Pipeline {
 
             let mut opt = resvg::Options::default();
             opt.usvg.path = Some(handle.path.clone());
-            opt.usvg.dpi = handle.dpi as f64;
-            opt.usvg.font_size = handle.font_size as f64;
 
             let mem =
                 match resvg::usvg::Tree::from_file(&handle.path, &opt.usvg) {
@@ -237,8 +235,7 @@ impl Pipeline {
         transformation: Transformation,
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
-        dpi: u16,
-        font_size: u16,
+        dpi: f32,
     ) {
         let uniforms_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
@@ -259,19 +256,15 @@ impl Pipeline {
         //
         // [1]: https://github.com/nical/guillotiere
         for svg in svgs {
-            let mut handle = svg.handle.clone();
-            handle.set_dpi(dpi);
-            handle.set_font_size(font_size);
-
-            self.load(&handle);
+            self.load(&svg.handle);
 
             if let Some(texture) =
-                self.cache.borrow_mut().get(&handle).unwrap().upload(
+                self.cache.borrow_mut().get(&svg.handle).unwrap().upload(
                     device,
                     encoder,
                     &self.texture_layout,
-                    svg.scale[0] as u32,
-                    svg.scale[1] as u32,
+                    (svg.scale[0] * dpi) as u32,
+                    (svg.scale[1] * dpi) as u32,
                 )
             {
                 let instance_buffer = device
@@ -339,8 +332,6 @@ impl Pipeline {
 pub struct Handle {
     id: u64,
     path: PathBuf,
-    dpi: u16,
-    font_size: u16,
 }
 
 impl Handle {
@@ -356,57 +347,19 @@ impl Handle {
     /// [`Handle`]: struct.Handle.html
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
         let path = path.into();
-        let dpi = 96;
-        let font_size = 20;
         let mut hasher = Hasher::default();
         path.hash(&mut hasher);
-        dpi.hash(&mut hasher);
-        font_size.hash(&mut hasher);
 
         Self {
             id: hasher.finish(),
             path,
-            dpi,
-            font_size,
         }
-    }
-
-    fn set_dpi(&mut self, dpi: u16) {
-        if self.dpi == dpi {
-            return;
-        }
-
-        self.dpi = dpi;
-
-        let mut hasher = Hasher::default();
-        self.path.hash(&mut hasher);
-        self.dpi.hash(&mut hasher);
-        self.font_size.hash(&mut hasher);
-
-        self.id = hasher.finish();
-    }
-
-    fn set_font_size(&mut self, font_size: u16) {
-        if self.font_size == font_size {
-            return;
-        }
-
-        self.font_size = font_size;
-
-        let mut hasher = Hasher::default();
-        self.path.hash(&mut hasher);
-        self.dpi.hash(&mut hasher);
-        self.font_size.hash(&mut hasher);
-
-        self.id = hasher.finish();
     }
 }
 
 impl Hash for Handle {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
-        self.dpi.hash(state);
-        self.font_size.hash(state);
     }
 }
 
@@ -428,6 +381,8 @@ impl Memory {
     ) -> Option<Rc<wgpu::BindGroup>> {
         match self {
             Memory::Host { tree } => {
+                println!("{} {}", width, height);
+
                 let extent = wgpu::Extent3d {
                     width,
                     height,

@@ -370,8 +370,7 @@ impl Renderer {
                 translated,
                 bounds,
                 target,
-                (dpi * 96.0) as u16,
-                (dpi * 20.0) as u16,
+                dpi,
             );
         }
 
