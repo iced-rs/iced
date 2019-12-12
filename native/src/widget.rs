@@ -24,7 +24,7 @@ pub mod button;
 pub mod checkbox;
 pub mod column;
 pub mod container;
-pub mod icon;
+pub mod svg;
 pub mod image;
 pub mod radio;
 pub mod row;
@@ -42,8 +42,6 @@ pub use column::Column;
 #[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]
-pub use icon::Icon;
-#[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]
 pub use radio::Radio;
@@ -53,6 +51,8 @@ pub use row::Row;
 pub use scrollable::Scrollable;
 #[doc(no_inline)]
 pub use slider::Slider;
+#[doc(no_inline)]
+pub use svg::Svg;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
