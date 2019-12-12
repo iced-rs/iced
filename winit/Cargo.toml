@@ -1,6 +1,6 @@
 [package]
 name = "iced_winit"
-version = "0.1.0-alpha"
+version = "0.1.0-alpha.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A winit runtime for Iced"
@@ -11,7 +11,7 @@ repository = "https://github.com/hecrj/iced"
 debug = []
 
 [dependencies]
-iced_native = { version = "0.1.0-alpha", path = "../native" }
-winit = "0.20.0-alpha4"
+iced_native = { version = "0.1.0", path = "../native" }
+winit = "=0.20.0-alpha4"
 futures = { version = "0.3", features = ["thread-pool"] }
 log = "0.4"
