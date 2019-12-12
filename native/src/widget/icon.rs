@@ -1,6 +1,6 @@
 //! Display an icon.
 use crate::{
-    layout, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
+    image, layout, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 use std::{
@@ -11,7 +11,7 @@ use std::{
 /// A simple icon_loader widget.
 #[derive(Debug, Clone)]
 pub struct Icon {
-    path: PathBuf,
+    handle: image::Handle,
     size: Length,
 }
 
@@ -21,7 +21,7 @@ impl Icon {
     /// [`Icon`]: struct.Icon.html
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Icon {
-            path: path.into(),
+            handle: image::Handle::from_path(path),
             size: Length::Fill,
         }
     }
@@ -37,7 +37,7 @@ impl Icon {
 
 impl<Message, Renderer> Widget<Message, Renderer> for Icon
 where
-    Renderer: self::Renderer,
+    Renderer: image::Renderer,
 {
     fn width(&self) -> Length {
         self.size
@@ -65,9 +65,7 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
-        let bounds = layout.bounds();
-
-        renderer.draw(bounds, self.path.as_path())
+        renderer.draw(self.handle.clone(), layout)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -75,24 +73,9 @@ where
     }
 }
 
-/// The renderer of an [`Icon`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use [`Icon`] in your [`UserInterface`].
-///
-/// [`Icon`]: struct.Icon.html
-/// [renderer]: ../../renderer/index.html
-/// [`UserInterface`]: ../../struct.UserInterface.html
-pub trait Renderer: crate::Renderer {
-    /// Draws an [`Icon`].
-    ///
-    /// [`Icon`]: struct.Icon.html
-    fn draw(&mut self, bounds: Rectangle, path: &Path) -> Self::Output;
-}
-
 impl<'a, Message, Renderer> From<Icon> for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: image::Renderer,
 {
     fn from(icon: Icon) -> Element<'a, Message, Renderer> {
         Element::new(icon)

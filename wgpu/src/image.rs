@@ -7,6 +7,7 @@ use iced_native::{
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
+    fmt,
     mem,
     rc::Rc,
 };
@@ -215,19 +216,27 @@ impl Pipeline {
         if !self.cache.borrow().contains(&handle) {
             let memory = match handle.data() {
                 Data::Path(path) => {
-                    if let Ok(image) = image::open(path) {
-                        Memory::Host {
-                            image: image.to_bgra(),
+                    if let Some(ext) = path.extension() {
+                        if ext == "svg" || ext == "svgz" || ext == "SVG" || ext == "SVGZ" {
+                            let opt = resvg::Options::default();
+                            match resvg::usvg::Tree::from_file(path, &opt.usvg) {
+                                Ok(tree) => Memory::Host(HostMemory::Svg(tree)),
+                                Err(_) => Memory::Invalid,
+                            }
+                        } else if let Ok(image) = image::open(path) {
+                            Memory::Host(HostMemory::Image(image.to_bgra()))
+                        } else {
+                            Memory::NotFound
                         }
+                    } else if let Ok(image) = image::open(path) {
+                        Memory::Host(HostMemory::Image(image.to_bgra()))
                     } else {
                         Memory::NotFound
                     }
                 }
                 Data::Bytes(bytes) => {
                     if let Ok(image) = image::load_from_memory(&bytes) {
-                        Memory::Host {
-                            image: image.to_bgra(),
-                        }
+                        Memory::Host(HostMemory::Image(image.to_bgra()))
                     } else {
                         Memory::Invalid
                     }
@@ -246,6 +255,7 @@ impl Pipeline {
         transformation: Transformation,
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
+        dpi: f32,
     ) {
         let uniforms_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
@@ -273,7 +283,13 @@ impl Pipeline {
                 .borrow_mut()
                 .get(&image.handle)
                 .unwrap()
-                .upload(device, encoder, &self.texture_layout)
+                .upload(
+                    device,
+                    encoder,
+                    &self.texture_layout,
+                    (image.scale[0] * dpi) as u32,
+                    (image.scale[1] * dpi) as u32,
+                )
             {
                 let instance_buffer = device
                     .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
@@ -341,11 +357,26 @@ impl Pipeline {
     }
 }
 
+enum HostMemory {
+    Image(image::ImageBuffer<image::Bgra<u8>, Vec<u8>>),
+    Svg(resvg::usvg::Tree),
+}
+
+impl fmt::Debug for HostMemory {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> Result<(), fmt::Error> {
+        match self {
+            HostMemory::Image(_) => write!(f, "HostMemory::Image"),
+            HostMemory::Svg(_) => write!(f, "HostMemory::Svg"),
+        }
+    }
+}
+
 #[derive(Debug)]
 enum Memory {
-    Host {
-        image: image::ImageBuffer<image::Bgra<u8>, Vec<u8>>,
-    },
+    Host(HostMemory),
     Device {
         bind_group: Rc<wgpu::BindGroup>,
         width: u32,
@@ -358,7 +389,13 @@ enum Memory {
 impl Memory {
     fn dimensions(&self) -> (u32, u32) {
         match self {
-            Memory::Host { image } => image.dimensions(),
+            Memory::Host(host_memory) => match host_memory {
+                HostMemory::Image(image) => image.dimensions(),
+                HostMemory::Svg(tree) => {
+                    let size = tree.svg_node().size;
+                    (size.width() as u32, size.height() as u32)
+                }
+            }
             Memory::Device { width, height, .. } => (*width, *height),
             Memory::NotFound => (1, 1),
             Memory::Invalid => (1, 1),
@@ -370,10 +407,15 @@ impl Memory {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         texture_layout: &wgpu::BindGroupLayout,
+        svg_width: u32,
+        svg_height: u32,
     ) -> Option<Rc<wgpu::BindGroup>> {
         match self {
-            Memory::Host { image } => {
-                let (width, height) = image.dimensions();
+            Memory::Host(host_memory) => {
+                let (width, height) = match host_memory {
+                    HostMemory::Image(image) => image.dimensions(),
+                    HostMemory::Svg(_) => (svg_width, svg_height),
+                };
 
                 let extent = wgpu::Extent3d {
                     width,
@@ -392,14 +434,37 @@ impl Memory {
                         | wgpu::TextureUsage::SAMPLED,
                 });
 
-                let slice = image.clone().into_raw();
+                let temp_buf = match host_memory {
+                    HostMemory::Image(image) => {
+                        let flat_samples = image.as_flat_samples();
+                        let slice = flat_samples.as_slice();
+                        device.create_buffer_mapped(
+                            slice.len(),
+                            wgpu::BufferUsage::COPY_SRC,
+                        )
+                            .fill_from_slice(slice)
+                    },
+                    HostMemory::Svg(tree) => {
+                        let mut canvas =
+                            resvg::raqote::DrawTarget::new(width as i32, height as i32);
+                        let opt = resvg::Options::default();
+                        let screen_size =
+                            resvg::ScreenSize::new(width, height).unwrap();
+                        resvg::backend_raqote::render_to_canvas(
+                            tree,
+                            &opt,
+                            screen_size,
+                            &mut canvas,
+                        );
+                        let slice = canvas.get_data();
 
-                let temp_buf = device
-                    .create_buffer_mapped(
-                        slice.len(),
-                        wgpu::BufferUsage::COPY_SRC,
-                    )
-                    .fill_from_slice(&slice[..]);
+                        device.create_buffer_mapped(
+                                slice.len(),
+                                wgpu::BufferUsage::COPY_SRC,
+                            )
+                            .fill_from_slice(slice)
+                    },
+                };
 
                 encoder.copy_buffer_to_texture(
                     wgpu::BufferCopyView {

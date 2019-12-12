@@ -46,13 +46,6 @@ pub enum Primitive {
         /// The bounds of the image
         bounds: Rectangle,
     },
-    /// A svg icon primitive
-    Svg {
-        /// The path of the icon
-        handle: crate::svg::Handle,
-        /// The bounds of the icon
-        bounds: Rectangle,
-    },
     /// A clip primitive
     Clip {
         /// The bounds of the clip
