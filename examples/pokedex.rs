@@ -150,7 +150,6 @@ impl Pokemon {
     async fn search() -> Result<Pokemon, Error> {
         use rand::Rng;
         use serde::Deserialize;
-        use std::io::Read;
 
         #[derive(Debug, Deserialize)]
         struct Entry {
@@ -179,7 +178,11 @@ impl Pokemon {
         let url = format!("https://pokeapi.co/api/v2/pokemon-species/{}", id);
         let sprite = format!("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png", id);
 
-        let entry: Entry = reqwest::get(&url)?.json()?;
+        let (entry, sprite): (Entry, _) = futures::future::try_join(
+            surf::get(&url).recv_json(),
+            surf::get(&sprite).recv_bytes(),
+        )
+        .await?;
 
         let description = entry
             .flavor_text_entries
@@ -187,13 +190,6 @@ impl Pokemon {
             .filter(|text| text.language.name == "en")
             .next()
             .ok_or(Error::LanguageError)?;
-
-        let mut sprite = reqwest::get(&sprite)?;
-        let mut bytes = Vec::new();
-
-        sprite
-            .read_to_end(&mut bytes)
-            .map_err(|_| Error::ImageError)?;
 
         Ok(Pokemon {
             number: id,
@@ -203,7 +199,7 @@ impl Pokemon {
                 .chars()
                 .map(|c| if c.is_control() { ' ' } else { c })
                 .collect(),
-            image: image::Handle::from_memory(bytes),
+            image: image::Handle::from_memory(sprite),
         })
     }
 }
@@ -211,13 +207,12 @@ impl Pokemon {
 #[derive(Debug, Clone)]
 enum Error {
     APIError,
-    ImageError,
     LanguageError,
 }
 
-impl From<reqwest::Error> for Error {
-    fn from(error: reqwest::Error) -> Error {
-        dbg!(&error);
+impl From<surf::Exception> for Error {
+    fn from(exception: surf::Exception) -> Error {
+        dbg!(&exception);
 
         Error::APIError
     }

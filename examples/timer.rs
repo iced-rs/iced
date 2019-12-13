@@ -92,7 +92,7 @@ impl Application for Timer {
         let duration = Text::new(format!(
             "{:0>2}:{:0>2}:{:0>2}.{:0>2}",
             seconds / HOUR,
-            seconds / MINUTE,
+            (seconds % HOUR) / MINUTE,
             seconds % MINUTE,
             self.duration.subsec_millis() / 10,
         ))
