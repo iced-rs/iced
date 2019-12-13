@@ -6,10 +6,10 @@ use iced::{
 use std::time::{Duration, Instant};
 
 pub fn main() {
-    Timer::run(Settings::default())
+    Stopwatch::run(Settings::default())
 }
 
-struct Timer {
+struct Stopwatch {
     duration: Duration,
     state: State,
     toggle: button::State,
@@ -28,12 +28,12 @@ enum Message {
     Tick(Instant),
 }
 
-impl Application for Timer {
+impl Application for Stopwatch {
     type Message = Message;
 
-    fn new() -> (Timer, Command<Message>) {
+    fn new() -> (Stopwatch, Command<Message>) {
         (
-            Timer {
+            Stopwatch {
                 duration: Duration::default(),
                 state: State::Idle,
                 toggle: button::State::new(),
@@ -44,7 +44,7 @@ impl Application for Timer {
     }
 
     fn title(&self) -> String {
-        String::from("Timer - Iced")
+        String::from("Stopwatch - Iced")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
