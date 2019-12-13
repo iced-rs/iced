@@ -4,8 +4,6 @@ use iced::{
 };
 
 pub fn main() {
-    env_logger::init();
-
     Events::run(Settings::default())
 }
 
