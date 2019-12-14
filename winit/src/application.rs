@@ -468,7 +468,7 @@ impl Subscriptions {
                 let (event_sender, event_receiver) =
                     futures::channel::mpsc::channel(100);
 
-                let stream = recipe.stream(event_receiver);
+                let stream = recipe.stream(event_receiver.boxed());
                 let proxy = proxy.clone();
 
                 let future = futures::future::select(

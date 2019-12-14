@@ -155,13 +155,13 @@ mod time {
 
     struct Every(std::time::Duration);
 
-    impl<Hasher, Input> iced_native::subscription::Recipe<Hasher, Input> for Every
+    impl<H, I> iced_native::subscription::Recipe<H, I> for Every
     where
-        Hasher: std::hash::Hasher,
+        H: std::hash::Hasher,
     {
         type Output = std::time::Instant;
 
-        fn hash(&self, state: &mut Hasher) {
+        fn hash(&self, state: &mut H) {
             use std::hash::Hash;
 
             std::any::TypeId::of::<Self>().hash(state);
@@ -170,7 +170,7 @@ mod time {
 
         fn stream(
             self: Box<Self>,
-            _input: Input,
+            _input: I,
         ) -> futures::stream::BoxStream<'static, Self::Output> {
             use futures::stream::StreamExt;
 
