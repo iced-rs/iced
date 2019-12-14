@@ -155,12 +155,13 @@ mod time {
 
     struct Every(std::time::Duration);
 
-    impl<Input> iced_native::subscription::Recipe<iced_native::Hasher, Input>
-        for Every
+    impl<Hasher, Input> iced_native::subscription::Recipe<Hasher, Input> for Every
+    where
+        Hasher: std::hash::Hasher,
     {
         type Output = std::time::Instant;
 
-        fn hash(&self, state: &mut iced_native::Hasher) {
+        fn hash(&self, state: &mut Hasher) {
             use std::hash::Hash;
 
             std::any::TypeId::of::<Self>().hash(state);
