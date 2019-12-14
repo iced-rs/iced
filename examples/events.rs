@@ -49,7 +49,7 @@ impl Application for Events {
 
     fn subscriptions(&self) -> Subscription<Message> {
         if self.enabled {
-            events::all().map(Message::EventOccurred)
+            iced_native::subscription::events().map(Message::EventOccurred)
         } else {
             Subscription::none()
         }
@@ -67,8 +67,12 @@ impl Application for Events {
             },
         );
 
-        let toggle = Checkbox::new(self.enabled, "Enabled", Message::Toggled)
-            .width(Length::Shrink);
+        let toggle = Checkbox::new(
+            self.enabled,
+            "Listen to runtime events",
+            Message::Toggled,
+        )
+        .width(Length::Shrink);
 
         let content = Column::new()
             .width(Length::Shrink)
@@ -83,37 +87,5 @@ impl Application for Events {
             .center_x()
             .center_y()
             .into()
-    }
-}
-
-mod events {
-    pub fn all() -> iced::Subscription<iced_native::Event> {
-        iced::Subscription::from_recipe(All)
-    }
-
-    struct All;
-
-    impl
-        iced_native::subscription::Recipe<
-            iced_native::Hasher,
-            iced_native::subscription::Input,
-        > for All
-    {
-        type Output = iced_native::Event;
-
-        fn hash(&self, state: &mut iced_native::Hasher) {
-            use std::hash::Hash;
-
-            std::any::TypeId::of::<All>().hash(state);
-        }
-
-        fn stream(
-            self: Box<Self>,
-            input: iced_native::subscription::Input,
-        ) -> futures::stream::BoxStream<'static, Self::Output> {
-            use futures::StreamExt;
-
-            input.boxed()
-        }
     }
 }
