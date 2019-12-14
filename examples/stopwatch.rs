@@ -165,6 +165,7 @@ mod time {
             use std::hash::Hash;
 
             std::any::TypeId::of::<Self>().hash(state);
+            self.0.hash(state);
         }
 
         fn stream(
