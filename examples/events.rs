@@ -108,7 +108,7 @@ mod events {
         }
 
         fn stream(
-            &self,
+            self: Box<Self>,
             input: iced_native::subscription::Input,
         ) -> futures::stream::BoxStream<'static, Self::Output> {
             use futures::StreamExt;

@@ -167,7 +167,7 @@ mod time {
         }
 
         fn stream(
-            &self,
+            self: Box<Self>,
             _input: Input,
         ) -> futures::stream::BoxStream<'static, Self::Output> {
             use futures::stream::StreamExt;

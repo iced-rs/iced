@@ -470,6 +470,7 @@ impl Subscriptions {
 
                 let stream = recipe.stream(event_receiver);
 
+                // TODO: Find out how to avoid using a mutex here
                 let proxy =
                     std::sync::Arc::new(std::sync::Mutex::new(proxy.clone()));
 

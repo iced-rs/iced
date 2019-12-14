@@ -75,7 +75,7 @@ pub trait Recipe<Hasher: std::hash::Hasher, Input> {
     fn hash(&self, state: &mut Hasher);
 
     fn stream(
-        &self,
+        self: Box<Self>,
         input: Input,
     ) -> futures::stream::BoxStream<'static, Self::Output>;
 }
@@ -110,7 +110,7 @@ where
     }
 
     fn stream(
-        &self,
+        self: Box<Self>,
         input: I,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         use futures::StreamExt;
