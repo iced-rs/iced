@@ -517,21 +517,23 @@ impl SavedState {
     }
 
     async fn load() -> Result<SavedState, LoadError> {
-        use std::io::Read;
+        use async_std::prelude::*;
 
         let mut contents = String::new();
 
-        let mut file = std::fs::File::open(Self::path())
+        let mut file = async_std::fs::File::open(Self::path())
+            .await
             .map_err(|_| LoadError::FileError)?;
 
         file.read_to_string(&mut contents)
+            .await
             .map_err(|_| LoadError::FileError)?;
 
         serde_json::from_str(&contents).map_err(|_| LoadError::FormatError)
     }
 
     async fn save(self) -> Result<(), SaveError> {
-        use std::io::Write;
+        use async_std::prelude::*;
 
         let json = serde_json::to_string_pretty(&self)
             .map_err(|_| SaveError::FormatError)?;
@@ -539,20 +541,23 @@ impl SavedState {
         let path = Self::path();
 
         if let Some(dir) = path.parent() {
-            std::fs::create_dir_all(dir)
+            async_std::fs::create_dir_all(dir)
+                .await
                 .map_err(|_| SaveError::DirectoryError)?;
         }
 
-        let mut file =
-            std::fs::File::create(path).map_err(|_| SaveError::FileError)?;
+        {
+            let mut file = async_std::fs::File::create(path)
+                .await
+                .map_err(|_| SaveError::FileError)?;
 
-        file.write_all(json.as_bytes())
-            .map_err(|_| SaveError::WriteError)?;
+            file.write_all(json.as_bytes())
+                .await
+                .map_err(|_| SaveError::WriteError)?;
+        }
 
         // This is a simple way to save at most once every couple seconds
-        // We will be able to get rid of it once we implement event
-        // subscriptions
-        std::thread::sleep(std::time::Duration::from_secs(2));
+        async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
         Ok(())
     }
