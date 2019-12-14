@@ -149,7 +149,7 @@ where
         Command::none()
     }
 
-    fn subscriptions(&self) -> Subscription<T::Message> {
+    fn subscription(&self) -> Subscription<T::Message> {
         Subscription::none()
     }
 

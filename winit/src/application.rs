@@ -2,10 +2,9 @@ use crate::{
     conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    Cache, Command, Container, Debug, Element, Event, Hasher, Length,
+    subscription, Cache, Command, Container, Debug, Element, Event, Length,
     MouseCursor, Settings, Subscription, UserInterface,
 };
-use std::collections::HashMap;
 
 /// An interactive, native cross-platform application.
 ///
@@ -58,8 +57,14 @@ pub trait Application: Sized {
     /// [`Command`]: struct.Command.html
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
-    /// TODO
-    fn subscriptions(&self) -> Subscription<Self::Message>;
+    /// Returns the event `Subscription` for the current state of the
+    /// application.
+    ///
+    /// The messages produced by the `Subscription` will be handled by
+    /// [`update`](#tymethod.update).
+    ///
+    /// A `Subscription` will be kept alive as long as you keep returning it!
+    fn subscription(&self) -> Subscription<Self::Message>;
 
     /// Returns the widgets to display in the [`Application`].
     ///
@@ -93,14 +98,14 @@ pub trait Application: Sized {
         let proxy = event_loop.create_proxy();
         let mut thread_pool =
             futures::executor::ThreadPool::new().expect("Create thread pool");
-        let mut alive_subscriptions = Subscriptions::new();
+        let mut subscription_pool = subscription::Pool::new();
         let mut external_messages = Vec::new();
 
         let (mut application, init_command) = Self::new();
         spawn(init_command, &mut thread_pool, &proxy);
 
-        let subscriptions = application.subscriptions();
-        alive_subscriptions.update(subscriptions, &mut thread_pool, &proxy);
+        let subscription = application.subscription();
+        subscription_pool.update(subscription, &mut thread_pool, &proxy);
 
         let mut title = application.title();
 
@@ -184,9 +189,9 @@ pub trait Application: Sized {
                 debug.layout_finished();
 
                 debug.event_processing_started();
-                events
-                    .iter()
-                    .for_each(|event| alive_subscriptions.send_event(*event));
+                events.iter().for_each(|event| {
+                    subscription_pool.broadcast_event(*event)
+                });
 
                 let mut messages =
                     user_interface.update(&renderer, events.drain(..));
@@ -215,9 +220,9 @@ pub trait Application: Sized {
                         debug.update_finished();
                     }
 
-                    let subscriptions = application.subscriptions();
-                    alive_subscriptions.update(
-                        subscriptions,
+                    let subscription = application.subscription();
+                    subscription_pool.update(
+                        subscription,
                         &mut thread_pool,
                         &proxy,
                     );
@@ -421,99 +426,6 @@ fn spawn<Message: Send>(
         });
 
         thread_pool.spawn_ok(future);
-    }
-}
-
-pub struct Subscriptions {
-    alive: HashMap<u64, Connection>,
-}
-
-pub struct Connection {
-    _cancel: futures::channel::oneshot::Sender<()>,
-    listener: Option<futures::channel::mpsc::Sender<Event>>,
-}
-
-impl Subscriptions {
-    fn new() -> Self {
-        Self {
-            alive: HashMap::new(),
-        }
-    }
-
-    fn update<Message: Send>(
-        &mut self,
-        subscriptions: Subscription<Message>,
-        thread_pool: &mut futures::executor::ThreadPool,
-        proxy: &winit::event_loop::EventLoopProxy<Message>,
-    ) {
-        use futures::{future::FutureExt, stream::StreamExt};
-
-        let recipes = subscriptions.recipes();
-        let mut alive = std::collections::HashSet::new();
-
-        for recipe in recipes {
-            let id = {
-                use std::hash::Hasher as _;
-
-                let mut hasher = Hasher::default();
-                recipe.hash(&mut hasher);
-
-                hasher.finish()
-            };
-
-            let _ = alive.insert(id);
-
-            if !self.alive.contains_key(&id) {
-                let (cancel, cancelled) = futures::channel::oneshot::channel();
-                let (event_sender, event_receiver) =
-                    futures::channel::mpsc::channel(100);
-
-                let stream = recipe.stream(event_receiver.boxed());
-                let proxy = proxy.clone();
-
-                let future = futures::future::select(
-                    cancelled,
-                    stream.for_each(move |message| {
-                        proxy
-                            .send_event(message)
-                            .expect("Send subscription result to event loop");
-
-                        futures::future::ready(())
-                    }),
-                )
-                .map(|_| ());
-
-                thread_pool.spawn_ok(future);
-
-                let _ = self.alive.insert(
-                    id,
-                    Connection {
-                        _cancel: cancel,
-                        listener: if event_sender.is_closed() {
-                            None
-                        } else {
-                            Some(event_sender)
-                        },
-                    },
-                );
-            }
-        }
-
-        self.alive.retain(|id, _| alive.contains(&id));
-    }
-
-    fn send_event(&mut self, event: Event) {
-        self.alive
-            .values_mut()
-            .filter_map(|connection| connection.listener.as_mut())
-            .for_each(|listener| {
-                if let Err(error) = listener.try_send(event) {
-                    log::warn!(
-                        "Error sending event to subscription: {:?}",
-                        error
-                    );
-                }
-            });
     }
 }
 

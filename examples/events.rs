@@ -47,7 +47,7 @@ impl Application for Events {
         Command::none()
     }
 
-    fn subscriptions(&self) -> Subscription<Message> {
+    fn subscription(&self) -> Subscription<Message> {
         if self.enabled {
             iced_native::subscription::events().map(Message::EventOccurred)
         } else {

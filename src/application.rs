@@ -117,8 +117,17 @@ pub trait Application: Sized {
     /// [`Command`]: struct.Command.html
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
-    /// TODO
-    fn subscriptions(&self) -> Subscription<Self::Message> {
+    /// Returns the event [`Subscription`] for the current state of the
+    /// application.
+    ///
+    /// A [`Subscription`] will be kept alive as long as you keep returning it,
+    /// and the __messages__ produced will be handled by
+    /// [`update`](#tymethod.update).
+    ///
+    /// By default, this method returns an empty [`Subscription`].
+    ///
+    /// [`Subscription`]: struct.Subscription.html
+    fn subscription(&self) -> Subscription<Self::Message> {
         Subscription::none()
     }
 
@@ -173,8 +182,8 @@ where
         self.0.update(message)
     }
 
-    fn subscriptions(&self) -> Subscription<Self::Message> {
-        self.0.subscriptions()
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.0.subscription()
     }
 
     fn view(&mut self) -> Element<'_, Self::Message> {

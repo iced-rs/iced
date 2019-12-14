@@ -74,7 +74,7 @@ impl Application for Stopwatch {
         Command::none()
     }
 
-    fn subscriptions(&self) -> Subscription<Message> {
+    fn subscription(&self) -> Subscription<Message> {
         match self.state {
             State::Idle => Subscription::none(),
             State::Ticking { .. } => {

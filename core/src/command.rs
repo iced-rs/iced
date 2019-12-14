@@ -34,8 +34,8 @@ impl<T> Command<T> {
         }
     }
 
-    /// Creates a [`Command`] that performs the actions of all the givens
-    /// futures.
+    /// Creates a [`Command`] that performs the actions of all the given
+    /// commands.
     ///
     /// Once this command is run, all the futures will be exectued at once.
     ///
