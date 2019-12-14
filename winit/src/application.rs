@@ -469,17 +469,12 @@ impl Subscriptions {
                     futures::channel::mpsc::channel(100);
 
                 let stream = recipe.stream(event_receiver);
-
-                // TODO: Find out how to avoid using a mutex here
-                let proxy =
-                    std::sync::Arc::new(std::sync::Mutex::new(proxy.clone()));
+                let proxy = proxy.clone();
 
                 let future = futures::future::select(
                     cancelled,
                     stream.for_each(move |message| {
                         proxy
-                            .lock()
-                            .expect("Acquire event loop proxy lock")
                             .send_event(message)
                             .expect("Send subscription result to event loop");
 
