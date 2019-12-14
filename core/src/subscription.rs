@@ -115,7 +115,7 @@ where
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         use futures::StreamExt;
 
-        let mapper = self.mapper.clone();
+        let mapper = self.mapper;
 
         self.recipe
             .stream(input)
