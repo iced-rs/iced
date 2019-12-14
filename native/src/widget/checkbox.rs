@@ -80,7 +80,7 @@ where
     Renderer: self::Renderer + text::Renderer + row::Renderer,
 {
     fn width(&self) -> Length {
-        Length::Shrink
+        self.width
     }
 
     fn height(&self) -> Length {
