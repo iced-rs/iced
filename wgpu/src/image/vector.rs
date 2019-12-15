@@ -4,15 +4,21 @@ use std::{
     rc::Rc,
 };
 
-pub struct Svg {
-    tree: resvg::usvg::Tree,
+pub enum Svg {
+    Loaded { tree: resvg::usvg::Tree },
+    NotFound,
 }
 
 impl Svg {
     pub fn viewport_dimensions(&self) -> (u32, u32) {
-        let size = self.tree.svg_node().size;
+        match self {
+            Svg::Loaded { tree } => {
+                let size = tree.svg_node().size;
 
-        (size.width() as u32, size.height() as u32)
+                (size.width() as u32, size.height() as u32)
+            }
+            Svg::NotFound => (1, 1),
+        }
     }
 }
 
@@ -40,21 +46,20 @@ impl Cache {
         }
     }
 
-    pub fn load(&mut self, handle: &svg::Handle) -> Option<&Svg> {
+    pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
         if self.svgs.contains_key(&handle.id()) {
-            return self.svgs.get(&handle.id());
+            return self.svgs.get(&handle.id()).unwrap();
         }
 
         let opt = resvg::Options::default();
 
-        match resvg::usvg::Tree::from_file(handle.path(), &opt.usvg) {
-            Ok(tree) => {
-                let _ = self.svgs.insert(handle.id(), Svg { tree });
-            }
-            Err(_) => {}
+        let svg = match resvg::usvg::Tree::from_file(handle.path(), &opt.usvg) {
+            Ok(tree) => Svg::Loaded { tree },
+            Err(_) => Svg::NotFound,
         };
 
-        self.svgs.get(&handle.id())
+        let _ = self.svgs.insert(handle.id(), svg);
+        self.svgs.get(&handle.id()).unwrap()
     }
 
     pub fn upload(
@@ -85,7 +90,7 @@ impl Cache {
         }
 
         match self.load(handle) {
-            Some(svg) => {
+            Svg::Loaded { tree } => {
                 let extent = wgpu::Extent3d {
                     width,
                     height,
@@ -113,7 +118,7 @@ impl Cache {
                     );
 
                     resvg::backend_raqote::render_to_canvas(
-                        &svg.tree,
+                        &tree,
                         &resvg::Options::default(),
                         screen_size,
                         &mut canvas,
@@ -171,7 +176,7 @@ impl Cache {
 
                 Some(bind_group)
             }
-            None => None,
+            Svg::NotFound => None,
         }
     }
 

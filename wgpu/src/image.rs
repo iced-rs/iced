@@ -215,12 +215,9 @@ impl Pipeline {
     #[cfg(feature = "svg")]
     pub fn viewport_dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
         let mut cache = self.vector_cache.borrow_mut();
+        let svg = cache.load(&handle);
 
-        if let Some(svg) = cache.load(&handle) {
-            svg.viewport_dimensions()
-        } else {
-            (1, 1)
-        }
+        svg.viewport_dimensions()
     }
 
     pub fn draw(
