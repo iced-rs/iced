@@ -1,4 +1,4 @@
-use crate::{quad, text, Image, Primitive, Quad, Transformation};
+use crate::{image, quad, text, Image, Primitive, Quad, Transformation};
 use iced_native::{
     renderer::{Debugger, Windowed},
     Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
@@ -232,7 +232,14 @@ impl Renderer {
             }
             Primitive::Image { handle, bounds } => {
                 layer.images.push(Image {
-                    handle: handle.clone(),
+                    handle: image::Handle::Raster(handle.clone()),
+                    position: [bounds.x, bounds.y],
+                    scale: [bounds.width, bounds.height],
+                });
+            }
+            Primitive::Svg { handle, bounds } => {
+                layer.images.push(Image {
+                    handle: image::Handle::Vector(handle.clone()),
                     position: [bounds.x, bounds.y],
                     scale: [bounds.width, bounds.height],
                 });
