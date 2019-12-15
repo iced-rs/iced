@@ -6,6 +6,8 @@ mod radio;
 mod row;
 mod scrollable;
 mod slider;
-mod svg;
 mod text;
 mod text_input;
+
+#[cfg(feature = "svg")]
+mod svg;

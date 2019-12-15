@@ -1,4 +1,4 @@
-use iced::{Column, Container, Element, Length, Sandbox, Settings, Svg};
+use iced::{Container, Element, Length, Sandbox, Settings};
 
 pub fn main() {
     Tiger::run(Settings::default())
@@ -21,14 +21,28 @@ impl Sandbox for Tiger {
     fn update(&mut self, _message: ()) {}
 
     fn view(&mut self) -> Element<()> {
-        let content =
+        #[cfg(feature = "svg")]
+        let content = {
+            use iced::{Column, Svg};
+
             Column::new()
                 .width(Length::Shrink)
                 .padding(20)
                 .push(Svg::new(format!(
                     "{}/examples/resources/tiger.svg",
                     env!("CARGO_MANIFEST_DIR")
-                )));
+                )))
+        };
+
+        #[cfg(not(feature = "svg"))]
+        let content = {
+            use iced::{HorizontalAlignment, Text};
+
+            Text::new("You need to enable the `svg` feature!")
+                .width(Length::Shrink)
+                .horizontal_alignment(HorizontalAlignment::Center)
+                .size(30)
+        };
 
         Container::new(content)
             .width(Length::Fill)

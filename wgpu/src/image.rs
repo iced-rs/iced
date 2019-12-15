@@ -1,4 +1,5 @@
 mod raster;
+#[cfg(feature = "svg")]
 mod vector;
 
 use crate::Transformation;
@@ -9,6 +10,7 @@ use std::{cell::RefCell, mem};
 #[derive(Debug)]
 pub struct Pipeline {
     raster_cache: RefCell<raster::Cache>,
+    #[cfg(feature = "svg")]
     vector_cache: RefCell<vector::Cache>,
 
     pipeline: wgpu::RenderPipeline,
@@ -190,6 +192,7 @@ impl Pipeline {
 
         Pipeline {
             raster_cache: RefCell::new(raster::Cache::new()),
+            #[cfg(feature = "svg")]
             vector_cache: RefCell::new(vector::Cache::new()),
 
             pipeline,
@@ -209,6 +212,7 @@ impl Pipeline {
         memory.dimensions()
     }
 
+    #[cfg(feature = "svg")]
     pub fn viewport_dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
         let mut cache = self.vector_cache.borrow_mut();
 
@@ -227,7 +231,7 @@ impl Pipeline {
         transformation: Transformation,
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
-        scale: f32,
+        _scale: f32,
     ) {
         let uniforms_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
@@ -255,17 +259,23 @@ impl Pipeline {
 
                     memory.upload(device, encoder, &self.texture_layout)
                 }
-                Handle::Vector(handle) => {
-                    let mut cache = self.vector_cache.borrow_mut();
+                Handle::Vector(_handle) => {
+                    #[cfg(feature = "svg")]
+                    {
+                        let mut cache = self.vector_cache.borrow_mut();
 
-                    cache.upload(
-                        handle,
-                        image.scale,
-                        scale,
-                        device,
-                        encoder,
-                        &self.texture_layout,
-                    )
+                        cache.upload(
+                            _handle,
+                            image.scale,
+                            _scale,
+                            device,
+                            encoder,
+                            &self.texture_layout,
+                        )
+                    }
+
+                    #[cfg(not(feature = "svg"))]
+                    None
                 }
             };
 
@@ -333,6 +343,8 @@ impl Pipeline {
 
     pub fn trim_cache(&mut self) {
         self.raster_cache.borrow_mut().trim();
+
+        #[cfg(feature = "svg")]
         self.vector_cache.borrow_mut().trim();
     }
 }
