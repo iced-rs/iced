@@ -1,4 +1,4 @@
-//! Display an icon.
+//! Display vector graphics in your application.
 use crate::{layout, Element, Hasher, Layout, Length, Point, Size, Widget};
 
 use std::{
@@ -6,7 +6,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// A simple icon_loader widget.
+/// A vector graphics image.
+///
+/// An [`Svg`] image resizes smoothly without losing any quality.
+///
+/// [`Svg`] images can have a considerable rendering cost when resized,
+/// specially when they are complex.
+///
+/// [`Svg`]: struct.Svg.html
 #[derive(Debug, Clone)]
 pub struct Svg {
     handle: Handle,

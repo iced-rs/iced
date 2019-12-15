@@ -81,16 +81,16 @@ pub mod widget {
     }
 
     pub mod svg {
-        //! Display icons in your user interface.
-        pub use iced_winit::svg::Svg;
+        //! Display vector graphics in your user interface.
+        pub use iced_winit::svg::{Handle, Svg};
     }
 
     pub use iced_winit::{Checkbox, Radio, Text};
 
     #[doc(no_inline)]
     pub use {
-        button::Button, image::Image, scrollable::Scrollable,
-        slider::Slider, svg::Svg, text_input::TextInput,
+        button::Button, image::Image, scrollable::Scrollable, slider::Slider,
+        svg::Svg, text_input::TextInput,
     };
 
     /// A container that distributes its contents vertically.
