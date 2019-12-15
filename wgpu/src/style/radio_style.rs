@@ -42,7 +42,7 @@ impl RadioStyle {
 
 impl Default for RadioStyle {
     fn default() -> Self {
-        Self::from(&Palette::default())
+        Self::from(Palette::default())
     }
 }
 

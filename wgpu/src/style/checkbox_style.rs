@@ -45,7 +45,7 @@ impl CheckboxStyle {
 
 impl Default for CheckboxStyle {
     fn default() -> Self {
-        Self::from(&Palette::default())
+        Self::from(Palette::default())
     }
 }
 

@@ -11,7 +11,7 @@ pub struct TextStyle {
 
 impl Default for TextStyle {
     fn default() -> Self {
-        Self::from(&Palette::default())
+        Self::from(Palette::default())
     }
 }
 

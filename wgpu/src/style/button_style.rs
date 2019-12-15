@@ -74,7 +74,7 @@ impl ButtonStyle {
 
 impl Default for ButtonStyle {
     fn default() -> Self {
-        Self::from(&Palette::default())
+        Self::from(Palette::default())
     }
 }
 

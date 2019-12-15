@@ -1,5 +1,65 @@
 use crate::Color;
 
+const LIGHT_PALETTE: Palette = Palette {
+    window: Color::from_rgb(0.937, 0.941, 0.945),
+    window_text: Color::from_rgb(0.137, 0.149, 0.153),
+    base: Color::from_rgb(0.988, 0.988, 0.988),
+    alternate_base: Color::from_rgb(0.973, 0.969, 0.965),
+    tooltip_base: Color::from_rgb(0.988, 0.988, 0.988),
+    tooltip_text: Color::from_rgb(0.137, 0.149, 0.153),
+    placeholder_text: Color::from_rgb(0.533, 0.529, 0.525),
+    text: Color::from_rgb(0.137, 0.149, 0.153),
+    button: Color::from_rgb(0.937, 0.941, 0.945),
+    button_text: Color::from_rgb(0.137, 0.149, 0.153),
+    highlight: Color::from_rgb(0.239, 0.682, 0.914),
+    highlight_text: Color::from_rgb(0.988, 0.988, 0.988),
+    link: Color::from_rgb(0.0, 0.341, 0.682),
+    link_visited: Color::from_rgb(0.271, 0.157, 0.525),
+    positive: Color::from_rgb(0.0, 0.431, 0.157),
+    neutral: Color::from_rgb(0.69, 0.502, 0.0),
+    negative: Color::from_rgb(0.749, 0.012, 0.012),
+};
+
+const DARK_PALETTE: Palette = Palette {
+    window: Color::from_rgb(0.192, 0.212, 0.231),
+    window_text: Color::from_rgb(0.937, 0.941, 0.945),
+    base: Color::from_rgb(0.137, 0.149, 0.161),
+    alternate_base: Color::from_rgb(0.192, 0.212, 0.231),
+    tooltip_base: Color::from_rgb(0.192, 0.212, 0.231),
+    tooltip_text: Color::from_rgb(0.937, 0.941, 0.945),
+    placeholder_text: Color::from_rgb(0.741, 0.765, 0.780),
+    text: Color::from_rgb(0.937, 0.941, 0.945),
+    button: Color::from_rgb(0.192, 0.212, 0.231),
+    button_text: Color::from_rgb(0.937, 0.941, 0.945),
+    highlight: Color::from_rgb(0.239, 0.682, 0.914),
+    highlight_text: Color::from_rgb(0.239, 0.682, 0.914),
+    link: Color::from_rgb(0.161, 0.502, 0.725),
+    link_visited: Color::from_rgb(0.5, 0.549, 0.553),
+    positive: Color::from_rgb(0.153, 0.682, 0.376),
+    neutral: Color::from_rgb(0.965, 0.455, 0.0),
+    negative: Color::from_rgb(0.855, 0.267, 0.325),
+};
+
+const FALLBACK_PALETTE: Palette = Palette {
+    window: Color::from_rgb(1.0, 1.0, 1.0),
+    window_text: Color::from_rgb(0.0, 0.0, 0.0),
+    base: Color::from_rgb(1.0, 1.0, 1.0),
+    alternate_base: Color::from_rgb(0.941, 0.941, 0.941),
+    tooltip_base: Color::from_rgb(1.0, 1.0, 1.0),
+    tooltip_text: Color::from_rgb(0.0, 0.0, 0.0),
+    placeholder_text: Color::from_rgb(0.698, 0.698, 0.698),
+    text: Color::from_rgb(0.0, 0.0, 0.0),
+    button: Color::from_rgb(1.0, 1.0, 1.0),
+    button_text: Color::from_rgb(0.0, 0.0, 0.0),
+    highlight: Color::from_rgb(0.431, 0.569, 0.706),
+    highlight_text: Color::from_rgb(1.0, 1.0, 1.0),
+    link: Color::from_rgb(0.0, 0.0, 1.0),
+    link_visited: Color::from_rgb(0.271, 0.157, 0.525),
+    positive: Color::from_rgb(0.0, 1.0, 0.0),
+    neutral: Color::from_rgb(1.0, 1.0, 0.0),
+    negative: Color::from_rgb(1.0, 0.0, 0.0),
+};
+
 /// Struct that holds values for a range of different colors.
 /// It can be used to create custom widgets that look like native ones.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -56,8 +116,9 @@ pub struct Palette {
     pub negative: Color,
 }
 
-impl Default for Palette {
-    fn default() -> Self {
+impl Palette {
+    /// Returns a reference to the default palette.
+    pub fn default() -> &'static Self {
         let std_pal = std::env::vars()
             .find_map(|(key, value)| {
                 if key == "ICED_PALETTE" {
@@ -66,66 +127,12 @@ impl Default for Palette {
                     None
                 }
             })
-            .unwrap_or(String::new());
+            .unwrap_or_else(String::new);
 
         match std_pal.as_str() {
-            "dark" => Self {
-                window: Color::from_rgb8(49, 54, 59),
-                window_text: Color::from_rgb8(239, 240, 241),
-                base: Color::from_rgb8(35, 38, 41),
-                alternate_base: Color::from_rgb8(49, 54, 59),
-                tooltip_base: Color::from_rgb8(49, 54, 59),
-                tooltip_text: Color::from_rgb8(239, 240, 241),
-                placeholder_text: Color::from_rgb8(189, 195, 199),
-                text: Color::from_rgb8(239, 240, 241),
-                button: Color::from_rgb8(49, 54, 59),
-                button_text: Color::from_rgb8(239, 240, 241),
-                highlight: Color::from_rgb8(61, 174, 233),
-                highlight_text: Color::from_rgb8(61, 174, 233),
-                link: Color::from_rgb8(41, 128, 185),
-                link_visited: Color::from_rgb8(127, 140, 141),
-                positive: Color::from_rgb8(39, 174, 96),
-                neutral: Color::from_rgb8(246, 116, 0),
-                negative: Color::from_rgb8(218, 68, 83),
-            },
-            "light" => Self {
-                window: Color::from_rgb8(239, 240, 241),
-                window_text: Color::from_rgb8(35, 38, 39),
-                base: Color::from_rgb8(252, 252, 252),
-                alternate_base: Color::from_rgb8(248, 247, 246),
-                tooltip_base: Color::from_rgb8(252, 252, 252),
-                tooltip_text: Color::from_rgb8(35, 38, 39),
-                placeholder_text: Color::from_rgb8(136, 135, 134),
-                text: Color::from_rgb8(35, 38, 39),
-                button: Color::from_rgb8(239, 240, 241),
-                button_text: Color::from_rgb8(35, 38, 39),
-                highlight: Color::from_rgb8(61, 174, 233),
-                highlight_text: Color::from_rgb8(252, 252, 252),
-                link: Color::from_rgb8(0, 87, 174),
-                link_visited: Color::from_rgb8(69, 40, 134),
-                positive: Color::from_rgb8(0, 110, 40),
-                neutral: Color::from_rgb8(176, 128, 0),
-                negative: Color::from_rgb8(191, 3, 3),
-            },
-            _ => Self {
-                window: Color::from_rgb8(255, 255, 255),
-                window_text: Color::from_rgb8(0, 0, 0),
-                base: Color::from_rgb8(255, 255, 255),
-                alternate_base: Color::from_rgb8(240, 240, 240),
-                tooltip_base: Color::from_rgb8(255, 255, 255),
-                tooltip_text: Color::from_rgb8(0, 0, 0),
-                placeholder_text: Color::from_rgb8(178, 178, 178),
-                text: Color::from_rgb8(0, 0, 0),
-                button: Color::from_rgb8(255, 255, 255),
-                button_text: Color::from_rgb8(0, 0, 0),
-                highlight: Color::from_rgb8(110, 145, 180),
-                highlight_text: Color::from_rgb8(255, 255, 255),
-                link: Color::from_rgb8(0, 0, 255),
-                link_visited: Color::from_rgb8(69, 40, 134),
-                positive: Color::from_rgb8(0, 255, 0),
-                neutral: Color::from_rgb8(255, 255, 0),
-                negative: Color::from_rgb8(255, 0, 0),
-            },
+            "dark" => &DARK_PALETTE,
+            "light" => &LIGHT_PALETTE,
+            _ => &FALLBACK_PALETTE,
         }
     }
 }

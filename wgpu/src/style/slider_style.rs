@@ -92,7 +92,7 @@ impl SliderStyle {
 
 impl Default for SliderStyle {
     fn default() -> Self {
-        Self::from(&Palette::default())
+        Self::from(Palette::default())
     }
 }
 

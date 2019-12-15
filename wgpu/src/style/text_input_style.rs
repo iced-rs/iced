@@ -46,7 +46,7 @@ impl TextInputStyle {
 
 impl Default for TextInputStyle {
     fn default() -> Self {
-        Self::from(&Palette::default())
+        Self::from(Palette::default())
     }
 }
 
