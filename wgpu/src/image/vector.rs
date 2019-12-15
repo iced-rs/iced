@@ -76,7 +76,7 @@ impl Cache {
         // TODO: Optimize!
         // We currently rerasterize the SVG when its size changes. This is slow
         // as heck. A GPU rasterizer like `pathfinder` may perform better.
-        // It would be cool to be able to smooth resize the `tiger` example.
+        // It would be cool to be able to smooth resize the `svg` example.
         if let Some(bind_group) = self.rasterized.get(&(id, width, height)) {
             let _ = self.svg_hits.insert(id);
             let _ = self.rasterized_hits.insert((id, width, height));
