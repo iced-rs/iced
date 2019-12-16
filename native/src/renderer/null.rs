@@ -124,7 +124,7 @@ impl button::Renderer for Null {
         _bounds: Rectangle,
         _cursor_position: Point,
         _is_pressed: bool,
-        _style: &Self::WidgetStyle,
+        _custom_style: Option<&Self::WidgetStyle>,
         _content: Self::Output,
     ) -> Self::Output {
     }

@@ -9,9 +9,11 @@ impl button::Renderer for Renderer {
         bounds: Rectangle,
         cursor_position: Point,
         is_pressed: bool,
-        style: &ButtonStyle,
+        custom_style: Option<&ButtonStyle>,
         (content, _): Self::Output,
     ) -> Self::Output {
+        let style = custom_style.unwrap_or(&self.default_button_style);
+
         let is_mouse_over = bounds.contains(cursor_position);
 
         // TODO: Render proper shadows

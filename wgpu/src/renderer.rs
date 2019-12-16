@@ -1,4 +1,4 @@
-use crate::{quad, text, Image, Primitive, Quad, Transformation};
+use crate::{quad, text, ButtonStyle, Image, Primitive, Quad, Transformation};
 use iced_native::{
     renderer::{Debugger, Windowed},
     Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
@@ -24,6 +24,7 @@ pub struct Renderer {
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
     text_pipeline: text::Pipeline,
+    default_button_style: ButtonStyle,
 }
 
 struct Layer<'a> {
@@ -71,6 +72,7 @@ impl Renderer {
             quad_pipeline,
             image_pipeline,
             text_pipeline,
+            default_button_style: ButtonStyle::default(),
         }
     }
 

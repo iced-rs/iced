@@ -36,7 +36,7 @@ pub struct Button<'a, Message, Renderer, Style> {
     min_width: u32,
     min_height: u32,
     padding: u16,
-    style: Style,
+    custom_style: Option<Style>,
 }
 
 impl<'a, Message, Renderer, Style> Button<'a, Message, Renderer, Style> {
@@ -48,7 +48,6 @@ impl<'a, Message, Renderer, Style> Button<'a, Message, Renderer, Style> {
     pub fn new<E>(state: &'a mut State, content: E) -> Self
     where
         E: Into<Element<'a, Message, Renderer>>,
-        Style: Default,
     {
         Button {
             state,
@@ -58,30 +57,7 @@ impl<'a, Message, Renderer, Style> Button<'a, Message, Renderer, Style> {
             height: Length::Shrink,
             min_width: 0,
             min_height: 0,
-            style: Style::default(),
-            padding: 10,
-        }
-    }
-
-    /// Creates a new [`Button`] with some local [`State`] and the given
-    /// content and a custom `style`.
-    ///
-    /// [`Button`]: type.Button.html
-    /// [`State`]: struct.State.html
-    /// [`Palette`]: ../struct.Palette.html
-    pub fn new_with_style<E>(state: &'a mut State, content: E, style: Style) -> Self
-    where
-        E: Into<Element<'a, Message, Renderer>>,
-    {
-        Button {
-            state,
-            content: content.into(),
-            on_press: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
-            min_width: 0,
-            min_height: 0,
-            style,
+            custom_style: None,
             padding: 10,
         }
     }
@@ -118,11 +94,14 @@ impl<'a, Message, Renderer, Style> Button<'a, Message, Renderer, Style> {
         self
     }
 
-    /// Changes the style of the [`Button`].
+    /// Changes the custom_style of the [`Button`].
     ///
     /// [`Button`]: struct.Button.html
-    pub fn change_style(mut self, f: impl FnOnce(&mut Style)) -> Self {
-        f(&mut self.style);
+    pub fn change_style(mut self, f: impl FnOnce(&mut Style)) -> Self
+    where
+        Style: Default,
+    {
+        f(&mut self.custom_style.get_or_insert_with(Style::default));
         self
     }
 
@@ -213,7 +192,7 @@ where
             layout.bounds(),
             cursor_position,
             self.state.is_pressed,
-            &self.style,
+            self.custom_style.as_ref(),
             content,
         )
     }
@@ -270,7 +249,7 @@ where
 /// [`Button`]: struct.Button.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
-    /// Struct that consists of all style options the renderer supports for
+    /// Struct that consists of all custom_style options the renderer supports for
     /// [`Button`].
     ///
     /// [`Button`]: struct.Button.html
@@ -284,7 +263,7 @@ pub trait Renderer: crate::Renderer + Sized {
         bounds: Rectangle,
         cursor_position: Point,
         is_pressed: bool,
-        style: &Self::WidgetStyle,
+        custom_style: Option<&Self::WidgetStyle>,
         content: Self::Output,
     ) -> Self::Output;
 }

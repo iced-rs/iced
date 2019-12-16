@@ -3,7 +3,7 @@ use iced_native::{Background, Color, Palette};
 /// Style for the [`Button`] widget.
 ///
 /// [`Button`]: ../widget/button/type.Button.html
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ButtonStyle {
     /// Background of the widget.
     pub background: Option<Background>,
@@ -35,6 +35,23 @@ pub struct ButtonStyle {
 }
 
 impl ButtonStyle {
+    /// Creates a new [`ButtonStyle`] from the given [`Palette`].
+    ///
+    /// [`ButtonStyle`]: struct.ButtonStyle.html
+    /// [`Palette`]: ../struct.Palette.html
+    pub fn from_palette(palette: &Palette) -> Self {
+        Self {
+            background: Some(Background::Color(palette.button)),
+            hovered_background: None,
+            pressed_background: Some(Background::Color(palette.highlight)),
+            border_radius: 3,
+            border_width: 1,
+            border_color: palette.text,
+            hovered_border_color: Some(palette.highlight),
+            pressed_border_color: None,
+        }
+    }
+
     /// Get the background for when the mouse hovers over the widget.
     pub fn get_hovered_background(&self) -> Option<Background> {
         if self.hovered_background.is_some() {
@@ -74,21 +91,6 @@ impl ButtonStyle {
 
 impl Default for ButtonStyle {
     fn default() -> Self {
-        Self::from(Palette::default())
-    }
-}
-
-impl From<&Palette> for ButtonStyle {
-    fn from(palette: &Palette) -> Self {
-        Self {
-            background: Some(Background::Color(palette.button)),
-            hovered_background: None,
-            pressed_background: Some(Background::Color(palette.highlight)),
-            border_radius: 3,
-            border_width: 1,
-            border_color: palette.text,
-            hovered_border_color: Some(palette.highlight),
-            pressed_border_color: None,
-        }
+        Self::from_palette(Palette::default())
     }
 }

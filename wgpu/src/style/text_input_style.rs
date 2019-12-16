@@ -2,8 +2,8 @@ use iced_native::{Background, Color, Font, Palette};
 
 /// Style for the [`TextInput`] widget.
 ///
-/// [`TextInput`]: ../widget/text_input/struct.TextInput.html
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// [`TextInput`]: ../widget/text_input/type.TextInput.html
+#[derive(Debug, Clone, PartialEq)]
 pub struct TextInputStyle {
     /// The text color of the widget.
     pub text_color: Color,
@@ -32,6 +32,23 @@ pub struct TextInputStyle {
 }
 
 impl TextInputStyle {
+    /// Creates a new [`TextInputStyle`] from the given [`Palette`].
+    ///
+    /// [`TextInputStyle`]: struct.TextInputStyle.html
+    /// [`Palette`]: ../struct.Palette.html
+    pub fn from_palette(palette: &Palette) -> Self {
+        Self {
+            text_color: palette.text,
+            placeholder_color: palette.placeholder_text,
+            font: Font::Default,
+            background: Some(Background::Color(palette.base)),
+            border_radius: 3,
+            border_width: 1,
+            border_color: palette.placeholder_text,
+            border_hovered_color: Some(palette.highlight),
+        }
+    }
+
     /// Get the border color for when the mouse hovers over the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
@@ -46,22 +63,6 @@ impl TextInputStyle {
 
 impl Default for TextInputStyle {
     fn default() -> Self {
-        Self::from(Palette::default())
+        Self::from_palette(Palette::default())
     }
 }
-
-impl From<&Palette> for TextInputStyle {
-    fn from(palette: &Palette) -> Self {
-        Self {
-            text_color: palette.text,
-            placeholder_color: palette.placeholder_text,
-            font: Font::Default,
-            background: Some(Background::Color(palette.base)),
-            border_radius: 3,
-            border_width: 1,
-            border_color: palette.placeholder_text,
-            border_hovered_color: Some(palette.highlight),
-        }
-    }
-}
-

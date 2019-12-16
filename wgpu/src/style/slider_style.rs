@@ -2,8 +2,8 @@ use iced_native::{Background, Color, Palette};
 
 /// Style for the [`Slider`] widget.
 ///
-/// [`Slider`]: ../widget/slider/struct.Slider.html
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// [`Slider`]: ../widget/slider/type.Slider.html
+#[derive(Debug, Clone, PartialEq)]
 pub struct SliderStyle {
     /// Color of the top half of the rail.
     pub rail_top_color: Color,
@@ -47,6 +47,27 @@ pub struct SliderStyle {
 }
 
 impl SliderStyle {
+    /// Creates a new [`SliderStyle`] from the given [`Palette`].
+    ///
+    /// [`SliderStyle`]: struct.SliderStyle.html
+    /// [`Palette`]: ../struct.Palette.html
+    pub fn from_palette(palette: &Palette) -> Self {
+        Self {
+            rail_top_color: palette.placeholder_text,
+            rail_bottom_color: palette.placeholder_text,
+            handle_width: 20.0,
+            handle_height: 20.0,
+            handle_border_width: 1,
+            handle_corner_radius: 10,
+            handle_background: Background::Color(palette.button),
+            handle_hovered_background: None,
+            handle_pressed_background: None,
+            handle_border_color: palette.placeholder_text,
+            handle_hovered_border_color: Some(palette.highlight),
+            handle_pressed_border_color: None,
+        }
+    }
+
     /// Get the background for when the mouse hovers over the widget.
     pub fn get_handle_hovered_background(&self) -> Background {
         if let Some(handle_hovered_background) = self.handle_hovered_background
@@ -92,26 +113,6 @@ impl SliderStyle {
 
 impl Default for SliderStyle {
     fn default() -> Self {
-        Self::from(Palette::default())
+        Self::from_palette(Palette::default())
     }
 }
-
-impl From<&Palette> for SliderStyle {
-    fn from(palette: &Palette) -> Self {
-        Self {
-            rail_top_color: palette.placeholder_text,
-            rail_bottom_color: palette.placeholder_text,
-            handle_width: 20.0,
-            handle_height: 20.0,
-            handle_border_width: 1,
-            handle_corner_radius: 10,
-            handle_background: Background::Color(palette.button),
-            handle_hovered_background: None,
-            handle_pressed_background: None,
-            handle_border_color: palette.placeholder_text,
-            handle_hovered_border_color: Some(palette.highlight),
-            handle_pressed_border_color: None,
-        }
-    }
-}
-
