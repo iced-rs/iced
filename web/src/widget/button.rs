@@ -130,6 +130,7 @@ where
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
+        let width = style::length(self.width);
         let padding_class =
             style_sheet.insert(bump, Style::Padding(self.padding));
 
@@ -149,9 +150,10 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "background: {}; border-radius: {}px; min-width: {}px",
+                    "background: {}; border-radius: {}px; width:{}; min-width: {}px",
                     background,
                     self.border_radius,
+                    width,
                     self.min_width
                 )
                 .into_bump_str(),

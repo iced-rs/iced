@@ -134,6 +134,8 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
         let width = style::length(self.width);
         let height = style::length(self.height);
 
+        let justify_content = style::align(self.align_items);
+
         // TODO: Complete styling
         div(bump)
             .attr(
@@ -143,10 +145,12 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
             )
             .attr("style", bumpalo::format!(
                     in bump,
-                    "width: {}; height: {}; max-width: {}px",
+                    "width: {}; height: {}; max-width: {}px; max-height: {}px; justify-content: {}",
                     width,
                     height,
-                    self.max_width
+                    self.max_width,
+                    self.max_height,
+                    justify_content
                 ).into_bump_str()
             )
             .children(children)

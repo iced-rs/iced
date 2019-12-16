@@ -119,6 +119,9 @@ impl<'a, Message> Widget<Message> for Text {
         let content = bumpalo::format!(in bump, "{}", self.content);
         let color = style::color(self.color.unwrap_or(Color::BLACK));
 
+        let width = style::length(self.width);
+        let height = style::length(self.height);
+
         let text_align = match self.horizontal_alignment {
             HorizontalAlignment::Left => "left",
             HorizontalAlignment::Center => "center",
@@ -127,7 +130,9 @@ impl<'a, Message> Widget<Message> for Text {
 
         let style = bumpalo::format!(
             in bump,
-            "font-size: {}px; color: {}; text-align: {}",
+            "width: {}; height: {}; font-size: {}px; color: {}; text-align: {}",
+            width,
+            height,
             self.size.unwrap_or(20),
             color,
             text_align

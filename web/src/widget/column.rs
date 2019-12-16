@@ -133,6 +133,8 @@ impl<'a, Message> Widget<Message> for Column<'a, Message> {
         let width = style::length(self.width);
         let height = style::length(self.height);
 
+        let align_items = style::align(self.align_items);
+
         // TODO: Complete styling
         div(bump)
             .attr(
@@ -142,10 +144,12 @@ impl<'a, Message> Widget<Message> for Column<'a, Message> {
             )
             .attr("style", bumpalo::format!(
                     in bump,
-                    "width: {}; height: {}; max-width: {}px",
+                    "width: {}; height: {}; max-width: {}px; max-height: {}px; align-items: {}",
                     width,
                     height,
-                    self.max_width
+                    self.max_width,
+                    self.max_height,
+                    align_items
                 ).into_bump_str()
             )
             .children(children)
