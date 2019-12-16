@@ -29,6 +29,7 @@ pub mod conversion;
 pub mod settings;
 
 mod application;
+mod subscription;
 
 pub use application::Application;
 pub use settings::Settings;

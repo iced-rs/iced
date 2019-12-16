@@ -38,3 +38,9 @@ mod command;
 
 #[cfg(feature = "command")]
 pub use command::Command;
+
+#[cfg(feature = "subscription")]
+pub mod subscription;
+
+#[cfg(feature = "subscription")]
+pub use subscription::Subscription;

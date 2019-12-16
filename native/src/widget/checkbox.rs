@@ -31,6 +31,7 @@ pub struct Checkbox<Message> {
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: String,
     label_color: Option<Color>,
+    width: Length,
 }
 
 impl<Message> Checkbox<Message> {
@@ -53,6 +54,7 @@ impl<Message> Checkbox<Message> {
             on_toggle: Box::new(f),
             label: String::from(label),
             label_color: None,
+            width: Length::Fill,
         }
     }
 
@@ -63,6 +65,14 @@ impl<Message> Checkbox<Message> {
         self.label_color = Some(color.into());
         self
     }
+
+    /// Sets the width of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
 }
 
 impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
@@ -70,7 +80,7 @@ where
     Renderer: self::Renderer + text::Renderer + row::Renderer,
 {
     fn width(&self) -> Length {
-        Length::Fill
+        self.width
     }
 
     fn height(&self) -> Length {
@@ -85,6 +95,7 @@ where
         let size = self::Renderer::default_size(renderer);
 
         Row::<(), Renderer>::new()
+            .width(self.width)
             .spacing(15)
             .align_items(Align::Center)
             .push(
@@ -92,7 +103,7 @@ where
                     .width(Length::Units(size as u16))
                     .height(Length::Units(size as u16)),
             )
-            .push(Text::new(&self.label))
+            .push(Text::new(&self.label).width(self.width))
             .layout(renderer, limits)
     }
 

@@ -1,4 +1,4 @@
-use crate::{Command, Element, Settings};
+use crate::{Command, Element, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -117,6 +117,20 @@ pub trait Application: Sized {
     /// [`Command`]: struct.Command.html
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
+    /// Returns the event [`Subscription`] for the current state of the
+    /// application.
+    ///
+    /// A [`Subscription`] will be kept alive as long as you keep returning it,
+    /// and the __messages__ produced will be handled by
+    /// [`update`](#tymethod.update).
+    ///
+    /// By default, this method returns an empty [`Subscription`].
+    ///
+    /// [`Subscription`]: struct.Subscription.html
+    fn subscription(&self) -> Subscription<Self::Message> {
+        Subscription::none()
+    }
+
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
@@ -166,6 +180,10 @@ where
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.0.subscription()
     }
 
     fn view(&mut self) -> Element<'_, Self::Message> {

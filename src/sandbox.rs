@@ -1,4 +1,4 @@
-use crate::{Application, Command, Element, Settings};
+use crate::{Application, Command, Element, Settings, Subscription};
 
 /// A sandboxed [`Application`].
 ///
@@ -147,6 +147,10 @@ where
         T::update(self, message);
 
         Command::none()
+    }
+
+    fn subscription(&self) -> Subscription<T::Message> {
+        Subscription::none()
     }
 
     fn view(&mut self) -> Element<'_, T::Message> {

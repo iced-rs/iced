@@ -42,6 +42,7 @@
 pub mod input;
 pub mod layout;
 pub mod renderer;
+pub mod subscription;
 pub mod widget;
 
 mod element;
@@ -63,5 +64,6 @@ pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
 pub use renderer::Renderer;
 pub use size::Size;
+pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;

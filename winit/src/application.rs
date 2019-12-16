@@ -2,8 +2,8 @@ use crate::{
     conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    Cache, Command, Container, Debug, Element, Event, Length, MouseCursor,
-    Settings, UserInterface,
+    subscription, Cache, Command, Container, Debug, Element, Event, Length,
+    MouseCursor, Settings, Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -57,6 +57,15 @@ pub trait Application: Sized {
     /// [`Command`]: struct.Command.html
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
+    /// Returns the event `Subscription` for the current state of the
+    /// application.
+    ///
+    /// The messages produced by the `Subscription` will be handled by
+    /// [`update`](#tymethod.update).
+    ///
+    /// A `Subscription` will be kept alive as long as you keep returning it!
+    fn subscription(&self) -> Subscription<Self::Message>;
+
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
@@ -89,10 +98,14 @@ pub trait Application: Sized {
         let proxy = event_loop.create_proxy();
         let mut thread_pool =
             futures::executor::ThreadPool::new().expect("Create thread pool");
+        let mut subscription_pool = subscription::Pool::new();
         let mut external_messages = Vec::new();
 
         let (mut application, init_command) = Self::new();
         spawn(init_command, &mut thread_pool, &proxy);
+
+        let subscription = application.subscription();
+        subscription_pool.update(subscription, &mut thread_pool, &proxy);
 
         let mut title = application.title();
 
@@ -176,6 +189,10 @@ pub trait Application: Sized {
                 debug.layout_finished();
 
                 debug.event_processing_started();
+                events.iter().for_each(|event| {
+                    subscription_pool.broadcast_event(*event)
+                });
+
                 let mut messages =
                     user_interface.update(&renderer, events.drain(..));
                 messages.extend(external_messages.drain(..));
@@ -199,10 +216,16 @@ pub trait Application: Sized {
 
                         debug.update_started();
                         let command = application.update(message);
-
                         spawn(command, &mut thread_pool, &proxy);
                         debug.update_finished();
                     }
+
+                    let subscription = application.subscription();
+                    subscription_pool.update(
+                        subscription,
+                        &mut thread_pool,
+                        &proxy,
+                    );
 
                     // Update window title
                     let new_title = application.title();
