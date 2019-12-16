@@ -1,19 +1,17 @@
-use crate::Transformation;
-use iced_native::{
-    image::{Data, Handle},
-    Rectangle,
-};
+mod raster;
+#[cfg(feature = "svg")]
+mod vector;
 
-use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    mem,
-    rc::Rc,
-};
+use crate::Transformation;
+use iced_native::{image, svg, Rectangle};
+
+use std::{cell::RefCell, mem};
 
 #[derive(Debug)]
 pub struct Pipeline {
-    cache: RefCell<Cache>,
+    raster_cache: RefCell<raster::Cache>,
+    #[cfg(feature = "svg")]
+    vector_cache: RefCell<vector::Cache>,
 
     pipeline: wgpu::RenderPipeline,
     uniforms: wgpu::Buffer,
@@ -193,7 +191,9 @@ impl Pipeline {
         });
 
         Pipeline {
-            cache: RefCell::new(Cache::new()),
+            raster_cache: RefCell::new(raster::Cache::new()),
+            #[cfg(feature = "svg")]
+            vector_cache: RefCell::new(vector::Cache::new()),
 
             pipeline,
             uniforms: uniforms_buffer,
@@ -205,37 +205,19 @@ impl Pipeline {
         }
     }
 
-    pub fn dimensions(&self, handle: &Handle) -> (u32, u32) {
-        self.load(handle);
+    pub fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
+        let mut cache = self.raster_cache.borrow_mut();
+        let memory = cache.load(&handle);
 
-        self.cache.borrow_mut().get(handle).unwrap().dimensions()
+        memory.dimensions()
     }
 
-    fn load(&self, handle: &Handle) {
-        if !self.cache.borrow().contains(&handle) {
-            let memory = match handle.data() {
-                Data::Path(path) => {
-                    if let Ok(image) = image::open(path) {
-                        Memory::Host {
-                            image: image.to_bgra(),
-                        }
-                    } else {
-                        Memory::NotFound
-                    }
-                }
-                Data::Bytes(bytes) => {
-                    if let Ok(image) = image::load_from_memory(&bytes) {
-                        Memory::Host {
-                            image: image.to_bgra(),
-                        }
-                    } else {
-                        Memory::Invalid
-                    }
-                }
-            };
+    #[cfg(feature = "svg")]
+    pub fn viewport_dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
+        let mut cache = self.vector_cache.borrow_mut();
+        let svg = cache.load(&handle);
 
-            let _ = self.cache.borrow_mut().insert(&handle, memory);
-        }
+        svg.viewport_dimensions()
     }
 
     pub fn draw(
@@ -246,6 +228,7 @@ impl Pipeline {
         transformation: Transformation,
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
+        _scale: f32,
     ) {
         let uniforms_buffer = device
             .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
@@ -266,15 +249,34 @@ impl Pipeline {
         //
         // [1]: https://github.com/nical/guillotiere
         for image in instances {
-            self.load(&image.handle);
+            let uploaded_texture = match &image.handle {
+                Handle::Raster(handle) => {
+                    let mut cache = self.raster_cache.borrow_mut();
+                    let memory = cache.load(&handle);
 
-            if let Some(texture) = self
-                .cache
-                .borrow_mut()
-                .get(&image.handle)
-                .unwrap()
-                .upload(device, encoder, &self.texture_layout)
-            {
+                    memory.upload(device, encoder, &self.texture_layout)
+                }
+                Handle::Vector(_handle) => {
+                    #[cfg(feature = "svg")]
+                    {
+                        let mut cache = self.vector_cache.borrow_mut();
+
+                        cache.upload(
+                            _handle,
+                            image.scale,
+                            _scale,
+                            device,
+                            encoder,
+                            &self.texture_layout,
+                        )
+                    }
+
+                    #[cfg(not(feature = "svg"))]
+                    None
+                }
+            };
+
+            if let Some(texture) = uploaded_texture {
                 let instance_buffer = device
                     .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
                     .fill_from_slice(&[Instance {
@@ -337,151 +339,10 @@ impl Pipeline {
     }
 
     pub fn trim_cache(&mut self) {
-        self.cache.borrow_mut().trim();
-    }
-}
+        self.raster_cache.borrow_mut().trim();
 
-#[derive(Debug)]
-enum Memory {
-    Host {
-        image: image::ImageBuffer<image::Bgra<u8>, Vec<u8>>,
-    },
-    Device {
-        bind_group: Rc<wgpu::BindGroup>,
-        width: u32,
-        height: u32,
-    },
-    NotFound,
-    Invalid,
-}
-
-impl Memory {
-    fn dimensions(&self) -> (u32, u32) {
-        match self {
-            Memory::Host { image } => image.dimensions(),
-            Memory::Device { width, height, .. } => (*width, *height),
-            Memory::NotFound => (1, 1),
-            Memory::Invalid => (1, 1),
-        }
-    }
-
-    fn upload(
-        &mut self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        texture_layout: &wgpu::BindGroupLayout,
-    ) -> Option<Rc<wgpu::BindGroup>> {
-        match self {
-            Memory::Host { image } => {
-                let (width, height) = image.dimensions();
-
-                let extent = wgpu::Extent3d {
-                    width,
-                    height,
-                    depth: 1,
-                };
-
-                let texture = device.create_texture(&wgpu::TextureDescriptor {
-                    size: extent,
-                    array_layer_count: 1,
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    usage: wgpu::TextureUsage::COPY_DST
-                        | wgpu::TextureUsage::SAMPLED,
-                });
-
-                let slice = image.clone().into_raw();
-
-                let temp_buf = device
-                    .create_buffer_mapped(
-                        slice.len(),
-                        wgpu::BufferUsage::COPY_SRC,
-                    )
-                    .fill_from_slice(&slice[..]);
-
-                encoder.copy_buffer_to_texture(
-                    wgpu::BufferCopyView {
-                        buffer: &temp_buf,
-                        offset: 0,
-                        row_pitch: 4 * width as u32,
-                        image_height: height as u32,
-                    },
-                    wgpu::TextureCopyView {
-                        texture: &texture,
-                        array_layer: 0,
-                        mip_level: 0,
-                        origin: wgpu::Origin3d {
-                            x: 0.0,
-                            y: 0.0,
-                            z: 0.0,
-                        },
-                    },
-                    extent,
-                );
-
-                let bind_group =
-                    device.create_bind_group(&wgpu::BindGroupDescriptor {
-                        layout: texture_layout,
-                        bindings: &[wgpu::Binding {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(
-                                &texture.create_default_view(),
-                            ),
-                        }],
-                    });
-
-                let bind_group = Rc::new(bind_group);
-
-                *self = Memory::Device {
-                    bind_group: bind_group.clone(),
-                    width,
-                    height,
-                };
-
-                Some(bind_group)
-            }
-            Memory::Device { bind_group, .. } => Some(bind_group.clone()),
-            Memory::NotFound => None,
-            Memory::Invalid => None,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Cache {
-    map: HashMap<u64, Memory>,
-    hits: HashSet<u64>,
-}
-
-impl Cache {
-    fn new() -> Self {
-        Self {
-            map: HashMap::new(),
-            hits: HashSet::new(),
-        }
-    }
-
-    fn contains(&self, handle: &Handle) -> bool {
-        self.map.contains_key(&handle.id())
-    }
-
-    fn get(&mut self, handle: &Handle) -> Option<&mut Memory> {
-        let _ = self.hits.insert(handle.id());
-
-        self.map.get_mut(&handle.id())
-    }
-
-    fn insert(&mut self, handle: &Handle, memory: Memory) {
-        let _ = self.map.insert(handle.id(), memory);
-    }
-
-    fn trim(&mut self) {
-        let hits = &self.hits;
-
-        self.map.retain(|k, _| hits.contains(k));
-        self.hits.clear();
+        #[cfg(feature = "svg")]
+        self.vector_cache.borrow_mut().trim();
     }
 }
 
@@ -489,6 +350,11 @@ pub struct Image {
     pub handle: Handle,
     pub position: [f32; 2],
     pub scale: [f32; 2],
+}
+
+pub enum Handle {
+    Raster(image::Handle),
+    Vector(svg::Handle),
 }
 
 #[repr(C)]

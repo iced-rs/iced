@@ -8,3 +8,6 @@ mod scrollable;
 mod slider;
 mod text;
 mod text_input;
+
+#[cfg(feature = "svg")]
+mod svg;

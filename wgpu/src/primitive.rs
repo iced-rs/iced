@@ -1,6 +1,6 @@
 use iced_native::{
-    image, Background, Color, Font, HorizontalAlignment, Rectangle, Vector,
-    VerticalAlignment,
+    image, svg, Background, Color, Font, HorizontalAlignment, Rectangle,
+    Vector, VerticalAlignment,
 };
 
 /// A rendering primitive.
@@ -44,6 +44,14 @@ pub enum Primitive {
         /// The handle of the image
         handle: image::Handle,
         /// The bounds of the image
+        bounds: Rectangle,
+    },
+    /// An SVG primitive
+    Svg {
+        /// The path of the SVG file
+        handle: svg::Handle,
+
+        /// The bounds of the viewport
         bounds: Rectangle,
     },
     /// A clip primitive

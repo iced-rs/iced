@@ -7,6 +7,9 @@ description = "A wgpu renderer for Iced"
 license = "MIT AND OFL-1.1"
 repository = "https://github.com/hecrj/iced"
 
+[features]
+svg = ["resvg"]
+
 [dependencies]
 iced_native = { version = "0.1.0", path = "../native" }
 wgpu = "0.4"
@@ -17,3 +20,4 @@ image = "0.22"
 glam = "0.8"
 font-kit = "0.4"
 log = "0.4"
+resvg = { version = "0.8", features = ["raqote-backend"], optional = true }

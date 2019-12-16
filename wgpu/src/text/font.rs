@@ -1,5 +1,6 @@
-pub use font_kit::error::SelectionError as LoadError;
-pub use font_kit::family_name::FamilyName as Family;
+pub use font_kit::{
+    error::SelectionError as LoadError, family_name::FamilyName as Family,
+};
 
 pub struct Source {
     raw: font_kit::source::SystemSource,
