@@ -1,7 +1,6 @@
 use iced_native::svg;
 use std::{
     collections::{HashMap, HashSet},
-    path::PathBuf,
     rc::Rc,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -11,14 +10,14 @@ use std::{
 };
 
 pub enum Svg {
-    Loaded { tree: resvg::usvg::Tree },
+    Loaded { tree: resvg::usvg::Tree, xml: String },
     NotFound,
 }
 
 impl Svg {
     pub fn viewport_dimensions(&self) -> (u32, u32) {
         match self {
-            Svg::Loaded { tree } => {
+            Svg::Loaded { tree, .. } => {
                 let size = tree.svg_node().size;
 
                 (size.width() as u32, size.height() as u32)
@@ -66,7 +65,11 @@ impl Cache {
         let opt = resvg::Options::default();
 
         let svg = match resvg::usvg::Tree::from_file(handle.path(), &opt.usvg) {
-            Ok(tree) => Svg::Loaded { tree },
+            Ok(tree) => {
+                let options = resvg::usvg::XmlOptions::default();
+                let xml = tree.to_string(options);
+                Svg::Loaded { tree, xml }
+            },
             Err(_) => Svg::NotFound,
         };
 
@@ -110,40 +113,43 @@ impl Cache {
             return Some(bind_group.clone());
         }
 
-        let path = handle.path().to_path_buf();
-        let rasterized = self.rasterized.clone();
-        let rasterizing = self.rasterizing.clone();
+        if let Svg::Loaded { xml, .. } = &self.load(handle) {
+            let xml = xml.clone();
+            let rasterized = self.rasterized.clone();
+            let rasterizing = self.rasterizing.clone();
 
-        if !rasterizing.compare_and_swap(false, true, Ordering::Relaxed) {
-            self.raster_thread = Some(thread::spawn(move || {
-                rasterize(path, rasterized, id, width, height, rasterizing)
-            }));
+            if !rasterizing.compare_and_swap(false, true, Ordering::Relaxed) {
+                self.raster_thread = Some(thread::spawn(move || {
+                    rasterize(xml, rasterized, id, width, height, rasterizing)
+                }));
+            }
+
+            // If no perfect fit can be found, use the biggest available.
+            if let Some((key, value)) = self
+                .uploaded
+                .iter()
+                .filter(|((i, _, _), _)| *i == id)
+                .max_by_key(|((_, w, _), _)| w)
+            {
+                let _ = self.uploaded_hits.insert(*key);
+                return Some(value.clone());
+            }
+
+            // If no bind group with the right id can be found, block until one can
+            // be created.
+            if let Some(raster_thread) = self.raster_thread.take() {
+                let _ = raster_thread.join();
+                return self.upload(
+                    handle,
+                    [w, h],
+                    scale,
+                    device,
+                    encoder,
+                    texture_layout,
+                );
+            }
         }
 
-        // If no perfect fit can be found, use the biggest available.
-        if let Some((key, value)) = self
-            .uploaded
-            .iter()
-            .filter(|((i, _, _), _)| *i == id)
-            .max_by_key(|((_, w, _), _)| w)
-        {
-            let _ = self.uploaded_hits.insert(*key);
-            return Some(value.clone());
-        }
-
-        // If no bind group with the right id can be found, block until one can
-        // be created.
-        if let Some(raster_thread) = self.raster_thread.take() {
-            let _ = raster_thread.join();
-            return self.upload(
-                handle,
-                [w, h],
-                scale,
-                device,
-                encoder,
-                texture_layout,
-            );
-        }
 
         None
     }
@@ -160,7 +166,7 @@ impl Cache {
 }
 
 fn rasterize(
-    path: PathBuf,
+    xml: String,
     rasterized: Arc<Mutex<HashMap<(u64, u32, u32), Vec<u32>>>>,
     id: u64,
     width: u32,
@@ -169,7 +175,7 @@ fn rasterize(
 ) {
     let opt = resvg::Options::default();
 
-    if let Ok(tree) = resvg::usvg::Tree::from_file(path, &opt.usvg) {
+    if let Ok(tree) = resvg::usvg::Tree::from_str(&xml, &opt.usvg) {
         let screen_size = resvg::ScreenSize::new(width, height).unwrap();
 
         let mut canvas =
