@@ -128,6 +128,8 @@ where
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;
 
+        let width = style::length(self.width);
+        let max_width = style::length(self.max_width);
         let padding_class =
             style_sheet.insert(bump, Style::Padding(self.padding));
 
@@ -143,7 +145,9 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "font-size: {}px",
+                    "width: {}; max-width: {}; font-size: {}px",
+                    width,
+                    max_width,
                     self.size.unwrap_or(20)
                 )
                 .into_bump_str(),
