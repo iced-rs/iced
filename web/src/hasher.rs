@@ -1,6 +1,6 @@
 use std::collections::hash_map::DefaultHasher;
 
-/// The hasher used to compare layouts.
+/// The hasher used to compare subscriptions.
 #[derive(Debug)]
 pub struct Hasher(DefaultHasher);
 
