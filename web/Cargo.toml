@@ -15,7 +15,7 @@ categories = ["web-programming"]
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-iced_core = { version = "0.1.0", path = "../core", features = ["command"] }
+iced_core = { version = "0.1.0", path = "../core", features = ["command", "subscription"] }
 dodrio = "0.1.0"
 wasm-bindgen = "0.2.51"
 wasm-bindgen-futures = "0.4"
