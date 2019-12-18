@@ -136,11 +136,23 @@ impl Pipeline {
         // it uses a lifetimed `GlyphCalculatorGuard` with side-effects on drop.
         // This makes stuff quite inconvenient. A manual method for trimming the
         // cache would make our lives easier.
-        let _ = self
-            .measure_brush
-            .borrow_mut()
-            .process_queued(|_, _| {}, |_| {})
-            .expect("Trim text measurements");
+        loop {
+            let action = self
+                .measure_brush
+                .borrow_mut()
+                .process_queued(|_, _| {}, |_| {});
+
+            match action {
+                Ok(_) => break,
+                Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
+                    let (width, height) = suggested;
+
+                    self.measure_brush
+                        .borrow_mut()
+                        .resize_texture(width, height);
+                }
+            }
+        }
     }
 
     pub fn find_font(&self, font: iced_native::Font) -> wgpu_glyph::FontId {
