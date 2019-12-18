@@ -11,5 +11,5 @@ before_install:
   - |
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
       sudo apt-get -qq update
-      sudo apt-get install -y libasound2-dev libudev-dev
+      sudo apt-get install -y libxcb-shape0-dev libxcb-xfixes0-dev
     fi
