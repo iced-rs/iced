@@ -172,7 +172,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
             Event::Mouse(mouse::Event::Input {
@@ -210,7 +210,9 @@ where
                 }
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
-                if self.state.is_focused && !c.is_control() =>
+                if self.state.is_focused
+                    && self.state.is_pasting.is_none()
+                    && !c.is_control() =>
             {
                 let cursor_position = self.state.cursor_position(&self.value);
 
@@ -255,26 +257,18 @@ where
                     }
                 }
                 keyboard::KeyCode::Left => {
-                    let jump_modifier_pressed = if cfg!(target_os = "macos") {
-                        modifiers.alt
-                    } else {
-                        modifiers.control
-                    };
-
-                    if jump_modifier_pressed && !self.is_secure {
+                    if platform::is_jump_modifier_pressed(modifiers)
+                        && !self.is_secure
+                    {
                         self.state.move_cursor_left_by_words(&self.value);
                     } else {
                         self.state.move_cursor_left(&self.value);
                     }
                 }
                 keyboard::KeyCode::Right => {
-                    let jump_modifier_pressed = if cfg!(target_os = "macos") {
-                        modifiers.alt
-                    } else {
-                        modifiers.control
-                    };
-
-                    if jump_modifier_pressed && !self.is_secure {
+                    if platform::is_jump_modifier_pressed(modifiers)
+                        && !self.is_secure
+                    {
                         self.state.move_cursor_right_by_words(&self.value);
                     } else {
                         self.state.move_cursor_right(&self.value);
@@ -285,6 +279,50 @@ where
                 }
                 keyboard::KeyCode::End => {
                     self.state.move_cursor_to_end(&self.value);
+                }
+                keyboard::KeyCode::V => {
+                    if platform::is_copy_paste_modifier_pressed(modifiers) {
+                        if let Some(clipboard) = clipboard {
+                            let content = match self.state.is_pasting.take() {
+                                Some(content) => content,
+                                None => {
+                                    let content: String = clipboard
+                                        .content()
+                                        .unwrap_or(String::new())
+                                        .chars()
+                                        .filter(|c| !c.is_control())
+                                        .collect();
+
+                                    Value::new(&content)
+                                }
+                            };
+
+                            let cursor_position =
+                                self.state.cursor_position(&self.value);
+
+                            self.value
+                                .insert_many(cursor_position, content.clone());
+
+                            self.state.cursor_position += content.len();
+                            self.state.is_pasting = Some(content);
+
+                            let message =
+                                (self.on_change)(self.value.to_string());
+                            messages.push(message);
+                        }
+                    } else {
+                        self.state.is_pasting = None;
+                    }
+                }
+                _ => {}
+            },
+            Event::Keyboard(keyboard::Event::Input {
+                key_code,
+                state: ButtonState::Released,
+                ..
+            }) => match key_code {
+                keyboard::KeyCode::V => {
+                    self.state.is_pasting = None;
                 }
                 _ => {}
             },
@@ -398,6 +436,7 @@ where
 #[derive(Debug, Default, Clone)]
 pub struct State {
     is_focused: bool,
+    is_pasting: Option<Value>,
     cursor_position: usize,
 }
 
@@ -417,6 +456,7 @@ impl State {
 
         Self {
             is_focused: true,
+            is_pasting: None,
             cursor_position: usize::MAX,
         }
     }
@@ -487,7 +527,7 @@ impl State {
 ///
 /// [`TextInput`]: struct.TextInput.html
 // TODO: Reduce allocations, cache results (?)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Value {
     graphemes: Vec<String>,
 }
@@ -574,8 +614,6 @@ impl Value {
     }
 
     /// Inserts a new `char` at the given grapheme `index`.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn insert(&mut self, index: usize, c: char) {
         self.graphemes.insert(index, c.to_string());
 
@@ -583,6 +621,13 @@ impl Value {
             UnicodeSegmentation::graphemes(&self.to_string() as &str, true)
                 .map(String::from)
                 .collect();
+    }
+
+    /// Inserts a bunch of graphemes at the given grapheme `index`.
+    pub fn insert_many(&mut self, index: usize, mut value: Value) {
+        let _ = self
+            .graphemes
+            .splice(index..index, value.graphemes.drain(..));
     }
 
     /// Removes the grapheme at the given `index`.
@@ -655,5 +700,29 @@ fn find_cursor_position<Renderer: self::Renderer>(
             start + index + 1,
             end,
         )
+    }
+}
+
+mod platform {
+    use crate::input::keyboard;
+
+    pub fn is_jump_modifier_pressed(
+        modifiers: keyboard::ModifiersState,
+    ) -> bool {
+        if cfg!(target_os = "macos") {
+            modifiers.alt
+        } else {
+            modifiers.control
+        }
+    }
+
+    pub fn is_copy_paste_modifier_pressed(
+        modifiers: keyboard::ModifiersState,
+    ) -> bool {
+        if cfg!(target_os = "macos") {
+            modifiers.logo
+        } else {
+            modifiers.control
+        }
     }
 }
