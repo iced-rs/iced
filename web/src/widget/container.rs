@@ -134,7 +134,7 @@ where
 
 impl<'a, Message> From<Container<'a, Message>> for Element<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(container: Container<'a, Message>) -> Element<'a, Message> {
         Element::new(container)
