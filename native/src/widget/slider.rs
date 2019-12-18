@@ -6,8 +6,8 @@
 //! [`State`]: struct.State.html
 use crate::{
     input::{mouse, ButtonState},
-    layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
-    Widget,
+    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 
 use std::{hash::Hash, ops::RangeInclusive};
@@ -133,6 +133,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
+        _clipboard: Option<&dyn Clipboard>,
     ) {
         let mut change = || {
             let bounds = layout.bounds();

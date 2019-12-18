@@ -45,6 +45,7 @@ pub mod renderer;
 pub mod subscription;
 pub mod widget;
 
+mod clipboard;
 mod element;
 mod event;
 mod hasher;
@@ -57,6 +58,7 @@ pub use iced_core::{
     Point, Rectangle, Vector, VerticalAlignment,
 };
 
+pub use clipboard::Clipboard;
 pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;

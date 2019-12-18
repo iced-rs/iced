@@ -12,6 +12,9 @@ jobs:
       with:
         rust-version: ${{ matrix.rust }}
     - uses: actions/checkout@master
+    - name: Install xcb libraries
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install -y libxcb-shape0-dev libxcb-xfixes0-dev
     - name: Run tests
       run: |
         cargo test --verbose --all

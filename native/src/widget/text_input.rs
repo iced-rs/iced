@@ -6,8 +6,8 @@
 //! [`State`]: struct.State.html
 use crate::{
     input::{keyboard, mouse, ButtonState},
-    layout, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
-    Widget,
+    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -172,6 +172,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
+        _clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
             Event::Mouse(mouse::Event::Input {

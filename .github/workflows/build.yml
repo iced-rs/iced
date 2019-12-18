@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: hecrj/setup-rust-action@v1
+    - name: Install xcb libraries
+      run: sudo apt-get install -y libxcb-shape0-dev libxcb-xfixes0-dev
     - name: Install cargo-deb
       run: cargo install cargo-deb
     - uses: actions/checkout@master

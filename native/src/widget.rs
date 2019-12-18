@@ -24,12 +24,12 @@ pub mod button;
 pub mod checkbox;
 pub mod column;
 pub mod container;
-pub mod svg;
 pub mod image;
 pub mod radio;
 pub mod row;
 pub mod scrollable;
 pub mod slider;
+pub mod svg;
 pub mod text;
 pub mod text_input;
 
@@ -58,7 +58,7 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{layout, Event, Hasher, Layout, Length, Point};
+use crate::{layout, Clipboard, Event, Hasher, Layout, Length, Point};
 
 /// A component that displays information and allows interaction.
 ///
@@ -142,6 +142,7 @@ where
         _cursor_position: Point,
         _messages: &mut Vec<Message>,
         _renderer: &Renderer,
+        _clipboard: Option<&dyn Clipboard>,
     ) {
     }
 }

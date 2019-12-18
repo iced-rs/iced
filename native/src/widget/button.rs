@@ -6,8 +6,8 @@
 //! [`State`]: struct.State.html
 use crate::{
     input::{mouse, ButtonState},
-    layout, Background, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Widget,
+    layout, Background, Clipboard, Element, Event, Hasher, Layout, Length,
+    Point, Rectangle, Widget,
 };
 use std::hash::Hash;
 
@@ -192,6 +192,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
+        _clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
             Event::Mouse(mouse::Event::Input {

@@ -29,10 +29,8 @@ pub mod conversion;
 pub mod settings;
 
 mod application;
+mod clipboard;
 mod subscription;
-
-pub use application::Application;
-pub use settings::Settings;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.
@@ -43,4 +41,8 @@ mod debug;
 #[path = "debug/null.rs"]
 mod debug;
 
+pub use application::Application;
+pub use settings::Settings;
+
+use clipboard::Clipboard;
 use debug::Debug;

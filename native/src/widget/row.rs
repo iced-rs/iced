@@ -2,7 +2,8 @@
 use std::hash::Hash;
 
 use crate::{
-    layout, Align, Element, Event, Hasher, Layout, Length, Point, Widget,
+    layout, Align, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Widget,
 };
 
 use std::u32;
@@ -154,6 +155,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
     ) {
         self.children.iter_mut().zip(layout.children()).for_each(
             |(child, layout)| {
@@ -163,6 +165,7 @@ where
                     cursor_position,
                     messages,
                     renderer,
+                    clipboard,
                 )
             },
         );
