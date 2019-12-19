@@ -1,5 +1,5 @@
 # Iced
-[![Build Status](https://travis-ci.org/hecrj/iced.svg?branch=master)](https://travis-ci.org/hecrj/iced)
+[![Test Status](https://github.com/hecrj/iced/workflows/Test/badge.svg)](https://github.com/hecrj/iced/actions)
 [![Documentation](https://docs.rs/iced/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
