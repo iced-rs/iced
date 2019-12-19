@@ -2,8 +2,8 @@ use crate::{
     conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    subscription, Cache, Command, Container, Debug, Element, Event, Length,
-    MouseCursor, Settings, Subscription, UserInterface,
+    subscription, Cache, Clipboard, Command, Container, Debug, Element, Event,
+    Length, MouseCursor, Settings, Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -139,6 +139,7 @@ pub trait Application: Sized {
         let mut size = window.inner_size();
         let mut resized = false;
 
+        let clipboard = Clipboard::new(&window);
         let mut renderer = Self::Renderer::new();
 
         let mut target = {
@@ -193,8 +194,13 @@ pub trait Application: Sized {
                     subscription_pool.broadcast_event(*event)
                 });
 
-                let mut messages =
-                    user_interface.update(&renderer, events.drain(..));
+                let mut messages = user_interface.update(
+                    &renderer,
+                    clipboard
+                        .as_ref()
+                        .map(|c| c as &dyn iced_native::Clipboard),
+                    events.drain(..),
+                );
                 messages.extend(external_messages.drain(..));
                 debug.event_processing_finished();
 

@@ -2,8 +2,8 @@
 use crate::{
     column,
     input::{mouse, ButtonState},
-    layout, Align, Column, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    layout, Align, Clipboard, Column, Element, Event, Hasher, Layout, Length,
+    Point, Rectangle, Size, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -143,6 +143,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
     ) {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
@@ -247,6 +248,7 @@ where
             cursor_position,
             messages,
             renderer,
+            clipboard,
         )
     }
 

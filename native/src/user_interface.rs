@@ -1,4 +1,6 @@
-use crate::{input::mouse, layout, Element, Event, Layout, Point, Size};
+use crate::{
+    input::mouse, layout, Clipboard, Element, Event, Layout, Point, Size,
+};
 
 use std::hash::Hasher;
 
@@ -185,7 +187,7 @@ where
     ///     );
     ///
     ///     // Update the user interface
-    ///     let messages = user_interface.update(&renderer, events.drain(..));
+    ///     let messages = user_interface.update(&renderer, None, events.drain(..));
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -198,6 +200,7 @@ where
     pub fn update(
         &mut self,
         renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
         events: impl Iterator<Item = Event>,
     ) -> Vec<Message> {
         let mut messages = Vec::new();
@@ -213,6 +216,7 @@ where
                 self.cursor_position,
                 &mut messages,
                 renderer,
+                clipboard,
             );
         }
 
@@ -282,7 +286,7 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     let messages = user_interface.update(&renderer, events.drain(..));
+    ///     let messages = user_interface.update(&renderer, None, events.drain(..));
     ///
     ///     // Draw the user interface
     ///     let mouse_cursor = user_interface.draw(&mut renderer);

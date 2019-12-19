@@ -13,6 +13,7 @@ debug = []
 [dependencies]
 iced_native = { version = "0.1.0-alpha", path = "../native" }
 winit = { version = "0.20.0-alpha3", git = "https://github.com/rust-windowing/winit", rev = "709808eb4e69044705fcb214bcc30556db761405"}
+window_clipboard = { git = "https://github.com/hecrj/window_clipboard", rev = "22c6dd6c04cd05d528029b50a30c56417cd4bebf" }
 futures = { version = "0.3", features = ["thread-pool"] }
 log = "0.4"
 

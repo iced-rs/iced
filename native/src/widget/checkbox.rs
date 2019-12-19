@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use crate::{
     input::{mouse, ButtonState},
-    layout, row, text, Align, Color, Element, Event, Font, Hasher,
+    layout, row, text, Align, Clipboard, Color, Element, Event, Font, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
 };
@@ -114,6 +114,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
+        _clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
             Event::Mouse(mouse::Event::Input {

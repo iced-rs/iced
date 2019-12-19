@@ -1,5 +1,6 @@
 use crate::{
-    layout, renderer, Color, Event, Hasher, Layout, Length, Point, Widget,
+    layout, renderer, Clipboard, Color, Event, Hasher, Layout, Length, Point,
+    Widget,
 };
 
 /// A generic [`Widget`].
@@ -293,6 +294,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<B>,
         renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
     ) {
         let mut original_messages = Vec::new();
 
@@ -302,6 +304,7 @@ where
             cursor_position,
             &mut original_messages,
             renderer,
+            clipboard,
         );
 
         original_messages
@@ -366,6 +369,7 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
         renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
     ) {
         self.element.widget.on_event(
             event,
@@ -373,6 +377,7 @@ where
             cursor_position,
             messages,
             renderer,
+            clipboard,
         )
     }
 
