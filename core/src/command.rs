@@ -34,6 +34,31 @@ impl<T> Command<T> {
         }
     }
 
+    /// Applies a transformation to the result of a [`Command`].
+    ///
+    /// [`Command`]: struct.Command.html
+    pub fn map<A>(
+        mut self,
+        f: impl Fn(T) -> A + 'static + Send + Sync,
+    ) -> Command<A>
+    where
+        T: 'static,
+    {
+        let f = std::sync::Arc::new(f);
+
+        Command {
+            futures: self
+                .futures
+                .drain(..)
+                .map(|future| {
+                    let f = f.clone();
+
+                    future.map(move |result| f(result)).boxed()
+                })
+                .collect(),
+        }
+    }
+
     /// Creates a [`Command`] that performs the actions of all the given
     /// commands.
     ///
