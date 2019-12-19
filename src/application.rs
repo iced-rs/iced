@@ -146,12 +146,12 @@ pub trait Application: Sized {
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Application`]: trait.Application.html
-    fn run(settings: Settings)
+    fn run(_settings: Settings)
     where
         Self: 'static,
     {
         #[cfg(not(target_arch = "wasm32"))]
-        <Instance<Self> as iced_winit::Application>::run(settings.into());
+        <Instance<Self> as iced_winit::Application>::run(_settings.into());
 
         #[cfg(target_arch = "wasm32")]
         <Instance<Self> as iced_web::Application>::run();

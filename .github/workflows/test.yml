@@ -1,7 +1,7 @@
 name: Test
 on: [push, pull_request]
 jobs:
-  all:
+  native:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -16,3 +16,14 @@ jobs:
       run: |
         cargo test --verbose --all
         cargo test --verbose --all --all-features
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+      with:
+        rust-version: stable
+        targets: wasm32-unknown-unknown
+    - uses: actions/checkout@master
+    - name: Run checks
+      run: cargo check --package iced --target wasm32-unknown-unknown
