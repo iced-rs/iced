@@ -179,35 +179,40 @@ where
                 button: mouse::Button::Left,
                 state: ButtonState::Pressed,
             }) => {
-                self.state.is_focused =
-                    layout.bounds().contains(cursor_position);
+                let is_clicked = layout.bounds().contains(cursor_position);
 
-                if self.state.is_focused {
+                if is_clicked {
                     let text_layout = layout.children().next().unwrap();
                     let target = cursor_position.x - text_layout.bounds().x;
 
-                    if target < 0.0 {
-                        self.state.cursor_position = 0;
-                    } else if self.is_secure {
-                        self.state.cursor_position = find_cursor_position(
-                            renderer,
-                            target,
-                            &self.value.secure(),
-                            self.size.unwrap_or(renderer.default_size()),
-                            0,
-                            self.value.len(),
+                    if target > 0.0 {
+                        let value = if self.is_secure {
+                            self.value.secure()
+                        } else {
+                            self.value.clone()
+                        };
+
+                        let size = self.size.unwrap_or(renderer.default_size());
+
+                        let offset = renderer.offset(
+                            text_layout.bounds(),
+                            size,
+                            &value,
+                            &self.state,
                         );
-                    } else {
+
                         self.state.cursor_position = find_cursor_position(
                             renderer,
-                            target,
-                            &self.value,
-                            self.size.unwrap_or(renderer.default_size()),
+                            target + offset,
+                            &value,
+                            size,
                             0,
                             self.value.len(),
                         );
                     }
                 }
+
+                self.state.is_focused = is_clicked;
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
@@ -391,6 +396,22 @@ pub trait Renderer: crate::Renderer + Sized {
     ///
     /// [`TextInput`]: struct.TextInput.html
     fn measure_value(&self, value: &str, size: u16) -> f32;
+
+    /// Returns the current horizontal offset of the value of the
+    /// [`TextInput`].
+    ///
+    /// This is the amount of horizontal scrolling applied when the [`Value`]
+    /// does not fit the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    /// [`Value`]: struct.Value.html
+    fn offset(
+        &self,
+        text_bounds: Rectangle,
+        size: u16,
+        value: &Value,
+        state: &State,
+    ) -> f32;
 
     /// Draws a [`TextInput`].
     ///

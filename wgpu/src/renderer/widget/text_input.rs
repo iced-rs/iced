@@ -30,6 +30,28 @@ impl text_input::Renderer for Renderer {
         width
     }
 
+    fn offset(
+        &self,
+        text_bounds: Rectangle,
+        size: u16,
+        value: &text_input::Value,
+        state: &text_input::State,
+    ) -> f32 {
+        if state.is_focused() {
+            let (_, offset) = measure_cursor_and_scroll_offset(
+                self,
+                text_bounds,
+                value,
+                size,
+                state.cursor_position(value),
+            );
+
+            offset
+        } else {
+            0.0
+        }
+    }
+
     fn draw(
         &mut self,
         bounds: Rectangle,
@@ -91,11 +113,13 @@ impl text_input::Renderer for Renderer {
         };
 
         let (contents_primitive, offset) = if state.is_focused() {
-            let text_before_cursor =
-                value.until(state.cursor_position(value)).to_string();
-
-            let text_value_width =
-                self.measure_value(&text_before_cursor, size);
+            let (text_value_width, offset) = measure_cursor_and_scroll_offset(
+                self,
+                text_bounds,
+                value,
+                size,
+                state.cursor_position(value),
+            );
 
             let cursor = Primitive::Quad {
                 bounds: Rectangle {
@@ -112,11 +136,7 @@ impl text_input::Renderer for Renderer {
                 Primitive::Group {
                     primitives: vec![text_value, cursor],
                 },
-                Vector::new(
-                    ((text_value_width + 5.0) - text_bounds.width).max(0.0)
-                        as u32,
-                    0,
-                ),
+                Vector::new(offset as u32, 0),
             )
         } else {
             (text_value, Vector::new(0, 0))
@@ -139,4 +159,21 @@ impl text_input::Renderer for Renderer {
             },
         )
     }
+}
+
+fn measure_cursor_and_scroll_offset(
+    renderer: &Renderer,
+    text_bounds: Rectangle,
+    value: &text_input::Value,
+    size: u16,
+    cursor_index: usize,
+) -> (f32, f32) {
+    use iced_native::text_input::Renderer;
+
+    let text_before_cursor = value.until(cursor_index).to_string();
+
+    let text_value_width = renderer.measure_value(&text_before_cursor, size);
+    let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
+
+    (text_value_width, offset)
 }

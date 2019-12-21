@@ -93,6 +93,16 @@ impl text_input::Renderer for Null {
         0.0
     }
 
+    fn offset(
+        &self,
+        _text_bounds: Rectangle,
+        _size: u16,
+        _value: &text_input::Value,
+        _state: &text_input::State,
+    ) -> f32 {
+        0.0
+    }
+
     fn draw(
         &mut self,
         _bounds: Rectangle,
