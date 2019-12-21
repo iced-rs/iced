@@ -209,6 +209,8 @@ where
                             0,
                             self.value.len(),
                         );
+                    } else {
+                        self.state.cursor_position = 0;
                     }
                 }
 
