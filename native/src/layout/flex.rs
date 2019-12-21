@@ -74,8 +74,7 @@ where
 {
     let limits = limits.pad(padding);
 
-    let mut total_non_fill =
-        spacing as f32 * (items.len() as i32 - 1).max(0) as f32;
+    let mut total_non_fill = spacing * items.len().saturating_sub(1) as f32;
     let mut fill_sum = 0;
     let mut cross = axis.cross(limits.min());
 
@@ -166,13 +165,11 @@ where
         main += axis.main(size);
     }
 
-    let (width, height) = axis.pack(main, cross);
+    let (width, height) = axis.pack(main - padding, cross);
     let size = limits.resolve(Size::new(width, height));
 
-    let (padding_x, padding_y) = axis.pack(padding, padding * 2.0);
-
     Node::with_children(
-        Size::new(size.width + padding_x, size.height + padding_y),
+        Size::new(size.width + padding * 2.0, size.height + padding * 2.0),
         nodes,
     )
 }
