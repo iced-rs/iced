@@ -415,7 +415,8 @@ impl Scrollbar {
         grabbed_at: f32,
         cursor_position: Point,
     ) -> f32 {
-        (cursor_position.y + self.bounds.y
+        (cursor_position.y
+            - self.bounds.y
             - self.scroller.bounds.height * grabbed_at)
             / (self.bounds.height - self.scroller.bounds.height)
     }
