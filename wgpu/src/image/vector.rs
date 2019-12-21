@@ -91,6 +91,10 @@ impl Cache {
 
         match self.load(handle) {
             Svg::Loaded { tree } => {
+                if width == 0 || height == 0 {
+                    return None;
+                }
+
                 let extent = wgpu::Extent3d {
                     width,
                     height,
