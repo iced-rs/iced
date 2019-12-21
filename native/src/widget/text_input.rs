@@ -310,7 +310,10 @@ where
                             self.value
                                 .insert_many(cursor_position, content.clone());
 
-                            self.state.cursor_position += content.len();
+                            self.state.move_cursor_right_by_amount(
+                                &self.value,
+                                content.len(),
+                            );
                             self.state.is_pasting = Some(content);
 
                             let message =
@@ -461,6 +464,7 @@ pub struct State {
     is_focused: bool,
     is_pasting: Option<Value>,
     cursor_position: usize,
+    // TODO: Add stateful horizontal scrolling offset
 }
 
 impl State {
@@ -513,10 +517,19 @@ impl State {
     ///
     /// [`TextInput`]: struct.TextInput.html
     pub(crate) fn move_cursor_right(&mut self, value: &Value) {
-        let current = self.cursor_position(value);
+        self.move_cursor_right_by_amount(value, 1)
+    }
 
-        if current < value.len() {
-            self.cursor_position = current + 1;
+    pub(crate) fn move_cursor_right_by_amount(
+        &mut self,
+        value: &Value,
+        amount: usize,
+    ) {
+        let current = self.cursor_position(value);
+        let new_position = current.saturating_add(amount);
+
+        if new_position < value.len() + 1 {
+            self.cursor_position = new_position;
         }
     }
 
