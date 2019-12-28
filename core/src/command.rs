@@ -62,7 +62,7 @@ impl<T> Command<T> {
     /// Creates a [`Command`] that performs the actions of all the given
     /// commands.
     ///
-    /// Once this command is run, all the futures will be exectued at once.
+    /// Once this command is run, all the commands will be exectued at once.
     ///
     /// [`Command`]: struct.Command.html
     pub fn batch(commands: impl Iterator<Item = Command<T>>) -> Self {
