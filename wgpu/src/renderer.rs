@@ -76,6 +76,7 @@ impl Renderer {
 
     fn draw<T: AsRef<str>>(
         &mut self,
+        clear_color: Color,
         (primitive, mouse_cursor): &(Primitive, MouseCursor),
         overlay: &[T],
         target: &mut Target,
@@ -97,11 +98,15 @@ impl Renderer {
                 resolve_target: None,
                 load_op: wgpu::LoadOp::Clear,
                 store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color {
-                    r: 1.0,
-                    g: 1.0,
-                    b: 1.0,
-                    a: 1.0,
+                clear_color: {
+                    let [r, g, b, a] = clear_color.into_linear();
+
+                    wgpu::Color {
+                        r: f64::from(r),
+                        g: f64::from(g),
+                        b: f64::from(b),
+                        a: f64::from(a),
+                    }
                 },
             }],
             depth_stencil_attachment: None,
@@ -428,11 +433,12 @@ impl Windowed for Renderer {
 
     fn draw<T: AsRef<str>>(
         &mut self,
+        clear_color: Color,
         output: &Self::Output,
         overlay: &[T],
         target: &mut Target,
     ) -> MouseCursor {
-        self.draw(output, overlay, target)
+        self.draw(clear_color, output, overlay, target)
     }
 }
 

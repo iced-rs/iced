@@ -1,4 +1,5 @@
 //! Configure your application.
+use crate::Color;
 
 #[cfg(target_os = "windows")]
 #[path = "windows.rs"]
@@ -10,12 +11,24 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 /// The settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The [`Window`] settings
     ///
     /// [`Window`]: struct.Window.html
     pub window: Window,
+
+    /// The default background color of the application
+    pub background_color: Color,
+}
+
+impl Default for Settings {
+    fn default() -> Settings {
+        Settings {
+            window: Window::default(),
+            background_color: Color::WHITE,
+        }
+    }
 }
 
 /// The window settings of an application.
