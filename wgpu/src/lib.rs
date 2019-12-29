@@ -19,11 +19,13 @@
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
 //! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
+pub mod widget;
+
 mod image;
 mod primitive;
 mod quad;
@@ -31,9 +33,11 @@ mod renderer;
 mod text;
 mod transformation;
 
-pub(crate) use crate::image::Image;
-pub(crate) use quad::Quad;
-pub(crate) use transformation::Transformation;
-
 pub use primitive::Primitive;
 pub use renderer::{Renderer, Target};
+#[doc(no_inline)]
+pub use widget::*;
+
+pub(crate) use self::image::Image;
+pub(crate) use quad::Quad;
+pub(crate) use transformation::Transformation;

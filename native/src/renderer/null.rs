@@ -1,7 +1,7 @@
 use crate::{
-    button, checkbox, column, radio, row, scrollable, text, text_input,
-    Background, Color, Element, Font, HorizontalAlignment, Layout, Point,
-    Rectangle, Renderer, Size, VerticalAlignment,
+    button, checkbox, column, radio, row, scrollable, text, text_input, Color,
+    Element, Font, HorizontalAlignment, Layout, Point, Rectangle, Renderer,
+    Size, VerticalAlignment,
 };
 
 /// A renderer that does nothing.
@@ -117,13 +117,14 @@ impl text_input::Renderer for Null {
 }
 
 impl button::Renderer for Null {
+    type Style = ();
+
     fn draw(
         &mut self,
         _bounds: Rectangle,
         _cursor_position: Point,
         _is_pressed: bool,
-        _background: Option<Background>,
-        _border_radius: u16,
+        _style: &Self::Style,
         _content: Self::Output,
     ) -> Self::Output {
     }

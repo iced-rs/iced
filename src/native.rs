@@ -22,23 +22,7 @@ pub mod widget {
     //!
     //! [`TextInput`]: text_input/struct.TextInput.html
     //! [`text_input::State`]: text_input/struct.State.html
-    pub mod button {
-        //! Allow your users to perform actions by pressing a button.
-        //!
-        //! A [`Button`] has some local [`State`].
-        //!
-        //! [`Button`]: type.Button.html
-        //! [`State`]: struct.State.html
-
-        /// A widget that produces a message when clicked.
-        ///
-        /// This is an alias of an `iced_native` button with a default
-        /// `Renderer`.
-        pub type Button<'a, Message> =
-            iced_winit::Button<'a, Message, iced_wgpu::Renderer>;
-
-        pub use iced_winit::button::State;
-    }
+    pub use iced_wgpu::button;
 
     pub mod scrollable {
         //! Navigate an endless amount of content with a scrollbar.

@@ -220,7 +220,26 @@ impl From<surf::Exception> for Error {
 
 fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
     Button::new(state, Text::new(text).color(Color::WHITE))
-        .background(Color::from_rgb(0.11, 0.42, 0.87))
-        .border_radius(10)
         .padding(10)
+        .style(style::Button::Primary)
+}
+
+mod style {
+    use iced::{button, Background, Color};
+
+    pub enum Button {
+        Primary,
+    }
+
+    impl button::StyleSheet for Button {
+        fn active(&self) -> button::Style {
+            button::Style {
+                background: Some(Background::Color(match self {
+                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
+                })),
+                border_radius: 12,
+                shadow_offset: 1.0,
+            }
+        }
+    }
 }

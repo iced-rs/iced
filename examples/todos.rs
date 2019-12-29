@@ -296,7 +296,8 @@ impl Task {
                             edit_icon().color([0.5, 0.5, 0.5]),
                         )
                         .on_press(TaskMessage::Edit)
-                        .padding(10),
+                        .padding(10)
+                        .style(style::Button::NoBackground),
                     )
                     .into()
             }
@@ -331,8 +332,7 @@ impl Task {
                         )
                         .on_press(TaskMessage::Delete)
                         .padding(10)
-                        .border_radius(5)
-                        .background(Color::from_rgb(0.8, 0.2, 0.2)),
+                        .style(style::Button::Destructive),
                     )
                     .into()
             }
@@ -361,15 +361,12 @@ impl Controls {
             let label = Text::new(label).size(16).width(Length::Shrink);
             let button = if filter == current_filter {
                 Button::new(state, label.color(Color::WHITE))
-                    .background(Color::from_rgb(0.2, 0.2, 0.7))
+                    .style(style::Button::FilterSelected)
             } else {
-                Button::new(state, label)
+                Button::new(state, label).style(style::Button::NoBackground)
             };
 
-            button
-                .on_press(Message::FilterChanged(filter))
-                .padding(8)
-                .border_radius(10)
+            button.on_press(Message::FilterChanged(filter)).padding(8)
         };
 
         Row::new()
@@ -560,5 +557,41 @@ impl SavedState {
         async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
         Ok(())
+    }
+}
+
+mod style {
+    use iced::{button, Background, Color};
+
+    pub enum Button {
+        FilterSelected,
+        NoBackground,
+        Destructive,
+    }
+
+    impl button::StyleSheet for Button {
+        fn active(&self) -> button::Style {
+            match self {
+                Button::FilterSelected => button::Style {
+                    background: Some(Background::Color(Color::from_rgb(
+                        0.2, 0.2, 0.7,
+                    ))),
+                    border_radius: 10,
+                    shadow_offset: 0.0,
+                },
+                Button::NoBackground => button::Style {
+                    background: None,
+                    border_radius: 0,
+                    shadow_offset: 0.0,
+                },
+                Button::Destructive => button::Style {
+                    background: Some(Background::Color(Color::from_rgb(
+                        0.8, 0.2, 0.2,
+                    ))),
+                    border_radius: 5,
+                    shadow_offset: 1.0,
+                },
+            }
+        }
     }
 }

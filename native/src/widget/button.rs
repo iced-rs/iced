@@ -6,8 +6,8 @@
 //! [`State`]: struct.State.html
 use crate::{
     input::{mouse, ButtonState},
-    layout, Background, Clipboard, Element, Event, Hasher, Layout, Length,
-    Point, Rectangle, Widget,
+    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Rectangle, Widget,
 };
 use std::hash::Hash;
 
@@ -28,7 +28,7 @@ use std::hash::Hash;
 ///     .on_press(Message::ButtonPressed);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer> {
+pub struct Button<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
@@ -37,11 +37,13 @@ pub struct Button<'a, Message, Renderer> {
     min_width: u32,
     min_height: u32,
     padding: u16,
-    background: Option<Background>,
-    border_radius: u16,
+    style: Renderer::Style,
 }
 
-impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Button<'a, Message, Renderer>
+where
+    Renderer: self::Renderer,
+{
     /// Creates a new [`Button`] with some local [`State`] and the given
     /// content.
     ///
@@ -60,8 +62,7 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
             min_width: 0,
             min_height: 0,
             padding: 0,
-            background: None,
-            border_radius: 0,
+            style: Renderer::Style::default(),
         }
     }
 
@@ -105,28 +106,16 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
         self
     }
 
-    /// Sets the [`Background`] of the [`Button`].
-    ///
-    /// [`Button`]: struct.Button.html
-    /// [`Background`]: ../../struct.Background.html
-    pub fn background<T: Into<Background>>(mut self, background: T) -> Self {
-        self.background = Some(background.into());
-        self
-    }
-
-    /// Sets the border radius of the [`Button`].
-    ///
-    /// [`Button`]: struct.Button.html
-    pub fn border_radius(mut self, border_radius: u16) -> Self {
-        self.border_radius = border_radius;
-        self
-    }
-
     /// Sets the message that will be produced when the [`Button`] is pressed.
     ///
     /// [`Button`]: struct.Button.html
     pub fn on_press(mut self, msg: Message) -> Self {
         self.on_press = Some(msg);
+        self
+    }
+
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -240,8 +229,7 @@ where
             layout.bounds(),
             cursor_position,
             self.state.is_pressed,
-            self.background,
-            self.border_radius,
+            &self.style,
             content,
         )
     }
@@ -260,6 +248,8 @@ where
 /// [`Button`]: struct.Button.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    type Style: Default;
+
     /// Draws a [`Button`].
     ///
     /// [`Button`]: struct.Button.html
@@ -268,8 +258,7 @@ pub trait Renderer: crate::Renderer + Sized {
         bounds: Rectangle,
         cursor_position: Point,
         is_pressed: bool,
-        background: Option<Background>,
-        border_radius: u16,
+        style: &Self::Style,
         content: Self::Output,
     ) -> Self::Output;
 }

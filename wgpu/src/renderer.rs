@@ -22,7 +22,7 @@ pub struct Renderer {
     device: Device,
     queue: Queue,
     quad_pipeline: quad::Pipeline,
-    image_pipeline: crate::image::Pipeline,
+    image_pipeline: image::Pipeline,
     text_pipeline: text::Pipeline,
 }
 
@@ -63,7 +63,7 @@ impl Renderer {
 
         let text_pipeline = text::Pipeline::new(&mut device);
         let quad_pipeline = quad::Pipeline::new(&mut device);
-        let image_pipeline = crate::image::Pipeline::new(&mut device);
+        let image_pipeline = image::Pipeline::new(&mut device);
 
         Self {
             device,
