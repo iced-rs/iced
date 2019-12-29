@@ -19,14 +19,14 @@ pub struct Settings {
     pub window: Window,
 
     /// The default background color of the application
-    pub background_color: Color,
+    pub background: Color,
 }
 
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
             window: Window::default(),
-            background_color: Color::WHITE,
+            background: Color::WHITE,
         }
     }
 }

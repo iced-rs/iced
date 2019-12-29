@@ -280,7 +280,7 @@ pub trait Application: Sized {
                 }
 
                 let new_mouse_cursor = renderer.draw(
-                    settings.background_color,
+                    settings.background,
                     &primitive,
                     &debug.overlay(),
                     &mut target,

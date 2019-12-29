@@ -14,14 +14,14 @@ pub struct Settings {
     /// The default background [`Color`] of the application
     ///
     /// [`Color`]: ../struct.Color.html
-    pub background_color: Color,
+    pub background: Color,
 }
 
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
             window: Window::default(),
-            background_color: Color::WHITE,
+            background: Color::WHITE,
         }
     }
 }
@@ -59,7 +59,7 @@ impl From<Settings> for iced_winit::Settings {
                 decorations: settings.window.decorations,
                 platform_specific: Default::default(),
             },
-            background_color: settings.background_color,
+            background: settings.background,
         }
     }
 }
