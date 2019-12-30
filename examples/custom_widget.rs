@@ -13,7 +13,7 @@ mod circle {
         layout, Background, Color, Element, Hasher, Layout, Length,
         MouseCursor, Point, Size, Widget,
     };
-    use iced_wgpu::{Primitive, Renderer};
+    use iced_wgpu::{Defaults, Primitive, Renderer};
 
     pub struct Circle {
         radius: u16,
@@ -54,6 +54,7 @@ mod circle {
         fn draw(
             &self,
             _renderer: &mut Renderer,
+            _defaults: &Defaults,
             layout: Layout<'_>,
             _cursor_position: Point,
         ) -> (Primitive, MouseCursor) {

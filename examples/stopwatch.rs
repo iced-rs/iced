@@ -1,6 +1,6 @@
 use iced::{
-    button, Align, Application, Button, Color, Column, Command, Container,
-    Element, HorizontalAlignment, Length, Row, Settings, Subscription, Text,
+    button, Align, Application, Button, Column, Command, Container, Element,
+    HorizontalAlignment, Length, Row, Settings, Subscription, Text,
 };
 use std::time::{Duration, Instant};
 
@@ -102,7 +102,6 @@ impl Application for Stopwatch {
             Button::new(
                 state,
                 Text::new(label)
-                    .color(Color::WHITE)
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
             .min_width(80)
@@ -199,6 +198,7 @@ mod style {
                 })),
                 border_radius: 12,
                 shadow_offset: 1.0,
+                text_color: Color::WHITE,
             }
         }
     }

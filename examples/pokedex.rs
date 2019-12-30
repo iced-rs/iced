@@ -1,6 +1,6 @@
 use iced::{
-    button, image, Align, Application, Button, Color, Column, Command,
-    Container, Element, Image, Length, Row, Settings, Text,
+    button, image, Align, Application, Button, Column, Command, Container,
+    Element, Image, Length, Row, Settings, Text,
 };
 
 pub fn main() {
@@ -219,7 +219,7 @@ impl From<surf::Exception> for Error {
 }
 
 fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
-    Button::new(state, Text::new(text).color(Color::WHITE))
+    Button::new(state, Text::new(text))
         .padding(10)
         .style(style::Button::Primary)
 }
@@ -239,6 +239,7 @@ mod style {
                 })),
                 border_radius: 12,
                 shadow_offset: 1.0,
+                text_color: Color::WHITE,
             }
         }
     }

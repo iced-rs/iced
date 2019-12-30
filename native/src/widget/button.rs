@@ -216,21 +216,19 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        let content = self.content.draw(
-            renderer,
-            layout.children().next().unwrap(),
-            cursor_position,
-        );
-
         renderer.draw(
+            defaults,
             layout.bounds(),
             cursor_position,
+            self.on_press.is_none(),
             self.state.is_pressed,
             &self.style,
-            content,
+            &self.content,
+            layout.children().next().unwrap(),
         )
     }
 
@@ -253,13 +251,16 @@ pub trait Renderer: crate::Renderer + Sized {
     /// Draws a [`Button`].
     ///
     /// [`Button`]: struct.Button.html
-    fn draw(
+    fn draw<Message>(
         &mut self,
+        defaults: &Self::Defaults,
         bounds: Rectangle,
         cursor_position: Point,
+        is_disabled: bool,
         is_pressed: bool,
         style: &Self::Style,
-        content: Self::Output,
+        content: &Element<'_, Message, Self>,
+        content_layout: Layout<'_>,
     ) -> Self::Output;
 }
 

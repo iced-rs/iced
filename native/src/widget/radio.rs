@@ -131,6 +131,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
@@ -143,6 +144,7 @@ where
 
         let label = text::Renderer::draw(
             renderer,
+            defaults,
             label_layout.bounds(),
             &self.label,
             text::Renderer::default_size(renderer),

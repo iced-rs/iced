@@ -44,6 +44,8 @@ pub trait Renderer: Sized {
     /// [`Renderer`]: trait.Renderer.html
     type Output;
 
+    type Defaults: Default;
+
     /// Lays out the elements of a user interface.
     ///
     /// You should override this if you need to perform any operations before or

@@ -24,6 +24,7 @@
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
+pub mod defaults;
 pub mod widget;
 
 mod image;
@@ -33,6 +34,7 @@ mod renderer;
 mod text;
 mod transformation;
 
+pub use defaults::Defaults;
 pub use primitive::Primitive;
 pub use renderer::{Renderer, Target};
 #[doc(no_inline)]

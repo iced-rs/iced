@@ -1,21 +1,26 @@
-use crate::{button::StyleSheet, Primitive, Renderer};
-use iced_native::{Background, MouseCursor, Point, Rectangle};
+use crate::{button::StyleSheet, defaults, Defaults, Primitive, Renderer};
+use iced_native::{Background, Element, Layout, MouseCursor, Point, Rectangle};
 
 impl iced_native::button::Renderer for Renderer {
     type Style = Box<dyn StyleSheet>;
 
-    fn draw(
+    fn draw<Message>(
         &mut self,
+        defaults: &Defaults,
         bounds: Rectangle,
         cursor_position: Point,
+        is_disabled: bool,
         is_pressed: bool,
         style: &Box<dyn StyleSheet>,
-        (content, _): Self::Output,
+        content: &Element<'_, Message, Self>,
+        content_layout: Layout<'_>,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
         // TODO: Render proper shadows
-        let styling = if is_mouse_over {
+        let styling = if is_disabled {
+            style.disabled()
+        } else if is_mouse_over {
             if is_pressed {
                 style.pressed()
             } else {
@@ -24,6 +29,18 @@ impl iced_native::button::Renderer for Renderer {
         } else {
             style.active()
         };
+
+        let (content, _) = content.draw(
+            self,
+            &Defaults {
+                text: defaults::Text {
+                    color: styling.text_color,
+                },
+                ..*defaults
+            },
+            content_layout,
+            cursor_position,
+        );
 
         (
             match styling.background {

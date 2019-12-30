@@ -343,6 +343,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {

@@ -1,4 +1,6 @@
-use crate::{image, quad, text, Image, Primitive, Quad, Transformation};
+use crate::{
+    image, quad, text, Defaults, Image, Primitive, Quad, Transformation,
+};
 use iced_native::{
     renderer::{Debugger, Windowed},
     Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
@@ -411,6 +413,7 @@ impl Renderer {
 
 impl iced_native::Renderer for Renderer {
     type Output = (Primitive, MouseCursor);
+    type Defaults = Defaults;
 
     fn layout<'a, Message>(
         &mut self,
@@ -445,13 +448,15 @@ impl Windowed for Renderer {
 impl Debugger for Renderer {
     fn explain<Message>(
         &mut self,
+        defaults: &Defaults,
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
         color: Color,
     ) -> Self::Output {
         let mut primitives = Vec::new();
-        let (primitive, cursor) = widget.draw(self, layout, cursor_position);
+        let (primitive, cursor) =
+            widget.draw(self, defaults, layout, cursor_position);
 
         explain_layout(layout, color, &mut primitives);
         primitives.push(primitive);

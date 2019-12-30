@@ -694,9 +694,7 @@ fn button<'a, Message>(
 ) -> Button<'a, Message> {
     Button::new(
         state,
-        Text::new(label)
-            .color(Color::WHITE)
-            .horizontal_alignment(HorizontalAlignment::Center),
+        Text::new(label).horizontal_alignment(HorizontalAlignment::Center),
     )
     .padding(12)
     .min_width(100)
@@ -761,6 +759,15 @@ mod style {
                 })),
                 border_radius: 12,
                 shadow_offset: 1.0,
+                text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
+            }
+        }
+
+        fn hovered(&self) -> button::Style {
+            button::Style {
+                text_color: Color::WHITE,
+                shadow_offset: 2.0,
+                ..self.active()
             }
         }
     }

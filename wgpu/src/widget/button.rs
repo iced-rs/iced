@@ -5,7 +5,7 @@
 //! [`Button`]: type.Button.html
 //! [`State`]: struct.State.html
 use crate::Renderer;
-use iced_native::Background;
+use iced_native::{Background, Color};
 
 pub use iced_native::button::State;
 
@@ -19,6 +19,7 @@ pub struct Style {
     pub shadow_offset: f32,
     pub background: Option<Background>,
     pub border_radius: u16,
+    pub text_color: Color,
 }
 
 pub trait StyleSheet {
@@ -41,7 +42,22 @@ pub trait StyleSheet {
     }
 
     fn disabled(&self) -> Style {
-        self.active()
+        let active = self.active();
+
+        Style {
+            shadow_offset: 0.0,
+            background: active.background.map(|background| match background {
+                Background::Color(color) => Background::Color(Color {
+                    a: color.a * 0.5,
+                    ..color
+                }),
+            }),
+            text_color: Color {
+                a: active.text_color.a * 0.5,
+                ..active.text_color
+            },
+            ..active
+        }
     }
 }
 
@@ -53,30 +69,7 @@ impl StyleSheet for Default {
             shadow_offset: 1.0,
             background: Some(Background::Color([0.5, 0.5, 0.5].into())),
             border_radius: 5,
-        }
-    }
-
-    fn hovered(&self) -> Style {
-        Style {
-            shadow_offset: 2.0,
-            background: Some(Background::Color([0.5, 0.5, 0.5].into())),
-            border_radius: 5,
-        }
-    }
-
-    fn pressed(&self) -> Style {
-        Style {
-            shadow_offset: 0.0,
-            background: Some(Background::Color([0.5, 0.5, 0.5].into())),
-            border_radius: 5,
-        }
-    }
-
-    fn disabled(&self) -> Style {
-        Style {
-            shadow_offset: 0.0,
-            background: Some(Background::Color([0.7, 0.7, 0.7].into())),
-            border_radius: 5,
+            text_color: Color::BLACK,
         }
     }
 }

@@ -5,16 +5,26 @@ use crate::{
 };
 
 /// A renderer that does nothing.
+///
+/// It can be useful if you are writing tests!
 #[derive(Debug, Clone, Copy)]
 pub struct Null;
 
+impl Null {
+    pub fn new() -> Null {
+        Null
+    }
+}
+
 impl Renderer for Null {
     type Output = ();
+    type Defaults = ();
 }
 
 impl column::Renderer for Null {
     fn draw<Message>(
         &mut self,
+        _defaults: &Self::Defaults,
         _content: &[Element<'_, Message, Self>],
         _layout: Layout<'_>,
         _cursor_position: Point,
@@ -25,6 +35,7 @@ impl column::Renderer for Null {
 impl row::Renderer for Null {
     fn draw<Message>(
         &mut self,
+        _defaults: &Self::Defaults,
         _content: &[Element<'_, Message, Self>],
         _layout: Layout<'_>,
         _cursor_position: Point,
@@ -49,6 +60,7 @@ impl text::Renderer for Null {
 
     fn draw(
         &mut self,
+        _defaults: &Self::Defaults,
         _bounds: Rectangle,
         _content: &str,
         _size: u16,
@@ -119,13 +131,16 @@ impl text_input::Renderer for Null {
 impl button::Renderer for Null {
     type Style = ();
 
-    fn draw(
+    fn draw<Message>(
         &mut self,
+        _defaults: &Self::Defaults,
         _bounds: Rectangle,
         _cursor_position: Point,
+        _is_disabled: bool,
         _is_pressed: bool,
         _style: &Self::Style,
-        _content: Self::Output,
+        _content: &Element<'_, Message, Self>,
+        _content_layout: Layout<'_>,
     ) -> Self::Output {
     }
 }

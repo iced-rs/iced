@@ -255,6 +255,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
@@ -277,7 +278,12 @@ where
                 Point::new(cursor_position.x, -1.0)
             };
 
-            self.content.draw(renderer, content_layout, cursor_position)
+            self.content.draw(
+                renderer,
+                defaults,
+                content_layout,
+                cursor_position,
+            )
         };
 
         self::Renderer::draw(

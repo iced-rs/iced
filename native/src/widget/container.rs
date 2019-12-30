@@ -147,11 +147,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         self.content.draw(
             renderer,
+            defaults,
             layout.children().next().unwrap(),
             cursor_position,
         )
