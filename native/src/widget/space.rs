@@ -8,43 +8,42 @@ use crate::{
 /// An amount of empty space.
 ///
 /// It can be useful if you want to fill some space with nothing.
-///
-/// [`Empty`]: struct.Empty.html
 #[derive(Debug)]
-pub struct Empty {
+pub struct Space {
     width: Length,
     height: Length,
 }
 
-impl Empty {
-    /// Creates an amount of [`Empty`] space.
+impl Space {
+    /// Creates an amount of empty [`Space`] with the given width and height.
     ///
-    /// [`Empty`]: struct.Empty.html
-    pub fn new() -> Self {
-        Empty {
-            width: Length::Shrink,
+    /// [`Space`]: struct.Space.html
+    pub fn new(width: Length, height: Length) -> Self {
+        Space { width, height }
+    }
+
+    /// Creates an amount of horizontal [`Space`].
+    ///
+    /// [`Space`]: struct.Space.html
+    pub fn with_width(width: Length) -> Self {
+        Space {
+            width,
             height: Length::Shrink,
         }
     }
 
-    /// Sets the width of the [`Empty`] space.
+    /// Creates an amount of vertical [`Space`].
     ///
-    /// [`Empty`]: struct..html
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
-        self
-    }
-
-    /// Sets the height of the [`Empty`] space.
-    ///
-    /// [`Empty`]: struct.Column.html
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
-        self
+    /// [`Space`]: struct.Space.html
+    pub fn with_height(height: Length) -> Self {
+        Space {
+            width: Length::Shrink,
+            height,
+        }
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Empty
+impl<'a, Message, Renderer> Widget<Message, Renderer> for Space
 where
     Renderer: self::Renderer,
 {
@@ -76,28 +75,30 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Empty>().hash(state);
+        std::any::TypeId::of::<Space>().hash(state);
         self.width.hash(state);
         self.height.hash(state);
     }
 }
 
-/// The renderer of an amount of [`Empty`] space.
+/// The renderer of an amount of [`Space`].
 ///
-/// [`Empty`]: struct.Empty.html
+/// [`Space`]: struct.Space.html
 pub trait Renderer: crate::Renderer {
-    /// Draws an amount of [`Empty`] space.
+    /// Draws an amount of empty [`Space`].
     ///
     /// You should most likely return an empty primitive here.
+    ///
+    /// [`Space`]: struct.Space.html
     fn draw(&mut self, bounds: Rectangle) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Empty> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Space> for Element<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
     Message: 'static,
 {
-    fn from(empty: Empty) -> Element<'a, Message, Renderer> {
-        Element::new(empty)
+    fn from(space: Space) -> Element<'a, Message, Renderer> {
+        Element::new(space)
     }
 }

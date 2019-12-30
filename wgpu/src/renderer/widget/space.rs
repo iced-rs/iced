@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
-use iced_native::{empty, MouseCursor, Rectangle};
+use iced_native::{space, MouseCursor, Rectangle};
 
-impl empty::Renderer for Renderer {
+impl space::Renderer for Renderer {
     fn draw(&mut self, _bounds: Rectangle) -> Self::Output {
         (Primitive::None, MouseCursor::OutOfBounds)
     }
