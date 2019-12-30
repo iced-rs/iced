@@ -54,7 +54,7 @@ impl<Message> Checkbox<Message> {
             on_toggle: Box::new(f),
             label: String::from(label),
             label_color: None,
-            width: Length::Fill,
+            width: Length::Shrink,
         }
     }
 

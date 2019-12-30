@@ -30,7 +30,7 @@ impl Svg {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
-            height: Length::Fill,
+            height: Length::Shrink,
         }
     }
 

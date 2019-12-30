@@ -146,6 +146,7 @@ impl Application for Todos {
                 ..
             }) => {
                 let title = Text::new("todos")
+                    .width(Length::Fill)
                     .size(100)
                     .color([0.5, 0.5, 0.5])
                     .horizontal_alignment(HorizontalAlignment::Center);
@@ -284,7 +285,8 @@ impl Task {
                     self.completed,
                     &self.description,
                     TaskMessage::Completed,
-                );
+                )
+                .width(Length::Fill);
 
                 Row::new()
                     .spacing(20)
@@ -323,11 +325,7 @@ impl Task {
                             Row::new()
                                 .spacing(10)
                                 .push(delete_icon().color(Color::WHITE))
-                                .push(
-                                    Text::new("Delete")
-                                        .width(Length::Shrink)
-                                        .color(Color::WHITE),
-                                ),
+                                .push(Text::new("Delete").color(Color::WHITE)),
                         )
                         .on_press(TaskMessage::Delete)
                         .padding(10)
@@ -358,7 +356,7 @@ impl Controls {
         let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
         let filter_button = |state, label, filter, current_filter| {
-            let label = Text::new(label).size(16).width(Length::Shrink);
+            let label = Text::new(label).size(16);
             let button = if filter == current_filter {
                 Button::new(state, label.color(Color::WHITE))
                     .background(Color::from_rgb(0.2, 0.2, 0.7))
@@ -381,11 +379,11 @@ impl Controls {
                     tasks_left,
                     if tasks_left == 1 { "task" } else { "tasks" }
                 ))
+                .width(Length::Fill)
                 .size(16),
             )
             .push(
                 Row::new()
-                    .width(Length::Shrink)
                     .spacing(10)
                     .push(filter_button(
                         all_button,

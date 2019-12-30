@@ -64,11 +64,11 @@ impl<'a, Message> TextInput<'a, Message> {
         placeholder: &str,
         value: &str,
         on_change: F,
-    ) -> Self
+    ) -> TextInput<'a, Message>
     where
         F: 'static + Fn(String) -> Message,
     {
-        Self {
+        TextInput {
             state,
             placeholder: String::from(placeholder),
             value: Value::new(value),
