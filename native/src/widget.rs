@@ -24,6 +24,7 @@ pub mod button;
 pub mod checkbox;
 pub mod column;
 pub mod container;
+pub mod empty;
 pub mod image;
 pub mod radio;
 pub mod row;
@@ -41,6 +42,8 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use empty::Empty;
 #[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]

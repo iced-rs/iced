@@ -1,6 +1,6 @@
 use iced::{
     button, scrollable, slider, text_input, Button, Checkbox, Color, Column,
-    Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
+    Container, Element, Empty, HorizontalAlignment, Image, Length, Radio, Row,
     Sandbox, Scrollable, Settings, Slider, Text, TextInput,
 };
 
@@ -67,7 +67,7 @@ impl Sandbox for Tour {
             );
         }
 
-        controls = controls.push(Column::new());
+        controls = controls.push(Empty::new().width(Length::Fill));
 
         if steps.can_continue() {
             controls = controls.push(
