@@ -73,10 +73,12 @@ where
     Renderer: crate::Renderer,
 {
     let limits = limits.pad(padding);
+    let total_spacing = spacing * items.len().saturating_sub(1) as f32;
+    let max_cross = axis.cross(limits.max());
 
-    let mut total_non_fill = spacing * items.len().saturating_sub(1) as f32;
     let mut fill_sum = 0;
     let mut cross = axis.cross(limits.min());
+    let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
@@ -89,12 +91,15 @@ where
         .fill_factor();
 
         if fill_factor == 0 {
-            let child_limits = Limits::new(Size::ZERO, limits.max());
+            let (max_width, max_height) = axis.pack(available, max_cross);
+
+            let child_limits =
+                Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
             let layout = child.layout(renderer, &child_limits);
             let size = layout.size();
 
-            total_non_fill += axis.main(size);
+            available -= axis.main(size);
             cross = cross.max(axis.cross(size));
 
             nodes[i] = layout;
@@ -103,8 +108,7 @@ where
         }
     }
 
-    let available = axis.main(limits.max());
-    let remaining = (available - total_non_fill).max(0.0);
+    let remaining = available.max(0.0);
 
     for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
