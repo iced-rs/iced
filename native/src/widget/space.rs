@@ -68,6 +68,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
