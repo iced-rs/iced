@@ -1,5 +1,7 @@
 use crate::{button::StyleSheet, defaults, Defaults, Primitive, Renderer};
-use iced_native::{Background, Element, Layout, MouseCursor, Point, Rectangle};
+use iced_native::{
+    Background, Color, Element, Layout, MouseCursor, Point, Rectangle,
+};
 
 impl iced_native::button::Renderer for Renderer {
     type Style = Box<dyn StyleSheet>;
@@ -57,11 +59,15 @@ impl iced_native::button::Renderer for Renderer {
                                 [0.0, 0.0, 0.0, 0.5].into(),
                             ),
                             border_radius: styling.border_radius,
+                            border_width: 0,
+                            border_color: Color::TRANSPARENT,
                         },
                         Primitive::Quad {
                             bounds,
                             background,
                             border_radius: styling.border_radius,
+                            border_width: 0,
+                            border_color: Color::TRANSPARENT,
                         },
                         content,
                     ],

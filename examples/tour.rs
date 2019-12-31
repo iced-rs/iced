@@ -27,7 +27,7 @@ impl Sandbox for Tour {
             scroll: scrollable::State::new(),
             back_button: button::State::new(),
             next_button: button::State::new(),
-            debug: false,
+            debug: true,
         }
     }
 

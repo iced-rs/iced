@@ -64,28 +64,17 @@ impl text_input::Renderer for Renderer {
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
-        let border = Primitive::Quad {
-            bounds,
-            background: Background::Color(
-                if is_mouse_over || state.is_focused() {
-                    [0.5, 0.5, 0.5]
-                } else {
-                    [0.7, 0.7, 0.7]
-                }
-                .into(),
-            ),
-            border_radius: 5,
-        };
-
         let input = Primitive::Quad {
-            bounds: Rectangle {
-                x: bounds.x + 1.0,
-                y: bounds.y + 1.0,
-                width: bounds.width - 2.0,
-                height: bounds.height - 2.0,
-            },
+            bounds,
             background: Background::Color(Color::WHITE),
-            border_radius: 4,
+            border_radius: 5,
+            border_width: 1,
+            border_color: if is_mouse_over || state.is_focused() {
+                [0.5, 0.5, 0.5]
+            } else {
+                [0.7, 0.7, 0.7]
+            }
+            .into(),
         };
 
         let text = value.to_string();
@@ -130,6 +119,8 @@ impl text_input::Renderer for Renderer {
                 },
                 background: Background::Color(Color::BLACK),
                 border_radius: 0,
+                border_width: 0,
+                border_color: Color::TRANSPARENT,
             };
 
             (
@@ -150,7 +141,7 @@ impl text_input::Renderer for Renderer {
 
         (
             Primitive::Group {
-                primitives: vec![border, input, contents],
+                primitives: vec![input, contents],
             },
             if is_mouse_over {
                 MouseCursor::Text

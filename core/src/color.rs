@@ -25,6 +25,14 @@ impl Color {
         a: 1.0,
     };
 
+    /// A color with no opacity.
+    pub const TRANSPARENT: Color = Color {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.0,
+    };
+
     /// Creates a [`Color`] from its RGB8 components.
     ///
     /// [`Color`]: struct.Color.html

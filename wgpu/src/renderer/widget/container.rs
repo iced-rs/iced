@@ -1,5 +1,5 @@
 use crate::{container, defaults, Defaults, Primitive, Renderer};
-use iced_native::{Element, Layout, Point, Rectangle};
+use iced_native::{Color, Element, Layout, Point, Rectangle};
 
 impl iced_native::container::Renderer for Renderer {
     type Style = Box<dyn container::StyleSheet>;
@@ -31,6 +31,8 @@ impl iced_native::container::Renderer for Renderer {
                     bounds,
                     background,
                     border_radius: style.border_radius,
+                    border_width: 0,
+                    border_color: Color::TRANSPARENT,
                 };
 
                 (

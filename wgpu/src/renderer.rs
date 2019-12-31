@@ -223,6 +223,8 @@ impl Renderer {
                 bounds,
                 background,
                 border_radius,
+                border_width,
+                border_color,
             } => {
                 // TODO: Move some of this computations to the GPU (?)
                 layer.quads.push(Quad {
@@ -235,6 +237,8 @@ impl Renderer {
                         Background::Color(color) => color.into_linear(),
                     },
                     border_radius: *border_radius as f32,
+                    border_width: *border_width as f32,
+                    border_color: border_color.into_linear(),
                 });
             }
             Primitive::Image { handle, bounds } => {
@@ -470,11 +474,12 @@ fn explain_layout(
     color: Color,
     primitives: &mut Vec<Primitive>,
 ) {
-    // TODO: Draw borders instead
     primitives.push(Primitive::Quad {
         bounds: layout.bounds(),
-        background: Background::Color([0.0, 0.0, 0.0, 0.05].into()),
+        background: Background::Color(Color::TRANSPARENT),
         border_radius: 0,
+        border_width: 1,
+        border_color: [0.6, 0.6, 0.6, 0.5].into(),
     });
 
     for child in layout.children() {

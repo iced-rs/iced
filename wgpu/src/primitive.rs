@@ -38,6 +38,10 @@ pub enum Primitive {
         background: Background,
         /// The border radius of the quad
         border_radius: u16,
+        /// The border width of the quad
+        border_width: u16,
+        /// The border color of the quad
+        border_color: Color,
     },
     /// An image primitive
     Image {
