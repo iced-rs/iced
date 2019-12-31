@@ -1,5 +1,5 @@
 use crate::{
-    conversion,
+    container, conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
     subscription, Cache, Clipboard, Command, Container, Debug, Element, Event,
@@ -18,7 +18,7 @@ pub trait Application: Sized {
     /// The renderer to use to draw the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    type Renderer: Windowed;
+    type Renderer: Windowed + container::Renderer;
 
     /// The type of __messages__ your [`Application`] will produce.
     ///

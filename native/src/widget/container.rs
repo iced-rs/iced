@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use crate::{
     layout, Align, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Widget,
+    Rectangle, Widget,
 };
 
 use std::u32;
@@ -12,17 +12,21 @@ use std::u32;
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer> {
+pub struct Container<'a, Message, Renderer: self::Renderer> {
     width: Length,
     height: Length,
     max_width: u32,
     max_height: u32,
     horizontal_alignment: Align,
     vertical_alignment: Align,
+    style: Renderer::Style,
     content: Element<'a, Message, Renderer>,
 }
 
-impl<'a, Message, Renderer> Container<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Container<'a, Message, Renderer>
+where
+    Renderer: self::Renderer,
+{
     /// Creates an empty [`Container`].
     ///
     /// [`Container`]: struct.Container.html
@@ -37,6 +41,7 @@ impl<'a, Message, Renderer> Container<'a, Message, Renderer> {
             max_height: u32::MAX,
             horizontal_alignment: Align::Start,
             vertical_alignment: Align::Start,
+            style: Renderer::Style::default(),
             content: content.into(),
         }
     }
@@ -78,7 +83,6 @@ impl<'a, Message, Renderer> Container<'a, Message, Renderer> {
     /// [`Container`]: struct.Container.html
     pub fn center_x(mut self) -> Self {
         self.horizontal_alignment = Align::Center;
-
         self
     }
 
@@ -87,7 +91,14 @@ impl<'a, Message, Renderer> Container<'a, Message, Renderer> {
     /// [`Container`]: struct.Container.html
     pub fn center_y(mut self) -> Self {
         self.vertical_alignment = Align::Center;
+        self
+    }
 
+    /// Sets the style the [`Container`].
+    ///
+    /// [`Container`]: struct.Container.html
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -95,7 +106,7 @@ impl<'a, Message, Renderer> Container<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Container<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -151,11 +162,13 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        self.content.draw(
-            renderer,
+        renderer.draw(
             defaults,
-            layout.children().next().unwrap(),
+            layout.bounds(),
             cursor_position,
+            &self.style,
+            &self.content,
+            layout.children().next().unwrap(),
         )
     }
 
@@ -170,10 +183,27 @@ where
     }
 }
 
+pub trait Renderer: crate::Renderer {
+    type Style: Default;
+
+    /// Draws a [`Container`].
+    ///
+    /// [`Container`]: struct.Container.html
+    fn draw<Message>(
+        &mut self,
+        defaults: &Self::Defaults,
+        bounds: Rectangle,
+        cursor_position: Point,
+        style: &Self::Style,
+        content: &Element<'_, Message, Self>,
+        content_layout: Layout<'_>,
+    ) -> Self::Output;
+}
+
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
+    Renderer: 'a + self::Renderer,
     Message: 'static,
 {
     fn from(
