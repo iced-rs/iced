@@ -22,3 +22,9 @@ pub enum MouseCursor {
     /// The cursor is over a text widget.
     Text,
 }
+
+impl Default for MouseCursor {
+    fn default() -> MouseCursor {
+        MouseCursor::OutOfBounds
+    }
+}

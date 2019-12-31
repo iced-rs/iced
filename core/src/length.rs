@@ -4,6 +4,15 @@ pub enum Length {
     /// Fill all the remaining space
     Fill,
 
+    /// Fill a portion of the remaining space relative to other elements.
+    ///
+    /// Let's say we have two elements: one with `FillPortion(2)` and one with
+    /// `FillPortion(3)`. The first will get 2 portions of the available space,
+    /// while the second one would get 3.
+    ///
+    /// `Length::Fill` is equivalent to `Length::FillPortion(1)`.
+    FillPortion(u16),
+
     /// Fill the least amount of space
     Shrink,
 
@@ -22,6 +31,7 @@ impl Length {
     pub fn fill_factor(&self) -> u16 {
         match self {
             Length::Fill => 1,
+            Length::FillPortion(factor) => *factor,
             Length::Shrink => 0,
             Length::Units(_) => 0,
         }

@@ -67,7 +67,7 @@ impl<Message> Widget<Message> for Image {
 
         match self.width {
             Length::Shrink => {}
-            Length::Fill => {
+            Length::Fill | Length::FillPortion(_) => {
                 image = image.attr("width", "100%");
             }
             Length::Units(px) => {

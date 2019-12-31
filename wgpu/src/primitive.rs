@@ -64,3 +64,9 @@ pub enum Primitive {
         content: Box<Primitive>,
     },
 }
+
+impl Default for Primitive {
+    fn default() -> Primitive {
+        Primitive::None
+    }
+}
