@@ -139,7 +139,7 @@ pub fn length(length: Length) -> String {
     match length {
         Length::Shrink => String::from("auto"),
         Length::Units(px) => format!("{}px", px),
-        Length::Fill => String::from("100%"),
+        Length::Fill | Length::FillPortion(_) => String::from("100%"),
     }
 }
 
