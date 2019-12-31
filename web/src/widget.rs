@@ -28,6 +28,7 @@ mod container;
 mod image;
 mod radio;
 mod row;
+mod space;
 mod text;
 
 #[doc(no_inline)]
@@ -47,6 +48,7 @@ pub use container::Container;
 pub use image::Image;
 pub use radio::Radio;
 pub use row::Row;
+pub use space::Space;
 
 /// A component that displays information and allows interaction.
 ///
