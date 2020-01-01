@@ -23,6 +23,7 @@ mod length;
 mod point;
 mod rectangle;
 mod vector;
+mod geometry;
 
 pub use align::{Align, HorizontalAlignment, VerticalAlignment};
 pub use background::Background;
@@ -32,6 +33,7 @@ pub use length::Length;
 pub use point::Point;
 pub use rectangle::Rectangle;
 pub use vector::Vector;
+pub use geometry::{Vertex2D, Geometry2D};
 
 #[cfg(feature = "command")]
 mod command;

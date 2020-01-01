@@ -30,6 +30,7 @@ mod quad;
 mod renderer;
 mod text;
 mod transformation;
+mod geometry;
 
 pub(crate) use crate::image::Image;
 pub(crate) use quad::Quad;

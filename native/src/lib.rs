@@ -55,7 +55,7 @@ mod user_interface;
 
 pub use iced_core::{
     Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    Point, Rectangle, Vector, VerticalAlignment,
+    Point, Rectangle, Vector, VerticalAlignment, Geometry2D, Vertex2D,
 };
 
 pub use clipboard::Clipboard;

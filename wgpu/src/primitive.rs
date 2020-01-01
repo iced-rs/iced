@@ -1,6 +1,6 @@
 use iced_native::{
     image, svg, Background, Color, Font, HorizontalAlignment, Rectangle,
-    Vector, VerticalAlignment,
+    Vector, VerticalAlignment, Geometry2D,
 };
 
 /// A rendering primitive.
@@ -62,6 +62,11 @@ pub enum Primitive {
         offset: Vector<u32>,
         /// The content of the clip
         content: Box<Primitive>,
+    },
+    /// A low-level geometry primitive
+    Geometry2D {
+        /// The vertices and indices of the geometry
+        geometry: Geometry2D,
     },
 }
 

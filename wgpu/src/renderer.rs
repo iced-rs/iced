@@ -1,7 +1,10 @@
-use crate::{image, quad, text, Image, Primitive, Quad, Transformation};
+use crate::{
+    geometry, image, quad, text, Image, Primitive, Quad, Transformation,
+};
 use iced_native::{
     renderer::{Debugger, Windowed},
-    Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
+    Background, Color, Geometry2D, Layout, MouseCursor, Point, Rectangle,
+    Vector, Widget,
 };
 
 use wgpu::{
@@ -24,6 +27,7 @@ pub struct Renderer {
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
     text_pipeline: text::Pipeline,
+    geometry_pipeline: crate::geometry::Pipeline,
 }
 
 struct Layer<'a> {
@@ -31,6 +35,7 @@ struct Layer<'a> {
     offset: Vector<u32>,
     quads: Vec<Quad>,
     images: Vec<Image>,
+    geometries: Vec<Geometry2D>,
     text: Vec<wgpu_glyph::Section<'a>>,
 }
 
@@ -42,6 +47,7 @@ impl<'a> Layer<'a> {
             quads: Vec::new(),
             images: Vec::new(),
             text: Vec::new(),
+            geometries: Vec::new(),
         }
     }
 }
@@ -64,6 +70,7 @@ impl Renderer {
         let text_pipeline = text::Pipeline::new(&mut device);
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
+        let geometry_pipeline = geometry::Pipeline::new(&mut device);
 
         Self {
             device,
@@ -71,6 +78,7 @@ impl Renderer {
             quad_pipeline,
             image_pipeline,
             text_pipeline,
+            geometry_pipeline,
         }
     }
 
@@ -244,6 +252,9 @@ impl Renderer {
                     scale: [bounds.width, bounds.height],
                 });
             }
+            Primitive::Geometry2D { geometry } => {
+                layer.geometries.push(geometry.clone());
+            }
             Primitive::Clip {
                 bounds,
                 offset,
@@ -399,6 +410,24 @@ impl Renderer {
                     width: bounds.width,
                     height: bounds.height,
                 },
+            );
+        }
+
+        if layer.geometries.len() > 0 {
+            let translated = transformation
+                * Transformation::translate(
+                    -(layer.offset.x as f32) * dpi,
+                    -(layer.offset.y as f32) * dpi,
+                );
+
+            self.geometry_pipeline.draw(
+                &mut self.device,
+                encoder,
+                target,
+                translated,
+                dpi,
+                &layer.geometries,
+                bounds,
             );
         }
     }
