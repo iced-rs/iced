@@ -15,6 +15,9 @@ pub struct Settings {
     ///
     /// [`Color`]: ../struct.Color.html
     pub background: Color,
+
+    // TODO: Add `name` for web compatibility
+    pub default_font: Option<&'static [u8]>,
 }
 
 impl Default for Settings {
@@ -22,6 +25,7 @@ impl Default for Settings {
         Settings {
             window: Window::default(),
             background: Color::WHITE,
+            default_font: None,
         }
     }
 }

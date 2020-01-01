@@ -1,5 +1,6 @@
 use crate::{
-    image, quad, text, Defaults, Image, Primitive, Quad, Transformation,
+    image, quad, text, Defaults, Image, Primitive, Quad, Settings,
+    Transformation,
 };
 use iced_native::{
     renderer::{Debugger, Windowed},
@@ -49,7 +50,7 @@ impl<'a> Layer<'a> {
 }
 
 impl Renderer {
-    fn new() -> Self {
+    fn new(settings: Settings) -> Self {
         let adapter = Adapter::request(&RequestAdapterOptions {
             power_preference: PowerPreference::Default,
             backends: BackendBit::all(),
@@ -63,7 +64,8 @@ impl Renderer {
             limits: Limits { max_bind_groups: 2 },
         });
 
-        let text_pipeline = text::Pipeline::new(&mut device);
+        let text_pipeline =
+            text::Pipeline::new(&mut device, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = image::Pipeline::new(&mut device);
 
@@ -432,10 +434,11 @@ impl iced_native::Renderer for Renderer {
 }
 
 impl Windowed for Renderer {
+    type Settings = Settings;
     type Target = Target;
 
-    fn new() -> Self {
-        Self::new()
+    fn new(settings: Settings) -> Self {
+        Self::new(settings)
     }
 
     fn draw<T: AsRef<str>>(

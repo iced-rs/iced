@@ -4,13 +4,15 @@ use raw_window_handle::HasRawWindowHandle;
 
 /// A renderer that can target windows.
 pub trait Windowed: super::Renderer + Sized {
+    type Settings: Default;
+
     /// The type of target.
     type Target: Target<Renderer = Self>;
 
     /// Creates a new [`Windowed`] renderer.
     ///
     /// [`Windowed`]: trait.Windowed.html
-    fn new() -> Self;
+    fn new(settings: Self::Settings) -> Self;
 
     /// Performs the drawing operations described in the output on the given
     /// target.

@@ -31,12 +31,14 @@ mod image;
 mod primitive;
 mod quad;
 mod renderer;
+mod settings;
 mod text;
 mod transformation;
 
 pub use defaults::Defaults;
 pub use primitive::Primitive;
 pub use renderer::{Renderer, Target};
+pub use settings::Settings;
 #[doc(no_inline)]
 pub use widget::*;
 
