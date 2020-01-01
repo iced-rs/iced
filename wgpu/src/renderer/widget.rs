@@ -2,6 +2,7 @@ mod button;
 mod checkbox;
 mod column;
 mod image;
+mod progressbar;
 mod radio;
 mod row;
 mod scrollable;

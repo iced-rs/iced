@@ -633,7 +633,8 @@ impl Value {
             .unwrap_or(self.len())
     }
 
-    /// Returns a new [`Value`] containing the graphemes until the given `index`.
+    /// Returns a new [`Value`] containing the graphemes until the given
+    /// `index`.
     ///
     /// [`Value`]: struct.Value.html
     pub fn until(&self, index: usize) -> Self {
