@@ -6,6 +6,9 @@ edition = "2018"
 description = "A winit runtime for Iced"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced_winit"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
 
 [features]
 debug = []

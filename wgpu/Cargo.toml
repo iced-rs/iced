@@ -12,6 +12,7 @@ svg = ["resvg"]
 
 [dependencies]
 iced_native = { version = "0.1.0", path = "../native" }
+iced_style = { version = "0.1.0-alpha", path = "../style" }
 wgpu = "0.4"
 glyph_brush = "0.6"
 wgpu_glyph = { version = "0.7", git = "https://github.com/hecrj/wgpu_glyph", branch = "fix/font-load-panic" }

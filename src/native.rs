@@ -22,7 +22,7 @@ pub mod widget {
     //!
     //! [`TextInput`]: text_input/struct.TextInput.html
     //! [`text_input::State`]: text_input/struct.State.html
-    pub use iced_wgpu::button;
+    pub use iced_wgpu::widget::*;
 
     pub mod scrollable {
         //! Navigate an endless amount of content with a scrollbar.
@@ -73,8 +73,9 @@ pub mod widget {
 
     #[doc(no_inline)]
     pub use {
-        button::Button, image::Image, scrollable::Scrollable, slider::Slider,
-        svg::Svg, text_input::TextInput,
+        button::Button, container::Container, image::Image,
+        scrollable::Scrollable, slider::Slider, svg::Svg,
+        text_input::TextInput,
     };
 
     /// A container that distributes its contents vertically.
@@ -88,13 +89,6 @@ pub mod widget {
     /// This is an alias of an `iced_native` row with a default `Renderer`.
     pub type Row<'a, Message> =
         iced_winit::Row<'a, Message, iced_wgpu::Renderer>;
-
-    /// An element decorating some content.
-    ///
-    /// This is an alias of an `iced_native` container with a default
-    /// `Renderer`.
-    pub type Container<'a, Message> =
-        iced_winit::Container<'a, Message, iced_wgpu::Renderer>;
 }
 
 #[doc(no_inline)]
