@@ -97,6 +97,8 @@ impl scrollable::Renderer for Null {
 }
 
 impl text_input::Renderer for Null {
+    type Style = ();
+
     fn default_size(&self) -> u16 {
         20
     }
@@ -124,6 +126,7 @@ impl text_input::Renderer for Null {
         _placeholder: &str,
         _value: &text_input::Value,
         _state: &text_input::State,
+        _style: &Self::Style,
     ) -> Self::Output {
     }
 }

@@ -15,8 +15,9 @@ use unicode_segmentation::UnicodeSegmentation;
 ///
 /// # Example
 /// ```
-/// # use iced_native::{text_input, TextInput};
+/// # use iced_native::{text_input, renderer::Null};
 /// #
+/// # pub type TextInput<'a, Message> = iced_native::TextInput<'a, Message, Null>;
 /// #[derive(Debug, Clone)]
 /// enum Message {
 ///     TextInputChanged(String),
@@ -35,7 +36,7 @@ use unicode_segmentation::UnicodeSegmentation;
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message> {
+pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     placeholder: String,
     value: Value,
@@ -46,9 +47,10 @@ pub struct TextInput<'a, Message> {
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
+    style: Renderer::Style,
 }
 
-impl<'a, Message> TextInput<'a, Message> {
+impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
     /// Creates a new [`TextInput`].
     ///
     /// It expects:
@@ -79,6 +81,7 @@ impl<'a, Message> TextInput<'a, Message> {
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
+            style: Renderer::Style::default(),
         }
     }
 
@@ -130,11 +133,20 @@ impl<'a, Message> TextInput<'a, Message> {
         self.on_submit = Some(message);
         self
     }
+
+    /// Sets the style of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
+        self
+    }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for TextInput<'a, Message>
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for TextInput<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
     Message: Clone + std::fmt::Debug,
 {
     fn width(&self) -> Length {
@@ -359,6 +371,7 @@ where
                 &self.placeholder,
                 &self.value.secure(),
                 &self.state,
+                &self.style,
             )
         } else {
             renderer.draw(
@@ -369,6 +382,7 @@ where
                 &self.placeholder,
                 &self.value,
                 &self.state,
+                &self.style,
             )
         }
     }
@@ -376,7 +390,7 @@ where
     fn hash_layout(&self, state: &mut Hasher) {
         use std::{any::TypeId, hash::Hash};
 
-        TypeId::of::<TextInput<'static, ()>>().hash(state);
+        TypeId::of::<TextInput<'static, (), Renderer>>().hash(state);
 
         self.width.hash(state);
         self.max_width.hash(state);
@@ -393,6 +407,8 @@ where
 /// [`TextInput`]: struct.TextInput.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    type Style: Default;
+
     /// Returns the default size of the text of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
@@ -441,17 +457,18 @@ pub trait Renderer: crate::Renderer + Sized {
         placeholder: &str,
         value: &Value,
         state: &State,
+        style: &Self::Style,
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<TextInput<'a, Message>>
+impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer,
     Message: 'static + Clone + std::fmt::Debug,
 {
     fn from(
-        text_input: TextInput<'a, Message>,
+        text_input: TextInput<'a, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(text_input)
     }

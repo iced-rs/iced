@@ -12,6 +12,12 @@ pub struct Style {
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
     /// Produces the style of a container.
+    fn style(&self) -> Style;
+}
+
+struct Default;
+
+impl StyleSheet for Default {
     fn style(&self) -> Style {
         Style {
             text_color: None,
@@ -20,10 +26,6 @@ pub trait StyleSheet {
         }
     }
 }
-
-struct Default;
-
-impl StyleSheet for Default {}
 
 impl std::default::Default for Box<dyn StyleSheet> {
     fn default() -> Self {

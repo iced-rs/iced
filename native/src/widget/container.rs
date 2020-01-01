@@ -94,7 +94,7 @@ where
         self
     }
 
-    /// Sets the style the [`Container`].
+    /// Sets the style of the [`Container`].
     ///
     /// [`Container`]: struct.Container.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {

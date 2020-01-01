@@ -1,0 +1,72 @@
+//! Display fields that can be filled with text.
+use iced_core::{Background, Color};
+
+/// The appearance of a text input.
+#[derive(Debug, Clone, Copy)]
+pub struct Style {
+    pub background: Background,
+    pub border_radius: u16,
+    pub border_width: u16,
+    pub border_color: Color,
+}
+
+/// A set of rules that dictate the style of a text input.
+pub trait StyleSheet {
+    /// Produces the style of an active text input.
+    fn active(&self) -> Style;
+
+    /// Produces the style of a focused text input.
+    fn focused(&self) -> Style;
+
+    /// Produces the style of an hovered text input.
+    fn hovered(&self) -> Style {
+        self.focused()
+    }
+
+    fn placeholder_color(&self) -> Color;
+
+    fn value_color(&self) -> Color;
+}
+
+struct Default;
+
+impl StyleSheet for Default {
+    fn active(&self) -> Style {
+        Style {
+            background: Background::Color(Color::WHITE),
+            border_radius: 5,
+            border_width: 1,
+            border_color: Color::from_rgb(0.7, 0.7, 0.7),
+        }
+    }
+
+    fn focused(&self) -> Style {
+        Style {
+            border_color: Color::from_rgb(0.5, 0.5, 0.5),
+            ..self.active()
+        }
+    }
+
+    fn placeholder_color(&self) -> Color {
+        Color::from_rgb(0.7, 0.7, 0.7)
+    }
+
+    fn value_color(&self) -> Color {
+        Color::from_rgb(0.3, 0.3, 0.3)
+    }
+}
+
+impl std::default::Default for Box<dyn StyleSheet> {
+    fn default() -> Self {
+        Box::new(Default)
+    }
+}
+
+impl<T> From<T> for Box<dyn StyleSheet>
+where
+    T: 'static + StyleSheet,
+{
+    fn from(style: T) -> Self {
+        Box::new(style)
+    }
+}

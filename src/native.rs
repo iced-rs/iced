@@ -38,16 +38,6 @@ pub mod widget {
         pub use iced_winit::scrollable::State;
     }
 
-    pub mod text_input {
-        //! Ask for information using text fields.
-        //!
-        //! A [`TextInput`] has some local [`State`].
-        //!
-        //! [`TextInput`]: struct.TextInput.html
-        //! [`State`]: struct.State.html
-        pub use iced_winit::text_input::{State, TextInput};
-    }
-
     pub mod slider {
         //! Display an interactive selector of a single value from a range of
         //! values.
