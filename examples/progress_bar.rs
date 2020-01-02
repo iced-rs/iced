@@ -1,8 +1,8 @@
 use iced::{
-    settings::Window, slider, Background, Color, Column, Element, Sandbox,
-    Settings, Slider,
+    settings::Window, slider, Background, Color, Column, Element, Length,
+    Sandbox, Settings, Slider,
 };
-use iced_winit::Progressbar;
+use iced_winit::ProgressBar;
 
 pub fn main() {
     Progress::run(Settings {
@@ -17,7 +17,7 @@ pub fn main() {
 #[derive(Default)]
 struct Progress {
     value: f32,
-    progressbar_slider: slider::State,
+    progress_bar_slider: slider::State,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -46,14 +46,15 @@ impl Sandbox for Progress {
         Column::new()
             .padding(20)
             .push(
-                Progressbar::new(0.0..=100.0, self.value)
+                ProgressBar::new(0.0..=100.0, self.value)
                     .background(Background::Color(Color::from_rgb(
                         0.6, 0.6, 0.6,
                     )))
-                    .active_color(Color::from_rgb(0.0, 0.95, 0.0)),
+                    .active_color(Color::from_rgb(0.0, 0.95, 0.0))
+                    .height(Length::Units(30)),
             )
             .push(Slider::new(
-                &mut self.progressbar_slider,
+                &mut self.progress_bar_slider,
                 0.0..=100.0,
                 self.value,
                 Message::SliderChanged,
