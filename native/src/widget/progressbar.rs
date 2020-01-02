@@ -3,7 +3,8 @@
 //!
 //! [`Progressbar`]: struct.Progressbar.html
 use crate::{
-    layout, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    layout, Background, Color, Element, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 
 use std::{hash::Hash, ops::RangeInclusive};
@@ -14,17 +15,19 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// ```
 /// # use iced_native::Progressbar;
-///
+/// 
+/// let value = 50.0;
 /// Progressbar::new(0.0..=100.0, value);
 /// ```
 ///
-/// TODO: Get a progressbar render
-/// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
+/// ![Default Progressbar](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
 pub struct Progressbar {
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
+    background: Option<Background>,
+    active_color: Option<Color>,
 }
 
 impl Progressbar {
@@ -40,6 +43,8 @@ impl Progressbar {
             value: value.max(*range.start()).min(*range.end()),
             range,
             width: Length::Fill,
+            background: None,
+            active_color: None,
         }
     }
 
@@ -48,6 +53,22 @@ impl Progressbar {
     /// [`Progressbar`]: struct.Progressbar.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the background of the [`Progressbar`].
+    ///
+    /// [`Progressbar`]: struct.Progressbar.html
+    pub fn background(mut self, background: Background) -> Self {
+        self.background = Some(background);
+        self
+    }
+
+    /// Sets the active color of the [`Progressbar`].
+    ///
+    /// [`Progressbar`]: struct.Progressbar.html
+    pub fn active_color(mut self, active_color: Color) -> Self {
+        self.active_color = Some(active_color);
         self
     }
 }
@@ -84,7 +105,13 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(layout.bounds(), self.range.clone(), self.value)
+        renderer.draw(
+            layout.bounds(),
+            self.range.clone(),
+            self.value,
+            self.background,
+            self.active_color,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -112,6 +139,8 @@ pub trait Renderer: crate::Renderer {
     ///   * the bounds of the [`Progressbar`]
     ///   * the range of values of the [`Progressbar`]
     ///   * the current value of the [`Progressbar`]
+    ///   * maybe a specific background of the [`Progressbar`]
+    ///   * maybe a specific active color of the [`Progressbar`]
     ///
     /// [`Progressbar`]: struct.Progressbar.html
     /// [`State`]: struct.State.html
@@ -121,6 +150,8 @@ pub trait Renderer: crate::Renderer {
         bounds: Rectangle,
         range: RangeInclusive<f32>,
         value: f32,
+        background: Option<Background>,
+        active_color: Option<Color>,
     ) -> Self::Output;
 }
 

@@ -11,6 +11,8 @@ impl progressbar::Renderer for Renderer {
         bounds: Rectangle,
         range: std::ops::RangeInclusive<f32>,
         value: f32,
+        background: Option<Background>,
+        active_color: Option<Color>,
     ) -> Self::Output {
         let (range_start, range_end) = range.into_inner();
         let active_progress_width = bounds.width
@@ -19,7 +21,9 @@ impl progressbar::Renderer for Renderer {
         let background = Primitive::Group {
             primitives: vec![Primitive::Quad {
                 bounds: Rectangle { ..bounds },
-                background: Color::from_rgb(0.6, 0.6, 0.6).into(),
+                background: background
+                    .unwrap_or(Background::Color([0.6, 0.6, 0.6].into()))
+                    .into(),
                 border_radius: 5,
             }],
         };
@@ -29,8 +33,10 @@ impl progressbar::Renderer for Renderer {
                 width: active_progress_width,
                 ..bounds
             },
-            background: Background::Color([0.0, 0.95, 0.0].into()),
-            border_radius: 4,
+            background: Background::Color(
+                active_color.unwrap_or([0.0, 0.95, 0.0].into()),
+            ),
+            border_radius: 5,
         };
 
         (
