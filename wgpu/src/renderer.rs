@@ -1,12 +1,11 @@
 use crate::{
-    geometry, image, quad, text, Image, Primitive, Quad, Transformation,
+    image, quad, text, triangle, Image, Primitive, Quad, Transformation,
 };
 use iced_native::{
     renderer::{Debugger, Windowed},
-    Background, Color, Geometry2D, Layout, MouseCursor, Point, Rectangle,
-    Vector, Widget,
+    Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
 };
-
+use std::sync::Arc;
 use wgpu::{
     Adapter, BackendBit, CommandEncoderDescriptor, Device, DeviceDescriptor,
     Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions,
@@ -27,7 +26,7 @@ pub struct Renderer {
     quad_pipeline: quad::Pipeline,
     image_pipeline: crate::image::Pipeline,
     text_pipeline: text::Pipeline,
-    geometry_pipeline: crate::geometry::Pipeline,
+    triangle_pipeline: crate::triangle::Pipeline,
 }
 
 struct Layer<'a> {
@@ -35,7 +34,7 @@ struct Layer<'a> {
     offset: Vector<u32>,
     quads: Vec<Quad>,
     images: Vec<Image>,
-    geometries: Vec<Geometry2D>,
+    meshes: Vec<Arc<triangle::Mesh2D>>,
     text: Vec<wgpu_glyph::Section<'a>>,
 }
 
@@ -47,7 +46,7 @@ impl<'a> Layer<'a> {
             quads: Vec::new(),
             images: Vec::new(),
             text: Vec::new(),
-            geometries: Vec::new(),
+            meshes: Vec::new(),
         }
     }
 }
@@ -70,7 +69,7 @@ impl Renderer {
         let text_pipeline = text::Pipeline::new(&mut device);
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
-        let geometry_pipeline = geometry::Pipeline::new(&mut device);
+        let triangle_pipeline = triangle::Pipeline::new(&mut device);
 
         Self {
             device,
@@ -78,7 +77,7 @@ impl Renderer {
             quad_pipeline,
             image_pipeline,
             text_pipeline,
-            geometry_pipeline,
+            triangle_pipeline,
         }
     }
 
@@ -252,8 +251,8 @@ impl Renderer {
                     scale: [bounds.width, bounds.height],
                 });
             }
-            Primitive::Geometry2D { geometry } => {
-                layer.geometries.push(geometry.clone());
+            Primitive::Mesh2D(mesh) => {
+                layer.meshes.push(mesh.clone());
             }
             Primitive::Clip {
                 bounds,
@@ -333,6 +332,24 @@ impl Renderer {
     ) {
         let bounds = layer.bounds * dpi;
 
+        if layer.meshes.len() > 0 {
+            let translated = transformation
+                * Transformation::translate(
+                    -(layer.offset.x as f32) * dpi,
+                    -(layer.offset.y as f32) * dpi,
+                );
+
+            self.triangle_pipeline.draw(
+                &mut self.device,
+                encoder,
+                target,
+                translated,
+                dpi,
+                &layer.meshes,
+                bounds,
+            );
+        }
+
         if layer.quads.len() > 0 {
             self.quad_pipeline.draw(
                 &mut self.device,
@@ -410,24 +427,6 @@ impl Renderer {
                     width: bounds.width,
                     height: bounds.height,
                 },
-            );
-        }
-
-        if layer.geometries.len() > 0 {
-            let translated = transformation
-                * Transformation::translate(
-                    -(layer.offset.x as f32) * dpi,
-                    -(layer.offset.y as f32) * dpi,
-                );
-
-            self.geometry_pipeline.draw(
-                &mut self.device,
-                encoder,
-                target,
-                translated,
-                dpi,
-                &layer.geometries,
-                bounds,
             );
         }
     }

@@ -1,9 +1,10 @@
+//! Draw meshes of triangles.
 use crate::Transformation;
-use iced_native::{Geometry2D, Rectangle, Vertex2D};
-use std::mem;
+use iced_native::Rectangle;
+use std::{mem, sync::Arc};
 
 #[derive(Debug)]
-pub struct Pipeline {
+pub(crate) struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     constants: wgpu::BindGroup,
     constants_buffer: wgpu::Buffer,
@@ -44,16 +45,16 @@ impl Pipeline {
                 bind_group_layouts: &[&constant_layout],
             });
 
-        let vs = include_bytes!("shader/geom2d.vert.spv");
+        let vs = include_bytes!("shader/triangle.vert.spv");
         let vs_module = device.create_shader_module(
             &wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
-                .expect("Read quad vertex shader as SPIR-V"),
+                .expect("Read triangle vertex shader as SPIR-V"),
         );
 
-        let fs = include_bytes!("shader/geom2d.frag.spv");
+        let fs = include_bytes!("shader/triangle.frag.spv");
         let fs_module = device.create_shader_module(
             &wgpu::read_spirv(std::io::Cursor::new(&fs[..]))
-                .expect("Read quad fragment shader as SPIR-V"),
+                .expect("Read triangle fragment shader as SPIR-V"),
         );
 
         let pipeline =
@@ -128,7 +129,7 @@ impl Pipeline {
         target: &wgpu::TextureView,
         transformation: Transformation,
         scale: f32,
-        geometries: &Vec<Geometry2D>,
+        meshes: &Vec<Arc<Mesh2D>>,
         bounds: Rectangle<u32>,
     ) {
         let uniforms = Uniforms {
@@ -148,39 +149,39 @@ impl Pipeline {
             std::mem::size_of::<Uniforms>() as u64,
         );
 
-        for geom in geometries {
+        let mut render_pass =
+            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[
+                    wgpu::RenderPassColorAttachmentDescriptor {
+                        attachment: target,
+                        resolve_target: None,
+                        load_op: wgpu::LoadOp::Load,
+                        store_op: wgpu::StoreOp::Store,
+                        clear_color: wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 0.0,
+                        },
+                    },
+                ],
+                depth_stencil_attachment: None,
+            });
+
+        for mesh in meshes {
             let vertices_buffer = device
                 .create_buffer_mapped(
-                    geom.vertices.len(),
+                    mesh.vertices.len(),
                     wgpu::BufferUsage::VERTEX,
                 )
-                .fill_from_slice(&geom.vertices);
+                .fill_from_slice(&mesh.vertices);
 
             let indices_buffer = device
                 .create_buffer_mapped(
-                    geom.indices.len(),
+                    mesh.indices.len(),
                     wgpu::BufferUsage::INDEX,
                 )
-                .fill_from_slice(&geom.indices);
-
-            let mut render_pass =
-                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    color_attachments: &[
-                        wgpu::RenderPassColorAttachmentDescriptor {
-                            attachment: target,
-                            resolve_target: None,
-                            load_op: wgpu::LoadOp::Load,
-                            store_op: wgpu::StoreOp::Store,
-                            clear_color: wgpu::Color {
-                                r: 0.0,
-                                g: 0.0,
-                                b: 0.0,
-                                a: 0.0,
-                            },
-                        },
-                    ],
-                    depth_stencil_attachment: None,
-                });
+                .fill_from_slice(&mesh.indices);
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, &self.constants, &[]);
@@ -193,7 +194,7 @@ impl Pipeline {
                 bounds.height,
             );
 
-            render_pass.draw_indexed(0..geom.indices.len() as u32, 0, 0..1);
+            render_pass.draw_indexed(0..mesh.indices.len() as u32, 0, 0..1);
         }
     }
 }
@@ -212,4 +213,27 @@ impl Default for Uniforms {
             scale: 1.0,
         }
     }
+}
+
+/// A two-dimensional vertex with some color in __linear__ RGBA.
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct Vertex2D {
+    /// The vertex position
+    pub position: [f32; 2],
+    /// The vertex color in __linear__ RGBA.
+    pub color: [f32; 4],
+}
+
+/// A set of [`Vertex2D`] and indices representing a list of triangles.
+///
+/// [`Vertex2D`]: struct.Vertex2D.html
+#[derive(Clone, Debug)]
+pub struct Mesh2D {
+    /// The vertices of the mesh
+    pub vertices: Vec<Vertex2D>,
+    /// The list of vertex indices that defines the triangles of the mesh.
+    ///
+    /// Therefore, this list should always have a length that is a multiple of 3.
+    pub indices: Vec<u16>,
 }

@@ -24,13 +24,14 @@
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
+pub mod triangle;
+
 mod image;
 mod primitive;
 mod quad;
 mod renderer;
 mod text;
 mod transformation;
-mod geometry;
 
 pub(crate) use crate::image::Image;
 pub(crate) use quad::Quad;

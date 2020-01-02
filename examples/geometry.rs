@@ -11,24 +11,25 @@ mod rainbow {
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
     use iced_native::{
-        layout,  Element, Geometry2D, Hasher, Layout, Length,
-        MouseCursor, Point, Size, Vertex2D, Widget,
+        layout, Element, Hasher, Layout, Length, MouseCursor, Point, Size,
+        Widget,
     };
-    use iced_wgpu::{Primitive, Renderer};
+    use iced_wgpu::{
+        triangle::{Mesh2D, Vertex2D},
+        Primitive, Renderer,
+    };
 
-    pub struct Rainbow {
-        dimen: u16,
-    }
+    pub struct Rainbow;
 
     impl Rainbow {
-        pub fn new(dimen: u16) -> Self {
-            Self { dimen }
+        pub fn new() -> Self {
+            Self
         }
     }
 
     impl<Message> Widget<Message, Renderer> for Rainbow {
         fn width(&self) -> Length {
-            Length::Shrink
+            Length::Fill
         }
 
         fn height(&self) -> Length {
@@ -38,19 +39,14 @@ mod rainbow {
         fn layout(
             &self,
             _renderer: &Renderer,
-            _limits: &layout::Limits,
+            limits: &layout::Limits,
         ) -> layout::Node {
-            layout::Node::new(Size::new(
-                f32::from(self.dimen),
-                f32::from(self.dimen),
-            ))
+            let size = limits.width(Length::Fill).resolve(Size::ZERO);
+
+            layout::Node::new(Size::new(size.width, size.width))
         }
 
-        fn hash_layout(&self, state: &mut Hasher) {
-            use std::hash::Hash;
-
-            self.dimen.hash(state);
-        }
+        fn hash_layout(&self, _state: &mut Hasher) {}
 
         fn draw(
             &self,
@@ -88,58 +84,56 @@ mod rainbow {
             let posn_l = [b.x, b.y + (b.height / 2.0)];
 
             (
-                Primitive::Geometry2D {
-                    geometry: Geometry2D {
-                        vertices: vec![
-                            Vertex2D {
-                                position: posn_center,
-                                color: [1.0, 1.0, 1.0, 1.0],
-                            },
-                            Vertex2D {
-                                position: posn_tl,
-                                color: color_r,
-                            },
-                            Vertex2D {
-                                position: posn_t,
-                                color: color_o,
-                            },
-                            Vertex2D {
-                                position: posn_tr,
-                                color: color_y,
-                            },
-                            Vertex2D {
-                                position: posn_r,
-                                color: color_g,
-                            },
-                            Vertex2D {
-                                position: posn_br,
-                                color: color_gb,
-                            },
-                            Vertex2D {
-                                position: posn_b,
-                                color: color_b,
-                            },
-                            Vertex2D {
-                                position: posn_bl,
-                                color: color_i,
-                            },
-                            Vertex2D {
-                                position: posn_l,
-                                color: color_v,
-                            },
-                        ],
-                        indices: vec![
-                            0, 1, 2, // TL
-                            0, 2, 3, // T
-                            0, 3, 4, // TR
-                            0, 4, 5, // R
-                            0, 5, 6, // BR
-                            0, 6, 7, // B
-                            0, 7, 8, // BL
-                            0, 8, 1, // L
-                        ],
-                    },
-                },
+                Primitive::Mesh2D(std::sync::Arc::new(Mesh2D {
+                    vertices: vec![
+                        Vertex2D {
+                            position: posn_center,
+                            color: [1.0, 1.0, 1.0, 1.0],
+                        },
+                        Vertex2D {
+                            position: posn_tl,
+                            color: color_r,
+                        },
+                        Vertex2D {
+                            position: posn_t,
+                            color: color_o,
+                        },
+                        Vertex2D {
+                            position: posn_tr,
+                            color: color_y,
+                        },
+                        Vertex2D {
+                            position: posn_r,
+                            color: color_g,
+                        },
+                        Vertex2D {
+                            position: posn_br,
+                            color: color_gb,
+                        },
+                        Vertex2D {
+                            position: posn_b,
+                            color: color_b,
+                        },
+                        Vertex2D {
+                            position: posn_bl,
+                            color: color_i,
+                        },
+                        Vertex2D {
+                            position: posn_l,
+                            color: color_v,
+                        },
+                    ],
+                    indices: vec![
+                        0, 1, 2, // TL
+                        0, 2, 3, // T
+                        0, 3, 4, // TR
+                        0, 4, 5, // R
+                        0, 5, 6, // BR
+                        0, 6, 7, // B
+                        0, 7, 8, // BL
+                        0, 8, 1, // L
+                    ],
+                })),
                 MouseCursor::OutOfBounds,
             )
         }
@@ -153,35 +147,24 @@ mod rainbow {
 }
 
 use iced::{
-    scrollable, settings::Window,  Align, Column, Container, Element,
-    Length, Sandbox, Scrollable, Settings,  Text,
+    scrollable, Align, Column, Container, Element, Length, Sandbox, Scrollable,
+    Settings, Text,
 };
 use rainbow::Rainbow;
 
 pub fn main() {
-    Example::run(Settings {
-        window: Window {
-            size: (660, 660),
-            resizable: true,
-            decorations: true,
-        },
-    })
+    Example::run(Settings::default())
 }
 
 struct Example {
-    dimen: u16,
     scroll: scrollable::State,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum Message {}
-
 impl Sandbox for Example {
-    type Message = Message;
+    type Message = ();
 
     fn new() -> Self {
         Example {
-            dimen: 500,
             scroll: scrollable::State::new(),
         }
     }
@@ -190,37 +173,36 @@ impl Sandbox for Example {
         String::from("Custom 2D geometry - Iced")
     }
 
-    fn update(&mut self, _: Message) {}
+    fn update(&mut self, _: ()) {}
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<()> {
         let content = Column::new()
             .padding(20)
             .spacing(20)
             .max_width(500)
             .align_items(Align::Start)
-            .push(Rainbow::new(self.dimen))
-            .push(
-                Text::new(String::from("In this example we draw a custom widget Rainbow, using the \
-                Geometry2D primitive. This primitive supplies a list of triangles, expressed as vertices and indices."))
-                    .width(Length::Shrink),
-            )
-            .push(
-                Text::new(String::from("Move your cursor over it, and see the center vertex follow you!"))
-                    .width(Length::Shrink),
-            )
-            .push(
-                Text::new(String::from("Every Vertex2D defines its own color. You could use the \
-                Geometry2D primitive to render virtually any two-dimensional geometry for your widget."))
-                    .width(Length::Shrink),
-            );
+            .push(Rainbow::new())
+            .push(Text::new(
+                "In this example we draw a custom widget Rainbow, using \
+                 the Mesh2D primitive. This primitive supplies a list of \
+                 triangles, expressed as vertices and indices.",
+            ))
+            .push(Text::new(
+                "Move your cursor over it, and see the center vertex \
+                 follow you!",
+            ))
+            .push(Text::new(
+                "Every Vertex2D defines its own color. You could use the \
+                 Mesh2D primitive to render virtually any two-dimensional \
+                 geometry for your widget.",
+            ));
 
-        let scrollable =
-            Scrollable::new(&mut self.scroll).push(Container::new(content));
+        let scrollable = Scrollable::new(&mut self.scroll)
+            .push(Container::new(content).width(Length::Fill).center_x());
 
         Container::new(scrollable)
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x()
             .center_y()
             .into()
     }

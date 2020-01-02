@@ -1,7 +1,10 @@
 use iced_native::{
     image, svg, Background, Color, Font, HorizontalAlignment, Rectangle,
-    Vector, VerticalAlignment, Geometry2D,
+    Vector, VerticalAlignment,
 };
+
+use crate::triangle;
+use std::sync::Arc;
 
 /// A rendering primitive.
 #[derive(Debug, Clone)]
@@ -63,11 +66,10 @@ pub enum Primitive {
         /// The content of the clip
         content: Box<Primitive>,
     },
-    /// A low-level geometry primitive
-    Geometry2D {
-        /// The vertices and indices of the geometry
-        geometry: Geometry2D,
-    },
+    /// A low-level primitive to render a mesh of triangles.
+    ///
+    /// It can be used to render many kinds of geometry freely.
+    Mesh2D(Arc<triangle::Mesh2D>),
 }
 
 impl Default for Primitive {
