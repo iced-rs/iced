@@ -125,6 +125,7 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         self.width.hash(state);
+        self.height.hash(state);
     }
 }
 
