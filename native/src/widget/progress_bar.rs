@@ -1,7 +1,4 @@
-//! Display a ProgressBar
-//!
-//!
-//! [`ProgressBar`]: struct.ProgressBar.html
+//! Provide progress feedback to your users.
 use crate::{
     layout, Background, Color, Element, Hasher, Layout, Length, Point,
     Rectangle, Size, Widget,
@@ -9,26 +6,24 @@ use crate::{
 
 use std::{hash::Hash, ops::RangeInclusive};
 
-const DEFAULT_HEIGHT: Length = Length::Units(30);
-
-/// A ProgressBar
+/// A bar that displays progress.
 ///
 /// # Example
-///
 /// ```
 /// # use iced_native::ProgressBar;
-///
+/// #
 /// let value = 50.0;
+///
 /// ProgressBar::new(0.0..=100.0, value);
 /// ```
 ///
-/// ![Default ProgressBar](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
+/// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
 pub struct ProgressBar {
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
-    height: Length,
+    height: Option<Length>,
     background: Option<Background>,
     active_color: Option<Color>,
 }
@@ -46,7 +41,7 @@ impl ProgressBar {
             value: value.max(*range.start()).min(*range.end()),
             range,
             width: Length::Fill,
-            height: DEFAULT_HEIGHT,
+            height: None,
             background: None,
             active_color: None,
         }
@@ -64,7 +59,7 @@ impl ProgressBar {
     ///
     /// [`ProgressBar`]: struct.ProgressBar.html
     pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+        self.height = Some(height);
         self
     }
 
@@ -95,6 +90,7 @@ where
 
     fn height(&self) -> Length {
         self.height
+            .unwrap_or(Length::Units(Renderer::DEFAULT_HEIGHT))
     }
 
     fn layout(
@@ -102,7 +98,10 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
+        let limits = limits.width(self.width).height(
+            self.height
+                .unwrap_or(Length::Units(Renderer::DEFAULT_HEIGHT)),
+        );
 
         let size = limits.resolve(Size::ZERO);
 
@@ -137,10 +136,14 @@ where
 /// [`ProgressBar`]: struct.ProgressBar.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// The default height of a [`ProgressBar`].
+    ///
+    /// [`ProgressBar`]: struct.ProgressBar.html
+    const DEFAULT_HEIGHT: u16;
+
     /// Draws a [`ProgressBar`].
     ///
     /// It receives:
-    ///   * the local state of the [`ProgressBar`]
     ///   * the bounds of the [`ProgressBar`]
     ///   * the range of values of the [`ProgressBar`]
     ///   * the current value of the [`ProgressBar`]
@@ -148,8 +151,6 @@ pub trait Renderer: crate::Renderer {
     ///   * maybe a specific active color of the [`ProgressBar`]
     ///
     /// [`ProgressBar`]: struct.ProgressBar.html
-    /// [`State`]: struct.State.html
-    /// [`Class`]: enum.Class.html
     fn draw(
         &self,
         bounds: Rectangle,
@@ -165,7 +166,7 @@ where
     Renderer: self::Renderer,
     Message: 'static,
 {
-    fn from(progressbar: ProgressBar) -> Element<'a, Message, Renderer> {
-        Element::new(progressbar)
+    fn from(progress_bar: ProgressBar) -> Element<'a, Message, Renderer> {
+        Element::new(progress_bar)
     }
 }

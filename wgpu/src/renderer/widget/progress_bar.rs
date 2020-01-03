@@ -2,6 +2,8 @@ use crate::{Primitive, Renderer};
 use iced_native::{progress_bar, Background, Color, MouseCursor, Rectangle};
 
 impl progress_bar::Renderer for Renderer {
+    const DEFAULT_HEIGHT: u16 = 30;
+
     fn draw(
         &self,
         bounds: Rectangle,
