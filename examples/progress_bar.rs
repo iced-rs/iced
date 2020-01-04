@@ -1,8 +1,7 @@
 use iced::{
     settings::Window, slider, Background, Color, Column, Element, Length,
-    Sandbox, Settings, Slider,
+    ProgressBar, Sandbox, Settings, Slider,
 };
-use iced_winit::ProgressBar;
 
 pub fn main() {
     Progress::run(Settings {
