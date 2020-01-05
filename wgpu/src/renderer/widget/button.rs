@@ -1,6 +1,6 @@
 use crate::{button::StyleSheet, defaults, Defaults, Primitive, Renderer};
 use iced_native::{
-    Background, Color, Element, Layout, MouseCursor, Point, Rectangle,
+    Background, Color, Element, Layout, MouseCursor, Point, Rectangle, Vector,
 };
 
 impl iced_native::button::Renderer for Renderer {
@@ -45,33 +45,43 @@ impl iced_native::button::Renderer for Renderer {
         );
 
         (
-            match styling.background {
-                None => content,
-                Some(background) => Primitive::Group {
-                    primitives: vec![
-                        Primitive::Quad {
-                            bounds: Rectangle {
-                                x: bounds.x + styling.shadow_offset.x,
-                                y: bounds.y + styling.shadow_offset.y,
-                                ..bounds
-                            },
-                            background: Background::Color(
-                                [0.0, 0.0, 0.0, 0.5].into(),
-                            ),
-                            border_radius: styling.border_radius,
-                            border_width: 0,
-                            border_color: Color::TRANSPARENT,
+            if styling.background.is_some() || styling.border_width > 0 {
+                let background = Primitive::Quad {
+                    bounds,
+                    background: styling
+                        .background
+                        .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                    border_radius: styling.border_radius,
+                    border_width: styling.border_width,
+                    border_color: styling.border_color,
+                };
+
+                if styling.shadow_offset == Vector::default() {
+                    Primitive::Group {
+                        primitives: vec![background, content],
+                    }
+                } else {
+                    // TODO: Implement proper shadow support
+                    let shadow = Primitive::Quad {
+                        bounds: Rectangle {
+                            x: bounds.x + styling.shadow_offset.x,
+                            y: bounds.y + styling.shadow_offset.y,
+                            ..bounds
                         },
-                        Primitive::Quad {
-                            bounds,
-                            background,
-                            border_radius: styling.border_radius,
-                            border_width: styling.border_width,
-                            border_color: styling.border_color,
-                        },
-                        content,
-                    ],
-                },
+                        background: Background::Color(
+                            [0.0, 0.0, 0.0, 0.5].into(),
+                        ),
+                        border_radius: styling.border_radius,
+                        border_width: 0,
+                        border_color: Color::TRANSPARENT,
+                    };
+
+                    Primitive::Group {
+                        primitives: vec![shadow, background, content],
+                    }
+                }
+            } else {
+                content
             },
             if is_mouse_over {
                 MouseCursor::Pointer
