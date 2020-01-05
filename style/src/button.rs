@@ -14,7 +14,7 @@ pub struct Style {
 
 impl std::default::Default for Style {
     fn default() -> Self {
-        Style {
+        Self {
             shadow_offset: Vector::default(),
             background: None,
             border_radius: 0,

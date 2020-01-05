@@ -11,6 +11,18 @@ pub struct Style {
     pub border_color: Color,
 }
 
+impl std::default::Default for Style {
+    fn default() -> Self {
+        Self {
+            text_color: None,
+            background: None,
+            border_radius: 0,
+            border_width: 0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
     /// Produces the style of a container.
