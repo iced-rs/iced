@@ -1,6 +1,6 @@
 pub use iced_winit::{
     Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    Space, Subscription, VerticalAlignment,
+    Space, Subscription, Vector, VerticalAlignment,
 };
 
 pub mod widget {

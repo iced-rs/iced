@@ -31,3 +31,15 @@ where
         Self::new(self.x + b.x, self.y + b.y)
     }
 }
+
+impl<T> Default for Vector<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        Self {
+            x: T::default(),
+            y: T::default(),
+        }
+    }
+}

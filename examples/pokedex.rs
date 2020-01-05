@@ -225,7 +225,7 @@ fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
 }
 
 mod style {
-    use iced::{button, Background, Color};
+    use iced::{button, Background, Color, Vector};
 
     pub enum Button {
         Primary,
@@ -238,8 +238,9 @@ mod style {
                     Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
                 })),
                 border_radius: 12,
-                shadow_offset: 1.0,
+                shadow_offset: Vector::new(1.0, 1.0),
                 text_color: Color::WHITE,
+                ..button::Style::default()
             }
         }
     }

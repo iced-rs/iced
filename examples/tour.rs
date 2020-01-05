@@ -27,7 +27,7 @@ impl Sandbox for Tour {
             scroll: scrollable::State::new(),
             back_button: button::State::new(),
             next_button: button::State::new(),
-            debug: true,
+            debug: false,
         }
     }
 
@@ -743,7 +743,7 @@ pub enum Layout {
 }
 
 mod style {
-    use iced::{button, Background, Color};
+    use iced::{button, Background, Color, Vector};
 
     pub enum Button {
         Primary,
@@ -758,15 +758,16 @@ mod style {
                     Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
                 })),
                 border_radius: 12,
-                shadow_offset: 1.0,
+                shadow_offset: Vector::new(1.0, 1.0),
                 text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
+                ..button::Style::default()
             }
         }
 
         fn hovered(&self) -> button::Style {
             button::Style {
                 text_color: Color::WHITE,
-                shadow_offset: 2.0,
+                shadow_offset: Vector::new(1.0, 2.0),
                 ..self.active()
             }
         }

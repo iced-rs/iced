@@ -1,13 +1,28 @@
 //! Allow your users to perform actions by pressing a button.
-use iced_core::{Background, Color};
+use iced_core::{Background, Color, Vector};
 
 /// The appearance of a button.
 #[derive(Debug)]
 pub struct Style {
-    pub shadow_offset: f32,
+    pub shadow_offset: Vector,
     pub background: Option<Background>,
     pub border_radius: u16,
+    pub border_width: u16,
+    pub border_color: Color,
     pub text_color: Color,
+}
+
+impl std::default::Default for Style {
+    fn default() -> Self {
+        Style {
+            shadow_offset: Vector::default(),
+            background: None,
+            border_radius: 0,
+            border_width: 0,
+            border_color: Color::TRANSPARENT,
+            text_color: Color::BLACK,
+        }
+    }
 }
 
 /// A set of rules that dictate the style of a button.
@@ -18,14 +33,14 @@ pub trait StyleSheet {
         let active = self.active();
 
         Style {
-            shadow_offset: active.shadow_offset + 1.0,
+            shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
             ..active
         }
     }
 
     fn pressed(&self) -> Style {
         Style {
-            shadow_offset: 0.0,
+            shadow_offset: Vector::default(),
             ..self.active()
         }
     }
@@ -34,7 +49,7 @@ pub trait StyleSheet {
         let active = self.active();
 
         Style {
-            shadow_offset: 0.0,
+            shadow_offset: Vector::default(),
             background: active.background.map(|background| match background {
                 Background::Color(color) => Background::Color(Color {
                     a: color.a * 0.5,
@@ -55,9 +70,11 @@ struct Default;
 impl StyleSheet for Default {
     fn active(&self) -> Style {
         Style {
-            shadow_offset: 1.0,
+            shadow_offset: Vector::new(0.0, 1.0),
             background: Some(Background::Color([0.5, 0.5, 0.5].into())),
             border_radius: 5,
+            border_width: 0,
+            border_color: Color::TRANSPARENT,
             text_color: Color::BLACK,
         }
     }

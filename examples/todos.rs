@@ -551,7 +551,7 @@ impl SavedState {
 }
 
 mod style {
-    use iced::{button, Background, Color};
+    use iced::{button, Background, Color, Vector};
 
     pub enum Button {
         Filter { selected: bool },
@@ -569,31 +569,25 @@ mod style {
                                 Color::from_rgb(0.2, 0.2, 0.7),
                             )),
                             border_radius: 10,
-                            shadow_offset: 0.0,
                             text_color: Color::WHITE,
+                            ..button::Style::default()
                         }
                     } else {
-                        button::Style {
-                            background: None,
-                            border_radius: 0,
-                            shadow_offset: 0.0,
-                            text_color: Color::BLACK,
-                        }
+                        button::Style::default()
                     }
                 }
                 Button::Icon => button::Style {
-                    background: None,
-                    border_radius: 0,
-                    shadow_offset: 0.0,
                     text_color: Color::from_rgb(0.5, 0.5, 0.5),
+                    ..button::Style::default()
                 },
                 Button::Destructive => button::Style {
                     background: Some(Background::Color(Color::from_rgb(
                         0.8, 0.2, 0.2,
                     ))),
                     border_radius: 5,
-                    shadow_offset: 1.0,
                     text_color: Color::WHITE,
+                    shadow_offset: Vector::new(1.0, 1.0),
+                    ..button::Style::default()
                 },
             }
         }
@@ -609,7 +603,7 @@ mod style {
                     }
                     _ => active.text_color,
                 },
-                shadow_offset: active.shadow_offset + 1.0,
+                shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
                 ..active
             }
         }

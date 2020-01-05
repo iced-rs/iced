@@ -180,7 +180,7 @@ mod time {
 }
 
 mod style {
-    use iced::{button, Background, Color};
+    use iced::{button, Background, Color, Vector};
 
     pub enum Button {
         Primary,
@@ -197,8 +197,9 @@ mod style {
                     Button::Destructive => Color::from_rgb(0.8, 0.2, 0.2),
                 })),
                 border_radius: 12,
-                shadow_offset: 1.0,
+                shadow_offset: Vector::new(1.0, 1.0),
                 text_color: Color::WHITE,
+                ..button::Style::default()
             }
         }
     }

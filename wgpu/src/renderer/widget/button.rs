@@ -51,8 +51,8 @@ impl iced_native::button::Renderer for Renderer {
                     primitives: vec![
                         Primitive::Quad {
                             bounds: Rectangle {
-                                x: bounds.x + 1.0,
-                                y: bounds.y + styling.shadow_offset,
+                                x: bounds.x + styling.shadow_offset.x,
+                                y: bounds.y + styling.shadow_offset.y,
                                 ..bounds
                             },
                             background: Background::Color(
@@ -66,8 +66,8 @@ impl iced_native::button::Renderer for Renderer {
                             bounds,
                             background,
                             border_radius: styling.border_radius,
-                            border_width: 0,
-                            border_color: Color::TRANSPARENT,
+                            border_width: styling.border_width,
+                            border_color: styling.border_color,
                         },
                         content,
                     ],
