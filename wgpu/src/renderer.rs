@@ -1,12 +1,12 @@
 use crate::{
-    image, quad, text, Defaults, Image, Primitive, Quad, Settings,
+    image, quad, text, triangle, Defaults, Image, Primitive, Quad, Settings,
     Transformation,
 };
 use iced_native::{
     renderer::{Debugger, Windowed},
     Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
 };
-
+use std::sync::Arc;
 use wgpu::{
     Adapter, BackendBit, CommandEncoderDescriptor, Device, DeviceDescriptor,
     Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions,
@@ -27,6 +27,7 @@ pub struct Renderer {
     quad_pipeline: quad::Pipeline,
     image_pipeline: image::Pipeline,
     text_pipeline: text::Pipeline,
+    triangle_pipeline: crate::triangle::Pipeline,
 }
 
 struct Layer<'a> {
@@ -34,6 +35,7 @@ struct Layer<'a> {
     offset: Vector<u32>,
     quads: Vec<Quad>,
     images: Vec<Image>,
+    meshes: Vec<Arc<triangle::Mesh2D>>,
     text: Vec<wgpu_glyph::Section<'a>>,
 }
 
@@ -45,6 +47,7 @@ impl<'a> Layer<'a> {
             quads: Vec::new(),
             images: Vec::new(),
             text: Vec::new(),
+            meshes: Vec::new(),
         }
     }
 }
@@ -67,7 +70,8 @@ impl Renderer {
         let text_pipeline =
             text::Pipeline::new(&mut device, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(&mut device);
-        let image_pipeline = image::Pipeline::new(&mut device);
+        let image_pipeline = crate::image::Pipeline::new(&mut device);
+        let triangle_pipeline = triangle::Pipeline::new(&mut device);
 
         Self {
             device,
@@ -75,6 +79,7 @@ impl Renderer {
             quad_pipeline,
             image_pipeline,
             text_pipeline,
+            triangle_pipeline,
         }
     }
 
@@ -252,6 +257,9 @@ impl Renderer {
                     scale: [bounds.width, bounds.height],
                 });
             }
+            Primitive::Mesh2D(mesh) => {
+                layer.meshes.push(mesh.clone());
+            }
             Primitive::Clip {
                 bounds,
                 offset,
@@ -329,6 +337,24 @@ impl Renderer {
         target: &wgpu::TextureView,
     ) {
         let bounds = layer.bounds * dpi;
+
+        if layer.meshes.len() > 0 {
+            let translated = transformation
+                * Transformation::translate(
+                    -(layer.offset.x as f32) * dpi,
+                    -(layer.offset.y as f32) * dpi,
+                );
+
+            self.triangle_pipeline.draw(
+                &mut self.device,
+                encoder,
+                target,
+                translated,
+                dpi,
+                &layer.meshes,
+                bounds,
+            );
+        }
 
         if layer.quads.len() > 0 {
             self.quad_pipeline.draw(

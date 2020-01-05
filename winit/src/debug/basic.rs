@@ -1,5 +1,4 @@
-use std::collections::VecDeque;
-use std::time;
+use std::{collections::VecDeque, time};
 
 #[derive(Debug)]
 pub struct Debug {

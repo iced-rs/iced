@@ -3,6 +3,7 @@ mod checkbox;
 mod column;
 mod container;
 mod image;
+mod progress_bar;
 mod radio;
 mod row;
 mod scrollable;

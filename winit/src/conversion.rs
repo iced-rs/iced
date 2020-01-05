@@ -50,7 +50,8 @@ pub fn button_state(element_state: winit::event::ElementState) -> ButtonState {
     }
 }
 
-/// Convert some `ModifiersState` from [`winit`] to an [`iced_native`] modifiers state.
+/// Convert some `ModifiersState` from [`winit`] to an [`iced_native`] modifiers
+/// state.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native

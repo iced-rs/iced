@@ -25,6 +25,7 @@
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
 pub mod defaults;
+pub mod triangle;
 pub mod widget;
 
 mod image;
