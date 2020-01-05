@@ -1,4 +1,4 @@
-use crate::{Color, MouseCursor};
+use crate::MouseCursor;
 
 use raw_window_handle::HasRawWindowHandle;
 
@@ -21,7 +21,6 @@ pub trait Windowed: super::Renderer + Sized {
     /// top of the GUI on most scenarios.
     fn draw<T: AsRef<str>>(
         &mut self,
-        clear_color: Color,
         output: &Self::Output,
         overlay: &[T],
         target: &mut Self::Target,

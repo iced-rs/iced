@@ -1,5 +1,4 @@
 //! Configure your application.
-use crate::Color;
 
 /// The settings of an application.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -11,11 +10,6 @@ pub struct Settings {
     /// [`Window`]: struct.Window.html
     pub window: Window,
 
-    /// The default background [`Color`] of the application
-    ///
-    /// [`Color`]: ../struct.Color.html
-    pub background: Color,
-
     // TODO: Add `name` for web compatibility
     pub default_font: Option<&'static [u8]>,
 }
@@ -24,7 +18,6 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             window: Window::default(),
-            background: Color::WHITE,
             default_font: None,
         }
     }
@@ -63,7 +56,6 @@ impl From<Settings> for iced_winit::Settings {
                 decorations: settings.window.decorations,
                 platform_specific: Default::default(),
             },
-            background: settings.background,
         }
     }
 }

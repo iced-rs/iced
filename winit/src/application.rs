@@ -281,12 +281,8 @@ pub trait Application: Sized {
                     resized = false;
                 }
 
-                let new_mouse_cursor = renderer.draw(
-                    settings.background,
-                    &primitive,
-                    &debug.overlay(),
-                    &mut target,
-                );
+                let new_mouse_cursor =
+                    renderer.draw(&primitive, &debug.overlay(), &mut target);
 
                 debug.render_finished();
 
