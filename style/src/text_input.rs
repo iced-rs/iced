@@ -10,6 +10,17 @@ pub struct Style {
     pub border_color: Color,
 }
 
+impl std::default::Default for Style {
+    fn default() -> Self {
+        Self {
+            background: Background::Color(Color::WHITE),
+            border_radius: 0,
+            border_width: 0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
 /// A set of rules that dictate the style of a text input.
 pub trait StyleSheet {
     /// Produces the style of an active text input.
