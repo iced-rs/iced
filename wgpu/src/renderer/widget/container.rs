@@ -1,5 +1,5 @@
 use crate::{container, defaults, Defaults, Primitive, Renderer};
-use iced_native::{Color, Element, Layout, Point, Rectangle};
+use iced_native::{Background, Color, Element, Layout, Point, Rectangle};
 
 impl iced_native::container::Renderer for Renderer {
     type Style = Box<dyn container::StyleSheet>;
@@ -25,24 +25,25 @@ impl iced_native::container::Renderer for Renderer {
         let (content, mouse_cursor) =
             content.draw(self, &defaults, content_layout, cursor_position);
 
-        match style.background {
-            Some(background) => {
-                let quad = Primitive::Quad {
-                    bounds,
-                    background,
-                    border_radius: style.border_radius,
-                    border_width: 0,
-                    border_color: Color::TRANSPARENT,
-                };
+        if style.background.is_some() || style.border_width > 0 {
+            let quad = Primitive::Quad {
+                bounds,
+                background: style
+                    .background
+                    .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                border_radius: style.border_radius,
+                border_width: style.border_width,
+                border_color: style.border_color,
+            };
 
-                (
-                    Primitive::Group {
-                        primitives: vec![quad, content],
-                    },
-                    mouse_cursor,
-                )
-            }
-            None => (content, mouse_cursor),
+            (
+                Primitive::Group {
+                    primitives: vec![quad, content],
+                },
+                mouse_cursor,
+            )
+        } else {
+            (content, mouse_cursor)
         }
     }
 }

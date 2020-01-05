@@ -7,6 +7,8 @@ pub struct Style {
     pub text_color: Option<Color>,
     pub background: Option<Background>,
     pub border_radius: u16,
+    pub border_width: u16,
+    pub border_color: Color,
 }
 
 /// A set of rules that dictate the style of a container.
@@ -23,6 +25,8 @@ impl StyleSheet for Default {
             text_color: None,
             background: None,
             border_radius: 0,
+            border_width: 0,
+            border_color: Color::TRANSPARENT,
         }
     }
 }
