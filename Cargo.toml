@@ -47,6 +47,7 @@ futures = "0.3"
 async-std = { version = "1.3", features = ["unstable"] }
 surf = "1.0"
 rand = "0.7"
+lyon = "0.15"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen = "0.2.51"
