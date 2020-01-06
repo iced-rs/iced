@@ -21,8 +21,9 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// # Example
 /// ```
-/// # use iced_native::{slider, Slider};
+/// # use iced_native::{slider, renderer::Null};
 /// #
+/// # pub type Slider<'a, Message> = iced_native::Slider<'a, Message, Null>;
 /// pub enum Message {
 ///     SliderChanged(f32),
 /// }
@@ -35,15 +36,16 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, Message> {
+pub struct Slider<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     range: RangeInclusive<f32>,
     value: f32,
     on_change: Box<dyn Fn(f32) -> Message>,
     width: Length,
+    style: Renderer::Style,
 }
 
-impl<'a, Message> Slider<'a, Message> {
+impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
     /// Creates a new [`Slider`].
     ///
     /// It expects:
@@ -71,6 +73,7 @@ impl<'a, Message> Slider<'a, Message> {
             range,
             on_change: Box::new(on_change),
             width: Length::Fill,
+            style: Renderer::Style::default(),
         }
     }
 
@@ -79,6 +82,14 @@ impl<'a, Message> Slider<'a, Message> {
     /// [`Slider`]: struct.Slider.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the style of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -100,7 +111,8 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Slider<'a, Message>
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Slider<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
 {
@@ -188,6 +200,7 @@ where
             self.range.clone(),
             self.value,
             self.state.is_dragging,
+            &self.style,
         )
     }
 
@@ -204,6 +217,8 @@ where
 /// [`Slider`]: struct.Slider.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    type Style: Default;
+
     /// Returns the height of the [`Slider`].
     ///
     /// [`Slider`]: struct.Slider.html
@@ -228,16 +243,19 @@ pub trait Renderer: crate::Renderer {
         range: RangeInclusive<f32>,
         value: f32,
         is_dragging: bool,
+        style: &Self::Style,
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Slider<'a, Message>>
+impl<'a, Message, Renderer> From<Slider<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
     Message: 'static,
 {
-    fn from(slider: Slider<'a, Message>) -> Element<'a, Message, Renderer> {
+    fn from(
+        slider: Slider<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }
 }

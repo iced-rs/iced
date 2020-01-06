@@ -1,7 +1,7 @@
 use crate::{
-    button, checkbox, column, radio, row, scrollable, text, text_input, Color,
-    Element, Font, HorizontalAlignment, Layout, Point, Rectangle, Renderer,
-    Size, VerticalAlignment,
+    button, checkbox, column, radio, row, scrollable, slider, text, text_input,
+    Color, Element, Font, HorizontalAlignment, Layout, Point, Rectangle,
+    Renderer, Size, VerticalAlignment,
 };
 
 /// A renderer that does nothing.
@@ -178,5 +178,24 @@ impl checkbox::Renderer for Null {
         _is_mouse_over: bool,
         _label: Self::Output,
     ) {
+    }
+}
+
+impl slider::Renderer for Null {
+    type Style = ();
+
+    fn height(&self) -> u32 {
+        30
+    }
+
+    fn draw(
+        &mut self,
+        _bounds: Rectangle,
+        _cursor_position: Point,
+        _range: std::ops::RangeInclusive<f32>,
+        _value: f32,
+        _is_dragging: bool,
+        _style_sheet: &Self::Style,
+    ) -> Self::Output {
     }
 }

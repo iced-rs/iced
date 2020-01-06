@@ -24,17 +24,6 @@ pub mod widget {
     //! [`text_input::State`]: text_input/struct.State.html
     pub use iced_wgpu::widget::*;
 
-    pub mod slider {
-        //! Display an interactive selector of a single value from a range of
-        //! values.
-        //!
-        //! A [`Slider`] has some local [`State`].
-        //!
-        //! [`Slider`]: struct.Slider.html
-        //! [`State`]: struct.State.html
-        pub use iced_winit::slider::{Slider, State};
-    }
-
     pub mod image {
         //! Display images in your user interface.
         pub use iced_winit::image::{Handle, Image};

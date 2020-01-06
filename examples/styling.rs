@@ -1,6 +1,6 @@
 use iced::{
-    button, scrollable, text_input, Button, Column, Container, Element, Length,
-    Radio, Row, Sandbox, Scrollable, Settings, Text, TextInput,
+    button, scrollable, slider, text_input, Button, Column, Container, Element,
+    Length, Radio, Row, Sandbox, Scrollable, Settings, Slider, Text, TextInput,
 };
 
 pub fn main() {
@@ -14,6 +14,8 @@ struct Styling {
     input: text_input::State,
     input_value: String,
     button: button::State,
+    slider: slider::State,
+    slider_value: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +23,7 @@ enum Message {
     ThemeChanged(style::Theme),
     InputChanged(String),
     ButtonPressed,
+    SliderChanged(f32),
 }
 
 impl Sandbox for Styling {
@@ -39,6 +42,7 @@ impl Sandbox for Styling {
             Message::ThemeChanged(theme) => self.theme = theme,
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => (),
+            Message::SliderChanged(value) => self.slider_value = value,
         }
     }
 
@@ -70,12 +74,21 @@ impl Sandbox for Styling {
             .on_press(Message::ButtonPressed)
             .style(self.theme);
 
+        let slider = Slider::new(
+            &mut self.slider,
+            0.0..=100.0,
+            self.slider_value,
+            Message::SliderChanged,
+        )
+        .style(self.theme);
+
         let content = Column::new()
             .spacing(20)
             .padding(20)
             .max_width(600)
             .push(choose_theme)
-            .push(Row::new().spacing(10).push(text_input).push(button));
+            .push(Row::new().spacing(10).push(text_input).push(button))
+            .push(slider);
 
         let scrollable = Scrollable::new(&mut self.scroll)
             .style(self.theme)
@@ -91,7 +104,7 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    use iced::{button, container, scrollable, text_input};
+    use iced::{button, container, scrollable, slider, text_input};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Theme {
@@ -145,6 +158,15 @@ mod style {
         }
     }
 
+    impl From<Theme> for Box<dyn slider::StyleSheet> {
+        fn from(theme: Theme) -> Self {
+            match theme {
+                Theme::Light => Default::default(),
+                Theme::Dark => dark::Slider.into(),
+            }
+        }
+    }
+
     mod light {
         use iced::{button, Background, Color, Vector};
 
@@ -175,7 +197,8 @@ mod style {
 
     mod dark {
         use iced::{
-            button, container, scrollable, text_input, Background, Color,
+            button, container, scrollable, slider, text_input, Background,
+            Color,
         };
 
         pub struct Container;
@@ -288,6 +311,48 @@ mod style {
                         [1.0, 1.0, 1.0, 0.3].into(),
                     )),
                     ..self.active()
+                }
+            }
+        }
+
+        pub struct Slider;
+
+        impl slider::StyleSheet for Slider {
+            fn active(&self) -> slider::Style {
+                let blue = Color::from_rgb8(0x72, 0x89, 0xDA);
+
+                slider::Style {
+                    rail_colors: (blue, Color { a: 0.1, ..blue }),
+                    handle: slider::Handle {
+                        shape: slider::HandleShape::Circle { radius: 9 },
+                        color: blue,
+                        border_width: 0,
+                        border_color: Color::TRANSPARENT,
+                    },
+                }
+            }
+
+            fn hovered(&self) -> slider::Style {
+                let active = self.active();
+
+                slider::Style {
+                    handle: slider::Handle {
+                        color: Color::from_rgb(0.90, 0.90, 0.90),
+                        ..active.handle
+                    },
+                    ..active
+                }
+            }
+
+            fn dragging(&self) -> slider::Style {
+                let active = self.active();
+
+                slider::Style {
+                    handle: slider::Handle {
+                        color: Color::from_rgb(0.85, 0.85, 0.85),
+                        ..active.handle
+                    },
+                    ..active
                 }
             }
         }
