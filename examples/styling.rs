@@ -7,6 +7,7 @@ pub fn main() {
     Styling::run(Settings::default())
 }
 
+#[derive(Default)]
 struct Styling {
     theme: style::Theme,
     input: text_input::State,
@@ -25,12 +26,7 @@ impl Sandbox for Styling {
     type Message = Message;
 
     fn new() -> Self {
-        Styling {
-            theme: style::Theme::Light,
-            input: text_input::State::default(),
-            input_value: String::new(),
-            button: button::State::default(),
-        }
+        Styling::default()
     }
 
     fn title(&self) -> String {
@@ -104,6 +100,12 @@ mod style {
 
     impl Theme {
         pub const ALL: [Theme; 2] = [Theme::Light, Theme::Dark];
+    }
+
+    impl Default for Theme {
+        fn default() -> Theme {
+            Theme::Light
+        }
     }
 
     impl From<Theme> for Box<dyn container::StyleSheet> {
