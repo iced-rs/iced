@@ -73,6 +73,8 @@ impl text::Renderer for Null {
 }
 
 impl scrollable::Renderer for Null {
+    type Style = ();
+
     fn scrollbar(
         &self,
         _bounds: Rectangle,
@@ -91,6 +93,7 @@ impl scrollable::Renderer for Null {
         _is_mouse_over_scrollbar: bool,
         _scrollbar: Option<scrollable::Scrollbar>,
         _offset: u32,
+        _style: &Self::Style,
         _content: Self::Output,
     ) {
     }

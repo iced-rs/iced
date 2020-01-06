@@ -1,6 +1,6 @@
 use iced::{
-    button, text_input, Button, Column, Container, Element, Length, Radio, Row,
-    Sandbox, Settings, Text, TextInput,
+    button, scrollable, text_input, Button, Column, Container, Element, Length,
+    Radio, Row, Sandbox, Scrollable, Settings, Text, TextInput,
 };
 
 pub fn main() {
@@ -10,6 +10,7 @@ pub fn main() {
 #[derive(Default)]
 struct Styling {
     theme: style::Theme,
+    scroll: scrollable::State,
     input: text_input::State,
     input_value: String,
     button: button::State,
@@ -76,10 +77,13 @@ impl Sandbox for Styling {
             .push(choose_theme)
             .push(Row::new().spacing(10).push(text_input).push(button));
 
-        Container::new(content)
+        let scrollable = Scrollable::new(&mut self.scroll)
+            .style(self.theme)
+            .push(Container::new(content).width(Length::Fill).center_x());
+
+        Container::new(scrollable)
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x()
             .center_y()
             .style(self.theme)
             .into()
@@ -87,7 +91,7 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    use iced::{button, container, text_input};
+    use iced::{button, container, scrollable, text_input};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Theme {
@@ -132,6 +136,15 @@ mod style {
         }
     }
 
+    impl From<Theme> for Box<dyn scrollable::StyleSheet> {
+        fn from(theme: Theme) -> Self {
+            match theme {
+                Theme::Light => Default::default(),
+                Theme::Dark => dark::Scrollable.into(),
+            }
+        }
+    }
+
     mod light {
         use iced::{button, Background, Color, Vector};
 
@@ -161,7 +174,9 @@ mod style {
     }
 
     mod dark {
-        use iced::{button, container, text_input, Background, Color};
+        use iced::{
+            button, container, scrollable, text_input, Background, Color,
+        };
 
         pub struct Container;
 
@@ -236,6 +251,42 @@ mod style {
                         0x67, 0x7B, 0xC4,
                     ))),
                     text_color: Color::WHITE,
+                    ..self.active()
+                }
+            }
+
+            fn pressed(&self) -> button::Style {
+                button::Style {
+                    border_width: 1,
+                    border_color: Color::WHITE,
+                    ..self.hovered()
+                }
+            }
+        }
+
+        pub struct Scrollable;
+
+        impl scrollable::StyleSheet for Scrollable {
+            fn active(&self) -> scrollable::Scrollbar {
+                scrollable::Scrollbar {
+                    background: None,
+                    border_radius: 2,
+                    border_width: 0,
+                    border_color: Color::TRANSPARENT,
+                    scroller: scrollable::Scroller {
+                        color: [1.0, 1.0, 1.0, 0.7].into(),
+                        border_radius: 2,
+                        border_width: 1,
+                        border_color: Color::WHITE,
+                    },
+                }
+            }
+
+            fn hovered(&self) -> scrollable::Scrollbar {
+                scrollable::Scrollbar {
+                    background: Some(Background::Color(
+                        [1.0, 1.0, 1.0, 0.3].into(),
+                    )),
                     ..self.active()
                 }
             }

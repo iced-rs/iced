@@ -24,20 +24,6 @@ pub mod widget {
     //! [`text_input::State`]: text_input/struct.State.html
     pub use iced_wgpu::widget::*;
 
-    pub mod scrollable {
-        //! Navigate an endless amount of content with a scrollbar.
-
-        /// A widget that can vertically display an infinite amount of content
-        /// with a scrollbar.
-        ///
-        /// This is an alias of an `iced_native` scrollable with a default
-        /// `Renderer`.
-        pub type Scrollable<'a, Message> =
-            iced_winit::Scrollable<'a, Message, iced_wgpu::Renderer>;
-
-        pub use iced_winit::scrollable::State;
-    }
-
     pub mod slider {
         //! Display an interactive selector of a single value from a range of
         //! values.
