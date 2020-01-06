@@ -32,6 +32,17 @@ where
     }
 }
 
+impl<T> std::ops::Mul for Vector<T>
+where
+    T: std::ops::Mul<Output = T>,
+{
+    type Output = Self;
+
+    fn mul(self, b: Self) -> Self {
+        Self::new(self.x * b.x, self.y * b.y)
+    }
+}
+
 impl<T> Default for Vector<T>
 where
     T: Default,

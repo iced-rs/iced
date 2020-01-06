@@ -75,7 +75,7 @@ impl StyleSheet for Default {
             border_radius: 5,
             border_width: 0,
             border_color: Color::TRANSPARENT,
-            text_color: Color::BLACK,
+            text_color: Color::WHITE,
         }
     }
 }

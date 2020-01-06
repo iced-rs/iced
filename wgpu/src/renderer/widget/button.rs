@@ -19,7 +19,6 @@ impl iced_native::button::Renderer for Renderer {
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
-        // TODO: Render proper shadows
         let styling = if is_disabled {
             style.disabled()
         } else if is_mouse_over {

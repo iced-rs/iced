@@ -29,14 +29,14 @@ pub trait StyleSheet {
     /// Produces the style of a focused text input.
     fn focused(&self) -> Style;
 
+    fn placeholder_color(&self) -> Color;
+
+    fn value_color(&self) -> Color;
+
     /// Produces the style of an hovered text input.
     fn hovered(&self) -> Style {
         self.focused()
     }
-
-    fn placeholder_color(&self) -> Color;
-
-    fn value_color(&self) -> Color;
 }
 
 struct Default;
