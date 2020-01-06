@@ -43,10 +43,7 @@ impl Sandbox for Styling {
 
     fn view(&mut self) -> Element<Message> {
         let choose_theme = style::Theme::ALL.iter().fold(
-            Column::new()
-                .width(Length::Shrink)
-                .spacing(10)
-                .push(Text::new("Choose a theme:").width(Length::Shrink)),
+            Column::new().spacing(10).push(Text::new("Choose a theme:")),
             |column, theme| {
                 column.push(Radio::new(
                     *theme,
@@ -111,7 +108,7 @@ mod style {
     impl From<Theme> for Box<dyn container::StyleSheet> {
         fn from(theme: Theme) -> Self {
             match theme {
-                Theme::Light => light::Container.into(),
+                Theme::Light => Default::default(),
                 Theme::Dark => dark::Container.into(),
             }
         }
@@ -120,7 +117,7 @@ mod style {
     impl From<Theme> for Box<dyn text_input::StyleSheet> {
         fn from(theme: Theme) -> Self {
             match theme {
-                Theme::Light => light::TextInput.into(),
+                Theme::Light => Default::default(),
                 Theme::Dark => dark::TextInput.into(),
             }
         }
@@ -136,44 +133,7 @@ mod style {
     }
 
     mod light {
-        use iced::{button, container, text_input, Background, Color, Vector};
-
-        pub struct Container;
-
-        impl container::StyleSheet for Container {
-            fn style(&self) -> container::Style {
-                container::Style::default()
-            }
-        }
-
-        pub struct TextInput;
-
-        impl text_input::StyleSheet for TextInput {
-            fn active(&self) -> text_input::Style {
-                text_input::Style {
-                    background: Background::Color(Color::WHITE),
-                    border_radius: 5,
-                    border_width: 1,
-                    border_color: Color::from_rgb(0.7, 0.7, 0.7),
-                }
-            }
-
-            fn focused(&self) -> text_input::Style {
-                text_input::Style {
-                    border_width: 1,
-                    border_color: Color::from_rgb(0.5, 0.5, 0.5),
-                    ..self.active()
-                }
-            }
-
-            fn placeholder_color(&self) -> Color {
-                Color::from_rgb(0.7, 0.7, 0.7)
-            }
-
-            fn value_color(&self) -> Color {
-                Color::from_rgb(0.3, 0.3, 0.3)
-            }
-        }
+        use iced::{button, Background, Color, Vector};
 
         pub struct Button;
 
