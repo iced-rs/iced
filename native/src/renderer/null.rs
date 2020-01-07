@@ -152,6 +152,8 @@ impl button::Renderer for Null {
 }
 
 impl radio::Renderer for Null {
+    type Style = ();
+
     fn default_size(&self) -> u32 {
         20
     }
@@ -162,6 +164,7 @@ impl radio::Renderer for Null {
         _is_selected: bool,
         _is_mouse_over: bool,
         _label: Self::Output,
+        _style: &Self::Style,
     ) {
     }
 }

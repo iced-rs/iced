@@ -51,12 +51,15 @@ impl Sandbox for Styling {
         let choose_theme = style::Theme::ALL.iter().fold(
             Column::new().spacing(10).push(Text::new("Choose a theme:")),
             |column, theme| {
-                column.push(Radio::new(
-                    *theme,
-                    &format!("{:?}", theme),
-                    Some(self.theme),
-                    Message::ThemeChanged,
-                ))
+                column.push(
+                    Radio::new(
+                        *theme,
+                        &format!("{:?}", theme),
+                        Some(self.theme),
+                        Message::ThemeChanged,
+                    )
+                    .style(self.theme),
+                )
             },
         );
 
@@ -110,7 +113,7 @@ impl Sandbox for Styling {
 
 mod style {
     use iced::{
-        button, container, progress_bar, scrollable, slider, text_input,
+        button, container, progress_bar, radio, scrollable, slider, text_input,
     };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -134,6 +137,15 @@ mod style {
             match theme {
                 Theme::Light => Default::default(),
                 Theme::Dark => dark::Container.into(),
+            }
+        }
+    }
+
+    impl From<Theme> for Box<dyn radio::StyleSheet> {
+        fn from(theme: Theme) -> Self {
+            match theme {
+                Theme::Light => Default::default(),
+                Theme::Dark => dark::Radio.into(),
             }
         }
     }
@@ -213,8 +225,8 @@ mod style {
 
     mod dark {
         use iced::{
-            button, container, progress_bar, scrollable, slider, text_input,
-            Background, Color,
+            button, container, progress_bar, radio, scrollable, slider,
+            text_input, Background, Color,
         };
 
         const SURFACE: Color = Color::from_rgb(
@@ -251,6 +263,26 @@ mod style {
                     ))),
                     text_color: Some(Color::WHITE),
                     ..container::Style::default()
+                }
+            }
+        }
+
+        pub struct Radio;
+
+        impl radio::StyleSheet for Radio {
+            fn active(&self) -> radio::Style {
+                radio::Style {
+                    background: Background::Color(SURFACE),
+                    dot_color: Color::WHITE,
+                    border_width: 0,
+                    border_color: Color::TRANSPARENT,
+                }
+            }
+
+            fn hovered(&self) -> radio::Style {
+                radio::Style {
+                    background: Background::Color(Color { a: 0.5, ..SURFACE }),
+                    ..self.active()
                 }
             }
         }

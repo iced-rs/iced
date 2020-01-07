@@ -1,10 +1,12 @@
-use crate::{Primitive, Renderer};
+use crate::{radio::StyleSheet, Primitive, Renderer};
 use iced_native::{radio, Background, Color, MouseCursor, Rectangle};
 
 const SIZE: f32 = 28.0;
 const DOT_SIZE: f32 = SIZE / 2.0;
 
 impl radio::Renderer for Renderer {
+    type Style = Box<dyn StyleSheet>;
+
     fn default_size(&self) -> u32 {
         SIZE as u32
     }
@@ -15,20 +17,20 @@ impl radio::Renderer for Renderer {
         is_selected: bool,
         is_mouse_over: bool,
         (label, _): Self::Output,
+        style_sheet: &Self::Style,
     ) -> Self::Output {
+        let style = if is_mouse_over {
+            style_sheet.hovered()
+        } else {
+            style_sheet.active()
+        };
+
         let radio = Primitive::Quad {
             bounds,
-            background: Background::Color(
-                if is_mouse_over {
-                    [0.90, 0.90, 0.90]
-                } else {
-                    [0.95, 0.95, 0.95]
-                }
-                .into(),
-            ),
+            background: style.background,
             border_radius: (SIZE / 2.0) as u16,
-            border_width: 1,
-            border_color: Color::from_rgb(0.6, 0.6, 0.6),
+            border_width: style.border_width,
+            border_color: style.border_color,
         };
 
         (
@@ -41,7 +43,7 @@ impl radio::Renderer for Renderer {
                             width: bounds.width - DOT_SIZE,
                             height: bounds.height - DOT_SIZE,
                         },
-                        background: Background::Color([0.3, 0.3, 0.3].into()),
+                        background: Background::Color(style.dot_color),
                         border_radius: (DOT_SIZE / 2.0) as u16,
                         border_width: 0,
                         border_color: Color::TRANSPARENT,
