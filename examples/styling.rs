@@ -1,7 +1,7 @@
 use iced::{
-    button, scrollable, slider, text_input, Button, Checkbox, Column,
+    button, scrollable, slider, text_input, Align, Button, Checkbox, Column,
     Container, Element, Length, ProgressBar, Radio, Row, Sandbox, Scrollable,
-    Settings, Slider, Text, TextInput,
+    Settings, Slider, Space, Text, TextInput,
 };
 
 pub fn main() {
@@ -17,7 +17,7 @@ struct Styling {
     button: button::State,
     slider: slider::State,
     slider_value: f32,
-    debug: bool,
+    toggle_value: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -26,7 +26,7 @@ enum Message {
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
-    DebugToggled(bool),
+    CheckboxToggled(bool),
 }
 
 impl Sandbox for Styling {
@@ -46,7 +46,7 @@ impl Sandbox for Styling {
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => (),
             Message::SliderChanged(value) => self.slider_value = value,
-            Message::DebugToggled(debug) => self.debug = debug,
+            Message::CheckboxToggled(value) => self.toggle_value = value,
         }
     }
 
@@ -92,14 +92,21 @@ impl Sandbox for Styling {
         let progress_bar =
             ProgressBar::new(0.0..=100.0, self.slider_value).style(self.theme);
 
+        let scrollable = Scrollable::new(&mut self.scroll)
+            .height(Length::Units(100))
+            .style(self.theme)
+            .push(Text::new("Scroll me!"))
+            .push(Space::with_height(Length::Units(800)))
+            .push(Text::new("You did it!"));
+
         let checkbox = Checkbox::new(
-            self.debug,
-            "Enable layout debugger",
-            Message::DebugToggled,
+            self.toggle_value,
+            "Toggle me!",
+            Message::CheckboxToggled,
         )
         .style(self.theme);
 
-        let content: Element<_> = Column::new()
+        let content = Column::new()
             .spacing(20)
             .padding(20)
             .max_width(600)
@@ -107,23 +114,18 @@ impl Sandbox for Styling {
             .push(Row::new().spacing(10).push(text_input).push(button))
             .push(slider)
             .push(progress_bar)
-            .push(checkbox)
-            .into();
-
-        let scrollable =
-            Scrollable::new(&mut self.scroll).style(self.theme).push(
-                Container::new(if self.debug {
-                    content.explain(self.theme.debug_color())
-                } else {
-                    content
-                })
-                .width(Length::Fill)
-                .center_x(),
+            .push(
+                Row::new()
+                    .spacing(10)
+                    .align_items(Align::Center)
+                    .push(scrollable)
+                    .push(checkbox),
             );
 
-        Container::new(scrollable)
+        Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
+            .center_x()
             .center_y()
             .style(self.theme)
             .into()
@@ -394,25 +396,44 @@ mod style {
         impl scrollable::StyleSheet for Scrollable {
             fn active(&self) -> scrollable::Scrollbar {
                 scrollable::Scrollbar {
-                    background: None,
+                    background: Some(Background::Color(SURFACE)),
                     border_radius: 2,
                     border_width: 0,
                     border_color: Color::TRANSPARENT,
                     scroller: scrollable::Scroller {
-                        color: [1.0, 1.0, 1.0, 0.7].into(),
+                        color: ACTIVE,
                         border_radius: 2,
-                        border_width: 1,
-                        border_color: Color::WHITE,
+                        border_width: 0,
+                        border_color: Color::TRANSPARENT,
                     },
                 }
             }
 
             fn hovered(&self) -> scrollable::Scrollbar {
+                let active = self.active();
+
                 scrollable::Scrollbar {
-                    background: Some(Background::Color(
-                        [1.0, 1.0, 1.0, 0.3].into(),
-                    )),
-                    ..self.active()
+                    background: Some(Background::Color(Color {
+                        a: 0.5,
+                        ..SURFACE
+                    })),
+                    scroller: scrollable::Scroller {
+                        color: HOVERED,
+                        ..active.scroller
+                    },
+                    ..active
+                }
+            }
+
+            fn dragging(&self) -> scrollable::Scrollbar {
+                let hovered = self.hovered();
+
+                scrollable::Scrollbar {
+                    scroller: scrollable::Scroller {
+                        color: Color::from_rgb(0.85, 0.85, 0.85),
+                        ..hovered.scroller
+                    },
+                    ..hovered
                 }
             }
         }
