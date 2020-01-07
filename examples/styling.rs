@@ -201,6 +201,30 @@ mod style {
             Color,
         };
 
+        const SURFACE: Color = Color::from_rgb(
+            0x40 as f32 / 255.0,
+            0x44 as f32 / 255.0,
+            0x4B as f32 / 255.0,
+        );
+
+        const ACCENT: Color = Color::from_rgb(
+            0x6F as f32 / 255.0,
+            0xFF as f32 / 255.0,
+            0xE9 as f32 / 255.0,
+        );
+
+        const ACTIVE: Color = Color::from_rgb(
+            0x72 as f32 / 255.0,
+            0x89 as f32 / 255.0,
+            0xDA as f32 / 255.0,
+        );
+
+        const HOVERED: Color = Color::from_rgb(
+            0x67 as f32 / 255.0,
+            0x7B as f32 / 255.0,
+            0xC4 as f32 / 255.0,
+        );
+
         pub struct Container;
 
         impl container::StyleSheet for Container {
@@ -220,9 +244,7 @@ mod style {
         impl text_input::StyleSheet for TextInput {
             fn active(&self) -> text_input::Style {
                 text_input::Style {
-                    background: Background::Color(Color::from_rgb8(
-                        0x40, 0x44, 0x4B,
-                    )),
+                    background: Background::Color(SURFACE),
                     border_radius: 2,
                     border_width: 0,
                     border_color: Color::TRANSPARENT,
@@ -232,7 +254,7 @@ mod style {
             fn focused(&self) -> text_input::Style {
                 text_input::Style {
                     border_width: 1,
-                    border_color: Color::from_rgb8(0x6F, 0xFF, 0xE9),
+                    border_color: ACCENT,
                     ..self.active()
                 }
             }
@@ -240,7 +262,7 @@ mod style {
             fn hovered(&self) -> text_input::Style {
                 text_input::Style {
                     border_width: 1,
-                    border_color: Color::from_rgb8(0x5B, 0xC0, 0xBE),
+                    border_color: Color { a: 0.3, ..ACCENT },
                     ..self.focused()
                 }
             }
@@ -259,9 +281,7 @@ mod style {
         impl button::StyleSheet for Button {
             fn active(&self) -> button::Style {
                 button::Style {
-                    background: Some(Background::Color(Color::from_rgb8(
-                        0x72, 0x89, 0xDA,
-                    ))),
+                    background: Some(Background::Color(ACTIVE)),
                     border_radius: 3,
                     text_color: Color::WHITE,
                     ..button::Style::default()
@@ -270,9 +290,7 @@ mod style {
 
             fn hovered(&self) -> button::Style {
                 button::Style {
-                    background: Some(Background::Color(Color::from_rgb8(
-                        0x67, 0x7B, 0xC4,
-                    ))),
+                    background: Some(Background::Color(HOVERED)),
                     text_color: Color::WHITE,
                     ..self.active()
                 }
@@ -319,13 +337,11 @@ mod style {
 
         impl slider::StyleSheet for Slider {
             fn active(&self) -> slider::Style {
-                let blue = Color::from_rgb8(0x72, 0x89, 0xDA);
-
                 slider::Style {
-                    rail_colors: (blue, Color { a: 0.1, ..blue }),
+                    rail_colors: (ACTIVE, Color { a: 0.1, ..ACTIVE }),
                     handle: slider::Handle {
                         shape: slider::HandleShape::Circle { radius: 9 },
-                        color: blue,
+                        color: ACTIVE,
                         border_width: 0,
                         border_color: Color::TRANSPARENT,
                     },
@@ -337,7 +353,7 @@ mod style {
 
                 slider::Style {
                     handle: slider::Handle {
-                        color: Color::from_rgb(0.90, 0.90, 0.90),
+                        color: HOVERED,
                         ..active.handle
                     },
                     ..active

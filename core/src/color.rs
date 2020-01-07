@@ -33,6 +33,13 @@ impl Color {
         a: 0.0,
     };
 
+    /// Creates a [`Color`] from its RGB components.
+    ///
+    /// [`Color`]: struct.Color.html
+    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Color {
+        Color { r, g, b, a: 1.0 }
+    }
+
     /// Creates a [`Color`] from its RGB8 components.
     ///
     /// [`Color`]: struct.Color.html
@@ -43,13 +50,6 @@ impl Color {
             b: f32::from(b) / 255.0,
             a: 1.0,
         }
-    }
-
-    /// Creates a [`Color`] from its RGB components.
-    ///
-    /// [`Color`]: struct.Color.html
-    pub fn from_rgb(r: f32, g: f32, b: f32) -> Color {
-        Color { r, g, b, a: 1.0 }
     }
 
     /// Converts the [`Color`] into its linear values.
