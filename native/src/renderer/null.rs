@@ -170,6 +170,8 @@ impl radio::Renderer for Null {
 }
 
 impl checkbox::Renderer for Null {
+    type Style = ();
+
     fn default_size(&self) -> u32 {
         20
     }
@@ -180,6 +182,7 @@ impl checkbox::Renderer for Null {
         _is_checked: bool,
         _is_mouse_over: bool,
         _label: Self::Output,
+        _style: &Self::Style,
     ) {
     }
 }

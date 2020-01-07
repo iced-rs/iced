@@ -1,7 +1,7 @@
 use iced::{
-    button, scrollable, slider, text_input, Button, Column, Container, Element,
-    Length, ProgressBar, Radio, Row, Sandbox, Scrollable, Settings, Slider,
-    Text, TextInput,
+    button, scrollable, slider, text_input, Button, Checkbox, Column,
+    Container, Element, Length, ProgressBar, Radio, Row, Sandbox, Scrollable,
+    Settings, Slider, Text, TextInput,
 };
 
 pub fn main() {
@@ -17,6 +17,7 @@ struct Styling {
     button: button::State,
     slider: slider::State,
     slider_value: f32,
+    debug: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +26,7 @@ enum Message {
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
+    DebugToggled(bool),
 }
 
 impl Sandbox for Styling {
@@ -44,6 +46,7 @@ impl Sandbox for Styling {
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => (),
             Message::SliderChanged(value) => self.slider_value = value,
+            Message::DebugToggled(debug) => self.debug = debug,
         }
     }
 
@@ -89,18 +92,34 @@ impl Sandbox for Styling {
         let progress_bar =
             ProgressBar::new(0.0..=100.0, self.slider_value).style(self.theme);
 
-        let content = Column::new()
+        let checkbox = Checkbox::new(
+            self.debug,
+            "Enable layout debugger",
+            Message::DebugToggled,
+        )
+        .style(self.theme);
+
+        let content: Element<_> = Column::new()
             .spacing(20)
             .padding(20)
             .max_width(600)
             .push(choose_theme)
             .push(Row::new().spacing(10).push(text_input).push(button))
             .push(slider)
-            .push(progress_bar);
+            .push(progress_bar)
+            .push(checkbox)
+            .into();
 
-        let scrollable = Scrollable::new(&mut self.scroll)
-            .style(self.theme)
-            .push(Container::new(content).width(Length::Fill).center_x());
+        let scrollable =
+            Scrollable::new(&mut self.scroll).style(self.theme).push(
+                Container::new(if self.debug {
+                    content.explain(self.theme.debug_color())
+                } else {
+                    content
+                })
+                .width(Length::Fill)
+                .center_x(),
+            );
 
         Container::new(scrollable)
             .width(Length::Fill)
@@ -113,7 +132,8 @@ impl Sandbox for Styling {
 
 mod style {
     use iced::{
-        button, container, progress_bar, radio, scrollable, slider, text_input,
+        button, checkbox, container, progress_bar, radio, scrollable, slider,
+        text_input, Color,
     };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,6 +144,13 @@ mod style {
 
     impl Theme {
         pub const ALL: [Theme; 2] = [Theme::Light, Theme::Dark];
+
+        pub fn debug_color(&self) -> Color {
+            match self {
+                Theme::Light => Color::BLACK,
+                Theme::Dark => Color::WHITE,
+            }
+        }
     }
 
     impl Default for Theme {
@@ -195,6 +222,15 @@ mod style {
         }
     }
 
+    impl From<Theme> for Box<dyn checkbox::StyleSheet> {
+        fn from(theme: Theme) -> Self {
+            match theme {
+                Theme::Light => Default::default(),
+                Theme::Dark => dark::Checkbox.into(),
+            }
+        }
+    }
+
     mod light {
         use iced::{button, Background, Color, Vector};
 
@@ -225,8 +261,8 @@ mod style {
 
     mod dark {
         use iced::{
-            button, container, progress_bar, radio, scrollable, slider,
-            text_input, Background, Color,
+            button, checkbox, container, progress_bar, radio, scrollable,
+            slider, text_input, Background, Color,
         };
 
         const SURFACE: Color = Color::from_rgb(
@@ -429,6 +465,27 @@ mod style {
                     background: Background::Color(SURFACE),
                     bar: Background::Color(ACTIVE),
                     border_radius: 10,
+                }
+            }
+        }
+
+        pub struct Checkbox;
+
+        impl checkbox::StyleSheet for Checkbox {
+            fn active(&self) -> checkbox::Style {
+                checkbox::Style {
+                    background: Background::Color(SURFACE),
+                    checkmark_color: Color::WHITE,
+                    border_radius: 2,
+                    border_width: 0,
+                    border_color: Color::TRANSPARENT,
+                }
+            }
+
+            fn hovered(&self) -> checkbox::Style {
+                checkbox::Style {
+                    background: Background::Color(Color { a: 0.5, ..SURFACE }),
+                    ..self.active()
                 }
             }
         }

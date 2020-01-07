@@ -34,11 +34,11 @@ pub mod widget {
         pub use iced_winit::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::{Checkbox, Text};
+    pub use iced_winit::Text;
 
     #[doc(no_inline)]
     pub use {
-        button::Button, container::Container, image::Image,
+        button::Button, checkbox::Checkbox, container::Container, image::Image,
         progress_bar::ProgressBar, radio::Radio, scrollable::Scrollable,
         slider::Slider, svg::Svg, text_input::TextInput,
     };
