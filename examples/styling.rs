@@ -1,6 +1,7 @@
 use iced::{
     button, scrollable, slider, text_input, Button, Column, Container, Element,
-    Length, Radio, Row, Sandbox, Scrollable, Settings, Slider, Text, TextInput,
+    Length, ProgressBar, Radio, Row, Sandbox, Scrollable, Settings, Slider,
+    Text, TextInput,
 };
 
 pub fn main() {
@@ -82,13 +83,17 @@ impl Sandbox for Styling {
         )
         .style(self.theme);
 
+        let progress_bar =
+            ProgressBar::new(0.0..=100.0, self.slider_value).style(self.theme);
+
         let content = Column::new()
             .spacing(20)
             .padding(20)
             .max_width(600)
             .push(choose_theme)
             .push(Row::new().spacing(10).push(text_input).push(button))
-            .push(slider);
+            .push(slider)
+            .push(progress_bar);
 
         let scrollable = Scrollable::new(&mut self.scroll)
             .style(self.theme)
@@ -104,7 +109,9 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    use iced::{button, container, scrollable, slider, text_input};
+    use iced::{
+        button, container, progress_bar, scrollable, slider, text_input,
+    };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Theme {
@@ -167,6 +174,15 @@ mod style {
         }
     }
 
+    impl From<Theme> for Box<dyn progress_bar::StyleSheet> {
+        fn from(theme: Theme) -> Self {
+            match theme {
+                Theme::Light => Default::default(),
+                Theme::Dark => dark::ProgressBar.into(),
+            }
+        }
+    }
+
     mod light {
         use iced::{button, Background, Color, Vector};
 
@@ -197,8 +213,8 @@ mod style {
 
     mod dark {
         use iced::{
-            button, container, scrollable, slider, text_input, Background,
-            Color,
+            button, container, progress_bar, scrollable, slider, text_input,
+            Background, Color,
         };
 
         const SURFACE: Color = Color::from_rgb(
@@ -268,7 +284,7 @@ mod style {
             }
 
             fn placeholder_color(&self) -> Color {
-                Color::from_rgb(0.7, 0.7, 0.7)
+                Color::from_rgb(0.4, 0.4, 0.4)
             }
 
             fn value_color(&self) -> Color {
@@ -369,6 +385,18 @@ mod style {
                         ..active.handle
                     },
                     ..active
+                }
+            }
+        }
+
+        pub struct ProgressBar;
+
+        impl progress_bar::StyleSheet for ProgressBar {
+            fn style(&self) -> progress_bar::Style {
+                progress_bar::Style {
+                    background: Background::Color(SURFACE),
+                    bar: Background::Color(ACTIVE),
+                    border_radius: 10,
                 }
             }
         }

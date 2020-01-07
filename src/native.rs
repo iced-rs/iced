@@ -34,13 +34,13 @@ pub mod widget {
         pub use iced_winit::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::{Checkbox, ProgressBar, Radio, Text};
+    pub use iced_winit::{Checkbox, Radio, Text};
 
     #[doc(no_inline)]
     pub use {
         button::Button, container::Container, image::Image,
-        scrollable::Scrollable, slider::Slider, svg::Svg,
-        text_input::TextInput,
+        progress_bar::ProgressBar, scrollable::Scrollable, slider::Slider,
+        svg::Svg, text_input::TextInput,
     };
 
     /// A container that distributes its contents vertically.
