@@ -311,9 +311,9 @@ mod style {
             fn active(&self) -> radio::Style {
                 radio::Style {
                     background: Background::Color(SURFACE),
-                    dot_color: Color::WHITE,
-                    border_width: 0,
-                    border_color: Color::TRANSPARENT,
+                    dot_color: ACTIVE,
+                    border_width: 1,
+                    border_color: ACTIVE,
                 }
             }
 
@@ -496,10 +496,10 @@ mod style {
             fn active(&self) -> checkbox::Style {
                 checkbox::Style {
                     background: Background::Color(SURFACE),
-                    checkmark_color: Color::WHITE,
+                    checkmark_color: ACTIVE,
                     border_radius: 2,
-                    border_width: 0,
-                    border_color: Color::TRANSPARENT,
+                    border_width: 1,
+                    border_color: ACTIVE,
                 }
             }
 
