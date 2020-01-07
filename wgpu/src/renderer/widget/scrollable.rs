@@ -66,50 +66,53 @@ impl scrollable::Renderer for Renderer {
 
         (
             if let Some(scrollbar) = scrollbar {
-                if is_mouse_over || state.is_scroller_grabbed() {
-                    let style = if state.is_scroller_grabbed() {
-                        style_sheet.dragging()
-                    } else if is_mouse_over_scrollbar {
-                        style_sheet.hovered()
-                    } else {
-                        style_sheet.active()
-                    };
+                let style = if state.is_scroller_grabbed() {
+                    style_sheet.dragging()
+                } else if is_mouse_over_scrollbar {
+                    style_sheet.hovered()
+                } else {
+                    style_sheet.active()
+                };
 
-                    let scroller = Primitive::Quad {
+                let is_scrollbar_visible =
+                    style.background.is_some() || style.border_width > 0;
+
+                let scroller = if is_mouse_over
+                    || state.is_scroller_grabbed()
+                    || is_scrollbar_visible
+                {
+                    Primitive::Quad {
                         bounds: scrollbar.scroller.bounds,
                         background: Background::Color(style.scroller.color),
                         border_radius: style.scroller.border_radius,
                         border_width: style.scroller.border_width,
                         border_color: style.scroller.border_color,
-                    };
-
-                    if style.background.is_some() || style.border_width > 0 {
-                        let scrollbar = Primitive::Quad {
-                            bounds: Rectangle {
-                                x: scrollbar.bounds.x
-                                    + f32::from(SCROLLBAR_MARGIN),
-                                width: scrollbar.bounds.width
-                                    - f32::from(2 * SCROLLBAR_MARGIN),
-                                ..scrollbar.bounds
-                            },
-                            background: style.background.unwrap_or(
-                                Background::Color(Color::TRANSPARENT),
-                            ),
-                            border_radius: style.border_radius,
-                            border_width: style.border_width,
-                            border_color: style.border_color,
-                        };
-
-                        Primitive::Group {
-                            primitives: vec![clip, scrollbar, scroller],
-                        }
-                    } else {
-                        Primitive::Group {
-                            primitives: vec![clip, scroller],
-                        }
                     }
                 } else {
-                    clip
+                    Primitive::None
+                };
+
+                let scrollbar = if is_scrollbar_visible {
+                    Primitive::Quad {
+                        bounds: Rectangle {
+                            x: scrollbar.bounds.x + f32::from(SCROLLBAR_MARGIN),
+                            width: scrollbar.bounds.width
+                                - f32::from(2 * SCROLLBAR_MARGIN),
+                            ..scrollbar.bounds
+                        },
+                        background: style
+                            .background
+                            .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                        border_radius: style.border_radius,
+                        border_width: style.border_width,
+                        border_color: style.border_color,
+                    }
+                } else {
+                    Primitive::None
+                };
+
+                Primitive::Group {
+                    primitives: vec![clip, scrollbar, scroller],
                 }
             } else {
                 clip
