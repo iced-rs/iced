@@ -1,5 +1,6 @@
-//! This example showcases a simple native MS paint like application.
-mod paint {
+//! This example showcases a simple native custom widget that renders arbitrary
+//! path with `lyon`.
+mod bezier {
     // For now, to implement a custom native widget you will need to add
     // `iced_native` and `iced_wgpu` to your dependencies.
     //
@@ -17,42 +18,39 @@ mod paint {
         triangle::{Mesh2D, Vertex2D},
         Primitive, Renderer,
     };
-    use lyon::lyon_tessellation::{
+    use lyon::tessellation::{
         basic_shapes, BuffersBuilder, StrokeAttributes, StrokeOptions,
         StrokeTessellator, VertexBuffers,
     };
     use std::sync::Arc;
 
-    pub struct Paint<'a, Message> {
-        state: &'a mut State,
-        strokes: &'a [(Point, Point)],
-        on_stroke: Box<dyn Fn((Point, Point)) -> Message>,
+    pub struct Bezier<'a, Message> {
+        pending_points: &'a [Point],
+        // [from, to, ctrl]
+        bezier_points: &'a [[Point; 3]],
+        on_click: Box<dyn Fn(Point) -> Message>,
     }
 
-    impl<'a, Message> Paint<'a, Message> {
+    impl<'a, Message> Bezier<'a, Message> {
         pub fn new<F>(
-            strokes: &'a [(Point, Point)],
-            state: &'a mut State,
-            on_stroke: F,
+            bezier_points: &'a [[Point; 3]],
+            pending_points: &'a [Point],
+            on_click: F,
         ) -> Self
         where
-            F: 'static + Fn((Point, Point)) -> Message,
+            F: 'static + Fn(Point) -> Message,
         {
+            assert!(pending_points.len() < 3);
+
             Self {
-                state,
-                strokes,
-                on_stroke: Box::new(on_stroke),
+                bezier_points,
+                pending_points,
+                on_click: Box::new(on_click),
             }
         }
     }
 
-    #[derive(Debug, Clone, Copy, Default)]
-    pub struct State {
-        is_dragging: bool,
-        previous_mouse_pos: Option<Point>,
-    }
-
-    impl<'a, Message> Widget<Message, Renderer> for Paint<'a, Message> {
+    impl<'a, Message> Widget<Message, Renderer> for Bezier<'a, Message> {
         fn width(&self) -> Length {
             Length::Fill
         }
@@ -77,7 +75,7 @@ mod paint {
             &self,
             _renderer: &mut Renderer,
             layout: Layout<'_>,
-            _cursor_position: Point,
+            cursor_position: Point,
         ) -> (Primitive, MouseCursor) {
             let mut buffer: VertexBuffers<Vertex2D, u16> = VertexBuffers::new();
             let mut path_builder = lyon::path::Path::builder();
@@ -104,15 +102,55 @@ mod paint {
             )
             .unwrap();
 
-            for (from, to) in self.strokes {
+            for pts in self.bezier_points {
                 path_builder.move_to(lyon::math::Point::new(
-                    from.x + bounds.x,
-                    from.y + bounds.y,
+                    pts[0].x + bounds.x,
+                    pts[0].y + bounds.y,
                 ));
-                path_builder.line_to(lyon::math::Point::new(
-                    to.x + bounds.x,
-                    to.y + bounds.y,
-                ));
+
+                path_builder.quadratic_bezier_to(
+                    lyon::math::Point::new(
+                        pts[2].x + bounds.x,
+                        pts[2].y + bounds.y,
+                    ),
+                    lyon::math::Point::new(
+                        pts[1].x + bounds.x,
+                        pts[1].y + bounds.y,
+                    ),
+                );
+            }
+
+            match self.pending_points.len() {
+                0 => {}
+                1 => {
+                    path_builder.move_to(lyon::math::Point::new(
+                        self.pending_points[0].x + bounds.x,
+                        self.pending_points[0].y + bounds.y,
+                    ));
+                    path_builder.line_to(lyon::math::Point::new(
+                        cursor_position.x,
+                        cursor_position.y,
+                    ));
+                }
+                2 => {
+                    path_builder.move_to(lyon::math::Point::new(
+                        self.pending_points[0].x + bounds.x,
+                        self.pending_points[0].y + bounds.y,
+                    ));
+                    path_builder.quadratic_bezier_to(
+                        lyon::math::Point::new(
+                            cursor_position.x,
+                            cursor_position.y,
+                        ),
+                        lyon::math::Point::new(
+                            self.pending_points[1].x + bounds.x,
+                            self.pending_points[1].y + bounds.y,
+                        ),
+                    );
+                }
+                _ => {
+                    unreachable!();
+                }
             }
 
             let mut tessellator = StrokeTessellator::new();
@@ -153,32 +191,21 @@ mod paint {
             &mut self,
             event: Event,
             layout: Layout<'_>,
-            _cursor_position: Point,
+            cursor_position: Point,
             messages: &mut Vec<Message>,
             _renderer: &Renderer,
             _clipboard: Option<&dyn Clipboard>,
         ) {
             let bounds = layout.bounds();
             match event {
-                Event::Mouse(input::mouse::Event::CursorMoved { x, y })
-                    if bounds.contains(Point::new(x, y)) =>
-                {
-                    let pos = Point::new(x - bounds.x, y - bounds.y);
-                    if self.state.is_dragging {
-                        if let Some(prev) = self.state.previous_mouse_pos {
-                            messages.push((self.on_stroke)((prev, pos)));
-                        }
-                    }
-                    self.state.previous_mouse_pos = Some(pos);
-                }
                 Event::Mouse(input::mouse::Event::Input { state, .. }) => {
-                    match state {
-                        input::ButtonState::Pressed => {
-                            self.state.is_dragging = true;
-                        }
-                        input::ButtonState::Released => {
-                            self.state.is_dragging = false;
-                        }
+                    if state == input::ButtonState::Pressed
+                        && bounds.contains(cursor_position)
+                    {
+                        messages.push((self.on_click)(Point::new(
+                            cursor_position.x - bounds.x,
+                            cursor_position.y - bounds.y,
+                        )));
                     }
                 }
                 _ => {}
@@ -186,7 +213,7 @@ mod paint {
         }
     }
 
-    impl<'a, Message> Into<Element<'a, Message, Renderer>> for Paint<'a, Message>
+    impl<'a, Message> Into<Element<'a, Message, Renderer>> for Bezier<'a, Message>
     where
         Message: 'static,
     {
@@ -196,12 +223,12 @@ mod paint {
     }
 }
 
+use bezier::Bezier;
 use iced::{
     button, Align, Button, Color, Column, Container, Element, Length, Sandbox,
     Settings, Text,
 };
 use iced_native::Point;
-use paint::Paint;
 
 pub fn main() {
     Example::run(Settings::default())
@@ -209,14 +236,14 @@ pub fn main() {
 
 #[derive(Default)]
 struct Example {
-    paint_state: paint::State,
-    strokes: Vec<(Point, Point)>,
+    bezier_points: Vec<[Point; 3]>,
+    pending_points: Vec<Point>,
     button_state: button::State,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Stroke((Point, Point)),
+    AddPoint(Point),
     Clear,
 }
 
@@ -228,16 +255,25 @@ impl Sandbox for Example {
     }
 
     fn title(&self) -> String {
-        String::from("Paint - Iced")
+        String::from("Bezier tool - Iced")
     }
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::Stroke(stroke) => {
-                self.strokes.push(stroke);
+            Message::AddPoint(point) => {
+                self.pending_points.push(point);
+                if self.pending_points.len() == 3 {
+                    self.bezier_points.push([
+                        self.pending_points[0],
+                        self.pending_points[1],
+                        self.pending_points[2],
+                    ]);
+                    self.pending_points.clear();
+                }
             }
             Message::Clear => {
-                self.strokes.clear();
+                self.bezier_points.clear();
+                self.pending_points.clear();
             }
         }
     }
@@ -247,11 +283,15 @@ impl Sandbox for Example {
             .padding(20)
             .spacing(20)
             .align_items(Align::Center)
-            .push(Text::new("Paint example").width(Length::Shrink).size(50))
-            .push(Paint::new(
-                self.strokes.as_slice(),
-                &mut self.paint_state,
-                Message::Stroke,
+            .push(
+                Text::new("Bezier tool example")
+                    .width(Length::Shrink)
+                    .size(50),
+            )
+            .push(Bezier::new(
+                self.bezier_points.as_slice(),
+                self.pending_points.as_slice(),
+                Message::AddPoint,
             ))
             .push(
                 Button::new(&mut self.button_state, Text::new("Clear"))
