@@ -21,9 +21,9 @@ impl checkbox::Renderer for Renderer {
         style_sheet: &Self::Style,
     ) -> Self::Output {
         let style = if is_mouse_over {
-            style_sheet.hovered()
+            style_sheet.hovered(is_checked)
         } else {
-            style_sheet.active()
+            style_sheet.active(is_checked)
         };
 
         let checkbox = Primitive::Quad {

@@ -493,20 +493,27 @@ mod style {
         pub struct Checkbox;
 
         impl checkbox::StyleSheet for Checkbox {
-            fn active(&self) -> checkbox::Style {
+            fn active(&self, is_checked: bool) -> checkbox::Style {
                 checkbox::Style {
-                    background: Background::Color(SURFACE),
-                    checkmark_color: ACTIVE,
+                    background: Background::Color(if is_checked {
+                        ACTIVE
+                    } else {
+                        SURFACE
+                    }),
+                    checkmark_color: Color::WHITE,
                     border_radius: 2,
                     border_width: 1,
                     border_color: ACTIVE,
                 }
             }
 
-            fn hovered(&self) -> checkbox::Style {
+            fn hovered(&self, is_checked: bool) -> checkbox::Style {
                 checkbox::Style {
-                    background: Background::Color(Color { a: 0.5, ..SURFACE }),
-                    ..self.active()
+                    background: Background::Color(Color {
+                        a: 0.8,
+                        ..if is_checked { ACTIVE } else { SURFACE }
+                    }),
+                    ..self.active(is_checked)
                 }
             }
         }

@@ -13,15 +13,15 @@ pub struct Style {
 
 /// A set of rules that dictate the style of a checkbox.
 pub trait StyleSheet {
-    fn active(&self) -> Style;
+    fn active(&self, is_checked: bool) -> Style;
 
-    fn hovered(&self) -> Style;
+    fn hovered(&self, is_checked: bool) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet for Default {
-    fn active(&self) -> Style {
+    fn active(&self, _is_checked: bool) -> Style {
         Style {
             background: Background::Color(Color::from_rgb(0.95, 0.95, 0.95)),
             checkmark_color: Color::from_rgb(0.3, 0.3, 0.3),
@@ -31,10 +31,10 @@ impl StyleSheet for Default {
         }
     }
 
-    fn hovered(&self) -> Style {
+    fn hovered(&self, is_checked: bool) -> Style {
         Style {
             background: Background::Color(Color::from_rgb(0.90, 0.90, 0.90)),
-            ..self.active()
+            ..self.active(is_checked)
         }
     }
 }
