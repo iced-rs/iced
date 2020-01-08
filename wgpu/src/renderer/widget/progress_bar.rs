@@ -29,20 +29,24 @@ impl progress_bar::Renderer for Renderer {
             }],
         };
 
-        let bar = Primitive::Quad {
-            bounds: Rectangle {
-                width: active_progress_width,
-                ..bounds
-            },
-            background: style.bar,
-            border_radius: style.border_radius,
-            border_width: 0,
-            border_color: Color::TRANSPARENT,
-        };
-
         (
-            Primitive::Group {
-                primitives: vec![background, bar],
+            if active_progress_width > 0.0 {
+                let bar = Primitive::Quad {
+                    bounds: Rectangle {
+                        width: active_progress_width,
+                        ..bounds
+                    },
+                    background: style.bar,
+                    border_radius: style.border_radius,
+                    border_width: 0,
+                    border_color: Color::TRANSPARENT,
+                };
+
+                Primitive::Group {
+                    primitives: vec![background, bar],
+                }
+            } else {
+                background
             },
             MouseCursor::OutOfBounds,
         )
