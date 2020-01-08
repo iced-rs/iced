@@ -147,11 +147,7 @@ mod paint {
             )
         }
 
-        fn hash_layout(&self, state: &mut Hasher) {
-            use std::hash::Hash;
-
-            self.strokes.len().hash(state);
-        }
+        fn hash_layout(&self, _state: &mut Hasher) {}
 
         fn on_event(
             &mut self,
