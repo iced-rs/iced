@@ -52,7 +52,7 @@ impl Limits {
             Length::Shrink => {
                 self.fill.width = self.min.width;
             }
-            Length::Fill => {
+            Length::Fill | Length::FillPortion(_) => {
                 self.fill.width = self.fill.width.min(self.max.width);
             }
             Length::Units(units) => {
@@ -76,7 +76,7 @@ impl Limits {
             Length::Shrink => {
                 self.fill.height = self.min.height;
             }
-            Length::Fill => {
+            Length::Fill | Length::FillPortion(_) => {
                 self.fill.height = self.fill.height.min(self.max.height);
             }
             Length::Units(units) => {

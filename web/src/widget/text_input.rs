@@ -32,6 +32,7 @@ pub struct TextInput<'a, Message> {
     _state: &'a mut State,
     placeholder: String,
     value: String,
+    is_secure: bool,
     width: Length,
     max_width: Length,
     padding: u16,
@@ -64,6 +65,7 @@ impl<'a, Message> TextInput<'a, Message> {
             _state: state,
             placeholder: String::from(placeholder),
             value: String::from(value),
+            is_secure: false,
             width: Length::Fill,
             max_width: Length::Shrink,
             padding: 0,
@@ -73,6 +75,14 @@ impl<'a, Message> TextInput<'a, Message> {
         }
     }
 
+    /// Converts the [`TextInput`] into a secure password input.
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn password(mut self) -> Self {
+        self.is_secure = true;
+        self
+    }
+    
     /// Sets the width of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
@@ -160,6 +170,10 @@ where
             .attr(
                 "value",
                 bumpalo::format!(in bump, "{}", self.value).into_bump_str(),
+            )
+            .attr(
+                "type",
+                bumpalo::format!(in bump, "{}", if self.is_secure { "password" } else { "text" }).into_bump_str(),
             )
             .on("input", move |root, vdom, event| {
                 let text_input = match event.target().and_then(|t| {

@@ -1,6 +1,6 @@
 pub use iced_winit::{
     Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    Subscription, VerticalAlignment,
+    Space, Subscription, VerticalAlignment,
 };
 
 pub mod widget {
@@ -85,7 +85,7 @@ pub mod widget {
         pub use iced_winit::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::{Checkbox, Radio, Text};
+    pub use iced_winit::{Checkbox, ProgressBar, Radio, Text};
 
     #[doc(no_inline)]
     pub use {
