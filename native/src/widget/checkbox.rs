@@ -53,7 +53,7 @@ impl<Message, Renderer: self::Renderer> Checkbox<Message, Renderer> {
             is_checked,
             on_toggle: Box::new(f),
             label: String::from(label),
-            width: Length::Fill,
+            width: Length::Shrink,
             style: Renderer::Style::default(),
         }
     }

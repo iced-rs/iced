@@ -95,7 +95,6 @@ impl Application for Stopwatch {
             seconds % MINUTE,
             self.duration.subsec_millis() / 10,
         ))
-        .width(Length::Shrink)
         .size(40);
 
         let button = |state, label, style| {
@@ -123,13 +122,11 @@ impl Application for Stopwatch {
                 .on_press(Message::Reset);
 
         let controls = Row::new()
-            .width(Length::Shrink)
             .spacing(20)
             .push(toggle_button)
             .push(reset_button);
 
         let content = Column::new()
-            .width(Length::Shrink)
             .align_items(Align::Center)
             .spacing(20)
             .push(duration)

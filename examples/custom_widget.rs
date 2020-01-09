@@ -127,10 +127,7 @@ impl Sandbox for Example {
             .max_width(500)
             .align_items(Align::Center)
             .push(Circle::new(self.radius))
-            .push(
-                Text::new(format!("Radius: {}", self.radius.to_string()))
-                    .width(Length::Shrink),
-            )
+            .push(Text::new(format!("Radius: {}", self.radius.to_string())))
             .push(Slider::new(
                 &mut self.slider,
                 1.0..=100.0,

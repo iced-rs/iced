@@ -70,7 +70,7 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
     where
         F: 'static + Fn(String) -> Message,
     {
-        Self {
+        TextInput {
             state,
             placeholder: String::from(placeholder),
             value: Value::new(value),

@@ -96,6 +96,7 @@ where
         let size = self::Renderer::default_size(renderer);
 
         Row::<(), Renderer>::new()
+            .width(Length::Fill)
             .spacing(15)
             .align_items(Align::Center)
             .push(

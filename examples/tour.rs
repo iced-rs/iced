@@ -403,6 +403,7 @@ impl<'a> Step {
             ))
             .push(
                 Text::new(&value.to_string())
+                    .width(Length::Fill)
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
     }
@@ -449,6 +450,7 @@ impl<'a> Step {
             ))
             .push(
                 Text::new(&format!("{} px", spacing))
+                    .width(Length::Fill)
                     .horizontal_alignment(HorizontalAlignment::Center),
             );
 
@@ -563,6 +565,7 @@ impl<'a> Step {
             ))
             .push(
                 Text::new(&format!("Width: {} px", width.to_string()))
+                    .width(Length::Fill)
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
     }
@@ -582,6 +585,7 @@ impl<'a> Step {
             .push(Column::new().height(Length::Units(4096)))
             .push(
                 Text::new("You are halfway there!")
+                    .width(Length::Fill)
                     .size(30)
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
@@ -589,6 +593,7 @@ impl<'a> Step {
             .push(ferris(300))
             .push(
                 Text::new("You made it!")
+                    .width(Length::Fill)
                     .size(50)
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
@@ -631,6 +636,7 @@ impl<'a> Step {
                 } else {
                     value
                 })
+                .width(Length::Fill)
                 .horizontal_alignment(HorizontalAlignment::Center),
             )
     }
