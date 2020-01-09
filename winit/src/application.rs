@@ -484,7 +484,6 @@ fn to_physical(size: winit::dpi::LogicalSize<f64>, dpi: f64) -> (u32, u32) {
 }
 
 // As defined in: http://www.unicode.org/faq/private_use.html
-// TODO: Remove once https://github.com/rust-windowing/winit/pull/1254 lands
 fn is_private_use_character(c: char) -> bool {
     match c {
         '\u{E000}'..='\u{F8FF}'
