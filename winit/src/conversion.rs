@@ -59,10 +59,10 @@ pub fn modifiers_state(
     modifiers: winit::event::ModifiersState,
 ) -> ModifiersState {
     ModifiersState {
-        shift: modifiers.shift,
-        control: modifiers.ctrl,
-        alt: modifiers.alt,
-        logo: modifiers.logo,
+        shift: modifiers.shift(),
+        control: modifiers.ctrl(),
+        alt: modifiers.alt(),
+        logo: modifiers.logo(),
     }
 }
 

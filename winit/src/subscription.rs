@@ -17,7 +17,7 @@ impl Pool {
         }
     }
 
-    pub fn update<Message: Send>(
+    pub fn update<Message: std::fmt::Debug + Send>(
         &mut self,
         subscription: Subscription<Message>,
         thread_pool: &mut futures::executor::ThreadPool,
