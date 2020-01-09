@@ -38,7 +38,7 @@ pub trait Target {
         window: &W,
         width: u32,
         height: u32,
-        scale_factor: f32,
+        scale_factor: f64,
         renderer: &Self::Renderer,
     ) -> Self;
 
@@ -49,7 +49,7 @@ pub trait Target {
         &mut self,
         width: u32,
         height: u32,
-        scale_factor: f32,
+        scale_factor: f64,
         renderer: &Self::Renderer,
     );
 }

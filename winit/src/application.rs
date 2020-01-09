@@ -145,7 +145,7 @@ pub trait Application: Sized {
                 &window,
                 physical_size.width,
                 physical_size.height,
-                size.scale_factor() as f32,
+                size.scale_factor(),
                 &renderer,
             )
         };
@@ -272,7 +272,7 @@ pub trait Application: Sized {
                     target.resize(
                         physical_size.width,
                         physical_size.height,
-                        size.scale_factor() as f32,
+                        size.scale_factor(),
                         &renderer,
                     );
 
