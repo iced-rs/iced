@@ -158,21 +158,20 @@ pub trait Application: Sized {
             window_builder.build(&event_loop).expect("Open window")
         };
 
-        let mut scale_factor = window.scale_factor();
-        let mut size = window.inner_size().to_logical::<f64>(scale_factor);
+        let mut size = Size::new(window.inner_size(), window.scale_factor());
         let mut resized = false;
 
         let clipboard = Clipboard::new(&window);
         let mut renderer = Self::Renderer::new(renderer_settings);
 
         let mut target = {
-            let (width, height) = to_physical(size, scale_factor);
+            let physical_size = size.physical();
 
             <Self::Renderer as window::Renderer>::Target::new(
                 &window,
-                width,
-                height,
-                scale_factor as f32,
+                physical_size.width,
+                physical_size.height,
+                size.scale_factor() as f32,
                 &renderer,
             )
         };
@@ -181,7 +180,7 @@ pub trait Application: Sized {
             &mut application,
             Cache::default(),
             &mut renderer,
-            size,
+            size.logical(),
             &mut debug,
         );
 
@@ -213,7 +212,7 @@ pub trait Application: Sized {
                     &mut application,
                     cache.take().unwrap(),
                     &mut renderer,
-                    size,
+                    size.logical(),
                     &mut debug,
                 );
 
@@ -285,7 +284,7 @@ pub trait Application: Sized {
                         &mut application,
                         temp_cache,
                         &mut renderer,
-                        size,
+                        size.logical(),
                         &mut debug,
                     );
 
@@ -305,12 +304,12 @@ pub trait Application: Sized {
                 debug.render_started();
 
                 if resized {
-                    let (width, height) = to_physical(size, scale_factor);
+                    let physical_size = size.physical();
 
                     target.resize(
-                        width,
-                        height,
-                        scale_factor as f32,
+                        physical_size.width,
+                        physical_size.height,
+                        size.scale_factor() as f32,
                         &renderer,
                     );
 
@@ -338,11 +337,11 @@ pub trait Application: Sized {
                 ..
             } => match window_event {
                 WindowEvent::Resized(new_size) => {
-                    size = new_size.to_logical(scale_factor);
+                    size = Size::new(new_size, size.scale_factor());
 
                     events.push(Event::Window(window::Event::Resized {
-                        width: size.width.round() as u32,
-                        height: size.height.round() as u32,
+                        width: size.logical().width.round() as u32,
+                        height: size.logical().height.round() as u32,
                     }));
 
                     resized = true;
@@ -351,7 +350,8 @@ pub trait Application: Sized {
                     *control_flow = ControlFlow::Exit;
                 }
                 WindowEvent::CursorMoved { position, .. } => {
-                    let position = position.to_logical::<f64>(scale_factor);
+                    let position =
+                        position.to_logical::<f64>(size.scale_factor());
 
                     events.push(Event::Mouse(mouse::Event::CursorMoved {
                         x: position.x as f32,
@@ -430,11 +430,8 @@ pub trait Application: Sized {
                 WindowEvent::HoveredFileCancelled => {
                     events.push(Event::Window(window::Event::FilesHoveredLeft));
                 }
-                WindowEvent::ScaleFactorChanged {
-                    scale_factor: new_scale_factor,
-                    ..
-                } => {
-                    scale_factor = new_scale_factor;
+                WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                    size = Size::new(size.physical(), scale_factor);
                 }
                 _ => {}
             },
@@ -465,22 +462,16 @@ fn build_user_interface<'a, A: Application>(
     debug.layout_started();
     let user_interface = UserInterface::build(
         view,
-        Size::new(size.width.round() as f32, size.height.round() as f32),
+        iced_native::Size::new(
+            size.width.round() as f32,
+            size.height.round() as f32,
+        ),
         cache,
         renderer,
     );
     debug.layout_finished();
 
     user_interface
-}
-
-fn to_physical(size: winit::dpi::LogicalSize<f64>, dpi: f64) -> (u32, u32) {
-    let physical_size = size.to_physical::<f64>(dpi);
-
-    (
-        physical_size.width.round() as u32,
-        physical_size.height.round() as u32,
-    )
 }
 
 // As defined in: http://www.unicode.org/faq/private_use.html
