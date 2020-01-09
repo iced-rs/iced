@@ -11,14 +11,15 @@ use std::{f32, hash::Hash, u32};
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
 #[allow(missing_debug_implementations)]
-pub struct Scrollable<'a, Message, Renderer> {
+pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     height: Length,
     max_height: u32,
     content: Column<'a, Message, Renderer>,
+    style: Renderer::Style,
 }
 
-impl<'a, Message, Renderer> Scrollable<'a, Message, Renderer> {
+impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     /// Creates a new [`Scrollable`] with the given [`State`].
     ///
     /// [`Scrollable`]: struct.Scrollable.html
@@ -29,6 +30,7 @@ impl<'a, Message, Renderer> Scrollable<'a, Message, Renderer> {
             height: Length::Shrink,
             max_height: u32::MAX,
             content: Column::new(),
+            style: Renderer::Style::default(),
         }
     }
 
@@ -90,6 +92,14 @@ impl<'a, Message, Renderer> Scrollable<'a, Message, Renderer> {
         self
     }
 
+    /// Sets the style of the [`Scrollable`] .
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
+        self
+    }
+
     /// Adds an element to the [`Scrollable`].
     ///
     /// [`Scrollable`]: struct.Scrollable.html
@@ -105,7 +115,7 @@ impl<'a, Message, Renderer> Scrollable<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Scrollable<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + column::Renderer,
+    Renderer: 'static + self::Renderer + column::Renderer,
 {
     fn width(&self) -> Length {
         Length::Fill
@@ -255,6 +265,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
@@ -277,7 +288,12 @@ where
                 Point::new(cursor_position.x, -1.0)
             };
 
-            self.content.draw(renderer, content_layout, cursor_position)
+            self.content.draw(
+                renderer,
+                defaults,
+                content_layout,
+                cursor_position,
+            )
         };
 
         self::Renderer::draw(
@@ -289,12 +305,13 @@ where
             is_mouse_over_scrollbar,
             scrollbar,
             offset,
+            &self.style,
             content,
         )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Scrollable<'static, (), ()>>().hash(state);
+        std::any::TypeId::of::<Scrollable<'static, (), Renderer>>().hash(state);
 
         self.height.hash(state);
         self.max_height.hash(state);
@@ -441,6 +458,9 @@ pub struct Scroller {
 /// [`Scrollable`]: struct.Scrollable.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// The style supported by this renderer.
+    type Style: Default;
+
     /// Returns the [`Scrollbar`] given the bounds and content bounds of a
     /// [`Scrollable`].
     ///
@@ -477,6 +497,7 @@ pub trait Renderer: crate::Renderer + Sized {
         is_mouse_over_scrollbar: bool,
         scrollbar: Option<Scrollbar>,
         offset: u32,
+        style: &Self::Style,
         content: Self::Output,
     ) -> Self::Output;
 }
@@ -484,7 +505,7 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + column::Renderer,
+    Renderer: 'static + self::Renderer + column::Renderer,
     Message: 'static,
 {
     fn from(

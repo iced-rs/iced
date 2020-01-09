@@ -1,7 +1,7 @@
 //! Create choices using radio buttons.
 use crate::{
     input::{mouse, ButtonState},
-    layout, row, text, Align, Clipboard, Color, Element, Event, Font, Hasher,
+    layout, row, text, Align, Clipboard, Element, Event, Font, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
 };
@@ -12,7 +12,8 @@ use std::hash::Hash;
 ///
 /// # Example
 /// ```
-/// # use iced_native::Radio;
+/// # type Radio<Message> =
+/// #     iced_native::Radio<Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {
@@ -34,14 +35,14 @@ use std::hash::Hash;
 ///
 /// ![Radio buttons drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Radio<Message> {
+pub struct Radio<Message, Renderer: self::Renderer> {
     is_selected: bool,
     on_click: Message,
     label: String,
-    label_color: Option<Color>,
+    style: Renderer::Style,
 }
 
-impl<Message> Radio<Message> {
+impl<Message, Renderer: self::Renderer> Radio<Message, Renderer> {
     /// Creates a new [`Radio`] button.
     ///
     /// It expects:
@@ -61,20 +62,20 @@ impl<Message> Radio<Message> {
             is_selected: Some(value) == selected,
             on_click: f(value),
             label: String::from(label),
-            label_color: None,
+            style: Renderer::Style::default(),
         }
     }
 
-    /// Sets the `Color` of the label of the [`Radio`].
+    /// Sets the style of the [`Radio`] button.
     ///
     /// [`Radio`]: struct.Radio.html
-    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
-        self.label_color = Some(color.into());
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message>
+impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
     Renderer: self::Renderer + text::Renderer + row::Renderer,
     Message: Clone,
@@ -132,6 +133,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
@@ -144,11 +146,12 @@ where
 
         let label = text::Renderer::draw(
             renderer,
+            defaults,
             label_layout.bounds(),
             &self.label,
             text::Renderer::default_size(renderer),
             Font::Default,
-            self.label_color,
+            None,
             HorizontalAlignment::Left,
             VerticalAlignment::Center,
         );
@@ -161,6 +164,7 @@ where
             self.is_selected,
             is_mouse_over,
             label,
+            &self.style,
         )
     }
 
@@ -177,6 +181,9 @@ where
 /// [`Radio`]: struct.Radio.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// The style supported by this renderer.
+    type Style: Default;
+
     /// Returns the default size of a [`Radio`] button.
     ///
     /// [`Radio`]: struct.Radio.html
@@ -197,16 +204,17 @@ pub trait Renderer: crate::Renderer {
         is_selected: bool,
         is_mouse_over: bool,
         label: Self::Output,
+        style: &Self::Style,
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Radio<Message>>
+impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + row::Renderer + text::Renderer,
+    Renderer: 'static + self::Renderer + row::Renderer + text::Renderer,
     Message: 'static + Clone,
 {
-    fn from(radio: Radio<Message>) -> Element<'a, Message, Renderer> {
+    fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(radio)
     }
 }

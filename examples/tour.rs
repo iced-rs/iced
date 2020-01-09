@@ -62,8 +62,9 @@ impl Sandbox for Tour {
 
         if steps.has_previous() {
             controls = controls.push(
-                secondary_button(back_button, "Back")
-                    .on_press(Message::BackPressed),
+                button(back_button, "Back")
+                    .on_press(Message::BackPressed)
+                    .style(style::Button::Secondary),
             );
         }
 
@@ -71,8 +72,9 @@ impl Sandbox for Tour {
 
         if steps.can_continue() {
             controls = controls.push(
-                primary_button(next_button, "Next")
-                    .on_press(Message::NextPressed),
+                button(next_button, "Next")
+                    .on_press(Message::NextPressed)
+                    .style(style::Button::Primary),
             );
         }
 
@@ -698,27 +700,10 @@ fn button<'a, Message>(
 ) -> Button<'a, Message> {
     Button::new(
         state,
-        Text::new(label)
-            .color(Color::WHITE)
-            .horizontal_alignment(HorizontalAlignment::Center),
+        Text::new(label).horizontal_alignment(HorizontalAlignment::Center),
     )
     .padding(12)
-    .border_radius(12)
     .min_width(100)
-}
-
-fn primary_button<'a, Message>(
-    state: &'a mut button::State,
-    label: &str,
-) -> Button<'a, Message> {
-    button(state, label).background(Color::from_rgb(0.11, 0.42, 0.87))
-}
-
-fn secondary_button<'a, Message>(
-    state: &'a mut button::State,
-    label: &str,
-) -> Button<'a, Message> {
-    button(state, label).background(Color::from_rgb(0.4, 0.4, 0.4))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -761,6 +746,38 @@ impl From<Language> for &str {
 pub enum Layout {
     Row,
     Column,
+}
+
+mod style {
+    use iced::{button, Background, Color, Vector};
+
+    pub enum Button {
+        Primary,
+        Secondary,
+    }
+
+    impl button::StyleSheet for Button {
+        fn active(&self) -> button::Style {
+            button::Style {
+                background: Some(Background::Color(match self {
+                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
+                    Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
+                })),
+                border_radius: 12,
+                shadow_offset: Vector::new(1.0, 1.0),
+                text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
+                ..button::Style::default()
+            }
+        }
+
+        fn hovered(&self) -> button::Style {
+            button::Style {
+                text_color: Color::WHITE,
+                shadow_offset: Vector::new(1.0, 2.0),
+                ..self.active()
+            }
+        }
+    }
 }
 
 // This should be gracefully handled by Iced in the future. Probably using our

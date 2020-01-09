@@ -1,16 +1,7 @@
-use iced::{
-    settings::Window, slider, Background, Color, Column, Element, Length,
-    ProgressBar, Sandbox, Settings, Slider,
-};
+use iced::{slider, Column, Element, ProgressBar, Sandbox, Settings, Slider};
 
 pub fn main() {
-    Progress::run(Settings {
-        window: Window {
-            size: (700, 300),
-            resizable: true,
-            decorations: true,
-        },
-    })
+    Progress::run(Settings::default())
 }
 
 #[derive(Default)]
@@ -44,14 +35,7 @@ impl Sandbox for Progress {
     fn view(&mut self) -> Element<Message> {
         Column::new()
             .padding(20)
-            .push(
-                ProgressBar::new(0.0..=100.0, self.value)
-                    .background(Background::Color(Color::from_rgb(
-                        0.6, 0.6, 0.6,
-                    )))
-                    .active_color(Color::from_rgb(0.0, 0.95, 0.0))
-                    .height(Length::Units(30)),
-            )
+            .push(ProgressBar::new(0.0..=100.0, self.value))
             .push(Slider::new(
                 &mut self.progress_bar_slider,
                 0.0..=100.0,

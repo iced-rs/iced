@@ -235,10 +235,12 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        self.widget.draw(renderer, layout, cursor_position)
+        self.widget
+            .draw(renderer, defaults, layout, cursor_position)
     }
 
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {
@@ -316,10 +318,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        self.widget.draw(renderer, layout, cursor_position)
+        self.widget
+            .draw(renderer, defaults, layout, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -384,10 +388,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
         renderer.explain(
+            defaults,
             self.element.widget.as_ref(),
             layout,
             cursor_position,

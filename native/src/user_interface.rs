@@ -43,24 +43,7 @@ where
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
-    /// #     pub struct Renderer;
-    /// #
-    /// #     impl Renderer {
-    /// #         pub fn new() -> Self { Renderer }
-    /// #     }
-    /// #
-    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
-    /// #
-    /// #     impl iced_native::column::Renderer for Renderer {
-    /// #         fn draw<Message>(
-    /// #             &mut self,
-    /// #             _children: &[iced_native::Element<'_, Message, Self>],
-    /// #             _layout: iced_native::Layout<'_>,
-    /// #             _cursor_position: iced_native::Point,
-    /// #         ) -> Self::Output {
-    /// #             ()
-    /// #         }
-    /// #     }
+    /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
     /// # use iced_native::Column;
@@ -139,24 +122,7 @@ where
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
-    /// #     pub struct Renderer;
-    /// #
-    /// #     impl Renderer {
-    /// #         pub fn new() -> Self { Renderer }
-    /// #     }
-    /// #
-    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
-    /// #
-    /// #     impl iced_native::column::Renderer for Renderer {
-    /// #         fn draw<Message>(
-    /// #             &mut self,
-    /// #             _children: &[iced_native::Element<'_, Message, Self>],
-    /// #             _layout: iced_native::Layout<'_>,
-    /// #             _cursor_position: iced_native::Point,
-    /// #         ) -> Self::Output {
-    /// #             ()
-    /// #         }
-    /// #     }
+    /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
     /// # use iced_native::Column;
@@ -241,24 +207,7 @@ where
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
-    /// #     pub struct Renderer;
-    /// #
-    /// #     impl Renderer {
-    /// #         pub fn new() -> Self { Renderer }
-    /// #     }
-    /// #
-    /// #     impl iced_native::Renderer for Renderer { type Output = (); }
-    /// #
-    /// #     impl iced_native::column::Renderer for Renderer {
-    /// #         fn draw<Message>(
-    /// #             &mut self,
-    /// #             _children: &[iced_native::Element<'_, Message, Self>],
-    /// #             _layout: iced_native::Layout<'_>,
-    /// #             _cursor_position: iced_native::Point,
-    /// #         ) -> Self::Output {
-    /// #             ()
-    /// #         }
-    /// #     }
+    /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
     /// # use iced_native::Column;
@@ -304,6 +253,7 @@ where
     pub fn draw(&self, renderer: &mut Renderer) -> Renderer::Output {
         self.root.widget.draw(
             renderer,
+            &Renderer::Defaults::default(),
             Layout::new(&self.layout),
             self.cursor_position,
         )

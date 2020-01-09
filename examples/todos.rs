@@ -1,7 +1,7 @@
 use iced::{
     button, scrollable, text_input, Align, Application, Button, Checkbox,
-    Color, Column, Command, Container, Element, Font, HorizontalAlignment,
-    Length, Row, Scrollable, Settings, Text, TextInput,
+    Column, Command, Container, Element, Font, HorizontalAlignment, Length,
+    Row, Scrollable, Settings, Text, TextInput,
 };
 use serde::{Deserialize, Serialize};
 
@@ -293,12 +293,10 @@ impl Task {
                     .align_items(Align::Center)
                     .push(checkbox)
                     .push(
-                        Button::new(
-                            edit_button,
-                            edit_icon().color([0.5, 0.5, 0.5]),
-                        )
-                        .on_press(TaskMessage::Edit)
-                        .padding(10),
+                        Button::new(edit_button, edit_icon())
+                            .on_press(TaskMessage::Edit)
+                            .padding(10)
+                            .style(style::Button::Icon),
                     )
                     .into()
             }
@@ -324,13 +322,12 @@ impl Task {
                             delete_button,
                             Row::new()
                                 .spacing(10)
-                                .push(delete_icon().color(Color::WHITE))
-                                .push(Text::new("Delete").color(Color::WHITE)),
+                                .push(delete_icon())
+                                .push(Text::new("Delete")),
                         )
                         .on_press(TaskMessage::Delete)
                         .padding(10)
-                        .border_radius(5)
-                        .background(Color::from_rgb(0.8, 0.2, 0.2)),
+                        .style(style::Button::Destructive),
                     )
                     .into()
             }
@@ -357,17 +354,12 @@ impl Controls {
 
         let filter_button = |state, label, filter, current_filter| {
             let label = Text::new(label).size(16);
-            let button = if filter == current_filter {
-                Button::new(state, label.color(Color::WHITE))
-                    .background(Color::from_rgb(0.2, 0.2, 0.7))
-            } else {
-                Button::new(state, label)
-            };
+            let button =
+                Button::new(state, label).style(style::Button::Filter {
+                    selected: filter == current_filter,
+                });
 
-            button
-                .on_press(Message::FilterChanged(filter))
-                .padding(8)
-                .border_radius(10)
+            button.on_press(Message::FilterChanged(filter)).padding(8)
         };
 
         Row::new()
@@ -558,5 +550,65 @@ impl SavedState {
         async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
         Ok(())
+    }
+}
+
+mod style {
+    use iced::{button, Background, Color, Vector};
+
+    pub enum Button {
+        Filter { selected: bool },
+        Icon,
+        Destructive,
+    }
+
+    impl button::StyleSheet for Button {
+        fn active(&self) -> button::Style {
+            match self {
+                Button::Filter { selected } => {
+                    if *selected {
+                        button::Style {
+                            background: Some(Background::Color(
+                                Color::from_rgb(0.2, 0.2, 0.7),
+                            )),
+                            border_radius: 10,
+                            text_color: Color::WHITE,
+                            ..button::Style::default()
+                        }
+                    } else {
+                        button::Style::default()
+                    }
+                }
+                Button::Icon => button::Style {
+                    text_color: Color::from_rgb(0.5, 0.5, 0.5),
+                    ..button::Style::default()
+                },
+                Button::Destructive => button::Style {
+                    background: Some(Background::Color(Color::from_rgb(
+                        0.8, 0.2, 0.2,
+                    ))),
+                    border_radius: 5,
+                    text_color: Color::WHITE,
+                    shadow_offset: Vector::new(1.0, 1.0),
+                    ..button::Style::default()
+                },
+            }
+        }
+
+        fn hovered(&self) -> button::Style {
+            let active = self.active();
+
+            button::Style {
+                text_color: match self {
+                    Button::Icon => Color::from_rgb(0.2, 0.2, 0.7),
+                    Button::Filter { selected } if !selected => {
+                        Color::from_rgb(0.2, 0.2, 0.7)
+                    }
+                    _ => active.text_color,
+                },
+                shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
+                ..active
+            }
+        }
     }
 }

@@ -1,10 +1,14 @@
 use crate::{Primitive, Renderer};
-use iced_native::{scrollable, Background, MouseCursor, Rectangle, Vector};
+use iced_native::{
+    scrollable, Background, Color, MouseCursor, Rectangle, Vector,
+};
 
 const SCROLLBAR_WIDTH: u16 = 10;
 const SCROLLBAR_MARGIN: u16 = 2;
 
 impl scrollable::Renderer for Renderer {
+    type Style = Box<dyn iced_style::scrollable::StyleSheet>;
+
     fn scrollbar(
         &self,
         bounds: Rectangle,
@@ -51,6 +55,7 @@ impl scrollable::Renderer for Renderer {
         is_mouse_over_scrollbar: bool,
         scrollbar: Option<scrollable::Scrollbar>,
         offset: u32,
+        style_sheet: &Self::Style,
         (content, mouse_cursor): Self::Output,
     ) -> Self::Output {
         let clip = Primitive::Clip {
@@ -61,40 +66,53 @@ impl scrollable::Renderer for Renderer {
 
         (
             if let Some(scrollbar) = scrollbar {
-                if is_mouse_over || state.is_scroller_grabbed() {
-                    let scroller = Primitive::Quad {
+                let style = if state.is_scroller_grabbed() {
+                    style_sheet.dragging()
+                } else if is_mouse_over_scrollbar {
+                    style_sheet.hovered()
+                } else {
+                    style_sheet.active()
+                };
+
+                let is_scrollbar_visible =
+                    style.background.is_some() || style.border_width > 0;
+
+                let scroller = if is_mouse_over
+                    || state.is_scroller_grabbed()
+                    || is_scrollbar_visible
+                {
+                    Primitive::Quad {
                         bounds: scrollbar.scroller.bounds,
-                        background: Background::Color(
-                            [0.0, 0.0, 0.0, 0.7].into(),
-                        ),
-                        border_radius: 5,
-                    };
-
-                    if is_mouse_over_scrollbar || state.is_scroller_grabbed() {
-                        let scrollbar = Primitive::Quad {
-                            bounds: Rectangle {
-                                x: scrollbar.bounds.x
-                                    + f32::from(SCROLLBAR_MARGIN),
-                                width: scrollbar.bounds.width
-                                    - f32::from(2 * SCROLLBAR_MARGIN),
-                                ..scrollbar.bounds
-                            },
-                            background: Background::Color(
-                                [0.0, 0.0, 0.0, 0.3].into(),
-                            ),
-                            border_radius: 5,
-                        };
-
-                        Primitive::Group {
-                            primitives: vec![clip, scrollbar, scroller],
-                        }
-                    } else {
-                        Primitive::Group {
-                            primitives: vec![clip, scroller],
-                        }
+                        background: Background::Color(style.scroller.color),
+                        border_radius: style.scroller.border_radius,
+                        border_width: style.scroller.border_width,
+                        border_color: style.scroller.border_color,
                     }
                 } else {
-                    clip
+                    Primitive::None
+                };
+
+                let scrollbar = if is_scrollbar_visible {
+                    Primitive::Quad {
+                        bounds: Rectangle {
+                            x: scrollbar.bounds.x + f32::from(SCROLLBAR_MARGIN),
+                            width: scrollbar.bounds.width
+                                - f32::from(2 * SCROLLBAR_MARGIN),
+                            ..scrollbar.bounds
+                        },
+                        background: style
+                            .background
+                            .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                        border_radius: style.border_radius,
+                        border_width: style.border_width,
+                        border_color: style.border_color,
+                    }
+                } else {
+                    Primitive::None
+                };
+
+                Primitive::Group {
+                    primitives: vec![clip, scrollbar, scroller],
                 }
             } else {
                 clip

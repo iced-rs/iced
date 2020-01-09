@@ -27,6 +27,7 @@ impl text::Renderer for Renderer {
 
     fn draw(
         &mut self,
+        defaults: &Self::Defaults,
         bounds: Rectangle,
         content: &str,
         size: u16,
@@ -40,7 +41,7 @@ impl text::Renderer for Renderer {
                 content: content.to_string(),
                 size: f32::from(size),
                 bounds,
-                color: color.unwrap_or(Color::BLACK),
+                color: color.unwrap_or(defaults.text.color),
                 font,
                 horizontal_alignment,
                 vertical_alignment,

@@ -21,14 +21,15 @@
 //! [`checkbox::Renderer`]: ../widget/checkbox/trait.Renderer.html
 
 mod debugger;
-#[cfg(debug_assertions)]
-mod null;
 mod windowed;
 
 pub use debugger::Debugger;
+pub use windowed::{Target, Windowed};
+
+#[cfg(debug_assertions)]
+mod null;
 #[cfg(debug_assertions)]
 pub use null::Null;
-pub use windowed::{Target, Windowed};
 
 use crate::{layout, Element};
 
@@ -42,6 +43,13 @@ pub trait Renderer: Sized {
     ///
     /// [`Renderer`]: trait.Renderer.html
     type Output;
+
+    /// The default styling attributes of the [`Renderer`].
+    ///
+    /// This type can be leveraged to implement style inheritance.
+    ///
+    /// [`Renderer`]: trait.Renderer.html
+    type Defaults: Default;
 
     /// Lays out the elements of a user interface.
     ///

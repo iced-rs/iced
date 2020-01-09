@@ -173,10 +173,11 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(&self.children, layout, cursor_position)
+        renderer.draw(defaults, &self.children, layout, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -213,6 +214,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,
+        defaults: &Self::Defaults,
         content: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,

@@ -1,6 +1,6 @@
 pub use iced_winit::{
     Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    Space, Subscription, VerticalAlignment,
+    Space, Subscription, Vector, VerticalAlignment,
 };
 
 pub mod widget {
@@ -22,58 +22,7 @@ pub mod widget {
     //!
     //! [`TextInput`]: text_input/struct.TextInput.html
     //! [`text_input::State`]: text_input/struct.State.html
-    pub mod button {
-        //! Allow your users to perform actions by pressing a button.
-        //!
-        //! A [`Button`] has some local [`State`].
-        //!
-        //! [`Button`]: type.Button.html
-        //! [`State`]: struct.State.html
-
-        /// A widget that produces a message when clicked.
-        ///
-        /// This is an alias of an `iced_native` button with a default
-        /// `Renderer`.
-        pub type Button<'a, Message> =
-            iced_winit::Button<'a, Message, iced_wgpu::Renderer>;
-
-        pub use iced_winit::button::State;
-    }
-
-    pub mod scrollable {
-        //! Navigate an endless amount of content with a scrollbar.
-
-        /// A widget that can vertically display an infinite amount of content
-        /// with a scrollbar.
-        ///
-        /// This is an alias of an `iced_native` scrollable with a default
-        /// `Renderer`.
-        pub type Scrollable<'a, Message> =
-            iced_winit::Scrollable<'a, Message, iced_wgpu::Renderer>;
-
-        pub use iced_winit::scrollable::State;
-    }
-
-    pub mod text_input {
-        //! Ask for information using text fields.
-        //!
-        //! A [`TextInput`] has some local [`State`].
-        //!
-        //! [`TextInput`]: struct.TextInput.html
-        //! [`State`]: struct.State.html
-        pub use iced_winit::text_input::{State, TextInput};
-    }
-
-    pub mod slider {
-        //! Display an interactive selector of a single value from a range of
-        //! values.
-        //!
-        //! A [`Slider`] has some local [`State`].
-        //!
-        //! [`Slider`]: struct.Slider.html
-        //! [`State`]: struct.State.html
-        pub use iced_winit::slider::{Slider, State};
-    }
+    pub use iced_wgpu::widget::*;
 
     pub mod image {
         //! Display images in your user interface.
@@ -85,12 +34,13 @@ pub mod widget {
         pub use iced_winit::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::{Checkbox, ProgressBar, Radio, Text};
+    pub use iced_winit::Text;
 
     #[doc(no_inline)]
     pub use {
-        button::Button, image::Image, scrollable::Scrollable, slider::Slider,
-        svg::Svg, text_input::TextInput,
+        button::Button, checkbox::Checkbox, container::Container, image::Image,
+        progress_bar::ProgressBar, radio::Radio, scrollable::Scrollable,
+        slider::Slider, svg::Svg, text_input::TextInput,
     };
 
     /// A container that distributes its contents vertically.
@@ -104,13 +54,6 @@ pub mod widget {
     /// This is an alias of an `iced_native` row with a default `Renderer`.
     pub type Row<'a, Message> =
         iced_winit::Row<'a, Message, iced_wgpu::Renderer>;
-
-    /// An element decorating some content.
-    ///
-    /// This is an alias of an `iced_native` container with a default
-    /// `Renderer`.
-    pub type Container<'a, Message> =
-        iced_winit::Container<'a, Message, iced_wgpu::Renderer>;
 }
 
 #[doc(no_inline)]

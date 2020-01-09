@@ -24,18 +24,25 @@
 #![deny(unused_results)]
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
+pub mod defaults;
 pub mod triangle;
+pub mod widget;
 
 mod image;
 mod primitive;
 mod quad;
 mod renderer;
+mod settings;
 mod text;
 mod transformation;
 
-pub(crate) use crate::image::Image;
-pub(crate) use quad::Quad;
-pub(crate) use transformation::Transformation;
-
+pub use defaults::Defaults;
 pub use primitive::Primitive;
 pub use renderer::{Renderer, Target};
+pub use settings::Settings;
+#[doc(no_inline)]
+pub use widget::*;
+
+pub(crate) use self::image::Image;
+pub(crate) use quad::Quad;
+pub(crate) use transformation::Transformation;

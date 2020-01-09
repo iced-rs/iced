@@ -1,4 +1,4 @@
-use crate::{Primitive, Renderer};
+use crate::{text_input::StyleSheet, Primitive, Renderer};
 
 use iced_native::{
     text_input, Background, Color, Font, HorizontalAlignment, MouseCursor,
@@ -7,6 +7,8 @@ use iced_native::{
 use std::f32;
 
 impl text_input::Renderer for Renderer {
+    type Style = Box<dyn StyleSheet>;
+
     fn default_size(&self) -> u16 {
         // TODO: Make this configurable
         20
@@ -61,31 +63,24 @@ impl text_input::Renderer for Renderer {
         placeholder: &str,
         value: &text_input::Value,
         state: &text_input::State,
+        style_sheet: &Self::Style,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
-        let border = Primitive::Quad {
-            bounds,
-            background: Background::Color(
-                if is_mouse_over || state.is_focused() {
-                    [0.5, 0.5, 0.5]
-                } else {
-                    [0.7, 0.7, 0.7]
-                }
-                .into(),
-            ),
-            border_radius: 5,
+        let style = if state.is_focused() {
+            style_sheet.focused()
+        } else if is_mouse_over {
+            style_sheet.hovered()
+        } else {
+            style_sheet.active()
         };
 
         let input = Primitive::Quad {
-            bounds: Rectangle {
-                x: bounds.x + 1.0,
-                y: bounds.y + 1.0,
-                width: bounds.width - 2.0,
-                height: bounds.height - 2.0,
-            },
-            background: Background::Color(Color::WHITE),
-            border_radius: 4,
+            bounds,
+            background: style.background,
+            border_radius: style.border_radius,
+            border_width: style.border_width,
+            border_color: style.border_color,
         };
 
         let text = value.to_string();
@@ -97,9 +92,9 @@ impl text_input::Renderer for Renderer {
                 text.clone()
             },
             color: if text.is_empty() {
-                [0.7, 0.7, 0.7]
+                style_sheet.placeholder_color()
             } else {
-                [0.3, 0.3, 0.3]
+                style_sheet.value_color()
             }
             .into(),
             font: Font::Default,
@@ -128,8 +123,10 @@ impl text_input::Renderer for Renderer {
                     width: 1.0,
                     height: text_bounds.height,
                 },
-                background: Background::Color(Color::BLACK),
+                background: Background::Color(style_sheet.value_color()),
                 border_radius: 0,
+                border_width: 0,
+                border_color: Color::TRANSPARENT,
             };
 
             (
@@ -150,7 +147,7 @@ impl text_input::Renderer for Renderer {
 
         (
             Primitive::Group {
-                primitives: vec![border, input, contents],
+                primitives: vec![input, contents],
             },
             if is_mouse_over {
                 MouseCursor::Text

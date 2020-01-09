@@ -1,7 +1,6 @@
 use iced::{
-    button, Align, Application, Background, Button, Color, Column, Command,
-    Container, Element, HorizontalAlignment, Length, Row, Settings,
-    Subscription, Text,
+    button, Align, Application, Button, Column, Command, Container, Element,
+    HorizontalAlignment, Length, Row, Settings, Subscription, Text,
 };
 use std::time::{Duration, Instant};
 
@@ -98,30 +97,29 @@ impl Application for Stopwatch {
         ))
         .size(40);
 
-        let button = |state, label, color: [f32; 3]| {
+        let button = |state, label, style| {
             Button::new(
                 state,
                 Text::new(label)
-                    .color(Color::WHITE)
                     .horizontal_alignment(HorizontalAlignment::Center),
             )
             .min_width(80)
-            .background(Background::Color(color.into()))
-            .border_radius(10)
             .padding(10)
+            .style(style)
         };
 
         let toggle_button = {
             let (label, color) = match self.state {
-                State::Idle => ("Start", [0.11, 0.42, 0.87]),
-                State::Ticking { .. } => ("Stop", [0.9, 0.4, 0.4]),
+                State::Idle => ("Start", style::Button::Primary),
+                State::Ticking { .. } => ("Stop", style::Button::Destructive),
             };
 
             button(&mut self.toggle, label, color).on_press(Message::Toggle)
         };
 
-        let reset_button = button(&mut self.reset, "Reset", [0.7, 0.7, 0.7])
-            .on_press(Message::Reset);
+        let reset_button =
+            button(&mut self.reset, "Reset", style::Button::Secondary)
+                .on_press(Message::Reset);
 
         let controls = Row::new()
             .spacing(20)
@@ -174,6 +172,32 @@ mod time {
             async_std::stream::interval(self.0)
                 .map(|_| std::time::Instant::now())
                 .boxed()
+        }
+    }
+}
+
+mod style {
+    use iced::{button, Background, Color, Vector};
+
+    pub enum Button {
+        Primary,
+        Secondary,
+        Destructive,
+    }
+
+    impl button::StyleSheet for Button {
+        fn active(&self) -> button::Style {
+            button::Style {
+                background: Some(Background::Color(match self {
+                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
+                    Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
+                    Button::Destructive => Color::from_rgb(0.8, 0.2, 0.2),
+                })),
+                border_radius: 12,
+                shadow_offset: Vector::new(1.0, 1.0),
+                text_color: Color::WHITE,
+                ..button::Style::default()
+            }
         }
     }
 }
