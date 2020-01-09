@@ -13,10 +13,10 @@ impl Transformation {
 
     /// Creates an orthographic projection.
     #[rustfmt::skip]
-    pub fn orthographic(width: u16, height: u16) -> Transformation {
+    pub fn orthographic(width: u32, height: u32) -> Transformation {
         Transformation(Mat4::from_cols(
-            Vec4::new(2.0 / f32::from(width), 0.0, 0.0, 0.0),
-            Vec4::new(0.0, 2.0 / f32::from(height), 0.0, 0.0),
+            Vec4::new(2.0 / width as f32, 0.0, 0.0, 0.0),
+            Vec4::new(0.0, 2.0 / height as f32, 0.0, 0.0),
             Vec4::new(0.0, 0.0, -1.0, 0.0),
             Vec4::new(-1.0, -1.0, 0.0, 1.0)
         ))

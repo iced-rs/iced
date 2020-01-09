@@ -92,7 +92,7 @@ impl Renderer {
         log::debug!("Drawing");
 
         let (width, height) = target.dimensions();
-        let dpi = target.dpi();
+        let scale_factor = target.scale_factor();
         let transformation = target.transformation();
         let frame = target.next_frame();
 
@@ -132,7 +132,13 @@ impl Renderer {
         self.draw_overlay(overlay, &mut layers);
 
         for layer in layers {
-            self.flush(dpi, transformation, &layer, &mut encoder, &frame.view);
+            self.flush(
+                scale_factor,
+                transformation,
+                &layer,
+                &mut encoder,
+                &frame.view,
+            );
         }
 
         self.queue.submit(&[encoder.finish()]);
@@ -330,19 +336,19 @@ impl Renderer {
 
     fn flush(
         &mut self,
-        dpi: f32,
+        scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
     ) {
-        let bounds = layer.bounds * dpi;
+        let bounds = layer.bounds * scale_factor;
 
         if layer.meshes.len() > 0 {
             let translated = transformation
                 * Transformation::translate(
-                    -(layer.offset.x as f32) * dpi,
-                    -(layer.offset.y as f32) * dpi,
+                    -(layer.offset.x as f32) * scale_factor,
+                    -(layer.offset.y as f32) * scale_factor,
                 );
 
             self.triangle_pipeline.draw(
@@ -350,7 +356,7 @@ impl Renderer {
                 encoder,
                 target,
                 translated,
-                dpi,
+                scale_factor,
                 &layer.meshes,
                 bounds,
             );
@@ -362,7 +368,7 @@ impl Renderer {
                 encoder,
                 &layer.quads,
                 transformation,
-                dpi,
+                scale_factor,
                 bounds,
                 target,
             );
@@ -370,7 +376,7 @@ impl Renderer {
 
         if layer.images.len() > 0 {
             let translated_and_scaled = transformation
-                * Transformation::scale(dpi, dpi)
+                * Transformation::scale(scale_factor, scale_factor)
                 * Transformation::translate(
                     -(layer.offset.x as f32),
                     -(layer.offset.y as f32),
@@ -383,7 +389,7 @@ impl Renderer {
                 translated_and_scaled,
                 bounds,
                 target,
-                dpi,
+                scale_factor,
             );
         }
 
@@ -396,25 +402,25 @@ impl Renderer {
                     // bit "jumpy". We may be able to do better once we improve
                     // our text rendering/caching pipeline.
                     screen_position: (
-                        (text.screen_position.0 * dpi).round(),
-                        (text.screen_position.1 * dpi).round(),
+                        (text.screen_position.0 * scale_factor).round(),
+                        (text.screen_position.1 * scale_factor).round(),
                     ),
-                    // TODO: Fix precision issues with some DPI factors.
+                    // TODO: Fix precision issues with some scale factors.
                     //
                     // The `ceil` here can cause some words to render on the
                     // same line when they should not.
                     //
                     // Ideally, `wgpu_glyph` should be able to compute layout
                     // using logical positions, and then apply the proper
-                    // DPI scaling. This would ensure that both measuring and
-                    // rendering follow the same layout rules.
+                    // scaling when rendering. This would ensure that both
+                    // measuring and rendering follow the same layout rules.
                     bounds: (
-                        (text.bounds.0 * dpi).ceil(),
-                        (text.bounds.1 * dpi).ceil(),
+                        (text.bounds.0 * scale_factor).ceil(),
+                        (text.bounds.1 * scale_factor).ceil(),
                     ),
                     scale: wgpu_glyph::Scale {
-                        x: text.scale.x * dpi,
-                        y: text.scale.y * dpi,
+                        x: text.scale.x * scale_factor,
+                        y: text.scale.y * scale_factor,
                     },
                     ..*text
                 };
