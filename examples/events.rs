@@ -57,13 +57,9 @@ impl Application for Events {
 
     fn view(&mut self) -> Element<Message> {
         let events = self.last.iter().fold(
-            Column::new().width(Length::Shrink).spacing(10),
+            Column::new().spacing(10),
             |column, event| {
-                column.push(
-                    Text::new(format!("{:?}", event))
-                        .size(40)
-                        .width(Length::Shrink),
-                )
+                column.push(Text::new(format!("{:?}", event)).size(40))
             },
         );
 
@@ -71,11 +67,9 @@ impl Application for Events {
             self.enabled,
             "Listen to runtime events",
             Message::Toggled,
-        )
-        .width(Length::Shrink);
+        );
 
         let content = Column::new()
-            .width(Length::Shrink)
             .align_items(Align::Center)
             .spacing(20)
             .push(events)

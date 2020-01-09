@@ -36,7 +36,7 @@ impl Text {
             size: None,
             color: None,
             font: Font::Default,
-            width: Length::Fill,
+            width: Length::Shrink,
             height: Length::Shrink,
             horizontal_alignment: HorizontalAlignment::Left,
             vertical_alignment: VerticalAlignment::Top,
