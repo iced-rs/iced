@@ -3,7 +3,7 @@ use crate::{
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
     subscription, Cache, Clipboard, Command, Container, Debug, Element, Event,
-    Length, MouseCursor, Settings, Subscription, UserInterface,
+    Length, MouseCursor, Settings, Size, Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -132,28 +132,27 @@ pub trait Application: Sized {
             window_builder.build(&event_loop).expect("Open window")
         };
 
-        let mut scale_factor = window.scale_factor();
-        let mut size = window.inner_size().to_logical::<f64>(scale_factor);
+        let mut size = Size::new(window.inner_size(), window.scale_factor());
         let mut resized = false;
 
         let clipboard = Clipboard::new(&window);
         let mut renderer = Self::Renderer::new();
 
         let mut target = {
-            let (width, height) = to_physical(size, scale_factor);
+            let physical_size = size.physical();
 
             <Self::Renderer as Windowed>::Target::new(
                 &window,
-                width,
-                height,
-                scale_factor as f32,
+                physical_size.width,
+                physical_size.height,
+                size.scale_factor() as f32,
                 &renderer,
             )
         };
 
         debug.layout_started();
         let user_interface = UserInterface::build(
-            document(&mut application, size, &mut debug),
+            document(&mut application, size.logical(), &mut debug),
             Cache::default(),
             &mut renderer,
         );
@@ -185,7 +184,7 @@ pub trait Application: Sized {
                 // handled.
                 debug.layout_started();
                 let mut user_interface = UserInterface::build(
-                    document(&mut application, size, &mut debug),
+                    document(&mut application, size.logical(), &mut debug),
                     cache.take().unwrap(),
                     &mut renderer,
                 );
@@ -246,7 +245,7 @@ pub trait Application: Sized {
 
                     debug.layout_started();
                     let user_interface = UserInterface::build(
-                        document(&mut application, size, &mut debug),
+                        document(&mut application, size.logical(), &mut debug),
                         temp_cache,
                         &mut renderer,
                     );
@@ -268,12 +267,12 @@ pub trait Application: Sized {
                 debug.render_started();
 
                 if resized {
-                    let (width, height) = to_physical(size, scale_factor);
+                    let physical_size = size.physical();
 
                     target.resize(
-                        width,
-                        height,
-                        scale_factor as f32,
+                        physical_size.width,
+                        physical_size.height,
+                        size.scale_factor() as f32,
                         &renderer,
                     );
 
@@ -301,7 +300,8 @@ pub trait Application: Sized {
                 ..
             } => match window_event {
                 WindowEvent::CursorMoved { position, .. } => {
-                    let position = position.to_logical::<f64>(scale_factor);
+                    let position =
+                        position.to_logical::<f64>(size.scale_factor());
 
                     events.push(Event::Mouse(mouse::Event::CursorMoved {
                         x: position.x as f32,
@@ -373,16 +373,13 @@ pub trait Application: Sized {
                     *control_flow = ControlFlow::Exit;
                 }
                 WindowEvent::Resized(new_size) => {
-                    size = new_size.to_logical(scale_factor);
+                    size = Size::new(new_size, size.scale_factor());
                     resized = true;
 
                     log::debug!("Resized: {:?}", new_size);
                 }
-                WindowEvent::ScaleFactorChanged {
-                    scale_factor: new_scale_factor,
-                    ..
-                } => {
-                    scale_factor = new_scale_factor;
+                WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                    size = Size::new(size.physical(), scale_factor);
                 }
                 _ => {}
             },
@@ -397,15 +394,6 @@ pub trait Application: Sized {
             }
         })
     }
-}
-
-fn to_physical(size: winit::dpi::LogicalSize<f64>, dpi: f64) -> (u32, u32) {
-    let physical_size = size.to_physical::<f64>(dpi);
-
-    (
-        physical_size.width.round() as u32,
-        physical_size.height.round() as u32,
-    )
 }
 
 fn document<'a, Application>(
