@@ -135,7 +135,7 @@ impl Sandbox for Styling {
 mod style {
     use iced::{
         button, checkbox, container, progress_bar, radio, scrollable, slider,
-        text_input, Color,
+        text_input,
     };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,13 +146,6 @@ mod style {
 
     impl Theme {
         pub const ALL: [Theme; 2] = [Theme::Light, Theme::Dark];
-
-        pub fn debug_color(&self) -> Color {
-            match self {
-                Theme::Light => Color::BLACK,
-                Theme::Dark => Color::WHITE,
-            }
-        }
     }
 
     impl Default for Theme {
