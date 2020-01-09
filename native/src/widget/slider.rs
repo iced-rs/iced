@@ -217,6 +217,7 @@ where
 /// [`Slider`]: struct.Slider.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// The style supported by this renderer.
     type Style: Default;
 
     /// Returns the height of the [`Slider`].

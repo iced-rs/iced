@@ -34,7 +34,7 @@
 //! [`Windowed`]: renderer/trait.Windowed.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]

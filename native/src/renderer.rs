@@ -44,6 +44,11 @@ pub trait Renderer: Sized {
     /// [`Renderer`]: trait.Renderer.html
     type Output;
 
+    /// The default styling attributes of the [`Renderer`].
+    ///
+    /// This type can be leveraged to implement style inheritance.
+    ///
+    /// [`Renderer`]: trait.Renderer.html
     type Defaults: Default;
 
     /// Lays out the elements of a user interface.

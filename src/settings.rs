@@ -1,7 +1,7 @@
 //! Configure your application.
 
 /// The settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Settings {
     /// The [`Window`] settings.
     ///
@@ -10,17 +10,11 @@ pub struct Settings {
     /// [`Window`]: struct.Window.html
     pub window: Window,
 
+    /// The bytes of the font that will be used by default.
+    ///
+    /// If `None` is provided, a default system font will be chosen.
     // TODO: Add `name` for web compatibility
     pub default_font: Option<&'static [u8]>,
-}
-
-impl Default for Settings {
-    fn default() -> Settings {
-        Settings {
-            window: Window::default(),
-            default_font: None,
-        }
-    }
 }
 
 /// The window settings of an application.

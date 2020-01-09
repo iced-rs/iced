@@ -114,6 +114,9 @@ where
         self
     }
 
+    /// Sets the style of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -246,6 +249,7 @@ where
 /// [`Button`]: struct.Button.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// The style supported by this renderer.
     type Style: Default;
 
     /// Draws a [`Button`].

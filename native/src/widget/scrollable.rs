@@ -458,6 +458,7 @@ pub struct Scroller {
 /// [`Scrollable`]: struct.Scrollable.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// The style supported by this renderer.
     type Style: Default;
 
     /// Returns the [`Scrollbar`] given the bounds and content bounds of a

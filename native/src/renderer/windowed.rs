@@ -4,6 +4,7 @@ use raw_window_handle::HasRawWindowHandle;
 
 /// A renderer that can target windows.
 pub trait Windowed: super::Renderer + Sized {
+    /// The settings of the renderer.
     type Settings: Default;
 
     /// The type of target.

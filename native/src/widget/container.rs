@@ -183,7 +183,15 @@ where
     }
 }
 
+/// The renderer of a [`Container`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`Container`] in your user interface.
+///
+/// [`Container`]: struct.Container.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// The style supported by this renderer.
     type Style: Default;
 
     /// Draws a [`Container`].

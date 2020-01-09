@@ -127,6 +127,7 @@ where
 /// [`ProgressBar`]: struct.ProgressBar.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// The style supported by this renderer.
     type Style: Default;
 
     /// The default height of a [`ProgressBar`].

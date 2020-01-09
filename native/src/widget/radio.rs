@@ -181,6 +181,7 @@ where
 /// [`Radio`]: struct.Radio.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// The style supported by this renderer.
     type Style: Default;
 
     /// Returns the default size of a [`Radio`] button.

@@ -174,7 +174,7 @@
 //! [documentation]: https://docs.rs/iced
 //! [examples]: https://github.com/hecrj/iced/tree/master/examples
 //! [`Application`]: trait.Application.html
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]
