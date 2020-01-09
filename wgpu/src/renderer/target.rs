@@ -39,7 +39,7 @@ impl window::Target for Target {
         window: &W,
         width: u32,
         height: u32,
-        scale_factor: f32,
+        scale_factor: f64,
         renderer: &Renderer,
     ) -> Target {
         let surface = wgpu::Surface::create(window);
@@ -50,7 +50,7 @@ impl window::Target for Target {
             surface,
             width,
             height,
-            scale_factor,
+            scale_factor: scale_factor as f32,
             transformation: Transformation::orthographic(width, height),
             swap_chain,
         }
@@ -60,12 +60,12 @@ impl window::Target for Target {
         &mut self,
         width: u32,
         height: u32,
-        scale_factor: f32,
+        scale_factor: f64,
         renderer: &Renderer,
     ) {
         self.width = width;
         self.height = height;
-        self.scale_factor = scale_factor;
+        self.scale_factor = scale_factor as f32;
         self.transformation = Transformation::orthographic(width, height);
         self.swap_chain =
             new_swap_chain(&self.surface, width, height, &renderer.device);
