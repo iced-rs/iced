@@ -77,7 +77,7 @@ where
     let max_cross = axis.cross(limits.max());
 
     let mut fill_sum = 0;
-    let mut cross = axis.cross(limits.min());
+    let mut cross = axis.cross(limits.min()).max(axis.cross(limits.fill()));
     let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
