@@ -14,7 +14,10 @@ use std::mem;
 #[cfg(any(feature = "image", feature = "svg"))]
 use std::{cell::RefCell, collections::HashMap};
 
-#[derive(Debug)]
+use guillotiere::{AtlasAllocator, Size};
+use debug_stub_derive::*;
+
+#[derive(DebugStub)]
 pub struct Pipeline {
     #[cfg(feature = "image")]
     raster_cache: RefCell<raster::Cache>,
@@ -28,6 +31,9 @@ pub struct Pipeline {
     instances: wgpu::Buffer,
     constants: wgpu::BindGroup,
     texture_layout: wgpu::BindGroupLayout,
+    #[debug_stub="ReplacementValue"]
+    allocator: AtlasAllocator,
+    atlas: wgpu::Texture,
 }
 
 impl Pipeline {
@@ -208,12 +214,32 @@ impl Pipeline {
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
         });
 
+        let (width, height) = (512, 512);
+
+        let extent = wgpu::Extent3d {
+            width,
+            height,
+            depth: 1,
+        };
+
+        let atlas = device.create_texture(&wgpu::TextureDescriptor {
+            size: extent,
+            array_layer_count: 1,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            usage: wgpu::TextureUsage::COPY_DST
+                | wgpu::TextureUsage::COPY_SRC
+                | wgpu::TextureUsage::SAMPLED,
+        });
+
         Pipeline {
             #[cfg(feature = "image")]
-            raster_cache: RefCell::new(raster::Cache::new(&device)),
+            raster_cache: RefCell::new(raster::Cache::new()),
 
             #[cfg(feature = "svg")]
-            vector_cache: RefCell::new(vector::Cache::new(&device)),
+            vector_cache: RefCell::new(vector::Cache::new()),
 
             pipeline,
             uniforms: uniforms_buffer,
@@ -222,6 +248,8 @@ impl Pipeline {
             instances,
             constants: constant_bind_group,
             texture_layout,
+            allocator: AtlasAllocator::new(Size::new(width as i32, height as i32)),
+            atlas,
         }
     }
 
@@ -276,10 +304,12 @@ impl Pipeline {
                         let mut raster_cache = self.raster_cache.borrow_mut();
 
                         if let Memory::Device(allocation) = raster_cache.upload(
-                            _handle,
+                            handle,
                             device,
-                            encoder)
-                        {
+                            encoder,
+                            &mut self.allocator,
+                            &mut self.atlas
+                        ) {
                             let rec = allocation.rectangle;
 
                             let _ = recs.insert(index, rec);
@@ -291,12 +321,15 @@ impl Pipeline {
                     {
                         let mut vector_cache = self.vector_cache.borrow_mut();
 
+                        // Upload rasterized svg to texture atlas
                         if let Some(allocation) = vector_cache.upload(
                             _handle,
                             image.scale,
                             _scale,
                             device,
                             encoder,
+                            &mut self.allocator,
+                            &mut self.atlas,
                         ) {
                             let rec = allocation.rectangle;
 
@@ -307,30 +340,34 @@ impl Pipeline {
             }
         }
 
-        #[cfg(feature = "image")]
-        let raster_atlas = self.raster_cache.borrow().atlas(device, &self.texture_layout);
+        let atlas_width = self.allocator.size().width as f32;
+        let atlas_height = self.allocator.size().height as f32;
 
-        #[cfg(feature = "svg")]
-        let vector_atlas = self.vector_cache.borrow().atlas(device, &self.texture_layout);
+        let texture = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.texture_layout,
+            bindings: &[wgpu::Binding {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(
+                    &self.atlas.create_default_view(),
+                ),
+            }],
+        });
 
         #[cfg(any(feature = "image", feature = "svg"))]
         for (index, image) in instances.iter().enumerate() {
             if let Some(rec) = recs.get(&index) {
-                let atlas_size = match image.handle {
-                    #[cfg(feature = "image")]
-                    Handle::Raster(_) => self.raster_cache.borrow().atlas_size(),
-                    #[cfg(feature = "svg")]
-                    Handle::Vector(_) => self.vector_cache.borrow().atlas_size(),
-                    _ => guillotiere::Size::new(0, 0)
-                };
+                let x = rec.min.x as f32 / atlas_width;
+                let y = rec.min.y as f32 / atlas_height;
+                let w = (rec.size().width - 1) as f32 / atlas_width;
+                let h = (rec.size().height - 1) as f32 / atlas_height;
 
                 let instance_buffer = device
                     .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
                     .fill_from_slice(&[Instance {
                         _position: image.position,
                         _scale: image.scale,
-                        _position_in_atlas: [rec.min.x as f32 / atlas_size.width as f32, rec.min.y as f32 / atlas_size.height as f32],
-                        _scale_in_atlas: [rec.size().width as f32 / atlas_size.width as f32, rec.size().height as f32 / atlas_size.height as f32]
+                        _position_in_atlas: [x, y],
+                        _scale_in_atlas: [w, h]
                     }]);
 
                 encoder.copy_buffer_to_buffer(
@@ -340,17 +377,6 @@ impl Pipeline {
                     0,
                     mem::size_of::<Instance>() as u64,
                 );
-
-                let texture = match &image.handle {
-                    #[cfg(feature = "image")]
-                    Handle::Raster(_) => &raster_atlas,
-                    #[cfg(feature = "svg")]
-                    Handle::Vector(_) => &vector_atlas,
-                    #[cfg(feature = "image")]
-                    _ => &raster_atlas,
-                    #[cfg(feature = "svg")]
-                    _ => &vector_atlas,
-                };
 
                 let mut render_pass = encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
@@ -398,10 +424,10 @@ impl Pipeline {
 
     pub fn trim_cache(&mut self) {
         #[cfg(feature = "image")]
-        self.raster_cache.borrow_mut().trim();
+        self.raster_cache.borrow_mut().trim(&mut self.allocator);
 
         #[cfg(feature = "svg")]
-        self.vector_cache.borrow_mut().trim();
+        self.vector_cache.borrow_mut().trim(&mut self.allocator);
     }
 }
 
