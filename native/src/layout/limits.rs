@@ -44,6 +44,14 @@ impl Limits {
         self.max
     }
 
+    /// Returns the fill [`Size`] of the [`Limits`].
+    ///
+    /// [`Limits`]: struct.Limits.html
+    /// [`Size`]: ../struct.Size.html
+    pub fn fill(&self) -> Size {
+        self.fill
+    }
+
     /// Applies a width constraint to the current [`Limits`].
     ///
     /// [`Limits`]: struct.Limits.html
