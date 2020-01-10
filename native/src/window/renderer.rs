@@ -3,16 +3,16 @@ use crate::MouseCursor;
 use raw_window_handle::HasRawWindowHandle;
 
 /// A renderer that can target windows.
-pub trait Windowed: super::Renderer + Sized {
+pub trait Renderer: crate::Renderer + Sized {
     /// The settings of the renderer.
     type Settings: Default;
 
     /// The type of target.
     type Target: Target<Renderer = Self>;
 
-    /// Creates a new [`Windowed`] renderer.
+    /// Creates a new window [`Renderer`].
     ///
-    /// [`Windowed`]: trait.Windowed.html
+    /// [`Renderer`]: trait.Renderer.html
     fn new(settings: Self::Settings) -> Self;
 
     /// Performs the drawing operations described in the output on the given

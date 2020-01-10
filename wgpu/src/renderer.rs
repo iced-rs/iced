@@ -3,8 +3,8 @@ use crate::{
     Transformation,
 };
 use iced_native::{
-    renderer::{Debugger, Windowed},
-    Background, Color, Layout, MouseCursor, Point, Rectangle, Vector, Widget,
+    layout, window, Background, Color, Layout, MouseCursor, Point, Rectangle,
+    Vector, Widget,
 };
 use std::sync::Arc;
 use wgpu::{
@@ -454,7 +454,7 @@ impl iced_native::Renderer for Renderer {
     }
 }
 
-impl Windowed for Renderer {
+impl window::Renderer for Renderer {
     type Settings = Settings;
     type Target = Target;
 
@@ -472,7 +472,7 @@ impl Windowed for Renderer {
     }
 }
 
-impl Debugger for Renderer {
+impl layout::Debugger for Renderer {
     fn explain<Message>(
         &mut self,
         defaults: &Defaults,

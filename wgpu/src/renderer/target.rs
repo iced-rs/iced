@@ -1,4 +1,5 @@
 use crate::{Renderer, Transformation};
+use iced_native::window;
 
 use raw_window_handle::HasRawWindowHandle;
 
@@ -31,7 +32,7 @@ impl Target {
     }
 }
 
-impl iced_native::renderer::Target for Target {
+impl window::Target for Target {
     type Renderer = Renderer;
 
     fn new<W: HasRawWindowHandle>(

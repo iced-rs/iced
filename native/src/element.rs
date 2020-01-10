@@ -1,6 +1,5 @@
 use crate::{
-    layout, renderer, Clipboard, Color, Event, Hasher, Layout, Length, Point,
-    Widget,
+    layout, Clipboard, Color, Event, Hasher, Layout, Length, Point, Widget,
 };
 
 /// A generic [`Widget`].
@@ -195,7 +194,7 @@ where
     ) -> Element<'a, Message, Renderer>
     where
         Message: 'static,
-        Renderer: 'a + renderer::Debugger,
+        Renderer: 'a + layout::Debugger,
     {
         Element {
             widget: Box::new(Explain::new(self, color.into())),
@@ -348,7 +347,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Explain<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer + renderer::Debugger,
+    Renderer: crate::Renderer + layout::Debugger,
 {
     fn width(&self) -> Length {
         self.element.widget.width()

@@ -14,7 +14,7 @@
 //! - A [`Widget`] trait, which is used to implement new widgets: from layout
 //!   requirements to event and drawing logic.
 //! - A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
-//! - A [`Windowed`] trait, leveraging [`raw-window-handle`], which can be
+//! - A [`window::Renderer`] trait, leveraging [`raw-window-handle`], which can be
 //!   implemented by graphical renderers that target _windows_. Window-based
 //!   shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
 //!
@@ -31,7 +31,7 @@
 //! [`druid`]: https://github.com/xi-editor/druid
 //! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
 //! [`Widget`]: widget/trait.Widget.html
-//! [`Windowed`]: renderer/trait.Windowed.html
+//! [`window::Renderer`]: window/trait.Renderer.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
 #![deny(missing_docs)]
