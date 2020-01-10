@@ -1,7 +1,6 @@
 use crate::{
     container, conversion,
     input::{keyboard, mouse},
-    renderer::{Target, Windowed},
     subscription, window, Cache, Clipboard, Command, Container, Debug, Element,
     Event, Length, MouseCursor, Settings, Subscription, UserInterface,
 };
@@ -18,7 +17,7 @@ pub trait Application: Sized {
     /// The renderer to use to draw the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    type Renderer: Windowed + container::Renderer;
+    type Renderer: window::Renderer + container::Renderer;
 
     /// The type of __messages__ your [`Application`] will produce.
     ///
@@ -83,10 +82,11 @@ pub trait Application: Sized {
     /// [`Application`]: trait.Application.html
     fn run(
         settings: Settings,
-        renderer_settings: <Self::Renderer as Windowed>::Settings,
+        renderer_settings: <Self::Renderer as window::Renderer>::Settings,
     ) where
         Self: 'static,
     {
+        use window::{Renderer as _, Target as _};
         use winit::{
             event::{self, WindowEvent},
             event_loop::{ControlFlow, EventLoop},
@@ -147,7 +147,7 @@ pub trait Application: Sized {
         let mut target = {
             let (width, height) = to_physical(size, dpi);
 
-            <Self::Renderer as Windowed>::Target::new(
+            <Self::Renderer as window::Renderer>::Target::new(
                 &window, width, height, dpi as f32, &renderer,
             )
         };

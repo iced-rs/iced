@@ -20,12 +20,6 @@
 //! [`Checkbox`]: ../widget/checkbox/struct.Checkbox.html
 //! [`checkbox::Renderer`]: ../widget/checkbox/trait.Renderer.html
 
-mod debugger;
-mod windowed;
-
-pub use debugger::Debugger;
-pub use windowed::{Target, Windowed};
-
 #[cfg(debug_assertions)]
 mod null;
 #[cfg(debug_assertions)]
