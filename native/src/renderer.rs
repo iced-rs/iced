@@ -52,7 +52,8 @@ pub trait Renderer: Sized {
     fn layout<'a, Message>(
         &mut self,
         element: &Element<'a, Message, Self>,
+        limits: &layout::Limits,
     ) -> layout::Node {
-        element.layout(self, &layout::Limits::NONE)
+        element.layout(self, limits)
     }
 }

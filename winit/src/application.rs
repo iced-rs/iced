@@ -1,8 +1,8 @@
 use crate::{
-    container, conversion,
+    conversion,
     input::{keyboard, mouse},
-    subscription, window, Cache, Clipboard, Command, Container, Debug, Element,
-    Event, Length, MouseCursor, Settings, Subscription, UserInterface,
+    subscription, window, Cache, Clipboard, Command, Debug, Element, Event,
+    MouseCursor, Settings, Size, Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -17,7 +17,7 @@ pub trait Application: Sized {
     /// The renderer to use to draw the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    type Renderer: window::Renderer + container::Renderer;
+    type Renderer: window::Renderer;
 
     /// The type of __messages__ your [`Application`] will produce.
     ///
@@ -152,13 +152,13 @@ pub trait Application: Sized {
             )
         };
 
-        debug.layout_started();
-        let user_interface = UserInterface::build(
-            document(&mut application, size, &mut debug),
+        let user_interface = build_user_interface(
+            &mut application,
             Cache::default(),
             &mut renderer,
+            size,
+            &mut debug,
         );
-        debug.layout_finished();
 
         debug.draw_started();
         let mut primitive = user_interface.draw(&mut renderer);
@@ -183,13 +183,13 @@ pub trait Application: Sized {
                 //
                 // This will allow us to rebuild it only when a message is
                 // handled.
-                debug.layout_started();
-                let mut user_interface = UserInterface::build(
-                    document(&mut application, size, &mut debug),
+                let mut user_interface = build_user_interface(
+                    &mut application,
                     cache.take().unwrap(),
                     &mut renderer,
+                    size,
+                    &mut debug,
                 );
-                debug.layout_finished();
 
                 debug.event_processing_started();
                 events.iter().for_each(|event| {
@@ -244,13 +244,13 @@ pub trait Application: Sized {
                         title = new_title;
                     }
 
-                    debug.layout_started();
-                    let user_interface = UserInterface::build(
-                        document(&mut application, size, &mut debug),
+                    let user_interface = build_user_interface(
+                        &mut application,
                         temp_cache,
                         &mut renderer,
+                        size,
+                        &mut debug,
                     );
-                    debug.layout_finished();
 
                     debug.draw_started();
                     primitive = user_interface.draw(&mut renderer);
@@ -390,6 +390,29 @@ pub trait Application: Sized {
     }
 }
 
+fn build_user_interface<'a, A: Application>(
+    application: &'a mut A,
+    cache: Cache,
+    renderer: &mut A::Renderer,
+    size: winit::dpi::LogicalSize,
+    debug: &mut Debug,
+) -> UserInterface<'a, A::Message, A::Renderer> {
+    debug.view_started();
+    let view = application.view();
+    debug.view_finished();
+
+    debug.layout_started();
+    let user_interface = UserInterface::build(
+        view,
+        Size::new(size.width.round() as f32, size.height.round() as f32),
+        cache,
+        renderer,
+    );
+    debug.layout_finished();
+
+    user_interface
+}
+
 fn to_physical(size: winit::dpi::LogicalSize, dpi: f64) -> (u16, u16) {
     let physical_size = size.to_physical(dpi);
 
@@ -397,25 +420,6 @@ fn to_physical(size: winit::dpi::LogicalSize, dpi: f64) -> (u16, u16) {
         physical_size.width.round() as u16,
         physical_size.height.round() as u16,
     )
-}
-
-fn document<'a, Application>(
-    application: &'a mut Application,
-    size: winit::dpi::LogicalSize,
-    debug: &mut Debug,
-) -> Element<'a, Application::Message, Application::Renderer>
-where
-    Application: self::Application,
-    Application::Message: 'static,
-{
-    debug.view_started();
-    let view = application.view();
-    debug.view_finished();
-
-    Container::new(view)
-        .width(Length::Units(size.width.round() as u16))
-        .height(Length::Units(size.height.round() as u16))
-        .into()
 }
 
 fn spawn<Message: Send>(
