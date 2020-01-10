@@ -16,7 +16,7 @@ mod bezier {
     };
     use iced_wgpu::{
         triangle::{Mesh2D, Vertex2D},
-        Primitive, Renderer,
+        Defaults, Primitive, Renderer,
     };
     use lyon::tessellation::{
         basic_shapes, BuffersBuilder, StrokeAttributes, StrokeOptions,
@@ -89,6 +89,7 @@ mod bezier {
         fn draw(
             &self,
             _renderer: &mut Renderer,
+            _defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
         ) -> (Primitive, MouseCursor) {
@@ -261,7 +262,7 @@ mod bezier {
 
 use bezier::Bezier;
 use iced::{
-    button, Align, Button, Color, Column, Container, Element, Length, Sandbox,
+    button, Align, Button, Column, Container, Element, Length, Sandbox,
     Settings, Text,
 };
 
@@ -323,8 +324,6 @@ impl Sandbox for Example {
             .push(
                 Button::new(&mut self.button_state, Text::new("Clear"))
                     .padding(8)
-                    .background(Color::from_rgb(0.5, 0.5, 0.5))
-                    .border_radius(4)
                     .on_press(Message::Clear),
             );
 
