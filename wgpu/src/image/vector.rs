@@ -1,8 +1,9 @@
 use iced_native::svg;
 use std::{
     collections::{HashMap, HashSet},
-    rc::Rc,
+    fmt,
 };
+use guillotiere::{Allocation, AtlasAllocator, Size};
 
 pub enum Svg {
     Loaded { tree: resvg::usvg::Tree },
@@ -22,27 +23,63 @@ impl Svg {
     }
 }
 
-impl std::fmt::Debug for Svg {
+impl fmt::Debug for Svg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Svg")
     }
 }
 
-#[derive(Debug)]
 pub struct Cache {
+    allocator: AtlasAllocator,
+    atlas: wgpu::Texture,
     svgs: HashMap<u64, Svg>,
-    rasterized: HashMap<(u64, u32, u32), Rc<wgpu::BindGroup>>,
+    rasterized: HashMap<(u64, u32, u32), Allocation>,
     svg_hits: HashSet<u64>,
     rasterized_hits: HashSet<(u64, u32, u32)>,
 }
 
+impl fmt::Debug for Cache {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("Vector Cache")
+            .field("allocator", &String::from("AtlasAllocator"))
+            .field("atlas", &self.atlas)
+            .field("svgs", &self.svgs)
+            .field("rasterized", &String::from("HashMap<(u64, u32, u32), Allocation>"))
+            .field("svg_hits", &self.svg_hits)
+            .field("rasterized_hits", &self.rasterized_hits)
+            .finish()
+    }
+}
+
 impl Cache {
-    pub fn new() -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
+        let (width, height) = (512, 512);
+
+        let extent = wgpu::Extent3d {
+            width,
+            height,
+            depth: 1,
+        };
+
+        let atlas = device.create_texture(&wgpu::TextureDescriptor {
+            size: extent,
+            array_layer_count: 1,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            usage: wgpu::TextureUsage::COPY_DST
+                | wgpu::TextureUsage::COPY_SRC
+                | wgpu::TextureUsage::SAMPLED,
+        });
+
         Self {
             svgs: HashMap::new(),
             rasterized: HashMap::new(),
             svg_hits: HashSet::new(),
             rasterized_hits: HashSet::new(),
+            allocator: AtlasAllocator::new(Size::new(width as i32, height as i32)),
+            atlas,
         }
     }
 
@@ -62,6 +99,10 @@ impl Cache {
         self.svgs.get(&handle.id()).unwrap()
     }
 
+    pub fn atlas_size(&self) -> guillotiere::Size {
+        self.allocator.size()
+    }
+
     pub fn upload(
         &mut self,
         handle: &svg::Handle,
@@ -69,8 +110,7 @@ impl Cache {
         scale: f32,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        texture_layout: &wgpu::BindGroupLayout,
-    ) -> Option<Rc<wgpu::BindGroup>> {
+    ) -> Option<&Allocation> {
         let id = handle.id();
 
         let (width, height) = (
@@ -82,36 +122,88 @@ impl Cache {
         // We currently rerasterize the SVG when its size changes. This is slow
         // as heck. A GPU rasterizer like `pathfinder` may perform better.
         // It would be cool to be able to smooth resize the `svg` example.
-        if let Some(bind_group) = self.rasterized.get(&(id, width, height)) {
+        if self.rasterized.get(&(id, width, height)).is_some() {
             let _ = self.svg_hits.insert(id);
             let _ = self.rasterized_hits.insert((id, width, height));
 
-            return Some(bind_group.clone());
+            return self.rasterized.get(&(id, width, height));
         }
 
-        match self.load(handle) {
+        let _ = self.load(handle);
+
+        match self.svgs.get(&handle.id()).unwrap() {
             Svg::Loaded { tree } => {
                 if width == 0 || height == 0 {
                     return None;
                 }
 
-                let extent = wgpu::Extent3d {
-                    width,
-                    height,
-                    depth: 1,
-                };
+                let size = Size::new(width as i32, height as i32);
+                let old_atlas_size = self.allocator.size();
+                let allocation;
 
-                let texture = device.create_texture(&wgpu::TextureDescriptor {
-                    size: extent,
-                    array_layer_count: 1,
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    usage: wgpu::TextureUsage::COPY_DST
-                        | wgpu::TextureUsage::SAMPLED,
-                });
+                loop {
+                    if let Some(a) = self.allocator.allocate(size) {
+                        allocation = a;
+                        break;
+                    }
 
+                    self.allocator.grow(self.allocator.size() * 2);
+                }
+
+                let new_atlas_size = self.allocator.size();
+
+                if new_atlas_size != old_atlas_size {
+                    let new_atlas = device.create_texture(&wgpu::TextureDescriptor {
+                        size: wgpu::Extent3d {
+                            width: new_atlas_size.width as u32,
+                            height: new_atlas_size.height as u32,
+                            depth: 1,
+                        },
+                        array_layer_count: 1,
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                        usage: wgpu::TextureUsage::COPY_DST
+                            | wgpu::TextureUsage::COPY_SRC
+                            | wgpu::TextureUsage::SAMPLED,
+                    });
+
+                    encoder.copy_texture_to_texture(
+                        wgpu::TextureCopyView {
+                            texture: &self.atlas,
+                            array_layer: 0,
+                            mip_level: 0,
+                            origin: wgpu::Origin3d {
+                                x: 0.0,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                        },
+                        wgpu::TextureCopyView {
+                            texture: &new_atlas,
+                            array_layer: 0,
+                            mip_level: 0,
+                            origin: wgpu::Origin3d {
+                                x: 0.0,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                        },
+                        wgpu::Extent3d {
+                            width: old_atlas_size.width as u32,
+                            height: old_atlas_size.height as u32,
+                            depth: 1,
+                        }
+                    );
+
+                    self.atlas = new_atlas;
+                }
+
+                // TODO: Optimize!
+                // We currently rerasterize the SVG when its size changes. This is slow
+                // as heck. A GPU rasterizer like `pathfinder` may perform better.
+                // It would be cool to be able to smooth resize the `svg` example.
                 let temp_buf = {
                     let screen_size =
                         resvg::ScreenSize::new(width, height).unwrap();
@@ -122,7 +214,7 @@ impl Cache {
                     );
 
                     resvg::backend_raqote::render_to_canvas(
-                        &tree,
+                        tree,
                         &resvg::Options::default(),
                         screen_size,
                         &mut canvas,
@@ -146,47 +238,55 @@ impl Cache {
                         image_height: height as u32,
                     },
                     wgpu::TextureCopyView {
-                        texture: &texture,
+                        texture: &self.atlas,
                         array_layer: 0,
                         mip_level: 0,
                         origin: wgpu::Origin3d {
-                            x: 0.0,
-                            y: 0.0,
+                            x: allocation.rectangle.min.x as f32,
+                            y: allocation.rectangle.min.y as f32,
                             z: 0.0,
                         },
                     },
-                    extent,
+                    wgpu::Extent3d {
+                        width,
+                        height,
+                        depth: 1,
+                    },
                 );
-
-                let bind_group =
-                    device.create_bind_group(&wgpu::BindGroupDescriptor {
-                        layout: texture_layout,
-                        bindings: &[wgpu::Binding {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(
-                                &texture.create_default_view(),
-                            ),
-                        }],
-                    });
-
-                let bind_group = Rc::new(bind_group);
-
-                let _ = self
-                    .rasterized
-                    .insert((id, width, height), bind_group.clone());
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert((id, width, height));
+                let _ = self
+                    .rasterized
+                    .insert((id, width, height), allocation);
 
-                Some(bind_group)
+                self.rasterized.get(&(id, width, height))
             }
-            Svg::NotFound => None,
+            Svg::NotFound => None
         }
+    }
+
+    pub fn atlas(&self, device: &wgpu::Device, texture_layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: texture_layout,
+            bindings: &[wgpu::Binding {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(
+                    &self.atlas.create_default_view(),
+                ),
+            }],
+        })
     }
 
     pub fn trim(&mut self) {
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
+
+        for (k, alloc) in &mut self.rasterized {
+            if !rasterized_hits.contains(&k) {
+                self.allocator.deallocate(alloc.id);
+            }
+        }
 
         self.svgs.retain(|k, _| svg_hits.contains(k));
         self.rasterized.retain(|k, _| rasterized_hits.contains(k));

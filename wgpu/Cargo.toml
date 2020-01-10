@@ -21,6 +21,7 @@ raw-window-handle = "0.3"
 glam = "0.8"
 font-kit = "0.4"
 log = "0.4"
+guillotiere = "0.4"
 
 [dependencies.image]
 version = "0.22"

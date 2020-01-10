@@ -1,17 +1,13 @@
 use iced_native::image;
 use std::{
     collections::{HashMap, HashSet},
-    rc::Rc,
+    fmt,
 };
+use guillotiere::{Allocation, AtlasAllocator, Size};
 
-#[derive(Debug)]
 pub enum Memory {
     Host(::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>>),
-    Device {
-        bind_group: Rc<wgpu::BindGroup>,
-        width: u32,
-        height: u32,
-    },
+    Device(Allocation),
     NotFound,
     Invalid,
 }
@@ -20,108 +16,59 @@ impl Memory {
     pub fn dimensions(&self) -> (u32, u32) {
         match self {
             Memory::Host(image) => image.dimensions(),
-            Memory::Device { width, height, .. } => (*width, *height),
+            Memory::Device(allocation) => {
+                let size = &allocation.rectangle.size();
+                (size.width as u32, size.height as u32)
+            },
             Memory::NotFound => (1, 1),
             Memory::Invalid => (1, 1),
         }
     }
-
-    pub fn upload(
-        &mut self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        texture_layout: &wgpu::BindGroupLayout,
-    ) -> Option<Rc<wgpu::BindGroup>> {
-        match self {
-            Memory::Host(image) => {
-                let (width, height) = image.dimensions();
-
-                let extent = wgpu::Extent3d {
-                    width,
-                    height,
-                    depth: 1,
-                };
-
-                let texture = device.create_texture(&wgpu::TextureDescriptor {
-                    size: extent,
-                    array_layer_count: 1,
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    usage: wgpu::TextureUsage::COPY_DST
-                        | wgpu::TextureUsage::SAMPLED,
-                });
-
-                let temp_buf = {
-                    let flat_samples = image.as_flat_samples();
-                    let slice = flat_samples.as_slice();
-
-                    device
-                        .create_buffer_mapped(
-                            slice.len(),
-                            wgpu::BufferUsage::COPY_SRC,
-                        )
-                        .fill_from_slice(slice)
-                };
-
-                encoder.copy_buffer_to_texture(
-                    wgpu::BufferCopyView {
-                        buffer: &temp_buf,
-                        offset: 0,
-                        row_pitch: 4 * width as u32,
-                        image_height: height as u32,
-                    },
-                    wgpu::TextureCopyView {
-                        texture: &texture,
-                        array_layer: 0,
-                        mip_level: 0,
-                        origin: wgpu::Origin3d {
-                            x: 0.0,
-                            y: 0.0,
-                            z: 0.0,
-                        },
-                    },
-                    extent,
-                );
-
-                let bind_group =
-                    device.create_bind_group(&wgpu::BindGroupDescriptor {
-                        layout: texture_layout,
-                        bindings: &[wgpu::Binding {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(
-                                &texture.create_default_view(),
-                            ),
-                        }],
-                    });
-
-                let bind_group = Rc::new(bind_group);
-
-                *self = Memory::Device {
-                    bind_group: bind_group.clone(),
-                    width,
-                    height,
-                };
-
-                Some(bind_group)
-            }
-            Memory::Device { bind_group, .. } => Some(bind_group.clone()),
-            Memory::NotFound => None,
-            Memory::Invalid => None,
-        }
-    }
 }
 
-#[derive(Debug)]
 pub struct Cache {
+    allocator: AtlasAllocator,
+    atlas: wgpu::Texture,
     map: HashMap<u64, Memory>,
     hits: HashSet<u64>,
 }
 
+impl fmt::Debug for Cache {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("Vector Cache")
+            .field("allocator", &String::from("AtlasAllocator"))
+            .field("atlas", &self.atlas)
+            .field("map", &String::from("HashMap<u64, Memory>"))
+            .field("hits", &self.hits)
+            .finish()
+    }
+}
+
 impl Cache {
-    pub fn new() -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
+        let (width, height) = (1000, 1000);
+
+        let extent = wgpu::Extent3d {
+            width,
+            height,
+            depth: 1,
+        };
+
+        let atlas = device.create_texture(&wgpu::TextureDescriptor {
+            size: extent,
+            array_layer_count: 1,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            usage: wgpu::TextureUsage::COPY_DST
+                | wgpu::TextureUsage::COPY_SRC
+                | wgpu::TextureUsage::SAMPLED,
+        });
+
         Self {
+            allocator: AtlasAllocator::new(Size::new(width as i32, height as i32)),
+            atlas,
             map: HashMap::new(),
             hits: HashSet::new(),
         }
@@ -153,8 +100,152 @@ impl Cache {
         self.get(handle).unwrap()
     }
 
+    pub fn atlas_size(&self) -> guillotiere::Size {
+        self.allocator.size()
+    }
+
+    pub fn upload(
+        &mut self,
+        handle: &image::Handle,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+    ) -> &Memory {
+        let _ = self.load(handle);
+
+        let memory = self.map.get_mut(&handle.id()).unwrap();
+
+        if let Memory::Host(image) = memory {
+            let (width, height) = image.dimensions();
+            let size = Size::new(width as i32, height as i32);
+
+            let old_atlas_size = self.allocator.size();
+            let allocation;
+
+            loop {
+                if let Some(a) = self.allocator.allocate(size) {
+                    allocation = a;
+                    break;
+                }
+
+                self.allocator.grow(self.allocator.size() * 2);
+            }
+
+            let new_atlas_size = self.allocator.size();
+
+            if new_atlas_size != old_atlas_size {
+                let new_atlas = device.create_texture(&wgpu::TextureDescriptor {
+                    size: wgpu::Extent3d {
+                        width: new_atlas_size.width as u32,
+                        height: new_atlas_size.height as u32,
+                        depth: 1,
+                    },
+                    array_layer_count: 1,
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    usage: wgpu::TextureUsage::COPY_DST
+                        | wgpu::TextureUsage::COPY_SRC
+                        | wgpu::TextureUsage::SAMPLED,
+                });
+
+                encoder.copy_texture_to_texture(
+                    wgpu::TextureCopyView {
+                        texture: &self.atlas,
+                        array_layer: 0,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d {
+                            x: 0.0,
+                            y: 0.0,
+                            z: 0.0,
+                        },
+                    },
+                    wgpu::TextureCopyView {
+                        texture: &new_atlas,
+                        array_layer: 0,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d {
+                            x: 0.0,
+                            y: 0.0,
+                            z: 0.0,
+                        },
+                    },
+                    wgpu::Extent3d {
+                        width: old_atlas_size.width as u32,
+                        height: old_atlas_size.height as u32,
+                        depth: 1,
+                    }
+                );
+
+                self.atlas = new_atlas;
+            }
+
+            let extent = wgpu::Extent3d {
+                width,
+                height,
+                depth: 1,
+            };
+
+            let temp_buf = {
+                let flat_samples = image.as_flat_samples();
+                let slice = flat_samples.as_slice();
+
+                device
+                    .create_buffer_mapped(
+                        slice.len(),
+                        wgpu::BufferUsage::COPY_SRC,
+                    )
+                    .fill_from_slice(slice)
+            };
+
+            encoder.copy_buffer_to_texture(
+                wgpu::BufferCopyView {
+                    buffer: &temp_buf,
+                    offset: 0,
+                    row_pitch: 4 * width,
+                    image_height: height,
+                },
+                wgpu::TextureCopyView {
+                    texture: &self.atlas,
+                    array_layer: 0,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d {
+                        x: allocation.rectangle.min.x as f32,
+                        y: allocation.rectangle.min.y as f32,
+                        z: 0.0,
+                    },
+                },
+                extent,
+            );
+
+            *memory = Memory::Device(allocation);
+        }
+
+        memory
+    }
+
+    pub fn atlas(&self, device: &wgpu::Device, texture_layout: &wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: texture_layout,
+            bindings: &[wgpu::Binding {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(
+                    &self.atlas.create_default_view(),
+                ),
+            }],
+        })
+    }
+
     pub fn trim(&mut self) {
         let hits = &self.hits;
+
+        for (id, mem) in &mut self.map {
+            if let Memory::Device(allocation) = mem {
+                if !hits.contains(&id) {
+                    self.allocator.deallocate(allocation.id);
+                }
+            }
+        }
 
         self.map.retain(|k, _| hits.contains(k));
         self.hits.clear();

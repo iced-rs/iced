@@ -3,13 +3,16 @@ mod raster;
 #[cfg(feature = "svg")]
 mod vector;
 
+#[cfg(feature = "image")]
+use crate::image::raster::Memory;
+
 use crate::Transformation;
 use iced_native::{image, svg, Rectangle};
 
 use std::mem;
 
 #[cfg(any(feature = "image", feature = "svg"))]
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::HashMap};
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -174,6 +177,16 @@ impl Pipeline {
                                 format: wgpu::VertexFormat::Float2,
                                 offset: 4 * 2,
                             },
+                            wgpu::VertexAttributeDescriptor {
+                                shader_location: 3,
+                                format: wgpu::VertexFormat::Float2,
+                                offset: 4 * 4,
+                            },
+                            wgpu::VertexAttributeDescriptor {
+                                shader_location: 4,
+                                format: wgpu::VertexFormat::Float2,
+                                offset: 4 * 6,
+                            },
                         ],
                     },
                 ],
@@ -197,9 +210,10 @@ impl Pipeline {
 
         Pipeline {
             #[cfg(feature = "image")]
-            raster_cache: RefCell::new(raster::Cache::new()),
+            raster_cache: RefCell::new(raster::Cache::new(&device)),
+
             #[cfg(feature = "svg")]
-            vector_cache: RefCell::new(vector::Cache::new()),
+            vector_cache: RefCell::new(vector::Cache::new(&device)),
 
             pipeline,
             uniforms: uniforms_buffer,
@@ -251,50 +265,72 @@ impl Pipeline {
             std::mem::size_of::<Uniforms>() as u64,
         );
 
-        // TODO: Batch draw calls using a texture atlas
-        // Guillotière[1] by @nical can help us a lot here.
-        //
-        // [1]: https://github.com/nical/guillotiere
-        for image in instances {
-            let uploaded_texture = match &image.handle {
+        #[cfg(any(feature = "image", feature = "svg"))]
+        let mut recs = HashMap::new();
+
+        for (index, image) in instances.iter().enumerate() {
+            match &image.handle {
                 Handle::Raster(_handle) => {
                     #[cfg(feature = "image")]
                     {
-                        let mut cache = self.raster_cache.borrow_mut();
-                        let memory = cache.load(&_handle);
+                        let mut raster_cache = self.raster_cache.borrow_mut();
 
-                        memory.upload(device, encoder, &self.texture_layout)
+                        if let Memory::Device(allocation) = raster_cache.upload(
+                            _handle,
+                            device,
+                            encoder)
+                        {
+                            let rec = allocation.rectangle;
+
+                            let _ = recs.insert(index, rec);
+                        }
                     }
-
-                    #[cfg(not(feature = "image"))]
-                    None
                 }
                 Handle::Vector(_handle) => {
                     #[cfg(feature = "svg")]
                     {
-                        let mut cache = self.vector_cache.borrow_mut();
+                        let mut vector_cache = self.vector_cache.borrow_mut();
 
-                        cache.upload(
+                        if let Some(allocation) = vector_cache.upload(
                             _handle,
                             image.scale,
                             _scale,
                             device,
                             encoder,
-                            &self.texture_layout,
-                        )
+                        ) {
+                            let rec = allocation.rectangle;
+
+                            let _ = recs.insert(index, rec);
+                        }
                     }
-
-                    #[cfg(not(feature = "svg"))]
-                    None
                 }
-            };
+            }
+        }
 
-            if let Some(texture) = uploaded_texture {
+        #[cfg(feature = "image")]
+        let raster_atlas = self.raster_cache.borrow().atlas(device, &self.texture_layout);
+
+        #[cfg(feature = "svg")]
+        let vector_atlas = self.vector_cache.borrow().atlas(device, &self.texture_layout);
+
+        #[cfg(any(feature = "image", feature = "svg"))]
+        for (index, image) in instances.iter().enumerate() {
+            if let Some(rec) = recs.get(&index) {
+                let atlas_size = match image.handle {
+                    #[cfg(feature = "image")]
+                    Handle::Raster(_) => self.raster_cache.borrow().atlas_size(),
+                    #[cfg(feature = "svg")]
+                    Handle::Vector(_) => self.vector_cache.borrow().atlas_size(),
+                    _ => guillotiere::Size::new(0, 0)
+                };
+
                 let instance_buffer = device
                     .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
                     .fill_from_slice(&[Instance {
                         _position: image.position,
                         _scale: image.scale,
+                        _position_in_atlas: [rec.min.x as f32 / atlas_size.width as f32, rec.min.y as f32 / atlas_size.height as f32],
+                        _scale_in_atlas: [rec.size().width as f32 / atlas_size.width as f32, rec.size().height as f32 / atlas_size.height as f32]
                     }]);
 
                 encoder.copy_buffer_to_buffer(
@@ -305,48 +341,57 @@ impl Pipeline {
                     mem::size_of::<Instance>() as u64,
                 );
 
-                {
-                    let mut render_pass = encoder.begin_render_pass(
-                        &wgpu::RenderPassDescriptor {
-                            color_attachments: &[
-                                wgpu::RenderPassColorAttachmentDescriptor {
-                                    attachment: target,
-                                    resolve_target: None,
-                                    load_op: wgpu::LoadOp::Load,
-                                    store_op: wgpu::StoreOp::Store,
-                                    clear_color: wgpu::Color {
-                                        r: 0.0,
-                                        g: 0.0,
-                                        b: 0.0,
-                                        a: 0.0,
-                                    },
+                let texture = match &image.handle {
+                    #[cfg(feature = "image")]
+                    Handle::Raster(_) => &raster_atlas,
+                    #[cfg(feature = "svg")]
+                    Handle::Vector(_) => &vector_atlas,
+                    #[cfg(feature = "image")]
+                    _ => &raster_atlas,
+                    #[cfg(feature = "svg")]
+                    _ => &vector_atlas,
+                };
+
+                let mut render_pass = encoder.begin_render_pass(
+                    &wgpu::RenderPassDescriptor {
+                        color_attachments: &[
+                            wgpu::RenderPassColorAttachmentDescriptor {
+                                attachment: target,
+                                resolve_target: None,
+                                load_op: wgpu::LoadOp::Load,
+                                store_op: wgpu::StoreOp::Store,
+                                clear_color: wgpu::Color {
+                                    r: 0.0,
+                                    g: 0.0,
+                                    b: 0.0,
+                                    a: 0.0,
                                 },
-                            ],
-                            depth_stencil_attachment: None,
-                        },
-                    );
+                            },
+                        ],
+                        depth_stencil_attachment: None,
+                    },
+                );
 
-                    render_pass.set_pipeline(&self.pipeline);
-                    render_pass.set_bind_group(0, &self.constants, &[]);
-                    render_pass.set_bind_group(1, &texture, &[]);
-                    render_pass.set_index_buffer(&self.indices, 0);
-                    render_pass.set_vertex_buffers(
-                        0,
-                        &[(&self.vertices, 0), (&self.instances, 0)],
-                    );
-                    render_pass.set_scissor_rect(
-                        bounds.x,
-                        bounds.y,
-                        bounds.width,
-                        bounds.height,
-                    );
+                render_pass.set_pipeline(&self.pipeline);
+                render_pass.set_bind_group(0, &self.constants, &[]);
+                render_pass.set_bind_group(1, &texture, &[]);
+                render_pass.set_index_buffer(&self.indices, 0);
+                render_pass.set_vertex_buffers(
+                    0,
+                    &[(&self.vertices, 0), (&self.instances, 0)],
+                );
+                render_pass.set_scissor_rect(
+                    bounds.x,
+                    bounds.y,
+                    bounds.width,
+                    bounds.height,
+                );
 
-                    render_pass.draw_indexed(
-                        0..QUAD_INDICES.len() as u32,
-                        0,
-                        0..1 as u32,
-                    );
-                }
+                render_pass.draw_indexed(
+                    0..QUAD_INDICES.len() as u32,
+                    0,
+                    0..1 as u32,
+                );
             }
         }
     }
@@ -399,6 +444,8 @@ const QUAD_VERTS: [Vertex; 4] = [
 struct Instance {
     _position: [f32; 2],
     _scale: [f32; 2],
+    _position_in_atlas: [f32; 2],
+    _scale_in_atlas: [f32; 2],
 }
 
 #[repr(C)]

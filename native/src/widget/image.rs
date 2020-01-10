@@ -18,7 +18,7 @@ use std::{
 /// ```
 ///
 /// <img src="https://github.com/hecrj/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct Image {
     handle: Handle,
     width: Length,
