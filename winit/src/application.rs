@@ -2,8 +2,8 @@ use crate::{
     container, conversion,
     input::{keyboard, mouse},
     renderer::{Target, Windowed},
-    subscription, Cache, Clipboard, Command, Container, Debug, Element, Event,
-    Length, MouseCursor, Settings, Subscription, UserInterface,
+    subscription, window, Cache, Clipboard, Command, Container, Debug, Element,
+    Event, Length, MouseCursor, Settings, Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -373,10 +373,13 @@ pub trait Application: Sized {
                     *control_flow = ControlFlow::Exit;
                 }
                 WindowEvent::Resized(new_size) => {
+                    events.push(Event::Window(window::Event::Resized {
+                        width: new_size.width.round() as u32,
+                        height: new_size.height.round() as u32,
+                    }));
+
                     size = new_size;
                     resized = true;
-
-                    log::debug!("Resized: {:?}", new_size);
                 }
                 _ => {}
             },
