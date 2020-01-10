@@ -25,26 +25,41 @@ mod bezier {
     use std::sync::Arc;
 
     pub struct Bezier<'a, Message> {
-        pending_points: &'a [Point],
+        state: &'a mut State,
+        curves: &'a [Curve],
         // [from, to, ctrl]
-        bezier_points: &'a [[Point; 3]],
-        on_click: Box<dyn Fn(Point) -> Message>,
+        on_click: Box<dyn Fn(Curve) -> Message>,
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct Curve {
+        from: Point,
+        to: Point,
+        control: Point,
+    }
+
+    #[derive(Default)]
+    pub struct State {
+        pending: Option<Pending>,
+    }
+
+    enum Pending {
+        One { from: Point },
+        Two { from: Point, to: Point },
     }
 
     impl<'a, Message> Bezier<'a, Message> {
         pub fn new<F>(
-            bezier_points: &'a [[Point; 3]],
-            pending_points: &'a [Point],
+            state: &'a mut State,
+            curves: &'a [Curve],
             on_click: F,
         ) -> Self
         where
-            F: 'static + Fn(Point) -> Message,
+            F: 'static + Fn(Curve) -> Message,
         {
-            assert!(pending_points.len() < 3);
-
             Self {
-                bezier_points,
-                pending_points,
+                state,
+                curves,
                 on_click: Box::new(on_click),
             }
         }
@@ -102,40 +117,40 @@ mod bezier {
             )
             .unwrap();
 
-            for pts in self.bezier_points {
+            for curve in self.curves {
                 path_builder.move_to(lyon::math::Point::new(
-                    pts[0].x + bounds.x,
-                    pts[0].y + bounds.y,
+                    curve.from.x + bounds.x,
+                    curve.from.y + bounds.y,
                 ));
 
                 path_builder.quadratic_bezier_to(
                     lyon::math::Point::new(
-                        pts[2].x + bounds.x,
-                        pts[2].y + bounds.y,
+                        curve.control.x + bounds.x,
+                        curve.control.y + bounds.y,
                     ),
                     lyon::math::Point::new(
-                        pts[1].x + bounds.x,
-                        pts[1].y + bounds.y,
+                        curve.to.x + bounds.x,
+                        curve.to.y + bounds.y,
                     ),
                 );
             }
 
-            match self.pending_points.len() {
-                0 => {}
-                1 => {
+            match self.state.pending {
+                None => {}
+                Some(Pending::One { from }) => {
                     path_builder.move_to(lyon::math::Point::new(
-                        self.pending_points[0].x + bounds.x,
-                        self.pending_points[0].y + bounds.y,
+                        from.x + bounds.x,
+                        from.y + bounds.y,
                     ));
                     path_builder.line_to(lyon::math::Point::new(
                         cursor_position.x,
                         cursor_position.y,
                     ));
                 }
-                2 => {
+                Some(Pending::Two { from, to }) => {
                     path_builder.move_to(lyon::math::Point::new(
-                        self.pending_points[0].x + bounds.x,
-                        self.pending_points[0].y + bounds.y,
+                        from.x + bounds.x,
+                        from.y + bounds.y,
                     ));
                     path_builder.quadratic_bezier_to(
                         lyon::math::Point::new(
@@ -143,13 +158,10 @@ mod bezier {
                             cursor_position.y,
                         ),
                         lyon::math::Point::new(
-                            self.pending_points[1].x + bounds.x,
-                            self.pending_points[1].y + bounds.y,
+                            to.x + bounds.x,
+                            to.y + bounds.y,
                         ),
                     );
-                }
-                _ => {
-                    unreachable!();
                 }
             }
 
@@ -197,18 +209,42 @@ mod bezier {
             _clipboard: Option<&dyn Clipboard>,
         ) {
             let bounds = layout.bounds();
-            match event {
-                Event::Mouse(input::mouse::Event::Input { state, .. }) => {
-                    if state == input::ButtonState::Pressed
-                        && bounds.contains(cursor_position)
-                    {
-                        messages.push((self.on_click)(Point::new(
+
+            if bounds.contains(cursor_position) {
+                match event {
+                    Event::Mouse(input::mouse::Event::Input {
+                        state: input::ButtonState::Pressed,
+                        ..
+                    }) => {
+                        let new_point = Point::new(
                             cursor_position.x - bounds.x,
                             cursor_position.y - bounds.y,
-                        )));
+                        );
+
+                        match self.state.pending {
+                            None => {
+                                self.state.pending =
+                                    Some(Pending::One { from: new_point });
+                            }
+                            Some(Pending::One { from }) => {
+                                self.state.pending = Some(Pending::Two {
+                                    from,
+                                    to: new_point,
+                                });
+                            }
+                            Some(Pending::Two { from, to }) => {
+                                self.state.pending = None;
+
+                                messages.push((self.on_click)(Curve {
+                                    from,
+                                    to,
+                                    control: new_point,
+                                }));
+                            }
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         }
     }
@@ -228,7 +264,6 @@ use iced::{
     button, Align, Button, Color, Column, Container, Element, Length, Sandbox,
     Settings, Text,
 };
-use iced_native::Point;
 
 pub fn main() {
     Example::run(Settings::default())
@@ -236,14 +271,14 @@ pub fn main() {
 
 #[derive(Default)]
 struct Example {
-    bezier_points: Vec<[Point; 3]>,
-    pending_points: Vec<Point>,
+    bezier: bezier::State,
+    curves: Vec<bezier::Curve>,
     button_state: button::State,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    AddPoint(Point),
+    AddCurve(bezier::Curve),
     Clear,
 }
 
@@ -260,20 +295,12 @@ impl Sandbox for Example {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::AddPoint(point) => {
-                self.pending_points.push(point);
-                if self.pending_points.len() == 3 {
-                    self.bezier_points.push([
-                        self.pending_points[0],
-                        self.pending_points[1],
-                        self.pending_points[2],
-                    ]);
-                    self.pending_points.clear();
-                }
+            Message::AddCurve(curve) => {
+                self.curves.push(curve);
             }
             Message::Clear => {
-                self.bezier_points.clear();
-                self.pending_points.clear();
+                self.bezier = bezier::State::default();
+                self.curves.clear();
             }
         }
     }
@@ -289,9 +316,9 @@ impl Sandbox for Example {
                     .size(50),
             )
             .push(Bezier::new(
-                self.bezier_points.as_slice(),
-                self.pending_points.as_slice(),
-                Message::AddPoint,
+                &mut self.bezier,
+                self.curves.as_slice(),
+                Message::AddCurve,
             ))
             .push(
                 Button::new(&mut self.button_state, Text::new("Clear"))
