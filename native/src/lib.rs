@@ -44,6 +44,7 @@ pub mod layout;
 pub mod renderer;
 pub mod subscription;
 pub mod widget;
+pub mod window;
 
 mod clipboard;
 mod element;

@@ -1,4 +1,7 @@
-use crate::input::{keyboard, mouse};
+use crate::{
+    input::{keyboard, mouse},
+    window,
+};
 
 /// A user interface event.
 ///
@@ -13,4 +16,7 @@ pub enum Event {
 
     /// A mouse event
     Mouse(mouse::Event),
+
+    /// A window event
+    Window(window::Event),
 }
