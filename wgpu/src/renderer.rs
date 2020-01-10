@@ -1,5 +1,6 @@
 use crate::{
-    image, quad, text, triangle, Image, Primitive, Quad, Transformation,
+    image, quad, text, triangle, Defaults, Image, Primitive, Quad, Settings,
+    Transformation,
 };
 use iced_native::{
     renderer::{Debugger, Windowed},
@@ -24,7 +25,7 @@ pub struct Renderer {
     device: Device,
     queue: Queue,
     quad_pipeline: quad::Pipeline,
-    image_pipeline: crate::image::Pipeline,
+    image_pipeline: image::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: crate::triangle::Pipeline,
 }
@@ -52,7 +53,7 @@ impl<'a> Layer<'a> {
 }
 
 impl Renderer {
-    fn new() -> Self {
+    fn new(settings: Settings) -> Self {
         let adapter = Adapter::request(&RequestAdapterOptions {
             power_preference: PowerPreference::Default,
             backends: BackendBit::all(),
@@ -66,7 +67,8 @@ impl Renderer {
             limits: Limits { max_bind_groups: 2 },
         });
 
-        let text_pipeline = text::Pipeline::new(&mut device);
+        let text_pipeline =
+            text::Pipeline::new(&mut device, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(&mut device);
         let image_pipeline = crate::image::Pipeline::new(&mut device);
         let triangle_pipeline = triangle::Pipeline::new(&mut device);
@@ -223,6 +225,8 @@ impl Renderer {
                 bounds,
                 background,
                 border_radius,
+                border_width,
+                border_color,
             } => {
                 // TODO: Move some of this computations to the GPU (?)
                 layer.quads.push(Quad {
@@ -235,6 +239,8 @@ impl Renderer {
                         Background::Color(color) => color.into_linear(),
                     },
                     border_radius: *border_radius as f32,
+                    border_width: *border_width as f32,
+                    border_color: border_color.into_linear(),
                 });
             }
             Primitive::Image { handle, bounds } => {
@@ -434,6 +440,7 @@ impl Renderer {
 
 impl iced_native::Renderer for Renderer {
     type Output = (Primitive, MouseCursor);
+    type Defaults = Defaults;
 
     fn layout<'a, Message>(
         &mut self,
@@ -448,10 +455,11 @@ impl iced_native::Renderer for Renderer {
 }
 
 impl Windowed for Renderer {
+    type Settings = Settings;
     type Target = Target;
 
-    fn new() -> Self {
-        Self::new()
+    fn new(settings: Settings) -> Self {
+        Self::new(settings)
     }
 
     fn draw<T: AsRef<str>>(
@@ -467,13 +475,15 @@ impl Windowed for Renderer {
 impl Debugger for Renderer {
     fn explain<Message>(
         &mut self,
+        defaults: &Defaults,
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
         color: Color,
     ) -> Self::Output {
         let mut primitives = Vec::new();
-        let (primitive, cursor) = widget.draw(self, layout, cursor_position);
+        let (primitive, cursor) =
+            widget.draw(self, defaults, layout, cursor_position);
 
         explain_layout(layout, color, &mut primitives);
         primitives.push(primitive);
@@ -487,11 +497,12 @@ fn explain_layout(
     color: Color,
     primitives: &mut Vec<Primitive>,
 ) {
-    // TODO: Draw borders instead
     primitives.push(Primitive::Quad {
         bounds: layout.bounds(),
-        background: Background::Color([0.0, 0.0, 0.0, 0.05].into()),
+        background: Background::Color(Color::TRANSPARENT),
         border_radius: 0,
+        border_width: 1,
+        border_color: [0.6, 0.6, 0.6, 0.5].into(),
     });
 
     for child in layout.children() {

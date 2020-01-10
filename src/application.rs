@@ -151,7 +151,12 @@ pub trait Application: Sized {
         Self: 'static,
     {
         #[cfg(not(target_arch = "wasm32"))]
-        <Instance<Self> as iced_winit::Application>::run(_settings.into());
+        <Instance<Self> as iced_winit::Application>::run(
+            _settings.into(),
+            iced_wgpu::Settings {
+                default_font: _settings.default_font,
+            },
+        );
 
         #[cfg(target_arch = "wasm32")]
         <Instance<Self> as iced_web::Application>::run();

@@ -24,6 +24,7 @@ maintenance = { status = "actively-developed" }
 members = [
     "core",
     "native",
+    "style",
     "web",
     "wgpu",
     "winit",

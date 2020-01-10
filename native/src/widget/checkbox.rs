@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use crate::{
     input::{mouse, ButtonState},
-    layout, row, text, Align, Clipboard, Color, Element, Event, Font, Hasher,
+    layout, row, text, Align, Clipboard, Element, Event, Font, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
 };
@@ -13,7 +13,7 @@ use crate::{
 /// # Example
 ///
 /// ```
-/// # use iced_native::Checkbox;
+/// # type Checkbox<Message> = iced_native::Checkbox<Message, iced_native::renderer::Null>;
 /// #
 /// pub enum Message {
 ///     CheckboxToggled(bool),
@@ -26,15 +26,15 @@ use crate::{
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Checkbox<Message> {
+pub struct Checkbox<Message, Renderer: self::Renderer> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: String,
-    label_color: Option<Color>,
     width: Length,
+    style: Renderer::Style,
 }
 
-impl<Message> Checkbox<Message> {
+impl<Message, Renderer: self::Renderer> Checkbox<Message, Renderer> {
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
@@ -53,17 +53,9 @@ impl<Message> Checkbox<Message> {
             is_checked,
             on_toggle: Box::new(f),
             label: String::from(label),
-            label_color: None,
-            width: Length::Fill,
+            width: Length::Shrink,
+            style: Renderer::Style::default(),
         }
-    }
-
-    /// Sets the color of the label of the [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
-    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
-        self.label_color = Some(color.into());
-        self
     }
 
     /// Sets the width of the [`Checkbox`].
@@ -73,9 +65,18 @@ impl<Message> Checkbox<Message> {
         self.width = width;
         self
     }
+
+    /// Sets the style of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
+        self
+    }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Checkbox<Message>
+impl<Message, Renderer> Widget<Message, Renderer>
+    for Checkbox<Message, Renderer>
 where
     Renderer: self::Renderer + text::Renderer + row::Renderer,
 {
@@ -134,6 +135,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
@@ -146,11 +148,12 @@ where
 
         let label = text::Renderer::draw(
             renderer,
+            defaults,
             label_layout.bounds(),
             &self.label,
             text::Renderer::default_size(renderer),
             Font::Default,
-            self.label_color,
+            None,
             HorizontalAlignment::Left,
             VerticalAlignment::Center,
         );
@@ -163,6 +166,7 @@ where
             self.is_checked,
             is_mouse_over,
             label,
+            &self.style,
         )
     }
 
@@ -179,6 +183,9 @@ where
 /// [`Checkbox`]: struct.Checkbox.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// The style supported by this renderer.
+    type Style: Default;
+
     /// Returns the default size of a [`Checkbox`].
     ///
     /// [`Checkbox`]: struct.Checkbox.html
@@ -199,16 +206,19 @@ pub trait Renderer: crate::Renderer {
         is_checked: bool,
         is_mouse_over: bool,
         label: Self::Output,
+        style: &Self::Style,
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Checkbox<Message>>
+impl<'a, Message, Renderer> From<Checkbox<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer + row::Renderer,
+    Renderer: 'static + self::Renderer + text::Renderer + row::Renderer,
     Message: 'static,
 {
-    fn from(checkbox: Checkbox<Message>) -> Element<'a, Message, Renderer> {
+    fn from(
+        checkbox: Checkbox<Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
         Element::new(checkbox)
     }
 }

@@ -1,6 +1,6 @@
 use iced::{
-    button, image, Align, Application, Button, Color, Column, Command,
-    Container, Element, Image, Length, Row, Settings, Text,
+    button, image, Align, Application, Button, Column, Command, Container,
+    Element, Image, Length, Row, Settings, Text,
 };
 
 pub fn main() {
@@ -77,11 +77,8 @@ impl Application for Pokedex {
 
     fn view(&mut self) -> Element<Message> {
         let content = match self {
-            Pokedex::Loading => Column::new().width(Length::Shrink).push(
-                Text::new("Searching for Pokémon...")
-                    .width(Length::Shrink)
-                    .size(40),
-            ),
+            Pokedex::Loading => Column::new()
+                .push(Text::new("Searching for Pokémon...").size(40)),
             Pokedex::Loaded { pokemon, search } => Column::new()
                 .max_width(500)
                 .spacing(20)
@@ -91,14 +88,9 @@ impl Application for Pokedex {
                     button(search, "Keep searching!").on_press(Message::Search),
                 ),
             Pokedex::Errored { try_again, .. } => Column::new()
-                .width(Length::Shrink)
                 .spacing(20)
                 .align_items(Align::End)
-                .push(
-                    Text::new("Whoops! Something went wrong...")
-                        .width(Length::Shrink)
-                        .size(40),
-                )
+                .push(Text::new("Whoops! Something went wrong...").size(40))
                 .push(button(try_again, "Try again").on_press(Message::Search)),
         };
 
@@ -134,10 +126,13 @@ impl Pokemon {
                         Row::new()
                             .align_items(Align::Center)
                             .spacing(20)
-                            .push(Text::new(&self.name).size(30))
+                            .push(
+                                Text::new(&self.name)
+                                    .size(30)
+                                    .width(Length::Fill),
+                            )
                             .push(
                                 Text::new(format!("#{}", self.number))
-                                    .width(Length::Shrink)
                                     .size(20)
                                     .color([0.5, 0.5, 0.5]),
                             ),
@@ -219,8 +214,29 @@ impl From<surf::Exception> for Error {
 }
 
 fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
-    Button::new(state, Text::new(text).color(Color::WHITE))
-        .background(Color::from_rgb(0.11, 0.42, 0.87))
-        .border_radius(10)
+    Button::new(state, Text::new(text))
         .padding(10)
+        .style(style::Button::Primary)
+}
+
+mod style {
+    use iced::{button, Background, Color, Vector};
+
+    pub enum Button {
+        Primary,
+    }
+
+    impl button::StyleSheet for Button {
+        fn active(&self) -> button::Style {
+            button::Style {
+                background: Some(Background::Color(match self {
+                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
+                })),
+                border_radius: 12,
+                shadow_offset: Vector::new(1.0, 1.0),
+                text_color: Color::WHITE,
+                ..button::Style::default()
+            }
+        }
+    }
 }

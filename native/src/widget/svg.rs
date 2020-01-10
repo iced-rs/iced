@@ -30,7 +30,7 @@ impl Svg {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
-            height: Length::Fill,
+            height: Length::Shrink,
         }
     }
 
@@ -91,6 +91,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {

@@ -28,7 +28,7 @@ impl<'a, Message> Column<'a, Message> {
         Column {
             spacing: 0,
             padding: 0,
-            width: Length::Fill,
+            width: Length::Shrink,
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,

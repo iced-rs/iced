@@ -33,7 +33,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         Row {
             spacing: 0,
             padding: 0,
-            width: Length::Fill,
+            width: Length::Shrink,
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
@@ -174,10 +174,11 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(&self.children, layout, cursor_position)
+        renderer.draw(defaults, &self.children, layout, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -215,6 +216,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,
+        defaults: &Self::Defaults,
         children: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,

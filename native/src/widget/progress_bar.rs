@@ -1,7 +1,6 @@
 //! Provide progress feedback to your users.
 use crate::{
-    layout, Background, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    layout, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 use std::{hash::Hash, ops::RangeInclusive};
@@ -10,8 +9,9 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// # Example
 /// ```
-/// # use iced_native::ProgressBar;
+/// # use iced_native::renderer::Null;
 /// #
+/// # pub type ProgressBar = iced_native::ProgressBar<Null>;
 /// let value = 50.0;
 ///
 /// ProgressBar::new(0.0..=100.0, value);
@@ -19,16 +19,15 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
-pub struct ProgressBar {
+pub struct ProgressBar<Renderer: self::Renderer> {
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
     height: Option<Length>,
-    background: Option<Background>,
-    active_color: Option<Color>,
+    style: Renderer::Style,
 }
 
-impl ProgressBar {
+impl<Renderer: self::Renderer> ProgressBar<Renderer> {
     /// Creates a new [`ProgressBar`].
     ///
     /// It expects:
@@ -42,8 +41,7 @@ impl ProgressBar {
             range,
             width: Length::Fill,
             height: None,
-            background: None,
-            active_color: None,
+            style: Renderer::Style::default(),
         }
     }
 
@@ -63,24 +61,16 @@ impl ProgressBar {
         self
     }
 
-    /// Sets the background of the [`ProgressBar`].
+    /// Sets the style of the [`ProgressBar`].
     ///
     /// [`ProgressBar`]: struct.ProgressBar.html
-    pub fn background(mut self, background: Background) -> Self {
-        self.background = Some(background);
-        self
-    }
-
-    /// Sets the active color of the [`ProgressBar`].
-    ///
-    /// [`ProgressBar`]: struct.ProgressBar.html
-    pub fn active_color(mut self, active_color: Color) -> Self {
-        self.active_color = Some(active_color);
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar
+impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
 where
     Renderer: self::Renderer,
 {
@@ -111,6 +101,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
@@ -118,8 +109,7 @@ where
             layout.bounds(),
             self.range.clone(),
             self.value,
-            self.background,
-            self.active_color,
+            &self.style,
         )
     }
 
@@ -137,6 +127,9 @@ where
 /// [`ProgressBar`]: struct.ProgressBar.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
+    /// The style supported by this renderer.
+    type Style: Default;
+
     /// The default height of a [`ProgressBar`].
     ///
     /// [`ProgressBar`]: struct.ProgressBar.html
@@ -157,17 +150,19 @@ pub trait Renderer: crate::Renderer {
         bounds: Rectangle,
         range: RangeInclusive<f32>,
         value: f32,
-        background: Option<Background>,
-        active_color: Option<Color>,
+        style: &Self::Style,
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<ProgressBar> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<ProgressBar<Renderer>>
+    for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
     Message: 'static,
 {
-    fn from(progress_bar: ProgressBar) -> Element<'a, Message, Renderer> {
+    fn from(
+        progress_bar: ProgressBar<Renderer>,
+    ) -> Element<'a, Message, Renderer> {
         Element::new(progress_bar)
     }
 }

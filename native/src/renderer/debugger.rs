@@ -17,6 +17,7 @@ pub trait Debugger: super::Renderer {
     /// [`Element::explain`]: struct.Element.html#method.explain
     fn explain<Message>(
         &mut self,
+        defaults: &Self::Defaults,
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,

@@ -1,54 +1,86 @@
-use crate::{Primitive, Renderer};
-use iced_native::{button, Background, MouseCursor, Point, Rectangle};
+use crate::{button::StyleSheet, defaults, Defaults, Primitive, Renderer};
+use iced_native::{
+    Background, Color, Element, Layout, MouseCursor, Point, Rectangle, Vector,
+};
 
-impl button::Renderer for Renderer {
-    fn draw(
+impl iced_native::button::Renderer for Renderer {
+    type Style = Box<dyn StyleSheet>;
+
+    fn draw<Message>(
         &mut self,
+        defaults: &Defaults,
         bounds: Rectangle,
         cursor_position: Point,
+        is_disabled: bool,
         is_pressed: bool,
-        background: Option<Background>,
-        border_radius: u16,
-        (content, _): Self::Output,
+        style: &Box<dyn StyleSheet>,
+        content: &Element<'_, Message, Self>,
+        content_layout: Layout<'_>,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
-        // TODO: Render proper shadows
-        // TODO: Make hovering and pressed styles configurable
-        let shadow_offset = if is_mouse_over {
+        let styling = if is_disabled {
+            style.disabled()
+        } else if is_mouse_over {
             if is_pressed {
-                0.0
+                style.pressed()
             } else {
-                2.0
+                style.hovered()
             }
         } else {
-            1.0
+            style.active()
         };
 
-        (
-            match background {
-                None => content,
-                Some(background) => Primitive::Group {
-                    primitives: vec![
-                        Primitive::Quad {
-                            bounds: Rectangle {
-                                x: bounds.x + 1.0,
-                                y: bounds.y + shadow_offset,
-                                ..bounds
-                            },
-                            background: Background::Color(
-                                [0.0, 0.0, 0.0, 0.5].into(),
-                            ),
-                            border_radius,
-                        },
-                        Primitive::Quad {
-                            bounds,
-                            background,
-                            border_radius,
-                        },
-                        content,
-                    ],
+        let (content, _) = content.draw(
+            self,
+            &Defaults {
+                text: defaults::Text {
+                    color: styling.text_color,
                 },
+                ..*defaults
+            },
+            content_layout,
+            cursor_position,
+        );
+
+        (
+            if styling.background.is_some() || styling.border_width > 0 {
+                let background = Primitive::Quad {
+                    bounds,
+                    background: styling
+                        .background
+                        .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                    border_radius: styling.border_radius,
+                    border_width: styling.border_width,
+                    border_color: styling.border_color,
+                };
+
+                if styling.shadow_offset == Vector::default() {
+                    Primitive::Group {
+                        primitives: vec![background, content],
+                    }
+                } else {
+                    // TODO: Implement proper shadow support
+                    let shadow = Primitive::Quad {
+                        bounds: Rectangle {
+                            x: bounds.x + styling.shadow_offset.x,
+                            y: bounds.y + styling.shadow_offset.y,
+                            ..bounds
+                        },
+                        background: Background::Color(
+                            [0.0, 0.0, 0.0, 0.5].into(),
+                        ),
+                        border_radius: styling.border_radius,
+                        border_width: 0,
+                        border_color: Color::TRANSPARENT,
+                    };
+
+                    Primitive::Group {
+                        primitives: vec![shadow, background, content],
+                    }
+                }
+            } else {
+                content
             },
             if is_mouse_over {
                 MouseCursor::Pointer

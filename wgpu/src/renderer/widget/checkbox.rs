@@ -1,12 +1,13 @@
-use crate::{Primitive, Renderer};
+use crate::{checkbox::StyleSheet, Primitive, Renderer};
 use iced_native::{
-    checkbox, Background, HorizontalAlignment, MouseCursor, Rectangle,
-    VerticalAlignment,
+    checkbox, HorizontalAlignment, MouseCursor, Rectangle, VerticalAlignment,
 };
 
 const SIZE: f32 = 28.0;
 
 impl checkbox::Renderer for Renderer {
+    type Style = Box<dyn StyleSheet>;
+
     fn default_size(&self) -> u32 {
         SIZE as u32
     }
@@ -17,31 +18,21 @@ impl checkbox::Renderer for Renderer {
         is_checked: bool,
         is_mouse_over: bool,
         (label, _): Self::Output,
+        style_sheet: &Self::Style,
     ) -> Self::Output {
-        let (checkbox_border, checkbox_box) = (
-            Primitive::Quad {
-                bounds,
-                background: Background::Color([0.6, 0.6, 0.6].into()),
-                border_radius: 6,
-            },
-            Primitive::Quad {
-                bounds: Rectangle {
-                    x: bounds.x + 1.0,
-                    y: bounds.y + 1.0,
-                    width: bounds.width - 2.0,
-                    height: bounds.height - 2.0,
-                },
-                background: Background::Color(
-                    if is_mouse_over {
-                        [0.90, 0.90, 0.90]
-                    } else {
-                        [0.95, 0.95, 0.95]
-                    }
-                    .into(),
-                ),
-                border_radius: 5,
-            },
-        );
+        let style = if is_mouse_over {
+            style_sheet.hovered(is_checked)
+        } else {
+            style_sheet.active(is_checked)
+        };
+
+        let checkbox = Primitive::Quad {
+            bounds,
+            background: style.background,
+            border_radius: style.border_radius,
+            border_width: style.border_width,
+            border_color: style.border_color,
+        };
 
         (
             Primitive::Group {
@@ -51,14 +42,14 @@ impl checkbox::Renderer for Renderer {
                         font: crate::text::BUILTIN_ICONS,
                         size: bounds.height * 0.7,
                         bounds: bounds,
-                        color: [0.3, 0.3, 0.3].into(),
+                        color: style.checkmark_color,
                         horizontal_alignment: HorizontalAlignment::Center,
                         vertical_alignment: VerticalAlignment::Center,
                     };
 
-                    vec![checkbox_border, checkbox_box, check, label]
+                    vec![checkbox, check, label]
                 } else {
-                    vec![checkbox_border, checkbox_box, label]
+                    vec![checkbox, label]
                 },
             },
             if is_mouse_over {

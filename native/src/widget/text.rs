@@ -41,7 +41,7 @@ impl Text {
             size: None,
             color: None,
             font: Font::Default,
-            width: Length::Fill,
+            width: Length::Shrink,
             height: Length::Shrink,
             horizontal_alignment: HorizontalAlignment::Left,
             vertical_alignment: VerticalAlignment::Top,
@@ -146,10 +146,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
     ) -> Renderer::Output {
         renderer.draw(
+            defaults,
             layout.bounds(),
             &self.content,
             self.size.unwrap_or(renderer.default_size()),
@@ -209,6 +211,7 @@ pub trait Renderer: crate::Renderer {
     /// [`VerticalAlignment`]: enum.VerticalAlignment.html
     fn draw(
         &mut self,
+        defaults: &Self::Defaults,
         bounds: Rectangle,
         content: &str,
         size: u16,

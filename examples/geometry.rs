@@ -16,7 +16,7 @@ mod rainbow {
     };
     use iced_wgpu::{
         triangle::{Mesh2D, Vertex2D},
-        Primitive, Renderer,
+        Defaults, Primitive, Renderer,
     };
 
     pub struct Rainbow;
@@ -51,6 +51,7 @@ mod rainbow {
         fn draw(
             &self,
             _renderer: &mut Renderer,
+            _defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
         ) -> (Primitive, MouseCursor) {

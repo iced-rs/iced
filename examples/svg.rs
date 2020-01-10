@@ -25,13 +25,14 @@ impl Sandbox for Tiger {
         let content = {
             use iced::{Column, Svg};
 
-            Column::new()
-                .width(Length::Shrink)
-                .padding(20)
-                .push(Svg::new(format!(
+            Column::new().padding(20).push(
+                Svg::new(format!(
                     "{}/examples/resources/tiger.svg",
                     env!("CARGO_MANIFEST_DIR")
-                )))
+                ))
+                .width(Length::Fill)
+                .height(Length::Fill),
+            )
         };
 
         #[cfg(not(feature = "svg"))]
@@ -39,7 +40,6 @@ impl Sandbox for Tiger {
             use iced::{HorizontalAlignment, Text};
 
             Text::new("You need to enable the `svg` feature!")
-                .width(Length::Shrink)
                 .horizontal_alignment(HorizontalAlignment::Center)
                 .size(30)
         };
