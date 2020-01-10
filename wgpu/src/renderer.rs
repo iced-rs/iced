@@ -445,8 +445,9 @@ impl iced_native::Renderer for Renderer {
     fn layout<'a, Message>(
         &mut self,
         element: &iced_native::Element<'a, Message, Self>,
+        limits: &iced_native::layout::Limits,
     ) -> iced_native::layout::Node {
-        let node = element.layout(self, &iced_native::layout::Limits::NONE);
+        let node = element.layout(self, limits);
 
         self.text_pipeline.clear_measurement_cache();
 

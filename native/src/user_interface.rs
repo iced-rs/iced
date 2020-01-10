@@ -17,6 +17,7 @@ pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,
     root: Element<'a, Message, Renderer>,
     layout: layout::Node,
+    bounds: Size,
     cursor_position: Point,
 }
 
@@ -39,7 +40,7 @@ where
     /// is naive way to set up our application loop:
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache};
+    /// use iced_native::{UserInterface, Cache, Size};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -60,6 +61,7 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = Cache::new();
     /// let mut renderer = Renderer::new();
+    /// let mut window_size = Size::new(1024.0, 768.0);
     ///
     /// // Application loop
     /// loop {
@@ -68,6 +70,7 @@ where
     ///     // Build the user interface
     ///     let user_interface = UserInterface::build(
     ///         counter.view(),
+    ///         window_size,
     ///         cache,
     ///         &mut renderer,
     ///     );
@@ -81,26 +84,30 @@ where
     /// ```
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
+        bounds: Size,
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
         let root = root.into();
 
-        let hasher = &mut crate::Hasher::default();
-        root.hash_layout(hasher);
+        let hash = {
+            let hasher = &mut crate::Hasher::default();
+            root.hash_layout(hasher);
 
-        let hash = hasher.finish();
+            hasher.finish()
+        };
 
-        let layout = if hash == cache.hash {
+        let layout = if hash == cache.hash && bounds == cache.bounds {
             cache.layout
         } else {
-            renderer.layout(&root)
+            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds))
         };
 
         UserInterface {
             hash,
             root,
             layout,
+            bounds,
             cursor_position: cache.cursor_position,
         }
     }
@@ -118,7 +125,7 @@ where
     /// completing [the previous example](#example):
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache};
+    /// use iced_native::{UserInterface, Cache, Size};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -139,6 +146,7 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = Cache::new();
     /// let mut renderer = Renderer::new();
+    /// let mut window_size = Size::new(1024.0, 768.0);
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
@@ -148,6 +156,7 @@ where
     ///
     ///     let mut user_interface = UserInterface::build(
     ///         counter.view(),
+    ///         window_size,
     ///         cache,
     ///         &mut renderer,
     ///     );
@@ -203,7 +212,7 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache};
+    /// use iced_native::{UserInterface, Cache, Size};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -224,6 +233,7 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = Cache::new();
     /// let mut renderer = Renderer::new();
+    /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut events = Vec::new();
     ///
     /// loop {
@@ -231,6 +241,7 @@ where
     ///
     ///     let mut user_interface = UserInterface::build(
     ///         counter.view(),
+    ///         window_size,
     ///         cache,
     ///         &mut renderer,
     ///     );
@@ -268,6 +279,7 @@ where
         Cache {
             hash: self.hash,
             layout: self.layout,
+            bounds: self.bounds,
             cursor_position: self.cursor_position,
         }
     }
@@ -280,6 +292,7 @@ where
 pub struct Cache {
     hash: u64,
     layout: layout::Node,
+    bounds: Size,
     cursor_position: Point,
 }
 
@@ -295,6 +308,7 @@ impl Cache {
         Cache {
             hash: 0,
             layout: layout::Node::new(Size::new(0.0, 0.0)),
+            bounds: Size::ZERO,
             cursor_position: Point::new(-1.0, -1.0),
         }
     }
