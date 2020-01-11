@@ -1,32 +1,29 @@
 use iced_native::svg;
 use std::{
     collections::{HashMap, HashSet},
-    fmt,
 };
 use guillotiere::{Allocation, AtlasAllocator, Size};
 use debug_stub_derive::*;
 
+#[derive(DebugStub)]
 pub enum Svg {
-    Loaded { tree: resvg::usvg::Tree },
+    Loaded(
+        #[debug_stub="ReplacementValue"]
+        resvg::usvg::Tree
+    ),
     NotFound,
 }
 
 impl Svg {
     pub fn viewport_dimensions(&self) -> (u32, u32) {
         match self {
-            Svg::Loaded { tree } => {
+            Svg::Loaded(tree) => {
                 let size = tree.svg_node().size;
 
                 (size.width() as u32, size.height() as u32)
             }
             Svg::NotFound => (1, 1),
         }
-    }
-}
-
-impl fmt::Debug for Svg {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Svg")
     }
 }
 
@@ -57,7 +54,7 @@ impl Cache {
         let opt = resvg::Options::default();
 
         let svg = match resvg::usvg::Tree::from_file(handle.path(), &opt.usvg) {
-            Ok(tree) => Svg::Loaded { tree },
+            Ok(tree) => Svg::Loaded(tree),
             Err(_) => Svg::NotFound,
         };
 
@@ -96,7 +93,7 @@ impl Cache {
         let _ = self.load(handle);
 
         match self.svgs.get(&handle.id()).unwrap() {
-            Svg::Loaded { tree } => {
+            Svg::Loaded(tree) => {
                 if width == 0 || height == 0 {
                     return None;
                 }

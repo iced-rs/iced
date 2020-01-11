@@ -8,7 +8,10 @@ use debug_stub_derive::*;
 #[derive(DebugStub)]
 pub enum Memory {
     Host(::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>>),
-    Device(#[debug_stub="ReplacementValue"]Allocation),
+    Device(
+        #[debug_stub="ReplacementValue"]
+        Allocation
+    ),
     NotFound,
     Invalid,
 }
