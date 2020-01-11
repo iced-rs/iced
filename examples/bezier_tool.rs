@@ -11,8 +11,9 @@ mod bezier {
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
     use iced_native::{
-        input, layout, Clipboard, Element, Event, Hasher, Layout, Length,
-        MouseCursor, Point, Size, Vector, Widget,
+        input, layout, Clipboard, Color, Element, Event, Font, Hasher,
+        HorizontalAlignment, Layout, Length, MouseCursor, Point, Size, Vector,
+        VerticalAlignment, Widget,
     };
     use iced_wgpu::{
         triangle::{Mesh2D, Vertex2D},
@@ -89,7 +90,7 @@ mod bezier {
         fn draw(
             &self,
             _renderer: &mut Renderer,
-            _defaults: &Defaults,
+            defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
         ) -> (Primitive, MouseCursor) {
@@ -185,14 +186,42 @@ mod bezier {
                 )
                 .unwrap();
 
+            let mesh = Primitive::Mesh2D(Arc::new(Mesh2D {
+                vertices: buffer.vertices,
+                indices: buffer.indices,
+            }));
+
             (
                 Primitive::Clip {
                     bounds,
                     offset: Vector::new(0, 0),
-                    content: Box::new(Primitive::Mesh2D(Arc::new(Mesh2D {
-                        vertices: buffer.vertices,
-                        indices: buffer.indices,
-                    }))),
+                    content: Box::new(
+                        if self.curves.is_empty()
+                            && self.state.pending.is_none()
+                        {
+                            let instructions = Primitive::Text {
+                                bounds,
+                                color: Color {
+                                    a: defaults.text.color.a * 0.7,
+                                    ..defaults.text.color
+                                },
+                                content: String::from(
+                                    "Click to create bezier curves!",
+                                ),
+                                font: Font::Default,
+                                size: 30.0,
+                                horizontal_alignment:
+                                    HorizontalAlignment::Center,
+                                vertical_alignment: VerticalAlignment::Center,
+                            };
+
+                            Primitive::Group {
+                                primitives: vec![mesh, instructions],
+                            }
+                        } else {
+                            mesh
+                        },
+                    ),
                 },
                 MouseCursor::OutOfBounds,
             )
