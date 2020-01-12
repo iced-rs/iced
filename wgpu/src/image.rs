@@ -356,10 +356,10 @@ impl Pipeline {
         #[cfg(any(feature = "image", feature = "svg"))]
         for (index, image) in instances.iter().enumerate() {
             if let Some(rec) = recs.get(&index) {
-                let x = rec.min.x as f32 / atlas_width;
-                let y = rec.min.y as f32 / atlas_height;
-                let w = (rec.size().width - 1) as f32 / atlas_width;
-                let h = (rec.size().height - 1) as f32 / atlas_height;
+                let x = (rec.min.x as f32 + 0.5) / atlas_width;
+                let y = (rec.min.y as f32 + 0.5) / atlas_height;
+                let w = (rec.size().width as f32 - 0.5) / atlas_width;
+                let h = (rec.size().height as f32 - 0.5) / atlas_height;
 
                 let instance_buffer = device
                     .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
