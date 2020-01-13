@@ -171,7 +171,7 @@ where
     /// ```
     pub fn map<F, B>(self, f: F) -> Element<'a, B, Renderer>
     where
-        Message: 'static + Clone,
+        Message: 'static,
         Renderer: 'a,
         B: 'static,
         F: 'static + Fn(Message) -> B,
@@ -269,7 +269,6 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
 
 impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
 where
-    A: Clone,
     Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
@@ -309,8 +308,7 @@ where
         );
 
         original_messages
-            .iter()
-            .cloned()
+            .drain(..)
             .for_each(|message| messages.push((self.mapper)(message)));
     }
 

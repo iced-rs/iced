@@ -8,14 +8,21 @@ use std::rc::Rc;
 ///
 /// [`Application`]: trait.Application.html
 #[allow(missing_debug_implementations)]
-#[derive(Clone)]
 pub struct Bus<Message> {
     publish: Rc<Box<dyn Fn(Message, &mut dyn dodrio::RootRender)>>,
 }
 
+impl<Message> Clone for Bus<Message> {
+    fn clone(&self) -> Self {
+        Self {
+            publish: Rc::clone(&self.publish),
+        }
+    }
+}
+
 impl<Message> Bus<Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     pub(crate) fn new() -> Self {
         Self {

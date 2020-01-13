@@ -1,6 +1,7 @@
 use crate::{style, Bus, Color, Element, Widget};
 
 use dodrio::bumpalo;
+use std::rc::Rc;
 
 /// A box that can be checked.
 ///
@@ -22,7 +23,7 @@ use dodrio::bumpalo;
 #[allow(missing_debug_implementations)]
 pub struct Checkbox<Message> {
     is_checked: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message>,
+    on_toggle: Rc<dyn Fn(bool) -> Message>,
     label: String,
     label_color: Option<Color>,
 }
@@ -44,7 +45,7 @@ impl<Message> Checkbox<Message> {
     {
         Checkbox {
             is_checked,
-            on_toggle: Box::new(f),
+            on_toggle: Rc::new(f),
             label: String::from(label),
             label_color: None,
         }
@@ -61,7 +62,7 @@ impl<Message> Checkbox<Message> {
 
 impl<Message> Widget<Message> for Checkbox<Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn node<'b>(
         &self,
@@ -74,7 +75,8 @@ where
         let checkbox_label = bumpalo::format!(in bump, "{}", self.label);
 
         let event_bus = bus.clone();
-        let msg = (self.on_toggle)(!self.is_checked);
+        let on_toggle = self.on_toggle.clone();
+        let is_checked = self.is_checked;
 
         // TODO: Complete styling
         label(bump)
@@ -83,7 +85,8 @@ where
                     .attr("type", "checkbox")
                     .bool_attr("checked", self.is_checked)
                     .on("click", move |root, vdom, _event| {
-                        event_bus.publish(msg.clone(), root);
+                        let msg = on_toggle(!is_checked);
+                        event_bus.publish(msg, root);
 
                         vdom.schedule_render();
                     })
@@ -96,7 +99,7 @@ where
 
 impl<'a, Message> From<Checkbox<Message>> for Element<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(checkbox: Checkbox<Message>) -> Element<'a, Message> {
         Element::new(checkbox)

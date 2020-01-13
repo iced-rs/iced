@@ -82,7 +82,7 @@ impl<'a, Message> TextInput<'a, Message> {
         self.is_secure = true;
         self
     }
-    
+
     /// Sets the width of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html

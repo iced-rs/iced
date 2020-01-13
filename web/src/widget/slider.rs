@@ -82,7 +82,7 @@ impl<'a, Message> Slider<'a, Message> {
 
 impl<'a, Message> Widget<Message> for Slider<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn node<'b>(
         &self,
@@ -130,7 +130,7 @@ where
 
 impl<'a, Message> From<Slider<'a, Message>> for Element<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(slider: Slider<'a, Message>) -> Element<'a, Message> {
         Element::new(slider)

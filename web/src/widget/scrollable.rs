@@ -134,7 +134,7 @@ where
 
 impl<'a, Message> From<Scrollable<'a, Message>> for Element<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(scrollable: Scrollable<'a, Message>) -> Element<'a, Message> {
         Element::new(scrollable)
