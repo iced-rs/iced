@@ -91,7 +91,7 @@ pub trait Application {
     /// The type of __messages__ your [`Application`] will produce.
     ///
     /// [`Application`]: trait.Application.html
-    type Message: Clone;
+    type Message;
 
     /// Initializes the [`Application`].
     ///
@@ -148,16 +148,26 @@ pub trait Application {
     }
 }
 
-#[derive(Clone)]
+
 struct Instance<Message> {
     title: String,
     ui: Rc<RefCell<Box<dyn Application<Message = Message>>>>,
     vdom: Rc<RefCell<Option<dodrio::VdomWeak>>>,
 }
 
+impl<Message> Clone for Instance<Message> {
+    fn clone(&self) -> Self {
+        Self {
+            title: self.title.clone(),
+            ui: Rc::clone(&self.ui),
+            vdom: Rc::clone(&self.vdom),
+        }
+    }
+}
+
 impl<Message> Instance<Message>
 where
-    Message: 'static + Clone,
+    Message: 'static
 {
     fn new(ui: impl Application<Message = Message> + 'static) -> Self {
         Self {
@@ -221,7 +231,7 @@ where
 
 impl<Message> dodrio::Render for Instance<Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn render<'a, 'bump>(
         &'a self,
