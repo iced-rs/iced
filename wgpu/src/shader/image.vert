@@ -5,15 +5,16 @@ layout(location = 1) in vec2 i_Pos;
 layout(location = 2) in vec2 i_Scale;
 layout(location = 3) in vec2 i_Atlas_Pos;
 layout(location = 4) in vec2 i_Atlas_Scale;
+layout(location = 5) in float i_Layer;
 
 layout (set = 0, binding = 0) uniform Globals {
     mat4 u_Transform;
 };
 
-layout(location = 0) out vec2 o_Uv;
+layout(location = 0) out vec3 o_Uv;
 
 void main() {
-    o_Uv = v_Pos * i_Atlas_Scale + i_Atlas_Pos;
+    o_Uv = vec3(v_Pos * i_Atlas_Scale + i_Atlas_Pos, i_Layer);
 
     mat4 i_Transform = mat4(
         vec4(i_Scale.x, 0.0, 0.0, 0.0),
