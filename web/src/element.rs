@@ -38,8 +38,8 @@ impl<'a, Message> Element<'a, Message> {
     /// [`Element`]: struct.Element.html
     pub fn map<F, B>(self, f: F) -> Element<'a, B>
     where
-        Message: 'static + Clone,
-        B: 'static + Clone,
+        Message: 'static,
+        B: 'static,
         F: 'static + Fn(Message) -> B,
     {
         Element {
@@ -82,8 +82,8 @@ impl<'a, A, B> Map<'a, A, B> {
 
 impl<'a, A, B> Widget<B> for Map<'a, A, B>
 where
-    A: 'static + Clone,
-    B: 'static + Clone,
+    A: 'static,
+    B: 'static,
 {
     fn node<'b>(
         &self,
