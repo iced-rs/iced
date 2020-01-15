@@ -15,12 +15,16 @@ Once a step is completed, it is collapsed and added to this list:
   * [x] TodoMVC example ([#26])
   * [x] Async actions ([#27])
   * [x] Custom layout engine ([#52])
+  * [x] Event subscriptions ([#122])
+  * [x] Custom styling ([#146])
 
 [#24]: https://github.com/hecrj/iced/issues/24
 [#25]: https://github.com/hecrj/iced/issues/25
 [#26]: https://github.com/hecrj/iced/issues/26
 [#28]: https://github.com/hecrj/iced/issues/28
 [#52]: https://github.com/hecrj/iced/pull/52
+[#122]: https://github.com/hecrj/iced/pull/122
+[#146]: https://github.com/hecrj/iced/pull/146
 
 ### Multi-window support ([#27])
 Open and control multiple windows at runtime.
@@ -30,15 +34,6 @@ I think this could be achieved by implementing an additional trait in `iced_wini
 This approach should also allow us to perform custom optimizations for this particular use case.
 
 [#27]: https://github.com/hecrj/iced/issues/27
-
-### Event subscriptions ([#29])
-Besides performing async actions on demand, most applications also need to listen to events passively. An example of this could be a WebSocket connection, where messages can come in at any time.
-
-The idea here is to also follow [Elm]'s footsteps. We can add a method `subscriptions(&self) -> Subscription<Message>` to `Application` and keep the subscriptions alive in the runtime.
-
-The challenge here is designing the public API of subscriptions. Ideally, users should be able to create their own subscriptions and the GUI runtime should keep them alive by performing _subscription diffing_ (i.e. detecting when a subscription is added, changed, or removed). For this, we can take a look at [Elm] for inspiration.
-
-[#29]: https://github.com/hecrj/iced/issues/29
 
 ### Layers ([#30])
 Currently, Iced assumes widgets cannot be laid out on top of each other. We should implement support for multiple layers of widgets.
@@ -113,15 +108,6 @@ We could take a different approach, and keep some kind of state tree decoupled f
 Once the state lifetime of widgets is removed, we could keep them alive between iterations and even make `Application::view` take a non-mutable reference. This would also improve the end-user API, as it will not be necessary to constantly provide mutable state to widgets.
 
 This is a big undertaking and introduces a new set of problems. We should research and consider the implications of this approach in detail before going for it.
-
-### Improve style definitions
-As of now, each widget defines its own styling options with methods, following the builder pattern.
-
-A unified way of defining and reusing styles would be great. I think we must avoid replicating CSS, we should try to stay as type-safe, explicit, and intuitive as possible.
-
-I think many different ideas in [`elm-ui`] could serve as an inspiration.
-
-[`elm-ui`]: https://www.youtube.com/watch?v=Ie-gqwSHQr0
 
 ### Try a different font rasterizer
 [`wgpu_glyph`] depends indirectly on [`rusttype`]. We may be able to gain performance by using a different font rasterizer. [`fontdue`], for instance, has reported noticeable speedups.
