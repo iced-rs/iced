@@ -65,9 +65,12 @@ impl<T> Command<T> {
     /// Once this command is run, all the commands will be exectued at once.
     ///
     /// [`Command`]: struct.Command.html
-    pub fn batch(commands: impl Iterator<Item = Command<T>>) -> Self {
+    pub fn batch(commands: impl IntoIterator<Item = Command<T>>) -> Self {
         Self {
-            futures: commands.flat_map(|command| command.futures).collect(),
+            futures: commands
+                .into_iter()
+                .flat_map(|command| command.futures)
+                .collect(),
         }
     }
 

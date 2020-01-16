@@ -50,10 +50,11 @@ where
     ///
     /// [`Subscription`]: struct.Subscription.html
     pub fn batch(
-        subscriptions: impl Iterator<Item = Subscription<H, I, O>>,
+        subscriptions: impl IntoIterator<Item = Subscription<H, I, O>>,
     ) -> Self {
         Self {
             recipes: subscriptions
+                .into_iter()
                 .flat_map(|subscription| subscription.recipes)
                 .collect(),
         }

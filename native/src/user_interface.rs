@@ -176,7 +176,7 @@ where
         &mut self,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-        events: impl Iterator<Item = Event>,
+        events: impl IntoIterator<Item = Event>,
     ) -> Vec<Message> {
         let mut messages = Vec::new();
 
