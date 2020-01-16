@@ -7,23 +7,25 @@ use crate::{
         keyboard::{KeyCode, ModifiersState},
         mouse, ButtonState,
     },
-    window, MouseCursor,
+    Mode, MouseCursor,
 };
 
-/// Convert a `Mode` from [`iced_native`] to a [`winit`] fullscreen mode.
+/// Converts a [`Mode`] to a [`winit`] fullscreen mode.
+///
+/// [`Mode`]:
 pub fn fullscreen(
     monitor: winit::monitor::MonitorHandle,
-    mode: window::Mode,
+    mode: Mode,
 ) -> Option<winit::window::Fullscreen> {
     match mode {
-        window::Mode::Windowed => None,
-        window::Mode::Fullscreen => {
+        Mode::Windowed => None,
+        Mode::Fullscreen => {
             Some(winit::window::Fullscreen::Borderless(monitor))
         }
     }
 }
 
-/// Convert a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
+/// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
@@ -39,7 +41,7 @@ pub fn mouse_cursor(mouse_cursor: MouseCursor) -> winit::window::CursorIcon {
     }
 }
 
-/// Convert a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
+/// Converts a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
@@ -52,7 +54,7 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     }
 }
 
-/// Convert an `ElementState` from [`winit`] to an [`iced_native`] button state.
+/// Converts an `ElementState` from [`winit`] to an [`iced_native`] button state.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
@@ -63,8 +65,8 @@ pub fn button_state(element_state: winit::event::ElementState) -> ButtonState {
     }
 }
 
-/// Convert some `ModifiersState` from [`winit`] to an [`iced_native`] modifiers
-/// state.
+/// Converts some `ModifiersState` from [`winit`] to an [`iced_native`]
+/// modifiers state.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
@@ -79,7 +81,7 @@ pub fn modifiers_state(
     }
 }
 
-/// Convert a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
+/// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native

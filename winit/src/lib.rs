@@ -30,6 +30,7 @@ pub mod settings;
 
 mod application;
 mod clipboard;
+mod mode;
 mod subscription;
 
 // We disable debug capabilities on release builds unless the `debug` feature
@@ -42,6 +43,7 @@ mod debug;
 mod debug;
 
 pub use application::Application;
+pub use mode::Mode;
 pub use settings::Settings;
 
 use clipboard::Clipboard;

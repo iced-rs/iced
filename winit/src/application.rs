@@ -2,7 +2,7 @@ use crate::{
     conversion,
     input::{keyboard, mouse},
     subscription, window, Cache, Clipboard, Command, Debug, Element, Event,
-    MouseCursor, Settings, Size, Subscription, UserInterface,
+    Mode, MouseCursor, Settings, Size, Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -80,8 +80,8 @@ pub trait Application: Sized {
     /// By default, an application will run in windowed mode.
     ///
     /// [`Application`]: trait.Application.html
-    fn mode(&self) -> window::Mode {
-        window::Mode::Windowed
+    fn mode(&self) -> Mode {
+        Mode::Windowed
     }
 
     /// Runs the [`Application`].
