@@ -192,9 +192,10 @@ pub trait Application: Sized {
                 );
 
                 debug.event_processing_started();
-                events.iter().for_each(|event| {
-                    subscription_pool.broadcast_event(*event)
-                });
+                events
+                    .iter()
+                    .cloned()
+                    .for_each(|event| subscription_pool.broadcast_event(event));
 
                 let mut messages = user_interface.update(
                     &renderer,
