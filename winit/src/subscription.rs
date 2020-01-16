@@ -86,7 +86,7 @@ impl Pool {
             .values_mut()
             .filter_map(|connection| connection.listener.as_mut())
             .for_each(|listener| {
-                if let Err(error) = listener.try_send(event) {
+                if let Err(error) = listener.try_send(event.clone()) {
                     log::error!(
                         "Error sending event to subscription: {:?}",
                         error

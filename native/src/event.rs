@@ -9,7 +9,7 @@ use crate::{
 /// additional events, feel free to [open an issue] and share your use case!_
 ///
 /// [open an issue]: https://github.com/hecrj/iced/issues
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Event {
     /// A keyboard event
     Keyboard(keyboard::Event),

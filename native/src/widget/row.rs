@@ -160,7 +160,7 @@ where
         self.children.iter_mut().zip(layout.children()).for_each(
             |(child, layout)| {
                 child.widget.on_event(
-                    event,
+                    event.clone(),
                     layout,
                     cursor_position,
                     messages,
