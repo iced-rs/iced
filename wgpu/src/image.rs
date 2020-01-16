@@ -9,7 +9,7 @@ use crate::image::raster::Memory;
 use crate::Transformation;
 use iced_native::{image, svg, Rectangle};
 
-use std::{collections::{HashMap, HashSet}, mem};
+use std::mem;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 use std::cell::RefCell;
@@ -31,7 +31,7 @@ pub struct Pipeline {
     instances: wgpu::Buffer,
     constants: wgpu::BindGroup,
     texture_layout: wgpu::BindGroupLayout,
-    atlas_array: AtlasArray,
+    texture_array: TextureArray,
 }
 
 impl Pipeline {
@@ -217,7 +217,7 @@ impl Pipeline {
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
         });
 
-        let atlas_array = AtlasArray::new(1, device);
+        let texture_array = TextureArray::new(device);
 
         Pipeline {
             #[cfg(feature = "image")]
@@ -233,7 +233,7 @@ impl Pipeline {
             instances,
             constants: constant_bind_group,
             texture_layout,
-            atlas_array,
+            texture_array,
         }
     }
 
@@ -259,8 +259,8 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         instances: &[Image],
         transformation: Transformation,
-        bounds: Rectangle<u32>,
-        target: &wgpu::TextureView,
+        _bounds: Rectangle<u32>,
+        _target: &wgpu::TextureView,
         _scale: f32,
     ) {
         let uniforms_buffer = device
@@ -277,25 +277,27 @@ impl Pipeline {
             std::mem::size_of::<Uniforms>() as u64,
         );
 
-        #[cfg(any(feature = "image", feature = "svg"))]
-        let mut recs = HashMap::new();
-
-        for (index, image) in instances.iter().enumerate() {
+        for image in instances {
             match &image.handle {
                 Handle::Raster(_handle) => {
                     #[cfg(feature = "image")]
                     {
                         let mut raster_cache = self.raster_cache.borrow_mut();
 
-                        if let Memory::Device { layer, allocation } = raster_cache.upload(
+                        if let Memory::Device(allocation) = raster_cache.upload(
                             _handle,
                             device,
                             encoder,
-                            &mut self.atlas_array,
+                            &mut self.texture_array,
                         ) {
-                            let rec = (*layer, allocation.rectangle);
-
-                            let _ = recs.insert(index, rec);
+                            self.draw_image(
+                                device,
+                                encoder,
+                                image,
+                                allocation,
+                                _bounds,
+                                _target,
+                            );
                         }
                     }
                 }
@@ -305,109 +307,173 @@ impl Pipeline {
                         let mut vector_cache = self.vector_cache.borrow_mut();
 
                         // Upload rasterized svg to texture atlas
-                        if let Some((layer, allocation)) = vector_cache.upload(
+                        if let Some(allocation) = vector_cache.upload(
                             _handle,
                             image.scale,
                             _scale,
                             device,
                             encoder,
-                            &mut self.atlas_array,
+                            &mut self.texture_array,
                         ) {
-                            let rec = (*layer, allocation.rectangle);
-
-                            let _ = recs.insert(index, rec);
+                            self.draw_image(
+                                device,
+                                encoder,
+                                image,
+                                allocation,
+                                _bounds,
+                                _target,
+                            );
                         }
                     }
                 }
-            }
-        }
-
-        let texture = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.texture_layout,
-            bindings: &[wgpu::Binding {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(
-                    &self.atlas_array.texture().create_default_view(),
-                ),
-            }],
-        });
-
-        #[cfg(any(feature = "image", feature = "svg"))]
-        for (index, image) in instances.iter().enumerate() {
-            if let Some((layer, rec)) = recs.get(&index) {
-                let x = (rec.min.x as f32 + 0.5) / (ATLAS_SIZE as f32);
-                let y = (rec.min.y as f32 + 0.5) / (ATLAS_SIZE as f32);
-                let w = (rec.size().width as f32 - 0.5) / (ATLAS_SIZE as f32);
-                let h = (rec.size().height as f32 - 0.5) / (ATLAS_SIZE as f32);
-
-                let instance_buffer = device
-                    .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-                    .fill_from_slice(&[Instance {
-                        _position: image.position,
-                        _scale: image.scale,
-                        _position_in_atlas: [x, y],
-                        _scale_in_atlas: [w, h],
-                        _layer: *layer as f32,
-                    }]);
-
-                encoder.copy_buffer_to_buffer(
-                    &instance_buffer,
-                    0,
-                    &self.instances,
-                    0,
-                    mem::size_of::<Instance>() as u64,
-                );
-
-                let mut render_pass = encoder.begin_render_pass(
-                    &wgpu::RenderPassDescriptor {
-                        color_attachments: &[
-                            wgpu::RenderPassColorAttachmentDescriptor {
-                                attachment: target,
-                                resolve_target: None,
-                                load_op: wgpu::LoadOp::Load,
-                                store_op: wgpu::StoreOp::Store,
-                                clear_color: wgpu::Color {
-                                    r: 0.0,
-                                    g: 0.0,
-                                    b: 0.0,
-                                    a: 0.0,
-                                },
-                            },
-                        ],
-                        depth_stencil_attachment: None,
-                    },
-                );
-
-                render_pass.set_pipeline(&self.pipeline);
-                render_pass.set_bind_group(0, &self.constants, &[]);
-                render_pass.set_bind_group(1, &texture, &[]);
-                render_pass.set_index_buffer(&self.indices, 0);
-                render_pass.set_vertex_buffers(
-                    0,
-                    &[(&self.vertices, 0), (&self.instances, 0)],
-                );
-                render_pass.set_scissor_rect(
-                    bounds.x,
-                    bounds.y,
-                    bounds.width,
-                    bounds.height,
-                );
-
-                render_pass.draw_indexed(
-                    0..QUAD_INDICES.len() as u32,
-                    0,
-                    0..1 as u32,
-                );
             }
         }
     }
 
     pub fn trim_cache(&mut self) {
         #[cfg(feature = "image")]
-        self.raster_cache.borrow_mut().trim(&mut self.atlas_array);
+        self.raster_cache.borrow_mut().trim(&mut self.texture_array);
 
         #[cfg(feature = "svg")]
-        self.vector_cache.borrow_mut().trim(&mut self.atlas_array);
+        self.vector_cache.borrow_mut().trim(&mut self.texture_array);
+    }
+
+    fn draw_image(
+        &self,
+        device: &mut wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        image: &Image,
+        allocation: &ImageAllocation,
+        bounds: Rectangle<u32>,
+        target: &wgpu::TextureView,
+    )  {
+        let texture = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.texture_layout,
+            bindings: &[wgpu::Binding {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(
+                    &self.texture_array.texture.create_default_view(),
+                ),
+            }],
+        });
+
+        match allocation {
+            ImageAllocation::SingleAllocation(allocation) => {
+                self.draw_allocation(
+                    device,
+                    encoder,
+                    image.position,
+                    image.scale,
+                    allocation,
+                    &texture,
+                    bounds,
+                    target,
+                )
+            }
+            ImageAllocation::MultipleAllocations { mappings, size } => {
+                let scaling_x = image.scale[0] / size.0 as f32;
+                let scaling_y = image.scale[1] / size.1 as f32;
+
+                for mapping in mappings {
+                    let mut position = image.position;
+                    let mut scale = image.scale;
+
+                    position[0] += mapping.src_pos.0 as f32 * scaling_x;
+                    position[1] += mapping.src_pos.1 as f32 * scaling_y;
+                    scale[0] = mapping.allocation.size().0 as f32 * scaling_x;
+                    scale[1] = mapping.allocation.size().1 as f32 * scaling_y;
+
+                    self.draw_allocation(
+                        device,
+                        encoder,
+                        position,
+                        scale,
+                        &mapping.allocation,
+                        &texture,
+                        bounds,
+                        target,
+                    )
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn draw_allocation(
+        &self,
+        device: &mut wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        position: [f32; 2],
+        scale: [f32; 2],
+        allocation: &ArrayAllocation,
+        texture: &wgpu::BindGroup,
+        bounds: Rectangle<u32>,
+        target: &wgpu::TextureView,
+    ) {
+        let x = (allocation.position().0 as f32 + 0.5) / (ATLAS_SIZE as f32);
+        let y = (allocation.position().1 as f32 + 0.5) / (ATLAS_SIZE as f32);
+        let w = (allocation.size().0 as f32 - 0.5) / (ATLAS_SIZE as f32);
+        let h = (allocation.size().1 as f32 - 0.5) / (ATLAS_SIZE as f32);
+        let layer = allocation.layer() as f32;
+
+        let instance_buffer = device
+            .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&[Instance {
+                _position: position,
+                _scale: scale,
+                _position_in_atlas: [x, y],
+                _scale_in_atlas: [w, h],
+                _layer: layer,
+            }]);
+
+        encoder.copy_buffer_to_buffer(
+            &instance_buffer,
+            0,
+            &self.instances,
+            0,
+            mem::size_of::<Instance>() as u64,
+        );
+
+        let mut render_pass = encoder.begin_render_pass(
+            &wgpu::RenderPassDescriptor {
+                color_attachments: &[
+                    wgpu::RenderPassColorAttachmentDescriptor {
+                        attachment: target,
+                        resolve_target: None,
+                        load_op: wgpu::LoadOp::Load,
+                        store_op: wgpu::StoreOp::Store,
+                        clear_color: wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 0.0,
+                        },
+                    },
+                ],
+                depth_stencil_attachment: None,
+            },
+        );
+
+        render_pass.set_pipeline(&self.pipeline);
+        render_pass.set_bind_group(0, &self.constants, &[]);
+        render_pass.set_bind_group(1, &texture, &[]);
+        render_pass.set_index_buffer(&self.indices, 0);
+        render_pass.set_vertex_buffers(
+            0,
+            &[(&self.vertices, 0), (&self.instances, 0)],
+        );
+        render_pass.set_scissor_rect(
+            bounds.x,
+            bounds.y,
+            bounds.width,
+            bounds.height,
+        );
+
+        render_pass.draw_indexed(
+            0..QUAD_INDICES.len() as u32,
+            0,
+            0..1 as u32,
+        );
     }
 }
 
@@ -422,17 +488,96 @@ pub enum Handle {
     Vector(svg::Handle),
 }
 
-#[derive(DebugStub)]
-pub struct AtlasArray {
-    texture: wgpu::Texture,
-    #[debug_stub="ReplacementValue"]
-    allocators: HashMap<u32, AtlasAllocator>,
-    layers_without_allocators: HashSet<u32>,
-    size: u32,
+#[derive(Debug)]
+pub struct ArrayAllocationMapping {
+    src_pos: (u32, u32),
+    allocation: ArrayAllocation,
 }
 
-impl AtlasArray {
-    pub fn new(array_size: u32, device: &wgpu::Device) -> Self {
+#[derive(Debug)]
+pub enum ImageAllocation {
+    SingleAllocation(ArrayAllocation),
+    MultipleAllocations {
+        mappings: Vec<ArrayAllocationMapping>,
+        size: (u32, u32),
+    },
+    Error,
+}
+
+impl ImageAllocation {
+    pub fn size(&self) -> (u32, u32) {
+        match self {
+            ImageAllocation::SingleAllocation(allocation) => {
+                allocation.size()
+            }
+            ImageAllocation::MultipleAllocations { size, .. } => {
+                *size
+            }
+            _ => (0, 0)
+        }
+    }
+}
+
+#[derive(DebugStub)]
+pub enum ArrayAllocation {
+    AtlasAllocation {
+        layer: usize,
+        #[debug_stub = "ReplacementValue"]
+        allocation: Allocation,
+    },
+    WholeLayer {
+        layer: usize,
+    }
+}
+
+impl ArrayAllocation {
+    pub fn size(&self) -> (u32, u32) {
+        match self {
+            ArrayAllocation::AtlasAllocation { allocation, .. } => {
+                let size = allocation.rectangle.size();
+                (size.width as u32, size.height as u32)
+            }
+            ArrayAllocation::WholeLayer { .. } => (ATLAS_SIZE, ATLAS_SIZE)
+        }
+    }
+
+    pub fn position(&self) -> (u32, u32) {
+        match self {
+            ArrayAllocation::AtlasAllocation { allocation, .. } => {
+                let min = &allocation.rectangle.min;
+                (min.x as u32, min.y as u32)
+            }
+            ArrayAllocation::WholeLayer { .. } => (0, 0)
+        }
+    }
+
+    pub fn layer(&self) -> usize {
+        match self {
+            ArrayAllocation::AtlasAllocation { layer, .. } => *layer,
+            ArrayAllocation::WholeLayer { layer } => *layer,
+        }
+    }
+}
+
+#[derive(DebugStub)]
+pub enum TextureLayer {
+    Whole,
+    Atlas(
+        #[debug_stub="ReplacementValue"]
+        AtlasAllocator
+    ),
+    Empty,
+}
+
+#[derive(Debug)]
+pub struct TextureArray {
+    texture: wgpu::Texture,
+    texture_array_size: u32,
+    layers: Vec<TextureLayer>,
+}
+
+impl TextureArray {
+    pub fn new(device: &wgpu::Device) -> Self {
         let (width, height) = (ATLAS_SIZE, ATLAS_SIZE);
 
         let extent = wgpu::Extent3d {
@@ -443,7 +588,7 @@ impl AtlasArray {
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             size: extent,
-            array_layer_count: array_size,
+            array_layer_count: 1,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -453,53 +598,217 @@ impl AtlasArray {
                 | wgpu::TextureUsage::SAMPLED,
         });
 
-        AtlasArray {
+        let size = Size::new(ATLAS_SIZE as i32, ATLAS_SIZE as i32);
+
+        TextureArray {
             texture,
-            allocators: HashMap::new(),
-            layers_without_allocators: HashSet::new(),
-            size: array_size,
+            texture_array_size: 1,
+            layers: vec!(TextureLayer::Atlas(AtlasAllocator::new(size))),
         }
     }
 
-    pub fn texture(&self) -> &wgpu::Texture {
-        &self.texture
-    }
-
-    pub fn allocate(&mut self, size: Size) -> Option<(u32, Allocation)> {
-        for layer in 0..self.size {
-            if self.layers_without_allocators.contains(&layer) {
-                continue;
+    pub fn allocate(&mut self, size: Size) -> ImageAllocation {
+        // Allocate one layer if allocation fits perfectly
+        if size.width == ATLAS_SIZE as i32 && size.height == ATLAS_SIZE as i32 {
+            for (i, layer) in &mut self.layers.iter_mut().enumerate() {
+                if let TextureLayer::Empty = layer
+                {
+                    *layer = TextureLayer::Whole;
+                    return ImageAllocation::SingleAllocation(
+                        ArrayAllocation::WholeLayer { layer: i }
+                    );
+                }
             }
 
-            let allocator = self.allocators.entry(layer)
-                .or_insert_with(|| AtlasAllocator::new(
-                    Size::new(ATLAS_SIZE as i32, ATLAS_SIZE as i32)
-                ));
+            self.layers.push(TextureLayer::Whole);
+            return ImageAllocation::SingleAllocation(
+                ArrayAllocation::WholeLayer { layer: self.layers.len() - 1 }
+            );
+        }
 
-            if let Some(a) = allocator.allocate(size.clone()) {
-                return Some((layer, a));
+        // Split big allocations across multiple layers
+        if size.width > ATLAS_SIZE as i32 || size.height > ATLAS_SIZE as i32 {
+            let mut mappings = Vec::new();
+
+            let mut y = 0;
+            while y < size.height {
+                let height = std::cmp::min(size.height - y, ATLAS_SIZE as i32);
+                let mut x = 0;
+
+                while x < size.width {
+                    let width = std::cmp::min(size.width - x, ATLAS_SIZE as i32);
+                    if let ImageAllocation::SingleAllocation(allocation) = self.allocate(Size::new(width, height)) {
+                        let src_pos = (x as u32, y as u32);
+                        mappings.push(ArrayAllocationMapping { src_pos, allocation });
+                    }
+
+                    x += width;
+                }
+                y += height;
+            }
+
+            return ImageAllocation::MultipleAllocations {
+                mappings,
+                size: (size.width as u32, size.height as u32),
+            };
+        }
+
+        // Try allocating on an existing layer
+        for (i, layer) in self.layers.iter_mut().enumerate() {
+            if let TextureLayer::Atlas(allocator) = layer {
+                if let Some(allocation) = allocator.allocate(size.clone()) {
+                    let array_allocation = ArrayAllocation::AtlasAllocation { layer: i, allocation };
+                    return ImageAllocation::SingleAllocation(array_allocation);
+                }
             }
         }
 
-        None
-    }
+        // Create new layer with atlas allocator
+        let mut allocator = AtlasAllocator::new(Size::new(ATLAS_SIZE as i32, ATLAS_SIZE as i32));
+        if let Some(allocation) = allocator.allocate(size) {
+            self.layers.push(TextureLayer::Atlas(allocator));
 
-    pub fn deallocate(&mut self, layer: u32, allocation: &Allocation) {
-        if let Some(allocator) = self.allocators.get_mut(&layer) {
-            allocator.deallocate(allocation.id);
+            return ImageAllocation::SingleAllocation(
+                ArrayAllocation::AtlasAllocation {
+                    layer: self.layers.len() - 1,
+                    allocation,
+                }
+            );
         }
+
+        // One of the above should have worked
+        ImageAllocation::Error
     }
 
-    pub fn upload<T: Copy + 'static>(
+    pub fn deallocate(&mut self, allocation: &ImageAllocation) {
+        match allocation {
+            ImageAllocation::SingleAllocation(allocation) => {
+                if let Some(layer) = self.layers.get_mut(allocation.layer()) {
+                    match allocation {
+                        ArrayAllocation::WholeLayer { .. } => {
+                            *layer = TextureLayer::Empty;
+                        }
+                        ArrayAllocation::AtlasAllocation { allocation, .. } => {
+                            if let TextureLayer::Atlas(allocator) = layer {
+                                allocator.deallocate(allocation.id);
+                            }
+                        }
+                    }
+                }
+            }
+            ImageAllocation::MultipleAllocations { mappings, .. } => {
+                for mapping in mappings {
+                    if let Some(layer) = self.layers.get_mut(mapping.allocation.layer()) {
+                        match &mapping.allocation {
+                            ArrayAllocation::WholeLayer { .. } => {
+                                *layer = TextureLayer::Empty;
+                            }
+                            ArrayAllocation::AtlasAllocation { allocation, .. } => {
+                                if let TextureLayer::Atlas(allocator) = layer {
+                                    allocator.deallocate(allocation.id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+
+    }
+
+    fn upload<C, I>(
         &mut self,
-        data: &[T],
-        layer: u32,
-        allocation: &guillotiere::Allocation,
+        image: &I,
+        allocation: &ImageAllocation,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
+    )
+    where
+        I: RawImageData<Chunk = C>,
+        C: Copy + 'static,
+    {
+        match allocation {
+            ImageAllocation::SingleAllocation(allocation) => {
+                let data = image.data();
+                let buffer = device
+                    .create_buffer_mapped(
+                        data.len(),
+                        wgpu::BufferUsage::COPY_SRC,
+                    )
+                    .fill_from_slice(data);
+
+                if allocation.layer() >= self.texture_array_size as usize {
+                    self.grow(1, device, encoder);
+                }
+
+                self.upload_texture(
+                    &buffer,
+                    allocation,
+                    encoder,
+                );
+            }
+            ImageAllocation::MultipleAllocations { mappings, .. } => {
+                let chunks_per_pixel = 4 / std::mem::size_of::<C>();
+                let chunks_per_line = chunks_per_pixel * image.width() as usize;
+
+                for mapping in mappings {
+                    let sub_width = mapping.allocation.size().0 as usize;
+                    let sub_height = mapping.allocation.size().1 as usize;
+                    let sub_line_start = mapping.src_pos.0 as usize * chunks_per_pixel;
+                    let sub_line_end = (mapping.src_pos.0 as usize + sub_width) * chunks_per_pixel;
+
+                    let mut sub_lines = image
+                        .data()
+                        .chunks(chunks_per_line)
+                        .skip(mapping.src_pos.1 as usize)
+                        .take(sub_height)
+                        .map(|line| &line[sub_line_start..sub_line_end]);
+
+                    let buffer = device
+                        .create_buffer_mapped(
+                            chunks_per_pixel * sub_width * sub_height,
+                            wgpu::BufferUsage::COPY_SRC,
+                        );
+
+                    let mut buffer_lines = buffer.data.chunks_mut(sub_width * chunks_per_pixel);
+
+                    while let (Some(buffer_line), Some(sub_line)) = (buffer_lines.next(), sub_lines.next()) {
+                        buffer_line.copy_from_slice(sub_line);
+                    }
+
+                    let highest_layer = mappings
+                        .iter()
+                        .map(|m| m.allocation.layer() as u32)
+                        .max()
+                        .unwrap_or(0);
+
+                    if highest_layer >= self.texture_array_size {
+                        let grow_by = 1 + highest_layer - self.texture_array_size;
+                        self.grow(grow_by, device, encoder);
+                    }
+
+                    self.upload_texture(
+                        &buffer.finish(),
+                        &mapping.allocation,
+                        encoder,
+                    );
+                }
+            }
+            _ => {}
+        }
+
+    }
+
+    fn upload_texture(
+        &mut self,
+        buffer: &wgpu::Buffer,
+        allocation: &ArrayAllocation,
+        encoder: &mut wgpu::CommandEncoder,
     ) {
-        let size = allocation.rectangle.size();
-        let (width, height) = (size.width as u32, size.height as u32);
+        let array_layer = allocation.layer() as u32;
+
+        let (width, height) = allocation.size();
 
         let extent = wgpu::Extent3d {
             width,
@@ -507,27 +816,22 @@ impl AtlasArray {
             depth: 1,
         };
 
-        let temp_buf = device
-            .create_buffer_mapped(
-                data.len(),
-                wgpu::BufferUsage::COPY_SRC,
-            )
-            .fill_from_slice(data);
+        let (x, y) = allocation.position();
 
         encoder.copy_buffer_to_texture(
             wgpu::BufferCopyView {
-                buffer: &temp_buf,
+                buffer,
                 offset: 0,
                 row_pitch: 4 * width,
                 image_height: height,
             },
             wgpu::TextureCopyView {
                 texture: &self.texture,
-                array_layer: layer as u32,
+                array_layer,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
-                    x: allocation.rectangle.min.x as f32,
-                    y: allocation.rectangle.min.y as f32,
+                    x: x as f32,
+                    y: y as f32,
                     z: 0.0,
                 },
             },
@@ -535,13 +839,17 @@ impl AtlasArray {
         );
     }
 
-    pub fn grow(
+    fn grow(
         &mut self,
         grow_by: u32,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
     ) {
-        let old_atlas_array_size = self.size;
+        if grow_by == 0 {
+            return;
+        }
+
+        let old_texture_array_size = self.texture_array_size;
 
         let new_texture = device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
@@ -549,7 +857,7 @@ impl AtlasArray {
                 height: ATLAS_SIZE,
                 depth: 1,
             },
-            array_layer_count: old_atlas_array_size + grow_by,
+            array_layer_count: old_texture_array_size + grow_by,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -559,37 +867,78 @@ impl AtlasArray {
                 | wgpu::TextureUsage::SAMPLED,
         });
 
-        for i in 0..old_atlas_array_size {
-            encoder.copy_texture_to_texture(
-                wgpu::TextureCopyView {
-                    texture: &self.texture,
-                    array_layer: i,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0,
-                    },
+        encoder.copy_texture_to_texture(
+            wgpu::TextureCopyView {
+                texture: &self.texture,
+                array_layer: 0,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
                 },
-                wgpu::TextureCopyView {
-                    texture: &new_texture,
-                    array_layer: i,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d {
-                        x: 0.0,
-                        y: 0.0,
-                        z: 0.0,
-                    },
+            },
+            wgpu::TextureCopyView {
+                texture: &new_texture,
+                array_layer: 0,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
                 },
-                wgpu::Extent3d {
-                    width: ATLAS_SIZE,
-                    height: ATLAS_SIZE,
-                    depth: 1,
-                }
-            );
-        }
+            },
+            wgpu::Extent3d {
+                width: ATLAS_SIZE,
+                height: ATLAS_SIZE,
+                depth: self.texture_array_size,
+            }
+        );
 
+        self.texture_array_size += grow_by;
         self.texture = new_texture;
+    }
+}
+
+trait RawImageData {
+    type Chunk;
+
+    fn data(&self) -> &[Self::Chunk];
+    fn width(&self) -> u32;
+    fn height(&self) -> u32;
+}
+
+#[cfg(feature = "image")]
+impl RawImageData for ::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>> {
+    type Chunk = u8;
+
+    fn data(&self) -> &[Self::Chunk] {
+        &self
+    }
+
+    fn width(&self) -> u32 {
+        self.dimensions().0
+    }
+
+    fn height(&self) -> u32 {
+        self.dimensions().1
+    }
+}
+
+#[cfg(feature = "svg")]
+impl RawImageData for resvg::raqote::DrawTarget {
+    type Chunk = u32;
+
+    fn data(&self) -> &[Self::Chunk] {
+        self.get_data()
+    }
+
+    fn width(&self) -> u32 {
+        self.width() as u32
+    }
+
+    fn height(&self) -> u32 {
+        self.height() as u32
     }
 }
 
@@ -616,7 +965,7 @@ const QUAD_VERTS: [Vertex; 4] = [
     },
 ];
 
-const ATLAS_SIZE: u32 = 8192;
+const ATLAS_SIZE: u32 = 4096;
 
 #[repr(C)]
 #[derive(Clone, Copy)]

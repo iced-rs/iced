@@ -1,19 +1,15 @@
-use crate::image::AtlasArray;
+use crate::image::{TextureArray, ImageAllocation};
 use iced_native::image;
 use std::{
     collections::{HashMap, HashSet},
 };
-use guillotiere::{Allocation, Size};
+use guillotiere::Size;
 use debug_stub_derive::*;
 
 #[derive(DebugStub)]
 pub enum Memory {
     Host(::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>>),
-    Device {
-        layer: u32,
-        #[debug_stub="ReplacementValue"]
-        allocation: Allocation,
-    },
+    Device(ImageAllocation),
     NotFound,
     Invalid,
 }
@@ -22,10 +18,7 @@ impl Memory {
     pub fn dimensions(&self) -> (u32, u32) {
         match self {
             Memory::Host(image) => image.dimensions(),
-            Memory::Device { allocation, .. } => {
-                let size = &allocation.rectangle.size();
-                (size.width as u32, size.height as u32)
-            },
+            Memory::Device(allocation) => allocation.size(),
             Memory::NotFound => (1, 1),
             Memory::Invalid => (1, 1),
         }
@@ -77,7 +70,7 @@ impl Cache {
         handle: &image::Handle,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        atlas_array: &mut AtlasArray,
+        atlas_array: &mut TextureArray,
     ) -> &Memory {
         let _ = self.load(handle);
 
@@ -87,29 +80,23 @@ impl Cache {
             let (width, height) = image.dimensions();
             let size = Size::new(width as i32, height as i32);
 
-            let (layer, allocation) = atlas_array.allocate(size).unwrap_or_else(|| {
-                atlas_array.grow(1, device, encoder);
-                atlas_array.allocate(size).unwrap()
-            });
+            let allocation = atlas_array.allocate(size);
 
-            let flat_samples = image.as_flat_samples();
-            let slice = flat_samples.as_slice();
+            atlas_array.upload(image, &allocation, device, encoder);
 
-            atlas_array.upload(slice, layer, &allocation, device, encoder);
-
-            *memory = Memory::Device { layer, allocation };
+            *memory = Memory::Device(allocation);
         }
 
         memory
     }
 
-    pub fn trim(&mut self, atlas_array: &mut AtlasArray) {
+    pub fn trim(&mut self, texture_array: &mut TextureArray) {
         let hits = &self.hits;
 
         for (id, mem) in &self.map {
-            if let Memory::Device { layer, allocation } = mem {
+            if let Memory::Device(allocation) = mem {
                 if !hits.contains(&id) {
-                    atlas_array.deallocate(*layer, allocation);
+                    texture_array.deallocate(allocation);
                 }
             }
         }

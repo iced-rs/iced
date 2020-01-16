@@ -1,9 +1,9 @@
-use crate::image::AtlasArray;
+use crate::image::{TextureArray, ImageAllocation};
 use iced_native::svg;
 use std::{
     collections::{HashMap, HashSet},
 };
-use guillotiere::{Allocation, Size};
+use guillotiere::Size;
 use debug_stub_derive::*;
 
 #[derive(DebugStub)]
@@ -32,7 +32,7 @@ impl Svg {
 pub struct Cache {
     svgs: HashMap<u64, Svg>,
     #[debug_stub="ReplacementValue"]
-    rasterized: HashMap<(u64, u32, u32), (u32, Allocation)>,
+    rasterized: HashMap<(u64, u32, u32), ImageAllocation>,
     svg_hits: HashSet<u64>,
     rasterized_hits: HashSet<(u64, u32, u32)>,
 }
@@ -70,8 +70,8 @@ impl Cache {
         scale: f32,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        atlas_array: &mut AtlasArray,
-    ) -> Option<&(u32, Allocation)> {
+        texture_array: &mut TextureArray,
+    ) -> Option<&ImageAllocation> {
         let id = handle.id();
 
         let (width, height) = (
@@ -100,10 +100,7 @@ impl Cache {
 
                 let size = Size::new(width as i32, height as i32);
 
-                let (layer, allocation) = atlas_array.allocate(size).unwrap_or_else(|| {
-                    atlas_array.grow(1, device, encoder);
-                    atlas_array.allocate(size).unwrap()
-                });
+                let array_allocation = texture_array.allocate(size);
 
                 // TODO: Optimize!
                 // We currently rerasterize the SVG when its size changes. This is slow
@@ -124,15 +121,13 @@ impl Cache {
                     &mut canvas,
                 );
 
-                let slice = canvas.get_data();
-
-                atlas_array.upload(slice, layer, &allocation, device, encoder);
+                texture_array.upload(&canvas, &array_allocation, device, encoder);
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert((id, width, height));
                 let _ = self
                     .rasterized
-                    .insert((id, width, height), (layer, allocation));
+                    .insert((id, width, height), array_allocation);
 
                 self.rasterized.get(&(id, width, height))
             }
@@ -140,13 +135,13 @@ impl Cache {
         }
     }
 
-    pub fn trim(&mut self, atlas_array: &mut AtlasArray) {
+    pub fn trim(&mut self, texture_array: &mut TextureArray) {
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
 
-        for (k, (layer, allocation)) in &self.rasterized {
+        for (k, allocation) in &self.rasterized {
             if !rasterized_hits.contains(k) {
-                atlas_array.deallocate(*layer, allocation);
+                texture_array.deallocate(allocation);
             }
         }
 
