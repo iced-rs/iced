@@ -26,7 +26,7 @@ pub enum Event {
 
     /// A file was hovered, but has exited the window.
     ///
-    /// There will be a single `FilesLeft` event triggered even if multiple
-    /// files were hovered.
-    FilesLeft,
+    /// There will be a single `FilesHoveredLeft` event triggered even if
+    /// multiple files were hovered.
+    FilesHoveredLeft,
 }

@@ -302,6 +302,18 @@ pub trait Application: Sized {
                 event: window_event,
                 ..
             } => match window_event {
+                WindowEvent::Resized(new_size) => {
+                    events.push(Event::Window(window::Event::Resized {
+                        width: new_size.width.round() as u32,
+                        height: new_size.height.round() as u32,
+                    }));
+
+                    size = new_size;
+                    resized = true;
+                }
+                WindowEvent::CloseRequested => {
+                    *control_flow = ControlFlow::Exit;
+                }
                 WindowEvent::CursorMoved { position, .. } => {
                     events.push(Event::Mouse(mouse::Event::CursorMoved {
                         x: position.x as f32,
@@ -370,17 +382,16 @@ pub trait Application: Sized {
                         modifiers: conversion::modifiers_state(modifiers),
                     }));
                 }
-                WindowEvent::CloseRequested => {
-                    *control_flow = ControlFlow::Exit;
+                WindowEvent::HoveredFile(path) => {
+                    events
+                        .push(Event::Window(window::Event::FileHovered(path)));
                 }
-                WindowEvent::Resized(new_size) => {
-                    events.push(Event::Window(window::Event::Resized {
-                        width: new_size.width.round() as u32,
-                        height: new_size.height.round() as u32,
-                    }));
-
-                    size = new_size;
-                    resized = true;
+                WindowEvent::DroppedFile(path) => {
+                    events
+                        .push(Event::Window(window::Event::FileDropped(path)));
+                }
+                WindowEvent::HoveredFileCancelled => {
+                    events.push(Event::Window(window::Event::FilesHoveredLeft));
                 }
                 _ => {}
             },
