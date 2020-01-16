@@ -1,4 +1,4 @@
-use crate::{Command, Element, Settings, Subscription};
+use crate::{window, Command, Element, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -138,6 +138,20 @@ pub trait Application: Sized {
     /// [`Application`]: trait.Application.html
     fn view(&mut self) -> Element<'_, Self::Message>;
 
+    /// Returns the current [`Application`] mode.
+    ///
+    /// The runtime will automatically transition your application if a new mode
+    /// is returned.
+    ///
+    /// Currently, the mode only has an effect in native platforms.
+    ///
+    /// By default, an application will run in windowed mode.
+    ///
+    /// [`Application`]: trait.Application.html
+    fn mode(&self) -> window::Mode {
+        window::Mode::Windowed
+    }
+
     /// Runs the [`Application`].
     ///
     /// This method will take control of the current thread and __will NOT
@@ -181,6 +195,13 @@ where
 
     fn title(&self) -> String {
         self.0.title()
+    }
+
+    fn mode(&self) -> iced_winit::Mode {
+        match self.0.mode() {
+            window::Mode::Windowed => iced_winit::Mode::Windowed,
+            window::Mode::Fullscreen => iced_winit::Mode::Fullscreen,
+        }
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {

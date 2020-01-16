@@ -2,7 +2,7 @@ use crate::{
     conversion,
     input::{keyboard, mouse},
     subscription, window, Cache, Clipboard, Command, Debug, Element, Event,
-    MouseCursor, Settings, Size, Subscription, UserInterface,
+    Mode, MouseCursor, Settings, Size, Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -72,6 +72,18 @@ pub trait Application: Sized {
     /// [`Application`]: trait.Application.html
     fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer>;
 
+    /// Returns the current [`Application`] mode.
+    ///
+    /// The runtime will automatically transition your application if a new mode
+    /// is returned.
+    ///
+    /// By default, an application will run in windowed mode.
+    ///
+    /// [`Application`]: trait.Application.html
+    fn mode(&self) -> Mode {
+        Mode::Windowed
+    }
+
     /// Runs the [`Application`].
     ///
     /// This method will take control of the current thread and __will NOT
@@ -110,6 +122,7 @@ pub trait Application: Sized {
         subscription_pool.update(subscription, &mut thread_pool, &proxy);
 
         let mut title = application.title();
+        let mut mode = application.mode();
 
         let window = {
             let mut window_builder = WindowBuilder::new();
@@ -123,7 +136,11 @@ pub trait Application: Sized {
                     height: f64::from(height),
                 })
                 .with_resizable(settings.window.resizable)
-                .with_decorations(settings.window.decorations);
+                .with_decorations(settings.window.decorations)
+                .with_fullscreen(conversion::fullscreen(
+                    event_loop.primary_monitor(),
+                    mode,
+                ));
 
             #[cfg(target_os = "windows")]
             {
@@ -242,6 +259,18 @@ pub trait Application: Sized {
                         window.set_title(&new_title);
 
                         title = new_title;
+                    }
+
+                    // Update window mode
+                    let new_mode = application.mode();
+
+                    if mode != new_mode {
+                        window.set_fullscreen(conversion::fullscreen(
+                            window.current_monitor(),
+                            new_mode,
+                        ));
+
+                        mode = new_mode;
                     }
 
                     let user_interface = build_user_interface(

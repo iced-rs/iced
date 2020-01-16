@@ -189,6 +189,7 @@ mod platform;
 mod sandbox;
 
 pub mod settings;
+pub mod window;
 
 pub use application::Application;
 pub use platform::*;
