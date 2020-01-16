@@ -7,8 +7,21 @@ use crate::{
         keyboard::{KeyCode, ModifiersState},
         mouse, ButtonState,
     },
-    MouseCursor,
+    window, MouseCursor,
 };
+
+/// Convert a `Mode` from [`iced_native`] to a [`winit`] fullscreen mode.
+pub fn fullscreen(
+    monitor: winit::monitor::MonitorHandle,
+    mode: window::Mode,
+) -> Option<winit::window::Fullscreen> {
+    match mode {
+        window::Mode::Windowed => None,
+        window::Mode::Fullscreen => {
+            Some(winit::window::Fullscreen::Borderless(monitor))
+        }
+    }
+}
 
 /// Convert a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
 ///
