@@ -3,14 +3,9 @@ use iced_native::svg;
 use std::{
     collections::{HashMap, HashSet},
 };
-use debug_stub_derive::*;
 
-#[derive(DebugStub)]
 pub enum Svg {
-    Loaded(
-        #[debug_stub="ReplacementValue"]
-        resvg::usvg::Tree
-    ),
+    Loaded(resvg::usvg::Tree),
     NotFound,
 }
 
@@ -27,10 +22,17 @@ impl Svg {
     }
 }
 
-#[derive(DebugStub)]
+impl std::fmt::Debug for Svg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Svg::Loaded(_) => write!(f, "Svg::Loaded"),
+            Svg::NotFound => write!(f, "Svg::NotFound"),
+        }
+    }
+}
+
 pub struct Cache {
     svgs: HashMap<u64, Svg>,
-    #[debug_stub="ReplacementValue"]
     rasterized: HashMap<(u64, u32, u32), ImageAllocation>,
     svg_hits: HashSet<u64>,
     rasterized_hits: HashSet<(u64, u32, u32)>,
@@ -142,5 +144,11 @@ impl Cache {
         self.rasterized.retain(|k, _| rasterized_hits.contains(k));
         self.svg_hits.clear();
         self.rasterized_hits.clear();
+    }
+}
+
+impl std::fmt::Debug for Cache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "vector::Cache")
     }
 }

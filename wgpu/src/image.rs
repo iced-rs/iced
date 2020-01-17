@@ -15,7 +15,6 @@ use std::mem;
 use std::cell::RefCell;
 
 use guillotiere::{Allocation, AtlasAllocator, Size};
-use debug_stub_derive::*;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -477,11 +476,9 @@ impl ImageAllocation {
     }
 }
 
-#[derive(DebugStub)]
 pub enum ArrayAllocation {
     AtlasAllocation {
         layer: usize,
-        #[debug_stub = "Allocation"]
         allocation: Allocation,
     },
     WholeLayer {
@@ -518,14 +515,33 @@ impl ArrayAllocation {
     }
 }
 
-#[derive(DebugStub)]
+impl std::fmt::Debug for ArrayAllocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArrayAllocation::AtlasAllocation { layer, .. } => {
+                write!(f, "ArrayAllocation::AtlasAllocation {{ layer: {} }}", layer)
+            },
+            ArrayAllocation::WholeLayer { layer } => {
+                write!(f, "ArrayAllocation::WholeLayer {{ layer: {} }}", layer)
+            }
+        }
+    }
+}
+
 pub enum TextureLayer {
     Whole,
-    Atlas(
-        #[debug_stub="AtlasAllocator"]
-        AtlasAllocator
-    ),
+    Atlas(AtlasAllocator),
     Empty,
+}
+
+impl std::fmt::Debug for TextureLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TextureLayer::Whole => write!(f, "TextureLayer::Whole"),
+            TextureLayer::Atlas(_) => write!(f, "TextureLayer::Atlas"),
+            TextureLayer::Empty => write!(f, "TextureLayer::Empty"),
+        }
+    }
 }
 
 #[derive(Debug)]
