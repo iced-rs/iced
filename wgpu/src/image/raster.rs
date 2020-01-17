@@ -3,7 +3,6 @@ use iced_native::image;
 use std::{
     collections::{HashMap, HashSet},
 };
-use guillotiere::Size;
 use debug_stub_derive::*;
 
 #[derive(DebugStub)]
@@ -72,17 +71,10 @@ impl Cache {
         encoder: &mut wgpu::CommandEncoder,
         atlas_array: &mut TextureArray,
     ) -> &Memory {
-        let _ = self.load(handle);
-
-        let memory = self.map.get_mut(&handle.id()).unwrap();
+        let memory = self.load(handle);
 
         if let Memory::Host(image) = memory {
-            let (width, height) = image.dimensions();
-            let size = Size::new(width as i32, height as i32);
-
-            let allocation = atlas_array.allocate(size);
-
-            atlas_array.upload(image, &allocation, device, encoder);
+            let allocation = atlas_array.upload(image, device, encoder);
 
             *memory = Memory::Device(allocation);
         }

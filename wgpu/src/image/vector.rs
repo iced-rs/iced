@@ -3,7 +3,6 @@ use iced_native::svg;
 use std::{
     collections::{HashMap, HashSet},
 };
-use guillotiere::Size;
 use debug_stub_derive::*;
 
 #[derive(DebugStub)]
@@ -83,24 +82,18 @@ impl Cache {
         // We currently rerasterize the SVG when its size changes. This is slow
         // as heck. A GPU rasterizer like `pathfinder` may perform better.
         // It would be cool to be able to smooth resize the `svg` example.
-        if self.rasterized.get(&(id, width, height)).is_some() {
+        if self.rasterized.contains_key(&(id, width, height)) {
             let _ = self.svg_hits.insert(id);
             let _ = self.rasterized_hits.insert((id, width, height));
 
             return self.rasterized.get(&(id, width, height));
         }
 
-        let _ = self.load(handle);
-
-        match self.svgs.get(&handle.id()).unwrap() {
+        match self.load(handle) {
             Svg::Loaded(tree) => {
                 if width == 0 || height == 0 {
                     return None;
                 }
-
-                let size = Size::new(width as i32, height as i32);
-
-                let array_allocation = texture_array.allocate(size);
 
                 // TODO: Optimize!
                 // We currently rerasterize the SVG when its size changes. This is slow
@@ -121,13 +114,13 @@ impl Cache {
                     &mut canvas,
                 );
 
-                texture_array.upload(&canvas, &array_allocation, device, encoder);
+                let allocation = texture_array.upload(&canvas, device, encoder);
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert((id, width, height));
                 let _ = self
                     .rasterized
-                    .insert((id, width, height), array_allocation);
+                    .insert((id, width, height), allocation);
 
                 self.rasterized.get(&(id, width, height))
             }
