@@ -252,9 +252,8 @@ impl Pipeline {
             let uploaded_texture = match &image.handle {
                 Handle::Raster(handle) => {
                     let mut cache = self.raster_cache.borrow_mut();
-                    let memory = cache.load(&handle);
 
-                    memory.upload(device, encoder, &self.texture_layout)
+                    cache.upload(handle, device, encoder, &self.texture_layout)
                 }
                 Handle::Vector(_handle) => {
                     #[cfg(feature = "svg")]

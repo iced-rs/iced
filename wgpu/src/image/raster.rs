@@ -4,10 +4,13 @@ use std::{
     rc::Rc,
 };
 
+type ImageBuffer = ::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>>;
+
 #[derive(Debug)]
 pub enum Memory {
-    Host(::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>>),
+    Host(Rc<ImageBuffer>),
     Device {
+        image: Rc<ImageBuffer>,
         bind_group: Rc<wgpu::BindGroup>,
         width: u32,
         height: u32,
@@ -25,14 +28,64 @@ impl Memory {
             Memory::Invalid => (1, 1),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Cache {
+    map: HashMap<u64, Memory>,
+    load_hits: HashSet<u64>,
+    upload_hits: HashSet<u64>,
+}
+
+impl Cache {
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+            load_hits: HashSet::new(),
+            upload_hits: HashSet::new(),
+        }
+    }
+
+    pub fn load(&mut self, handle: &image::Handle) -> &mut Memory {
+        if self.contains(handle) {
+            return self.get(handle).unwrap();
+        }
+
+        let memory = match handle.data() {
+            image::Data::Path(path) => {
+                if let Ok(image) = ::image::open(path) {
+                    Memory::Host(Rc::new(image.to_bgra()))
+                } else {
+                    Memory::NotFound
+                }
+            }
+            image::Data::Bytes(bytes) => {
+                if let Ok(image) = ::image::load_from_memory(&bytes) {
+                    Memory::Host(Rc::new(image.to_bgra()))
+                } else {
+                    Memory::Invalid
+                }
+            }
+        };
+
+        self.insert(handle, memory);
+        self.get(handle).unwrap()
+    }
 
     pub fn upload(
         &mut self,
+        handle: &image::Handle,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         texture_layout: &wgpu::BindGroupLayout,
     ) -> Option<Rc<wgpu::BindGroup>> {
-        match self {
+        let memory = {
+            let _ = self.upload_hits.insert(handle.id());
+
+            self.load(handle)
+        };
+
+        match memory {
             Memory::Host(image) => {
                 let (width, height) = image.dimensions();
 
@@ -98,7 +151,8 @@ impl Memory {
 
                 let bind_group = Rc::new(bind_group);
 
-                *self = Memory::Device {
+                *memory = Memory::Device {
+                    image: image.clone(),
                     bind_group: bind_group.clone(),
                     width,
                     height,
@@ -111,57 +165,33 @@ impl Memory {
             Memory::Invalid => None,
         }
     }
-}
-
-#[derive(Debug)]
-pub struct Cache {
-    map: HashMap<u64, Memory>,
-    hits: HashSet<u64>,
-}
-
-impl Cache {
-    pub fn new() -> Self {
-        Self {
-            map: HashMap::new(),
-            hits: HashSet::new(),
-        }
-    }
-
-    pub fn load(&mut self, handle: &image::Handle) -> &mut Memory {
-        if self.contains(handle) {
-            return self.get(handle).unwrap();
-        }
-
-        let memory = match handle.data() {
-            image::Data::Path(path) => {
-                if let Ok(image) = ::image::open(path) {
-                    Memory::Host(image.to_bgra())
-                } else {
-                    Memory::NotFound
-                }
-            }
-            image::Data::Bytes(bytes) => {
-                if let Ok(image) = ::image::load_from_memory(&bytes) {
-                    Memory::Host(image.to_bgra())
-                } else {
-                    Memory::Invalid
-                }
-            }
-        };
-
-        self.insert(handle, memory);
-        self.get(handle).unwrap()
-    }
 
     pub fn trim(&mut self) {
-        let hits = &self.hits;
+        let load_hits = &self.load_hits;
+        let upload_hits = &self.upload_hits;
 
-        self.map.retain(|k, _| hits.contains(k));
-        self.hits.clear();
+        self.map.retain(|k, memory| {
+            if upload_hits.contains(k) {
+                return true;
+            }
+
+            let retain = load_hits.contains(k);
+
+            if let Memory::Device { image, .. } = memory {
+                if retain {
+                    *memory = Memory::Host(image.clone());
+                }
+            }
+
+            retain
+        });
+
+        self.load_hits.clear();
+        self.upload_hits.clear();
     }
 
     fn get(&mut self, handle: &image::Handle) -> Option<&mut Memory> {
-        let _ = self.hits.insert(handle.id());
+        let _ = self.load_hits.insert(handle.id());
 
         self.map.get_mut(&handle.id())
     }
