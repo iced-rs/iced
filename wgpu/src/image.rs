@@ -660,37 +660,36 @@ impl TextureArray {
     fn deallocate(&mut self, allocation: &ImageAllocation) {
         match allocation {
             ImageAllocation::SingleAllocation(allocation) => {
-                if let Some(layer) = self.layers.get_mut(allocation.layer()) {
-                    match allocation {
-                        ArrayAllocation::WholeLayer { .. } => {
-                            *layer = TextureLayer::Empty;
-                        }
-                        ArrayAllocation::AtlasAllocation { allocation, .. } => {
-                            if let TextureLayer::Atlas(allocator) = layer {
-                                allocator.deallocate(allocation.id);
-                            }
-                        }
-                    }
-                }
+                self.deallocate_single_allocation(allocation);
             }
             ImageAllocation::MultipleAllocations { mappings, .. } => {
                 for mapping in mappings {
-                    if let Some(layer) = self.layers.get_mut(mapping.allocation.layer()) {
-                        match &mapping.allocation {
-                            ArrayAllocation::WholeLayer { .. } => {
-                                *layer = TextureLayer::Empty;
-                            }
-                            ArrayAllocation::AtlasAllocation { allocation, .. } => {
-                                if let TextureLayer::Atlas(allocator) = layer {
-                                    allocator.deallocate(allocation.id);
-                                }
-                            }
+                    self.deallocate_single_allocation(&mapping.allocation);
+                }
+            }
+        }
+    }
+
+    fn deallocate_single_allocation(&mut self, allocation: &ArrayAllocation) {
+        if let Some(layer) = self.layers.get_mut(allocation.layer()) {
+            match allocation {
+                ArrayAllocation::WholeLayer { .. } => {
+                    *layer = TextureLayer::Empty;
+                }
+                ArrayAllocation::AtlasAllocation { allocation, .. } => {
+                    if let TextureLayer::Atlas(allocator) = layer {
+                        allocator.deallocate(allocation.id);
+
+                        let mut empty_allocator = true;
+                        allocator.for_each_allocated_rectangle(|_, _| empty_allocator = false);
+
+                        if empty_allocator {
+                            *layer = TextureLayer::Empty;
                         }
                     }
                 }
             }
         }
-
     }
 
     fn upload<C, I>(
@@ -953,7 +952,7 @@ const QUAD_VERTS: [Vertex; 4] = [
     },
 ];
 
-const ATLAS_SIZE: u32 = 4096;
+const ATLAS_SIZE: u32 = 256;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
