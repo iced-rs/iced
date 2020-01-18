@@ -50,6 +50,15 @@ impl<'a> Layer<'a> {
             meshes: Vec::new(),
         }
     }
+
+    pub fn visible_bounds(&self) -> Rectangle {
+        Rectangle {
+            x: (self.bounds.x + self.offset.x) as f32,
+            y: (self.bounds.y + self.offset.y) as f32,
+            width: self.bounds.width as f32,
+            height: self.bounds.height as f32,
+        }
+    }
 }
 
 impl Renderer {
@@ -244,11 +253,13 @@ impl Renderer {
                 });
             }
             Primitive::Image { handle, bounds } => {
-                layer.images.push(Image {
-                    handle: image::Handle::Raster(handle.clone()),
-                    position: [bounds.x, bounds.y],
-                    scale: [bounds.width, bounds.height],
-                });
+                if bounds.intersects(&layer.visible_bounds()) {
+                    layer.images.push(Image {
+                        handle: image::Handle::Raster(handle.clone()),
+                        position: [bounds.x, bounds.y],
+                        scale: [bounds.width, bounds.height],
+                    });
+                }
             }
             Primitive::Svg { handle, bounds } => {
                 layer.images.push(Image {

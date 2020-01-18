@@ -35,6 +35,7 @@ pub struct Cache {
     map: HashMap<u64, Memory>,
     load_hits: HashSet<u64>,
     upload_hits: HashSet<u64>,
+    is_dirty: bool,
 }
 
 impl Cache {
@@ -43,6 +44,7 @@ impl Cache {
             map: HashMap::new(),
             load_hits: HashSet::new(),
             upload_hits: HashSet::new(),
+            is_dirty: false,
         }
     }
 
@@ -69,6 +71,8 @@ impl Cache {
         };
 
         self.insert(handle, memory);
+        self.is_dirty = true;
+
         self.get(handle).unwrap()
     }
 
@@ -167,6 +171,10 @@ impl Cache {
     }
 
     pub fn trim(&mut self) {
+        if !self.is_dirty {
+            return;
+        }
+
         let load_hits = &self.load_hits;
         let upload_hits = &self.upload_hits;
 
@@ -177,8 +185,8 @@ impl Cache {
 
             let retain = load_hits.contains(k);
 
-            if let Memory::Device { image, .. } = memory {
-                if retain {
+            if retain {
+                if let Memory::Device { image, .. } = memory {
                     *memory = Memory::Host(image.clone());
                 }
             }
@@ -188,6 +196,8 @@ impl Cache {
 
         self.load_hits.clear();
         self.upload_hits.clear();
+
+        self.is_dirty = false;
     }
 
     fn get(&mut self, handle: &image::Handle) -> Option<&mut Memory> {

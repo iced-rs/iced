@@ -16,6 +16,18 @@ pub struct Rectangle<T = f32> {
     pub height: T,
 }
 
+impl<T: std::ops::Add<Output = T> + PartialOrd + Copy> Rectangle<T> {
+    /// Returns true if the current [`Rectangle`] intersects with the given one.
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn intersects(&self, b: &Rectangle<T>) -> bool {
+        self.x < b.x + b.width
+            && self.x + self.width > b.x
+            && self.y < b.y + b.height
+            && self.y + self.height > b.y
+    }
+}
+
 impl Rectangle<f32> {
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
     ///
