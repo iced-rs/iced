@@ -9,30 +9,30 @@ use futures::Sink;
 use std::marker::PhantomData;
 
 #[derive(Debug)]
-pub struct Runtime<Hasher, Event, Executor, Receiver, Message> {
+pub struct Runtime<Hasher, Event, Executor, Sender, Message> {
     executor: Executor,
-    receiver: Receiver,
+    sender: Sender,
     subscriptions: subscription::Tracker<Hasher, Event>,
     _message: PhantomData<Message>,
 }
 
-impl<Hasher, Event, Executor, Receiver, Message>
-    Runtime<Hasher, Event, Executor, Receiver, Message>
+impl<Hasher, Event, Executor, Sender, Message>
+    Runtime<Hasher, Event, Executor, Sender, Message>
 where
     Hasher: std::hash::Hasher + Default,
     Event: Send + Clone + 'static,
     Executor: self::Executor,
-    Receiver: Sink<Message, Error = core::convert::Infallible>
+    Sender: Sink<Message, Error = core::convert::Infallible>
         + Unpin
         + Send
         + Clone
         + 'static,
     Message: Send + 'static,
 {
-    pub fn new(executor: Executor, receiver: Receiver) -> Self {
+    pub fn new(executor: Executor, sender: Sender) -> Self {
         Self {
             executor,
-            receiver,
+            sender,
             subscriptions: subscription::Tracker::new(),
             _message: PhantomData,
         }
@@ -48,11 +48,11 @@ where
         let futures = command.futures();
 
         for future in futures {
-            let mut receiver = self.receiver.clone();
+            let mut sender = self.sender.clone();
 
             self.executor.spawn(future.then(|message| {
                 async move {
-                    let _ = receiver.send(message).await;
+                    let _ = sender.send(message).await;
 
                     ()
                 }
@@ -64,9 +64,8 @@ where
         &mut self,
         subscription: Subscription<Hasher, Event, Message>,
     ) {
-        let futures = self
-            .subscriptions
-            .update(subscription, self.receiver.clone());
+        let futures =
+            self.subscriptions.update(subscription, self.sender.clone());
 
         for future in futures {
             self.executor.spawn(future);
