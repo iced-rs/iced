@@ -1,0 +1,23 @@
+[package]
+name = "iced_futures"
+version = "0.1.0-alpha"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+description = "Commands, subscriptions, and runtimes for Iced"
+license = "MIT"
+repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced_futures"
+keywords = ["gui", "ui", "graphics", "interface", "futures"]
+categories = ["gui"]
+
+[dependencies]
+log = "0.4"
+
+[dependencies.futures]
+version = "0.3"
+features = ["thread-pool"]
+
+[dependencies.tokio]
+version = "0.2"
+optional = true
+features = ["rt-core"]

@@ -42,6 +42,7 @@
 pub mod input;
 pub mod layout;
 pub mod renderer;
+pub mod runtime;
 pub mod subscription;
 pub mod widget;
 pub mod window;
@@ -55,9 +56,10 @@ mod size;
 mod user_interface;
 
 pub use iced_core::{
-    Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    Point, Rectangle, Vector, VerticalAlignment,
+    Align, Background, Color, Font, HorizontalAlignment, Length, Point,
+    Rectangle, Vector, VerticalAlignment,
 };
+pub use iced_futures::Command;
 
 pub use clipboard::Clipboard;
 pub use element::Element;
@@ -66,6 +68,7 @@ pub use hasher::Hasher;
 pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
 pub use renderer::Renderer;
+pub use runtime::Runtime;
 pub use size::Size;
 pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};

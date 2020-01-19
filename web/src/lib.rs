@@ -72,9 +72,10 @@ pub use dodrio;
 pub use element::Element;
 pub use hasher::Hasher;
 pub use iced_core::{
-    Align, Background, Color, Command, Font, HorizontalAlignment, Length,
+    Align, Background, Color, Font, HorizontalAlignment, Length,
     VerticalAlignment,
 };
+pub use iced_futures::Command;
 pub use style::Style;
 pub use subscription::Subscription;
 pub use widget::*;
@@ -148,7 +149,6 @@ pub trait Application {
     }
 }
 
-
 struct Instance<Message> {
     title: String,
     ui: Rc<RefCell<Box<dyn Application<Message = Message>>>>,
@@ -167,7 +167,7 @@ impl<Message> Clone for Instance<Message> {
 
 impl<Message> Instance<Message>
 where
-    Message: 'static
+    Message: 'static,
 {
     fn new(ui: impl Application<Message = Message> + 'static) -> Self {
         Self {

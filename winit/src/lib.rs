@@ -31,7 +31,7 @@ pub mod settings;
 mod application;
 mod clipboard;
 mod mode;
-mod subscription;
+mod proxy;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.
@@ -48,3 +48,4 @@ pub use settings::Settings;
 
 use clipboard::Clipboard;
 use debug::Debug;
+use proxy::Proxy;

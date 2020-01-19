@@ -7,14 +7,4 @@ description = "The essential concepts of Iced"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
 
-[features]
-# Exposes a future-based `Command` type
-command = ["futures"]
-# Exposes a future-based `Subscription` type
-subscription = ["futures", "log"]
-# Exposes a `runtime` module meant to abstract over different future executors
-runtime = ["command", "subscription"]
-
 [dependencies]
-futures = { version = "0.3", optional = true }
-log = { version = "0.4", optional = true }

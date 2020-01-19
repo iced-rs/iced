@@ -23,6 +23,7 @@ maintenance = { status = "actively-developed" }
 [workspace]
 members = [
     "core",
+    "futures",
     "native",
     "style",
     "web",

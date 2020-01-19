@@ -1,3 +1,4 @@
+//! Run commands and subscriptions.
 mod executor;
 
 pub use executor::Executor;
@@ -10,8 +11,8 @@ use std::marker::PhantomData;
 #[derive(Debug)]
 pub struct Runtime<Hasher, Event, Executor, Receiver, Message> {
     executor: Executor,
-    subscriptions: subscription::Tracker<Hasher, Event>,
     receiver: Receiver,
+    subscriptions: subscription::Tracker<Hasher, Event>,
     _message: PhantomData<Message>,
 }
 
@@ -28,13 +29,17 @@ where
         + 'static,
     Message: Send + 'static,
 {
-    pub fn new(receiver: Receiver) -> Self {
+    pub fn new(executor: Executor, receiver: Receiver) -> Self {
         Self {
-            executor: Executor::new(),
-            subscriptions: subscription::Tracker::new(),
+            executor,
             receiver,
+            subscriptions: subscription::Tracker::new(),
             _message: PhantomData,
         }
+    }
+
+    pub fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
+        self.executor.enter(f)
     }
 
     pub fn spawn(&mut self, command: Command<Message>) {
