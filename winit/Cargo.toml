@@ -16,11 +16,16 @@ debug = []
 [dependencies]
 winit = { version = "0.20.0-alpha3", git = "https://github.com/hecrj/winit", rev = "709808eb4e69044705fcb214bcc30556db761405"}
 log = "0.4"
-futures = { version = "0.3", features = ["thread-pool"] }
+futures = "0.3"
 
 [dependencies.iced_native]
 version = "0.1.0-alpha"
 path = "../native"
+
+[dependencies.iced_futures]
+version = "0.1.0-alpha"
+path = "../futures"
+features = ["thread-pool"]
 
 [dependencies.window_clipboard]
 git = "https://github.com/hecrj/window_clipboard"

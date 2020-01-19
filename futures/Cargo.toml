@@ -10,12 +10,14 @@ documentation = "https://docs.rs/iced_futures"
 keywords = ["gui", "ui", "graphics", "interface", "futures"]
 categories = ["gui"]
 
+[features]
+thread-pool = ["futures/thread-pool"]
+
 [dependencies]
 log = "0.4"
 
 [dependencies.futures]
 version = "0.3"
-features = ["thread-pool"]
 
 [dependencies.tokio]
 version = "0.2"

@@ -8,6 +8,7 @@ pub trait Executor {
     }
 }
 
+#[cfg(feature = "thread-pool")]
 impl Executor for futures::executor::ThreadPool {
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
         self.spawn_ok(future);
