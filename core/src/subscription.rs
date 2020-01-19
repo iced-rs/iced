@@ -1,4 +1,9 @@
 //! Listen to external events in your application.
+mod tracker;
+
+pub use tracker::Tracker;
+
+use futures::stream::BoxStream;
 
 /// A request to listen to external events.
 ///
@@ -134,8 +139,8 @@ pub trait Recipe<Hasher: std::hash::Hasher, Input> {
     /// [`Recipe`]: trait.Recipe.html
     fn stream(
         self: Box<Self>,
-        input: Input,
-    ) -> futures::stream::BoxStream<'static, Self::Output>;
+        input: BoxStream<'static, Input>,
+    ) -> BoxStream<'static, Self::Output>;
 }
 
 struct Map<Hasher, Input, A, B> {
@@ -169,7 +174,7 @@ where
 
     fn stream(
         self: Box<Self>,
-        input: I,
+        input: BoxStream<'static, I>,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         use futures::StreamExt;
 

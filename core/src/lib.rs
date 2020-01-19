@@ -9,7 +9,7 @@
 //! [Iced]: https://github.com/hecrj/iced
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 //! [`iced_web`]: https://github.com/hecrj/iced/tree/master/web
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]

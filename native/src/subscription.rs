@@ -15,7 +15,7 @@ use futures::stream::BoxStream;
 ///
 /// [`Command`]: ../struct.Command.html
 /// [`Subscription`]: struct.Subscription.html
-pub type Subscription<T> = iced_core::Subscription<Hasher, EventStream, T>;
+pub type Subscription<T> = iced_core::Subscription<Hasher, Event, T>;
 
 /// A stream of runtime events.
 ///
@@ -23,6 +23,11 @@ pub type Subscription<T> = iced_core::Subscription<Hasher, EventStream, T>;
 ///
 /// [`Subscription`]: type.Subscription.html
 pub type EventStream = BoxStream<'static, Event>;
+
+/// A native [`Subscription`] tracker.
+///
+/// [`Subscription`]: type.Subscription.html
+pub type Tracker = iced_core::subscription::Tracker<Hasher, Event>;
 
 pub use iced_core::subscription::Recipe;
 

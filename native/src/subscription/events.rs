@@ -5,7 +5,7 @@ use crate::{
 
 pub struct Events;
 
-impl Recipe<Hasher, EventStream> for Events {
+impl Recipe<Hasher, Event> for Events {
     type Output = Event;
 
     fn hash(&self, state: &mut Hasher) {
