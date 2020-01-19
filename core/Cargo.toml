@@ -12,6 +12,8 @@ repository = "https://github.com/hecrj/iced"
 command = ["futures"]
 # Exposes a future-based `Subscription` type
 subscription = ["futures", "log"]
+# Exposes a `runtime` module meant to abstract over different future executors
+runtime = ["command", "subscription"]
 
 [dependencies]
 futures = { version = "0.3", optional = true }

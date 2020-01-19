@@ -28,14 +28,14 @@ where
         }
     }
 
-    pub fn update<Message, S>(
+    pub fn update<Message, Receiver>(
         &mut self,
         subscription: Subscription<Hasher, Event, Message>,
-        sink: S,
+        receiver: Receiver,
     ) -> Vec<BoxFuture<'static, ()>>
     where
         Message: 'static + Send,
-        S: 'static
+        Receiver: 'static
             + Sink<Message, Error = core::convert::Infallible>
             + Unpin
             + Send
@@ -72,7 +72,7 @@ where
 
             let future = futures::future::select(
                 cancelled,
-                stream.map(Ok).forward(sink.clone()),
+                stream.map(Ok).forward(receiver.clone()),
             )
             .map(|_| ());
 

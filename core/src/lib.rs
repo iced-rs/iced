@@ -44,3 +44,9 @@ pub mod subscription;
 
 #[cfg(feature = "subscription")]
 pub use subscription::Subscription;
+
+#[cfg(feature = "runtime")]
+mod runtime;
+
+#[cfg(feature = "runtime")]
+pub use runtime::Runtime;
