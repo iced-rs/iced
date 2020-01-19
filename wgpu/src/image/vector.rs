@@ -130,15 +130,9 @@ impl Cache {
         }
     }
 
-    pub fn trim(&mut self, texture_array: &mut TextureArray) {
+    pub fn trim(&mut self) {
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
-
-        for (k, allocation) in &self.rasterized {
-            if !rasterized_hits.contains(k) {
-                texture_array.deallocate(allocation);
-            }
-        }
 
         self.svgs.retain(|k, _| svg_hits.contains(k));
         self.rasterized.retain(|k, _| rasterized_hits.contains(k));

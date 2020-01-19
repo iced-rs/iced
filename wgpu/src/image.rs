@@ -9,10 +9,7 @@ use crate::image::raster::Memory;
 use crate::Transformation;
 use iced_native::{image, svg, Rectangle};
 
-use std::mem;
-
-#[cfg(any(feature = "image", feature = "svg"))]
-use std::cell::RefCell;
+use std::{cell::RefCell, mem, rc::Rc};
 
 use guillotiere::{Allocation, AtlasAllocator, Size};
 
@@ -377,10 +374,10 @@ impl Pipeline {
 
     pub fn trim_cache(&mut self) {
         #[cfg(feature = "image")]
-        self.raster_cache.borrow_mut().trim(&mut self.texture_array);
+        self.raster_cache.borrow_mut().trim();
 
         #[cfg(feature = "svg")]
-        self.vector_cache.borrow_mut().trim(&mut self.texture_array);
+        self.vector_cache.borrow_mut().trim();
     }
 }
 
@@ -423,14 +420,14 @@ fn add_instance(
     let y = (allocation.position().1 as f32 + 0.5) / (ATLAS_SIZE as f32);
     let w = (allocation.size().0 as f32 - 0.5) / (ATLAS_SIZE as f32);
     let h = (allocation.size().1 as f32 - 0.5) / (ATLAS_SIZE as f32);
-    let layer = allocation.layer() as f32;
+    let layer_index = allocation.layer_index() as f32;
 
     let instance = Instance {
         _position: position,
         _scale: scale,
         _position_in_atlas: [x, y],
         _scale_in_atlas: [w, h],
-        _layer: layer,
+        _layer: layer_index,
     };
 
     instances.push(instance);
@@ -478,11 +475,13 @@ impl ImageAllocation {
 
 pub enum ArrayAllocation {
     AtlasAllocation {
-        layer: usize,
+        layer_index: usize,
+        layer: Rc<RefCell<TextureLayer>>,
         allocation: Allocation,
     },
     WholeLayer {
-        layer: usize,
+        layer_index: usize,
+        layer: Rc<RefCell<TextureLayer>>,
     }
 }
 
@@ -507,10 +506,10 @@ impl ArrayAllocation {
         }
     }
 
-    pub fn layer(&self) -> usize {
+    pub fn layer_index(&self) -> usize {
         match self {
-            ArrayAllocation::AtlasAllocation { layer, .. } => *layer,
-            ArrayAllocation::WholeLayer { layer } => *layer,
+            ArrayAllocation::AtlasAllocation { layer_index, .. } => *layer_index,
+            ArrayAllocation::WholeLayer { layer_index, .. } => *layer_index,
         }
     }
 }
@@ -518,11 +517,34 @@ impl ArrayAllocation {
 impl std::fmt::Debug for ArrayAllocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ArrayAllocation::AtlasAllocation { layer, .. } => {
-                write!(f, "ArrayAllocation::AtlasAllocation {{ layer: {} }}", layer)
+            ArrayAllocation::AtlasAllocation { layer_index, .. } => {
+                write!(f, "ArrayAllocation::AtlasAllocation {{ layer_index: {:} }}", layer_index)
             },
-            ArrayAllocation::WholeLayer { layer } => {
-                write!(f, "ArrayAllocation::WholeLayer {{ layer: {} }}", layer)
+            ArrayAllocation::WholeLayer { layer_index, .. } => {
+                write!(f, "ArrayAllocation::WholeLayer {{ layer_index: {} }}", layer_index)
+            }
+        }
+    }
+}
+
+impl Drop for ArrayAllocation {
+    fn drop(&mut self) {
+        match self {
+            ArrayAllocation::WholeLayer { layer, .. } => {
+                let _ = layer.replace(TextureLayer::Whole);
+            }
+            ArrayAllocation::AtlasAllocation { allocation, layer, .. } => {
+                let mut layer = layer.borrow_mut();
+                if let Some(allocator) = layer.allocator_mut() {
+                    allocator.deallocate(allocation.id);
+
+                    let mut empty_allocator = true;
+                    allocator.for_each_allocated_rectangle(|_, _| empty_allocator = false);
+
+                    if empty_allocator {
+                        *layer = TextureLayer::Empty;
+                    }
+                }
             }
         }
     }
@@ -532,6 +554,23 @@ pub enum TextureLayer {
     Whole,
     Atlas(AtlasAllocator),
     Empty,
+}
+
+impl TextureLayer {
+    pub fn is_empty(&self) -> bool {
+        if let TextureLayer::Empty = self {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn allocator_mut(&mut self) -> Option<&mut AtlasAllocator> {
+        match self {
+            TextureLayer::Atlas(allocator) => Some(allocator),
+            _ => None
+        }
+    }
 }
 
 impl std::fmt::Debug for TextureLayer {
@@ -544,11 +583,17 @@ impl std::fmt::Debug for TextureLayer {
     }
 }
 
+impl From<AtlasAllocator> for TextureLayer {
+    fn from(allocator: AtlasAllocator) -> Self {
+        TextureLayer::Atlas(allocator)
+    }
+}
+
 #[derive(Debug)]
 pub struct TextureArray {
     texture: wgpu::Texture,
     texture_array_size: u32,
-    layers: Vec<TextureLayer>,
+    layers: Vec<Rc<RefCell<TextureLayer>>>,
 }
 
 impl TextureArray {
@@ -576,7 +621,7 @@ impl TextureArray {
         TextureArray {
             texture,
             texture_array_size: 1,
-            layers: vec!(TextureLayer::Empty),
+            layers: vec!(Rc::new(RefCell::new(TextureLayer::Empty))),
         }
     }
 
@@ -584,18 +629,19 @@ impl TextureArray {
         // Allocate one layer if allocation fits perfectly
         if size.width == ATLAS_SIZE as i32 && size.height == ATLAS_SIZE as i32 {
             for (i, layer) in self.layers.iter_mut().enumerate() {
-                if let TextureLayer::Empty = layer
+                if layer.borrow().is_empty()
                 {
-                    *layer = TextureLayer::Whole;
+                    let _ = layer.replace(TextureLayer::Whole);
                     return Some(ImageAllocation::SingleAllocation(
-                        ArrayAllocation::WholeLayer { layer: i }
+                        ArrayAllocation::WholeLayer { layer: layer.clone(), layer_index: i }
                     ));
                 }
             }
 
-            self.layers.push(TextureLayer::Whole);
+            let layer = Rc::new(RefCell::new(TextureLayer::Whole));
+            self.layers.push(layer.clone());
             return Some(ImageAllocation::SingleAllocation(
-                ArrayAllocation::WholeLayer { layer: self.layers.len() - 1 }
+                ArrayAllocation::WholeLayer { layer, layer_index: self.layers.len() - 1 }
             ));
         }
 
@@ -632,9 +678,13 @@ impl TextureArray {
 
         // Try allocating on an existing layer
         for (i, layer) in self.layers.iter_mut().enumerate() {
-            if let TextureLayer::Atlas(allocator) = layer {
+            if let Some(allocator) = layer.borrow_mut().allocator_mut() {
                 if let Some(allocation) = allocator.allocate(size.clone()) {
-                    let array_allocation = ArrayAllocation::AtlasAllocation { layer: i, allocation };
+                    let array_allocation = ArrayAllocation::AtlasAllocation {
+                        layer: layer.clone(),
+                        layer_index: i,
+                        allocation
+                    };
                     return Some(ImageAllocation::SingleAllocation(array_allocation));
                 }
             }
@@ -643,11 +693,13 @@ impl TextureArray {
         // Create new layer with atlas allocator
         let mut allocator = AtlasAllocator::new(Size::new(ATLAS_SIZE as i32, ATLAS_SIZE as i32));
         if let Some(allocation) = allocator.allocate(size) {
-            self.layers.push(TextureLayer::Atlas(allocator));
+            let layer = Rc::new(RefCell::new(allocator.into()));
+            self.layers.push(layer.clone());
 
             return Some(ImageAllocation::SingleAllocation(
                 ArrayAllocation::AtlasAllocation {
-                    layer: self.layers.len() - 1,
+                    layer,
+                    layer_index: self.layers.len() - 1,
                     allocation,
                 }
             ));
@@ -655,41 +707,6 @@ impl TextureArray {
 
         // One of the above should have worked
         None
-    }
-
-    fn deallocate(&mut self, allocation: &ImageAllocation) {
-        match allocation {
-            ImageAllocation::SingleAllocation(allocation) => {
-                self.deallocate_single_allocation(allocation);
-            }
-            ImageAllocation::MultipleAllocations { mappings, .. } => {
-                for mapping in mappings {
-                    self.deallocate_single_allocation(&mapping.allocation);
-                }
-            }
-        }
-    }
-
-    fn deallocate_single_allocation(&mut self, allocation: &ArrayAllocation) {
-        if let Some(layer) = self.layers.get_mut(allocation.layer()) {
-            match allocation {
-                ArrayAllocation::WholeLayer { .. } => {
-                    *layer = TextureLayer::Empty;
-                }
-                ArrayAllocation::AtlasAllocation { allocation, .. } => {
-                    if let TextureLayer::Atlas(allocator) = layer {
-                        allocator.deallocate(allocation.id);
-
-                        let mut empty_allocator = true;
-                        allocator.for_each_allocated_rectangle(|_, _| empty_allocator = false);
-
-                        if empty_allocator {
-                            *layer = TextureLayer::Empty;
-                        }
-                    }
-                }
-            }
-        }
     }
 
     fn upload<C, I>(
@@ -715,7 +732,7 @@ impl TextureArray {
                     )
                     .fill_from_slice(data);
 
-                if allocation.layer() >= self.texture_array_size as usize {
+                if allocation.layer_index() >= self.texture_array_size as usize {
                     self.grow(1, device, encoder);
                 }
 
@@ -731,7 +748,7 @@ impl TextureArray {
 
                 let highest_layer = mappings
                     .iter()
-                    .map(|m| m.allocation.layer() as u32)
+                    .map(|m| m.allocation.layer_index() as u32)
                     .max()
                     .unwrap_or(0);
 
@@ -783,7 +800,7 @@ impl TextureArray {
         allocation: &ArrayAllocation,
         encoder: &mut wgpu::CommandEncoder,
     ) {
-        let array_layer = allocation.layer() as u32;
+        let array_layer = allocation.layer_index() as u32;
 
         let (width, height) = allocation.size();
 
@@ -844,12 +861,12 @@ impl TextureArray {
                 | wgpu::TextureUsage::SAMPLED,
         });
 
-        for (i, layer) in self.layers.iter().enumerate() {
+        for (i, layer) in self.layers.iter_mut().enumerate() {
             if i >= old_texture_array_size as usize {
                 break;
             }
 
-            if let TextureLayer::Empty = layer {
+            if layer.borrow().is_empty() {
                 continue;
             }
 
@@ -952,7 +969,7 @@ const QUAD_VERTS: [Vertex; 4] = [
     },
 ];
 
-const ATLAS_SIZE: u32 = 256;
+const ATLAS_SIZE: u32 = 4096;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]

@@ -91,16 +91,8 @@ impl Cache {
         memory
     }
 
-    pub fn trim(&mut self, texture_array: &mut TextureArray) {
+    pub fn trim(&mut self) {
         let hits = &self.hits;
-
-        for (id, mem) in &self.map {
-            if let Memory::Device(allocation) = mem {
-                if !hits.contains(&id) {
-                    texture_array.deallocate(allocation);
-                }
-            }
-        }
 
         self.map.retain(|k, _| hits.contains(k));
         self.hits.clear();
