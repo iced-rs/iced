@@ -180,26 +180,30 @@
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
 mod application;
+mod element;
 mod sandbox;
 
-#[cfg(not(target_arch = "wasm32"))]
-mod native;
-
-#[cfg(not(target_arch = "wasm32"))]
-pub use native::*;
-
-#[cfg(target_arch = "wasm32")]
-mod web;
-
-#[cfg(target_arch = "wasm32")]
-pub use web::*;
-
+pub mod executor;
 pub mod settings;
+pub mod widget;
 pub mod window;
 
 #[doc(no_inline)]
-pub use executor::Executor;
+pub use widget::*;
 
 pub use application::Application;
+pub use element::Element;
+pub use executor::Executor;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
+
+#[cfg(not(target_arch = "wasm32"))]
+use iced_winit as common;
+
+#[cfg(target_arch = "wasm32")]
+use iced_web as common;
+
+pub use common::{
+    Align, Background, Color, Command, Font, HorizontalAlignment, Length,
+    Space, Subscription, Vector, VerticalAlignment,
+};

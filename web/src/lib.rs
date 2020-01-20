@@ -72,13 +72,18 @@ pub use dodrio;
 pub use element::Element;
 pub use hasher::Hasher;
 pub use iced_core::{
-    Align, Background, Color, Font, HorizontalAlignment, Length,
+    Align, Background, Color, Font, HorizontalAlignment, Length, Vector,
     VerticalAlignment,
 };
-pub use iced_futures::{futures, Command};
+pub use iced_futures::{executor, futures, Command};
 pub use style::Style;
 pub use subscription::Subscription;
+
+#[doc(no_inline)]
 pub use widget::*;
+
+#[doc(no_inline)]
+pub use executor::Executor;
 
 /// An interactive web application.
 ///

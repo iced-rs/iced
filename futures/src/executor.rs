@@ -4,22 +4,28 @@ mod null;
 #[cfg(feature = "thread-pool")]
 mod thread_pool;
 
-#[cfg(feature = "thread-pool")]
-pub use thread_pool::ThreadPool;
-
 #[cfg(feature = "tokio")]
 mod tokio;
 
 #[cfg(feature = "async-std")]
 mod async_std;
 
+#[cfg(target_arch = "wasm32")]
+mod wasm_bindgen;
+
 pub use null::Null;
+
+#[cfg(feature = "thread-pool")]
+pub use thread_pool::ThreadPool;
 
 #[cfg(feature = "tokio")]
 pub use self::tokio::Tokio;
 
 #[cfg(feature = "async-std")]
 pub use self::async_std::AsyncStd;
+
+#[cfg(target_arch = "wasm32")]
+pub use wasm_bindgen::WasmBindgen;
 
 use futures::Future;
 
