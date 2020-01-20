@@ -1,5 +1,6 @@
 use crate::Executor;
 
+/// A type representing a `wasm-bindgen-futures` runtime.
 #[derive(Debug)]
 pub struct WasmBindgen;
 
