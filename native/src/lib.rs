@@ -42,7 +42,6 @@
 pub mod input;
 pub mod layout;
 pub mod renderer;
-pub mod runtime;
 pub mod subscription;
 pub mod widget;
 pub mod window;
@@ -52,6 +51,7 @@ mod element;
 mod event;
 mod hasher;
 mod mouse_cursor;
+mod runtime;
 mod size;
 mod user_interface;
 
@@ -59,7 +59,10 @@ pub use iced_core::{
     Align, Background, Color, Font, HorizontalAlignment, Length, Point,
     Rectangle, Vector, VerticalAlignment,
 };
-pub use iced_futures::Command;
+pub use iced_futures::{executor, futures, Command};
+
+#[doc(no_inline)]
+pub use executor::Executor;
 
 pub use clipboard::Clipboard;
 pub use element::Element;

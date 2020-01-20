@@ -23,3 +23,7 @@ version = "0.3"
 version = "0.2"
 optional = true
 features = ["rt-core"]
+
+[dependencies.async-std]
+version = "1.0"
+optional = true

@@ -38,6 +38,7 @@ enum Message {
 }
 
 impl Application for Todos {
+    type Executor = iced_futures::executor::AsyncStd;
     type Message = Message;
 
     fn new() -> (Todos, Command<Message>) {

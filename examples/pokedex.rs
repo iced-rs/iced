@@ -27,6 +27,7 @@ enum Message {
 }
 
 impl Application for Pokedex {
+    type Executor = iced_futures::executor::AsyncStd;
     type Message = Message;
 
     fn new() -> (Pokedex, Command<Message>) {

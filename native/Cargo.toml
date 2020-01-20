@@ -11,7 +11,6 @@ repository = "https://github.com/hecrj/iced"
 twox-hash = "1.5"
 raw-window-handle = "0.3"
 unicode-segmentation = "1.6"
-futures = "0.3"
 
 [dependencies.iced_core]
 version = "0.1.0"
@@ -20,3 +19,4 @@ path = "../core"
 [dependencies.iced_futures]
 version = "0.1.0-alpha"
 path = "../futures"
+features = ["thread-pool"]

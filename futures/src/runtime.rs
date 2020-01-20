@@ -1,9 +1,5 @@
-//! Run commands and subscriptions.
-mod executor;
-
-pub use executor::Executor;
-
-use crate::{subscription, Command, Subscription};
+//! Run commands and keep track of subscriptions.
+use crate::{subscription, Command, Executor, Subscription};
 
 use futures::Sink;
 use std::marker::PhantomData;

@@ -1,4 +1,4 @@
-use crate::{window, Command, Element, Settings, Subscription};
+use crate::{window, Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -19,7 +19,7 @@ use crate::{window, Command, Element, Settings, Subscription};
 /// before](index.html#overview). We just need to fill in the gaps:
 ///
 /// ```no_run
-/// use iced::{button, Application, Button, Column, Command, Element, Settings, Text};
+/// use iced::{button, executor, Application, Button, Column, Command, Element, Settings, Text};
 ///
 /// pub fn main() {
 ///     Counter::run(Settings::default())
@@ -39,6 +39,7 @@ use crate::{window, Command, Element, Settings, Subscription};
 /// }
 ///
 /// impl Application for Counter {
+///     type Executor = executor::Null;
 ///     type Message = Message;
 ///
 ///     fn new() -> (Self, Command<Message>) {
@@ -80,6 +81,14 @@ use crate::{window, Command, Element, Settings, Subscription};
 /// }
 /// ```
 pub trait Application: Sized {
+    /// The [`Executor`] that will run commands and subscriptions.
+    ///
+    /// The [`executor::Default`] can be a good starting point!
+    ///
+    /// [`Executor`]: trait.Executor.html
+    /// [`executor::Default`]: executor/struct.Default.html
+    type Executor: Executor;
+
     /// The type of __messages__ your [`Application`] will produce.
     ///
     /// [`Application`]: trait.Application.html
@@ -185,6 +194,7 @@ where
     A: Application,
 {
     type Renderer = iced_wgpu::Renderer;
+    type Executor = A::Executor;
     type Message = A::Message;
 
     fn new() -> (Self, Command<A::Message>) {

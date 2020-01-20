@@ -1,4 +1,4 @@
-use futures::{
+use iced_native::futures::{
     task::{Context, Poll},
     Sink,
 };

@@ -3,6 +3,8 @@ pub use iced_winit::{
     Space, Subscription, Vector, VerticalAlignment,
 };
 
+pub mod executor;
+
 pub mod widget {
     //! Display information and interactive controls in your application.
     //!

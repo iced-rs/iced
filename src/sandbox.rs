@@ -1,4 +1,4 @@
-use crate::{Application, Command, Element, Settings, Subscription};
+use crate::{executor, Application, Command, Element, Settings, Subscription};
 
 /// A sandboxed [`Application`].
 ///
@@ -133,6 +133,7 @@ impl<T> Application for T
 where
     T: Sandbox,
 {
+    type Executor = executor::Null;
     type Message = T::Message;
 
     fn new() -> (Self, Command<T::Message>) {

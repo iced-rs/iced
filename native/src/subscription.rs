@@ -1,6 +1,6 @@
 //! Listen to external events in your application.
 use crate::{Event, Hasher};
-use futures::stream::BoxStream;
+use iced_futures::futures::stream::BoxStream;
 
 /// A request to listen to external events.
 ///

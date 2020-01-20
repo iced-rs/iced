@@ -1,10 +1,9 @@
 use crate::{
     conversion,
     input::{keyboard, mouse},
-    window, Cache, Clipboard, Command, Debug, Element, Event, Mode,
-    MouseCursor, Proxy, Settings, Size, Subscription, UserInterface,
+    window, Cache, Clipboard, Command, Debug, Element, Event, Executor, Mode,
+    MouseCursor, Proxy, Runtime, Settings, Size, Subscription, UserInterface,
 };
-use iced_native::Runtime;
 
 /// An interactive, native cross-platform application.
 ///
@@ -19,6 +18,11 @@ pub trait Application: Sized {
     ///
     /// [`Application`]: trait.Application.html
     type Renderer: window::Renderer;
+
+    /// The [`Executor`] that will run commands and subscriptions.
+    ///
+    /// [`Executor`]: trait.Executor.html
+    type Executor: Executor;
 
     /// The type of __messages__ your [`Application`] will produce.
     ///
@@ -110,13 +114,13 @@ pub trait Application: Sized {
 
         debug.startup_started();
         let event_loop = EventLoop::with_user_event();
-        let mut runtime = {
-            let thread_pool = futures::executor::ThreadPool::new()
-                .expect("Create thread pool");
-
-            Runtime::new(thread_pool, Proxy::new(event_loop.create_proxy()))
-        };
         let mut external_messages = Vec::new();
+
+        let mut runtime = {
+            let executor = Self::Executor::new().expect("Create executor");
+
+            Runtime::new(executor, Proxy::new(event_loop.create_proxy()))
+        };
 
         let (mut application, init_command) = Self::new();
         runtime.spawn(init_command);

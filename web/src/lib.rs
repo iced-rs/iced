@@ -75,7 +75,7 @@ pub use iced_core::{
     Align, Background, Color, Font, HorizontalAlignment, Length,
     VerticalAlignment,
 };
-pub use iced_futures::Command;
+pub use iced_futures::{futures, Command};
 pub use style::Style;
 pub use subscription::Subscription;
 pub use widget::*;

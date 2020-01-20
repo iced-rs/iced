@@ -41,6 +41,7 @@ iced_web = { version = "0.1.0", path = "web" }
 [dev-dependencies]
 iced_native = { version = "0.1", path = "./native" }
 iced_wgpu = { version = "0.1", path = "./wgpu" }
+iced_futures = { version = "0.1.0-alpha", path = "./futures", features = ["async-std"] }
 env_logger = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

@@ -10,5 +10,3 @@ use crate::{Event, Hasher};
 /// [`Subscription`]: ../struct.Subscription.html
 pub type Runtime<Executor, Receiver, Message> =
     iced_futures::Runtime<Hasher, Event, Executor, Receiver, Message>;
-
-pub use iced_futures::runtime::Executor;

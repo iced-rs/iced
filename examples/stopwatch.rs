@@ -28,6 +28,7 @@ enum Message {
 }
 
 impl Application for Stopwatch {
+    type Executor = iced_futures::executor::AsyncStd;
     type Message = Message;
 
     fn new() -> (Stopwatch, Command<Message>) {

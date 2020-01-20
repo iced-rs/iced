@@ -180,18 +180,26 @@
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
 mod application;
-#[cfg(target_arch = "wasm32")]
-#[path = "web.rs"]
-mod platform;
-#[cfg(not(target_arch = "wasm32"))]
-#[path = "native.rs"]
-mod platform;
 mod sandbox;
+
+#[cfg(not(target_arch = "wasm32"))]
+mod native;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use native::*;
+
+#[cfg(target_arch = "wasm32")]
+mod web;
+
+#[cfg(target_arch = "wasm32")]
+pub use web::*;
 
 pub mod settings;
 pub mod window;
 
+#[doc(no_inline)]
+pub use executor::Executor;
+
 pub use application::Application;
-pub use platform::*;
 pub use sandbox::Sandbox;
 pub use settings::Settings;

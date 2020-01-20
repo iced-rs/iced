@@ -1,6 +1,6 @@
 use iced::{
-    Align, Application, Checkbox, Column, Command, Container, Element, Length,
-    Settings, Subscription, Text,
+    executor, Align, Application, Checkbox, Column, Command, Container,
+    Element, Length, Settings, Subscription, Text,
 };
 
 pub fn main() {
@@ -20,6 +20,7 @@ enum Message {
 }
 
 impl Application for Events {
+    type Executor = executor::Default;
     type Message = Message;
 
     fn new() -> (Events, Command<Message>) {
