@@ -6,7 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["debug"] }
+iced = { path = "../..", features = ["image", "debug"] }
 env_logger = "0.7"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
