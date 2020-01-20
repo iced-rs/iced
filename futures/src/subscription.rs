@@ -16,16 +16,16 @@ use futures::stream::BoxStream;
 /// For instance, you can use a [`Subscription`] to listen to a WebSocket
 /// connection, keyboard presses, mouse events, time ticks, etc.
 ///
-/// This type is normally aliased by runtimes with a specific `Input` and/or
+/// This type is normally aliased by runtimes with a specific `Event` and/or
 /// `Hasher`.
 ///
 /// [`Command`]: ../struct.Command.html
 /// [`Subscription`]: struct.Subscription.html
-pub struct Subscription<Hasher, Input, Output> {
-    recipes: Vec<Box<dyn Recipe<Hasher, Input, Output = Output>>>,
+pub struct Subscription<Hasher, Event, Output> {
+    recipes: Vec<Box<dyn Recipe<Hasher, Event, Output = Output>>>,
 }
 
-impl<H, I, O> Subscription<H, I, O>
+impl<H, E, O> Subscription<H, E, O>
 where
     H: std::hash::Hasher,
 {
@@ -43,7 +43,7 @@ where
     /// [`Subscription`]: struct.Subscription.html
     /// [`Recipe`]: trait.Recipe.html
     pub fn from_recipe(
-        recipe: impl Recipe<H, I, Output = O> + 'static,
+        recipe: impl Recipe<H, E, Output = O> + 'static,
     ) -> Self {
         Self {
             recipes: vec![Box::new(recipe)],
@@ -55,7 +55,7 @@ where
     ///
     /// [`Subscription`]: struct.Subscription.html
     pub fn batch(
-        subscriptions: impl IntoIterator<Item = Subscription<H, I, O>>,
+        subscriptions: impl IntoIterator<Item = Subscription<H, E, O>>,
     ) -> Self {
         Self {
             recipes: subscriptions
@@ -68,7 +68,7 @@ where
     /// Returns the different recipes of the [`Subscription`].
     ///
     /// [`Subscription`]: struct.Subscription.html
-    pub fn recipes(self) -> Vec<Box<dyn Recipe<H, I, Output = O>>> {
+    pub fn recipes(self) -> Vec<Box<dyn Recipe<H, E, Output = O>>> {
         self.recipes
     }
 
@@ -78,10 +78,10 @@ where
     pub fn map<A>(
         mut self,
         f: impl Fn(O) -> A + Send + Sync + 'static,
-    ) -> Subscription<H, I, A>
+    ) -> Subscription<H, E, A>
     where
         H: 'static,
-        I: 'static,
+        E: 'static,
         O: 'static,
         A: 'static,
     {
@@ -93,7 +93,7 @@ where
                 .drain(..)
                 .map(|recipe| {
                     Box::new(Map::new(recipe, function.clone()))
-                        as Box<dyn Recipe<H, I, Output = A>>
+                        as Box<dyn Recipe<H, E, Output = A>>
                 })
                 .collect(),
         }
@@ -114,7 +114,7 @@ impl<I, O, H> std::fmt::Debug for Subscription<I, O, H> {
 ///
 /// [`Subscription`]: struct.Subscription.html
 /// [`Recipe`]: trait.Recipe.html
-pub trait Recipe<Hasher: std::hash::Hasher, Input> {
+pub trait Recipe<Hasher: std::hash::Hasher, Event> {
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].
     ///
@@ -133,31 +133,32 @@ pub trait Recipe<Hasher: std::hash::Hasher, Input> {
     /// Executes the [`Recipe`] and produces the stream of events of its
     /// [`Subscription`].
     ///
-    /// It receives some generic `Input`, which is normally defined by runtimes.
+    /// It receives some stream of generic events, which is normally defined by
+    /// shells.
     ///
     /// [`Subscription`]: struct.Subscription.html
     /// [`Recipe`]: trait.Recipe.html
     fn stream(
         self: Box<Self>,
-        input: BoxStream<'static, Input>,
+        input: BoxStream<'static, Event>,
     ) -> BoxStream<'static, Self::Output>;
 }
 
-struct Map<Hasher, Input, A, B> {
-    recipe: Box<dyn Recipe<Hasher, Input, Output = A>>,
+struct Map<Hasher, Event, A, B> {
+    recipe: Box<dyn Recipe<Hasher, Event, Output = A>>,
     mapper: std::sync::Arc<dyn Fn(A) -> B + Send + Sync>,
 }
 
-impl<H, I, A, B> Map<H, I, A, B> {
+impl<H, E, A, B> Map<H, E, A, B> {
     fn new(
-        recipe: Box<dyn Recipe<H, I, Output = A>>,
+        recipe: Box<dyn Recipe<H, E, Output = A>>,
         mapper: std::sync::Arc<dyn Fn(A) -> B + Send + Sync + 'static>,
     ) -> Self {
         Map { recipe, mapper }
     }
 }
 
-impl<H, I, A, B> Recipe<H, I> for Map<H, I, A, B>
+impl<H, E, A, B> Recipe<H, E> for Map<H, E, A, B>
 where
     A: 'static,
     B: 'static,
@@ -174,7 +175,7 @@ where
 
     fn stream(
         self: Box<Self>,
-        input: BoxStream<'static, I>,
+        input: BoxStream<'static, E>,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         use futures::StreamExt;
 

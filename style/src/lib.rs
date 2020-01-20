@@ -1,3 +1,7 @@
+//! The styling library of Iced.
+//!
+//! It contains a set of styles and stylesheets for most of the built-in
+//! widgets.
 pub mod button;
 pub mod checkbox;
 pub mod container;

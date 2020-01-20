@@ -4,6 +4,11 @@ use futures::{future::BoxFuture, sink::Sink};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
+/// A registry of subscription streams.
+///
+/// If you have an application that continuously returns a [`Subscription`],
+/// you can use a [`Tracker`] to keep track of the different recipes and keep
+/// its executions alive.
 #[derive(Debug)]
 pub struct Tracker<Hasher, Event> {
     subscriptions: HashMap<u64, Execution<Event>>,
@@ -21,6 +26,9 @@ where
     Hasher: std::hash::Hasher + Default,
     Event: 'static + Send + Clone,
 {
+    /// Creates a new empty [`Tracker`].
+    ///
+    /// [`Tracker`]: struct.Tracker.html
     pub fn new() -> Self {
         Self {
             subscriptions: HashMap::new(),
@@ -28,6 +36,26 @@ where
         }
     }
 
+    /// Updates the [`Tracker`] with the given [`Subscription`].
+    ///
+    /// A [`Subscription`] can cause new streams to be spawned or old streams
+    /// to be closed.
+    ///
+    /// The [`Tracker`] keeps track of these streams between calls to this
+    /// method:
+    ///
+    /// - If the provided [`Subscription`] contains a new [`Recipe`] that is
+    /// currently not being run, it will spawn a new stream and keep it alive.
+    /// - On the other hand, if a [`Recipe`] is currently in execution and the
+    /// provided [`Subscription`] does not contain it anymore, then the
+    /// [`Tracker`] will close and drop the relevant stream.
+    ///
+    /// It returns a list of futures that need to be spawned to materialize
+    /// the [`Tracker`] changes.
+    ///
+    /// [`Tracker`]: struct.Tracker.html
+    /// [`Subscription`]: struct.Subscription.html
+    /// [`Recipe`]: trait.Recipe.html
     pub fn update<Message, Receiver>(
         &mut self,
         subscription: Subscription<Hasher, Event, Message>,
@@ -96,6 +124,14 @@ where
         futures
     }
 
+    /// Broadcasts an event to the subscriptions currently alive.
+    ///
+    /// A subscription's [`Recipe::stream`] always receives a stream of events
+    /// as input. This stream can be used by some subscription to listen to
+    /// shell events.
+    ///
+    /// This method publishes the given event to all the subscription streams
+    /// currently open.
     pub fn broadcast(&mut self, event: Event) {
         self.subscriptions
             .values_mut()
