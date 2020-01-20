@@ -204,6 +204,6 @@ use iced_winit as common;
 use iced_web as common;
 
 pub use common::{
-    Align, Background, Color, Command, Font, HorizontalAlignment, Length,
-    Space, Subscription, Vector, VerticalAlignment,
+    futures, Align, Background, Color, Command, Font, HorizontalAlignment,
+    Length, Space, Subscription, Vector, VerticalAlignment,
 };

@@ -1,6 +1,6 @@
 use iced::{
-    button, image, Align, Application, Button, Column, Command, Container,
-    Element, Image, Length, Row, Settings, Text,
+    button, futures, image, Align, Application, Button, Column, Command,
+    Container, Element, Image, Length, Row, Settings, Text,
 };
 
 pub fn main() {

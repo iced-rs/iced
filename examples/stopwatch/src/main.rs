@@ -143,6 +143,8 @@ impl Application for Stopwatch {
 }
 
 mod time {
+    use iced::futures;
+
     pub fn every(
         duration: std::time::Duration,
     ) -> iced::Subscription<std::time::Instant> {
