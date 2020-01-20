@@ -22,8 +22,8 @@
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
-#![deny(unsafe_code)]
-#![deny(rust_2018_idioms)]
+#![forbid(unsafe_code)]
+#![forbid(rust_2018_idioms)]
 pub mod defaults;
 pub mod triangle;
 pub mod widget;
