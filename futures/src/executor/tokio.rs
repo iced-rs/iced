@@ -2,7 +2,7 @@ use crate::Executor;
 
 use futures::Future;
 
-/// The `tokio` runtime.
+/// A `tokio` runtime.
 pub type Tokio = tokio::runtime::Runtime;
 
 impl Executor for Tokio {

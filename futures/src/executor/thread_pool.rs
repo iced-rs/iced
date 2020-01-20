@@ -2,7 +2,7 @@ use crate::Executor;
 
 use futures::Future;
 
-/// A thread pool for futures.
+/// A thread pool runtime for futures.
 pub type ThreadPool = futures::executor::ThreadPool;
 
 impl Executor for futures::executor::ThreadPool {

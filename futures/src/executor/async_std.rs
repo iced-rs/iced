@@ -2,7 +2,7 @@ use crate::Executor;
 
 use futures::Future;
 
-/// A type representing the `async-std` runtime.
+/// An `async-std` runtime.
 #[derive(Debug)]
 pub struct AsyncStd;
 
