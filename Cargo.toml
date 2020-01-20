@@ -12,10 +12,12 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+# Enables the Image widget
+image = ["iced_wgpu/image"]
+# Enables the Svg widget
+svg = ["iced_wgpu/svg"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
-# Enables support for SVG rendering
-svg = ["iced_wgpu/svg"]
 
 [badges]
 maintenance = { status = "actively-developed" }

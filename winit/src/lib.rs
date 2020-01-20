@@ -18,8 +18,8 @@
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
-#![deny(unsafe_code)]
-#![deny(rust_2018_idioms)]
+#![forbid(unsafe_code)]
+#![forbid(rust_2018_idioms)]
 
 #[doc(no_inline)]
 pub use iced_native::*;

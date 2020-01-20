@@ -2,7 +2,6 @@ mod button;
 mod checkbox;
 mod column;
 mod container;
-mod image;
 mod progress_bar;
 mod radio;
 mod row;
@@ -14,3 +13,6 @@ mod text_input;
 
 #[cfg(feature = "svg")]
 mod svg;
+
+#[cfg(feature = "image")]
+mod image;

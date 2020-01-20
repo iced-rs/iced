@@ -1,3 +1,4 @@
+#[cfg(feature = "image")]
 mod raster;
 #[cfg(feature = "svg")]
 mod vector;
@@ -5,10 +6,14 @@ mod vector;
 use crate::Transformation;
 use iced_native::{image, svg, Rectangle};
 
-use std::{cell::RefCell, mem};
+use std::mem;
+
+#[cfg(any(feature = "image", feature = "svg"))]
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct Pipeline {
+    #[cfg(feature = "image")]
     raster_cache: RefCell<raster::Cache>,
     #[cfg(feature = "svg")]
     vector_cache: RefCell<vector::Cache>,
@@ -191,6 +196,7 @@ impl Pipeline {
         });
 
         Pipeline {
+            #[cfg(feature = "image")]
             raster_cache: RefCell::new(raster::Cache::new()),
             #[cfg(feature = "svg")]
             vector_cache: RefCell::new(vector::Cache::new()),
@@ -205,6 +211,7 @@ impl Pipeline {
         }
     }
 
+    #[cfg(feature = "image")]
     pub fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
         let mut cache = self.raster_cache.borrow_mut();
         let memory = cache.load(&handle);
@@ -250,11 +257,17 @@ impl Pipeline {
         // [1]: https://github.com/nical/guillotiere
         for image in instances {
             let uploaded_texture = match &image.handle {
-                Handle::Raster(handle) => {
-                    let mut cache = self.raster_cache.borrow_mut();
-                    let memory = cache.load(&handle);
+                Handle::Raster(_handle) => {
+                    #[cfg(feature = "image")]
+                    {
+                        let mut cache = self.raster_cache.borrow_mut();
+                        let memory = cache.load(&_handle);
 
-                    memory.upload(device, encoder, &self.texture_layout)
+                        memory.upload(device, encoder, &self.texture_layout)
+                    }
+
+                    #[cfg(not(feature = "image"))]
+                    None
                 }
                 Handle::Vector(_handle) => {
                     #[cfg(feature = "svg")]
@@ -339,6 +352,7 @@ impl Pipeline {
     }
 
     pub fn trim_cache(&mut self) {
+        #[cfg(feature = "image")]
         self.raster_cache.borrow_mut().trim();
 
         #[cfg(feature = "svg")]

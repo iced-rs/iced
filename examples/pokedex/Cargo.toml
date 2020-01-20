@@ -6,7 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../.." }
+iced = { path = "../..", features = ["image"] }
 iced_futures = { path = "../../futures", features = ["async-std"] }
 surf = "1.0"
 rand = "0.7"
