@@ -1,6 +1,6 @@
 //! Listen to external events in your application.
 use crate::{Event, Hasher};
-use futures::stream::BoxStream;
+use iced_futures::futures::stream::BoxStream;
 
 /// A request to listen to external events.
 ///
@@ -15,7 +15,7 @@ use futures::stream::BoxStream;
 ///
 /// [`Command`]: ../struct.Command.html
 /// [`Subscription`]: struct.Subscription.html
-pub type Subscription<T> = iced_core::Subscription<Hasher, EventStream, T>;
+pub type Subscription<T> = iced_futures::Subscription<Hasher, Event, T>;
 
 /// A stream of runtime events.
 ///
@@ -24,7 +24,12 @@ pub type Subscription<T> = iced_core::Subscription<Hasher, EventStream, T>;
 /// [`Subscription`]: type.Subscription.html
 pub type EventStream = BoxStream<'static, Event>;
 
-pub use iced_core::subscription::Recipe;
+/// A native [`Subscription`] tracker.
+///
+/// [`Subscription`]: type.Subscription.html
+pub type Tracker = iced_futures::subscription::Tracker<Hasher, Event>;
+
+pub use iced_futures::subscription::Recipe;
 
 mod events;
 

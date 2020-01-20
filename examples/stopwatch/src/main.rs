@@ -28,6 +28,7 @@ enum Message {
 }
 
 impl Application for Stopwatch {
+    type Executor = iced_futures::executor::AsyncStd;
     type Message = Message;
 
     fn new() -> (Stopwatch, Command<Message>) {
@@ -142,6 +143,8 @@ impl Application for Stopwatch {
 }
 
 mod time {
+    use iced::futures;
+
     pub fn every(
         duration: std::time::Duration,
     ) -> iced::Subscription<std::time::Instant> {
@@ -165,7 +168,7 @@ mod time {
 
         fn stream(
             self: Box<Self>,
-            _input: I,
+            _input: futures::stream::BoxStream<'static, I>,
         ) -> futures::stream::BoxStream<'static, Self::Output> {
             use futures::stream::StreamExt;
 

@@ -14,6 +14,6 @@ use crate::Hasher;
 ///
 /// [`Command`]: ../struct.Command.html
 /// [`Subscription`]: struct.Subscription.html
-pub type Subscription<T> = iced_core::Subscription<Hasher, (), T>;
+pub type Subscription<T> = iced_futures::Subscription<Hasher, (), T>;
 
-pub use iced_core::subscription::Recipe;
+pub use iced_futures::subscription::Recipe;

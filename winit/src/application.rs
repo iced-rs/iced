@@ -1,8 +1,8 @@
 use crate::{
     conversion,
     input::{keyboard, mouse},
-    subscription, window, Cache, Clipboard, Command, Debug, Element, Event,
-    Mode, MouseCursor, Settings, Size, Subscription, UserInterface,
+    window, Cache, Clipboard, Command, Debug, Element, Event, Executor, Mode,
+    MouseCursor, Proxy, Runtime, Settings, Size, Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -18,6 +18,11 @@ pub trait Application: Sized {
     ///
     /// [`Application`]: trait.Application.html
     type Renderer: window::Renderer;
+
+    /// The [`Executor`] that will run commands and subscriptions.
+    ///
+    /// [`Executor`]: trait.Executor.html
+    type Executor: Executor;
 
     /// The type of __messages__ your [`Application`] will produce.
     ///
@@ -109,17 +114,19 @@ pub trait Application: Sized {
 
         debug.startup_started();
         let event_loop = EventLoop::with_user_event();
-        let proxy = event_loop.create_proxy();
-        let mut thread_pool =
-            futures::executor::ThreadPool::new().expect("Create thread pool");
-        let mut subscription_pool = subscription::Pool::new();
         let mut external_messages = Vec::new();
 
+        let mut runtime = {
+            let executor = Self::Executor::new().expect("Create executor");
+
+            Runtime::new(executor, Proxy::new(event_loop.create_proxy()))
+        };
+
         let (mut application, init_command) = Self::new();
-        spawn(init_command, &mut thread_pool, &proxy);
+        runtime.spawn(init_command);
 
         let subscription = application.subscription();
-        subscription_pool.update(subscription, &mut thread_pool, &proxy);
+        runtime.track(subscription);
 
         let mut title = application.title();
         let mut mode = application.mode();
@@ -212,7 +219,7 @@ pub trait Application: Sized {
                 events
                     .iter()
                     .cloned()
-                    .for_each(|event| subscription_pool.broadcast_event(event));
+                    .for_each(|event| runtime.broadcast(event));
 
                 let mut messages = user_interface.update(
                     &renderer,
@@ -241,17 +248,15 @@ pub trait Application: Sized {
                         debug.log_message(&message);
 
                         debug.update_started();
-                        let command = application.update(message);
-                        spawn(command, &mut thread_pool, &proxy);
+                        let command =
+                            runtime.enter(|| application.update(message));
+                        runtime.spawn(command);
                         debug.update_finished();
                     }
 
-                    let subscription = application.subscription();
-                    subscription_pool.update(
-                        subscription,
-                        &mut thread_pool,
-                        &proxy,
-                    );
+                    let subscription =
+                        runtime.enter(|| application.subscription());
+                    runtime.track(subscription);
 
                     // Update window title
                     let new_title = application.title();
@@ -461,28 +466,6 @@ fn to_physical(size: winit::dpi::LogicalSize, dpi: f64) -> (u16, u16) {
         physical_size.width.round() as u16,
         physical_size.height.round() as u16,
     )
-}
-
-fn spawn<Message: Send>(
-    command: Command<Message>,
-    thread_pool: &mut futures::executor::ThreadPool,
-    proxy: &winit::event_loop::EventLoopProxy<Message>,
-) {
-    use futures::FutureExt;
-
-    let futures = command.futures();
-
-    for future in futures {
-        let proxy = proxy.clone();
-
-        let future = future.map(move |message| {
-            proxy
-                .send_event(message)
-                .expect("Send command result to event loop");
-        });
-
-        thread_pool.spawn_ok(future);
-    }
 }
 
 // As defined in: http://www.unicode.org/faq/private_use.html

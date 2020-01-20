@@ -180,18 +180,30 @@
 #![deny(unsafe_code)]
 #![deny(rust_2018_idioms)]
 mod application;
-#[cfg(target_arch = "wasm32")]
-#[path = "web.rs"]
-mod platform;
-#[cfg(not(target_arch = "wasm32"))]
-#[path = "native.rs"]
-mod platform;
+mod element;
 mod sandbox;
 
+pub mod executor;
 pub mod settings;
+pub mod widget;
 pub mod window;
 
+#[doc(no_inline)]
+pub use widget::*;
+
 pub use application::Application;
-pub use platform::*;
+pub use element::Element;
+pub use executor::Executor;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
+
+#[cfg(not(target_arch = "wasm32"))]
+use iced_winit as common;
+
+#[cfg(target_arch = "wasm32")]
+use iced_web as common;
+
+pub use common::{
+    futures, Align, Background, Color, Command, Font, HorizontalAlignment,
+    Length, Space, Subscription, Vector, VerticalAlignment,
+};

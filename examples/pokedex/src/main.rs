@@ -1,6 +1,6 @@
 use iced::{
-    button, image, Align, Application, Button, Column, Command, Container,
-    Element, Image, Length, Row, Settings, Text,
+    button, futures, image, Align, Application, Button, Column, Command,
+    Container, Element, Image, Length, Row, Settings, Text,
 };
 
 pub fn main() {
@@ -27,6 +27,7 @@ enum Message {
 }
 
 impl Application for Pokedex {
+    type Executor = iced_futures::executor::AsyncStd;
     type Message = Message;
 
     fn new() -> (Pokedex, Command<Message>) {

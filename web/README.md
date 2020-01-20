@@ -35,7 +35,7 @@ For instance, let's say we want to build the [`tour` example]:
 
 ```
 cd examples
-cargo build --example tour --target wasm32-unknown-unknown
+cargo build --package tour --target wasm32-unknown-unknown
 wasm-bindgen ../target/wasm32-unknown-unknown/debug/examples/tour.wasm --out-dir tour --web
 ```
 

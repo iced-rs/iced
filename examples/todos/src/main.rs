@@ -38,6 +38,7 @@ enum Message {
 }
 
 impl Application for Todos {
+    type Executor = iced_futures::executor::AsyncStd;
     type Message = Message;
 
     fn new() -> (Todos, Command<Message>) {
@@ -450,7 +451,7 @@ fn empty_message(message: &str) -> Element<'static, Message> {
 // Fonts
 const ICONS: Font = Font::External {
     name: "Icons",
-    bytes: include_bytes!("resources/icons.ttf"),
+    bytes: include_bytes!("../fonts/icons.ttf"),
 };
 
 fn icon(unicode: char) -> Text {

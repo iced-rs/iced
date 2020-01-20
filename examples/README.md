@@ -4,11 +4,10 @@ you want to learn about a specific release, check out [the release list].
 
 [the release list]: https://github.com/hecrj/iced/releases
 
-## [Tour](tour.rs)
-
+## [Tour](tour)
 A simple UI tour that can run both on native platforms and the web! It showcases different widgets that can be built using Iced.
 
-The __[`tour`]__ file contains all the code of the example! All the cross-platform GUI is defined in terms of __state__, __messages__, __update logic__ and __view logic__.
+The __[`main`](tour/src/main.rs)__ file contains all the code of the example! All the cross-platform GUI is defined in terms of __state__, __messages__, __update logic__ and __view logic__.
 
 <div align="center">
   <a href="https://gfycat.com/politeadorableiberianmole">
@@ -16,7 +15,6 @@ The __[`tour`]__ file contains all the code of the example! All the cross-platfo
   </a>
 </div>
 
-[`tour`]: tour.rs
 [`iced_winit`]: ../winit
 [`iced_native`]: ../native
 [`iced_wgpu`]: ../wgpu
@@ -26,19 +24,17 @@ The __[`tour`]__ file contains all the code of the example! All the cross-platfo
 
 You can run the native version with `cargo run`:
 ```
-cargo run --example tour
+cargo run --package tour
 ```
 
 The web version can be run by following [the usage instructions of `iced_web`] or by accessing [iced.rs](https://iced.rs/)!
 
 [the usage instructions of `iced_web`]: ../web#usage
 
+## [Todos](todos)
+A todos tracker inspired by [TodoMVC]. It showcases dynamic layout, text input, checkboxes, scrollables, icons, and async actions! It automatically saves your tasks in the background, even if you did not finish typing them.
 
-## [Todos](todos.rs)
-
-A simple todos tracker inspired by [TodoMVC]. It showcases dynamic layout, text input, checkboxes, scrollables, icons, and async actions! It automatically saves your tasks in the background, even if you did not finish typing them.
-
-All the example code is located in the __[`todos`]__ file.
+The example code is located in the __[`main`](todos/src/main.rs)__ file.
 
 <div align="center">
   <a href="https://gfycat.com/littlesanehalicore">
@@ -48,15 +44,67 @@ All the example code is located in the __[`todos`]__ file.
 
 You can run the native version with `cargo run`:
 ```
-cargo run --example todos
+cargo run --package todos
 ```
 We have not yet implemented a `LocalStorage` version of the auto-save feature. Therefore, it does not work on web _yet_!
 
-[`todos`]: todos.rs
 [TodoMVC]: http://todomvc.com/
 
-## [Coffee]
+## [Pokédex](pokedex)
+An application that helps you learn about Pokémon! It performs an asynchronous HTTP request to the [PokéAPI] in order to load and display a random Pokédex entry (sprite included!).
 
+The example code can be found in the __[`main`](pokedex/src/main.rs)__ file.
+
+<div align="center">
+  <a href="https://gfycat.com/aggressivedarkelephantseal-rust-gui">
+    <img src="https://thumbs.gfycat.com/AggressiveDarkElephantseal-small.gif" height="400px">
+  </a>
+</div>
+
+You can run it on native platforms with `cargo run`:
+```
+cargo run --package pokedex
+```
+
+[PokéAPI]: https://pokeapi.co/
+
+## [Styling](styling)
+An example showcasing custom styling with a light and dark theme.
+
+The example code is located in the __[`main`](styling/src/main.rs)__ file.
+
+<div align="center">
+  <a href="https://user-images.githubusercontent.com/518289/71867993-acff4300-310c-11ea-85a3-d01d8f884346.gif">
+    <img src="https://user-images.githubusercontent.com/518289/71867993-acff4300-310c-11ea-85a3-d01d8f884346.gif" height="400px">
+  </a>
+</div>
+
+You can run it with `cargo run`:
+```
+cargo run --package styling
+```
+
+## Extras
+A bunch of simpler examples exist:
+
+- [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bezier curves using [`lyon`].
+- [`counter`](counter), the classic counter example explained in the [`README`](../README.md).
+- [`custom_widget`](custom_widget), a demonstration of how to build a custom widget that draws a circle.
+- [`events`](events), a log of native events displayed using a conditional `Subscription`.
+- [`geometry`](geometry), a custom widget showcasing how to draw geometry with the `Mesh2D` primitive in [`iced_wgpu`](../wgpu).
+- [`progress_bar`](progress_bar), a simple progress bar that can be filled by using a slider.
+- [`stopwatch`](stopwatch), a watch with start/stop and reset buttons showcasing how to listen to time.
+- [`svg`](svg), an application that renders the [Ghostscript Tiger] by leveraging the `Svg` widget.
+
+All of them are packaged in their own crate and, therefore, can be run using `cargo`:
+```
+cargo run --package <example>
+```
+
+[`lyon`]: https://github.com/nical/lyon
+[Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
+
+## [Coffee]
 Since [Iced was born in May], it has been powering the user interfaces in
 [Coffee], an experimental 2D game engine.
 
