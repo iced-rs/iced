@@ -17,8 +17,8 @@ wgpu = "0.4"
 glyph_brush = "0.6"
 wgpu_glyph = { version = "0.7", git = "https://github.com/hecrj/wgpu_glyph", branch = "fix/font-load-panic" }
 raw-window-handle = "0.3"
-image = "0.22"
 glam = "0.8"
 font-kit = "0.4"
 log = "0.4"
 resvg = { version = "0.8", features = ["raqote-backend"], optional = true }
+image = { version = "0.22", optional = true }
