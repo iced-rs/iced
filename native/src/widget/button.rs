@@ -61,7 +61,7 @@ where
             height: Length::Shrink,
             min_width: 0,
             min_height: 0,
-            padding: 0,
+            padding: Renderer::DEFAULT_PADDING,
             style: Renderer::Style::default(),
         }
     }
@@ -249,6 +249,11 @@ where
 /// [`Button`]: struct.Button.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// The default padding of a [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
+    const DEFAULT_PADDING: u16;
+
     /// The style supported by this renderer.
     type Style: Default;
 

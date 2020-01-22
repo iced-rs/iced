@@ -4,6 +4,8 @@ use iced_native::{
 };
 
 impl iced_native::button::Renderer for Renderer {
+    const DEFAULT_PADDING: u16 = 5;
+
     type Style = Box<dyn StyleSheet>;
 
     fn draw<Message>(

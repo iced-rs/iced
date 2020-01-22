@@ -138,6 +138,8 @@ impl text_input::Renderer for Null {
 }
 
 impl button::Renderer for Null {
+    const DEFAULT_PADDING: u16 = 0;
+
     type Style = ();
 
     fn draw<Message>(
