@@ -70,12 +70,12 @@ struct Default;
 impl StyleSheet for Default {
     fn active(&self) -> Style {
         Style {
-            shadow_offset: Vector::new(0.0, 1.0),
-            background: Some(Background::Color([0.5, 0.5, 0.5].into())),
-            border_radius: 5,
-            border_width: 0,
-            border_color: Color::TRANSPARENT,
-            text_color: Color::WHITE,
+            shadow_offset: Vector::new(0.0, 0.0),
+            background: Some(Background::Color([0.87, 0.87, 0.87].into())),
+            border_radius: 2,
+            border_width: 1,
+            border_color: [0.7, 0.7, 0.7].into(),
+            text_color: Color::BLACK,
         }
     }
 }
