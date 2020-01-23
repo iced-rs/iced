@@ -438,6 +438,7 @@ fn loading_message() -> Element<'static, Message> {
 fn empty_message(message: &str) -> Element<'static, Message> {
     Container::new(
         Text::new(message)
+            .width(Length::Fill)
             .size(25)
             .horizontal_alignment(HorizontalAlignment::Center)
             .color([0.7, 0.7, 0.7]),
