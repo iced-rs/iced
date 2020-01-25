@@ -32,7 +32,7 @@ pub struct Button<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
-    on_hovered: Option<Message>,
+    on_hover: Option<Message>,
     width: Length,
     height: Length,
     min_width: u32,
@@ -58,7 +58,7 @@ where
             state,
             content: content.into(),
             on_press: None,
-            on_hovered: None,
+            on_hover: None,
             width: Length::Shrink,
             height: Length::Shrink,
             min_width: 0,
@@ -118,8 +118,8 @@ where
     /// Sets the message that will be produced when the [`Button`] is hovered.
     ///
     /// [`Button`]: struct.Button.html
-    pub fn on_hovered(mut self, msg: Message) -> Self {
-        self.on_hovered = Some(msg);
+    pub fn on_hover(mut self, msg: Message) -> Self {
+        self.on_hover = Some(msg);
         self
     }
 
@@ -198,9 +198,9 @@ where
     ) {
         let bounds = layout.bounds();
         self.state.is_hovered = bounds.contains(cursor_position);
-        if let Some(on_hovered) = self.on_hovered.clone() {
+        if let Some(on_hover) = self.on_hover.clone() {
             if self.state.is_hovered {
-                messages.push(on_hovered);
+                messages.push(on_hover);
             }
         }
         match event {
