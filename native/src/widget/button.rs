@@ -32,6 +32,7 @@ pub struct Button<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
+    on_hovered: Option<Message>,
     width: Length,
     height: Length,
     min_width: u32,
@@ -57,6 +58,7 @@ where
             state,
             content: content.into(),
             on_press: None,
+            on_hovered: None,
             width: Length::Shrink,
             height: Length::Shrink,
             min_width: 0,
@@ -113,6 +115,13 @@ where
         self.on_press = Some(msg);
         self
     }
+    /// Sets the message that will be produced when the [`Button`] is hovered.
+    ///
+    /// [`Button`]: struct.Button.html
+    pub fn on_hovered(mut self, msg: Message) -> Self {
+        self.on_hovered = Some(msg);
+        self
+    }
 
     /// Sets the style of the [`Button`].
     ///
@@ -129,6 +138,7 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_pressed: bool,
+    is_hovered: bool,
 }
 
 impl State {
@@ -186,22 +196,26 @@ where
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
+        let bounds = layout.bounds();
+        self.state.is_hovered = bounds.contains(cursor_position);
+        if let Some(on_hovered) = self.on_hovered.clone() {
+            if self.state.is_hovered {
+                messages.push(on_hovered);
+            }
+        }
         match event {
             Event::Mouse(mouse::Event::Input {
                 button: mouse::Button::Left,
                 state,
             }) => {
                 if let Some(on_press) = self.on_press.clone() {
-                    let bounds = layout.bounds();
-
                     match state {
                         ButtonState::Pressed => {
-                            self.state.is_pressed =
-                                bounds.contains(cursor_position);
+                            self.state.is_pressed = self.state.is_hovered;
                         }
                         ButtonState::Released => {
-                            let is_clicked = self.state.is_pressed
-                                && bounds.contains(cursor_position);
+                            let is_clicked =
+                                self.state.is_pressed && self.state.is_hovered;
 
                             self.state.is_pressed = false;
 
