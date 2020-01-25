@@ -50,24 +50,6 @@ We have not yet implemented a `LocalStorage` version of the auto-save feature. T
 
 [TodoMVC]: http://todomvc.com/
 
-## [Pokédex](pokedex)
-An application that helps you learn about Pokémon! It performs an asynchronous HTTP request to the [PokéAPI] in order to load and display a random Pokédex entry (sprite included!).
-
-The example code can be found in the __[`main`](pokedex/src/main.rs)__ file.
-
-<div align="center">
-  <a href="https://gfycat.com/aggressivedarkelephantseal-rust-gui">
-    <img src="https://thumbs.gfycat.com/AggressiveDarkElephantseal-small.gif" height="400px">
-  </a>
-</div>
-
-You can run it on native platforms with `cargo run`:
-```
-cargo run --package pokedex
-```
-
-[PokéAPI]: https://pokeapi.co/
-
 ## [Styling](styling)
 An example showcasing custom styling with a light and dark theme.
 
@@ -92,6 +74,7 @@ A bunch of simpler examples exist:
 - [`custom_widget`](custom_widget), a demonstration of how to build a custom widget that draws a circle.
 - [`events`](events), a log of native events displayed using a conditional `Subscription`.
 - [`geometry`](geometry), a custom widget showcasing how to draw geometry with the `Mesh2D` primitive in [`iced_wgpu`](../wgpu).
+- [`pokedex`](pokedex), an application that displays a random Pokédex entry (sprite included!) by using the [PokéAPI].
 - [`progress_bar`](progress_bar), a simple progress bar that can be filled by using a slider.
 - [`stopwatch`](stopwatch), a watch with start/stop and reset buttons showcasing how to listen to time.
 - [`svg`](svg), an application that renders the [Ghostscript Tiger] by leveraging the `Svg` widget.
@@ -102,6 +85,7 @@ cargo run --package <example>
 ```
 
 [`lyon`]: https://github.com/nical/lyon
+[PokéAPI]: https://pokeapi.co/
 [Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
 
 ## [Coffee]
