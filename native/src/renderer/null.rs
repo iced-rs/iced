@@ -109,7 +109,7 @@ impl text_input::Renderer for Null {
         20
     }
 
-    fn measure_value(&self, _value: &str, _size: u16) -> f32 {
+    fn measure_value(&self, _value: &str, _size: u16, _font: Font) -> f32 {
         0.0
     }
 
@@ -119,6 +119,7 @@ impl text_input::Renderer for Null {
         _size: u16,
         _value: &text_input::Value,
         _state: &text_input::State,
+        _font: Font,
     ) -> f32 {
         0.0
     }
@@ -129,6 +130,7 @@ impl text_input::Renderer for Null {
         _text_bounds: Rectangle,
         _cursor_position: Point,
         _size: u16,
+        _font: Font,
         _placeholder: &str,
         _value: &text_input::Value,
         _state: &text_input::State,

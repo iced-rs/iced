@@ -6,7 +6,7 @@
 //! [`State`]: struct.State.html
 use crate::{
     input::{keyboard, mouse, ButtonState},
-    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
     Rectangle, Size, Widget,
 };
 use unicode_segmentation::UnicodeSegmentation;
@@ -41,6 +41,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     placeholder: String,
     value: Value,
     is_secure: bool,
+    font: Font,
     width: Length,
     max_width: Length,
     padding: u16,
@@ -75,6 +76,7 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
+            font: Font::Default,
             width: Length::Fill,
             max_width: Length::Shrink,
             padding: 0,
@@ -93,6 +95,14 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
         self
     }
 
+    /// Sets the [`Font`] of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    /// [`Font`]: ../../struct.Font.html
+    pub fn font(mut self, font: Font) -> Self {
+        self.font = font;
+        self
+    }
     /// Sets the width of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
@@ -211,6 +221,7 @@ where
                             size,
                             &value,
                             &self.state,
+                            self.font,
                         );
 
                         self.state.cursor_position = find_cursor_position(
@@ -220,6 +231,7 @@ where
                             size,
                             0,
                             self.value.len(),
+                            self.font,
                         );
                     } else {
                         self.state.cursor_position = 0;
@@ -368,6 +380,7 @@ where
                 text_bounds,
                 cursor_position,
                 self.size.unwrap_or(renderer.default_size()),
+                self.font,
                 &self.placeholder,
                 &self.value.secure(),
                 &self.state,
@@ -379,6 +392,7 @@ where
                 text_bounds,
                 cursor_position,
                 self.size.unwrap_or(renderer.default_size()),
+                self.font,
                 &self.placeholder,
                 &self.value,
                 &self.state,
@@ -418,7 +432,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// Returns the width of the value of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
-    fn measure_value(&self, value: &str, size: u16) -> f32;
+    fn measure_value(&self, value: &str, size: u16, font: Font) -> f32;
 
     /// Returns the current horizontal offset of the value of the
     /// [`TextInput`].
@@ -434,6 +448,7 @@ pub trait Renderer: crate::Renderer + Sized {
         size: u16,
         value: &Value,
         state: &State,
+        font: Font,
     ) -> f32;
 
     /// Draws a [`TextInput`].
@@ -455,6 +470,7 @@ pub trait Renderer: crate::Renderer + Sized {
         text_bounds: Rectangle,
         cursor_position: Point,
         size: u16,
+        font: Font,
         placeholder: &str,
         value: &Value,
         state: &State,
@@ -714,6 +730,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
     size: u16,
     start: usize,
     end: usize,
+    font: Font,
 ) -> usize {
     if start >= end {
         if start == 0 {
@@ -723,8 +740,8 @@ fn find_cursor_position<Renderer: self::Renderer>(
         let prev = value.until(start - 1);
         let next = value.until(start);
 
-        let prev_width = renderer.measure_value(&prev.to_string(), size);
-        let next_width = renderer.measure_value(&next.to_string(), size);
+        let prev_width = renderer.measure_value(&prev.to_string(), size, font);
+        let next_width = renderer.measure_value(&next.to_string(), size, font);
 
         if next_width - target > target - prev_width {
             return start - 1;
@@ -736,7 +753,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
     let index = (end - start) / 2;
     let subvalue = value.until(start + index);
 
-    let width = renderer.measure_value(&subvalue.to_string(), size);
+    let width = renderer.measure_value(&subvalue.to_string(), size, font);
 
     if width > target {
         find_cursor_position(
@@ -746,6 +763,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
             size,
             start,
             start + index,
+            font,
         )
     } else {
         find_cursor_position(
@@ -755,6 +773,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
             size,
             start + index + 1,
             end,
+            font,
         )
     }
 }
