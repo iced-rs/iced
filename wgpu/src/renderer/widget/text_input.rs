@@ -14,11 +14,11 @@ impl text_input::Renderer for Renderer {
         20
     }
 
-    fn measure_value(&self, value: &str, size: u16) -> f32 {
+    fn measure_value(&self, value: &str, size: u16, font: Font) -> f32 {
         let (mut width, _) = self.text_pipeline.measure(
             value,
             f32::from(size),
-            Font::Default,
+            font,
             Size::INFINITY,
         );
 
@@ -38,6 +38,7 @@ impl text_input::Renderer for Renderer {
         size: u16,
         value: &text_input::Value,
         state: &text_input::State,
+        font: Font,
     ) -> f32 {
         if state.is_focused() {
             let (_, offset) = measure_cursor_and_scroll_offset(
@@ -46,6 +47,7 @@ impl text_input::Renderer for Renderer {
                 value,
                 size,
                 state.cursor_position(value),
+                font,
             );
 
             offset
@@ -60,6 +62,7 @@ impl text_input::Renderer for Renderer {
         text_bounds: Rectangle,
         cursor_position: Point,
         size: u16,
+        font: Font,
         placeholder: &str,
         value: &text_input::Value,
         state: &text_input::State,
@@ -97,7 +100,7 @@ impl text_input::Renderer for Renderer {
                 style_sheet.value_color()
             }
             .into(),
-            font: Font::Default,
+            font,
             bounds: Rectangle {
                 width: f32::INFINITY,
                 ..text_bounds
@@ -114,6 +117,7 @@ impl text_input::Renderer for Renderer {
                 value,
                 size,
                 state.cursor_position(value),
+                font,
             );
 
             let cursor = Primitive::Quad {
@@ -164,12 +168,14 @@ fn measure_cursor_and_scroll_offset(
     value: &text_input::Value,
     size: u16,
     cursor_index: usize,
+    font: Font,
 ) -> (f32, f32) {
     use iced_native::text_input::Renderer;
 
     let text_before_cursor = value.until(cursor_index).to_string();
 
-    let text_value_width = renderer.measure_value(&text_before_cursor, size);
+    let text_value_width =
+        renderer.measure_value(&text_before_cursor, size, font);
     let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
 
     (text_value_width, offset)
