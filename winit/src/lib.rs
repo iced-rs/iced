@@ -43,9 +43,9 @@ mod debug;
 mod debug;
 
 pub use application::Application;
+pub use clipboard::Clipboard;
 pub use mode::Mode;
 pub use settings::Settings;
 
-use clipboard::Clipboard;
 use debug::Debug;
 use proxy::Proxy;
