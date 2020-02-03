@@ -55,6 +55,7 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
             window: iced_winit::settings::Window {
+                position: settings.window.position,
                 size: settings.window.size,
                 resizable: settings.window.resizable,
                 decorations: settings.window.decorations,

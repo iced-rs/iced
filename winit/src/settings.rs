@@ -25,6 +25,9 @@ pub struct Settings<Flags> {
 /// The window settings of an application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Window {
+    /// The position of the window.
+    pub position: Option<(u32, u32)>,
+
     /// The size of the window.
     pub size: (u32, u32),
 
@@ -41,6 +44,7 @@ pub struct Window {
 impl Default for Window {
     fn default() -> Window {
         Window {
+            position: None,
             size: (1024, 768),
             resizable: true,
             decorations: true,
