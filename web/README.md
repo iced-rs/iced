@@ -18,7 +18,7 @@ The crate is currently a __very experimental__, simple abstraction layer over [`
 Add `iced_web` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_web = "0.1.0-alpha"
+iced_web = "0.1.0"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

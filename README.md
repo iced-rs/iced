@@ -217,7 +217,7 @@ the [Rust Community Discord]. I go by `lone_scientist#9554` there.
 ## Sponsors
 The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 
-[documentation]: https://docs.rs/iced
+[documentation]: https://docs.rs/iced/0.1.0-beta/iced/
 [examples]: https://github.com/hecrj/iced/tree/master/examples
 [Coffee]: https://github.com/hecrj/coffee
 [Elm]: https://elm-lang.org/

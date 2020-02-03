@@ -10,7 +10,7 @@ It exposes a renderer-agnostic `Application` trait that can be implemented and t
 
 ![iced_winit](../docs/graphs/winit.png)
 
-[documentation]: https://docs.rs/iced_winit
+[documentation]: https://docs.rs/iced_winit/0.1.0-alpha.1/iced_winit/
 [`iced_native`]: ../native
 [`winit`]: https://github.com/rust-windowing/winit
 
