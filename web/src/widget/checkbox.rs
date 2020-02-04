@@ -84,9 +84,9 @@ where
                 input(bump)
                     .attr("type", "checkbox")
                     .bool_attr("checked", self.is_checked)
-                    .on("click", move |root, vdom, _event| {
+                    .on("click", move |_root, vdom, _event| {
                         let msg = on_toggle(!is_checked);
-                        event_bus.publish(msg, root);
+                        event_bus.publish(msg);
 
                         vdom.schedule_render();
                     })

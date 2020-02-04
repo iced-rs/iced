@@ -233,6 +233,7 @@ where
     A: Application,
 {
     type Message = A::Message;
+    type Executor = A::Executor;
 
     fn new() -> (Self, Command<A::Message>) {
         let (app, command) = A::new();
@@ -246,6 +247,10 @@ where
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.0.subscription()
     }
 
     fn view(&mut self) -> Element<'_, Self::Message> {

@@ -93,10 +93,8 @@ where
                     .attr("type", "radio")
                     .attr("style", "margin-right: 10px")
                     .bool_attr("checked", self.is_selected)
-                    .on("click", move |root, vdom, _event| {
-                        event_bus.publish(on_click.clone(), root);
-
-                        vdom.schedule_render();
+                    .on("click", move |_root, _vdom, _event| {
+                        event_bus.publish(on_click.clone());
                     })
                     .finish(),
                 text(radio_label.into_bump_str()),
