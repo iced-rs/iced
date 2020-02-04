@@ -4,7 +4,7 @@
 //!
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
-use crate::{style, Background, Bus, Element, Length, Style, Widget};
+use crate::{css, Background, Bus, Css, Element, Length, Widget};
 
 use dodrio::bumpalo;
 
@@ -126,18 +126,18 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let width = style::length(self.width);
+        let width = css::length(self.width);
         let padding_class =
-            style_sheet.insert(bump, Style::Padding(self.padding));
+            style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
         let background = match self.background {
             None => String::from("none"),
             Some(background) => match background {
-                Background::Color(color) => style::color(color),
+                Background::Color(color) => css::color(color),
             },
         };
 

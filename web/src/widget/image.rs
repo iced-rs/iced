@@ -1,4 +1,4 @@
-use crate::{style, Bus, Element, Length, Widget};
+use crate::{Bus, Css, Element, Length, Widget};
 
 use dodrio::bumpalo;
 
@@ -57,7 +57,7 @@ impl<Message> Widget<Message> for Image {
         &self,
         bump: &'b bumpalo::Bump,
         _bus: &Bus<Message>,
-        _style_sheet: &mut style::Sheet<'b>,
+        _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 

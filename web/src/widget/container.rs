@@ -1,4 +1,4 @@
-use crate::{bumpalo, style, Align, Bus, Element, Length, Style, Widget};
+use crate::{bumpalo, css, Align, Bus, Css, Element, Length, Widget};
 
 /// An element decorating some content.
 ///
@@ -94,17 +94,17 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let column_class = style_sheet.insert(bump, Style::Column);
+        let column_class = style_sheet.insert(bump, css::Rule::Column);
 
-        let width = style::length(self.width);
-        let height = style::length(self.height);
+        let width = css::length(self.width);
+        let height = css::length(self.height);
 
-        let align_items = style::align(self.horizontal_alignment);
-        let justify_content = style::align(self.vertical_alignment);
+        let align_items = css::align(self.horizontal_alignment);
+        let justify_content = css::align(self.vertical_alignment);
 
         let node = div(bump)
             .attr(

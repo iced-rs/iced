@@ -1,4 +1,4 @@
-use crate::{style, Bus, Color, Element, Widget};
+use crate::{Bus, Color, Css, Element, Widget};
 
 use dodrio::bumpalo;
 use std::rc::Rc;
@@ -68,7 +68,7 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        _style_sheet: &mut style::Sheet<'b>,
+        _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 

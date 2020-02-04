@@ -1,4 +1,4 @@
-use crate::{style, Align, Bus, Element, Length, Style, Widget};
+use crate::{css, Align, Bus, Css, Element, Length, Widget};
 
 use dodrio::bumpalo;
 use std::u32;
@@ -112,7 +112,7 @@ impl<'a, Message> Widget<Message> for Column<'a, Message> {
         &self,
         bump: &'b bumpalo::Bump,
         publish: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
@@ -122,18 +122,18 @@ impl<'a, Message> Widget<Message> for Column<'a, Message> {
             .map(|element| element.widget.node(bump, publish, style_sheet))
             .collect();
 
-        let column_class = style_sheet.insert(bump, Style::Column);
+        let column_class = style_sheet.insert(bump, css::Rule::Column);
 
         let spacing_class =
-            style_sheet.insert(bump, Style::Spacing(self.spacing));
+            style_sheet.insert(bump, css::Rule::Spacing(self.spacing));
 
         let padding_class =
-            style_sheet.insert(bump, Style::Padding(self.padding));
+            style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
-        let width = style::length(self.width);
-        let height = style::length(self.height);
+        let width = css::length(self.width);
+        let height = css::length(self.height);
 
-        let align_items = style::align(self.align_items);
+        let align_items = css::align(self.align_items);
 
         // TODO: Complete styling
         div(bump)

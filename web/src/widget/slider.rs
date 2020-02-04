@@ -4,7 +4,7 @@
 //!
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
-use crate::{style, Bus, Element, Length, Widget};
+use crate::{Bus, Css, Element, Length, Widget};
 
 use dodrio::bumpalo;
 use std::{ops::RangeInclusive, rc::Rc};
@@ -88,7 +88,7 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        _style_sheet: &mut style::Sheet<'b>,
+        _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;

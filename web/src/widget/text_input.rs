@@ -4,7 +4,7 @@
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
-use crate::{bumpalo, style, Bus, Element, Length, Style, Widget};
+use crate::{bumpalo, css, Bus, Css, Element, Length, Widget};
 use std::rc::Rc;
 
 /// A field that can be filled with text.
@@ -133,15 +133,15 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;
 
-        let width = style::length(self.width);
-        let max_width = style::length(self.max_width);
+        let width = css::length(self.width);
+        let max_width = css::length(self.max_width);
         let padding_class =
-            style_sheet.insert(bump, Style::Padding(self.padding));
+            style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
         let on_change = self.on_change.clone();
         let event_bus = bus.clone();

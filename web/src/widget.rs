@@ -14,7 +14,7 @@
 //! ```
 //!
 //! [`Widget`]: trait.Widget.html
-use crate::{style, Bus};
+use crate::{Bus, Css};
 use dodrio::bumpalo;
 
 pub mod button;
@@ -64,6 +64,6 @@ pub trait Widget<Message> {
         &self,
         bump: &'b bumpalo::Bump,
         _bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b>;
 }

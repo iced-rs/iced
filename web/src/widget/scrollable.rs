@@ -1,5 +1,5 @@
 //! Navigate an endless amount of content with a scrollbar.
-use crate::{bumpalo, style, Align, Bus, Column, Element, Length, Widget};
+use crate::{bumpalo, css, Align, Bus, Column, Css, Element, Length, Widget};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -105,12 +105,12 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let width = style::length(self.width);
-        let height = style::length(self.height);
+        let width = css::length(self.width);
+        let height = css::length(self.height);
 
         let node = div(bump)
             .attr(
