@@ -1,8 +1,7 @@
 use crate::Subscription;
 
-use futures::{future::BoxFuture, sink::Sink};
-use std::collections::HashMap;
-use std::marker::PhantomData;
+use futures::{channel::mpsc, future::BoxFuture, sink::Sink};
+use std::{collections::HashMap, marker::PhantomData};
 
 /// A registry of subscription streams.
 ///
@@ -64,7 +63,7 @@ where
     where
         Message: 'static + Send,
         Receiver: 'static
-            + Sink<Message, Error = core::convert::Infallible>
+            + Sink<Message, Error = mpsc::SendError>
             + Unpin
             + Send
             + Clone,

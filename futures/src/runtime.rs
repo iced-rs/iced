@@ -1,7 +1,7 @@
 //! Run commands and keep track of subscriptions.
 use crate::{subscription, Command, Executor, Subscription};
 
-use futures::Sink;
+use futures::{channel::mpsc, Sink};
 use std::marker::PhantomData;
 
 /// A batteries-included runtime of commands and subscriptions.
@@ -27,11 +27,8 @@ where
     Hasher: std::hash::Hasher + Default,
     Event: Send + Clone + 'static,
     Executor: self::Executor,
-    Sender: Sink<Message, Error = core::convert::Infallible>
-        + Unpin
-        + Send
-        + Clone
-        + 'static,
+    Sender:
+        Sink<Message, Error = mpsc::SendError> + Unpin + Send + Clone + 'static,
     Message: Send + 'static,
 {
     /// Creates a new empty [`Runtime`].
@@ -76,12 +73,10 @@ where
         for future in futures {
             let mut sender = self.sender.clone();
 
-            self.executor.spawn(future.then(|message| {
-                async move {
-                    let _ = sender.send(message).await;
+            self.executor.spawn(future.then(|message| async move {
+                let _ = sender.send(message).await;
 
-                    ()
-                }
+                ()
             }));
         }
     }
@@ -112,7 +107,8 @@ where
     /// See [`Tracker::broadcast`] to learn more.
     ///
     /// [`Runtime`]: struct.Runtime.html
-    /// [`Tracker::broadcast`]: subscription/struct.Tracker.html#method.broadcast
+    /// [`Tracker::broadcast`]:
+    /// subscription/struct.Tracker.html#method.broadcast
     pub fn broadcast(&mut self, event: Event) {
         self.subscriptions.broadcast(event);
     }

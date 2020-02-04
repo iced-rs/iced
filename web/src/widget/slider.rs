@@ -111,7 +111,7 @@ where
             .attr("max", max.into_bump_str())
             .attr("value", value.into_bump_str())
             .attr("style", "width: 100%")
-            .on("input", move |root, vdom, event| {
+            .on("input", move |_root, _vdom, event| {
                 let slider = match event.target().and_then(|t| {
                     t.dyn_into::<web_sys::HtmlInputElement>().ok()
                 }) {
@@ -120,8 +120,7 @@ where
                 };
 
                 if let Ok(value) = slider.value().parse::<f32>() {
-                    event_bus.publish(on_change(value), root);
-                    vdom.schedule_render();
+                    event_bus.publish(on_change(value));
                 }
             })
             .finish()

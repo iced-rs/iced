@@ -1,5 +1,4 @@
-use crate::Instance;
-
+use iced_futures::futures::channel::mpsc;
 use std::rc::Rc;
 
 /// A publisher of messages.
@@ -9,13 +8,13 @@ use std::rc::Rc;
 /// [`Application`]: trait.Application.html
 #[allow(missing_debug_implementations)]
 pub struct Bus<Message> {
-    publish: Rc<Box<dyn Fn(Message, &mut dyn dodrio::RootRender)>>,
+    publish: Rc<Box<dyn Fn(Message) -> ()>>,
 }
 
 impl<Message> Clone for Bus<Message> {
     fn clone(&self) -> Self {
-        Self {
-            publish: Rc::clone(&self.publish),
+        Bus {
+            publish: self.publish.clone(),
         }
     }
 }
@@ -24,12 +23,10 @@ impl<Message> Bus<Message>
 where
     Message: 'static,
 {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(publish: mpsc::UnboundedSender<Message>) -> Self {
         Self {
-            publish: Rc::new(Box::new(|message, root| {
-                let app = root.unwrap_mut::<Instance<Message>>();
-
-                app.update(message)
+            publish: Rc::new(Box::new(move |message| {
+                publish.unbounded_send(message).expect("Send message");
             })),
         }
     }
@@ -37,8 +34,8 @@ where
     /// Publishes a new message for the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    pub fn publish(&self, message: Message, root: &mut dyn dodrio::RootRender) {
-        (self.publish)(message, root);
+    pub fn publish(&self, message: Message) {
+        (self.publish)(message)
     }
 
     /// Creates a new [`Bus`] that applies the given function to the messages
@@ -52,9 +49,7 @@ where
         let publish = self.publish.clone();
 
         Bus {
-            publish: Rc::new(Box::new(move |message, root| {
-                publish(mapper(message), root)
-            })),
+            publish: Rc::new(Box::new(move |message| publish(mapper(message)))),
         }
     }
 }

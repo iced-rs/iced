@@ -163,10 +163,8 @@ where
         if let Some(on_press) = self.on_press.clone() {
             let event_bus = bus.clone();
 
-            node = node.on("click", move |root, vdom, _event| {
-                event_bus.publish(on_press.clone(), root);
-
-                vdom.schedule_render();
+            node = node.on("click", move |_root, _vdom, _event| {
+                event_bus.publish(on_press.clone());
             });
         }
 
