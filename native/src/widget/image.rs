@@ -1,5 +1,4 @@
 //! Display images in your user interface.
-
 use crate::{layout, Element, Hasher, Layout, Length, Point, Size, Widget};
 
 use std::{

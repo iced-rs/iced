@@ -18,6 +18,7 @@ use crate::{Bus, Css};
 use dodrio::bumpalo;
 
 pub mod button;
+pub mod image;
 pub mod scrollable;
 pub mod slider;
 pub mod text_input;
@@ -25,7 +26,6 @@ pub mod text_input;
 mod checkbox;
 mod column;
 mod container;
-mod image;
 mod radio;
 mod row;
 mod space;
