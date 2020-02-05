@@ -9,7 +9,8 @@ mod platform {
 
     /// A default cross-platform executor.
     ///
-    /// - On native platforms, it will use a `iced_futures::executor::ThreadPool`.
+    /// - On native platforms, it will use a
+    ///   `iced_futures::executor::ThreadPool`.
     /// - On the Web, it will use `iced_futures::executor::WasmBindgen`.
     #[derive(Debug)]
     pub struct Default(ThreadPool);
@@ -34,7 +35,8 @@ mod platform {
 
     /// A default cross-platform executor.
     ///
-    /// - On native platforms, it will use a `iced_futures::executor::ThreadPool`.
+    /// - On native platforms, it will use a
+    ///   `iced_futures::executor::ThreadPool`.
     /// - On the Web, it will use `iced_futures::executor::WasmBindgen`.
     #[derive(Debug)]
     pub struct Default(WasmBindgen);
@@ -44,10 +46,7 @@ mod platform {
             Ok(Default(WasmBindgen::new()?))
         }
 
-        fn spawn(
-            &self,
-            future: impl futures::Future<Output = ()> + Send + 'static,
-        ) {
+        fn spawn(&self, future: impl futures::Future<Output = ()> + 'static) {
             self.0.spawn(future);
         }
     }

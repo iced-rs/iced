@@ -73,11 +73,13 @@ where
         for future in futures {
             let mut sender = self.sender.clone();
 
-            self.executor.spawn(future.then(|message| async move {
+            let future = future.then(|message| async move {
                 let _ = sender.send(message).await;
 
                 ()
-            }));
+            });
+
+            self.executor.spawn(future);
         }
     }
 
