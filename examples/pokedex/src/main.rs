@@ -27,7 +27,7 @@ enum Message {
 }
 
 impl Application for Pokedex {
-    type Executor = iced_futures::executor::AsyncStd;
+    type Executor = iced_futures::executor::Tokio;
     type Message = Message;
 
     fn new() -> (Pokedex, Command<Message>) {
@@ -175,8 +175,8 @@ impl Pokemon {
         let sprite = format!("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png", id);
 
         let (entry, sprite): (Entry, _) = futures::future::try_join(
-            surf::get(&url).recv_json(),
-            surf::get(&sprite).recv_bytes(),
+            reqwest::get(&url).await?.json(),
+            reqwest::get(&sprite).await?.bytes(),
         )
         .await?;
 
@@ -195,7 +195,7 @@ impl Pokemon {
                 .chars()
                 .map(|c| if c.is_control() { ' ' } else { c })
                 .collect(),
-            image: image::Handle::from_memory(sprite),
+            image: image::Handle::from_memory(sprite.as_ref().to_vec()),
         })
     }
 }
@@ -206,9 +206,9 @@ enum Error {
     LanguageError,
 }
 
-impl From<surf::Exception> for Error {
-    fn from(exception: surf::Exception) -> Error {
-        dbg!(&exception);
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Error {
+        dbg!(&error);
 
         Error::APIError
     }
