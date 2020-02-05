@@ -1,5 +1,7 @@
 //! Create choices using radio buttons.
-use crate::{Bus, Color, Css, Element, Widget};
+use crate::{Bus, Css, Element, Widget};
+
+pub use iced_style::radio::{Style, StyleSheet};
 
 use dodrio::bumpalo;
 
@@ -33,7 +35,7 @@ pub struct Radio<Message> {
     is_selected: bool,
     on_click: Message,
     label: String,
-    label_color: Option<Color>,
+    style: Box<dyn StyleSheet>,
 }
 
 impl<Message> Radio<Message> {
@@ -56,15 +58,15 @@ impl<Message> Radio<Message> {
             is_selected: Some(value) == selected,
             on_click: f(value),
             label: String::from(label),
-            label_color: None,
+            style: Default::default(),
         }
     }
 
-    /// Sets the `Color` of the label of the [`Radio`].
+    /// Sets the style of the [`Radio`] button.
     ///
     /// [`Radio`]: struct.Radio.html
-    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
-        self.label_color = Some(color.into());
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
         self
     }
 }
