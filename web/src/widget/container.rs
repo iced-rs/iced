@@ -1,3 +1,4 @@
+//! Decorate content and apply alignment.
 use crate::{bumpalo, css, Align, Bus, Css, Element, Length, Widget};
 
 /// An element decorating some content.

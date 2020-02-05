@@ -5,6 +5,9 @@
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
 use crate::{bumpalo, css, Bus, Css, Element, Length, Widget};
+
+pub use iced_style::text_input::{Style, StyleSheet};
+
 use std::rc::Rc;
 
 /// A field that can be filled with text.

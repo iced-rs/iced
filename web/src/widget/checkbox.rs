@@ -1,3 +1,4 @@
+//! Show toggle controls using checkboxes.
 use crate::{Bus, Color, Css, Element, Widget};
 
 use dodrio::bumpalo;

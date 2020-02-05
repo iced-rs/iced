@@ -1,3 +1,4 @@
+//! Create choices using radio buttons.
 use crate::{Bus, Color, Css, Element, Widget};
 
 use dodrio::bumpalo;

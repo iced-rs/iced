@@ -18,15 +18,15 @@ use crate::{Bus, Css};
 use dodrio::bumpalo;
 
 pub mod button;
+pub mod checkbox;
+pub mod container;
 pub mod image;
+pub mod radio;
 pub mod scrollable;
 pub mod slider;
 pub mod text_input;
 
-mod checkbox;
 mod column;
-mod container;
-mod radio;
 mod row;
 mod space;
 mod text;
