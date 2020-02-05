@@ -1,6 +1,8 @@
 //! Decorate content and apply alignment.
 use crate::{bumpalo, css, Align, Bus, Css, Element, Length, Widget};
 
+pub use iced_style::container::{Style, StyleSheet};
+
 /// An element decorating some content.
 ///
 /// It is normally used for alignment purposes.
@@ -12,6 +14,7 @@ pub struct Container<'a, Message> {
     max_height: u32,
     horizontal_alignment: Align,
     vertical_alignment: Align,
+    style: Box<dyn StyleSheet>,
     content: Element<'a, Message>,
 }
 
@@ -32,6 +35,7 @@ impl<'a, Message> Container<'a, Message> {
             max_height: u32::MAX,
             horizontal_alignment: Align::Start,
             vertical_alignment: Align::Start,
+            style: Default::default(),
             content: content.into(),
         }
     }
@@ -83,6 +87,14 @@ impl<'a, Message> Container<'a, Message> {
     pub fn center_y(mut self) -> Self {
         self.vertical_alignment = Align::Center;
 
+        self
+    }
+
+    /// Sets the style of the [`Container`].
+    ///
+    /// [`Container`]: struct.Container.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
         self
     }
 }
