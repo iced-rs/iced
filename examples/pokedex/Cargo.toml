@@ -8,7 +8,12 @@ publish = false
 [dependencies]
 iced = { path = "../..", features = ["image", "debug"] }
 iced_futures = { path = "../../futures", features = ["tokio"] }
-reqwest = { version = "0.10", features = ["json"] }
-rand = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+rand = { version = "0.7", features = ["wasm-bindgen"] }
+
+[dependencies.reqwest]
+version = "0.10"
+git = "https://github.com/hecrj/reqwest.git"
+branch = "feature/wasm-deserialize-json"
+features = ["json"]

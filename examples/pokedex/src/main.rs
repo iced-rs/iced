@@ -27,7 +27,12 @@ enum Message {
 }
 
 impl Application for Pokedex {
+    #[cfg(not(target_arch = "wasm32"))]
     type Executor = iced_futures::executor::Tokio;
+
+    #[cfg(target_arch = "wasm32")]
+    type Executor = iced_futures::executor::WasmBindgen;
+
     type Message = Message;
 
     fn new() -> (Pokedex, Command<Message>) {
@@ -166,19 +171,21 @@ impl Pokemon {
         }
 
         let id = {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rngs::OsRng::default();
 
             rng.gen_range(0, Pokemon::TOTAL)
         };
 
-        let url = format!("https://pokeapi.co/api/v2/pokemon-species/{}", id);
-        let sprite = format!("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png", id);
+        let fetch_entry = async {
+            let url =
+                format!("https://pokeapi.co/api/v2/pokemon-species/{}", id);
 
-        let (entry, sprite): (Entry, _) = futures::future::try_join(
-            reqwest::get(&url).await?.json(),
-            reqwest::get(&sprite).await?.bytes(),
-        )
-        .await?;
+            reqwest::get(&url).await?.json().await
+        };
+
+        let (entry, image): (Entry, _) =
+            futures::future::try_join(fetch_entry, Self::fetch_image(id))
+                .await?;
 
         let description = entry
             .flavor_text_entries
@@ -195,8 +202,22 @@ impl Pokemon {
                 .chars()
                 .map(|c| if c.is_control() { ' ' } else { c })
                 .collect(),
-            image: image::Handle::from_memory(sprite.as_ref().to_vec()),
+            image,
         })
+    }
+
+    async fn fetch_image(id: u16) -> Result<image::Handle, reqwest::Error> {
+        let url = format!("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png", id);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let bytes = reqwest::get(&url).await?.bytes().await?;
+
+            Ok(image::Handle::from_memory(bytes.as_ref().to_vec()))
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        Ok(image::Handle::from_path(url))
     }
 }
 
