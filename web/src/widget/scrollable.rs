@@ -1,6 +1,8 @@
 //! Navigate an endless amount of content with a scrollbar.
 use crate::{bumpalo, css, Align, Bus, Column, Css, Element, Length, Widget};
 
+pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
+
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
 #[allow(missing_debug_implementations)]
@@ -9,6 +11,7 @@ pub struct Scrollable<'a, Message> {
     height: Length,
     max_height: u32,
     content: Column<'a, Message>,
+    style: Box<dyn StyleSheet>,
 }
 
 impl<'a, Message> Scrollable<'a, Message> {
@@ -24,6 +27,7 @@ impl<'a, Message> Scrollable<'a, Message> {
             height: Length::Shrink,
             max_height: u32::MAX,
             content: Column::new(),
+            style: Default::default(),
         }
     }
 
@@ -85,6 +89,14 @@ impl<'a, Message> Scrollable<'a, Message> {
         self
     }
 
+    /// Sets the style of the [`Scrollable`] .
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
+        self
+    }
+
     /// Adds an element to the [`Scrollable`].
     ///
     /// [`Scrollable`]: struct.Scrollable.html
@@ -112,6 +124,8 @@ where
         let width = css::length(self.width);
         let height = css::length(self.height);
 
+        // TODO: Scrollbar styling
+
         let node = div(bump)
             .attr(
                 "style",
@@ -125,8 +139,6 @@ where
                 .into_bump_str(),
             )
             .children(vec![self.content.node(bump, bus, style_sheet)]);
-
-        // TODO: Complete styling
 
         node.finish()
     }
