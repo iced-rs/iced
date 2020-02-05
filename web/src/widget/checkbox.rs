@@ -1,5 +1,7 @@
 //! Show toggle controls using checkboxes.
-use crate::{Bus, Color, Css, Element, Widget};
+use crate::{Bus, Css, Element, Length, Widget};
+
+pub use iced_style::checkbox::{Style, StyleSheet};
 
 use dodrio::bumpalo;
 use std::rc::Rc;
@@ -26,7 +28,8 @@ pub struct Checkbox<Message> {
     is_checked: bool,
     on_toggle: Rc<dyn Fn(bool) -> Message>,
     label: String,
-    label_color: Option<Color>,
+    width: Length,
+    style: Box<dyn StyleSheet>,
 }
 
 impl<Message> Checkbox<Message> {
@@ -48,15 +51,24 @@ impl<Message> Checkbox<Message> {
             is_checked,
             on_toggle: Rc::new(f),
             label: String::from(label),
-            label_color: None,
+            width: Length::Shrink,
+            style: Default::default(),
         }
     }
 
-    /// Sets the color of the label of the [`Checkbox`].
+    /// Sets the width of the [`Checkbox`].
     ///
     /// [`Checkbox`]: struct.Checkbox.html
-    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
-        self.label_color = Some(color.into());
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Sets the style of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -79,7 +91,8 @@ where
         let on_toggle = self.on_toggle.clone();
         let is_checked = self.is_checked;
 
-        // TODO: Complete styling
+        // TODO: Styling
+
         label(bump)
             .children(vec![
                 input(bump)
