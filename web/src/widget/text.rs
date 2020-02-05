@@ -117,7 +117,10 @@ impl<'a, Message> Widget<Message> for Text {
         use dodrio::builder::*;
 
         let content = bumpalo::format!(in bump, "{}", self.content);
-        let color = css::color(self.color.unwrap_or(Color::BLACK));
+        let color = self
+            .color
+            .map(css::color)
+            .unwrap_or(String::from("inherit"));
 
         let width = css::length(self.width);
         let height = css::length(self.height);
