@@ -42,6 +42,7 @@ pub struct TextInput<'a, Message> {
     size: Option<u16>,
     on_change: Rc<Box<dyn Fn(String) -> Message>>,
     on_submit: Option<Message>,
+    style: Box<dyn StyleSheet>,
 }
 
 impl<'a, Message> TextInput<'a, Message> {
@@ -75,6 +76,7 @@ impl<'a, Message> TextInput<'a, Message> {
             size: None,
             on_change: Rc::new(Box::new(on_change)),
             on_submit: None,
+            style: Default::default(),
         }
     }
 
@@ -124,6 +126,14 @@ impl<'a, Message> TextInput<'a, Message> {
     /// [`TextInput`]: struct.TextInput.html
     pub fn on_submit(mut self, message: Message) -> Self {
         self.on_submit = Some(message);
+        self
+    }
+
+    /// Sets the style of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
         self
     }
 }
