@@ -14,7 +14,7 @@ pub struct Container<'a, Message> {
     max_height: u32,
     horizontal_alignment: Align,
     vertical_alignment: Align,
-    style: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet>,
     content: Element<'a, Message>,
 }
 
@@ -35,7 +35,7 @@ impl<'a, Message> Container<'a, Message> {
             max_height: u32::MAX,
             horizontal_alignment: Align::Start,
             vertical_alignment: Align::Start,
-            style: Default::default(),
+            style_sheet: Default::default(),
             content: content.into(),
         }
     }
@@ -94,7 +94,7 @@ impl<'a, Message> Container<'a, Message> {
     ///
     /// [`Container`]: struct.Container.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
-        self.style = style.into();
+        self.style_sheet = style.into();
         self
     }
 }
@@ -113,11 +113,7 @@ where
 
         let column_class = style_sheet.insert(bump, css::Rule::Column);
 
-        let width = css::length(self.width);
-        let height = css::length(self.height);
-
-        let align_items = css::align(self.horizontal_alignment);
-        let justify_content = css::align(self.vertical_alignment);
+        let style = self.style_sheet.style();
 
         let node = div(bump)
             .attr(
@@ -128,12 +124,17 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "width: {}; height: {}; max-width: {}px; align-items: {}; justify-content: {}",
-                    width,
-                    height,
-                    self.max_width,
-                    align_items,
-                    justify_content
+                    "width: {}; height: {}; max-width: {}; align-items: {}; justify-content: {}; background: {}; color: {}; border-width: {}px; border-color: {}; border-radius: {}px",
+                    css::length(self.width),
+                    css::length(self.height),
+                    css::max_length(self.max_width),
+                    css::align(self.horizontal_alignment),
+                    css::align(self.vertical_alignment),
+                    style.background.map(css::background).unwrap_or(String::from("initial")),
+                    style.text_color.map(css::color).unwrap_or(String::from("inherit")),
+                    style.border_width,
+                    css::color(style.border_color),
+                    style.border_radius
                 )
                 .into_bump_str(),
             )
