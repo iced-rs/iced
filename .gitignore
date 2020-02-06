@@ -3,4 +3,6 @@ pkg/
 **/*.rs.bk
 Cargo.lock
 .cargo/
+
 .vscode
+.idea
