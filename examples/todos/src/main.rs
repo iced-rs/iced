@@ -38,7 +38,12 @@ enum Message {
 }
 
 impl Application for Todos {
+    #[cfg(not(target_arch = "wasm32"))]
     type Executor = iced_futures::executor::AsyncStd;
+
+    #[cfg(target_arch = "wasm32")]
+    type Executor = iced_futures::executor::WasmBindgen;
+
     type Message = Message;
 
     fn new() -> (Todos, Command<Message>) {
@@ -377,6 +382,7 @@ impl Controls {
             )
             .push(
                 Row::new()
+                    .width(Length::Shrink)
                     .spacing(10)
                     .push(filter_button(
                         all_button,
@@ -493,6 +499,7 @@ enum SaveError {
     FormatError,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl SavedState {
     fn path() -> std::path::PathBuf {
         let mut path = if let Some(project_dirs) =
@@ -552,6 +559,18 @@ impl SavedState {
         async_std::task::sleep(std::time::Duration::from_secs(2)).await;
 
         Ok(())
+    }
+}
+
+// TODO
+#[cfg(target_arch = "wasm32")]
+impl SavedState {
+    async fn load() -> Result<SavedState, LoadError> {
+        Err(LoadError::FileError)
+    }
+
+    async fn save(self) -> Result<(), SaveError> {
+        Err(SaveError::FileError)
     }
 }
 
