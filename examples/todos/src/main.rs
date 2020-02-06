@@ -557,15 +557,38 @@ impl SavedState {
     }
 }
 
-// TODO
 #[cfg(target_arch = "wasm32")]
 impl SavedState {
+    fn storage() -> Option<web_sys::Storage> {
+        let window = web_sys::window()?;
+
+        window.local_storage().ok()?
+    }
+
     async fn load() -> Result<SavedState, LoadError> {
-        Err(LoadError::FileError)
+        let storage = Self::storage().ok_or(LoadError::FileError)?;
+
+        let contents = storage
+            .get_item("state")
+            .map_err(|_| LoadError::FileError)?
+            .ok_or(LoadError::FileError)?;
+
+        serde_json::from_str(&contents).map_err(|_| LoadError::FormatError)
     }
 
     async fn save(self) -> Result<(), SaveError> {
-        Err(SaveError::FileError)
+        let storage = Self::storage().ok_or(SaveError::FileError)?;
+
+        let json = serde_json::to_string_pretty(&self)
+            .map_err(|_| SaveError::FormatError)?;
+
+        storage
+            .set_item("state", &json)
+            .map_err(|_| SaveError::WriteError)?;
+
+        let _ = wasm_timer::Delay::new(std::time::Duration::from_secs(2)).await;
+
+        Ok(())
     }
 }
 
