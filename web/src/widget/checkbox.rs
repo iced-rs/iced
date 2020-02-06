@@ -1,5 +1,5 @@
 //! Show toggle controls using checkboxes.
-use crate::{Bus, Css, Element, Length, Widget};
+use crate::{css, Bus, Css, Element, Length, Widget};
 
 pub use iced_style::checkbox::{Style, StyleSheet};
 
@@ -81,7 +81,7 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        _style_sheet: &mut Css<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
@@ -91,10 +91,23 @@ where
         let on_toggle = self.on_toggle.clone();
         let is_checked = self.is_checked;
 
-        // TODO: Styling
+        let row_class = style_sheet.insert(bump, css::Rule::Row);
+
+        let spacing_class = style_sheet.insert(bump, css::Rule::Spacing(5));
 
         label(bump)
+            .attr(
+                "class",
+                bumpalo::format!(in bump, "{} {}", row_class, spacing_class)
+                    .into_bump_str(),
+            )
+            .attr(
+                "style",
+                bumpalo::format!(in bump, "width: {}; align-items: center", css::length(self.width))
+                    .into_bump_str(),
+            )
             .children(vec![
+                // TODO: Checkbox styling
                 input(bump)
                     .attr("type", "checkbox")
                     .bool_attr("checked", self.is_checked)
@@ -105,7 +118,8 @@ where
                         vdom.schedule_render();
                     })
                     .finish(),
-                text(checkbox_label.into_bump_str()),
+                span(bump).children(vec![
+                text(checkbox_label.into_bump_str())]).finish(),
             ])
             .finish()
     }
