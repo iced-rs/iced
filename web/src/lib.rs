@@ -97,7 +97,15 @@ pub trait Application {
     /// The type of __messages__ your [`Application`] will produce.
     ///
     /// [`Application`]: trait.Application.html
-    type Message;
+    type Message: Send;
+
+    /// The [`Executor`] that will run commands and subscriptions.
+    ///
+    /// The [`executor::WasmBindgen`] can be a good choice for the Web.
+    ///
+    /// [`Executor`]: trait.Executor.html
+    /// [`executor::Default`]: executor/struct.Default.html
+    type Executor: Executor;
 
     /// Initializes the [`Application`].
     ///
@@ -140,6 +148,20 @@ pub trait Application {
     /// [`Application`]: trait.Application.html
     fn view(&mut self) -> Element<'_, Self::Message>;
 
+    /// Returns the event [`Subscription`] for the current state of the
+    /// application.
+    ///
+    /// A [`Subscription`] will be kept alive as long as you keep returning it,
+    /// and the __messages__ produced will be handled by
+    /// [`update`](#tymethod.update).
+    ///
+    /// By default, this method returns an empty [`Subscription`].
+    ///
+    /// [`Subscription`]: struct.Subscription.html
+    fn subscription(&self) -> Subscription<Self::Message> {
+        Subscription::none()
+    }
+
     /// Runs the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
@@ -147,96 +169,66 @@ pub trait Application {
     where
         Self: 'static + Sized,
     {
+        use futures::stream::StreamExt;
+
         let (app, command) = Self::new();
 
-        let instance = Instance::new(app);
-        instance.run(command);
-    }
-}
-
-struct Instance<Message> {
-    title: String,
-    ui: Rc<RefCell<Box<dyn Application<Message = Message>>>>,
-    vdom: Rc<RefCell<Option<dodrio::VdomWeak>>>,
-}
-
-impl<Message> Clone for Instance<Message> {
-    fn clone(&self) -> Self {
-        Self {
-            title: self.title.clone(),
-            ui: Rc::clone(&self.ui),
-            vdom: Rc::clone(&self.vdom),
-        }
-    }
-}
-
-impl<Message> Instance<Message>
-where
-    Message: 'static,
-{
-    fn new(ui: impl Application<Message = Message> + 'static) -> Self {
-        Self {
-            title: ui.title(),
-            ui: Rc::new(RefCell::new(Box::new(ui))),
-            vdom: Rc::new(RefCell::new(None)),
-        }
-    }
-
-    fn update(&mut self, message: Message) {
-        let command = self.ui.borrow_mut().update(message);
-        let title = self.ui.borrow().title();
-
-        self.spawn(command);
-
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
-
-        if self.title != title {
-            document.set_title(&title);
-
-            self.title = title;
-        }
-    }
-
-    fn spawn(&mut self, command: Command<Message>) {
-        use futures::FutureExt;
-
-        for future in command.futures() {
-            let mut instance = self.clone();
-
-            let future = future.map(move |message| {
-                instance.update(message);
-
-                if let Some(ref vdom) = *instance.vdom.borrow() {
-                    vdom.schedule_render();
-                }
-            });
-
-            wasm_bindgen_futures::spawn_local(future);
-        }
-    }
-
-    fn run(mut self, command: Command<Message>) {
-        let window = web_sys::window().unwrap();
-
-        let document = window.document().unwrap();
-        document.set_title(&self.title);
-
         let body = document.body().unwrap();
 
-        let weak = self.vdom.clone();
-        self.spawn(command);
+        let mut title = app.title();
+        document.set_title(&title);
 
-        let vdom = dodrio::Vdom::new(&body, self);
-        *weak.borrow_mut() = Some(vdom.weak());
+        let (sender, receiver) =
+            iced_futures::futures::channel::mpsc::unbounded();
 
-        vdom.forget();
+        let mut runtime = iced_futures::Runtime::new(
+            Self::Executor::new().expect("Create executor"),
+            sender.clone(),
+        );
+        runtime.spawn(command);
+
+        let application = Rc::new(RefCell::new(app));
+
+        let instance = Instance {
+            application: application.clone(),
+            bus: Bus::new(sender),
+        };
+
+        let vdom = dodrio::Vdom::new(&body, instance);
+
+        let event_loop = receiver.for_each(move |message| {
+            let command = application.borrow_mut().update(message);
+            let subscription = application.borrow().subscription();
+            let new_title = application.borrow().title();
+
+            runtime.spawn(command);
+            runtime.track(subscription);
+
+            if title != new_title {
+                document.set_title(&new_title);
+
+                title = new_title;
+            }
+
+            vdom.weak().schedule_render();
+
+            futures::future::ready(())
+        });
+
+        wasm_bindgen_futures::spawn_local(event_loop);
     }
 }
 
-impl<Message> dodrio::Render for Instance<Message>
+struct Instance<A: Application> {
+    application: Rc<RefCell<A>>,
+    bus: Bus<A::Message>,
+}
+
+impl<A> dodrio::Render for Instance<A>
 where
-    Message: 'static,
+    A: Application,
 {
     fn render<'a, 'bump>(
         &'a self,
@@ -247,11 +239,11 @@ where
     {
         use dodrio::builder::*;
 
-        let mut ui = self.ui.borrow_mut();
+        let mut ui = self.application.borrow_mut();
         let element = ui.view();
         let mut style_sheet = style::Sheet::new();
 
-        let node = element.widget.node(bump, &Bus::new(), &mut style_sheet);
+        let node = element.widget.node(bump, &self.bus, &mut style_sheet);
 
         div(bump)
             .attr("style", "width: 100%; height: 100%")

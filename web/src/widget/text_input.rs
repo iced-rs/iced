@@ -175,7 +175,7 @@ where
                 "type",
                 bumpalo::format!(in bump, "{}", if self.is_secure { "password" } else { "text" }).into_bump_str(),
             )
-            .on("input", move |root, vdom, event| {
+            .on("input", move |_root, _vdom, event| {
                 let text_input = match event.target().and_then(|t| {
                     t.dyn_into::<web_sys::HtmlInputElement>().ok()
                 }) {
@@ -183,8 +183,7 @@ where
                     Some(text_input) => text_input,
                 };
 
-                event_bus.publish(on_change(text_input.value()), root);
-                vdom.schedule_render();
+                event_bus.publish(on_change(text_input.value()));
             })
             .finish()
     }

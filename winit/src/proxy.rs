@@ -1,4 +1,5 @@
 use iced_native::futures::{
+    channel::mpsc,
     task::{Context, Poll},
     Sink,
 };
@@ -23,7 +24,7 @@ impl<Message: 'static> Proxy<Message> {
 }
 
 impl<Message: 'static> Sink<Message> for Proxy<Message> {
-    type Error = core::convert::Infallible;
+    type Error = mpsc::SendError;
 
     fn poll_ready(
         self: Pin<&mut Self>,
