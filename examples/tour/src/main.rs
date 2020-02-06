@@ -779,16 +779,3 @@ mod style {
         }
     }
 }
-
-// This should be gracefully handled by Iced in the future. Probably using our
-// own proc macro, or maybe the whole process is streamlined by `wasm-pack` at
-// some point.
-#[cfg(target_arch = "wasm32")]
-mod wasm {
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen(start)]
-    pub fn run() {
-        super::main()
-    }
-}
