@@ -1,5 +1,5 @@
 //! Style your widgets.
-use crate::{bumpalo, Align, Color, Length};
+use crate::{bumpalo, Align, Background, Color, Length};
 
 use std::collections::BTreeMap;
 
@@ -119,7 +119,7 @@ impl<'a> Css<'a> {
         declarations.push(text(
             "body { height: 100%; margin: 0; padding: 0; font-family: sans-serif }",
         ));
-        declarations.push(text("p { margin: 0 }"));
+        declarations.push(text("* { margin: 0; padding: 0 }"));
         declarations.push(text(
             "button { border: none; cursor: pointer; outline: none }",
         ));
@@ -143,11 +143,40 @@ pub fn length(length: Length) -> String {
     }
 }
 
+/// Returns the style value for the given maximum length in units.
+pub fn max_length(units: u32) -> String {
+    use std::u32;
+
+    if units == u32::MAX {
+        String::from("initial")
+    } else {
+        format!("{}px", units)
+    }
+}
+
+/// Returns the style value for the given minimum length in units.
+pub fn min_length(units: u32) -> String {
+    if units == 0 {
+        String::from("initial")
+    } else {
+        format!("{}px", units)
+    }
+}
+
 /// Returns the style value for the given [`Color`].
 ///
 /// [`Color`]: ../struct.Color.html
 pub fn color(Color { r, g, b, a }: Color) -> String {
     format!("rgba({}, {}, {}, {})", 255.0 * r, 255.0 * g, 255.0 * b, a)
+}
+
+/// Returns the style value for the given [`Background`].
+///
+/// [`Background`]: ../struct.Background.html
+pub fn background(background: Background) -> String {
+    match background {
+        Background::Color(c) => color(c),
+    }
 }
 
 /// Returns the style value for the given [`Align`].
