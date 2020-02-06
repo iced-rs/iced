@@ -9,15 +9,14 @@ use std::ops::RangeInclusive;
 ///
 /// # Example
 /// ```
-/// # use iced_native::renderer::Null;
-/// #
-/// # pub type ProgressBar = iced_native::ProgressBar<Null>;
+/// use iced_web::ProgressBar;
+///
 /// let value = 50.0;
 ///
 /// ProgressBar::new(0.0..=100.0, value);
 /// ```
 ///
-/// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
+/// ![Progress bar](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
 pub struct ProgressBar {
     range: RangeInclusive<f32>,
