@@ -130,11 +130,6 @@ impl<'a, Message> Widget<Message> for Column<'a, Message> {
         let padding_class =
             style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
-        let width = css::length(self.width);
-        let height = css::length(self.height);
-
-        let align_items = css::align(self.align_items);
-
         // TODO: Complete styling
         div(bump)
             .attr(
@@ -144,12 +139,12 @@ impl<'a, Message> Widget<Message> for Column<'a, Message> {
             )
             .attr("style", bumpalo::format!(
                     in bump,
-                    "width: {}; height: {}; max-width: {}px; max-height: {}px; align-items: {}",
-                    width,
-                    height,
-                    self.max_width,
-                    self.max_height,
-                    align_items
+                    "width: {}; height: {}; max-width: {}; max-height: {}; align-items: {}",
+                    css::length(self.width),
+                    css::length(self.height),
+                    css::max_length(self.max_width),
+                    css::max_length(self.max_height),
+                    css::align(self.align_items)
                 ).into_bump_str()
             )
             .children(children)
