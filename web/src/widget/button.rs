@@ -144,9 +144,6 @@ where
         // TODO: State-based styling
         let style = self.style.active();
 
-        let width = css::length(self.width);
-        let color = css::color(style.text_color);
-
         let padding_class =
             style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
@@ -166,12 +163,12 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "background: {}; border-radius: {}px; width:{}; min-width: {}px; color: {}",
+                    "background: {}; border-radius: {}px; width:{}; min-width: {}; color: {}",
                     background,
                     style.border_radius,
-                    width,
-                    self.min_width,
-                    color
+                    css::length(self.width),
+                    css::min_length(self.min_width),
+                    css::color(style.text_color)
                 )
                 .into_bump_str(),
             )
