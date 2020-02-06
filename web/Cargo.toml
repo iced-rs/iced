@@ -39,4 +39,5 @@ features = [
     "Event",
     "EventTarget",
     "InputEvent",
+    "KeyboardEvent",
 ]

@@ -155,7 +155,9 @@ where
             style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
         let on_change = self.on_change.clone();
-        let event_bus = bus.clone();
+        let on_submit = self.on_submit.clone();
+        let input_event_bus = bus.clone();
+        let submit_event_bus = bus.clone();
         let style = self.style_sheet.active();
 
         input(bump)
@@ -200,7 +202,17 @@ where
                     Some(text_input) => text_input,
                 };
 
-                event_bus.publish(on_change(text_input.value()));
+                input_event_bus.publish(on_change(text_input.value()));
+            })
+            .on("keypress", move |_root, _vdom, event| {
+                if let Some(on_submit) = on_submit.clone() {
+                    let event = event.unchecked_into::<web_sys::KeyboardEvent>();
+
+                    match event.key_code() {
+                        13 => { submit_event_bus.publish(on_submit); }
+                        _ => {}
+                    }
+                }
             })
             .finish()
     }
@@ -226,6 +238,14 @@ impl State {
     ///
     /// [`State`]: struct.State.html
     pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Creates a new [`State`], representing a focused [`TextInput`].
+    ///
+    /// [`State`]: struct.State.html
+    pub fn focused() -> Self {
+        // TODO
         Self::default()
     }
 }
