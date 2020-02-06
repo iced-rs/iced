@@ -9,6 +9,8 @@ use crate::{
     layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
     Rectangle, Size, Widget,
 };
+
+use std::u32;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A field that can be filled with text.
@@ -43,7 +45,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     is_secure: bool,
     font: Font,
     width: Length,
-    max_width: Length,
+    max_width: u32,
     padding: u16,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
@@ -78,7 +80,7 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
             is_secure: false,
             font: Font::Default,
             width: Length::Fill,
-            max_width: Length::Shrink,
+            max_width: u32::MAX,
             padding: 0,
             size: None,
             on_change: Box::new(on_change),
@@ -114,7 +116,7 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
     /// Sets the maximum width of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn max_width(mut self, max_width: Length) -> Self {
+    pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
@@ -178,6 +180,7 @@ where
         let limits = limits
             .pad(padding)
             .width(self.width)
+            .max_width(self.max_width)
             .height(Length::Units(text_size));
 
         let mut text = layout::Node::new(limits.resolve(Size::ZERO));

@@ -8,7 +8,7 @@ use crate::{bumpalo, css, Bus, Css, Element, Length, Widget};
 
 pub use iced_style::text_input::{Style, StyleSheet};
 
-use std::rc::Rc;
+use std::{rc::Rc, u32};
 
 /// A field that can be filled with text.
 ///
@@ -37,12 +37,12 @@ pub struct TextInput<'a, Message> {
     value: String,
     is_secure: bool,
     width: Length,
-    max_width: Length,
+    max_width: u32,
     padding: u16,
     size: Option<u16>,
     on_change: Rc<Box<dyn Fn(String) -> Message>>,
     on_submit: Option<Message>,
-    style: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet>,
 }
 
 impl<'a, Message> TextInput<'a, Message> {
@@ -71,12 +71,12 @@ impl<'a, Message> TextInput<'a, Message> {
             value: String::from(value),
             is_secure: false,
             width: Length::Fill,
-            max_width: Length::Shrink,
+            max_width: u32::MAX,
             padding: 0,
             size: None,
             on_change: Rc::new(Box::new(on_change)),
             on_submit: None,
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -99,7 +99,7 @@ impl<'a, Message> TextInput<'a, Message> {
     /// Sets the maximum width of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn max_width(mut self, max_width: Length) -> Self {
+    pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
@@ -133,7 +133,7 @@ impl<'a, Message> TextInput<'a, Message> {
     ///
     /// [`TextInput`]: struct.TextInput.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
-        self.style = style.into();
+        self.style_sheet = style.into();
         self
     }
 }
@@ -151,13 +151,12 @@ where
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;
 
-        let width = css::length(self.width);
-        let max_width = css::length(self.max_width);
         let padding_class =
             style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
         let on_change = self.on_change.clone();
         let event_bus = bus.clone();
+        let style = self.style_sheet.active();
 
         input(bump)
             .attr(
@@ -168,10 +167,15 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "width: {}; max-width: {}; font-size: {}px",
-                    width,
-                    max_width,
-                    self.size.unwrap_or(20)
+                    "width: {}; max-width: {}; font-size: {}px; background: {}; border-width: {}px; border-color: {}; border-radius: {}px; color: {}",
+                    css::length(self.width),
+                    css::max_length(self.max_width),
+                    self.size.unwrap_or(20),
+                    css::background(style.background),
+                    style.border_width,
+                    css::color(style.border_color),
+                    style.border_radius,
+                    css::color(self.style_sheet.value_color())
                 )
                 .into_bump_str(),
             )
