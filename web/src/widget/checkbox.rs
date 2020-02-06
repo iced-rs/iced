@@ -1,4 +1,7 @@
-use crate::{style, Bus, Color, Element, Widget};
+//! Show toggle controls using checkboxes.
+use crate::{css, Bus, Css, Element, Length, Widget};
+
+pub use iced_style::checkbox::{Style, StyleSheet};
 
 use dodrio::bumpalo;
 use std::rc::Rc;
@@ -25,7 +28,8 @@ pub struct Checkbox<Message> {
     is_checked: bool,
     on_toggle: Rc<dyn Fn(bool) -> Message>,
     label: String,
-    label_color: Option<Color>,
+    width: Length,
+    style: Box<dyn StyleSheet>,
 }
 
 impl<Message> Checkbox<Message> {
@@ -47,15 +51,24 @@ impl<Message> Checkbox<Message> {
             is_checked,
             on_toggle: Rc::new(f),
             label: String::from(label),
-            label_color: None,
+            width: Length::Shrink,
+            style: Default::default(),
         }
     }
 
-    /// Sets the color of the label of the [`Checkbox`].
+    /// Sets the width of the [`Checkbox`].
     ///
     /// [`Checkbox`]: struct.Checkbox.html
-    pub fn label_color<C: Into<Color>>(mut self, color: C) -> Self {
-        self.label_color = Some(color.into());
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Sets the style of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -68,7 +81,7 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        _style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
@@ -78,9 +91,23 @@ where
         let on_toggle = self.on_toggle.clone();
         let is_checked = self.is_checked;
 
-        // TODO: Complete styling
+        let row_class = style_sheet.insert(bump, css::Rule::Row);
+
+        let spacing_class = style_sheet.insert(bump, css::Rule::Spacing(5));
+
         label(bump)
+            .attr(
+                "class",
+                bumpalo::format!(in bump, "{} {}", row_class, spacing_class)
+                    .into_bump_str(),
+            )
+            .attr(
+                "style",
+                bumpalo::format!(in bump, "width: {}; align-items: center", css::length(self.width))
+                    .into_bump_str(),
+            )
             .children(vec![
+                // TODO: Checkbox styling
                 input(bump)
                     .attr("type", "checkbox")
                     .bool_attr("checked", self.is_checked)
@@ -91,7 +118,8 @@ where
                         vdom.schedule_render();
                     })
                     .finish(),
-                text(checkbox_label.into_bump_str()),
+                span(bump).children(vec![
+                text(checkbox_label.into_bump_str())]).finish(),
             ])
             .finish()
     }

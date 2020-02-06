@@ -4,8 +4,11 @@
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
-use crate::{bumpalo, style, Bus, Element, Length, Style, Widget};
-use std::rc::Rc;
+use crate::{bumpalo, css, Bus, Css, Element, Length, Widget};
+
+pub use iced_style::text_input::{Style, StyleSheet};
+
+use std::{rc::Rc, u32};
 
 /// A field that can be filled with text.
 ///
@@ -34,11 +37,12 @@ pub struct TextInput<'a, Message> {
     value: String,
     is_secure: bool,
     width: Length,
-    max_width: Length,
+    max_width: u32,
     padding: u16,
     size: Option<u16>,
     on_change: Rc<Box<dyn Fn(String) -> Message>>,
     on_submit: Option<Message>,
+    style_sheet: Box<dyn StyleSheet>,
 }
 
 impl<'a, Message> TextInput<'a, Message> {
@@ -67,11 +71,12 @@ impl<'a, Message> TextInput<'a, Message> {
             value: String::from(value),
             is_secure: false,
             width: Length::Fill,
-            max_width: Length::Shrink,
+            max_width: u32::MAX,
             padding: 0,
             size: None,
             on_change: Rc::new(Box::new(on_change)),
             on_submit: None,
+            style_sheet: Default::default(),
         }
     }
 
@@ -94,7 +99,7 @@ impl<'a, Message> TextInput<'a, Message> {
     /// Sets the maximum width of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn max_width(mut self, max_width: Length) -> Self {
+    pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
@@ -123,6 +128,14 @@ impl<'a, Message> TextInput<'a, Message> {
         self.on_submit = Some(message);
         self
     }
+
+    /// Sets the style of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style_sheet = style.into();
+        self
+    }
 }
 
 impl<'a, Message> Widget<Message> for TextInput<'a, Message>
@@ -133,18 +146,19 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;
 
-        let width = style::length(self.width);
-        let max_width = style::length(self.max_width);
         let padding_class =
-            style_sheet.insert(bump, Style::Padding(self.padding));
+            style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
         let on_change = self.on_change.clone();
-        let event_bus = bus.clone();
+        let on_submit = self.on_submit.clone();
+        let input_event_bus = bus.clone();
+        let submit_event_bus = bus.clone();
+        let style = self.style_sheet.active();
 
         input(bump)
             .attr(
@@ -155,10 +169,15 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "width: {}; max-width: {}; font-size: {}px",
-                    width,
-                    max_width,
-                    self.size.unwrap_or(20)
+                    "width: {}; max-width: {}; font-size: {}px; background: {}; border-width: {}px; border-color: {}; border-radius: {}px; color: {}",
+                    css::length(self.width),
+                    css::max_length(self.max_width),
+                    self.size.unwrap_or(20),
+                    css::background(style.background),
+                    style.border_width,
+                    css::color(style.border_color),
+                    style.border_radius,
+                    css::color(self.style_sheet.value_color())
                 )
                 .into_bump_str(),
             )
@@ -183,7 +202,17 @@ where
                     Some(text_input) => text_input,
                 };
 
-                event_bus.publish(on_change(text_input.value()));
+                input_event_bus.publish(on_change(text_input.value()));
+            })
+            .on("keypress", move |_root, _vdom, event| {
+                if let Some(on_submit) = on_submit.clone() {
+                    let event = event.unchecked_into::<web_sys::KeyboardEvent>();
+
+                    match event.key_code() {
+                        13 => { submit_event_bus.publish(on_submit); }
+                        _ => {}
+                    }
+                }
             })
             .finish()
     }
@@ -209,6 +238,14 @@ impl State {
     ///
     /// [`State`]: struct.State.html
     pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Creates a new [`State`], representing a focused [`TextInput`].
+    ///
+    /// [`State`]: struct.State.html
+    pub fn focused() -> Self {
+        // TODO
         Self::default()
     }
 }

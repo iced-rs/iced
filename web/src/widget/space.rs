@@ -1,4 +1,4 @@
-use crate::{style, Bus, Element, Length, Widget};
+use crate::{css, Bus, Css, Element, Length, Widget};
 use dodrio::bumpalo;
 
 /// An amount of empty space.
@@ -44,12 +44,12 @@ impl<'a, Message> Widget<Message> for Space {
         &self,
         bump: &'b bumpalo::Bump,
         _publish: &Bus<Message>,
-        _style_sheet: &mut style::Sheet<'b>,
+        _css: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let width = style::length(self.width);
-        let height = style::length(self.height);
+        let width = css::length(self.width);
+        let height = css::length(self.height);
 
         let style = bumpalo::format!(
             in bump,

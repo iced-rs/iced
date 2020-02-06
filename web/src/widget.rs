@@ -14,19 +14,20 @@
 //! ```
 //!
 //! [`Widget`]: trait.Widget.html
-use crate::{style, Bus};
+use crate::{Bus, Css};
 use dodrio::bumpalo;
 
 pub mod button;
+pub mod checkbox;
+pub mod container;
+pub mod image;
+pub mod progress_bar;
+pub mod radio;
 pub mod scrollable;
 pub mod slider;
 pub mod text_input;
 
-mod checkbox;
 mod column;
-mod container;
-mod image;
-mod radio;
 mod row;
 mod space;
 mod text;
@@ -46,6 +47,7 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 pub use container::Container;
 pub use image::Image;
+pub use progress_bar::ProgressBar;
 pub use radio::Radio;
 pub use row::Row;
 pub use space::Space;
@@ -64,6 +66,6 @@ pub trait Widget<Message> {
         &self,
         bump: &'b bumpalo::Bump,
         _bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b>;
 }

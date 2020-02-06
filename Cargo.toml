@@ -12,12 +12,16 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-# Enables the Image widget
+# Enables the `Image` widget
 image = ["iced_wgpu/image"]
-# Enables the Svg widget
+# Enables the `Svg` widget
 svg = ["iced_wgpu/svg"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
+# Enables `tokio` as the `executor::Default` on native platforms
+tokio = ["iced_futures/tokio"]
+# Enables `async-std` as the `executor::Default` on native platforms
+async-std = ["iced_futures/async-std"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -44,6 +48,9 @@ members = [
     "examples/todos",
     "examples/tour",
 ]
+
+[dependencies]
+iced_futures = { version = "0.1.0-alpha", path = "futures" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced_winit = { version = "0.1.0-alpha", path = "winit" }

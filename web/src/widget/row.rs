@@ -1,4 +1,4 @@
-use crate::{style, Align, Bus, Element, Length, Style, Widget};
+use crate::{css, Align, Bus, Css, Element, Length, Widget};
 
 use dodrio::bumpalo;
 use std::u32;
@@ -28,7 +28,7 @@ impl<'a, Message> Row<'a, Message> {
         Row {
             spacing: 0,
             padding: 0,
-            width: Length::Shrink,
+            width: Length::Fill,
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
@@ -113,7 +113,7 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
         &self,
         bump: &'b bumpalo::Bump,
         publish: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
@@ -123,18 +123,13 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
             .map(|element| element.widget.node(bump, publish, style_sheet))
             .collect();
 
-        let row_class = style_sheet.insert(bump, Style::Row);
+        let row_class = style_sheet.insert(bump, css::Rule::Row);
 
         let spacing_class =
-            style_sheet.insert(bump, Style::Spacing(self.spacing));
+            style_sheet.insert(bump, css::Rule::Spacing(self.spacing));
 
         let padding_class =
-            style_sheet.insert(bump, Style::Padding(self.padding));
-
-        let width = style::length(self.width);
-        let height = style::length(self.height);
-
-        let justify_content = style::align(self.align_items);
+            style_sheet.insert(bump, css::Rule::Padding(self.padding));
 
         // TODO: Complete styling
         div(bump)
@@ -145,12 +140,12 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
             )
             .attr("style", bumpalo::format!(
                     in bump,
-                    "width: {}; height: {}; max-width: {}px; max-height: {}px; justify-content: {}",
-                    width,
-                    height,
-                    self.max_width,
-                    self.max_height,
-                    justify_content
+                    "width: {}; height: {}; max-width: {}; max-height: {}; align-items: {}",
+                    css::length(self.width),
+                    css::length(self.height),
+                    css::max_length(self.max_width),
+                    css::max_length(self.max_height),
+                    css::align(self.align_items)
                 ).into_bump_str()
             )
             .children(children)

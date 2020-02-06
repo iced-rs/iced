@@ -1,13 +1,13 @@
 //! Choose your preferred executor to power a runtime.
 mod null;
 
-#[cfg(feature = "thread-pool")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "thread-pool"))]
 mod thread_pool;
 
-#[cfg(feature = "tokio")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "tokio"))]
 mod tokio;
 
-#[cfg(feature = "async-std")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "async-std"))]
 mod async_std;
 
 #[cfg(target_arch = "wasm32")]
@@ -15,13 +15,13 @@ mod wasm_bindgen;
 
 pub use null::Null;
 
-#[cfg(feature = "thread-pool")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "thread-pool"))]
 pub use thread_pool::ThreadPool;
 
-#[cfg(feature = "tokio")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "tokio"))]
 pub use self::tokio::Tokio;
 
-#[cfg(feature = "async-std")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "async-std"))]
 pub use self::async_std::AsyncStd;
 
 #[cfg(target_arch = "wasm32")]
@@ -41,7 +41,14 @@ pub trait Executor: Sized {
     /// Spawns a future in the [`Executor`].
     ///
     /// [`Executor`]: trait.Executor.html
+    #[cfg(not(target_arch = "wasm32"))]
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static);
+
+    /// Spawns a local future in the [`Executor`].
+    ///
+    /// [`Executor`]: trait.Executor.html
+    #[cfg(target_arch = "wasm32")]
+    fn spawn(&self, future: impl Future<Output = ()> + 'static);
 
     /// Runs the given closure inside the [`Executor`].
     ///

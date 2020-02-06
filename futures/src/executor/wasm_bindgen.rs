@@ -9,10 +9,7 @@ impl Executor for WasmBindgen {
         Ok(Self)
     }
 
-    fn spawn(
-        &self,
-        future: impl futures::Future<Output = ()> + Send + 'static,
-    ) {
+    fn spawn(&self, future: impl futures::Future<Output = ()> + 'static) {
         wasm_bindgen_futures::spawn_local(future);
     }
 }

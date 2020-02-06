@@ -4,7 +4,9 @@
 //!
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
-use crate::{style, Background, Bus, Element, Length, Style, Widget};
+use crate::{css, Background, Bus, Css, Element, Length, Widget};
+
+pub use iced_style::button::{Style, StyleSheet};
 
 use dodrio::bumpalo;
 
@@ -26,10 +28,11 @@ pub struct Button<'a, Message> {
     content: Element<'a, Message>,
     on_press: Option<Message>,
     width: Length,
+    height: Length,
     min_width: u32,
+    min_height: u32,
     padding: u16,
-    background: Option<Background>,
-    border_radius: u16,
+    style: Box<dyn StyleSheet>,
 }
 
 impl<'a, Message> Button<'a, Message> {
@@ -46,10 +49,11 @@ impl<'a, Message> Button<'a, Message> {
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
+            height: Length::Shrink,
             min_width: 0,
-            padding: 0,
-            background: None,
-            border_radius: 0,
+            min_height: 0,
+            padding: 5,
+            style: Default::default(),
         }
     }
 
@@ -61,11 +65,27 @@ impl<'a, Message> Button<'a, Message> {
         self
     }
 
+    /// Sets the height of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = height;
+        self
+    }
+
     /// Sets the minimum width of the [`Button`].
     ///
     /// [`Button`]: struct.Button.html
     pub fn min_width(mut self, min_width: u32) -> Self {
         self.min_width = min_width;
+        self
+    }
+
+    /// Sets the minimum height of the [`Button`].
+    ///
+    /// [`Button`]: struct.Button.html
+    pub fn min_height(mut self, min_height: u32) -> Self {
+        self.min_height = min_height;
         self
     }
 
@@ -77,20 +97,11 @@ impl<'a, Message> Button<'a, Message> {
         self
     }
 
-    /// Sets the [`Background`] of the [`Button`].
+    /// Sets the style of the [`Button`].
     ///
     /// [`Button`]: struct.Button.html
-    /// [`Background`]: ../../struct.Background.html
-    pub fn background<T: Into<Background>>(mut self, background: T) -> Self {
-        self.background = Some(background.into());
-        self
-    }
-
-    /// Sets the border radius of the [`Button`].
-    ///
-    /// [`Button`]: struct.Button.html
-    pub fn border_radius(mut self, border_radius: u16) -> Self {
-        self.border_radius = border_radius;
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
         self
     }
 
@@ -126,18 +137,20 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let width = style::length(self.width);
-        let padding_class =
-            style_sheet.insert(bump, Style::Padding(self.padding));
+        // TODO: State-based styling
+        let style = self.style.active();
 
-        let background = match self.background {
+        let padding_class =
+            style_sheet.insert(bump, css::Rule::Padding(self.padding));
+
+        let background = match style.background {
             None => String::from("none"),
             Some(background) => match background {
-                Background::Color(color) => style::color(color),
+                Background::Color(color) => css::color(color),
             },
         };
 
@@ -150,11 +163,12 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "background: {}; border-radius: {}px; width:{}; min-width: {}px",
+                    "background: {}; border-radius: {}px; width:{}; min-width: {}; color: {}",
                     background,
-                    self.border_radius,
-                    width,
-                    self.min_width
+                    style.border_radius,
+                    css::length(self.width),
+                    css::min_length(self.min_width),
+                    css::color(style.text_color)
                 )
                 .into_bump_str(),
             )
@@ -167,8 +181,6 @@ where
                 event_bus.publish(on_press.clone());
             });
         }
-
-        // TODO: Complete styling
 
         node.finish()
     }

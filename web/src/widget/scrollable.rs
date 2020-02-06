@@ -1,5 +1,7 @@
 //! Navigate an endless amount of content with a scrollbar.
-use crate::{bumpalo, style, Align, Bus, Column, Element, Length, Widget};
+use crate::{bumpalo, css, Align, Bus, Column, Css, Element, Length, Widget};
+
+pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -9,6 +11,7 @@ pub struct Scrollable<'a, Message> {
     height: Length,
     max_height: u32,
     content: Column<'a, Message>,
+    style: Box<dyn StyleSheet>,
 }
 
 impl<'a, Message> Scrollable<'a, Message> {
@@ -24,6 +27,7 @@ impl<'a, Message> Scrollable<'a, Message> {
             height: Length::Shrink,
             max_height: u32::MAX,
             content: Column::new(),
+            style: Default::default(),
         }
     }
 
@@ -85,6 +89,14 @@ impl<'a, Message> Scrollable<'a, Message> {
         self
     }
 
+    /// Sets the style of the [`Scrollable`] .
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
+        self
+    }
+
     /// Adds an element to the [`Scrollable`].
     ///
     /// [`Scrollable`]: struct.Scrollable.html
@@ -105,12 +117,14 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let width = style::length(self.width);
-        let height = style::length(self.height);
+        let width = css::length(self.width);
+        let height = css::length(self.height);
+
+        // TODO: Scrollbar styling
 
         let node = div(bump)
             .attr(
@@ -125,8 +139,6 @@ where
                 .into_bump_str(),
             )
             .children(vec![self.content.node(bump, bus, style_sheet)]);
-
-        // TODO: Complete styling
 
         node.finish()
     }

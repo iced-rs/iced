@@ -1,11 +1,11 @@
 //! Style your widgets.
-use crate::{bumpalo, Align, Color, Length};
+use crate::{bumpalo, Align, Background, Color, Length};
 
 use std::collections::BTreeMap;
 
-/// The style of a VDOM node.
+/// A CSS rule of a VDOM node.
 #[derive(Debug)]
-pub enum Style {
+pub enum Rule {
     /// Container with vertical distribution
     Column,
 
@@ -19,16 +19,16 @@ pub enum Style {
     Spacing(u16),
 }
 
-impl Style {
+impl Rule {
     /// Returns the class name of the [`Style`].
     ///
     /// [`Style`]: enum.Style.html
     pub fn class<'a>(&self) -> String {
         match self {
-            Style::Column => String::from("c"),
-            Style::Row => String::from("r"),
-            Style::Padding(padding) => format!("p-{}", padding),
-            Style::Spacing(spacing) => format!("s-{}", spacing),
+            Rule::Column => String::from("c"),
+            Rule::Row => String::from("r"),
+            Rule::Padding(padding) => format!("p-{}", padding),
+            Rule::Spacing(spacing) => format!("s-{}", spacing),
         }
     }
 
@@ -39,24 +39,24 @@ impl Style {
         let class = self.class();
 
         match self {
-            Style::Column => {
+            Rule::Column => {
                 let body = "{ display: flex; flex-direction: column; }";
 
                 bumpalo::format!(in bump, ".{} {}", class, body).into_bump_str()
             }
-            Style::Row => {
+            Rule::Row => {
                 let body = "{ display: flex; flex-direction: row; }";
 
                 bumpalo::format!(in bump, ".{} {}", class, body).into_bump_str()
             }
-            Style::Padding(padding) => bumpalo::format!(
+            Rule::Padding(padding) => bumpalo::format!(
                 in bump,
                 ".{} {{ box-sizing: border-box; padding: {}px }}",
                 class,
                 padding
             )
             .into_bump_str(),
-            Style::Spacing(spacing) => bumpalo::format!(
+            Rule::Spacing(spacing) => bumpalo::format!(
                 in bump,
                 ".c.{} > * {{ margin-bottom: {}px }} \
                  .r.{} > * {{ margin-right: {}px }} \
@@ -74,34 +74,34 @@ impl Style {
     }
 }
 
-/// A sheet of styles.
+/// A cascading style sheet.
 #[derive(Debug)]
-pub struct Sheet<'a> {
-    styles: BTreeMap<String, &'a str>,
+pub struct Css<'a> {
+    rules: BTreeMap<String, &'a str>,
 }
 
-impl<'a> Sheet<'a> {
+impl<'a> Css<'a> {
     /// Creates an empty style [`Sheet`].
     ///
     /// [`Sheet`]: struct.Sheet.html
     pub fn new() -> Self {
-        Self {
-            styles: BTreeMap::new(),
+        Css {
+            rules: BTreeMap::new(),
         }
     }
 
-    /// Inserts the [`Style`] in the [`Sheet`], if it was not previously
+    /// Inserts the [`rule`] in the [`Sheet`], if it was not previously
     /// inserted.
     ///
-    /// It returns the class name of the provided [`Style`].
+    /// It returns the class name of the provided [`Rule`].
     ///
     /// [`Sheet`]: struct.Sheet.html
-    /// [`Style`]: enum.Style.html
-    pub fn insert(&mut self, bump: &'a bumpalo::Bump, style: Style) -> String {
-        let class = style.class();
+    /// [`Rule`]: enum.Rule.html
+    pub fn insert(&mut self, bump: &'a bumpalo::Bump, rule: Rule) -> String {
+        let class = rule.class();
 
-        if !self.styles.contains_key(&class) {
-            let _ = self.styles.insert(class.clone(), style.declaration(bump));
+        if !self.rules.contains_key(&class) {
+            let _ = self.rules.insert(class.clone(), rule.declaration(bump));
         }
 
         class
@@ -119,12 +119,12 @@ impl<'a> Sheet<'a> {
         declarations.push(text(
             "body { height: 100%; margin: 0; padding: 0; font-family: sans-serif }",
         ));
-        declarations.push(text("p { margin: 0 }"));
+        declarations.push(text("* { margin: 0; padding: 0 }"));
         declarations.push(text(
             "button { border: none; cursor: pointer; outline: none }",
         ));
 
-        for declaration in self.styles.values() {
+        for declaration in self.rules.values() {
             declarations.push(text(*declaration));
         }
 
@@ -143,11 +143,40 @@ pub fn length(length: Length) -> String {
     }
 }
 
+/// Returns the style value for the given maximum length in units.
+pub fn max_length(units: u32) -> String {
+    use std::u32;
+
+    if units == u32::MAX {
+        String::from("initial")
+    } else {
+        format!("{}px", units)
+    }
+}
+
+/// Returns the style value for the given minimum length in units.
+pub fn min_length(units: u32) -> String {
+    if units == 0 {
+        String::from("initial")
+    } else {
+        format!("{}px", units)
+    }
+}
+
 /// Returns the style value for the given [`Color`].
 ///
 /// [`Color`]: ../struct.Color.html
 pub fn color(Color { r, g, b, a }: Color) -> String {
     format!("rgba({}, {}, {}, {})", 255.0 * r, 255.0 * g, 255.0 * b, a)
+}
+
+/// Returns the style value for the given [`Background`].
+///
+/// [`Background`]: ../struct.Background.html
+pub fn background(background: Background) -> String {
+    match background {
+        Background::Color(c) => color(c),
+    }
 }
 
 /// Returns the style value for the given [`Align`].

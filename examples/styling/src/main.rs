@@ -104,6 +104,7 @@ impl Sandbox for Styling {
             "Toggle me!",
             Message::CheckboxToggled,
         )
+        .width(Length::Fill)
         .style(self.theme);
 
         let content = Column::new()

@@ -1,5 +1,5 @@
 use crate::{
-    style, Bus, Color, Element, Font, HorizontalAlignment, Length,
+    css, Bus, Color, Css, Element, Font, HorizontalAlignment, Length,
     VerticalAlignment, Widget,
 };
 use dodrio::bumpalo;
@@ -112,15 +112,18 @@ impl<'a, Message> Widget<Message> for Text {
         &self,
         bump: &'b bumpalo::Bump,
         _publish: &Bus<Message>,
-        _style_sheet: &mut style::Sheet<'b>,
+        _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
         let content = bumpalo::format!(in bump, "{}", self.content);
-        let color = style::color(self.color.unwrap_or(Color::BLACK));
+        let color = self
+            .color
+            .map(css::color)
+            .unwrap_or(String::from("inherit"));
 
-        let width = style::length(self.width);
-        let height = style::length(self.height);
+        let width = css::length(self.width);
+        let height = css::length(self.height);
 
         let text_align = match self.horizontal_alignment {
             HorizontalAlignment::Left => "left",
@@ -130,12 +133,16 @@ impl<'a, Message> Widget<Message> for Text {
 
         let style = bumpalo::format!(
             in bump,
-            "width: {}; height: {}; font-size: {}px; color: {}; text-align: {}",
+            "width: {}; height: {}; font-size: {}px; color: {}; text-align: {}; font-family: {}",
             width,
             height,
             self.size.unwrap_or(20),
             color,
-            text_align
+            text_align,
+            match self.font {
+                Font::Default => "inherit",
+                Font::External { name, .. } => name,
+            }
         );
 
         // TODO: Complete styling

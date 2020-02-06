@@ -4,7 +4,9 @@
 //!
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
-use crate::{style, Bus, Element, Length, Widget};
+use crate::{Bus, Css, Element, Length, Widget};
+
+pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 
 use dodrio::bumpalo;
 use std::{ops::RangeInclusive, rc::Rc};
@@ -38,6 +40,7 @@ pub struct Slider<'a, Message> {
     value: f32,
     on_change: Rc<Box<dyn Fn(f32) -> Message>>,
     width: Length,
+    style: Box<dyn StyleSheet>,
 }
 
 impl<'a, Message> Slider<'a, Message> {
@@ -68,6 +71,7 @@ impl<'a, Message> Slider<'a, Message> {
             range,
             on_change: Rc::new(Box::new(on_change)),
             width: Length::Fill,
+            style: Default::default(),
         }
     }
 
@@ -76,6 +80,14 @@ impl<'a, Message> Slider<'a, Message> {
     /// [`Slider`]: struct.Slider.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the style of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -88,7 +100,7 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        _style_sheet: &mut style::Sheet<'b>,
+        _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;
@@ -103,7 +115,7 @@ where
         let event_bus = bus.clone();
 
         // TODO: Make `step` configurable
-        // TODO: Complete styling
+        // TODO: Styling
         input(bump)
             .attr("type", "range")
             .attr("step", "0.01")

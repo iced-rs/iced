@@ -11,5 +11,9 @@ impl Executor for Null {
         Ok(Self)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn spawn(&self, _future: impl Future<Output = ()> + Send + 'static) {}
+
+    #[cfg(target_arch = "wasm32")]
+    fn spawn(&self, _future: impl Future<Output = ()> + 'static) {}
 }

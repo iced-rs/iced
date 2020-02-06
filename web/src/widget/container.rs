@@ -1,4 +1,7 @@
-use crate::{bumpalo, style, Align, Bus, Element, Length, Style, Widget};
+//! Decorate content and apply alignment.
+use crate::{bumpalo, css, Align, Bus, Css, Element, Length, Widget};
+
+pub use iced_style::container::{Style, StyleSheet};
 
 /// An element decorating some content.
 ///
@@ -11,6 +14,7 @@ pub struct Container<'a, Message> {
     max_height: u32,
     horizontal_alignment: Align,
     vertical_alignment: Align,
+    style_sheet: Box<dyn StyleSheet>,
     content: Element<'a, Message>,
 }
 
@@ -31,6 +35,7 @@ impl<'a, Message> Container<'a, Message> {
             max_height: u32::MAX,
             horizontal_alignment: Align::Start,
             vertical_alignment: Align::Start,
+            style_sheet: Default::default(),
             content: content.into(),
         }
     }
@@ -84,6 +89,14 @@ impl<'a, Message> Container<'a, Message> {
 
         self
     }
+
+    /// Sets the style of the [`Container`].
+    ///
+    /// [`Container`]: struct.Container.html
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+        self.style_sheet = style.into();
+        self
+    }
 }
 
 impl<'a, Message> Widget<Message> for Container<'a, Message>
@@ -94,17 +107,13 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut style::Sheet<'b>,
+        style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let column_class = style_sheet.insert(bump, Style::Column);
+        let column_class = style_sheet.insert(bump, css::Rule::Column);
 
-        let width = style::length(self.width);
-        let height = style::length(self.height);
-
-        let align_items = style::align(self.horizontal_alignment);
-        let justify_content = style::align(self.vertical_alignment);
+        let style = self.style_sheet.style();
 
         let node = div(bump)
             .attr(
@@ -115,12 +124,17 @@ where
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "width: {}; height: {}; max-width: {}px; align-items: {}; justify-content: {}",
-                    width,
-                    height,
-                    self.max_width,
-                    align_items,
-                    justify_content
+                    "width: {}; height: {}; max-width: {}; align-items: {}; justify-content: {}; background: {}; color: {}; border-width: {}px; border-color: {}; border-radius: {}px",
+                    css::length(self.width),
+                    css::length(self.height),
+                    css::max_length(self.max_width),
+                    css::align(self.horizontal_alignment),
+                    css::align(self.vertical_alignment),
+                    style.background.map(css::background).unwrap_or(String::from("initial")),
+                    style.text_color.map(css::color).unwrap_or(String::from("inherit")),
+                    style.border_width,
+                    css::color(style.border_color),
+                    style.border_radius
                 )
                 .into_bump_str(),
             )

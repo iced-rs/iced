@@ -63,11 +63,12 @@ mod bus;
 mod element;
 mod hasher;
 
-pub mod style;
+pub mod css;
 pub mod subscription;
 pub mod widget;
 
 pub use bus::Bus;
+pub use css::Css;
 pub use dodrio;
 pub use element::Element;
 pub use hasher::Hasher;
@@ -76,7 +77,6 @@ pub use iced_core::{
     VerticalAlignment,
 };
 pub use iced_futures::{executor, futures, Command};
-pub use style::Style;
 pub use subscription::Subscription;
 
 #[doc(no_inline)]
@@ -241,13 +241,13 @@ where
 
         let mut ui = self.application.borrow_mut();
         let element = ui.view();
-        let mut style_sheet = style::Sheet::new();
+        let mut css = Css::new();
 
-        let node = element.widget.node(bump, &self.bus, &mut style_sheet);
+        let node = element.widget.node(bump, &self.bus, &mut css);
 
         div(bump)
             .attr("style", "width: 100%; height: 100%")
-            .children(vec![style_sheet.node(bump), node])
+            .children(vec![css.node(bump), node])
             .finish()
     }
 }
