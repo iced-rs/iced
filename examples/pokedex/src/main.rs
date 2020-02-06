@@ -27,12 +27,7 @@ enum Message {
 }
 
 impl Application for Pokedex {
-    #[cfg(not(target_arch = "wasm32"))]
-    type Executor = iced_futures::executor::Tokio;
-
-    #[cfg(target_arch = "wasm32")]
-    type Executor = iced_futures::executor::WasmBindgen;
-
+    type Executor = iced::executor::Default;
     type Message = Message;
 
     fn new() -> (Pokedex, Command<Message>) {
