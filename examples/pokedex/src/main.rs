@@ -79,6 +79,7 @@ impl Application for Pokedex {
     fn view(&mut self) -> Element<Message> {
         let content = match self {
             Pokedex::Loading => Column::new()
+                .width(Length::Shrink)
                 .push(Text::new("Searching for Pokémon...").size(40)),
             Pokedex::Loaded { pokemon, search } => Column::new()
                 .max_width(500)

@@ -133,12 +133,16 @@ impl<'a, Message> Widget<Message> for Text {
 
         let style = bumpalo::format!(
             in bump,
-            "width: {}; height: {}; font-size: {}px; color: {}; text-align: {}",
+            "width: {}; height: {}; font-size: {}px; color: {}; text-align: {}; font-family: {}",
             width,
             height,
             self.size.unwrap_or(20),
             color,
-            text_align
+            text_align,
+            match self.font {
+                Font::Default => "inherit",
+                Font::External { name, .. } => name,
+            }
         );
 
         // TODO: Complete styling
