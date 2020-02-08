@@ -138,10 +138,7 @@ pub trait Application: Sized {
 
             window_builder = window_builder
                 .with_title(&title)
-                .with_inner_size(winit::dpi::LogicalSize {
-                    width: f64::from(width),
-                    height: f64::from(height),
-                })
+                .with_inner_size(winit::dpi::LogicalSize { width, height })
                 .with_resizable(settings.window.resizable)
                 .with_decorations(settings.window.decorations)
                 .with_fullscreen(conversion::fullscreen(
@@ -161,18 +158,21 @@ pub trait Application: Sized {
             window_builder.build(&event_loop).expect("Open window")
         };
 
-        let dpi = window.hidpi_factor();
-        let mut size = window.inner_size();
+        let mut size = Size::new(window.inner_size(), window.scale_factor());
         let mut resized = false;
 
         let clipboard = Clipboard::new(&window);
         let mut renderer = Self::Renderer::new(renderer_settings);
 
         let mut target = {
-            let (width, height) = to_physical(size, dpi);
+            let physical_size = size.physical();
 
             <Self::Renderer as window::Renderer>::Target::new(
-                &window, width, height, dpi as f32, &renderer,
+                &window,
+                physical_size.width,
+                physical_size.height,
+                size.scale_factor(),
+                &renderer,
             )
         };
 
@@ -180,7 +180,7 @@ pub trait Application: Sized {
             &mut application,
             Cache::default(),
             &mut renderer,
-            size,
+            size.logical(),
             &mut debug,
         );
 
@@ -191,6 +191,7 @@ pub trait Application: Sized {
         let mut cache = Some(user_interface.into_cache());
         let mut events = Vec::new();
         let mut mouse_cursor = MouseCursor::OutOfBounds;
+        let mut modifiers = winit::event::ModifiersState::default();
         debug.startup_finished();
 
         window.request_redraw();
@@ -211,7 +212,7 @@ pub trait Application: Sized {
                     &mut application,
                     cache.take().unwrap(),
                     &mut renderer,
-                    size,
+                    size.logical(),
                     &mut debug,
                 );
 
@@ -283,7 +284,7 @@ pub trait Application: Sized {
                         &mut application,
                         temp_cache,
                         &mut renderer,
-                        size,
+                        size.logical(),
                         &mut debug,
                     );
 
@@ -303,13 +304,12 @@ pub trait Application: Sized {
                 debug.render_started();
 
                 if resized {
-                    let dpi = window.hidpi_factor();
-                    let (width, height) = to_physical(size, dpi);
+                    let physical_size = size.physical();
 
                     target.resize(
-                        width,
-                        height,
-                        window.hidpi_factor() as f32,
+                        physical_size.width,
+                        physical_size.height,
+                        size.scale_factor(),
                         &renderer,
                     );
 
@@ -337,18 +337,22 @@ pub trait Application: Sized {
                 ..
             } => match window_event {
                 WindowEvent::Resized(new_size) => {
+                    size = Size::new(new_size, size.scale_factor());
+
                     events.push(Event::Window(window::Event::Resized {
-                        width: new_size.width.round() as u32,
-                        height: new_size.height.round() as u32,
+                        width: size.logical().width.round() as u32,
+                        height: size.logical().height.round() as u32,
                     }));
 
-                    size = new_size;
                     resized = true;
                 }
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }
                 WindowEvent::CursorMoved { position, .. } => {
+                    let position =
+                        position.to_logical::<f64>(size.scale_factor());
+
                     events.push(Event::Mouse(mouse::Event::CursorMoved {
                         x: position.x as f32,
                         y: position.y as f32,
@@ -397,7 +401,6 @@ pub trait Application: Sized {
                         winit::event::KeyboardInput {
                             virtual_keycode: Some(virtual_keycode),
                             state,
-                            modifiers,
                             ..
                         },
                     ..
@@ -427,8 +430,17 @@ pub trait Application: Sized {
                 WindowEvent::HoveredFileCancelled => {
                     events.push(Event::Window(window::Event::FilesHoveredLeft));
                 }
+                WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                    size = Size::new(size.physical(), scale_factor);
+                }
                 _ => {}
             },
+            event::Event::DeviceEvent {
+                event: event::DeviceEvent::ModifiersChanged(new_modifiers),
+                ..
+            } => {
+                modifiers = new_modifiers;
+            }
             _ => {
                 *control_flow = ControlFlow::Wait;
             }
@@ -440,7 +452,7 @@ fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
     renderer: &mut A::Renderer,
-    size: winit::dpi::LogicalSize,
+    size: winit::dpi::LogicalSize<f64>,
     debug: &mut Debug,
 ) -> UserInterface<'a, A::Message, A::Renderer> {
     debug.view_started();
@@ -450,7 +462,10 @@ fn build_user_interface<'a, A: Application>(
     debug.layout_started();
     let user_interface = UserInterface::build(
         view,
-        Size::new(size.width.round() as f32, size.height.round() as f32),
+        iced_native::Size::new(
+            size.width.round() as f32,
+            size.height.round() as f32,
+        ),
         cache,
         renderer,
     );
@@ -459,17 +474,7 @@ fn build_user_interface<'a, A: Application>(
     user_interface
 }
 
-fn to_physical(size: winit::dpi::LogicalSize, dpi: f64) -> (u16, u16) {
-    let physical_size = size.to_physical(dpi);
-
-    (
-        physical_size.width.round() as u16,
-        physical_size.height.round() as u16,
-    )
-}
-
 // As defined in: http://www.unicode.org/faq/private_use.html
-// TODO: Remove once https://github.com/rust-windowing/winit/pull/1254 lands
 fn is_private_use_character(c: char) -> bool {
     match c {
         '\u{E000}'..='\u{F8FF}'

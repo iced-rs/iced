@@ -32,6 +32,7 @@ mod application;
 mod clipboard;
 mod mode;
 mod proxy;
+mod size;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.
@@ -49,3 +50,4 @@ pub use settings::Settings;
 
 use debug::Debug;
 use proxy::Proxy;
+use size::Size;

@@ -39,9 +39,9 @@ pub trait Target {
     /// [`Target`]: trait.Target.html
     fn new<W: HasRawWindowHandle>(
         window: &W,
-        width: u16,
-        height: u16,
-        dpi: f32,
+        width: u32,
+        height: u32,
+        scale_factor: f64,
         renderer: &Self::Renderer,
     ) -> Self;
 
@@ -50,9 +50,9 @@ pub trait Target {
     /// [`Target`]: trait.Target.html
     fn resize(
         &mut self,
-        width: u16,
-        height: u16,
-        dpi: f32,
+        width: u32,
+        height: u32,
+        scale_factor: f64,
         renderer: &Self::Renderer,
     );
 }

@@ -7,20 +7,20 @@ use raw_window_handle::HasRawWindowHandle;
 #[derive(Debug)]
 pub struct Target {
     surface: wgpu::Surface,
-    width: u16,
-    height: u16,
-    dpi: f32,
+    width: u32,
+    height: u32,
+    scale_factor: f32,
     transformation: Transformation,
     swap_chain: wgpu::SwapChain,
 }
 
 impl Target {
-    pub(crate) fn dimensions(&self) -> (u16, u16) {
+    pub(crate) fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
     }
 
-    pub(crate) fn dpi(&self) -> f32 {
-        self.dpi
+    pub(crate) fn scale_factor(&self) -> f32 {
+        self.scale_factor
     }
 
     pub(crate) fn transformation(&self) -> Transformation {
@@ -37,9 +37,9 @@ impl window::Target for Target {
 
     fn new<W: HasRawWindowHandle>(
         window: &W,
-        width: u16,
-        height: u16,
-        dpi: f32,
+        width: u32,
+        height: u32,
+        scale_factor: f64,
         renderer: &Renderer,
     ) -> Target {
         let surface = wgpu::Surface::create(window);
@@ -50,7 +50,7 @@ impl window::Target for Target {
             surface,
             width,
             height,
-            dpi,
+            scale_factor: scale_factor as f32,
             transformation: Transformation::orthographic(width, height),
             swap_chain,
         }
@@ -58,14 +58,14 @@ impl window::Target for Target {
 
     fn resize(
         &mut self,
-        width: u16,
-        height: u16,
-        dpi: f32,
+        width: u32,
+        height: u32,
+        scale_factor: f64,
         renderer: &Renderer,
     ) {
         self.width = width;
         self.height = height;
-        self.dpi = dpi;
+        self.scale_factor = scale_factor as f32;
         self.transformation = Transformation::orthographic(width, height);
         self.swap_chain =
             new_swap_chain(&self.surface, width, height, &renderer.device);
@@ -74,8 +74,8 @@ impl window::Target for Target {
 
 fn new_swap_chain(
     surface: &wgpu::Surface,
-    width: u16,
-    height: u16,
+    width: u32,
+    height: u32,
     device: &wgpu::Device,
 ) -> wgpu::SwapChain {
     device.create_swap_chain(
@@ -83,8 +83,8 @@ fn new_swap_chain(
         &wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
-            width: u32::from(width),
-            height: u32::from(height),
+            width,
+            height,
             present_mode: wgpu::PresentMode::Vsync,
         },
     )
