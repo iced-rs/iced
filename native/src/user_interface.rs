@@ -162,7 +162,7 @@ where
     ///     );
     ///
     ///     // Update the user interface
-    ///     let messages = user_interface.update(&renderer, None, events.drain(..));
+    ///     let messages = user_interface.update(events.drain(..), None, &renderer);
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -246,7 +246,7 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     let messages = user_interface.update(&renderer, None, events.drain(..));
+    ///     let messages = user_interface.update(events.drain(..), None, &renderer);
     ///
     ///     // Draw the user interface
     ///     let mouse_cursor = user_interface.draw(&mut renderer);
