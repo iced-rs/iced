@@ -4,11 +4,89 @@
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::{
     input::{
-        keyboard::{KeyCode, ModifiersState},
+        keyboard::{self, KeyCode, ModifiersState},
         mouse, ButtonState,
     },
-    Mode, MouseCursor,
+    window, Event, Mode, MouseCursor,
 };
+
+/// Converts a winit window event into an iced event.
+pub fn window_event(
+    event: winit::event::WindowEvent<'_>,
+    scale_factor: f64,
+    modifiers: winit::event::ModifiersState,
+) -> Option<Event> {
+    use winit::event::WindowEvent;
+
+    match event {
+        WindowEvent::Resized(new_size) => {
+            let logical_size = new_size.to_logical(scale_factor);
+
+            Some(Event::Window(window::Event::Resized {
+                width: logical_size.width,
+                height: logical_size.height,
+            }))
+        }
+        WindowEvent::CursorMoved { position, .. } => {
+            let position = position.to_logical::<f64>(scale_factor);
+
+            Some(Event::Mouse(mouse::Event::CursorMoved {
+                x: position.x as f32,
+                y: position.y as f32,
+            }))
+        }
+        WindowEvent::MouseInput { button, state, .. } => {
+            Some(Event::Mouse(mouse::Event::Input {
+                button: mouse_button(button),
+                state: button_state(state),
+            }))
+        }
+        WindowEvent::MouseWheel { delta, .. } => match delta {
+            winit::event::MouseScrollDelta::LineDelta(delta_x, delta_y) => {
+                Some(Event::Mouse(mouse::Event::WheelScrolled {
+                    delta: mouse::ScrollDelta::Lines {
+                        x: delta_x,
+                        y: delta_y,
+                    },
+                }))
+            }
+            winit::event::MouseScrollDelta::PixelDelta(position) => {
+                Some(Event::Mouse(mouse::Event::WheelScrolled {
+                    delta: mouse::ScrollDelta::Pixels {
+                        x: position.x as f32,
+                        y: position.y as f32,
+                    },
+                }))
+            }
+        },
+        WindowEvent::ReceivedCharacter(c) if !is_private_use_character(c) => {
+            Some(Event::Keyboard(keyboard::Event::CharacterReceived(c)))
+        }
+        WindowEvent::KeyboardInput {
+            input:
+                winit::event::KeyboardInput {
+                    virtual_keycode: Some(virtual_keycode),
+                    state,
+                    ..
+                },
+            ..
+        } => Some(Event::Keyboard(keyboard::Event::Input {
+            key_code: key_code(virtual_keycode),
+            state: button_state(state),
+            modifiers: modifiers_state(modifiers),
+        })),
+        WindowEvent::HoveredFile(path) => {
+            Some(Event::Window(window::Event::FileHovered(path)))
+        }
+        WindowEvent::DroppedFile(path) => {
+            Some(Event::Window(window::Event::FileDropped(path)))
+        }
+        WindowEvent::HoveredFileCancelled => {
+            Some(Event::Window(window::Event::FilesHoveredLeft))
+        }
+        _ => None,
+    }
+}
 
 /// Converts a [`Mode`] to a [`winit`] fullscreen mode.
 ///
@@ -252,5 +330,15 @@ pub fn key_code(virtual_keycode: winit::event::VirtualKeyCode) -> KeyCode {
         winit::event::VirtualKeyCode::Copy => KeyCode::Copy,
         winit::event::VirtualKeyCode::Paste => KeyCode::Paste,
         winit::event::VirtualKeyCode::Cut => KeyCode::Cut,
+    }
+}
+
+// As defined in: http://www.unicode.org/faq/private_use.html
+pub(crate) fn is_private_use_character(c: char) -> bool {
+    match c {
+        '\u{E000}'..='\u{F8FF}'
+        | '\u{F0000}'..='\u{FFFFD}'
+        | '\u{100000}'..='\u{10FFFD}' => true,
+        _ => false,
     }
 }
