@@ -47,7 +47,7 @@ impl Renderer {
     /// Creates a new [`Renderer`].
     ///
     /// [`Renderer`]: struct.Renderer.html
-    pub fn new(settings: Settings, device: &mut wgpu::Device) -> Self {
+    pub fn new(device: &mut wgpu::Device, settings: Settings) -> Self {
         let text_pipeline = text::Pipeline::new(device, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(device);
         let image_pipeline = crate::image::Pipeline::new(device);

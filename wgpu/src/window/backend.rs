@@ -31,7 +31,7 @@ impl iced_native::window::Backend for Backend {
                 limits: wgpu::Limits { max_bind_groups: 2 },
             });
 
-        let renderer = Renderer::new(settings, &mut device);
+        let renderer = Renderer::new(&mut device, settings);
 
         (Backend { device, queue }, renderer)
     }

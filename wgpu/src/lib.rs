@@ -39,6 +39,8 @@ mod text;
 mod transformation;
 mod viewport;
 
+pub use wgpu;
+
 pub use defaults::Defaults;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
