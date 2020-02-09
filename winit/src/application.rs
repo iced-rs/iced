@@ -1,8 +1,7 @@
 use crate::{
-    conversion,
-    input::{keyboard, mouse},
-    window, Cache, Clipboard, Command, Debug, Element, Event, Executor, Mode,
-    MouseCursor, Proxy, Runtime, Settings, Size, Subscription, UserInterface,
+    conversion, size::Size, window, Cache, Clipboard, Command, Debug, Element,
+    Executor, Mode, MouseCursor, Proxy, Runtime, Settings, Subscription,
+    UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -200,8 +199,7 @@ pub trait Application: Sized {
 
         event_loop.run(move |event, _, control_flow| match event {
             event::Event::MainEventsCleared => {
-                if events.is_empty() && external_messages.is_empty() && !resized
-                {
+                if events.is_empty() && external_messages.is_empty() {
                     return;
                 }
 
@@ -225,11 +223,11 @@ pub trait Application: Sized {
                     .for_each(|event| runtime.broadcast(event));
 
                 let mut messages = user_interface.update(
-                    &renderer,
+                    events.drain(..),
                     clipboard
                         .as_ref()
                         .map(|c| c as &dyn iced_native::Clipboard),
-                    events.drain(..),
+                    &renderer,
                 );
                 messages.extend(external_messages.drain(..));
                 debug.event_processing_finished();
@@ -341,106 +339,37 @@ pub trait Application: Sized {
             event::Event::WindowEvent {
                 event: window_event,
                 ..
-            } => match window_event {
-                WindowEvent::Resized(new_size) => {
-                    size = Size::new(new_size, size.scale_factor());
-
-                    events.push(Event::Window(window::Event::Resized {
-                        width: size.logical().width.round() as u32,
-                        height: size.logical().height.round() as u32,
-                    }));
-
-                    resized = true;
-                }
-                WindowEvent::CloseRequested => {
-                    *control_flow = ControlFlow::Exit;
-                }
-                WindowEvent::CursorMoved { position, .. } => {
-                    let position =
-                        position.to_logical::<f64>(size.scale_factor());
-
-                    events.push(Event::Mouse(mouse::Event::CursorMoved {
-                        x: position.x as f32,
-                        y: position.y as f32,
-                    }));
-                }
-                WindowEvent::MouseInput { button, state, .. } => {
-                    events.push(Event::Mouse(mouse::Event::Input {
-                        button: conversion::mouse_button(button),
-                        state: conversion::button_state(state),
-                    }));
-                }
-                WindowEvent::MouseWheel { delta, .. } => match delta {
-                    winit::event::MouseScrollDelta::LineDelta(
-                        delta_x,
-                        delta_y,
-                    ) => {
-                        events.push(Event::Mouse(
-                            mouse::Event::WheelScrolled {
-                                delta: mouse::ScrollDelta::Lines {
-                                    x: delta_x,
-                                    y: delta_y,
-                                },
+            } => {
+                match window_event {
+                    WindowEvent::Resized(new_size) => {
+                        size = Size::new(new_size, window.scale_factor());
+                        resized = true;
+                    }
+                    WindowEvent::CloseRequested => {
+                        *control_flow = ControlFlow::Exit;
+                    }
+                    #[cfg(feature = "debug")]
+                    WindowEvent::KeyboardInput {
+                        input:
+                            winit::event::KeyboardInput {
+                                virtual_keycode:
+                                    Some(winit::event::VirtualKeyCode::F12),
+                                state: winit::event::ElementState::Pressed,
+                                ..
                             },
-                        ));
-                    }
-                    winit::event::MouseScrollDelta::PixelDelta(position) => {
-                        events.push(Event::Mouse(
-                            mouse::Event::WheelScrolled {
-                                delta: mouse::ScrollDelta::Pixels {
-                                    x: position.x as f32,
-                                    y: position.y as f32,
-                                },
-                            },
-                        ));
-                    }
-                },
-                WindowEvent::ReceivedCharacter(c)
-                    if !is_private_use_character(c) =>
-                {
-                    events.push(Event::Keyboard(
-                        keyboard::Event::CharacterReceived(c),
-                    ));
+                        ..
+                    } => debug.toggle(),
+                    _ => {}
                 }
-                WindowEvent::KeyboardInput {
-                    input:
-                        winit::event::KeyboardInput {
-                            virtual_keycode: Some(virtual_keycode),
-                            state,
-                            ..
-                        },
-                    ..
-                } => {
-                    match (virtual_keycode, state) {
-                        (
-                            winit::event::VirtualKeyCode::F12,
-                            winit::event::ElementState::Pressed,
-                        ) => debug.toggle(),
-                        _ => {}
-                    }
 
-                    events.push(Event::Keyboard(keyboard::Event::Input {
-                        key_code: conversion::key_code(virtual_keycode),
-                        state: conversion::button_state(state),
-                        modifiers: conversion::modifiers_state(modifiers),
-                    }));
+                if let Some(event) = conversion::window_event(
+                    window_event,
+                    size.scale_factor(),
+                    modifiers,
+                ) {
+                    events.push(event);
                 }
-                WindowEvent::HoveredFile(path) => {
-                    events
-                        .push(Event::Window(window::Event::FileHovered(path)));
-                }
-                WindowEvent::DroppedFile(path) => {
-                    events
-                        .push(Event::Window(window::Event::FileDropped(path)));
-                }
-                WindowEvent::HoveredFileCancelled => {
-                    events.push(Event::Window(window::Event::FilesHoveredLeft));
-                }
-                WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                    size = Size::new(size.physical(), scale_factor);
-                }
-                _ => {}
-            },
+            }
             event::Event::DeviceEvent {
                 event: event::DeviceEvent::ModifiersChanged(new_modifiers),
                 ..
@@ -478,14 +407,4 @@ fn build_user_interface<'a, A: Application>(
     debug.layout_finished();
 
     user_interface
-}
-
-// As defined in: http://www.unicode.org/faq/private_use.html
-fn is_private_use_character(c: char) -> bool {
-    match c {
-        '\u{E000}'..='\u{F8FF}'
-        | '\u{F0000}'..='\u{FFFFD}'
-        | '\u{100000}'..='\u{10FFFD}' => true,
-        _ => false,
-    }
 }

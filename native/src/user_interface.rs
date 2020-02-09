@@ -174,9 +174,9 @@ where
     /// ```
     pub fn update(
         &mut self,
-        renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
         events: impl IntoIterator<Item = Event>,
+        clipboard: Option<&dyn Clipboard>,
+        renderer: &Renderer,
     ) -> Vec<Message> {
         let mut messages = Vec::new();
 
