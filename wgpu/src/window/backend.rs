@@ -3,6 +3,7 @@ use crate::{window::SwapChain, Renderer, Settings, Target};
 use iced_native::MouseCursor;
 use raw_window_handle::HasRawWindowHandle;
 
+/// A window graphics backend for iced powered by `wgpu`.
 #[derive(Debug)]
 pub struct Backend {
     device: wgpu::Device,

@@ -1,3 +1,4 @@
+//! Display rendering results on windows.
 mod backend;
 mod swap_chain;
 

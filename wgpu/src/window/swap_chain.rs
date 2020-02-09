@@ -12,6 +12,9 @@ pub struct SwapChain {
 impl SwapChain {}
 
 impl SwapChain {
+    /// Creates a new [`SwapChain`] for the given surface.
+    ///
+    /// [`SwapChain`]: struct.SwapChain.html
     pub fn new(
         device: &wgpu::Device,
         surface: &wgpu::Surface,
@@ -24,6 +27,10 @@ impl SwapChain {
         }
     }
 
+    /// Returns the next frame of the [`SwapChain`] alongside its [`Viewport`].
+    ///
+    /// [`SwapChain`]: struct.SwapChain.html
+    /// [`Viewport`]: ../struct.Viewport.html
     pub fn next_frame(&mut self) -> (wgpu::SwapChainOutput<'_>, &Viewport) {
         (self.raw.get_next_texture(), &self.viewport)
     }
