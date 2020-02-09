@@ -17,11 +17,10 @@ impl SwapChain {
         surface: &wgpu::Surface,
         width: u32,
         height: u32,
-        scale_factor: f64,
     ) -> SwapChain {
         SwapChain {
             raw: new_swap_chain(surface, width, height, device),
-            viewport: Viewport::new(width, height, scale_factor),
+            viewport: Viewport::new(width, height),
         }
     }
 

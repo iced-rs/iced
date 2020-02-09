@@ -47,9 +47,8 @@ impl iced_native::window::Backend for Backend {
         surface: &Self::Surface,
         width: u32,
         height: u32,
-        scale_factor: f64,
     ) -> SwapChain {
-        SwapChain::new(&self.device, surface, width, height, scale_factor)
+        SwapChain::new(&self.device, surface, width, height)
     }
 
     fn draw<T: AsRef<str>>(
@@ -57,6 +56,7 @@ impl iced_native::window::Backend for Backend {
         renderer: &mut Self::Renderer,
         swap_chain: &mut SwapChain,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
+        scale_factor: f64,
         overlay: &[T],
     ) -> MouseCursor {
         let (frame, viewport) = swap_chain.next_frame();
@@ -89,6 +89,7 @@ impl iced_native::window::Backend for Backend {
                 viewport,
             },
             output,
+            scale_factor,
             overlay,
         );
 

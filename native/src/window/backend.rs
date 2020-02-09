@@ -38,7 +38,6 @@ pub trait Backend: Sized {
         surface: &Self::Surface,
         width: u32,
         height: u32,
-        scale_factor: f64,
     ) -> Self::SwapChain;
 
     /// Draws the output primitives to the next frame of the given [`SwapChain`].
@@ -50,6 +49,7 @@ pub trait Backend: Sized {
         renderer: &mut Self::Renderer,
         swap_chain: &mut Self::SwapChain,
         output: &<Self::Renderer as crate::Renderer>::Output,
+        scale_factor: f64,
         overlay: &[T],
     ) -> MouseCursor;
 }

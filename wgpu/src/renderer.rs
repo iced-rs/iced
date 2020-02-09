@@ -73,12 +73,13 @@ impl Renderer {
         encoder: &mut wgpu::CommandEncoder,
         target: Target<'_>,
         (primitive, mouse_cursor): &(Primitive, MouseCursor),
+        scale_factor: f64,
         overlay: &[T],
     ) -> MouseCursor {
         log::debug!("Drawing");
 
         let (width, height) = target.viewport.dimensions();
-        let scale_factor = target.viewport.scale_factor();
+        let scale_factor = scale_factor as f32;
         let transformation = target.viewport.transformation();
 
         let mut layers = Vec::new();

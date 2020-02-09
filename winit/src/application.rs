@@ -175,7 +175,6 @@ pub trait Application: Sized {
                 &surface,
                 physical_size.width,
                 physical_size.height,
-                size.scale_factor(),
             )
         };
 
@@ -313,7 +312,6 @@ pub trait Application: Sized {
                         &surface,
                         physical_size.width,
                         physical_size.height,
-                        size.scale_factor(),
                     );
 
                     resized = false;
@@ -323,6 +321,7 @@ pub trait Application: Sized {
                     &mut renderer,
                     &mut swap_chain,
                     &primitive,
+                    size.scale_factor(),
                     &debug.overlay(),
                 );
 
