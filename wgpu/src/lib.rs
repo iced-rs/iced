@@ -19,7 +19,7 @@
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
 //! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
@@ -27,19 +27,25 @@
 pub mod defaults;
 pub mod triangle;
 pub mod widget;
+pub mod window;
 
 mod image;
 mod primitive;
 mod quad;
 mod renderer;
 mod settings;
+mod target;
 mod text;
 mod transformation;
+mod viewport;
 
 pub use defaults::Defaults;
 pub use primitive::Primitive;
-pub use renderer::{Renderer, Target};
+pub use renderer::Renderer;
 pub use settings::Settings;
+pub use target::Target;
+pub use viewport::Viewport;
+
 #[doc(no_inline)]
 pub use widget::*;
 

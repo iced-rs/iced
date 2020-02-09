@@ -14,10 +14,10 @@ use crate::{
 /// An [`Application`](trait.Application.html) can execute asynchronous actions
 /// by returning a [`Command`](struct.Command.html) in some of its methods.
 pub trait Application: Sized {
-    /// The renderer to use to draw the [`Application`].
+    /// The graphics backend to use to draw the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    type Renderer: window::Renderer;
+    type Backend: window::Backend;
 
     /// The [`Executor`] that will run commands and subscriptions.
     ///
@@ -75,7 +75,9 @@ pub trait Application: Sized {
     /// These widgets can produce __messages__ based on user interaction.
     ///
     /// [`Application`]: trait.Application.html
-    fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer>;
+    fn view(
+        &mut self,
+    ) -> Element<'_, Self::Message, <Self::Backend as window::Backend>::Renderer>;
 
     /// Returns the current [`Application`] mode.
     ///
@@ -99,11 +101,11 @@ pub trait Application: Sized {
     /// [`Application`]: trait.Application.html
     fn run(
         settings: Settings,
-        renderer_settings: <Self::Renderer as window::Renderer>::Settings,
+        backend_settings: <Self::Backend as window::Backend>::Settings,
     ) where
         Self: 'static,
     {
-        use window::{Renderer as _, Target as _};
+        use window::Backend as _;
         use winit::{
             event::{self, WindowEvent},
             event_loop::{ControlFlow, EventLoop},
@@ -162,17 +164,18 @@ pub trait Application: Sized {
         let mut resized = false;
 
         let clipboard = Clipboard::new(&window);
-        let mut renderer = Self::Renderer::new(renderer_settings);
+        let (mut backend, mut renderer) = Self::Backend::new(backend_settings);
 
-        let mut target = {
+        let surface = backend.create_surface(&window);
+
+        let mut swap_chain = {
             let physical_size = size.physical();
 
-            <Self::Renderer as window::Renderer>::Target::new(
-                &window,
+            backend.create_swap_chain(
+                &surface,
                 physical_size.width,
                 physical_size.height,
                 size.scale_factor(),
-                &renderer,
             )
         };
 
@@ -306,18 +309,22 @@ pub trait Application: Sized {
                 if resized {
                     let physical_size = size.physical();
 
-                    target.resize(
+                    swap_chain = backend.create_swap_chain(
+                        &surface,
                         physical_size.width,
                         physical_size.height,
                         size.scale_factor(),
-                        &renderer,
                     );
 
                     resized = false;
                 }
 
-                let new_mouse_cursor =
-                    renderer.draw(&primitive, &debug.overlay(), &mut target);
+                let new_mouse_cursor = backend.draw(
+                    &mut renderer,
+                    &mut swap_chain,
+                    &primitive,
+                    &debug.overlay(),
+                );
 
                 debug.render_finished();
 
@@ -451,10 +458,10 @@ pub trait Application: Sized {
 fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
-    renderer: &mut A::Renderer,
+    renderer: &mut <A::Backend as window::Backend>::Renderer,
     size: winit::dpi::LogicalSize<f64>,
     debug: &mut Debug,
-) -> UserInterface<'a, A::Message, A::Renderer> {
+) -> UserInterface<'a, A::Message, <A::Backend as window::Backend>::Renderer> {
     debug.view_started();
     let view = application.view();
     debug.view_finished();

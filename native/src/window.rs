@@ -1,6 +1,6 @@
 //! Build window-based GUI applications.
+mod backend;
 mod event;
-mod renderer;
 
+pub use backend::Backend;
 pub use event::Event;
-pub use renderer::{Renderer, Target};

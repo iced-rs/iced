@@ -13,12 +13,12 @@ pub trait Backend: Sized {
     /// The surface of the backend.
     type Surface;
 
-    /// The target of the backend.
-    type Target;
+    /// The swap chain of the backend.
+    type SwapChain;
 
-    /// Creates a new [`Gpu`] and an associated iced renderer.
+    /// Creates a new [`Backend`] and an associated iced renderer.
     ///
-    /// [`Gpu`]: trait.Gpu.html
+    /// [`Backend`]: trait.Backend.html
     fn new(settings: Self::Settings) -> (Self, Self::Renderer);
 
     /// Crates a new [`Surface`] for the given window.
@@ -29,26 +29,26 @@ pub trait Backend: Sized {
         window: &W,
     ) -> Self::Surface;
 
-    /// Crates a new [`Target`] for the given [`Surface`].
+    /// Crates a new [`SwapChain`] for the given [`Surface`].
     ///
-    /// [`Target`]: #associatedtype.Target
+    /// [`SwapChain`]: #associatedtype.SwapChain
     /// [`Surface`]: #associatedtype.Surface
-    fn create_target(
+    fn create_swap_chain(
         &mut self,
         surface: &Self::Surface,
         width: u32,
         height: u32,
         scale_factor: f64,
-    ) -> Self::Target;
+    ) -> Self::SwapChain;
 
-    /// Draws the output primitives to the given [`Target`].
+    /// Draws the output primitives to the next frame of the given [`SwapChain`].
     ///
-    /// [`Target`]: #associatedtype.Target
+    /// [`SwapChain`]: #associatedtype.SwapChain
     /// [`Surface`]: #associatedtype.Surface
     fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        target: &mut Self::Target,
+        swap_chain: &mut Self::SwapChain,
         output: &<Self::Renderer as crate::Renderer>::Output,
         overlay: &[T],
     ) -> MouseCursor;
