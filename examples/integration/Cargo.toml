@@ -1,0 +1,11 @@
+[package]
+name = "integration"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+iced_winit = { path = "../../winit" }
+iced_wgpu = { path = "../../wgpu" }
+env_logger = "0.7"
