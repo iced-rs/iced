@@ -1,29 +1,20 @@
 use crate::{
     image, quad, text, triangle, Defaults, Image, Primitive, Quad, Settings,
-    Transformation,
+    Target, Transformation,
 };
 use iced_native::{
-    layout, window, Background, Color, Layout, MouseCursor, Point, Rectangle,
-    Vector, Widget,
+    layout, Background, Color, Layout, MouseCursor, Point, Rectangle, Vector,
+    Widget,
 };
 use std::sync::Arc;
-use wgpu::{
-    Adapter, BackendBit, CommandEncoderDescriptor, Device, DeviceDescriptor,
-    Extensions, Limits, PowerPreference, Queue, RequestAdapterOptions,
-};
 
-mod target;
 mod widget;
-
-pub use target::Target;
 
 /// A [`wgpu`] renderer.
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 #[derive(Debug)]
 pub struct Renderer {
-    device: Device,
-    queue: Queue,
     quad_pipeline: quad::Pipeline,
     image_pipeline: image::Pipeline,
     text_pipeline: text::Pipeline,
@@ -53,29 +44,16 @@ impl<'a> Layer<'a> {
 }
 
 impl Renderer {
-    fn new(settings: Settings) -> Self {
-        let adapter = Adapter::request(&RequestAdapterOptions {
-            power_preference: PowerPreference::Default,
-            backends: BackendBit::all(),
-        })
-        .expect("Request adapter");
-
-        let (mut device, queue) = adapter.request_device(&DeviceDescriptor {
-            extensions: Extensions {
-                anisotropic_filtering: false,
-            },
-            limits: Limits { max_bind_groups: 2 },
-        });
-
-        let text_pipeline =
-            text::Pipeline::new(&mut device, settings.default_font);
-        let quad_pipeline = quad::Pipeline::new(&mut device);
-        let image_pipeline = crate::image::Pipeline::new(&mut device);
-        let triangle_pipeline = triangle::Pipeline::new(&mut device);
+    /// Creates a new [`Renderer`].
+    ///
+    /// [`Renderer`]: struct.Renderer.html
+    pub fn new(device: &mut wgpu::Device, settings: Settings) -> Self {
+        let text_pipeline = text::Pipeline::new(device, settings.default_font);
+        let quad_pipeline = quad::Pipeline::new(device);
+        let image_pipeline = crate::image::Pipeline::new(device);
+        let triangle_pipeline = triangle::Pipeline::new(device);
 
         Self {
-            device,
-            queue,
             quad_pipeline,
             image_pipeline,
             text_pipeline,
@@ -83,38 +61,26 @@ impl Renderer {
         }
     }
 
-    fn draw<T: AsRef<str>>(
+    /// Draws the provided primitives in the given [`Target`].
+    ///
+    /// The text provided as overlay will be renderer on top of the primitives.
+    /// This is useful for rendering debug information.
+    ///
+    /// [`Target`]: struct.Target.html
+    pub fn draw<T: AsRef<str>>(
         &mut self,
+        device: &mut wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        target: Target<'_>,
         (primitive, mouse_cursor): &(Primitive, MouseCursor),
+        scale_factor: f64,
         overlay: &[T],
-        target: &mut Target,
     ) -> MouseCursor {
         log::debug!("Drawing");
 
-        let (width, height) = target.dimensions();
-        let scale_factor = target.scale_factor();
-        let transformation = target.transformation();
-        let frame = target.next_frame();
-
-        let mut encoder = self
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor { todo: 0 });
-
-        let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: &frame.view,
-                resolve_target: None,
-                load_op: wgpu::LoadOp::Clear,
-                store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color {
-                    r: 1.0,
-                    g: 1.0,
-                    b: 1.0,
-                    a: 1.0,
-                },
-            }],
-            depth_stencil_attachment: None,
-        });
+        let (width, height) = target.viewport.dimensions();
+        let scale_factor = scale_factor as f32;
+        let transformation = target.viewport.transformation();
 
         let mut layers = Vec::new();
 
@@ -133,15 +99,15 @@ impl Renderer {
 
         for layer in layers {
             self.flush(
+                device,
                 scale_factor,
                 transformation,
                 &layer,
-                &mut encoder,
-                &frame.view,
+                encoder,
+                target.texture,
             );
         }
 
-        self.queue.submit(&[encoder.finish()]);
         self.image_pipeline.trim_cache();
 
         *mouse_cursor
@@ -336,6 +302,7 @@ impl Renderer {
 
     fn flush(
         &mut self,
+        device: &mut wgpu::Device,
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
@@ -352,7 +319,7 @@ impl Renderer {
                 );
 
             self.triangle_pipeline.draw(
-                &mut self.device,
+                device,
                 encoder,
                 target,
                 translated,
@@ -364,7 +331,7 @@ impl Renderer {
 
         if layer.quads.len() > 0 {
             self.quad_pipeline.draw(
-                &mut self.device,
+                device,
                 encoder,
                 &layer.quads,
                 transformation,
@@ -383,7 +350,7 @@ impl Renderer {
                 );
 
             self.image_pipeline.draw(
-                &mut self.device,
+                device,
                 encoder,
                 &layer.images,
                 translated_and_scaled,
@@ -429,7 +396,7 @@ impl Renderer {
             }
 
             self.text_pipeline.draw_queued(
-                &mut self.device,
+                device,
                 encoder,
                 target,
                 transformation,
@@ -458,24 +425,6 @@ impl iced_native::Renderer for Renderer {
         self.text_pipeline.clear_measurement_cache();
 
         node
-    }
-}
-
-impl window::Renderer for Renderer {
-    type Settings = Settings;
-    type Target = Target;
-
-    fn new(settings: Settings) -> Self {
-        Self::new(settings)
-    }
-
-    fn draw<T: AsRef<str>>(
-        &mut self,
-        output: &Self::Output,
-        overlay: &[T],
-        target: &mut Target,
-    ) -> MouseCursor {
-        self.draw(output, overlay, target)
     }
 }
 

@@ -40,6 +40,7 @@ members = [
     "examples/custom_widget",
     "examples/events",
     "examples/geometry",
+    "examples/integration",
     "examples/pokedex",
     "examples/progress_bar",
     "examples/stopwatch",

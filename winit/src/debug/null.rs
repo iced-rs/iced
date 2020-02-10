@@ -6,8 +6,6 @@ impl Debug {
         Self
     }
 
-    pub fn toggle(&mut self) {}
-
     pub fn startup_started(&mut self) {}
 
     pub fn startup_finished(&mut self) {}

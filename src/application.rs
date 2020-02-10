@@ -193,7 +193,7 @@ impl<A> iced_winit::Application for Instance<A>
 where
     A: Application,
 {
-    type Renderer = iced_wgpu::Renderer;
+    type Backend = iced_wgpu::window::Backend;
     type Executor = A::Executor;
     type Message = A::Message;
 

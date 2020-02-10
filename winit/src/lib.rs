@@ -50,4 +50,3 @@ pub use settings::Settings;
 
 use debug::Debug;
 use proxy::Proxy;
-use size::Size;

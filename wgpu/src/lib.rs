@@ -27,19 +27,27 @@
 pub mod defaults;
 pub mod triangle;
 pub mod widget;
+pub mod window;
 
 mod image;
 mod primitive;
 mod quad;
 mod renderer;
 mod settings;
+mod target;
 mod text;
 mod transformation;
+mod viewport;
+
+pub use wgpu;
 
 pub use defaults::Defaults;
 pub use primitive::Primitive;
-pub use renderer::{Renderer, Target};
+pub use renderer::Renderer;
 pub use settings::Settings;
+pub use target::Target;
+pub use viewport::Viewport;
+
 #[doc(no_inline)]
 pub use widget::*;
 
