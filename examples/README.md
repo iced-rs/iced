@@ -74,6 +74,7 @@ A bunch of simpler examples exist:
 - [`custom_widget`](custom_widget), a demonstration of how to build a custom widget that draws a circle.
 - [`events`](events), a log of native events displayed using a conditional `Subscription`.
 - [`geometry`](geometry), a custom widget showcasing how to draw geometry with the `Mesh2D` primitive in [`iced_wgpu`](../wgpu).
+- [`integration`](integration), a demonstration of how to integrate Iced in an existing graphical application.
 - [`pokedex`](pokedex), an application that displays a random Pokédex entry (sprite included!) by using the [PokéAPI].
 - [`progress_bar`](progress_bar), a simple progress bar that can be filled by using a slider.
 - [`stopwatch`](stopwatch), a watch with start/stop and reset buttons showcasing how to listen to time.
