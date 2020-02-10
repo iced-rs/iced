@@ -242,7 +242,10 @@ where
             .draw(renderer, defaults, layout, cursor_position)
     }
 
-    pub(crate) fn hash_layout(&self, state: &mut Hasher) {
+    /// Computes the _layout_ hash of the [`Element`].
+    /// 
+    /// [`Element`]: struct.Element.html
+    pub fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
 }
