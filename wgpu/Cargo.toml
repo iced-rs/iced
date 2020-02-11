@@ -9,6 +9,7 @@ repository = "https://github.com/hecrj/iced"
 
 [features]
 svg = ["resvg"]
+canvas = ["lyon"]
 
 [dependencies]
 iced_native = { version = "0.1.0", path = "../native" }
@@ -20,5 +21,16 @@ raw-window-handle = "0.3"
 glam = "0.8"
 font-kit = "0.4"
 log = "0.4"
-resvg = { version = "0.8", features = ["raqote-backend"], optional = true }
-image = { version = "0.22", optional = true }
+
+[dependencies.image]
+version = "0.22"
+optional = true
+
+[dependencies.resvg]
+version = "0.8"
+features = ["raqote-backend"]
+optional = true
+
+[dependencies.lyon]
+version = "0.15"
+optional = true
