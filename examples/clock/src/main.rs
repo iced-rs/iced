@@ -3,14 +3,12 @@ use iced::{
     Point, Settings,
 };
 
-use std::sync::Arc;
-
 pub fn main() {
     Clock::run(Settings::default())
 }
 
 struct Clock {
-    local_time: Arc<LocalTime>,
+    now: LocalTime,
     clock: canvas::layer::Cached<LocalTime>,
 }
 
@@ -28,7 +26,7 @@ impl Application for Clock {
 
         (
             Clock {
-                local_time: Arc::new(now),
+                now,
                 clock: canvas::layer::Cached::new(),
             },
             Command::none(),
@@ -41,7 +39,15 @@ impl Application for Clock {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Tick(local_time) => {}
+            Message::Tick(local_time) => {
+                let now = local_time.into();
+
+                if now != self.now {
+                    self.now = now;
+
+                    self.clock.clear();
+                }
+            }
         }
 
         Command::none()
@@ -51,12 +57,12 @@ impl Application for Clock {
         Canvas::new()
             .width(Length::Fill)
             .height(Length::Fill)
-            .push(self.clock.with(&self.local_time))
+            .push(self.clock.with(&self.now))
             .into()
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct LocalTime {
     hour: u32,
     minute: u32,
