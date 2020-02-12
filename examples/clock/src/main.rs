@@ -22,11 +22,9 @@ impl Application for Clock {
     type Message = Message;
 
     fn new() -> (Self, Command<Message>) {
-        let now: LocalTime = chrono::Local::now().into();
-
         (
             Clock {
-                now,
+                now: chrono::Local::now().into(),
                 clock: canvas::layer::Cached::new(),
             },
             Command::none(),
