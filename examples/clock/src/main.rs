@@ -1,6 +1,6 @@
 use iced::{
-    canvas, executor, Application, Canvas, Color, Command, Element, Length,
-    Point, Settings,
+    canvas, executor, Application, Canvas, Color, Command, Container, Element,
+    Length, Point, Settings, Subscription, Vector,
 };
 
 pub fn main() {
@@ -53,11 +53,21 @@ impl Application for Clock {
         Command::none()
     }
 
+    fn subscription(&self) -> Subscription<Message> {
+        time::every(std::time::Duration::from_millis(500)).map(Message::Tick)
+    }
+
     fn view(&mut self) -> Element<Message> {
-        Canvas::new()
+        let canvas = Canvas::new()
+            .width(Length::Units(400))
+            .height(Length::Units(400))
+            .push(self.clock.with(&self.now));
+
+        Container::new(canvas)
             .width(Length::Fill)
             .height(Length::Fill)
-            .push(self.clock.with(&self.now))
+            .center_x()
+            .center_y()
             .into()
     }
 }
@@ -85,6 +95,7 @@ impl canvas::layer::Drawable for LocalTime {
     fn draw(&self, frame: &mut canvas::Frame) {
         let center = frame.center();
         let radius = frame.width().min(frame.height()) as f32 / 2.0;
+        let offset = Vector::new(center.x, center.y);
 
         let path = canvas::Path::new(|path| {
             path.arc(canvas::path::Arc {
@@ -104,6 +115,7 @@ impl canvas::layer::Drawable for LocalTime {
             n: u32,
             total: u32,
             length: f32,
+            offset: Vector,
             path: &mut canvas::path::Builder,
         ) {
             let turns = n as f32 / total as f32;
@@ -112,15 +124,15 @@ impl canvas::layer::Drawable for LocalTime {
             let x = length * t.cos();
             let y = length * t.sin();
 
-            path.line_to(Point::new(x, y));
+            path.line_to(Point::new(x, y) + offset);
         }
 
         let path = canvas::Path::new(|path| {
             path.move_to(center);
-            draw_handle(self.hour, 12, 0.6 * radius, path);
+            draw_handle(self.hour, 12, 0.5 * radius, offset, path);
 
             path.move_to(center);
-            draw_handle(self.minute, 60, 0.9 * radius, path)
+            draw_handle(self.minute, 60, 0.8 * radius, offset, path)
         });
 
         frame.stroke(
@@ -135,7 +147,7 @@ impl canvas::layer::Drawable for LocalTime {
 
         let path = canvas::Path::new(|path| {
             path.move_to(center);
-            draw_handle(self.second, 60, 0.9 * radius, path)
+            draw_handle(self.second, 60, 0.8 * radius, offset, path)
         });
 
         frame.stroke(
@@ -147,5 +159,42 @@ impl canvas::layer::Drawable for LocalTime {
                 ..canvas::Stroke::default()
             },
         );
+    }
+}
+
+mod time {
+    use iced::futures;
+
+    pub fn every(
+        duration: std::time::Duration,
+    ) -> iced::Subscription<chrono::DateTime<chrono::Local>> {
+        iced::Subscription::from_recipe(Every(duration))
+    }
+
+    struct Every(std::time::Duration);
+
+    impl<H, I> iced_native::subscription::Recipe<H, I> for Every
+    where
+        H: std::hash::Hasher,
+    {
+        type Output = chrono::DateTime<chrono::Local>;
+
+        fn hash(&self, state: &mut H) {
+            use std::hash::Hash;
+
+            std::any::TypeId::of::<Self>().hash(state);
+            self.0.hash(state);
+        }
+
+        fn stream(
+            self: Box<Self>,
+            _input: futures::stream::BoxStream<'static, I>,
+        ) -> futures::stream::BoxStream<'static, Self::Output> {
+            use futures::stream::StreamExt;
+
+            async_std::stream::interval(self.0)
+                .map(|_| chrono::Local::now())
+                .boxed()
+        }
     }
 }

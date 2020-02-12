@@ -58,6 +58,8 @@ impl Builder {
             sweep_angle: lyon::math::Angle::radians(ellipse.end_angle),
         };
 
+        let _ = self.raw.move_to(arc.sample(0.0));
+
         arc.for_each_quadratic_bezier(&mut |curve| {
             let _ = self.raw.quadratic_bezier_to(curve.ctrl, curve.to);
         });

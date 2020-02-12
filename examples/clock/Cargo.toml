@@ -9,5 +9,7 @@ publish = false
 canvas = []
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "async-std"] }
+iced = { path = "../..", features = ["canvas", "async-std", "debug"] }
+iced_native = { path = "../../native" }
 chrono = "0.4"
+async-std = { version = "1.0", features = ["unstable"] }

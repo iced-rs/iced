@@ -1,6 +1,6 @@
 //! Draw meshes of triangles.
 use crate::Transformation;
-use iced_native::Rectangle;
+use iced_native::{Point, Rectangle};
 use std::{mem, sync::Arc};
 
 #[derive(Debug)]
@@ -128,47 +128,28 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         transformation: Transformation,
-        scale: f32,
-        meshes: &Vec<Arc<Mesh2D>>,
+        meshes: &Vec<(Point, Arc<Mesh2D>)>,
         bounds: Rectangle<u32>,
     ) {
-        let uniforms = Uniforms {
-            transform: transformation.into(),
-            scale,
-        };
+        for (origin, mesh) in meshes {
+            let uniforms = Uniforms {
+                transform: (transformation
+                    * Transformation::translate(origin.x, origin.y))
+                .into(),
+            };
 
-        let constants_buffer = device
-            .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(&[uniforms]);
+            let constants_buffer = device
+                .create_buffer_mapped(1, wgpu::BufferUsage::COPY_SRC)
+                .fill_from_slice(&[uniforms]);
 
-        encoder.copy_buffer_to_buffer(
-            &constants_buffer,
-            0,
-            &self.constants_buffer,
-            0,
-            std::mem::size_of::<Uniforms>() as u64,
-        );
+            encoder.copy_buffer_to_buffer(
+                &constants_buffer,
+                0,
+                &self.constants_buffer,
+                0,
+                std::mem::size_of::<Uniforms>() as u64,
+            );
 
-        let mut render_pass =
-            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[
-                    wgpu::RenderPassColorAttachmentDescriptor {
-                        attachment: target,
-                        resolve_target: None,
-                        load_op: wgpu::LoadOp::Load,
-                        store_op: wgpu::StoreOp::Store,
-                        clear_color: wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 0.0,
-                        },
-                    },
-                ],
-                depth_stencil_attachment: None,
-            });
-
-        for mesh in meshes {
             let vertices_buffer = device
                 .create_buffer_mapped(
                     mesh.vertices.len(),
@@ -182,6 +163,25 @@ impl Pipeline {
                     wgpu::BufferUsage::INDEX,
                 )
                 .fill_from_slice(&mesh.indices);
+
+            let mut render_pass =
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    color_attachments: &[
+                        wgpu::RenderPassColorAttachmentDescriptor {
+                            attachment: target,
+                            resolve_target: None,
+                            load_op: wgpu::LoadOp::Load,
+                            store_op: wgpu::StoreOp::Store,
+                            clear_color: wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 0.0,
+                            },
+                        },
+                    ],
+                    depth_stencil_attachment: None,
+                });
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, &self.constants, &[]);
@@ -203,14 +203,12 @@ impl Pipeline {
 #[derive(Debug, Clone, Copy)]
 struct Uniforms {
     transform: [f32; 16],
-    scale: f32,
 }
 
 impl Default for Uniforms {
     fn default() -> Self {
         Self {
             transform: *Transformation::identity().as_ref(),
-            scale: 1.0,
         }
     }
 }

@@ -68,7 +68,6 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
-
         let size = limits.resolve(Size::ZERO);
 
         layout::Node::new(size)
@@ -78,10 +77,26 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
         &self,
         _renderer: &mut Renderer,
         _defaults: &Defaults,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         _cursor_position: Point,
     ) -> (Primitive, MouseCursor) {
-        (Primitive::None, MouseCursor::Idle)
+        let bounds = layout.bounds();
+        let origin = Point::new(bounds.x, bounds.y);
+        let size = Size::new(bounds.width, bounds.height);
+
+        (
+            Primitive::Group {
+                primitives: self
+                    .layers
+                    .iter()
+                    .map(|layer| Primitive::Mesh2D {
+                        origin,
+                        buffers: layer.draw(size),
+                    })
+                    .collect(),
+            },
+            MouseCursor::Idle,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

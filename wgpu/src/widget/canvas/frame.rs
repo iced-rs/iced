@@ -7,13 +7,13 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Frame {
-    width: u32,
-    height: u32,
+    width: f32,
+    height: f32,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u16>,
 }
 
 impl Frame {
-    pub(crate) fn new(width: u32, height: u32) -> Frame {
+    pub fn new(width: f32, height: f32) -> Frame {
         Frame {
             width,
             height,
@@ -21,16 +21,16 @@ impl Frame {
         }
     }
 
-    pub fn width(&self) -> u32 {
+    pub fn width(&self) -> f32 {
         self.width
     }
 
-    pub fn height(&self) -> u32 {
+    pub fn height(&self) -> f32 {
         self.height
     }
 
     pub fn center(&self) -> Point {
-        Point::new(self.width as f32 / 2.0, self.height as f32 / 2.0)
+        Point::new(self.width / 2.0, self.height / 2.0)
     }
 
     pub fn fill(&mut self, path: &Path, fill: Fill) {
@@ -73,6 +73,13 @@ impl Frame {
         let _ = tessellator
             .tessellate_path(path.raw(), &options, &mut buffers)
             .expect("Stroke path");
+    }
+
+    pub fn into_mesh(self) -> triangle::Mesh2D {
+        triangle::Mesh2D {
+            vertices: self.buffers.vertices,
+            indices: self.buffers.indices,
+        }
     }
 }
 
