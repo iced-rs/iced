@@ -102,7 +102,7 @@ mod bezier {
             // Draw rectangle border with lyon.
             basic_shapes::stroke_rectangle(
                 &lyon::math::Rect::new(
-                    lyon::math::Point::new(bounds.x + 0.5, bounds.y + 0.5),
+                    lyon::math::Point::new(0.5, 0.5),
                     lyon::math::Size::new(
                         bounds.width - 1.0,
                         bounds.height - 1.0,
@@ -121,48 +121,35 @@ mod bezier {
 
             for curve in self.curves {
                 path_builder.move_to(lyon::math::Point::new(
-                    curve.from.x + bounds.x,
-                    curve.from.y + bounds.y,
+                    curve.from.x,
+                    curve.from.y,
                 ));
 
                 path_builder.quadratic_bezier_to(
-                    lyon::math::Point::new(
-                        curve.control.x + bounds.x,
-                        curve.control.y + bounds.y,
-                    ),
-                    lyon::math::Point::new(
-                        curve.to.x + bounds.x,
-                        curve.to.y + bounds.y,
-                    ),
+                    lyon::math::Point::new(curve.control.x, curve.control.y),
+                    lyon::math::Point::new(curve.to.x, curve.to.y),
                 );
             }
 
             match self.state.pending {
                 None => {}
                 Some(Pending::One { from }) => {
-                    path_builder.move_to(lyon::math::Point::new(
-                        from.x + bounds.x,
-                        from.y + bounds.y,
-                    ));
+                    path_builder
+                        .move_to(lyon::math::Point::new(from.x, from.y));
                     path_builder.line_to(lyon::math::Point::new(
-                        cursor_position.x,
-                        cursor_position.y,
+                        cursor_position.x - bounds.x,
+                        cursor_position.y - bounds.y,
                     ));
                 }
                 Some(Pending::Two { from, to }) => {
-                    path_builder.move_to(lyon::math::Point::new(
-                        from.x + bounds.x,
-                        from.y + bounds.y,
-                    ));
+                    path_builder
+                        .move_to(lyon::math::Point::new(from.x, from.y));
                     path_builder.quadratic_bezier_to(
                         lyon::math::Point::new(
-                            cursor_position.x,
-                            cursor_position.y,
+                            cursor_position.x - bounds.x,
+                            cursor_position.y - bounds.y,
                         ),
-                        lyon::math::Point::new(
-                            to.x + bounds.x,
-                            to.y + bounds.y,
-                        ),
+                        lyon::math::Point::new(to.x, to.y),
                     );
                 }
             }
@@ -186,10 +173,13 @@ mod bezier {
                 )
                 .unwrap();
 
-            let mesh = Primitive::Mesh2D(Arc::new(Mesh2D {
-                vertices: buffer.vertices,
-                indices: buffer.indices,
-            }));
+            let mesh = Primitive::Mesh2D {
+                origin: Point::new(bounds.x, bounds.y),
+                buffers: Arc::new(Mesh2D {
+                    vertices: buffer.vertices,
+                    indices: buffer.indices,
+                }),
+            };
 
             (
                 Primitive::Clip {
