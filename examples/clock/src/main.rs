@@ -100,7 +100,7 @@ impl canvas::layer::Drawable for LocalTime {
                 center,
                 radius,
                 start_angle: 0.0,
-                end_angle: 360.0 * 2.0 * std::f32::consts::PI,
+                end_angle: 2.0 * std::f32::consts::PI,
             })
         });
 
