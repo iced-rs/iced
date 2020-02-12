@@ -92,7 +92,7 @@ impl From<chrono::DateTime<chrono::Local>> for LocalTime {
 impl canvas::layer::Drawable for LocalTime {
     fn draw(&self, frame: &mut canvas::Frame) {
         let center = frame.center();
-        let radius = frame.width().min(frame.height()) as f32 / 2.0;
+        let radius = frame.width().min(frame.height()) / 2.0;
         let offset = Vector::new(center.x, center.y);
 
         let path = canvas::Path::new(|path| {
