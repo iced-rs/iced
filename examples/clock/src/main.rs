@@ -42,7 +42,6 @@ impl Application for Clock {
 
                 if now != self.now {
                     self.now = now;
-
                     self.clock.clear();
                 }
             }
@@ -95,7 +94,7 @@ impl canvas::layer::Drawable for LocalTime {
         let radius = frame.width().min(frame.height()) / 2.0;
         let offset = Vector::new(center.x, center.y);
 
-        let path = canvas::Path::new(|path| {
+        let clock = canvas::Path::new(|path| {
             path.arc(canvas::path::Arc {
                 center,
                 radius,
@@ -105,11 +104,11 @@ impl canvas::layer::Drawable for LocalTime {
         });
 
         frame.fill(
-            &path,
+            &clock,
             canvas::Fill::Color(Color::from_rgb8(0x12, 0x93, 0xD8)),
         );
 
-        fn draw_handle(
+        fn draw_hand(
             n: u32,
             total: u32,
             length: f32,
@@ -125,16 +124,16 @@ impl canvas::layer::Drawable for LocalTime {
             path.line_to(Point::new(x, y) + offset);
         }
 
-        let path = canvas::Path::new(|path| {
+        let hour_and_minute_hands = canvas::Path::new(|path| {
             path.move_to(center);
-            draw_handle(self.hour, 12, 0.5 * radius, offset, path);
+            draw_hand(self.hour, 12, 0.5 * radius, offset, path);
 
             path.move_to(center);
-            draw_handle(self.minute, 60, 0.8 * radius, offset, path)
+            draw_hand(self.minute, 60, 0.8 * radius, offset, path)
         });
 
         frame.stroke(
-            &path,
+            &hour_and_minute_hands,
             canvas::Stroke {
                 width: 6.0,
                 color: Color::WHITE,
@@ -143,13 +142,13 @@ impl canvas::layer::Drawable for LocalTime {
             },
         );
 
-        let path = canvas::Path::new(|path| {
+        let second_hand = canvas::Path::new(|path| {
             path.move_to(center);
-            draw_handle(self.second, 60, 0.8 * radius, offset, path)
+            draw_hand(self.second, 60, 0.8 * radius, offset, path)
         });
 
         frame.stroke(
-            &path,
+            &second_hand,
             canvas::Stroke {
                 width: 3.0,
                 color: Color::WHITE,
