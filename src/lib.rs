@@ -204,5 +204,5 @@ use iced_web as common;
 
 pub use common::{
     futures, Align, Background, Color, Command, Font, HorizontalAlignment,
-    Length, Space, Subscription, Vector, VerticalAlignment,
+    Length, Point, Space, Subscription, Vector, VerticalAlignment,
 };

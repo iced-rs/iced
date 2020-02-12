@@ -16,6 +16,8 @@ categories = ["gui"]
 image = ["iced_wgpu/image"]
 # Enables the `Svg` widget
 svg = ["iced_wgpu/svg"]
+# Enables the `Canvas` widget
+canvas = ["iced_wgpu/canvas"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -36,6 +38,7 @@ members = [
     "wgpu",
     "winit",
     "examples/bezier_tool",
+    "examples/clock",
     "examples/counter",
     "examples/custom_widget",
     "examples/events",
