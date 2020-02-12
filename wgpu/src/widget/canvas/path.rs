@@ -1,13 +1,28 @@
 use iced_native::{Point, Vector};
 
-#[allow(missing_debug_implementations)]
+#[derive(Debug, Clone)]
 pub struct Path {
-    raw: lyon::path::Builder,
+    raw: lyon::path::Path,
 }
 
 impl Path {
-    pub fn new() -> Path {
-        Path {
+    pub fn new(f: impl FnOnce(&mut Builder)) -> Self {
+        let mut builder = Builder::new();
+
+        f(&mut builder);
+
+        builder.build()
+    }
+}
+
+#[allow(missing_debug_implementations)]
+pub struct Builder {
+    raw: lyon::path::Builder,
+}
+
+impl Builder {
+    pub fn new() -> Builder {
+        Builder {
             raw: lyon::path::Path::builder(),
         }
     }
@@ -24,7 +39,7 @@ impl Path {
 
     #[inline]
     pub fn arc(&mut self, arc: Arc) {
-        self.ellipse(arc.into())
+        self.ellipse(arc.into());
     }
 
     #[inline]
@@ -45,6 +60,13 @@ impl Path {
     #[inline]
     pub fn close(&mut self) {
         self.raw.close()
+    }
+
+    #[inline]
+    pub fn build(self) -> Path {
+        Path {
+            raw: self.raw.build(),
+        }
     }
 }
 

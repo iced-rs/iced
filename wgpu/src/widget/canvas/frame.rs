@@ -33,7 +33,7 @@ impl Frame {
         Point::new(self.width as f32 / 2.0, self.height as f32 / 2.0)
     }
 
-    pub fn fill(&mut self, path: Path, fill: Fill) {}
+    pub fn fill(&mut self, path: &Path, fill: Fill) {}
 
-    pub fn stroke(&mut self, path: Path, stroke: Stroke) {}
+    pub fn stroke(&mut self, path: &Path, stroke: Stroke) {}
 }

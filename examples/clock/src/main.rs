@@ -86,17 +86,17 @@ impl canvas::layer::Drawable for LocalTime {
         let center = frame.center();
         let radius = frame.width().min(frame.height()) as f32 / 2.0;
 
-        let mut path = canvas::Path::new();
-
-        path.arc(canvas::path::Arc {
-            center,
-            radius,
-            start_angle: 0.0,
-            end_angle: 360.0 * 2.0 * std::f32::consts::PI,
+        let path = canvas::Path::new(|path| {
+            path.arc(canvas::path::Arc {
+                center,
+                radius,
+                start_angle: 0.0,
+                end_angle: 360.0 * 2.0 * std::f32::consts::PI,
+            })
         });
 
         frame.fill(
-            path,
+            &path,
             canvas::Fill::Color(Color::from_rgb8(0x12, 0x93, 0xD8)),
         );
 
@@ -104,7 +104,7 @@ impl canvas::layer::Drawable for LocalTime {
             n: u32,
             total: u32,
             length: f32,
-            path: &mut canvas::Path,
+            path: &mut canvas::path::Builder,
         ) {
             let turns = n as f32 / total as f32;
             let t = 2.0 * std::f32::consts::PI * (turns - 0.25);
@@ -115,16 +115,16 @@ impl canvas::layer::Drawable for LocalTime {
             path.line_to(Point::new(x, y));
         }
 
-        let mut path = canvas::Path::new();
+        let path = canvas::Path::new(|path| {
+            path.move_to(center);
+            draw_handle(self.hour, 12, 0.6 * radius, path);
 
-        path.move_to(center);
-        draw_handle(self.hour, 12, 0.6 * radius, &mut path);
-
-        path.move_to(center);
-        draw_handle(self.minute, 60, 0.9 * radius, &mut path);
+            path.move_to(center);
+            draw_handle(self.minute, 60, 0.9 * radius, path)
+        });
 
         frame.stroke(
-            path,
+            &path,
             canvas::Stroke {
                 width: 4.0,
                 color: Color::WHITE,
@@ -133,13 +133,13 @@ impl canvas::layer::Drawable for LocalTime {
             },
         );
 
-        let mut path = canvas::Path::new();
-
-        path.move_to(center);
-        draw_handle(self.second, 60, 0.9 * radius, &mut path);
+        let path = canvas::Path::new(|path| {
+            path.move_to(center);
+            draw_handle(self.second, 60, 0.9 * radius, path)
+        });
 
         frame.stroke(
-            path,
+            &path,
             canvas::Stroke {
                 width: 2.0,
                 color: Color::WHITE,
