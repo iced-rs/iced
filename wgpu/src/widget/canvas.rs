@@ -9,12 +9,10 @@ use std::hash::Hash;
 pub mod layer;
 pub mod path;
 
-mod data;
 mod fill;
 mod frame;
 mod stroke;
 
-pub use data::Data;
 pub use fill::Fill;
 pub use frame::Frame;
 pub use layer::Layer;
