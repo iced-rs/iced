@@ -9,9 +9,15 @@ impl Path {
     pub fn new(f: impl FnOnce(&mut Builder)) -> Self {
         let mut builder = Builder::new();
 
+        // TODO: Make it pure instead of side-effect-based (?)
         f(&mut builder);
 
         builder.build()
+    }
+
+    #[inline]
+    pub(crate) fn raw(&self) -> &lyon::path::Path {
+        &self.raw
     }
 }
 
