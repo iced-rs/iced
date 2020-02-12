@@ -51,7 +51,7 @@ impl Application for Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(1000)).map(Message::Tick)
+        time::every(std::time::Duration::from_millis(500)).map(Message::Tick)
     }
 
     fn view(&mut self) -> Element<Message> {
