@@ -54,10 +54,9 @@ impl Node {
         &self.children
     }
 
-    /// Aligns item according to [`Align`] and [`Size`].
-    /// 
-    /// [`Align`]: ../enum.Align.html
-    /// [`Size`]: ../struct.Size.html
+    /// Aligns the [`Node`] in the given space.
+    ///
+    /// [`Node`]: struct.Node.html
     pub fn align(
         &mut self,
         horizontal_alignment: Align,
@@ -85,9 +84,9 @@ impl Node {
         }
     }
 
-    /// Move item to [`Point`].
+    /// Moves the [`Node`] to the given position.
     ///
-    /// [`Point`]: ../struct.Point.html
+    /// [`Node`]: struct.Node.html
     pub fn move_to(&mut self, position: Point) {
         self.bounds.x = position.x;
         self.bounds.y = position.y;
