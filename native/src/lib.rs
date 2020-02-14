@@ -52,12 +52,11 @@ mod event;
 mod hasher;
 mod mouse_cursor;
 mod runtime;
-mod size;
 mod user_interface;
 
 pub use iced_core::{
     Align, Background, Color, Font, HorizontalAlignment, Length, Point,
-    Rectangle, Vector, VerticalAlignment,
+    Rectangle, Size, Vector, VerticalAlignment,
 };
 pub use iced_futures::{executor, futures, Command};
 
@@ -72,7 +71,6 @@ pub use layout::Layout;
 pub use mouse_cursor::MouseCursor;
 pub use renderer::Renderer;
 pub use runtime::Runtime;
-pub use size::Size;
 pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;
