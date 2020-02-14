@@ -10,13 +10,20 @@ use std::iter;
 /// # Example
 ///
 /// ```
-/// # use iced_native::{Table, Text};
-/// #
+/// # use iced_native::{renderer::Null, Element, Table as NativeTable, Text};
+/// # type Table<'a> = NativeTable<'a, (), Null>;
 /// Table::from_vec(vec![
-///     vec![Text::new("First row, first column"), Text::new("First row, second column")],
-///     vec![Text::new("Second row, first column"), Text::new("Second row, second column")]
+///     vec![
+///         Element::from(Text::new("First row, first column")),
+///         Element::from(Text::new("First row, second column")),
+///     ],
+///     vec![
+///         Element::from(Text::new("Second row, first column")),
+///         Element::from(Text::new("Second row, second column")),
+///     ],
 /// ]);
 /// ```
+
 #[allow(missing_debug_implementations)]
 pub struct Table<'a, Message, Renderer> {
     rows: Vec<Vec<Element<'a, Message, Renderer>>>,
