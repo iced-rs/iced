@@ -184,8 +184,7 @@ where
             .height(Length::Units(text_size));
 
         let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-        text.bounds.x = padding;
-        text.bounds.y = padding;
+        text.move_to(Point::new(padding, padding));
 
         layout::Node::with_children(text.size().pad(padding), vec![text])
     }

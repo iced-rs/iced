@@ -77,6 +77,22 @@ where
         self.max_height = max_height;
         self
     }
+    
+    /// Sets the content alignment for the horizontal axis of the [`Container`].
+    ///
+    /// [`Container`]: struct.Container.html
+    pub fn align_x(mut self, alignment: Align) -> Self {
+        self.horizontal_alignment = alignment;
+        self
+    }
+
+    /// Sets the content alignment for the vertical axis of the [`Container`].
+    ///
+    /// [`Container`]: struct.Container.html
+    pub fn align_y(mut self, alignment: Align) -> Self {
+        self.vertical_alignment = alignment;
+        self
+    }
 
     /// Centers the contents in the horizontal axis of the [`Container`].
     ///

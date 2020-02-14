@@ -1,9 +1,9 @@
-use crate::{Align, Rectangle, Size};
+use crate::{Align, Point, Rectangle, Size};
 
 /// The bounds of an element and its children.
 #[derive(Debug, Clone, Default)]
 pub struct Node {
-    pub(crate) bounds: Rectangle,
+    bounds: Rectangle,
     children: Vec<Node>,
 }
 
@@ -54,7 +54,10 @@ impl Node {
         &self.children
     }
 
-    pub(crate) fn align(
+    /// Aligns the [`Node`] in the given space.
+    ///
+    /// [`Node`]: struct.Node.html
+    pub fn align(
         &mut self,
         horizontal_alignment: Align,
         vertical_alignment: Align,
@@ -79,5 +82,13 @@ impl Node {
                 self.bounds.y += space.height - self.bounds.height;
             }
         }
+    }
+
+    /// Moves the [`Node`] to the given position.
+    ///
+    /// [`Node`]: struct.Node.html
+    pub fn move_to(&mut self, position: Point) {
+        self.bounds.x = position.x;
+        self.bounds.y = position.y;
     }
 }
