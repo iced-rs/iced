@@ -4,7 +4,6 @@ use dodrio::bumpalo;
 
 /// A table that distributes its contents horizontally and vertically.
 #[allow(missing_debug_implementations)]
-#[allow(missing_debug_implementations)]
 pub struct Table<'a, Message> {
     rows: Vec<Vec<Element<'a, Message>>>,
 }
