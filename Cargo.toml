@@ -46,6 +46,7 @@ members = [
     "examples/integration",
     "examples/pokedex",
     "examples/progress_bar",
+    "examples/solar_system",
     "examples/stopwatch",
     "examples/styling",
     "examples/svg",
