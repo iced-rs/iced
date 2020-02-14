@@ -54,7 +54,11 @@ impl Node {
         &self.children
     }
 
-    pub(crate) fn align(
+    /// Aligns item according to [`Align`] and [`Size`].
+    /// 
+    /// [`Align`]: ../enum.Align.html
+    /// [`Size`]: ../struct.Size.html
+    pub fn align(
         &mut self,
         horizontal_alignment: Align,
         vertical_alignment: Align,
