@@ -23,7 +23,6 @@ use std::iter;
 ///     ],
 /// ]);
 /// ```
-
 #[allow(missing_debug_implementations)]
 pub struct Table<'a, Message, Renderer> {
     rows: Vec<Vec<Element<'a, Message, Renderer>>>,
@@ -113,25 +112,23 @@ where
             let mut row_height: f32 = 0.;
 
             for (size, column_align) in row.into_iter().zip(&column_aligns) {
-                let node = Node::new(size, Size::new(*column_align, 0.));
+                let mut node = Node::new(size);
+                node.move_to(Point::new(*column_align, 0.));
                 nodes_row.push(node);
                 row_height = row_height.max(size.height);
             }
 
-            nodes_table.push(Node::with_children(
+            let mut row = Node::with_children(
                 Size::new(table_width, row_height),
-                Size::new(0., table_height),
                 nodes_row,
-            ));
+            );
+            row.move_to(Point::new(0., table_height));
+            nodes_table.push(row);
 
             table_height += row_height;
         }
 
-        Node::with_children(
-            Size::new(table_width, table_height),
-            Size::ZERO,
-            nodes_table,
-        )
+        Node::with_children(Size::new(table_width, table_height), nodes_table)
     }
 
     fn draw(
