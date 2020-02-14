@@ -10,7 +10,7 @@ use std::iter;
 /// # Example
 ///
 /// ```
-/// # use iced_native::Table;
+/// # use iced_native::{Table, Text};
 /// #
 /// Table::from_vec(vec![
 ///     vec![Text::new("First row, first column"), Text::new("First row, second column")],
