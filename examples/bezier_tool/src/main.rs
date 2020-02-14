@@ -84,7 +84,7 @@ mod bezier {
                 .height(Length::Fill)
                 .width(Length::Fill)
                 .resolve(Size::ZERO);
-            layout::Node::new(size)
+            layout::Node::new(size, Size::ZERO)
         }
 
         fn draw(
