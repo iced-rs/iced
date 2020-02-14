@@ -94,14 +94,7 @@ impl canvas::layer::Drawable for LocalTime {
         let radius = frame.width().min(frame.height()) / 2.0;
         let offset = Vector::new(center.x, center.y);
 
-        let clock = canvas::Path::new(|path| {
-            path.arc(canvas::path::Arc {
-                center,
-                radius,
-                start_angle: 0.0,
-                end_angle: 2.0 * std::f32::consts::PI,
-            })
-        });
+        let clock = canvas::Path::new(|path| path.circle(center, radius));
 
         frame.fill(
             &clock,
