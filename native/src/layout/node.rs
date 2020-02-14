@@ -12,19 +12,19 @@ impl Node {
     ///
     /// [`Node`]: struct.Node.html
     /// [`Size`]: ../struct.Size.html
-    pub fn new(size: Size) -> Self {
-        Self::with_children(size, Vec::new())
+    pub fn new(size: Size, bound: Size) -> Self {
+        Self::with_children(size, bound, Vec::new())
     }
 
     /// Creates a new [`Node`] with the given [`Size`] and children.
     ///
     /// [`Node`]: struct.Node.html
     /// [`Size`]: ../struct.Size.html
-    pub fn with_children(size: Size, children: Vec<Node>) -> Self {
+    pub fn with_children(size: Size, bound: Size, children: Vec<Node>) -> Self {
         Node {
             bounds: Rectangle {
-                x: 0.0,
-                y: 0.0,
+                x: bound.width,
+                y: bound.height,
                 width: size.width,
                 height: size.height,
             },

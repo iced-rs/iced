@@ -62,7 +62,7 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
-        layout::Node::new(limits.resolve(Size::ZERO))
+        layout::Node::new(limits.resolve(Size::ZERO), Size::ZERO)
     }
 
     fn draw(

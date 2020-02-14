@@ -7,7 +7,7 @@
 use crate::{
     input::{mouse, ButtonState},
     layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Widget,
+    Rectangle, Size, Widget,
 };
 use std::hash::Hash;
 
@@ -174,7 +174,7 @@ where
 
         let size = limits.resolve(content.size()).pad(padding);
 
-        layout::Node::with_children(size, vec![content])
+        layout::Node::with_children(size, Size::ZERO, vec![content])
     }
 
     fn on_event(

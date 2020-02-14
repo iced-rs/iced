@@ -135,7 +135,7 @@ where
 
         let size = limits.resolve(Size::ZERO);
 
-        layout::Node::new(size)
+        layout::Node::new(size, Size::ZERO)
     }
 
     fn on_event(

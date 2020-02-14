@@ -140,7 +140,7 @@ where
 
         let size = limits.resolve(Size::new(width, height));
 
-        layout::Node::new(size)
+        layout::Node::new(size, Size::ZERO)
     }
 
     fn draw(

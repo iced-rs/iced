@@ -174,6 +174,7 @@ where
 
     Node::with_children(
         Size::new(size.width + padding * 2.0, size.height + padding * 2.0),
+        Size::ZERO,
         nodes,
     )
 }

@@ -2,7 +2,7 @@
 use std::hash::Hash;
 
 use crate::{
-    layout, Align, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    layout, Align, Clipboard, Size, Element, Event, Hasher, Layout, Length, Point,
     Rectangle, Widget,
 };
 
@@ -77,7 +77,6 @@ where
         self.max_height = max_height;
         self
     }
-    
     /// Sets the content alignment for the horizontal axis of the [`Container`].
     ///
     /// [`Container`]: struct.Container.html
@@ -149,7 +148,7 @@ where
 
         content.align(self.horizontal_alignment, self.vertical_alignment, size);
 
-        layout::Node::with_children(size, vec![content])
+        layout::Node::with_children(size, Size::ZERO, vec![content])
     }
 
     fn on_event(
