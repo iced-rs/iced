@@ -307,7 +307,7 @@ impl Cache {
     pub fn new() -> Cache {
         Cache {
             hash: 0,
-            layout: layout::Node::new(Size::ZERO, Size::ZERO),
+            layout: layout::Node::new(Size::new(0.0, 0.0)),
             bounds: Size::ZERO,
             cursor_position: Point::new(-1.0, -1.0),
         }

@@ -88,7 +88,7 @@ where
             size.height = height as f32 * size.width / width as f32;
         }
 
-        layout::Node::new(size, Size::ZERO)
+        layout::Node::new(size)
     }
 
     fn draw(

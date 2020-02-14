@@ -143,7 +143,7 @@ where
         let content = self.content.layout(renderer, &child_limits);
         let size = limits.resolve(content.size());
 
-        layout::Node::with_children(size, Size::ZERO, vec![content])
+        layout::Node::with_children(size, vec![content])
     }
 
     fn on_event(

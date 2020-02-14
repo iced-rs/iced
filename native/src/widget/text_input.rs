@@ -183,16 +183,10 @@ where
             .max_width(self.max_width)
             .height(Length::Units(text_size));
 
-        let mut text =
-            layout::Node::new(limits.resolve(Size::ZERO), Size::ZERO);
-        text.bounds.x = padding;
-        text.bounds.y = padding;
+        let mut text = layout::Node::new(limits.resolve(Size::ZERO));
+        text.move_to(Point::new(padding, padding));
 
-        layout::Node::with_children(
-            text.size().pad(padding),
-            Size::ZERO,
-            vec![text],
-        )
+        layout::Node::with_children(text.size().pad(padding), vec![text])
     }
 
     fn on_event(

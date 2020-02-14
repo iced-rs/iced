@@ -18,7 +18,7 @@
 // limitations under the License.
 use crate::{
     layout::{Limits, Node},
-    Align, Element, Size,
+    Align, Element, Point, Size,
 };
 
 /// The main axis of a flex layout.
@@ -152,8 +152,7 @@ where
 
         let (x, y) = axis.pack(main, padding);
 
-        node.bounds.x = x;
-        node.bounds.y = y;
+        node.move_to(Point::new(x, y));
 
         match axis {
             Axis::Horizontal => {
@@ -174,7 +173,6 @@ where
 
     Node::with_children(
         Size::new(size.width + padding * 2.0, size.height + padding * 2.0),
-        Size::ZERO,
         nodes,
     )
 }

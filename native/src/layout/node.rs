@@ -1,9 +1,9 @@
-use crate::{Align, Rectangle, Size};
+use crate::{Align, Point, Rectangle, Size};
 
 /// The bounds of an element and its children.
 #[derive(Debug, Clone, Default)]
 pub struct Node {
-    pub(crate) bounds: Rectangle,
+    bounds: Rectangle,
     children: Vec<Node>,
 }
 
@@ -12,19 +12,19 @@ impl Node {
     ///
     /// [`Node`]: struct.Node.html
     /// [`Size`]: ../struct.Size.html
-    pub fn new(size: Size, bound: Size) -> Self {
-        Self::with_children(size, bound, Vec::new())
+    pub fn new(size: Size) -> Self {
+        Self::with_children(size, Vec::new())
     }
 
     /// Creates a new [`Node`] with the given [`Size`] and children.
     ///
     /// [`Node`]: struct.Node.html
     /// [`Size`]: ../struct.Size.html
-    pub fn with_children(size: Size, bound: Size, children: Vec<Node>) -> Self {
+    pub fn with_children(size: Size, children: Vec<Node>) -> Self {
         Node {
             bounds: Rectangle {
-                x: bound.width,
-                y: bound.height,
+                x: 0.0,
+                y: 0.0,
                 width: size.width,
                 height: size.height,
             },
@@ -83,5 +83,13 @@ impl Node {
                 self.bounds.y += space.height - self.bounds.height;
             }
         }
+    }
+
+    /// Move item to [`Point`].
+    ///
+    /// [`Point`]: ../struct.Point.html
+    pub fn move_to(&mut self, position: Point) {
+        self.bounds.x = position.x;
+        self.bounds.y = position.y;
     }
 }

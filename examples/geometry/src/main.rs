@@ -43,7 +43,7 @@ mod rainbow {
         ) -> layout::Node {
             let size = limits.width(Length::Fill).resolve(Size::ZERO);
 
-            layout::Node::new(Size::new(size.width, size.width), Size::ZERO)
+            layout::Node::new(Size::new(size.width, size.width))
         }
 
         fn hash_layout(&self, _state: &mut Hasher) {}
