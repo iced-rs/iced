@@ -39,10 +39,13 @@ mod circle {
             _renderer: &Renderer,
             _limits: &layout::Limits,
         ) -> layout::Node {
-            layout::Node::new(Size::new(
-                f32::from(self.radius) * 2.0,
-                f32::from(self.radius) * 2.0,
-            ))
+            layout::Node::new(
+                Size::new(
+                    f32::from(self.radius) * 2.0,
+                    f32::from(self.radius) * 2.0,
+                ),
+                Size::ZERO,
+            )
         }
 
         fn hash_layout(&self, state: &mut Hasher) {
