@@ -9,7 +9,7 @@ use crate::{
 pub struct Frame {
     width: f32,
     height: f32,
-    buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u16>,
+    buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
 
     transforms: Transforms,
 }

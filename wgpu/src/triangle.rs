@@ -91,7 +91,7 @@ impl Pipeline {
                     write_mask: wgpu::ColorWrite::ALL,
                 }],
                 depth_stencil_state: None,
-                index_format: wgpu::IndexFormat::Uint16,
+                index_format: wgpu::IndexFormat::Uint32,
                 vertex_buffers: &[wgpu::VertexBufferDescriptor {
                     stride: mem::size_of::<Vertex2D>() as u64,
                     step_mode: wgpu::InputStepMode::Vertex,
@@ -233,5 +233,5 @@ pub struct Mesh2D {
     /// The list of vertex indices that defines the triangles of the mesh.
     ///
     /// Therefore, this list should always have a length that is a multiple of 3.
-    pub indices: Vec<u16>,
+    pub indices: Vec<u32>,
 }

@@ -94,7 +94,7 @@ mod bezier {
             layout: Layout<'_>,
             cursor_position: Point,
         ) -> (Primitive, MouseCursor) {
-            let mut buffer: VertexBuffers<Vertex2D, u16> = VertexBuffers::new();
+            let mut buffer: VertexBuffers<Vertex2D, u32> = VertexBuffers::new();
             let mut path_builder = lyon::path::Path::builder();
 
             let bounds = layout.bounds();
