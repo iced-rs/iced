@@ -11,10 +11,15 @@ pub struct Point {
 }
 
 impl Point {
+    /// The origin (i.e. a [`Point`] with both X=0 and Y=0).
+    ///
+    /// [`Point`]: struct.Point.html
+    pub const ORIGIN: Point = Point::new(0.0, 0.0);
+
     /// Creates a new [`Point`] with the given coordinates.
     ///
     /// [`Point`]: struct.Point.html
-    pub fn new(x: f32, y: f32) -> Self {
+    pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 }

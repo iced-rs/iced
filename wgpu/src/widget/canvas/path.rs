@@ -21,6 +21,16 @@ impl Path {
     pub(crate) fn raw(&self) -> &lyon::path::Path {
         &self.raw
     }
+
+    #[inline]
+    pub(crate) fn transformed(
+        &self,
+        transform: &lyon::math::Transform,
+    ) -> Path {
+        Path {
+            raw: self.raw.transformed(transform),
+        }
+    }
 }
 
 #[allow(missing_debug_implementations)]

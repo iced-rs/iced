@@ -73,8 +73,8 @@ pub use dodrio;
 pub use element::Element;
 pub use hasher::Hasher;
 pub use iced_core::{
-    Align, Background, Color, Font, HorizontalAlignment, Length, Point, Vector,
-    VerticalAlignment,
+    Align, Background, Color, Font, HorizontalAlignment, Length, Point, Size,
+    Vector, VerticalAlignment,
 };
 pub use iced_futures::{executor, futures, Command};
 pub use subscription::Subscription;
