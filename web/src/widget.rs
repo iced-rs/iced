@@ -30,6 +30,7 @@ pub mod text_input;
 mod column;
 mod row;
 mod space;
+mod table;
 mod text;
 
 #[doc(no_inline)]
@@ -51,6 +52,7 @@ pub use progress_bar::ProgressBar;
 pub use radio::Radio;
 pub use row::Row;
 pub use space::Space;
+pub use table::Table;
 
 /// A component that displays information and allows interaction.
 ///

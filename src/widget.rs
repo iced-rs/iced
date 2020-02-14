@@ -50,6 +50,12 @@ mod platform {
     /// This is an alias of an `iced_native` row with a default `Renderer`.
     pub type Row<'a, Message> =
         iced_winit::Row<'a, Message, iced_wgpu::Renderer>;
+
+    /// A container that distributes its contents horizontally and vertically.
+    ///
+    /// This is an alias of an `iced_native` table with a default `Renderer`.
+    pub type Table<'a, Message> =
+        iced_winit::Table<'a, Message, iced_wgpu::Renderer>;
 }
 
 #[cfg(target_arch = "wasm32")]

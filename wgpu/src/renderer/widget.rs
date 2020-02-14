@@ -8,6 +8,7 @@ mod row;
 mod scrollable;
 mod slider;
 mod space;
+mod table;
 mod text;
 mod text_input;
 
