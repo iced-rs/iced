@@ -168,9 +168,7 @@ where
             .pad(padding);
 
         let mut content = self.content.layout(renderer, &limits);
-
-        content.bounds.x = padding;
-        content.bounds.y = padding;
+        content.move_to(Point::new(padding, padding));
 
         let size = limits.resolve(content.size()).pad(padding);
 
