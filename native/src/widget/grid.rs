@@ -58,7 +58,12 @@ impl<'a, Message, Renderer> Grid<'a, Message, Renderer> {
     ///
     /// [`Grid`]: struct.Grid.html
     pub fn columns(mut self, columns: usize) -> Self {
-        self.columns = Some(columns);
+        if columns == 0 {
+            self.columns = None;
+        } else {
+            self.columns = Some(columns);
+        }
+
         self
     }
 
