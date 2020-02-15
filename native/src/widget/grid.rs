@@ -3,7 +3,7 @@ use crate::{
     layout::{self, Node},
     Element, Hasher, Layout, Length, Point, Size, Widget,
 };
-use std::iter;
+use std::{any::TypeId, hash::Hash, iter};
 
 /// A container that distributes its contents in a grid.
 ///
@@ -150,6 +150,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        TypeId::of::<Grid<'_, (), ()>>().hash(state);
+
         for element in &self.elements {
             element.hash_layout(state);
         }
