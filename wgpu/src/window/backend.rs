@@ -18,7 +18,11 @@ impl iced_native::window::Backend for Backend {
 
     fn new(settings: Self::Settings) -> (Backend, Renderer) {
         let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::Default,
+            power_preference: if settings.antialiasing.is_none() {
+                wgpu::PowerPreference::Default
+            } else {
+                wgpu::PowerPreference::HighPerformance
+            },
             backends: wgpu::BackendBit::all(),
         })
         .expect("Request adapter");
