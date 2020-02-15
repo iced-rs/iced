@@ -1,7 +1,7 @@
 use crate::{
-    button, checkbox, column, progress_bar, radio, row, scrollable, slider,
-    table, text, text_input, Color, Element, Font, HorizontalAlignment, Layout,
-    Point, Rectangle, Renderer, Size, VerticalAlignment,
+    button, checkbox, column, grid, progress_bar, radio, row, scrollable,
+    slider, text, text_input, Color, Element, Font, HorizontalAlignment,
+    Layout, Point, Rectangle, Renderer, Size, VerticalAlignment,
 };
 
 /// A renderer that does nothing.
@@ -228,13 +228,13 @@ impl progress_bar::Renderer for Null {
     }
 }
 
-impl table::Renderer for Null {
+impl grid::Renderer for Null {
     fn draw<Message>(
         &mut self,
         _defaults: &Self::Defaults,
         _layout: Layout<'_>,
         _cursor_position: Point,
-        _rows: &[Vec<Element<'_, Message, Self>>],
+        _elements: &[Element<'_, Message, Self>],
     ) {
     }
 }

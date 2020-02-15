@@ -2,13 +2,13 @@ mod button;
 mod checkbox;
 mod column;
 mod container;
+mod grid;
 mod progress_bar;
 mod radio;
 mod row;
 mod scrollable;
 mod slider;
 mod space;
-mod table;
 mod text;
 mod text_input;
 

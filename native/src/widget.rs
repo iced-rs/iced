@@ -24,6 +24,7 @@ pub mod button;
 pub mod checkbox;
 pub mod column;
 pub mod container;
+pub mod grid;
 pub mod image;
 pub mod progress_bar;
 pub mod radio;
@@ -32,7 +33,6 @@ pub mod scrollable;
 pub mod slider;
 pub mod space;
 pub mod svg;
-pub mod table;
 pub mod text;
 pub mod text_input;
 
@@ -44,6 +44,8 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use grid::Grid;
 #[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]
@@ -60,8 +62,6 @@ pub use slider::Slider;
 pub use space::Space;
 #[doc(no_inline)]
 pub use svg::Svg;
-#[doc(no_inline)]
-pub use table::Table;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
