@@ -12,7 +12,7 @@ use std::{any::TypeId, hash::Hash, iter};
 /// ```
 /// # use iced_native::{renderer::Null, Element, Grid as NativeGrid, Text};
 /// # type Grid<'a> = NativeGrid<'a, (), Null>;
-/// Grid::from_vec(
+/// Grid::with_children(
 ///     2,
 ///     vec![
 ///         Element::from(Text::new("First row, first column")),
@@ -33,14 +33,14 @@ impl<'a, Message, Renderer> Grid<'a, Message, Renderer> {
     ///
     /// [`Grid`]: struct.Grid.html
     pub fn new(columns: usize) -> Self {
-        Self::from_vec(columns, Vec::new())
+        Self::with_children(columns, Vec::new())
     }
 
     /// Create a new [`Grid`] with the given [`Element`]s.
     ///
     /// [`Grid`]: struct.Grid.html
     /// [`Element`]: ../struct.Element.html
-    pub fn from_vec(
+    pub fn with_children(
         columns: usize,
         elements: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
@@ -56,18 +56,6 @@ impl<'a, Message, Renderer> Grid<'a, Message, Renderer> {
         E: Into<Element<'a, Message, Renderer>>,
     {
         self.elements.push(element.into());
-        self
-    }
-
-    /// Adds [`Element`]s to the [`Grid`].
-    ///
-    /// [`Element`]: ../struct.Element.html
-    /// [`Grid`]: struct.Grid.html
-    pub fn push_vec(
-        mut self,
-        mut elements: Vec<Element<'a, Message, Renderer>>,
-    ) -> Self {
-        self.elements.append(&mut elements);
         self
     }
 }

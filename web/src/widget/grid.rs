@@ -14,14 +14,14 @@ impl<'a, Message> Grid<'a, Message> {
     ///
     /// [`Grid`]: struct.Grid.html
     pub fn new(columns: usize) -> Self {
-        Self::from_vec(columns, Vec::new())
+        Self::with_children(columns, Vec::new())
     }
 
     /// Create a new [`Grid`] with the given [`Element`]s.
     ///
     /// [`Grid`]: struct.Grid.html
     /// [`Element`]: ../struct.Element.html
-    pub fn from_vec(
+    pub fn with_children(
         columns: usize,
         elements: Vec<Element<'a, Message>>,
     ) -> Self {
@@ -37,15 +37,6 @@ impl<'a, Message> Grid<'a, Message> {
         E: Into<Element<'a, Message>>,
     {
         self.elements.push(element.into());
-        self
-    }
-
-    /// Adds [`Element`]s to the [`Grid`].
-    ///
-    /// [`Element`]: ../struct.Element.html
-    /// [`Grid`]: struct.Grid.html
-    pub fn push_vec(mut self, mut elements: Vec<Element<'a, Message>>) -> Self {
-        self.elements.append(&mut elements);
         self
     }
 }
