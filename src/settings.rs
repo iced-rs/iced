@@ -24,7 +24,7 @@ pub struct Settings {
     /// `Canvas`, at a performance cost.
     ///
     /// By default, it is disabled.
-    pub antialiasing: bool,
+    pub use_antialiasing: bool,
 }
 
 #[cfg(not(target_arch = "wasm32"))]

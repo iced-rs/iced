@@ -287,7 +287,7 @@ use iced::{
 
 pub fn main() {
     Example::run(Settings {
-        antialiasing: true,
+        use_antialiasing: true,
         ..Settings::default()
     });
 }
