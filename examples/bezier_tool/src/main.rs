@@ -286,7 +286,10 @@ use iced::{
 };
 
 pub fn main() {
-    Example::run(Settings::default())
+    Example::run(Settings {
+        antialiasing: true,
+        ..Settings::default()
+    });
 }
 
 #[derive(Default)]

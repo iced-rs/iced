@@ -14,7 +14,10 @@ use iced::{
 use std::time::Instant;
 
 pub fn main() {
-    SolarSystem::run(Settings::default())
+    SolarSystem::run(Settings {
+        antialiasing: true,
+        ..Settings::default()
+    })
 }
 
 struct SolarSystem {

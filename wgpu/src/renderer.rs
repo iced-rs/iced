@@ -51,7 +51,8 @@ impl Renderer {
         let text_pipeline = text::Pipeline::new(device, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(device);
         let image_pipeline = crate::image::Pipeline::new(device);
-        let triangle_pipeline = triangle::Pipeline::new(device);
+        let triangle_pipeline =
+            triangle::Pipeline::new(device, settings.antialiasing);
 
         Self {
             quad_pipeline,
@@ -105,6 +106,8 @@ impl Renderer {
                 &layer,
                 encoder,
                 target.texture,
+                width,
+                height,
             );
         }
 
@@ -308,6 +311,8 @@ impl Renderer {
         layer: &Layer<'_>,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
+        target_width: u32,
+        target_height: u32,
     ) {
         let bounds = layer.bounds * scale_factor;
 
@@ -323,6 +328,8 @@ impl Renderer {
                 device,
                 encoder,
                 target,
+                target_width,
+                target_height,
                 translated,
                 &layer.meshes,
                 bounds,

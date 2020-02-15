@@ -4,7 +4,10 @@ use iced::{
 };
 
 pub fn main() {
-    Clock::run(Settings::default())
+    Clock::run(Settings {
+        antialiasing: true,
+        ..Settings::default()
+    })
 }
 
 struct Clock {

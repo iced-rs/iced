@@ -178,6 +178,11 @@ pub trait Application: Sized {
             _settings.into(),
             iced_wgpu::Settings {
                 default_font: _settings.default_font,
+                antialiasing: if _settings.antialiasing {
+                    Some(iced_wgpu::settings::MSAA::X4)
+                } else {
+                    None
+                },
             },
         );
 
