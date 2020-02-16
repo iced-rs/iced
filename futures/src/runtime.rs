@@ -95,11 +95,18 @@ where
         &mut self,
         subscription: Subscription<Hasher, Event, Message>,
     ) {
-        let futures =
-            self.subscriptions.update(subscription, self.sender.clone());
+        let Runtime {
+            executor,
+            subscriptions,
+            sender,
+            ..
+        } = self;
+
+        let futures = executor
+            .enter(|| subscriptions.update(subscription, sender.clone()));
 
         for future in futures {
-            self.executor.spawn(future);
+            executor.spawn(future);
         }
     }
 

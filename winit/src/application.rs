@@ -126,7 +126,7 @@ pub trait Application: Sized {
         let (mut application, init_command) = runtime.enter(|| Self::new());
         runtime.spawn(init_command);
 
-        let subscription = runtime.enter(|| application.subscription());
+        let subscription = application.subscription();
         runtime.track(subscription);
 
         let mut title = application.title();
@@ -255,8 +255,7 @@ pub trait Application: Sized {
                         debug.update_finished();
                     }
 
-                    let subscription =
-                        runtime.enter(|| application.subscription());
+                    let subscription = application.subscription();
                     runtime.track(subscription);
 
                     // Update window title
