@@ -160,7 +160,7 @@ impl Application for Todos {
                 )
                 .padding(15)
                 .size(30)
-                .on_submit(Message::CreateTask);
+                .on_submit(|| Message::CreateTask);
 
                 let controls = controls.view(&tasks, *filter);
                 let filtered_tasks =
@@ -311,7 +311,7 @@ impl Task {
                     &self.description,
                     TaskMessage::DescriptionEdited,
                 )
-                .on_submit(TaskMessage::FinishEdition)
+                .on_submit(|| TaskMessage::FinishEdition)
                 .padding(10);
 
                 Row::new()
@@ -360,7 +360,7 @@ impl Controls {
                     selected: filter == current_filter,
                 });
 
-            button.on_press(|| Message::FilterChanged(filter)).padding(8)
+            button.on_press(move || Message::FilterChanged(filter)).padding(8)
         };
 
         Row::new()
