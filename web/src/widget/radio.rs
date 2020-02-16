@@ -5,6 +5,8 @@ pub use iced_style::radio::{Style, StyleSheet};
 
 use dodrio::bumpalo;
 
+use std::rc::Rc;
+
 /// A circular button representing a choice.
 ///
 /// # Example
@@ -33,7 +35,7 @@ use dodrio::bumpalo;
 #[allow(missing_debug_implementations)]
 pub struct Radio<Message> {
     is_selected: bool,
-    on_click: Message,
+    on_click: Rc<dyn Fn() -> Message>,
     label: String,
     style: Box<dyn StyleSheet>,
 }
@@ -51,12 +53,12 @@ impl<Message> Radio<Message> {
     /// [`Radio`]: struct.Radio.html
     pub fn new<F, V>(value: V, label: &str, selected: Option<V>, f: F) -> Self
     where
-        V: Eq + Copy,
+        V: 'static + Eq  + Copy,
         F: 'static + Fn(V) -> Message,
     {
         Radio {
             is_selected: Some(value) == selected,
-            on_click: f(value),
+            on_click: Rc::new(move || f(value)),
             label: String::from(label),
             style: Default::default(),
         }
@@ -73,7 +75,7 @@ impl<Message> Radio<Message> {
 
 impl<Message> Widget<Message> for Radio<Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn node<'b>(
         &self,
@@ -97,7 +99,7 @@ where
                     .attr("style", "margin-right: 10px")
                     .bool_attr("checked", self.is_selected)
                     .on("click", move |_root, _vdom, _event| {
-                        event_bus.publish(on_click.clone());
+                        event_bus.publish(on_click());
                     })
                     .finish(),
                 text(radio_label.into_bump_str()),
@@ -108,7 +110,7 @@ where
 
 impl<'a, Message> From<Radio<Message>> for Element<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(radio: Radio<Message>) -> Element<'a, Message> {
         Element::new(radio)

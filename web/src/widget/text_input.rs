@@ -40,8 +40,8 @@ pub struct TextInput<'a, Message> {
     max_width: u32,
     padding: u16,
     size: Option<u16>,
-    on_change: Rc<Box<dyn Fn(String) -> Message>>,
-    on_submit: Option<Message>,
+    on_change: Rc<dyn Fn(String) -> Message>,
+    on_submit: Option<Rc<dyn Fn() -> Message>>,
     style_sheet: Box<dyn StyleSheet>,
 }
 
@@ -74,7 +74,7 @@ impl<'a, Message> TextInput<'a, Message> {
             max_width: u32::MAX,
             padding: 0,
             size: None,
-            on_change: Rc::new(Box::new(on_change)),
+            on_change: Rc::new(on_change),
             on_submit: None,
             style_sheet: Default::default(),
         }
@@ -124,8 +124,10 @@ impl<'a, Message> TextInput<'a, Message> {
     /// focused and the enter key is pressed.
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn on_submit(mut self, message: Message) -> Self {
-        self.on_submit = Some(message);
+    pub fn on_submit<F>(mut self, on_submit: F) -> Self
+        where F: 'static + Fn() -> Message
+    {
+        self.on_submit = Some(Rc::new(on_submit));
         self
     }
 
@@ -140,7 +142,7 @@ impl<'a, Message> TextInput<'a, Message> {
 
 impl<'a, Message> Widget<Message> for TextInput<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn node<'b>(
         &self,
@@ -209,7 +211,7 @@ where
                     let event = event.unchecked_into::<web_sys::KeyboardEvent>();
 
                     match event.key_code() {
-                        13 => { submit_event_bus.publish(on_submit); }
+                        13 => { submit_event_bus.publish(on_submit()); }
                         _ => {}
                     }
                 }
@@ -220,7 +222,7 @@ where
 
 impl<'a, Message> From<TextInput<'a, Message>> for Element<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(text_input: TextInput<'a, Message>) -> Element<'a, Message> {
         Element::new(text_input)

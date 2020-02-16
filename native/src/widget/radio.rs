@@ -37,7 +37,7 @@ use std::hash::Hash;
 #[allow(missing_debug_implementations)]
 pub struct Radio<Message, Renderer: self::Renderer> {
     is_selected: bool,
-    on_click: Message,
+    on_click: Box<dyn Fn() -> Message>,
     label: String,
     style: Renderer::Style,
 }
@@ -55,12 +55,12 @@ impl<Message, Renderer: self::Renderer> Radio<Message, Renderer> {
     /// [`Radio`]: struct.Radio.html
     pub fn new<F, V>(value: V, label: &str, selected: Option<V>, f: F) -> Self
     where
-        V: Eq + Copy,
+        V: 'static + Eq + Copy,
         F: 'static + Fn(V) -> Message,
     {
         Radio {
             is_selected: Some(value) == selected,
-            on_click: f(value),
+            on_click: Box::new(move || f(value)),
             label: String::from(label),
             style: Renderer::Style::default(),
         }
@@ -78,7 +78,6 @@ impl<Message, Renderer: self::Renderer> Radio<Message, Renderer> {
 impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
     Renderer: self::Renderer + text::Renderer + row::Renderer,
-    Message: Clone,
 {
     fn width(&self) -> Length {
         Length::Fill
@@ -123,7 +122,7 @@ where
                 state: ButtonState::Pressed,
             }) => {
                 if layout.bounds().contains(cursor_position) {
-                    messages.push(self.on_click.clone());
+                    messages.push((self.on_click)());
                 }
             }
             _ => {}
@@ -212,7 +211,7 @@ impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer + row::Renderer + text::Renderer,
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(radio)

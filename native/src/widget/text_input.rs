@@ -49,7 +49,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     padding: u16,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
-    on_submit: Option<Message>,
+    on_submit: Option<Box<dyn Fn() -> Message>,>,
     style: Renderer::Style,
 }
 
@@ -141,8 +141,10 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
     /// focused and the enter key is pressed.
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn on_submit(mut self, message: Message) -> Self {
-        self.on_submit = Some(message);
+    pub fn on_submit<F>(mut self, on_submit: F) -> Self
+        where F: 'static + Fn() -> Message
+    {
+        self.on_submit = Some(Box::new(on_submit));
         self
     }
 
@@ -159,7 +161,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for TextInput<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer,
-    Message: Clone + std::fmt::Debug,
+    Message: std::fmt::Debug,
 {
     fn width(&self) -> Length {
         self.width
@@ -261,8 +263,8 @@ where
                 modifiers,
             }) if self.state.is_focused => match key_code {
                 keyboard::KeyCode::Enter => {
-                    if let Some(on_submit) = self.on_submit.clone() {
-                        messages.push(on_submit);
+                    if let Some(on_submit) = self.on_submit.as_ref() {
+                        messages.push(on_submit());
                     }
                 }
                 keyboard::KeyCode::Backspace => {
@@ -484,7 +486,7 @@ impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer,
-    Message: 'static + Clone + std::fmt::Debug,
+    Message: 'static + std::fmt::Debug,
 {
     fn from(
         text_input: TextInput<'a, Message, Renderer>,
