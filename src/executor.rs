@@ -38,6 +38,10 @@ mod platform {
         ) {
             let _ = self.0.spawn(future);
         }
+
+        fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
+            self.0.enter(f)
+        }
     }
 }
 
