@@ -1,10 +1,7 @@
 //! Write some text for your users to read.
 use crate::{
-    layout::{
-        flex::{self, Axis},
-        Limits, Node,
-    },
-    Align, Element, Hasher, Layout, Length, Point, Size, Widget,
+    layout::{Limits, Node},
+    Element, Hasher, Layout, Length, Point, Size, Widget,
 };
 use std::{any::TypeId, hash::Hash, iter};
 
@@ -15,64 +12,44 @@ use std::{any::TypeId, hash::Hash, iter};
 /// ```
 /// # use iced_native::{renderer::Null, Element, Grid as NativeGrid, Text};
 /// # type Grid<'a> = NativeGrid<'a, (), Null>;
-/// Grid::with_children(
-///     vec![
-///         Element::from(Text::new("First row, first column")),
-///         Element::from(Text::new("First row, second column")),
-///         Element::from(Text::new("Second row, first column")),
-///         Element::from(Text::new("Second row, second column")),
-///     ],
-/// )
-/// .columns(2);
+/// Grid::with_columns(2)
+///     .push(Text::new("First row, first column"))
+///     .push(Text::new("First row, second column"))
+///     .push(Text::new("Second row, first column"))
+///     .push(Text::new("Second row, second column"));
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Grid<'a, Message, Renderer> {
-    columns: Option<usize>,
-    column_width: Option<u16>,
+    strategy: Strategy,
     elements: Vec<Element<'a, Message, Renderer>>,
+}
+
+enum Strategy {
+    Columns(usize),
+    ColumnWidth(u16),
 }
 
 impl<'a, Message, Renderer> Grid<'a, Message, Renderer> {
     /// Create a new empty [`Grid`].
+    /// Elements will be layed out in a specific amount of columns.
     ///
     /// [`Grid`]: struct.Grid.html
-    pub fn new() -> Self {
-        Self::with_children(Vec::new())
-    }
-
-    /// Create a new [`Grid`] with the given [`Element`]s.
-    ///
-    /// [`Grid`]: struct.Grid.html
-    /// [`Element`]: ../struct.Element.html
-    pub fn with_children(
-        elements: Vec<Element<'a, Message, Renderer>>,
-    ) -> Self {
+    pub fn with_columns(columns: usize) -> Self {
         Self {
-            columns: None,
-            column_width: None,
-            elements,
+            strategy: Strategy::Columns(columns),
+            elements: Vec::new(),
         }
     }
 
-    /// Sets a fixed amount of columns for the [`Grid`].
+    /// Create a new empty [`Grid`].
+    /// Columns will be generated to fill the given space.
     ///
     /// [`Grid`]: struct.Grid.html
-    pub fn columns(mut self, columns: usize) -> Self {
-        if columns == 0 {
-            self.columns = None;
-        } else {
-            self.columns = Some(columns);
+    pub fn with_column_width(column_width: u16) -> Self {
+        Self {
+            strategy: Strategy::ColumnWidth(column_width),
+            elements: Vec::new(),
         }
-
-        self
-    }
-
-    /// Sets the width of columns for the [`Grid`].
-    ///
-    /// [`Grid`]: struct.Grid.html
-    pub fn column_width(mut self, column_width: u16) -> Self {
-        self.column_width = Some(column_width);
-        self
     }
 
     /// Adds an [`Element`] to the [`Grid`].
@@ -94,11 +71,7 @@ where
     Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
-        if self.columns.is_some() {
-            Length::Shrink
-        } else {
-            Length::Fill
-        }
+        Length::Shrink
     }
 
     fn height(&self) -> Length {
@@ -107,27 +80,23 @@ where
 
     fn layout(&self, renderer: &Renderer, limits: &Limits) -> Node {
         if self.elements.is_empty() {
-            Node::new(Size::ZERO)
-        } else {
-            let column_limits = if let Some(column_width) = self.column_width {
-                limits.width(Length::Units(column_width))
-            } else {
-                *limits
-            };
+            return Node::new(Size::ZERO);
+        }
 
-            // if we have a given number of columns, we can find out how
-            // wide a column is by finding the widest cell in it
-            if let Some(columns) = self.columns {
-                // store calculated layout sizes
+        match self.strategy {
+            // find out how wide a column is by finding the widest cell in it
+            Strategy::Columns(columns) => {
+                if columns == 0 {
+                    return Node::new(Size::ZERO);
+                }
+
                 let mut layouts = Vec::with_capacity(self.elements.len());
-                // store width of each column
                 let mut column_widths = Vec::<f32>::with_capacity(columns);
 
                 for (column, element) in
                     (0..columns).cycle().zip(&self.elements)
                 {
-                    let layout =
-                        element.layout(renderer, &column_limits).size();
+                    let layout = element.layout(renderer, &limits).size();
                     layouts.push(layout);
 
                     if let Some(column_width) = column_widths.get_mut(column) {
@@ -137,80 +106,37 @@ where
                     }
                 }
 
-                // list of x alignments for every column
                 let column_aligns = iter::once(&0.)
-                    .chain(column_widths.iter().take(column_widths.len() - 1))
+                    .chain(column_widths.iter())
                     .scan(0., |state, width| {
                         *state += width;
                         Some(*state)
                     });
+                let grid_width = column_widths.iter().sum();
 
-                let mut nodes = Vec::with_capacity(self.elements.len());
-                let mut grid_height = 0.;
-                let mut row_height = 0.;
-
-                for ((column, column_align), size) in
-                    column_aligns.enumerate().cycle().zip(layouts)
-                {
-                    if column == 0 {
-                        grid_height += row_height;
-                        row_height = 0.;
-                    }
-
-                    let mut node = Node::new(size);
-                    node.move_to(Point::new(column_align, grid_height));
-                    nodes.push(node);
-                    row_height = row_height.max(size.height);
-                }
-
-                grid_height += row_height;
-                let grid_width = column_widths.into_iter().sum();
-
-                Node::with_children(Size::new(grid_width, grid_height), nodes)
-            // if we have `column_width` but no `columns`, calculate number of
-            // columns by checking how many can fit
-            } else if let Some(column_width) = self.column_width {
+                build_grid(
+                    columns,
+                    column_aligns,
+                    layouts.into_iter(),
+                    grid_width,
+                )
+            }
+            // find number of columns by checking how many can fit
+            Strategy::ColumnWidth(column_width) => {
+                let column_limits = limits.width(Length::Units(column_width));
                 let column_width: f32 = column_width.into();
                 let max_width = limits.max().width;
                 let columns = (max_width / column_width).floor() as usize;
-                let mut nodes = Vec::with_capacity(self.elements.len());
-                let mut grid_height = 0.;
-                let mut row_height = 0.;
 
-                for (column, element) in
-                    (0..columns).cycle().zip(&self.elements)
-                {
-                    if column == 0 {
-                        grid_height += row_height;
-                        row_height = 0.;
-                    }
-
-                    let size = element.layout(renderer, &column_limits).size();
-                    let mut node = Node::new(size);
-                    node.move_to(Point::new(
-                        column as f32 * column_width,
-                        grid_height,
-                    ));
-                    nodes.push(node);
-                    row_height = row_height.max(size.height);
-                }
-
-                grid_height += row_height;
+                let layouts = self.elements.iter().map(|element| {
+                    element.layout(renderer, &column_limits).size()
+                });
+                let column_aligns = iter::successors(Some(0.), |width| {
+                    Some(width + column_width)
+                });
                 let grid_width = (columns as f32) * column_width;
 
-                Node::with_children(Size::new(grid_width, grid_height), nodes)
-            // if we didn't define `columns` and `column_width` just put them
-            // horizontally next to each other
-            } else {
-                flex::resolve(
-                    Axis::Horizontal,
-                    renderer,
-                    &limits,
-                    0.,
-                    0.,
-                    Align::Start,
-                    &self.elements,
-                )
+                build_grid(columns, column_aligns, layouts, grid_width)
             }
         }
     }
@@ -232,6 +158,35 @@ where
             element.hash_layout(state);
         }
     }
+}
+
+fn build_grid(
+    columns: usize,
+    column_aligns: impl Iterator<Item = f32> + Clone,
+    layouts: impl Iterator<Item = Size> + ExactSizeIterator,
+    grid_width: f32,
+) -> Node {
+    let mut nodes = Vec::with_capacity(layouts.len());
+    let mut grid_height = 0.;
+    let mut row_height = 0.;
+
+    for ((column, column_align), size) in
+        (0..columns).zip(column_aligns).cycle().zip(layouts)
+    {
+        if column == 0 {
+            grid_height += row_height;
+            row_height = 0.;
+        }
+
+        let mut node = Node::new(size);
+        node.move_to(Point::new(column_align, grid_height));
+        nodes.push(node);
+        row_height = row_height.max(size.height);
+    }
+
+    grid_height += row_height;
+
+    Node::with_children(Size::new(grid_width, grid_height), nodes)
 }
 
 /// The renderer of a [`Grid`].

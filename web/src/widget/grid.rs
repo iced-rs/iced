@@ -5,45 +5,36 @@ use dodrio::bumpalo;
 /// A container that distributes its contents in a grid.
 #[allow(missing_debug_implementations)]
 pub struct Grid<'a, Message> {
-    columns: Option<usize>,
-    column_width: Option<u16>,
+    strategy: Strategy,
     elements: Vec<Element<'a, Message>>,
+}
+
+enum Strategy {
+    Columns(usize),
+    ColumnWidth(u16),
 }
 
 impl<'a, Message> Grid<'a, Message> {
     /// Create a new empty [`Grid`].
+    /// Elements will be layed out in a specific amount of columns.
     ///
     /// [`Grid`]: struct.Grid.html
-    pub fn new() -> Self {
-        Self::with_children(Vec::new())
-    }
-
-    /// Create a new [`Grid`] with the given [`Element`]s.
-    ///
-    /// [`Grid`]: struct.Grid.html
-    /// [`Element`]: ../struct.Element.html
-    pub fn with_children(elements: Vec<Element<'a, Message>>) -> Self {
+    pub fn with_columns(columns: usize) -> Self {
         Self {
-            columns: None,
-            column_width: None,
-            elements,
+            strategy: Strategy::Columns(columns),
+            elements: Vec::new(),
         }
     }
 
-    /// Sets a fixed amount of columns for the [`Grid`].
+    /// Create a new empty [`Grid`].
+    /// Columns will be generated to fill the given space.
     ///
     /// [`Grid`]: struct.Grid.html
-    pub fn columns(mut self, columns: usize) -> Self {
-        self.columns = Some(columns);
-        self
-    }
-
-    /// Sets the width of columns for the [`Grid`].
-    ///
-    /// [`Grid`]: struct.Grid.html
-    pub fn column_width(mut self, column_width: u16) -> Self {
-        self.column_width = Some(column_width);
-        self
+    pub fn with_column_width(column_width: u16) -> Self {
+        Self {
+            strategy: Strategy::ColumnWidth(column_width),
+            elements: Vec::new(),
+        }
     }
 
     /// Adds an [`Element`] to the [`Grid`].
@@ -66,42 +57,39 @@ impl<'a, Message> Widget<Message> for Grid<'a, Message> {
         publish: &Bus<Message>,
         style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
-        use dodrio::builder::*;
+        use dodrio::builder::div;
 
         let mut grid = div(bump);
 
-        let column_width = if let Some(column_width) = self.column_width {
-            format!("{}px", column_width)
-        } else {
-            String::from("auto")
-        };
+        match self.strategy {
+            Strategy::Columns(columns) => {
+                grid = grid.attr(
+                    "class",
+                    bumpalo::format!(in bump, "{}", style_sheet.insert(bump, Rule::Grid))
+                        .into_bump_str()
+                );
 
-        let style = if let Some(columns) = self.columns {
-            let mut style = String::from("grid-template-columns:");
+                if columns > 0 {
+                    let mut style = String::from("grid-template-columns:");
 
-            for _ in 0..columns {
-                style.push_str(" ");
-                style.push_str(&column_width);
+                    for _ in 0..columns {
+                        style.push_str(" auto");
+                    }
+
+                    grid = grid.attr(
+                        "style",
+                        bumpalo::format!(in bump, "{}", style).into_bump_str(),
+                    );
+                }
             }
-
-            style
-        } else if let Some(column_width) = self.column_width {
-            format!("width: 100%; grid-template-columns: repeat(auto-fit, minmax({}px, 1fr))", column_width)
-        } else {
-            format!(
-                "grid-template-columns: repeat({}, 1fr)",
-                self.elements.len()
-            )
-        };
-
-        grid = grid.attr(
-            "class",
-            bumpalo::format!(in bump, "{}", style_sheet.insert(bump, Rule::Grid))
-                .into_bump_str(),
-        ).attr(
-            "style",
-            bumpalo::format!(in bump, "{}", style).into_bump_str(),
-        );
+            Strategy::ColumnWidth(column_width) => {
+                grid = grid.attr(
+                    "class",
+                    bumpalo::format!(in bump, "{}", style_sheet.insert(bump, Rule::Flex(column_width)))
+                        .into_bump_str()
+                );
+            }
+        }
 
         for element in &self.elements {
             grid = grid.child(element.node(bump, publish, style_sheet));

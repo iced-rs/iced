@@ -9,6 +9,9 @@ pub enum Rule {
     /// Container with vertical distribution
     Column,
 
+    /// Container with flex distribution and a specified child width
+    Flex(u16),
+
     /// Container with grid distribution
     Grid,
 
@@ -29,6 +32,7 @@ impl Rule {
     pub fn class<'a>(&self) -> String {
         match self {
             Rule::Column => String::from("c"),
+            Rule::Flex(..) => String::from("f"),
             Rule::Grid => String::from("g"),
             Rule::Row => String::from("r"),
             Rule::Padding(padding) => format!("p-{}", padding),
@@ -48,6 +52,10 @@ impl Rule {
 
                 bumpalo::format!(in bump, ".{} {}", class, body).into_bump_str()
             }
+            Rule::Flex(width) => bumpalo::format!(in bump,
+                    ".{0} {{ display: flex; flex-wrap: wrap; }} \
+                     .{0} > * {{ width: {1}px!important }}", class, width)
+            .into_bump_str(),
             Rule::Grid => {
                 let body = "{ display: grid; }";
 
