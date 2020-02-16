@@ -63,7 +63,7 @@ impl Sandbox for Tour {
         if steps.has_previous() {
             controls = controls.push(
                 button(back_button, "Back")
-                    .on_press(Message::BackPressed)
+                    .on_press(|| Message::BackPressed)
                     .style(style::Button::Secondary),
             );
         }
@@ -73,7 +73,7 @@ impl Sandbox for Tour {
         if steps.can_continue() {
             controls = controls.push(
                 button(next_button, "Next")
-                    .on_press(Message::NextPressed)
+                    .on_press(|| Message::NextPressed)
                     .style(style::Button::Primary),
             );
         }

@@ -10,6 +10,8 @@ pub use iced_style::button::{Style, StyleSheet};
 
 use dodrio::bumpalo;
 
+use std::rc::Rc;
+
 /// A generic widget that produces a message when pressed.
 ///
 /// ```
@@ -21,12 +23,12 @@ use dodrio::bumpalo;
 ///
 /// let mut state = button::State::new();
 /// let button = Button::new(&mut state, Text::new("Press me!"))
-///     .on_press(Message::ButtonPressed);
+///     .on_press(|| Message::ButtonPressed);
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message> {
     content: Element<'a, Message>,
-    on_press: Option<Message>,
+    on_press: Option<Rc<dyn Fn() -> Message>>,
     width: Length,
     height: Length,
     min_width: u32,
@@ -108,8 +110,10 @@ impl<'a, Message> Button<'a, Message> {
     /// Sets the message that will be produced when the [`Button`] is pressed.
     ///
     /// [`Button`]: struct.Button.html
-    pub fn on_press(mut self, msg: Message) -> Self {
-        self.on_press = Some(msg);
+    pub fn on_press<F>(mut self, on_press: F) -> Self
+        where F: 'static + Fn() -> Message
+    {
+        self.on_press = Some(Rc::new(on_press));
         self
     }
 }
@@ -130,8 +134,7 @@ impl State {
 }
 
 impl<'a, Message> Widget<Message> for Button<'a, Message>
-where
-    Message: 'static + Clone,
+    where Message: 'static
 {
     fn node<'b>(
         &self,
@@ -178,7 +181,7 @@ where
             let event_bus = bus.clone();
 
             node = node.on("click", move |_root, _vdom, _event| {
-                event_bus.publish(on_press.clone());
+                event_bus.publish(on_press());
             });
         }
 
@@ -188,7 +191,7 @@ where
 
 impl<'a, Message> From<Button<'a, Message>> for Element<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(button: Button<'a, Message>) -> Element<'a, Message> {
         Element::new(button)

@@ -105,7 +105,7 @@
 //!                 // The increment button. We tell it to produce an
 //!                 // `IncrementPressed` message when pressed
 //!                 Button::new(&mut self.increment_button, Text::new("+"))
-//!                     .on_press(Message::IncrementPressed),
+//!                     .on_press(|| Message::IncrementPressed),
 //!             )
 //!             .push(
 //!                 // We show the value of the counter here
@@ -115,7 +115,7 @@
 //!                 // The decrement button. We tell it to produce a
 //!                 // `DecrementPressed` message when pressed
 //!                 Button::new(&mut self.decrement_button, Text::new("-"))
-//!                     .on_press(Message::DecrementPressed),
+//!                     .on_press(|| Message::DecrementPressed),
 //!             )
 //!     }
 //! }

@@ -87,13 +87,13 @@ impl Application for Pokedex {
                 .align_items(Align::End)
                 .push(pokemon.view())
                 .push(
-                    button(search, "Keep searching!").on_press(Message::Search),
+                    button(search, "Keep searching!").on_press(|| Message::Search),
                 ),
             Pokedex::Errored { try_again, .. } => Column::new()
                 .spacing(20)
                 .align_items(Align::End)
                 .push(Text::new("Whoops! Something went wrong...").size(40))
-                .push(button(try_again, "Try again").on_press(Message::Search)),
+                .push(button(try_again, "Try again").on_press(|| Message::Search)),
         };
 
         Container::new(content)

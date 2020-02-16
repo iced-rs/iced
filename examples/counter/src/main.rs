@@ -45,12 +45,12 @@ impl Sandbox for Counter {
             .align_items(Align::Center)
             .push(
                 Button::new(&mut self.increment_button, Text::new("Increment"))
-                    .on_press(Message::IncrementPressed),
+                    .on_press(|| Message::IncrementPressed),
             )
             .push(Text::new(self.value.to_string()).size(50))
             .push(
                 Button::new(&mut self.decrement_button, Text::new("Decrement"))
-                    .on_press(Message::DecrementPressed),
+                    .on_press(|| Message::DecrementPressed),
             )
             .into()
     }

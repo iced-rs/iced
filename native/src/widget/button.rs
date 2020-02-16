@@ -25,13 +25,13 @@ use std::hash::Hash;
 ///
 /// let mut state = button::State::new();
 /// let button = Button::new(&mut state, Text::new("Press me!"))
-///     .on_press(Message::ButtonPressed);
+///     .on_press(|| Message::ButtonPressed);
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,
-    on_press: Option<Message>,
+    on_press: Option<Box<dyn Fn() -> Message>>,
     width: Length,
     height: Length,
     min_width: u32,
@@ -109,8 +109,10 @@ where
     /// Sets the message that will be produced when the [`Button`] is pressed.
     ///
     /// [`Button`]: struct.Button.html
-    pub fn on_press(mut self, msg: Message) -> Self {
-        self.on_press = Some(msg);
+    pub fn on_press<F>(mut self, on_press: F) -> Self
+        where F: 'static + Fn() -> Message
+    {
+        self.on_press = Some(Box::new(on_press));
         self
     }
 
@@ -144,7 +146,6 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
-    Message: Clone,
 {
     fn width(&self) -> Length {
         self.width
@@ -189,7 +190,7 @@ where
                 button: mouse::Button::Left,
                 state,
             }) => {
-                if let Some(on_press) = self.on_press.clone() {
+                if let Some(on_press) = self.on_press.as_ref() {
                     let bounds = layout.bounds();
 
                     match state {
@@ -204,7 +205,7 @@ where
                             self.state.is_pressed = false;
 
                             if is_clicked {
-                                messages.push(on_press);
+                                messages.push(on_press());
                             }
                         }
                     }
@@ -275,7 +276,7 @@ impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer,
-    Message: 'static + Clone,
+    Message: 'static,
 {
     fn from(
         button: Button<'a, Message, Renderer>,
