@@ -1,6 +1,10 @@
+//! Configure a [`Renderer`].
+//!
+//! [`Renderer`]: struct.Renderer.html
+
 /// The settings of a [`Renderer`].
 ///
-/// [`Renderer`]: struct.Renderer.html
+/// [`Renderer`]: ../struct.Renderer.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Settings {
     /// The bytes of the font that will be used by default.
@@ -9,24 +13,29 @@ pub struct Settings {
     pub default_font: Option<&'static [u8]>,
 
     /// The antialiasing strategy that will be used for triangle primitives.
-    pub antialiasing: Option<MSAA>,
+    pub antialiasing: Option<Antialiasing>,
 }
 
+/// An antialiasing strategy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MSAA {
-    X2,
-    X4,
-    X8,
-    X16,
+pub enum Antialiasing {
+    /// Multisample AA with 2 samples
+    MSAAx2,
+    /// Multisample AA with 4 samples
+    MSAAx4,
+    /// Multisample AA with 8 samples
+    MSAAx8,
+    /// Multisample AA with 16 samples
+    MSAAx16,
 }
 
-impl MSAA {
+impl Antialiasing {
     pub(crate) fn sample_count(&self) -> u32 {
         match self {
-            MSAA::X2 => 2,
-            MSAA::X4 => 4,
-            MSAA::X8 => 8,
-            MSAA::X16 => 16,
+            Antialiasing::MSAAx2 => 2,
+            Antialiasing::MSAAx4 => 4,
+            Antialiasing::MSAAx8 => 8,
+            Antialiasing::MSAAx16 => 16,
         }
     }
 }

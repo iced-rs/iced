@@ -61,7 +61,7 @@ impl<T> Buffer<T> {
 impl Pipeline {
     pub fn new(
         device: &mut wgpu::Device,
-        antialiasing: Option<settings::MSAA>,
+        antialiasing: Option<settings::Antialiasing>,
     ) -> Pipeline {
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

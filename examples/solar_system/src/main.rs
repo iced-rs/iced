@@ -22,7 +22,7 @@ pub fn main() {
 
 struct SolarSystem {
     state: State,
-    solar_system: canvas::layer::Cached<State>,
+    solar_system: canvas::layer::Cache<State>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -38,7 +38,7 @@ impl Application for SolarSystem {
         (
             SolarSystem {
                 state: State::new(),
-                solar_system: canvas::layer::Cached::new(),
+                solar_system: canvas::layer::Cache::new(),
             },
             Command::none(),
         )
@@ -125,7 +125,7 @@ impl State {
     }
 }
 
-impl canvas::layer::Drawable for State {
+impl canvas::Drawable for State {
     fn draw(&self, frame: &mut canvas::Frame) {
         use canvas::{Fill, Path, Stroke};
         use std::f32::consts::PI;

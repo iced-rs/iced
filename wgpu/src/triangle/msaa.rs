@@ -10,7 +10,10 @@ pub struct Blit {
 }
 
 impl Blit {
-    pub fn new(device: &wgpu::Device, antialiasing: settings::MSAA) -> Blit {
+    pub fn new(
+        device: &wgpu::Device,
+        antialiasing: settings::Antialiasing,
+    ) -> Blit {
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,

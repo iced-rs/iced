@@ -5,12 +5,14 @@ use crate::{
     triangle,
 };
 
+/// The frame of a [`Canvas`].
+///
+/// [`Canvas`]: struct.Canvas.html
 #[derive(Debug)]
 pub struct Frame {
     width: f32,
     height: f32,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
-
     transforms: Transforms,
 }
 
@@ -27,6 +29,12 @@ struct Transform {
 }
 
 impl Frame {
+    /// Creates a new empty [`Frame`] with the given dimensions.
+    ///
+    /// The default coordinate system of a [`Frame`] has its origin at the
+    /// top-left corner of its bounds.
+    ///
+    /// [`Frame`]: struct.Frame.html
     pub fn new(width: f32, height: f32) -> Frame {
         Frame {
             width,
@@ -42,26 +50,43 @@ impl Frame {
         }
     }
 
+    /// Returns the width of the [`Frame`].
+    ///
+    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn width(&self) -> f32 {
         self.width
     }
 
+    /// Returns the width of the [`Frame`].
+    ///
+    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn height(&self) -> f32 {
         self.height
     }
 
+    /// Returns the dimensions of the [`Frame`].
+    ///
+    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn size(&self) -> Size {
         Size::new(self.width, self.height)
     }
 
+    /// Returns the coordinate of the center of the [`Frame`].
+    ///
+    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn center(&self) -> Point {
         Point::new(self.width / 2.0, self.height / 2.0)
     }
 
+    /// Draws the given [`Path`] on the [`Frame`] by filling it with the
+    /// provided style.
+    ///
+    /// [`Path`]: path/struct.Path.html
+    /// [`Frame`]: struct.Frame.html
     pub fn fill(&mut self, path: &Path, fill: Fill) {
         use lyon::tessellation::{
             BuffersBuilder, FillOptions, FillTessellator,
@@ -95,6 +120,11 @@ impl Frame {
         let _ = result.expect("Tessellate path");
     }
 
+    /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
+    /// provided style.
+    ///
+    /// [`Path`]: path/struct.Path.html
+    /// [`Frame`]: struct.Frame.html
     pub fn stroke(&mut self, path: &Path, stroke: Stroke) {
         use lyon::tessellation::{
             BuffersBuilder, StrokeOptions, StrokeTessellator,
@@ -124,6 +154,13 @@ impl Frame {
         let _ = result.expect("Stroke path");
     }
 
+    /// Stores the current transform of the [`Frame`] and executes the given
+    /// drawing operations, restoring the transform afterwards.
+    ///
+    /// This method is useful to compose transforms and perform drawing
+    /// operations in different coordinate systems.
+    ///
+    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn with_save(&mut self, f: impl FnOnce(&mut Frame)) {
         self.transforms.previous.push(self.transforms.current);
@@ -133,6 +170,9 @@ impl Frame {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
+    /// Applies a translation to the current transform of the [`Frame`].
+    ///
+    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn translate(&mut self, translation: Vector) {
         self.transforms.current.raw = self
@@ -146,6 +186,9 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
+    /// Applies a rotation to the current transform of the [`Frame`].
+    ///
+    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn rotate(&mut self, angle: f32) {
         self.transforms.current.raw = self
@@ -156,6 +199,9 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
+    /// Applies a scaling to the current transform of the [`Frame`].
+    ///
+    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn scale(&mut self, scale: f32) {
         self.transforms.current.raw =
@@ -163,6 +209,9 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
+    /// Produces the geometry that has been drawn on the [`Frame`].
+    ///
+    /// [`Frame`]: struct.Frame.html
     pub fn into_mesh(self) -> triangle::Mesh2D {
         triangle::Mesh2D {
             vertices: self.buffers.vertices,

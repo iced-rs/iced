@@ -1,5 +1,5 @@
 use crate::{
-    canvas::{layer::Drawable, Frame, Layer},
+    canvas::{Drawable, Frame, Layer},
     triangle,
 };
 
@@ -8,14 +8,21 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+/// A simple cache that stores generated geometry to avoid recomputation.
+///
+/// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
+/// change or it is explicitly cleared.
+///
+/// [`Layer`]: ../trait.Layer.html
+/// [`Cached`]: struct.Cached.html
 #[derive(Debug)]
-pub struct Cached<T: Drawable> {
+pub struct Cache<T: Drawable> {
     input: PhantomData<T>,
-    cache: RefCell<Cache>,
+    state: RefCell<State>,
 }
 
 #[derive(Debug)]
-enum Cache {
+enum State {
     Empty,
     Filled {
         mesh: Arc<triangle::Mesh2D>,
@@ -23,24 +30,36 @@ enum Cache {
     },
 }
 
-impl<T> Cached<T>
+impl<T> Cache<T>
 where
     T: Drawable + std::fmt::Debug,
 {
+    /// Creates a new empty [`Cache`].
+    ///
+    /// [`Cache`]: struct.Cache.html
     pub fn new() -> Self {
-        Cached {
+        Cache {
             input: PhantomData,
-            cache: RefCell::new(Cache::Empty),
+            state: RefCell::new(State::Empty),
         }
     }
 
+    /// Clears the cache, forcing a redraw the next time it is used.
+    ///
+    /// [`Cached`]: struct.Cached.html
     pub fn clear(&mut self) {
-        *self.cache.borrow_mut() = Cache::Empty;
+        *self.state.borrow_mut() = State::Empty;
     }
 
+    /// Binds the [`Cache`] with some data, producing a [`Layer`] that can be
+    /// added to a [`Canvas`].
+    ///
+    /// [`Cache`]: struct.Cache.html
+    /// [`Layer`]: ../trait.Layer.html
+    /// [`Canvas`]: ../../struct.Canvas.html
     pub fn with<'a>(&'a self, input: &'a T) -> impl Layer + 'a {
         Bind {
-            layer: self,
+            cache: self,
             input: input,
         }
     }
@@ -48,7 +67,7 @@ where
 
 #[derive(Debug)]
 struct Bind<'a, T: Drawable> {
-    layer: &'a Cached<T>,
+    cache: &'a Cache<T>,
     input: &'a T,
 }
 
@@ -59,8 +78,8 @@ where
     fn draw(&self, current_bounds: Size) -> Arc<triangle::Mesh2D> {
         use std::ops::Deref;
 
-        if let Cache::Filled { mesh, bounds } =
-            self.layer.cache.borrow().deref()
+        if let State::Filled { mesh, bounds } =
+            self.cache.state.borrow().deref()
         {
             if *bounds == current_bounds {
                 return mesh.clone();
@@ -72,7 +91,7 @@ where
 
         let mesh = Arc::new(frame.into_mesh());
 
-        *self.layer.cache.borrow_mut() = Cache::Filled {
+        *self.cache.state.borrow_mut() = State::Filled {
             mesh: mesh.clone(),
             bounds: current_bounds,
         };

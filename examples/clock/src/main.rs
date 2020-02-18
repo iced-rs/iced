@@ -12,7 +12,7 @@ pub fn main() {
 
 struct Clock {
     now: LocalTime,
-    clock: canvas::layer::Cached<LocalTime>,
+    clock: canvas::layer::Cache<LocalTime>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -28,7 +28,7 @@ impl Application for Clock {
         (
             Clock {
                 now: chrono::Local::now().into(),
-                clock: canvas::layer::Cached::new(),
+                clock: canvas::layer::Cache::new(),
             },
             Command::none(),
         )
@@ -91,7 +91,7 @@ impl From<chrono::DateTime<chrono::Local>> for LocalTime {
     }
 }
 
-impl canvas::layer::Drawable for LocalTime {
+impl canvas::Drawable for LocalTime {
     fn draw(&self, frame: &mut canvas::Frame) {
         let center = frame.center();
         let radius = frame.width().min(frame.height()) / 2.0;

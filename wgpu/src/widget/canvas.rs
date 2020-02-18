@@ -1,4 +1,11 @@
-//! Draw freely in 2D.
+//! Draw 2D graphics for your users.
+//!
+//! A [`Canvas`] widget can be used to draw different kinds of 2D shapes in a
+//! [`Frame`]. It can be used for animation, data visualization, game graphics,
+//! and more!
+//!
+//! [`Canvas`]: struct.Canvas.html
+//! [`Frame`]: struct.Frame.html
 use crate::{Defaults, Primitive, Renderer};
 
 use iced_native::{
@@ -9,17 +16,26 @@ use std::hash::Hash;
 pub mod layer;
 pub mod path;
 
+mod drawable;
 mod fill;
 mod frame;
 mod stroke;
 
+pub use drawable::Drawable;
 pub use fill::Fill;
 pub use frame::Frame;
 pub use layer::Layer;
 pub use path::Path;
 pub use stroke::{LineCap, LineJoin, Stroke};
 
-/// A 2D drawable region.
+/// A widget capable of drawing 2D graphics.
+///
+/// A [`Canvas`] may contain multiple layers. A [`Layer`] is drawn using the
+/// painter's algorithm. In other words, layers will be drawn on top of each in
+/// the same order they are pushed into the [`Canvas`].
+///
+/// [`Canvas`]: struct.Canvas.html
+/// [`Layer`]: layer/trait.Layer.html
 #[derive(Debug)]
 pub struct Canvas<'a> {
     width: Length,
@@ -30,6 +46,9 @@ pub struct Canvas<'a> {
 impl<'a> Canvas<'a> {
     const DEFAULT_SIZE: u16 = 100;
 
+    /// Creates a new [`Canvas`] with no layers.
+    ///
+    /// [`Canvas`]: struct.Canvas.html
     pub fn new() -> Self {
         Canvas {
             width: Length::Units(Self::DEFAULT_SIZE),
@@ -38,16 +57,28 @@ impl<'a> Canvas<'a> {
         }
     }
 
+    /// Sets the width of the [`Canvas`].
+    ///
+    /// [`Canvas`]: struct.Canvas.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
+    /// Sets the height of the [`Canvas`].
+    ///
+    /// [`Canvas`]: struct.Canvas.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
+    /// Adds a [`Layer`] to the [`Canvas`].
+    ///
+    /// It will be drawn on top of previous layers.
+    ///
+    /// [`Layer`]: layer/trait.Layer.html
+    /// [`Canvas`]: struct.Canvas.html
     pub fn push(mut self, layer: impl Layer + 'a) -> Self {
         self.layers.push(Box::new(layer));
         self
