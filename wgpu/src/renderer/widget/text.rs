@@ -6,13 +6,8 @@ use iced_native::{
 
 use std::f32;
 
-// TODO: Obtain from renderer configuration
-const DEFAULT_TEXT_SIZE: f32 = 20.0;
-
 impl text::Renderer for Renderer {
-    fn default_size(&self) -> u16 {
-        DEFAULT_TEXT_SIZE as u16
-    }
+    const DEFAULT_SIZE: u16 = 20;
 
     fn measure(
         &self,

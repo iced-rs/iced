@@ -26,18 +26,20 @@ use crate::{
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Checkbox<Message, Renderer: self::Renderer> {
+pub struct Checkbox<Message, Renderer: self::Renderer + text::Renderer> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: String,
-    size: u16,
     width: Length,
+    size: u16,
     spacing: u16,
     text_size: u16,
     style: Renderer::Style,
 }
 
-impl<Message, Renderer: self::Renderer> Checkbox<Message, Renderer> {
+impl<Message, Renderer: self::Renderer + text::Renderer>
+    Checkbox<Message, Renderer>
+{
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
@@ -56,10 +58,10 @@ impl<Message, Renderer: self::Renderer> Checkbox<Message, Renderer> {
             is_checked,
             on_toggle: Box::new(f),
             label: String::from(label),
-            size: 20,
             width: Length::Shrink,
-            spacing: 15,
-            text_size: 20,
+            size: <Renderer as self::Renderer>::DEFAULT_SIZE,
+            spacing: Renderer::DEFAULT_SPACING,
+            text_size: <Renderer as text::Renderer>::DEFAULT_SIZE,
             style: Renderer::Style::default(),
         }
     }
@@ -135,7 +137,8 @@ where
             .push(
                 Text::new(&self.label)
                     .width(self.width)
-                    .size(self.text_size))
+                    .size(self.text_size),
+            )
             .layout(renderer, limits)
     }
 
@@ -217,10 +220,15 @@ pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
 
-    /// Returns the default size of a [`Checkbox`].
+    /// The default size of a [`Checkbox`].
     ///
     /// [`Checkbox`]: struct.Checkbox.html
-    fn default_size(&self) -> u32;
+    const DEFAULT_SIZE: u16;
+
+    /// The default spacing of a [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    const DEFAULT_SPACING: u16;
 
     /// Draws a [`Checkbox`].
     ///
