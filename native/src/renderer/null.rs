@@ -47,9 +47,7 @@ impl row::Renderer for Null {
 }
 
 impl text::Renderer for Null {
-    fn default_size(&self) -> u16 {
-        20
-    }
+    const DEFAULT_SIZE: u16 = 20;
 
     fn measure(
         &self,
@@ -179,9 +177,8 @@ impl radio::Renderer for Null {
 impl checkbox::Renderer for Null {
     type Style = ();
 
-    fn default_size(&self) -> u32 {
-        20
-    }
+    const DEFAULT_SIZE: u16 = 20;
+    const DEFAULT_SPACING: u16 = 15;
 
     fn draw(
         &mut self,

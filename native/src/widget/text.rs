@@ -131,7 +131,7 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
-        let size = self.size.unwrap_or(renderer.default_size());
+        let size = self.size.unwrap_or(Renderer::DEFAULT_SIZE);
 
         let bounds = limits.max();
 
@@ -154,7 +154,7 @@ where
             defaults,
             layout.bounds(),
             &self.content,
-            self.size.unwrap_or(renderer.default_size()),
+            self.size.unwrap_or(Renderer::DEFAULT_SIZE),
             self.font,
             self.color,
             self.horizontal_alignment,
@@ -179,10 +179,10 @@ where
 /// [renderer]: ../../renderer/index.html
 /// [`UserInterface`]: ../../struct.UserInterface.html
 pub trait Renderer: crate::Renderer {
-    /// Returns the default size of the [`Text`].
+    /// The default size of [`Text`].
     ///
     /// [`Text`]: struct.Text.html
-    fn default_size(&self) -> u16;
+    const DEFAULT_SIZE: u16;
 
     /// Measures the [`Text`] in the given bounds and returns the minimum
     /// boundaries that can fit the contents.

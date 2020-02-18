@@ -149,7 +149,7 @@ where
             defaults,
             label_layout.bounds(),
             &self.label,
-            text::Renderer::default_size(renderer),
+            <Renderer as text::Renderer>::DEFAULT_SIZE,
             Font::Default,
             None,
             HorizontalAlignment::Left,

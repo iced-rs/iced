@@ -26,15 +26,20 @@ use crate::{
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Checkbox<Message, Renderer: self::Renderer> {
+pub struct Checkbox<Message, Renderer: self::Renderer + text::Renderer> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: String,
     width: Length,
+    size: u16,
+    spacing: u16,
+    text_size: u16,
     style: Renderer::Style,
 }
 
-impl<Message, Renderer: self::Renderer> Checkbox<Message, Renderer> {
+impl<Message, Renderer: self::Renderer + text::Renderer>
+    Checkbox<Message, Renderer>
+{
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
@@ -54,8 +59,19 @@ impl<Message, Renderer: self::Renderer> Checkbox<Message, Renderer> {
             on_toggle: Box::new(f),
             label: String::from(label),
             width: Length::Shrink,
+            size: <Renderer as self::Renderer>::DEFAULT_SIZE,
+            spacing: Renderer::DEFAULT_SPACING,
+            text_size: <Renderer as text::Renderer>::DEFAULT_SIZE,
             style: Renderer::Style::default(),
         }
+    }
+
+    /// Sets the size of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn size(mut self, size: u16) -> Self {
+        self.size = size;
+        self
     }
 
     /// Sets the width of the [`Checkbox`].
@@ -63,6 +79,22 @@ impl<Message, Renderer: self::Renderer> Checkbox<Message, Renderer> {
     /// [`Checkbox`]: struct.Checkbox.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the spacing between the [`Checkbox`] and the text.
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn spacing(mut self, spacing: u16) -> Self {
+        self.spacing = spacing;
+        self
+    }
+
+    /// Sets the text size of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn text_size(mut self, text_size: u16) -> Self {
+        self.text_size = text_size;
         self
     }
 
@@ -93,18 +125,20 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = self::Renderer::default_size(renderer);
-
         Row::<(), Renderer>::new()
             .width(self.width)
-            .spacing(15)
+            .spacing(self.spacing)
             .align_items(Align::Center)
             .push(
                 Row::new()
-                    .width(Length::Units(size as u16))
-                    .height(Length::Units(size as u16)),
+                    .width(Length::Units(self.size))
+                    .height(Length::Units(self.size)),
             )
-            .push(Text::new(&self.label).width(self.width))
+            .push(
+                Text::new(&self.label)
+                    .width(self.width)
+                    .size(self.text_size),
+            )
             .layout(renderer, limits)
     }
 
@@ -151,7 +185,7 @@ where
             defaults,
             label_layout.bounds(),
             &self.label,
-            text::Renderer::default_size(renderer),
+            self.text_size,
             Font::Default,
             None,
             HorizontalAlignment::Left,
@@ -186,10 +220,15 @@ pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
 
-    /// Returns the default size of a [`Checkbox`].
+    /// The default size of a [`Checkbox`].
     ///
     /// [`Checkbox`]: struct.Checkbox.html
-    fn default_size(&self) -> u32;
+    const DEFAULT_SIZE: u16;
+
+    /// The default spacing of a [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    const DEFAULT_SPACING: u16;
 
     /// Draws a [`Checkbox`].
     ///
