@@ -5,7 +5,7 @@ use iced::{
 
 pub fn main() {
     Clock::run(Settings {
-        use_antialiasing: true,
+        antialiasing: true,
         ..Settings::default()
     })
 }

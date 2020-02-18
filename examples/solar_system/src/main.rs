@@ -15,7 +15,7 @@ use std::time::Instant;
 
 pub fn main() {
     SolarSystem::run(Settings {
-        use_antialiasing: true,
+        antialiasing: true,
         ..Settings::default()
     })
 }
