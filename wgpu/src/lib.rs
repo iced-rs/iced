@@ -25,6 +25,7 @@
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 pub mod defaults;
+pub mod settings;
 pub mod triangle;
 pub mod widget;
 pub mod window;
@@ -33,7 +34,6 @@ mod image;
 mod primitive;
 mod quad;
 mod renderer;
-mod settings;
 mod target;
 mod text;
 mod transformation;

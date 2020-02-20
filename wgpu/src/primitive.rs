@@ -1,5 +1,5 @@
 use iced_native::{
-    image, svg, Background, Color, Font, HorizontalAlignment, Rectangle,
+    image, svg, Background, Color, Font, HorizontalAlignment, Point, Rectangle,
     Vector, VerticalAlignment,
 };
 
@@ -73,7 +73,13 @@ pub enum Primitive {
     /// A low-level primitive to render a mesh of triangles.
     ///
     /// It can be used to render many kinds of geometry freely.
-    Mesh2D(Arc<triangle::Mesh2D>),
+    Mesh2D {
+        /// The top-left coordinate of the mesh
+        origin: Point,
+
+        /// The vertex and index buffers of the mesh
+        buffers: Arc<triangle::Mesh2D>,
+    },
 }
 
 impl Default for Primitive {

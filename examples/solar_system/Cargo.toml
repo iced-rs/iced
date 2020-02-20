@@ -1,0 +1,15 @@
+[package]
+name = "solar_system"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+publish = false
+
+[features]
+canvas = []
+
+[dependencies]
+iced = { path = "../..", features = ["canvas", "async-std", "debug"] }
+iced_native = { path = "../../native" }
+async-std = { version = "1.0", features = ["unstable"] }
+rand = "0.7"

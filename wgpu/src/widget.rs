@@ -32,3 +32,10 @@ pub use scrollable::Scrollable;
 pub use slider::Slider;
 #[doc(no_inline)]
 pub use text_input::TextInput;
+
+#[cfg(feature = "canvas")]
+pub mod canvas;
+
+#[cfg(feature = "canvas")]
+#[doc(no_inline)]
+pub use canvas::Canvas;

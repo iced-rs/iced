@@ -16,6 +16,15 @@ pub struct Settings {
     /// If `None` is provided, a default system font will be chosen.
     // TODO: Add `name` for web compatibility
     pub default_font: Option<&'static [u8]>,
+
+    /// If set to true, the renderer will try to perform antialiasing for some
+    /// primitives.
+    ///
+    /// Enabling it can produce a smoother result in some widgets, like the
+    /// `Canvas`, at a performance cost.
+    ///
+    /// By default, it is disabled.
+    pub antialiasing: bool,
 }
 
 #[cfg(not(target_arch = "wasm32"))]

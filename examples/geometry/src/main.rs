@@ -69,72 +69,75 @@ mod rainbow {
 
             let posn_center = {
                 if b.contains(cursor_position) {
-                    [cursor_position.x, cursor_position.y]
+                    [cursor_position.x - b.x, cursor_position.y - b.y]
                 } else {
-                    [b.x + (b.width / 2.0), b.y + (b.height / 2.0)]
+                    [b.width / 2.0, b.height / 2.0]
                 }
             };
 
-            let posn_tl = [b.x, b.y];
-            let posn_t = [b.x + (b.width / 2.0), b.y];
-            let posn_tr = [b.x + b.width, b.y];
-            let posn_r = [b.x + b.width, b.y + (b.height / 2.0)];
-            let posn_br = [b.x + b.width, b.y + b.height];
-            let posn_b = [b.x + (b.width / 2.0), b.y + b.height];
-            let posn_bl = [b.x, b.y + b.height];
-            let posn_l = [b.x, b.y + (b.height / 2.0)];
+            let posn_tl = [0.0, 0.0];
+            let posn_t = [b.width / 2.0, 0.0];
+            let posn_tr = [b.width, 0.0];
+            let posn_r = [b.width, b.height / 2.0];
+            let posn_br = [b.width, b.height];
+            let posn_b = [(b.width / 2.0), b.height];
+            let posn_bl = [0.0, b.height];
+            let posn_l = [0.0, b.height / 2.0];
 
             (
-                Primitive::Mesh2D(std::sync::Arc::new(Mesh2D {
-                    vertices: vec![
-                        Vertex2D {
-                            position: posn_center,
-                            color: [1.0, 1.0, 1.0, 1.0],
-                        },
-                        Vertex2D {
-                            position: posn_tl,
-                            color: color_r,
-                        },
-                        Vertex2D {
-                            position: posn_t,
-                            color: color_o,
-                        },
-                        Vertex2D {
-                            position: posn_tr,
-                            color: color_y,
-                        },
-                        Vertex2D {
-                            position: posn_r,
-                            color: color_g,
-                        },
-                        Vertex2D {
-                            position: posn_br,
-                            color: color_gb,
-                        },
-                        Vertex2D {
-                            position: posn_b,
-                            color: color_b,
-                        },
-                        Vertex2D {
-                            position: posn_bl,
-                            color: color_i,
-                        },
-                        Vertex2D {
-                            position: posn_l,
-                            color: color_v,
-                        },
-                    ],
-                    indices: vec![
-                        0, 1, 2, // TL
-                        0, 2, 3, // T
-                        0, 3, 4, // TR
-                        0, 4, 5, // R
-                        0, 5, 6, // BR
-                        0, 6, 7, // B
-                        0, 7, 8, // BL
-                        0, 8, 1, // L
-                    ],
-                })),
+                Primitive::Mesh2D {
+                    origin: Point::new(b.x, b.y),
+                    buffers: std::sync::Arc::new(Mesh2D {
+                        vertices: vec![
+                            Vertex2D {
+                                position: posn_center,
+                                color: [1.0, 1.0, 1.0, 1.0],
+                            },
+                            Vertex2D {
+                                position: posn_tl,
+                                color: color_r,
+                            },
+                            Vertex2D {
+                                position: posn_t,
+                                color: color_o,
+                            },
+                            Vertex2D {
+                                position: posn_tr,
+                                color: color_y,
+                            },
+                            Vertex2D {
+                                position: posn_r,
+                                color: color_g,
+                            },
+                            Vertex2D {
+                                position: posn_br,
+                                color: color_gb,
+                            },
+                            Vertex2D {
+                                position: posn_b,
+                                color: color_b,
+                            },
+                            Vertex2D {
+                                position: posn_bl,
+                                color: color_i,
+                            },
+                            Vertex2D {
+                                position: posn_l,
+                                color: color_v,
+                            },
+                        ],
+                        indices: vec![
+                            0, 1, 2, // TL
+                            0, 2, 3, // T
+                            0, 3, 4, // TR
+                            0, 4, 5, // R
+                            0, 5, 6, // BR
+                            0, 6, 7, // B
+                            0, 7, 8, // BL
+                            0, 8, 1, // L
+                        ],
+                    }),
+                },
                 MouseCursor::OutOfBounds,
             )
         }

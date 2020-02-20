@@ -26,7 +26,7 @@ struct Layer<'a> {
     offset: Vector<u32>,
     quads: Vec<Quad>,
     images: Vec<Image>,
-    meshes: Vec<Arc<triangle::Mesh2D>>,
+    meshes: Vec<(Point, Arc<triangle::Mesh2D>)>,
     text: Vec<wgpu_glyph::Section<'a>>,
 }
 
@@ -51,7 +51,8 @@ impl Renderer {
         let text_pipeline = text::Pipeline::new(device, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(device);
         let image_pipeline = crate::image::Pipeline::new(device);
-        let triangle_pipeline = triangle::Pipeline::new(device);
+        let triangle_pipeline =
+            triangle::Pipeline::new(device, settings.antialiasing);
 
         Self {
             quad_pipeline,
@@ -105,6 +106,8 @@ impl Renderer {
                 &layer,
                 encoder,
                 target.texture,
+                width,
+                height,
             );
         }
 
@@ -229,8 +232,8 @@ impl Renderer {
                     scale: [bounds.width, bounds.height],
                 });
             }
-            Primitive::Mesh2D(mesh) => {
-                layer.meshes.push(mesh.clone());
+            Primitive::Mesh2D { origin, buffers } => {
+                layer.meshes.push((*origin, buffers.clone()));
             }
             Primitive::Clip {
                 bounds,
@@ -308,22 +311,26 @@ impl Renderer {
         layer: &Layer<'_>,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
+        target_width: u32,
+        target_height: u32,
     ) {
         let bounds = layer.bounds * scale_factor;
 
         if layer.meshes.len() > 0 {
             let translated = transformation
+                * Transformation::scale(scale_factor, scale_factor)
                 * Transformation::translate(
-                    -(layer.offset.x as f32) * scale_factor,
-                    -(layer.offset.y as f32) * scale_factor,
+                    -(layer.offset.x as f32),
+                    -(layer.offset.y as f32),
                 );
 
             self.triangle_pipeline.draw(
                 device,
                 encoder,
                 target,
+                target_width,
+                target_height,
                 translated,
-                scale_factor,
                 &layer.meshes,
                 bounds,
             );
