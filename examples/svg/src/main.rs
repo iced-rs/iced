@@ -22,7 +22,7 @@ impl Sandbox for Tiger {
 
     fn view(&mut self) -> Element<()> {
         let content = Column::new().padding(20).push(
-            Svg::new(format!("{}/tiger.svg", env!("CARGO_MANIFEST_DIR")))
+            Svg::new(format!("{}/resources/tiger.svg", env!("CARGO_MANIFEST_DIR")))
                 .width(Length::Fill)
                 .height(Length::Fill),
         );
