@@ -347,6 +347,19 @@ pub trait Application: Sized {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                     }
+                    #[cfg(target_os = "macos")]
+                    WindowEvent::KeyboardInput {
+                        input:
+                            winit::event::KeyboardInput {
+                                virtual_keycode:
+                                    Some(winit::event::VirtualKeyCode::Q),
+                                state: winit::event::ElementState::Pressed,
+                                ..
+                            },
+                        ..
+                    } if modifiers.logo() => {
+                        *control_flow = ControlFlow::Exit;
+                    }
                     #[cfg(feature = "debug")]
                     WindowEvent::KeyboardInput {
                         input:
