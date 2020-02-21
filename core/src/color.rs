@@ -36,18 +36,13 @@ impl Color {
         a: 0.0,
     };
 
-    /// Calmps a float value to the range [0.0, 1.0]
-    pub fn clamp(v: f32) -> f32 {
-        v.max(0.0f32).min(1.0f32)
-    }
-
-    /// Ensures RGBA values on the range [0.0, 1.0]
+    /// New Color with range checks
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         Color {
-            r: Color::clamp(r),
-            g: Color::clamp(g),
-            b: Color::clamp(b),
-            a: Color::clamp(a),
+            r: clamp(r),
+            g: clamp(g),
+            b: clamp(b),
+            a: clamp(a),
         }
     }
 
@@ -73,7 +68,7 @@ impl Color {
             r: f32::from(r) / 255.0,
             g: f32::from(g) / 255.0,
             b: f32::from(b) / 255.0,
-            a: Color::clamp(a),
+            a: clamp(a),
         }
     }
 
@@ -101,9 +96,9 @@ impl Color {
 
     /// Invert the Color in-place
     pub fn invert(&mut self) {
-        self.r = Color::clamp(1.0f32 - self.r);
-        self.b = Color::clamp(1.0f32 - self.g);
-        self.g = Color::clamp(1.0f32 - self.b);
+        self.r = clamp(1.0f32 - self.r);
+        self.b = clamp(1.0f32 - self.g);
+        self.g = clamp(1.0f32 - self.b);
     }
 
     /// Return an inverted Color
@@ -114,12 +109,107 @@ impl Color {
 
 impl From<[f32; 3]> for Color {
     fn from([r, g, b]: [f32; 3]) -> Self {
-        Color { r, g, b, a: 1.0 }
+        Color::new(r, g, b, 1.0)
     }
 }
 
 impl From<[f32; 4]> for Color {
     fn from([r, g, b, a]: [f32; 4]) -> Self {
-        Color { r, g, b, a }
+        Color::new(r, g, b, a)
     }
+}
+
+impl From<HSLColor> for Color {
+    fn from(hsl: HSLColor) -> Self {
+        // Compute Chroma
+        let ch = (1.0 - (2.0 * hsl.l - 1.0).abs()) * hsl.s;
+
+        // Quantized Hue: H'
+        let hp: u8 = (hsl.h / 60.0).ceil() as u8;
+        let x: f32 = ch * f32::from(1 - ((hp % 2) - 1));
+
+        // Intermediate RGB values
+        let (r1, g1, b1): (f32, f32, f32) = match hp {
+            1 => (ch, x, 0.0),
+            2 => (x, ch, 0.0),
+            3 => (0.0, ch, x),
+            4 => (0.0, x, ch),
+            5 => (x, 0.0, ch),
+            6 => (ch, 0.0, x),
+            _ => (0.0, 0.0, 0.0),
+        };
+
+        // Match lightness
+        let m = hsl.l - ch / 2.0;
+
+        Color::new(r1 + m, g1 + m, b1 + m, hsl.a)
+    }
+}
+
+/// A color in the HSL color space.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HSLColor {
+    /// Hue, 0.0 - 360.0
+    pub h: f32,
+    /// Saturation, 0.0 - 1.0
+    pub s: f32,
+    /// Lightness, 0.0 - 1.0
+    pub l: f32,
+    /// Transparency, 0.0 - 1.0
+    pub a: f32,
+}
+
+impl HSLColor {
+    /// New HSLColor with range checks
+    pub fn new(h: f32, s: f32, l: f32, a: f32) -> HSLColor {
+        HSLColor {
+            h: clamp_hue(h),
+            s: clamp(s),
+            l: clamp(l),
+            a: clamp(a),
+        }
+    }
+}
+
+impl From<Color> for HSLColor {
+    fn from(c: Color) -> Self {
+        // https://en.wikipedia.org/wiki/HSL_and_HSV#From_RGB
+
+        // Maximum of the RGB: color Value (for HSV)
+        let v: f32 = c.r.max(c.g).max(c.b);
+        // Minimum of the RGB values
+        let m: f32 = c.r.min(c.g).min(c.b);
+        // Chroma
+        let ch: f32 = v - m;
+        // Lightness
+        let l: f32 = (v + m) / 2.0;
+
+        // Determine Hue
+        let mut h = 0.0f32;
+        if c.r >= c.g && c.r >= c.b {
+            h = 60.0 * (c.g - c.b) / ch;
+        } else if c.g >= c.r && c.g >= c.b {
+            h = 60.0 * (2.0 + (c.b - c.r) / ch);
+        } else if c.b >= c.r && c.b >= c.g {
+            h = 60.0 * (4.0 + (c.r - c.g) / ch);
+        }
+
+        // Determine saturation
+        let mut s = 0.0f32;
+        if l > 0.0 && l < 1.0 {
+            s = (v - l) / l.min(1.0 - l);
+        }
+
+        HSLColor::new(h, s, l, c.a)
+    }
+}
+
+/// Calmps a float value to the range [0.0, 1.0]
+pub fn clamp(v: f32) -> f32 {
+    v.max(0.0f32).min(1.0f32)
+}
+
+/// Calmps a float value to the range [0.0, 360.0]
+pub fn clamp_hue(v: f32) -> f32 {
+    v.max(0.0f32).min(360.0f32)
 }
