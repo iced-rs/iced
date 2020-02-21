@@ -2,11 +2,16 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(missing_docs)]
 pub struct Color {
+    /// Red component, 0.0 - 1.0
     pub r: f32,
+    /// Green component, 0.0 - 1.0
     pub g: f32,
+    /// Blue component, 0.0 - 1.0
     pub b: f32,
+    /// Transparency, 0.0 - 1.0
     pub a: f32,
 }
+
 
 impl Color {
     /// The black color.
@@ -33,11 +38,26 @@ impl Color {
         a: 0.0,
     };
 
+    /// Calmps a float value to the range [0.0, 1.0]
+    pub fn clamp(v: f32) -> f32 {
+        v.max(0.0f32).min(1.0f32)
+    }
+
+    /// Ensures RGBA values on the range [0.0, 1.0]
+    pub fn check_rgba(r: f32, g: f32, b: f32, a:f32) -> Color {
+        Color {
+            r: Color::clamp(r),
+            g: Color::clamp(g),
+            b: Color::clamp(b),
+            a: Color::clamp(a),
+        }
+    }
+
     /// Creates a [`Color`] from its RGB components.
     ///
     /// [`Color`]: struct.Color.html
-    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Color {
-        Color { r, g, b, a: 1.0 }
+    pub fn from_rgb(r: f32, g: f32, b: f32) -> Color {
+        Color::check_rgba(r, g, b, 1.0)
     }
 
     /// Creates a [`Color`] from its RGB8 components.
@@ -55,7 +75,7 @@ impl Color {
             r: f32::from(r) / 255.0,
             g: f32::from(g) / 255.0,
             b: f32::from(b) / 255.0,
-            a,
+            a: Color::clamp(a),
         }
     }
 
