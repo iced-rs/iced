@@ -1,6 +1,5 @@
 /// A color in the sRGB color space.
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[allow(missing_docs)]
 pub struct Color {
     /// Red component, 0.0 - 1.0
     pub r: f32,
@@ -11,7 +10,6 @@ pub struct Color {
     /// Transparency, 0.0 - 1.0
     pub a: f32,
 }
-
 
 impl Color {
     /// The black color.
@@ -44,7 +42,7 @@ impl Color {
     }
 
     /// Ensures RGBA values on the range [0.0, 1.0]
-    pub fn check_rgba(r: f32, g: f32, b: f32, a:f32) -> Color {
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         Color {
             r: Color::clamp(r),
             g: Color::clamp(g),
@@ -57,7 +55,7 @@ impl Color {
     ///
     /// [`Color`]: struct.Color.html
     pub fn from_rgb(r: f32, g: f32, b: f32) -> Color {
-        Color::check_rgba(r, g, b, 1.0)
+        Color::new(r, g, b, 1.0)
     }
 
     /// Creates a [`Color`] from its RGB8 components.
@@ -99,6 +97,18 @@ impl Color {
             linear_component(self.b),
             self.a,
         ]
+    }
+
+    /// Invert the Color in-place
+    pub fn invert(&mut self) {
+        self.r = Color::clamp(1.0f32 - self.r);
+        self.b = Color::clamp(1.0f32 - self.g);
+        self.g = Color::clamp(1.0f32 - self.b);
+    }
+
+    /// Return an inverted Color
+    pub fn inverse(self) -> Color {
+        Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
     }
 }
 
