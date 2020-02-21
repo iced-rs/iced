@@ -69,7 +69,8 @@ cargo run --package styling
 ## Extras
 A bunch of simpler examples exist:
 
-- [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bezier curves using [`lyon`].
+- [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bézier curves using [`lyon`].
+- [`clock`](clock), an application that uses the `Canvas` widget to draw a clock and its hands to display the current time.
 - [`counter`](counter), the classic counter example explained in the [`README`](../README.md).
 - [`custom_widget`](custom_widget), a demonstration of how to build a custom widget that draws a circle.
 - [`events`](events), a log of native events displayed using a conditional `Subscription`.
@@ -77,6 +78,7 @@ A bunch of simpler examples exist:
 - [`integration`](integration), a demonstration of how to integrate Iced in an existing graphical application.
 - [`pokedex`](pokedex), an application that displays a random Pokédex entry (sprite included!) by using the [PokéAPI].
 - [`progress_bar`](progress_bar), a simple progress bar that can be filled by using a slider.
+- [`solar_system`](solar_system), an animated solar system drawn using the `Canvas` widget and showcasing how to compose different transforms.
 - [`stopwatch`](stopwatch), a watch with start/stop and reset buttons showcasing how to listen to time.
 - [`svg`](svg), an application that renders the [Ghostscript Tiger] by leveraging the `Svg` widget.
 
