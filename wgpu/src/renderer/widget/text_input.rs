@@ -46,7 +46,7 @@ impl text_input::Renderer for Renderer {
                 text_bounds,
                 value,
                 size,
-                state.cursor_position(value),
+                state.cursor_position(value).position(),
                 font,
             );
 
@@ -111,14 +111,54 @@ impl text_input::Renderer for Renderer {
         };
 
         let (contents_primitive, offset) = if state.is_focused() {
+            let cursor = state.cursor_position(value);
             let (text_value_width, offset) = measure_cursor_and_scroll_offset(
                 self,
                 text_bounds,
                 value,
                 size,
-                state.cursor_position(value),
+                cursor.position(),
                 font,
             );
+
+            let selection = match cursor {
+                text_input::Cursor::Index(_) => Primitive::None,
+                text_input::Cursor::Selection { .. } => {
+                    let (cursor_left_offset, _) =
+                        measure_cursor_and_scroll_offset(
+                            self,
+                            text_bounds,
+                            value,
+                            size,
+                            cursor.left(),
+                            font,
+                        );
+                    let (cursor_right_offset, _) =
+                        measure_cursor_and_scroll_offset(
+                            self,
+                            text_bounds,
+                            value,
+                            size,
+                            cursor.right(),
+                            font,
+                        );
+                    let width = cursor_right_offset - cursor_left_offset;
+                    Primitive::Quad {
+                        bounds: Rectangle {
+                            x: text_bounds.x + cursor_left_offset,
+                            y: text_bounds.y,
+                            width,
+                            height: text_bounds.height,
+                        },
+                        background: Background::Color(
+                            style_sheet.selection_color(),
+                        ),
+                        border_radius: 0,
+                        border_width: 0,
+                        border_color: Color::TRANSPARENT,
+                    }
+                }
+            };
 
             let cursor = Primitive::Quad {
                 bounds: Rectangle {
@@ -135,7 +175,7 @@ impl text_input::Renderer for Renderer {
 
             (
                 Primitive::Group {
-                    primitives: vec![text_value, cursor],
+                    primitives: vec![selection, text_value, cursor],
                 },
                 Vector::new(offset as u32, 0),
             )

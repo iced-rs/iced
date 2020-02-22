@@ -226,7 +226,53 @@ where
                             self.font,
                         );
 
-                        self.state.cursor_position = find_cursor_position(
+                        self.state.cursor_position =
+                            Cursor::Index(find_cursor_position(
+                                renderer,
+                                target + offset,
+                                &value,
+                                size,
+                                0,
+                                self.value.len(),
+                                self.font,
+                            ));
+                    } else {
+                        self.state.cursor_position = Cursor::Index(0);
+                    }
+                }
+
+                self.state.is_pressed = is_clicked;
+                self.state.is_focused = is_clicked;
+            }
+            Event::Mouse(mouse::Event::Input {
+                button: mouse::Button::Left,
+                state: ButtonState::Released,
+            }) => {
+                self.state.is_pressed = false;
+            }
+            Event::Mouse(mouse::Event::CursorMoved { x, .. }) => {
+                if self.state.is_pressed {
+                    let text_layout = layout.children().next().unwrap();
+                    let target = x - text_layout.bounds().x;
+
+                    if target > 0.0 {
+                        let value = if self.is_secure {
+                            self.value.secure()
+                        } else {
+                            self.value.clone()
+                        };
+
+                        let size = self.size.unwrap_or(renderer.default_size());
+
+                        let offset = renderer.offset(
+                            text_layout.bounds(),
+                            size,
+                            &value,
+                            &self.state,
+                            self.font,
+                        );
+
+                        let pos = find_cursor_position(
                             renderer,
                             target + offset,
                             &value,
@@ -235,21 +281,34 @@ where
                             self.value.len(),
                             self.font,
                         );
-                    } else {
-                        self.state.cursor_position = 0;
+
+                        let start = match self.state.cursor_position {
+                            Cursor::Index(index) => index,
+                            Cursor::Selection { start, .. } => start,
+                        };
+
+                        self.state.cursor_position =
+                            Cursor::Selection { start, end: pos }.simplify();
                     }
                 }
-
-                self.state.is_focused = is_clicked;
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
                     && self.state.is_pasting.is_none()
                     && !c.is_control() =>
             {
-                let cursor_position = self.state.cursor_position(&self.value);
+                let cursor = self.state.cursor_position(&self.value);
 
-                self.value.insert(cursor_position, c);
+                match cursor {
+                    Cursor::Index(index) => {
+                        self.value.insert(index, c);
+                    }
+                    Cursor::Selection { .. } => {
+                        self.state.move_cursor_left(&self.value);
+                        self.value.remove_many(cursor.left(), cursor.right());
+                        self.value.insert(cursor.left(), c);
+                    }
+                }
                 self.state.move_cursor_right(&self.value);
 
                 let message = (self.on_change)(self.value.to_string());
@@ -266,27 +325,46 @@ where
                     }
                 }
                 keyboard::KeyCode::Backspace => {
-                    let cursor_position =
-                        self.state.cursor_position(&self.value);
+                    let cursor = self.state.cursor_position(&self.value);
 
-                    if cursor_position > 0 {
-                        self.state.move_cursor_left(&self.value);
-
-                        let _ = self.value.remove(cursor_position - 1);
-
-                        let message = (self.on_change)(self.value.to_string());
-                        messages.push(message);
+                    match cursor {
+                        Cursor::Index(index) if index > 0 => {
+                            self.state.move_cursor_left(&self.value);
+                            let _ = self.value.remove(index - 1);
+                            let message =
+                                (self.on_change)(self.value.to_string());
+                            messages.push(message);
+                        }
+                        Cursor::Selection { .. } => {
+                            self.state.move_cursor_left(&self.value);
+                            self.value
+                                .remove_many(cursor.left(), cursor.right());
+                            let message =
+                                (self.on_change)(self.value.to_string());
+                            messages.push(message);
+                        }
+                        _ => {}
                     }
                 }
                 keyboard::KeyCode::Delete => {
-                    let cursor_position =
-                        self.state.cursor_position(&self.value);
+                    let cursor = self.state.cursor_position(&self.value);
 
-                    if cursor_position < self.value.len() {
-                        let _ = self.value.remove(cursor_position);
-
-                        let message = (self.on_change)(self.value.to_string());
-                        messages.push(message);
+                    match cursor {
+                        Cursor::Index(index) if index < self.value.len() => {
+                            let _ = self.value.remove(index);
+                            let message =
+                                (self.on_change)(self.value.to_string());
+                            messages.push(message);
+                        }
+                        Cursor::Selection { .. } => {
+                            self.state.move_cursor_left(&self.value);
+                            self.value
+                                .remove_many(cursor.left(), cursor.right());
+                            let message =
+                                (self.on_change)(self.value.to_string());
+                            messages.push(message);
+                        }
+                        _ => {}
                     }
                 }
                 keyboard::KeyCode::Left => {
@@ -308,7 +386,7 @@ where
                     }
                 }
                 keyboard::KeyCode::Home => {
-                    self.state.cursor_position = 0;
+                    self.state.cursor_position = Cursor::Index(0);
                 }
                 keyboard::KeyCode::End => {
                     self.state.move_cursor_to_end(&self.value);
@@ -333,8 +411,19 @@ where
                             let cursor_position =
                                 self.state.cursor_position(&self.value);
 
+                            let insert_position = match cursor_position {
+                                Cursor::Index(index) => index,
+                                Cursor::Selection { .. } => {
+                                    self.state.move_cursor_left(&self.value);
+                                    self.value.remove_many(
+                                        cursor_position.left(),
+                                        cursor_position.right(),
+                                    );
+                                    cursor_position.left()
+                                }
+                            };
                             self.value
-                                .insert_many(cursor_position, content.clone());
+                                .insert_many(insert_position, content.clone());
 
                             self.state.move_cursor_right_by_amount(
                                 &self.value,
@@ -499,9 +588,73 @@ where
 #[derive(Debug, Default, Clone)]
 pub struct State {
     is_focused: bool,
+    is_pressed: bool,
     is_pasting: Option<Value>,
-    cursor_position: usize,
+    cursor_position: Cursor,
     // TODO: Add stateful horizontal scrolling offset
+}
+
+/// The cursor position of a [`TextInput`].
+///
+/// [`TextInput`]: struct.TextInput.html
+#[derive(Debug, Clone, Copy)]
+pub enum Cursor {
+    /// The cursor represents a position.
+    Index(usize),
+    /// The cursor represents a range.
+    Selection {
+        /// Where the selection started.
+        start: usize,
+        /// Where the selection was moved to.
+        end: usize,
+    },
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor::Index(0)
+    }
+}
+
+impl Cursor {
+    /// Simplify representation to `Cursor::Index`
+    /// if `start` and `end` are the same.
+    pub fn simplify(&self) -> Self {
+        match self {
+            Cursor::Index(_) => *self,
+            Cursor::Selection { start, end } => {
+                if start == end {
+                    Cursor::Index(*start)
+                } else {
+                    *self
+                }
+            }
+        }
+    }
+
+    /// Position at which the cursor should be drawn.
+    pub fn position(&self) -> usize {
+        match *self {
+            Cursor::Index(index) => index,
+            Cursor::Selection { end, .. } => end,
+        }
+    }
+
+    /// The cursor index or left end of the selection.
+    pub fn left(&self) -> usize {
+        match *self {
+            Cursor::Index(index) => index,
+            Cursor::Selection { start, end } => start.min(end),
+        }
+    }
+
+    /// The cursor index or right end of the selection.
+    pub fn right(&self) -> usize {
+        match *self {
+            Cursor::Index(index) => index,
+            Cursor::Selection { start, end } => start.max(end),
+        }
+    }
 }
 
 impl State {
@@ -520,8 +673,9 @@ impl State {
 
         Self {
             is_focused: true,
+            is_pressed: false,
             is_pasting: None,
-            cursor_position: usize::MAX,
+            cursor_position: Cursor::Index(usize::MAX),
         }
     }
 
@@ -535,8 +689,15 @@ impl State {
     /// Returns the cursor position of a [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub fn cursor_position(&self, value: &Value) -> usize {
-        self.cursor_position.min(value.len())
+    pub fn cursor_position(&self, value: &Value) -> Cursor {
+        match self.cursor_position {
+            Cursor::Index(index) => Cursor::Index(index.min(value.len())),
+            Cursor::Selection { start, end } => Cursor::Selection {
+                start: start.min(value.len()),
+                end: end.min(value.len()),
+            }
+            .simplify(),
+        }
     }
 
     /// Moves the cursor of a [`TextInput`] to the left.
@@ -545,8 +706,10 @@ impl State {
     pub(crate) fn move_cursor_left(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
-        if current > 0 {
-            self.cursor_position = current - 1;
+        self.cursor_position = match current {
+            Cursor::Index(index) if index > 0 => Cursor::Index(index - 1),
+            Cursor::Selection { .. } => Cursor::Index(current.left()),
+            _ => Cursor::Index(0),
         }
     }
 
@@ -563,11 +726,12 @@ impl State {
         amount: usize,
     ) {
         let current = self.cursor_position(value);
-        let new_position = current.saturating_add(amount);
-
-        if new_position < value.len() + 1 {
-            self.cursor_position = new_position;
-        }
+        self.cursor_position = match current {
+            Cursor::Index(index) => {
+                Cursor::Index(index.saturating_add(amount).min(value.len()))
+            }
+            Cursor::Selection { .. } => Cursor::Index(current.right()),
+        };
     }
 
     /// Moves the cursor of a [`TextInput`] to the previous start of a word.
@@ -576,7 +740,8 @@ impl State {
     pub(crate) fn move_cursor_left_by_words(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
-        self.cursor_position = value.previous_start_of_word(current);
+        self.cursor_position =
+            Cursor::Index(value.previous_start_of_word(current.left()));
     }
 
     /// Moves the cursor of a [`TextInput`] to the next end of a word.
@@ -585,14 +750,15 @@ impl State {
     pub(crate) fn move_cursor_right_by_words(&mut self, value: &Value) {
         let current = self.cursor_position(value);
 
-        self.cursor_position = value.next_end_of_word(current);
+        self.cursor_position =
+            Cursor::Index(value.next_end_of_word(current.right()));
     }
 
     /// Moves the cursor of a [`TextInput`] to the end.
     ///
     /// [`TextInput`]: struct.TextInput.html
     pub(crate) fn move_cursor_to_end(&mut self, value: &Value) {
-        self.cursor_position = value.len();
+        self.cursor_position = Cursor::Index(value.len());
     }
 }
 
@@ -709,6 +875,11 @@ impl Value {
     /// [`Value`]: struct.Value.html
     pub fn remove(&mut self, index: usize) {
         let _ = self.graphemes.remove(index);
+    }
+
+    /// Removes the graphemes from `start` to `end`.
+    pub fn remove_many(&mut self, start: usize, end: usize) {
+        let _ = self.graphemes.splice(start..end, std::iter::empty());
     }
 
     /// Returns a new [`Value`] with all its graphemes replaced with the
