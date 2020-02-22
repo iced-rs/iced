@@ -439,6 +439,16 @@ where
                         self.state.is_pasting = None;
                     }
                 }
+                keyboard::KeyCode::A => {
+                    if platform::is_copy_paste_modifier_pressed(modifiers) {
+                        self.state.cursor_position = {
+                            Cursor::Selection {
+                                start: 0,
+                                end: self.value.len(),
+                            }
+                        }
+                    }
+                }
                 _ => {}
             },
             Event::Keyboard(keyboard::Event::Input {
