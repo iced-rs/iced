@@ -240,25 +240,18 @@ impl Renderer {
                 offset,
                 content,
             } => {
-                let x = bounds.x - layer.offset.x as f32;
-                let y = bounds.y - layer.offset.y as f32;
-                let width = (bounds.width + x).min(bounds.width);
-                let height = (bounds.height + y).min(bounds.height);
+                let layer_bounds: Rectangle<f32> = layer.bounds.into();
 
-                // Only draw visible content on-screen
-                // TODO: Also, check for parent layer bounds to avoid further
-                // drawing in some circumstances.
-                if width > 0.0 && height > 0.0 {
-                    let clip_layer = Layer::new(
-                        Rectangle {
-                            x: x.max(0.0).floor() as u32,
-                            y: y.max(0.0).floor() as u32,
-                            width: width.ceil() as u32,
-                            height: height.ceil() as u32,
-                        },
-                        layer.offset + *offset,
-                    );
+                let clip = Rectangle {
+                    x: bounds.x - layer.offset.x as f32,
+                    y: bounds.y - layer.offset.y as f32,
+                    ..*bounds
+                };
 
+                // Only draw visible content
+                if let Some(clip_bounds) = layer_bounds.intersection(&clip) {
+                    let clip_layer =
+                        Layer::new(clip_bounds.into(), layer.offset + *offset);
                     let new_layer = Layer::new(layer.bounds, layer.offset);
 
                     layers.push(clip_layer);
