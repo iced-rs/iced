@@ -209,7 +209,34 @@ where
                     let text_layout = layout.children().next().unwrap();
                     let target = cursor_position.x - text_layout.bounds().x;
 
-                    if target > 0.0 {
+                    if cursor_position
+                        == self
+                            .state
+                            .last_position
+                            .unwrap_or(Point { x: 0.0, y: 0.0 })
+                        && self.state.click_count < 2
+                    {
+                        self.state.click_count += 1;
+
+                        if self.state.click_count == 1 {
+                            let current =
+                                self.state.cursor_position(&self.value);
+
+                            self.state.cursor_position = Cursor::Selection {
+                                start: self
+                                    .value
+                                    .previous_start_of_word(current.left()),
+                                end: self
+                                    .value
+                                    .next_end_of_word(current.right()),
+                            }
+                        } else if self.state.click_count == 2 {
+                            self.state.cursor_position = Cursor::Selection {
+                                start: 0,
+                                end: self.value.len(),
+                            }
+                        }
+                    } else if target > 0.0 {
                         let value = if self.is_secure {
                             self.value.secure()
                         } else {
@@ -236,7 +263,13 @@ where
                                 self.value.len(),
                                 self.font,
                             ));
+                        self.state.click_count = 0;
+                        self.state.last_position =
+                            Option::from(cursor_position);
                     } else {
+                        self.state.click_count = 0;
+                        self.state.last_position =
+                            Option::from(cursor_position);
                         self.state.cursor_position = Cursor::Index(0);
                     }
                 }
@@ -601,6 +634,9 @@ pub struct State {
     is_pressed: bool,
     is_pasting: Option<Value>,
     cursor_position: Cursor,
+    /// Double- / Tripleclick
+    click_count: usize,
+    last_position: Option<Point>,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -686,6 +722,8 @@ impl State {
             is_pressed: false,
             is_pasting: None,
             cursor_position: Cursor::Index(usize::MAX),
+            click_count: 0,
+            last_position: None,
         }
     }
 
