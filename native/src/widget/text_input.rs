@@ -10,7 +10,10 @@ use crate::{
     Rectangle, Size, Widget,
 };
 
-use std::u32;
+use std::{
+    time::{Duration, SystemTime},
+    u32,
+};
 use unicode_segmentation::UnicodeSegmentation;
 
 /// A field that can be filled with text.
@@ -215,6 +218,15 @@ where
                             .last_position
                             .unwrap_or(Point { x: 0.0, y: 0.0 })
                         && self.state.click_count < 2
+                        && SystemTime::now()
+                            .duration_since(
+                                self.state
+                                    .last_timestamp
+                                    .unwrap_or(SystemTime::now()),
+                            )
+                            .unwrap_or(Duration::from_secs(1))
+                            .as_millis()
+                            <= 500
                     {
                         self.state.click_count += 1;
 
@@ -236,6 +248,9 @@ where
                                 end: self.value.len(),
                             }
                         }
+
+                        self.state.last_timestamp =
+                            Option::from(SystemTime::now());
                     } else if target > 0.0 {
                         let value = if self.is_secure {
                             self.value.secure()
@@ -266,6 +281,8 @@ where
                         self.state.click_count = 0;
                         self.state.last_position =
                             Option::from(cursor_position);
+                        self.state.last_timestamp =
+                            Option::from(SystemTime::now());
                     } else {
                         self.state.click_count = 0;
                         self.state.last_position =
@@ -637,6 +654,7 @@ pub struct State {
     /// Double- / Tripleclick
     click_count: usize,
     last_position: Option<Point>,
+    last_timestamp: Option<std::time::SystemTime>,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -724,6 +742,7 @@ impl State {
             cursor_position: Cursor::Index(usize::MAX),
             click_count: 0,
             last_position: None,
+            last_timestamp: None,
         }
     }
 
