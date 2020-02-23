@@ -354,6 +354,10 @@ mod style {
             fn value_color(&self) -> Color {
                 Color::WHITE
             }
+
+            fn selection_color(&self) -> Color {
+                Color::BLACK
+            }
         }
 
         pub struct Button;
