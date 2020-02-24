@@ -214,12 +214,10 @@ where
 
                     match self.state.mouse.update(cursor_position) {
                         Interaction::DoubleClick(_) => {
+                            let end = self.state.cursor.end();
                             self.state.cursor.select_range(
-                                self.value.previous_start_of_word(
-                                    self.state.cursor.end(),
-                                ),
-                                self.value
-                                    .next_end_of_word(self.state.cursor.end()),
+                                self.value.previous_start_of_word(end),
+                                self.value.next_end_of_word(end),
                             )
                         }
                         Interaction::TripleClick(_) => {

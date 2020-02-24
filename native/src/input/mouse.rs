@@ -39,7 +39,6 @@ impl State {
     /// return amount of repetitive mouse clicks
     /// (1 -> double click, 2 -> triple click)
     pub fn update(&mut self, position: Point) -> Interaction {
-        self.last_click_timestamp = Some(SystemTime::now());
         self.last_click = match self.last_click {
             None => Some(Interaction::Click(position)),
             Some(x) => match x {
@@ -54,6 +53,7 @@ impl State {
                 _ => Some(Interaction::Click(position)),
             },
         };
+        self.last_click_timestamp = Some(SystemTime::now());
         self.last_click.unwrap_or(Interaction::Click(position))
     }
 
