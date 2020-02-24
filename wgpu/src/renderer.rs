@@ -48,11 +48,16 @@ impl Renderer {
     ///
     /// [`Renderer`]: struct.Renderer.html
     pub fn new(device: &mut wgpu::Device, settings: Settings) -> Self {
-        let text_pipeline = text::Pipeline::new(device, settings.default_font);
-        let quad_pipeline = quad::Pipeline::new(device);
-        let image_pipeline = crate::image::Pipeline::new(device);
-        let triangle_pipeline =
-            triangle::Pipeline::new(device, settings.antialiasing);
+        let text_pipeline =
+            text::Pipeline::new(device, settings.format, settings.default_font);
+        let quad_pipeline = quad::Pipeline::new(device, settings.format);
+        let image_pipeline =
+            crate::image::Pipeline::new(device, settings.format);
+        let triangle_pipeline = triangle::Pipeline::new(
+            device,
+            settings.format,
+            settings.antialiasing,
+        );
 
         Self {
             quad_pipeline,
