@@ -4,10 +4,13 @@
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
+mod cursor;
 use crate::{
-    input::{keyboard, mouse, ButtonState},
-    layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    input::{keyboard, mouse, mouse::Interaction, ButtonState},
+    layout,
+    widget::text_input::cursor::Cursor,
+    Clipboard, Element, Event, Font, Hasher, Layout, Length, Point, Rectangle,
+    Size, Widget,
 };
 
 use std::u32;
@@ -209,16 +212,20 @@ where
                     let text_layout = layout.children().next().unwrap();
                     let target = cursor_position.x - text_layout.bounds().x;
 
-                    match self.state.cursor.process_click(cursor_position) {
-                        1 => self.state.cursor.select_range(
-                            self.value.previous_start_of_word(
-                                self.state.cursor.end(),
-                            ),
-                            self.value
-                                .next_end_of_word(self.state.cursor.end()),
-                        ),
-                        2 => self.state.cursor.select_all(self.value.len()),
-                        _ => {
+                    match self.state.mouse.update(cursor_position) {
+                        Interaction::DoubleClick(_) => {
+                            self.state.cursor.select_range(
+                                self.value.previous_start_of_word(
+                                    self.state.cursor.end(),
+                                ),
+                                self.value
+                                    .next_end_of_word(self.state.cursor.end()),
+                            )
+                        }
+                        Interaction::TripleClick(_) => {
+                            self.state.cursor.select_all(&self.value)
+                        }
+                        Interaction::Click(_) => {
                             if target > 0.0 {
                                 let value = if self.is_secure {
                                     self.value.secure()
@@ -308,17 +315,14 @@ where
                     && self.state.is_pasting.is_none()
                     && !c.is_control() =>
             {
-                if !self.state.cursor.is_selection() {
-                    self.value.insert(self.state.cursor.end(), c);
-                } else {
-                    self.value.remove_many(
-                        self.state.cursor.left(),
-                        self.state.cursor.right(),
-                    );
-                    self.state.cursor.move_left();
-                    self.value.insert(self.state.cursor.end(), c);
+                match self.state.cursor.selection_position() {
+                    Some((left, right)) => {
+                        self.value.remove_many(left, right);
+                        self.state.cursor.move_left();
+                    }
+                    _ => (),
                 }
-
+                self.value.insert(self.state.cursor.end(), c);
                 self.state.cursor.move_right(&self.value);
 
                 let message = (self.on_change)(self.value.to_string());
@@ -335,42 +339,38 @@ where
                     }
                 }
                 keyboard::KeyCode::Backspace => {
-                    if !self.state.cursor.is_selection() {
-                        if self.state.cursor.start() > 0 {
+                    match self.state.cursor.selection_position() {
+                        Some((start, end)) => {
+                            self.value.remove_many(start, end);
                             self.state.cursor.move_left();
-                            let _ =
-                                self.value.remove(self.state.cursor.end() - 1);
-                            let message =
-                                (self.on_change)(self.value.to_string());
-                            messages.push(message);
                         }
-                    } else {
-                        self.value.remove_many(
-                            self.state.cursor.left(),
-                            self.state.cursor.right(),
-                        );
-                        self.state.cursor.move_left();
-                        let message = (self.on_change)(self.value.to_string());
-                        messages.push(message);
+                        None => {
+                            if self.state.cursor.start() > 0 {
+                                self.state.cursor.move_left();
+                                let _ = self
+                                    .value
+                                    .remove(self.state.cursor.start() - 1);
+                            }
+                        }
                     }
+                    let message = (self.on_change)(self.value.to_string());
+                    messages.push(message);
                 }
                 keyboard::KeyCode::Delete => {
-                    if !self.state.cursor.is_selection() {
-                        if self.state.cursor.end() < self.value.len() {
-                            let _ = self.value.remove(self.state.cursor.end());
-                            let message =
-                                (self.on_change)(self.value.to_string());
-                            messages.push(message);
+                    match self.state.cursor.selection_position() {
+                        Some((start, end)) => {
+                            self.value.remove_many(start, end);
+                            self.state.cursor.move_left();
                         }
-                    } else {
-                        self.value.remove_many(
-                            self.state.cursor.left(),
-                            self.state.cursor.right(),
-                        );
-                        self.state.cursor.move_left();
-                        let message = (self.on_change)(self.value.to_string());
-                        messages.push(message);
+                        None => {
+                            if self.state.cursor.end() < self.value.len() {
+                                let _ =
+                                    self.value.remove(self.state.cursor.end());
+                            }
+                        }
                     }
+                    let message = (self.on_change)(self.value.to_string());
+                    messages.push(message);
                 }
                 keyboard::KeyCode::Left => {
                     if platform::is_jump_modifier_pressed(modifiers)
@@ -413,12 +413,12 @@ where
                                 }
                             };
 
-                            if self.state.cursor.is_selection() {
-                                self.value.remove_many(
-                                    self.state.cursor.left(),
-                                    self.state.cursor.right(),
-                                );
-                                self.state.cursor.move_left();
+                            match self.state.cursor.selection_position() {
+                                Some((left, right)) => {
+                                    self.value.remove_many(left, right);
+                                    self.state.cursor.move_left();
+                                }
+                                _ => (),
                             }
 
                             self.value.insert_many(
@@ -442,7 +442,7 @@ where
                 }
                 keyboard::KeyCode::A => {
                     if platform::is_copy_paste_modifier_pressed(modifiers) {
-                        self.state.cursor.select_range(0, self.value.len());
+                        self.state.cursor.select_all(&self.value);
                     }
                 }
                 _ => {}
@@ -596,8 +596,8 @@ pub struct State {
     is_focused: bool,
     is_pressed: bool,
     is_pasting: Option<Value>,
-    /// TODO: Compiler wants documentation here
-    pub cursor: cursor::Cursor,
+    cursor: Cursor,
+    mouse: crate::input::mouse::State,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -617,7 +617,8 @@ impl State {
             is_focused: true,
             is_pressed: false,
             is_pasting: None,
-            cursor: cursor::Cursor::default(),
+            cursor: Cursor::default(),
+            mouse: crate::input::mouse::State::default(),
         }
     }
 
@@ -626,6 +627,11 @@ impl State {
     /// [`TextInput`]: struct.TextInput.html
     pub fn is_focused(&self) -> bool {
         self.is_focused
+    }
+
+    /// getter for cursor
+    pub fn cursor(&self) -> Cursor {
+        self.cursor
     }
 }
 
@@ -839,184 +845,5 @@ mod platform {
         } else {
             modifiers.control
         }
-    }
-}
-
-mod cursor {
-    use crate::widget::text_input::Value;
-    use iced_core::Point;
-    use std::time::{Duration, SystemTime};
-
-    /// Even the compiler bullies me for not writing documentation
-    #[derive(Debug, Copy, Clone)]
-    pub struct Cursor {
-        start: usize,
-        end: usize,
-        click_count: usize,
-        last_click_position: Option<crate::Point>,
-        last_click_timestamp: Option<SystemTime>,
-    }
-
-    impl Default for Cursor {
-        fn default() -> Self {
-            Cursor {
-                start: 0,
-                end: 0,
-                click_count: 0,
-                last_click_position: None,
-                last_click_timestamp: None,
-            }
-        }
-    }
-
-    impl Cursor {
-        /* Move section */
-        pub fn move_to(&mut self, position: usize) {
-            self.start = position;
-            self.end = position;
-        }
-
-        pub fn move_right(&mut self, value: &Value) {
-            if self.is_selection() {
-                let dest = self.right();
-                self.start = dest;
-                self.end = dest;
-            } else if self.end < value.len() {
-                self.start += 1;
-                self.end += 1;
-            }
-        }
-
-        pub fn move_left(&mut self) {
-            if self.is_selection() {
-                let dest = self.left();
-                self.start = dest;
-                self.end = dest;
-            } else if self.left() > 0 {
-                self.start -= 1;
-                self.end -= 1;
-            }
-        }
-
-        pub fn move_right_by_amount(&mut self, value: &Value, amount: usize) {
-            self.start = self.start.saturating_add(amount).min(value.len());
-            self.end = self.end.saturating_add(amount).min(value.len());
-        }
-
-        pub fn move_left_by_words(&mut self, value: &Value) {
-            let (left, _) = self.cursor_position(value);
-
-            self.move_to(value.previous_start_of_word(left));
-        }
-
-        pub fn move_right_by_words(&mut self, value: &Value) {
-            let (_, right) = self.cursor_position(value);
-
-            self.move_to(value.next_end_of_word(right));
-        }
-        /* Move section end */
-
-        /* Selection section */
-        pub fn select_range(&mut self, start: usize, end: usize) {
-            self.start = start;
-            self.end = end;
-        }
-
-        pub fn select_left(&mut self) {
-            if self.end > 0 {
-                self.end -= 1;
-            }
-        }
-
-        pub fn select_right(&mut self, value: &Value) {
-            if self.end < value.len() {
-                self.end += 1;
-            }
-        }
-
-        pub fn select_left_by_words(&mut self, value: &Value) {
-            self.end = value.previous_start_of_word(self.start);
-        }
-
-        pub fn select_right_by_words(&mut self, value: &Value) {
-            self.end = value.next_end_of_word(self.start);
-        }
-
-        pub fn select_all(&mut self, len: usize) {
-            self.start = 0;
-            self.end = len;
-        }
-        /* Selection section end */
-
-        /* Double/Triple click section */
-        // returns the amount of clicks on the same position in specific timeframe
-        // (1=double click, 2=triple click)
-        pub fn process_click(&mut self, position: Point) -> usize {
-            if position
-                == self.last_click_position.unwrap_or(Point { x: 0.0, y: 0.0 })
-                && self.click_count < 2
-                && SystemTime::now()
-                    .duration_since(
-                        self.last_click_timestamp
-                            .unwrap_or(SystemTime::UNIX_EPOCH),
-                    )
-                    .unwrap_or(Duration::from_secs(1))
-                    .as_millis()
-                    <= 500
-            {
-                self.click_count += 1;
-            } else {
-                self.click_count = 0;
-            }
-            self.last_click_position = Option::from(position);
-            self.last_click_timestamp = Option::from(SystemTime::now());
-            self.click_count
-        }
-        /* Double/Triple click section end */
-
-        /* "get info about cursor/selection" section */
-        pub fn is_selection(&self) -> bool {
-            self.start != self.end
-        }
-
-        // get start position of selection (can be left OR right boundary of selection)
-        pub(crate) fn start(&self) -> usize {
-            self.start
-        }
-
-        // get end position of selection (can be left OR right boundary of selection)
-        pub fn end(&self) -> usize {
-            self.end
-        }
-
-        // get left boundary of selection
-        pub fn left(&self) -> usize {
-            self.start.min(self.end)
-        }
-
-        // get right boundary of selection
-        pub fn right(&self) -> usize {
-            self.start.max(self.end)
-        }
-
-        pub fn cursor_position(&self, value: &Value) -> (usize, usize) {
-            (self.start.min(value.len()), self.end.min(value.len()))
-        }
-
-        pub fn cursor_position_left(&self, value: &Value) -> usize {
-            let (a, b) = self.cursor_position(value);
-            a.min(b)
-        }
-
-        pub fn cursor_position_right(&self, value: &Value) -> usize {
-            let (a, b) = self.cursor_position(value);
-            a.max(b)
-        }
-
-        pub fn draw_position(&self, value: &Value) -> usize {
-            let (_, end) = self.cursor_position(value);
-            end
-        }
-        /* "get info about cursor/selection" section end */
     }
 }
