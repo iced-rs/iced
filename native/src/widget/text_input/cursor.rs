@@ -58,7 +58,11 @@ impl Cursor {
     /* expand/shrink selection */
     // TODO: (whole section): Return State::Cursor if start == end after operation
     pub fn select_range(&mut self, start: usize, end: usize) {
-        self.state = State::Selection { start, end };
+        if start != end {
+            self.state = State::Selection { start, end };
+        } else {
+            self.state = State::Index(start);
+        }
     }
 
     pub fn select_left(&mut self) {

@@ -374,7 +374,13 @@ where
                     if platform::is_jump_modifier_pressed(modifiers)
                         && !self.is_secure
                     {
-                        self.state.cursor.move_left_by_words(&self.value);
+                        if modifiers.shift {
+                            self.state.cursor.select_left_by_words(&self.value);
+                        } else {
+                            self.state.cursor.move_left_by_words(&self.value);
+                        }
+                    } else if modifiers.shift {
+                        self.state.cursor.select_left()
                     } else {
                         self.state.cursor.move_left();
                     }
@@ -383,16 +389,37 @@ where
                     if platform::is_jump_modifier_pressed(modifiers)
                         && !self.is_secure
                     {
-                        self.state.cursor.move_right_by_words(&self.value);
+                        if modifiers.shift {
+                            self.state
+                                .cursor
+                                .select_right_by_words(&self.value);
+                        } else {
+                            self.state.cursor.move_right_by_words(&self.value);
+                        }
+                    } else if modifiers.shift {
+                        self.state.cursor.select_right(&self.value)
                     } else {
                         self.state.cursor.move_right(&self.value);
                     }
                 }
                 keyboard::KeyCode::Home => {
-                    self.state.cursor.move_to(0);
+                    if modifiers.shift {
+                        self.state
+                            .cursor
+                            .select_range(self.state.cursor.start(), 0);
+                    } else {
+                        self.state.cursor.move_to(0);
+                    }
                 }
                 keyboard::KeyCode::End => {
-                    self.state.cursor.move_to(self.value.len());
+                    if modifiers.shift {
+                        self.state.cursor.select_range(
+                            self.state.cursor.start(),
+                            self.value.len(),
+                        );
+                    } else {
+                        self.state.cursor.move_to(self.value.len());
+                    }
                 }
                 keyboard::KeyCode::V => {
                     if platform::is_copy_paste_modifier_pressed(modifiers) {
@@ -438,6 +465,15 @@ where
                         self.state.is_pasting = None;
                     }
                 }
+                // I think this doesn't work with the current version of the clipboard lib
+                /*keyboard::KeyCode::C => {
+                    if platform::is_copy_paste_modifier_pressed(modifiers) {
+                        match self.state.cursor.selection_position() {
+                            None => (),
+                            Some((left, right)) => ()
+                        }
+                    }
+                }*/
                 keyboard::KeyCode::A => {
                     if platform::is_copy_paste_modifier_pressed(modifiers) {
                         self.state.cursor.select_all(&self.value);
