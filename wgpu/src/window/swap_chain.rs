@@ -18,11 +18,12 @@ impl SwapChain {
     pub fn new(
         device: &wgpu::Device,
         surface: &wgpu::Surface,
+        format: wgpu::TextureFormat,
         width: u32,
         height: u32,
     ) -> SwapChain {
         SwapChain {
-            raw: new_swap_chain(surface, width, height, device),
+            raw: new_swap_chain(surface, format, width, height, device),
             viewport: Viewport::new(width, height),
         }
     }
@@ -38,6 +39,7 @@ impl SwapChain {
 
 fn new_swap_chain(
     surface: &wgpu::Surface,
+    format: wgpu::TextureFormat,
     width: u32,
     height: u32,
     device: &wgpu::Device,
@@ -46,7 +48,7 @@ fn new_swap_chain(
         &surface,
         &wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            format,
             width,
             height,
             present_mode: wgpu::PresentMode::Vsync,

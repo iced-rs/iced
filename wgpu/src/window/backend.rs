@@ -8,6 +8,7 @@ use raw_window_handle::HasRawWindowHandle;
 pub struct Backend {
     device: wgpu::Device,
     queue: wgpu::Queue,
+    format: wgpu::TextureFormat,
 }
 
 impl iced_native::window::Backend for Backend {
@@ -37,7 +38,14 @@ impl iced_native::window::Backend for Backend {
 
         let renderer = Renderer::new(&mut device, settings);
 
-        (Backend { device, queue }, renderer)
+        (
+            Backend {
+                device,
+                queue,
+                format: settings.format,
+            },
+            renderer,
+        )
     }
 
     fn create_surface<W: HasRawWindowHandle>(
@@ -53,7 +61,7 @@ impl iced_native::window::Backend for Backend {
         width: u32,
         height: u32,
     ) -> SwapChain {
-        SwapChain::new(&self.device, surface, width, height)
+        SwapChain::new(&self.device, surface, self.format, width, height)
     }
 
     fn draw<T: AsRef<str>>(

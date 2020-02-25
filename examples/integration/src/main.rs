@@ -40,11 +40,12 @@ pub fn main() {
         });
 
     let surface = wgpu::Surface::create(&window);
+    let format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
     let mut swap_chain = {
         let size = window.inner_size();
 
-        SwapChain::new(&device, &surface, size.width, size.height)
+        SwapChain::new(&device, &surface, format, size.width, size.height)
     };
     let mut resized = false;
 
@@ -163,6 +164,7 @@ pub fn main() {
                     swap_chain = SwapChain::new(
                         &device,
                         &surface,
+                        format,
                         size.width,
                         size.height,
                     );

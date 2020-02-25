@@ -183,6 +183,7 @@ pub trait Application: Sized {
                 } else {
                     None
                 },
+                ..iced_wgpu::Settings::default()
             },
         );
 

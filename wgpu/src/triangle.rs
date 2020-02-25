@@ -61,6 +61,7 @@ impl<T> Buffer<T> {
 impl Pipeline {
     pub fn new(
         device: &mut wgpu::Device,
+        format: wgpu::TextureFormat,
         antialiasing: Option<settings::Antialiasing>,
     ) -> Pipeline {
         let constant_layout =
@@ -127,7 +128,7 @@ impl Pipeline {
                 }),
                 primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                 color_states: &[wgpu::ColorStateDescriptor {
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    format,
                     color_blend: wgpu::BlendDescriptor {
                         src_factor: wgpu::BlendFactor::SrcAlpha,
                         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
@@ -169,7 +170,7 @@ impl Pipeline {
 
         Pipeline {
             pipeline,
-            blit: antialiasing.map(|a| msaa::Blit::new(device, a)),
+            blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
             constants: constant_bind_group,
             uniforms_buffer: constants_buffer,
             vertex_buffer: Buffer::new(

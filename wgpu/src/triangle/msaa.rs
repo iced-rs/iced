@@ -2,6 +2,7 @@ use crate::settings;
 
 #[derive(Debug)]
 pub struct Blit {
+    format: wgpu::TextureFormat,
     pipeline: wgpu::RenderPipeline,
     constants: wgpu::BindGroup,
     texture_layout: wgpu::BindGroupLayout,
@@ -12,6 +13,7 @@ pub struct Blit {
 impl Blit {
     pub fn new(
         device: &wgpu::Device,
+        format: wgpu::TextureFormat,
         antialiasing: settings::Antialiasing,
     ) -> Blit {
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -93,7 +95,7 @@ impl Blit {
                 }),
                 primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                 color_states: &[wgpu::ColorStateDescriptor {
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    format,
                     color_blend: wgpu::BlendDescriptor {
                         src_factor: wgpu::BlendFactor::SrcAlpha,
                         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
@@ -115,6 +117,7 @@ impl Blit {
             });
 
         Blit {
+            format,
             pipeline,
             constants: constant_bind_group,
             texture_layout: texture_layout,
@@ -133,6 +136,7 @@ impl Blit {
             None => {
                 self.targets = Some(Targets::new(
                     &device,
+                    self.format,
                     &self.texture_layout,
                     self.sample_count,
                     width,
@@ -143,6 +147,7 @@ impl Blit {
                 if targets.width != width || targets.height != height {
                     self.targets = Some(Targets::new(
                         &device,
+                        self.format,
                         &self.texture_layout,
                         self.sample_count,
                         width,
@@ -204,6 +209,7 @@ struct Targets {
 impl Targets {
     pub fn new(
         device: &wgpu::Device,
+        format: wgpu::TextureFormat,
         texture_layout: &wgpu::BindGroupLayout,
         sample_count: u32,
         width: u32,
@@ -221,7 +227,7 @@ impl Targets {
             mip_level_count: 1,
             sample_count,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            format,
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
         });
 
@@ -231,7 +237,7 @@ impl Targets {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            format,
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT
                 | wgpu::TextureUsage::SAMPLED,
         });
