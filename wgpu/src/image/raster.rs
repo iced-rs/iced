@@ -2,6 +2,7 @@ use crate::texture::atlas::{self, Atlas};
 use iced_native::image;
 use std::collections::{HashMap, HashSet};
 
+#[derive(Debug)]
 pub enum Memory {
     Host(::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>>),
     Device(atlas::Entry),
@@ -16,17 +17,6 @@ impl Memory {
             Memory::Device(entry) => entry.size(),
             Memory::NotFound => (1, 1),
             Memory::Invalid => (1, 1),
-        }
-    }
-}
-
-impl std::fmt::Debug for Memory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Memory::Host(_) => write!(f, "Memory::Host"),
-            Memory::Device(_) => write!(f, "Memory::Device"),
-            Memory::NotFound => write!(f, "Memory::NotFound"),
-            Memory::Invalid => write!(f, "Memory::Invalid"),
         }
     }
 }
