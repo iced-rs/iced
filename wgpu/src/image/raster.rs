@@ -86,8 +86,6 @@ impl Cache {
             let allocation =
                 atlas.upload(width, height, &image, device, encoder)?;
 
-            dbg!("Uploaded");
-
             *memory = Memory::Device(allocation);
         }
 

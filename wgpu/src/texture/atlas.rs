@@ -67,24 +67,22 @@ impl Atlas {
     where
         C: Copy + 'static,
     {
-        let memory = {
+        let entry = {
             let current_size = self.layers.len();
-            let memory = self.allocate(width, height)?;
+            let entry = self.allocate(width, height)?;
 
             // We grow the internal texture after allocating if necessary
             let new_layers = self.layers.len() - current_size;
             self.grow(new_layers, device, encoder);
 
-            memory
+            entry
         };
-
-        dbg!(&memory);
 
         let buffer = device
             .create_buffer_mapped(data.len(), wgpu::BufferUsage::COPY_SRC)
             .fill_from_slice(data);
 
-        match &memory {
+        match &entry {
             Entry::Contiguous(allocation) => {
                 self.upload_texture(&buffer, 0, &allocation, encoder);
             }
@@ -105,7 +103,7 @@ impl Atlas {
             }
         }
 
-        Some(memory)
+        Some(entry)
     }
 
     fn allocate(&mut self, width: u32, height: u32) -> Option<Entry> {

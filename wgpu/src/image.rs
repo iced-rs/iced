@@ -22,6 +22,7 @@ pub struct Pipeline {
     uniforms: wgpu::Buffer,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
+    instances: wgpu::Buffer,
     constants: wgpu::BindGroup,
     texture: wgpu::BindGroup,
     texture_version: usize,
@@ -188,7 +189,7 @@ impl Pipeline {
                             },
                             wgpu::VertexAttributeDescriptor {
                                 shader_location: 5,
-                                format: wgpu::VertexFormat::Float,
+                                format: wgpu::VertexFormat::Uint,
                                 offset: 4 * 8,
                             },
                         ],
@@ -206,6 +207,11 @@ impl Pipeline {
         let indices = device
             .create_buffer_mapped(QUAD_INDICES.len(), wgpu::BufferUsage::INDEX)
             .fill_from_slice(&QUAD_INDICES);
+
+        let instances = device.create_buffer(&wgpu::BufferDescriptor {
+            size: mem::size_of::<Instance>() as u64 * Instance::MAX as u64,
+            usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
+        });
 
         let texture_atlas = texture::Atlas::new(device);
 
@@ -230,6 +236,7 @@ impl Pipeline {
             uniforms: uniforms_buffer,
             vertices,
             indices,
+            instances,
             constants: constant_bind_group,
             texture,
             texture_version: texture_atlas.layer_count(),
@@ -341,49 +348,67 @@ impl Pipeline {
         );
 
         let instances_buffer = device
-            .create_buffer_mapped(instances.len(), wgpu::BufferUsage::VERTEX)
+            .create_buffer_mapped(instances.len(), wgpu::BufferUsage::COPY_SRC)
             .fill_from_slice(&instances);
 
-        let mut render_pass =
-            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[
-                    wgpu::RenderPassColorAttachmentDescriptor {
-                        attachment: target,
-                        resolve_target: None,
-                        load_op: wgpu::LoadOp::Load,
-                        store_op: wgpu::StoreOp::Store,
-                        clear_color: wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 0.0,
+        let mut i = 0;
+        let total = instances.len();
+
+        while i < total {
+            let end = (i + Instance::MAX).min(total);
+            let amount = end - i;
+
+            encoder.copy_buffer_to_buffer(
+                &instances_buffer,
+                (i * std::mem::size_of::<Instance>()) as u64,
+                &self.instances,
+                0,
+                (amount * std::mem::size_of::<Instance>()) as u64,
+            );
+
+            let mut render_pass =
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    color_attachments: &[
+                        wgpu::RenderPassColorAttachmentDescriptor {
+                            attachment: target,
+                            resolve_target: None,
+                            load_op: wgpu::LoadOp::Load,
+                            store_op: wgpu::StoreOp::Store,
+                            clear_color: wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 0.0,
+                            },
                         },
-                    },
-                ],
-                depth_stencil_attachment: None,
-            });
+                    ],
+                    depth_stencil_attachment: None,
+                });
 
-        render_pass.set_pipeline(&self.pipeline);
-        render_pass.set_bind_group(0, &self.constants, &[]);
-        render_pass.set_bind_group(1, &self.texture, &[]);
-        render_pass.set_index_buffer(&self.indices, 0);
-        render_pass.set_vertex_buffers(
-            0,
-            &[(&self.vertices, 0), (&instances_buffer, 0)],
-        );
+            render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_bind_group(0, &self.constants, &[]);
+            render_pass.set_bind_group(1, &self.texture, &[]);
+            render_pass.set_index_buffer(&self.indices, 0);
+            render_pass.set_vertex_buffers(
+                0,
+                &[(&self.vertices, 0), (&self.instances, 0)],
+            );
 
-        render_pass.set_scissor_rect(
-            bounds.x,
-            bounds.y,
-            bounds.width,
-            bounds.height,
-        );
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
 
-        render_pass.draw_indexed(
-            0..QUAD_INDICES.len() as u32,
-            0,
-            0..instances.len() as u32,
-        );
+            render_pass.draw_indexed(
+                0..QUAD_INDICES.len() as u32,
+                0,
+                0..amount as u32,
+            );
+
+            i += Instance::MAX;
+        }
     }
 
     pub fn trim_cache(&mut self) {
@@ -437,6 +462,10 @@ struct Instance {
     _position_in_atlas: [f32; 2],
     _size_in_atlas: [f32; 2],
     _layer: u32,
+}
+
+impl Instance {
+    pub const MAX: usize = 1_000;
 }
 
 #[repr(C)]

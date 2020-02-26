@@ -5,7 +5,7 @@ layout(location = 1) in vec2 i_Pos;
 layout(location = 2) in vec2 i_Scale;
 layout(location = 3) in vec2 i_Atlas_Pos;
 layout(location = 4) in vec2 i_Atlas_Scale;
-layout(location = 5) in float i_Layer;
+layout(location = 5) in uint i_Layer;
 
 layout (set = 0, binding = 0) uniform Globals {
     mat4 u_Transform;
