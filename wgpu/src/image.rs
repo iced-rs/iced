@@ -3,13 +3,16 @@ mod raster;
 #[cfg(feature = "svg")]
 mod vector;
 
-use crate::{
-    texture::{self, atlas},
-    Transformation,
-};
+use crate::{texture, Transformation};
 
 use iced_native::{image, svg, Rectangle};
-use std::{cell::RefCell, mem};
+use std::mem;
+
+#[cfg(any(feature = "image", feature = "svg"))]
+use std::cell::RefCell;
+
+#[cfg(any(feature = "image", feature = "svg"))]
+use crate::texture::atlas;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -271,7 +274,7 @@ impl Pipeline {
         target: &wgpu::TextureView,
         _scale: f32,
     ) {
-        let mut instances: Vec<Instance> = Vec::new();
+        let instances: &mut Vec<Instance> = &mut Vec::new();
 
         #[cfg(feature = "image")]
         let mut raster_cache = self.raster_cache.borrow_mut();
@@ -290,7 +293,7 @@ impl Pipeline {
                             encoder,
                             &mut self.texture_atlas,
                         ) {
-                            add_instances(image, atlas_entry, &mut instances);
+                            add_instances(image, atlas_entry, instances);
                         }
                     };
                 }
@@ -305,7 +308,7 @@ impl Pipeline {
                             encoder,
                             &mut self.texture_atlas,
                         ) {
-                            add_instances(image, atlas_entry, &mut instances);
+                            add_instances(image, atlas_entry, instances);
                         }
                     };
                 }
@@ -476,6 +479,7 @@ struct Uniforms {
     transform: [f32; 16],
 }
 
+#[cfg(any(feature = "image", feature = "svg"))]
 fn add_instances(
     image: &Image,
     entry: &atlas::Entry,
@@ -512,6 +516,7 @@ fn add_instances(
     }
 }
 
+#[cfg(any(feature = "image", feature = "svg"))]
 #[inline]
 fn add_instance(
     position: [f32; 2],
