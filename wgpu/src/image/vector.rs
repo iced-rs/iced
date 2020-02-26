@@ -20,15 +20,7 @@ impl Svg {
     }
 }
 
-impl std::fmt::Debug for Svg {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Svg::Loaded(_) => write!(f, "Svg::Loaded"),
-            Svg::NotFound => write!(f, "Svg::NotFound"),
-        }
-    }
-}
-
+#[derive(Debug)]
 pub struct Cache {
     svgs: HashMap<u64, Svg>,
     rasterized: HashMap<(u64, u32, u32), atlas::Entry>,
@@ -149,8 +141,11 @@ impl Cache {
     }
 }
 
-impl std::fmt::Debug for Cache {
+impl std::fmt::Debug for Svg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "vector::Cache")
+        match self {
+            Svg::Loaded(_) => write!(f, "Svg::Loaded"),
+            Svg::NotFound => write!(f, "Svg::NotFound"),
+        }
     }
 }
