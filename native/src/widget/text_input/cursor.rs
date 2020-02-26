@@ -56,7 +56,6 @@ impl Cursor {
     /* end of index move methods */
 
     /* expand/shrink selection */
-    // TODO: (whole section): Return State::Cursor if start == end after operation
     pub fn select_range(&mut self, start: usize, end: usize) {
         if start != end {
             self.state = State::Selection { start, end };
@@ -149,10 +148,6 @@ impl Cursor {
         }
     }
 
-    pub fn draw_position(&self, value: &Value) -> usize {
-        self.cursor_position(value)
-    }
-
     pub fn cursor_position(&self, value: &Value) -> usize {
         match self.state {
             State::Index(index) => index.min(value.len()),
@@ -161,7 +156,7 @@ impl Cursor {
     }
 
     // returns Option of left and right border of selection
-    // a second method return start and end may be useful (see below)
+    // a second method that returns start and end may be useful (see below)
     pub fn selection_position(&self) -> Option<(usize, usize)> {
         match self.state {
             State::Selection { start, end } => {

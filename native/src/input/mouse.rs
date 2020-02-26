@@ -36,8 +36,7 @@ impl Default for State {
 
 impl State {
     /// processes left click to check for double/triple clicks
-    /// return amount of repetitive mouse clicks
-    /// (1 -> double click, 2 -> triple click)
+    /// return amount of repetitive mouse clicks as enum
     pub fn update(&mut self, position: Point) -> Interaction {
         self.last_click = match self.last_click {
             None => Some(Interaction::Click(position)),
