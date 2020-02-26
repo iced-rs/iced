@@ -112,9 +112,45 @@ impl Atlas {
             }
         }
 
-        log::info!("Current atlas: {:?}", &self);
+        log::info!("Current atlas: {:?}", self);
 
         Some(entry)
+    }
+
+    pub fn remove(&mut self, entry: &Entry) {
+        log::info!("Removing atlas entry: {:?}", entry);
+
+        match entry {
+            Entry::Contiguous(allocation) => {
+                self.deallocate(allocation);
+            }
+            Entry::Fragmented { fragments, .. } => {
+                for fragment in fragments {
+                    self.deallocate(&fragment.allocation);
+                }
+            }
+        }
+    }
+
+    fn deallocate(&mut self, allocation: &Allocation) {
+        log::info!("Deallocating atlas: {:?}", allocation);
+
+        match allocation {
+            Allocation::Full { layer } => {
+                self.layers[*layer] = Layer::Empty;
+            }
+            Allocation::Partial { layer, region } => {
+                let layer = &mut self.layers[*layer];
+
+                if let Layer::Busy(allocator) = layer {
+                    allocator.deallocate(region);
+
+                    if allocator.is_empty() {
+                        *layer = Layer::Empty;
+                    }
+                }
+            }
+        }
     }
 
     fn allocate(&mut self, width: u32, height: u32) -> Option<Entry> {

@@ -95,10 +95,21 @@ impl Cache {
         }
     }
 
-    pub fn trim(&mut self) {
+    pub fn trim(&mut self, atlas: &mut Atlas) {
         let hits = &self.hits;
 
-        self.map.retain(|k, _| hits.contains(k));
+        self.map.retain(|k, memory| {
+            let retain = hits.contains(k);
+
+            if !retain {
+                if let Memory::Device(entry) = memory {
+                    atlas.remove(entry);
+                }
+            }
+
+            retain
+        });
+
         self.hits.clear();
     }
 

@@ -415,10 +415,10 @@ impl Pipeline {
 
     pub fn trim_cache(&mut self) {
         #[cfg(feature = "image")]
-        self.raster_cache.borrow_mut().trim();
+        self.raster_cache.borrow_mut().trim(&mut self.texture_atlas);
 
         #[cfg(feature = "svg")]
-        self.vector_cache.borrow_mut().trim();
+        self.vector_cache.borrow_mut().trim(&mut self.texture_atlas);
     }
 }
 
@@ -531,8 +531,8 @@ fn add_instance(
             (y as f32 + 0.5) / atlas::SIZE as f32,
         ],
         _size_in_atlas: [
-            (width as f32 - 0.5) / atlas::SIZE as f32,
-            (height as f32 - 0.5) / atlas::SIZE as f32,
+            (width as f32 - 1.0) / atlas::SIZE as f32,
+            (height as f32 - 1.0) / atlas::SIZE as f32,
         ],
         _layer: layer as u32,
     };

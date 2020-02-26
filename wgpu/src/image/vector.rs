@@ -130,12 +130,20 @@ impl Cache {
         }
     }
 
-    pub fn trim(&mut self) {
+    pub fn trim(&mut self, atlas: &mut Atlas) {
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
 
         self.svgs.retain(|k, _| svg_hits.contains(k));
-        self.rasterized.retain(|k, _| rasterized_hits.contains(k));
+        self.rasterized.retain(|k, entry| {
+            let retain = rasterized_hits.contains(k);
+
+            if !retain {
+                atlas.remove(entry);
+            }
+
+            retain
+        });
         self.svg_hits.clear();
         self.rasterized_hits.clear();
     }
