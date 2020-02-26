@@ -227,14 +227,14 @@ impl Renderer {
                 layer.images.push(Image {
                     handle: image::Handle::Raster(handle.clone()),
                     position: [bounds.x, bounds.y],
-                    scale: [bounds.width, bounds.height],
+                    size: [bounds.width, bounds.height],
                 });
             }
             Primitive::Svg { handle, bounds } => {
                 layer.images.push(Image {
                     handle: image::Handle::Vector(handle.clone()),
                     position: [bounds.x, bounds.y],
-                    scale: [bounds.width, bounds.height],
+                    size: [bounds.width, bounds.height],
                 });
             }
             Primitive::Mesh2D { origin, buffers } => {

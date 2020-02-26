@@ -1,12 +1,10 @@
-use crate::image::{TextureArray, ImageAllocation};
+use crate::texture::atlas::{self, Atlas};
 use iced_native::image;
-use std::{
-    collections::{HashMap, HashSet},
-};
+use std::collections::{HashMap, HashSet};
 
 pub enum Memory {
     Host(::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>>),
-    Device(ImageAllocation),
+    Device(atlas::Entry),
     NotFound,
     Invalid,
 }
@@ -15,7 +13,7 @@ impl Memory {
     pub fn dimensions(&self) -> (u32, u32) {
         match self {
             Memory::Host(image) => image.dimensions(),
-            Memory::Device(allocation) => allocation.size(),
+            Memory::Device(entry) => entry.size(),
             Memory::NotFound => (1, 1),
             Memory::Invalid => (1, 1),
         }
@@ -78,17 +76,26 @@ impl Cache {
         handle: &image::Handle,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        atlas_array: &mut TextureArray,
-    ) -> &Memory {
+        atlas: &mut Atlas,
+    ) -> Option<&atlas::Entry> {
         let memory = self.load(handle);
 
         if let Memory::Host(image) = memory {
-            let allocation = atlas_array.upload(image, device, encoder);
+            let (width, height) = image.dimensions();
+
+            let allocation =
+                atlas.upload(width, height, &image, device, encoder)?;
+
+            dbg!("Uploaded");
 
             *memory = Memory::Device(allocation);
         }
 
-        memory
+        if let Memory::Device(allocation) = memory {
+            Some(allocation)
+        } else {
+            None
+        }
     }
 
     pub fn trim(&mut self) {

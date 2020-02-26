@@ -1,8 +1,6 @@
-use crate::image::{TextureArray, ImageAllocation};
+use crate::texture::atlas::{self, Atlas};
 use iced_native::svg;
-use std::{
-    collections::{HashMap, HashSet},
-};
+use std::collections::{HashMap, HashSet};
 
 pub enum Svg {
     Loaded(resvg::usvg::Tree),
@@ -33,7 +31,7 @@ impl std::fmt::Debug for Svg {
 
 pub struct Cache {
     svgs: HashMap<u64, Svg>,
-    rasterized: HashMap<(u64, u32, u32), ImageAllocation>,
+    rasterized: HashMap<(u64, u32, u32), atlas::Entry>,
     svg_hits: HashSet<u64>,
     rasterized_hits: HashSet<(u64, u32, u32)>,
 }
@@ -71,8 +69,8 @@ impl Cache {
         scale: f32,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        texture_array: &mut TextureArray,
-    ) -> Option<&ImageAllocation> {
+        texture_atlas: &mut Atlas,
+    ) -> Option<&atlas::Entry> {
         let id = handle.id();
 
         let (width, height) = (
@@ -104,10 +102,8 @@ impl Cache {
                 let screen_size =
                     resvg::ScreenSize::new(width, height).unwrap();
 
-                let mut canvas = resvg::raqote::DrawTarget::new(
-                    width as i32,
-                    height as i32,
-                );
+                let mut canvas =
+                    resvg::raqote::DrawTarget::new(width as i32, height as i32);
 
                 resvg::backend_raqote::render_to_canvas(
                     tree,
@@ -116,17 +112,21 @@ impl Cache {
                     &mut canvas,
                 );
 
-                let allocation = texture_array.upload(&canvas, device, encoder);
+                let allocation = texture_atlas.upload(
+                    width,
+                    height,
+                    canvas.get_data(),
+                    device,
+                    encoder,
+                )?;
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert((id, width, height));
-                let _ = self
-                    .rasterized
-                    .insert((id, width, height), allocation);
+                let _ = self.rasterized.insert((id, width, height), allocation);
 
                 self.rasterized.get(&(id, width, height))
             }
-            Svg::NotFound => None
+            Svg::NotFound => None,
         }
     }
 
