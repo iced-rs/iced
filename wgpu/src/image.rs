@@ -319,6 +319,8 @@ impl Pipeline {
         let texture_version = self.texture_atlas.layer_count();
 
         if self.texture_version != texture_version {
+            log::info!("Atlas has grown. Recreating bind group...");
+
             self.texture =
                 device.create_bind_group(&wgpu::BindGroupDescriptor {
                     layout: &self.texture_layout,
@@ -525,12 +527,12 @@ fn add_instance(
         _position: position,
         _size: size,
         _position_in_atlas: [
-            x as f32 / atlas::SIZE as f32,
-            y as f32 / atlas::SIZE as f32,
+            (x as f32 + 0.5) / atlas::SIZE as f32,
+            (y as f32 + 0.5) / atlas::SIZE as f32,
         ],
         _size_in_atlas: [
-            width as f32 / atlas::SIZE as f32,
-            height as f32 / atlas::SIZE as f32,
+            (width as f32 - 0.5) / atlas::SIZE as f32,
+            (height as f32 - 0.5) / atlas::SIZE as f32,
         ],
         _layer: layer as u32,
     };
