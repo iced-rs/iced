@@ -132,27 +132,6 @@ impl Atlas {
         }
     }
 
-    fn deallocate(&mut self, allocation: &Allocation) {
-        log::info!("Deallocating atlas: {:?}", allocation);
-
-        match allocation {
-            Allocation::Full { layer } => {
-                self.layers[*layer] = Layer::Empty;
-            }
-            Allocation::Partial { layer, region } => {
-                let layer = &mut self.layers[*layer];
-
-                if let Layer::Busy(allocator) = layer {
-                    allocator.deallocate(region);
-
-                    if allocator.is_empty() {
-                        *layer = Layer::Empty;
-                    }
-                }
-            }
-        }
-    }
-
     fn allocate(&mut self, width: u32, height: u32) -> Option<Entry> {
         // Allocate one layer if texture fits perfectly
         if width == SIZE && height == SIZE {
@@ -249,6 +228,27 @@ impl Atlas {
 
         // We ran out of memory (?)
         None
+    }
+
+    fn deallocate(&mut self, allocation: &Allocation) {
+        log::info!("Deallocating atlas: {:?}", allocation);
+
+        match allocation {
+            Allocation::Full { layer } => {
+                self.layers[*layer] = Layer::Empty;
+            }
+            Allocation::Partial { layer, region } => {
+                let layer = &mut self.layers[*layer];
+
+                if let Layer::Busy(allocator) = layer {
+                    allocator.deallocate(region);
+
+                    if allocator.is_empty() {
+                        *layer = Layer::Empty;
+                    }
+                }
+            }
+        }
     }
 
     fn upload_allocation(
