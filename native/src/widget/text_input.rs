@@ -214,14 +214,18 @@ where
 
                     match self.state.mouse.update(cursor_position) {
                         Interaction::DoubleClick(_) => {
-                            let end = self.state.cursor.end();
-                            self.state.cursor.select_range(
-                                self.value.previous_start_of_word(end),
-                                self.value.next_end_of_word(end),
-                            )
+                            if self.is_secure {
+                                self.state.cursor.select_all(&self.value);
+                            } else {
+                                let end = self.state.cursor.end();
+                                self.state.cursor.select_range(
+                                    self.value.previous_start_of_word(end),
+                                    self.value.next_end_of_word(end),
+                                );
+                            }
                         }
                         Interaction::TripleClick(_) => {
-                            self.state.cursor.select_all(&self.value)
+                            self.state.cursor.select_all(&self.value);
                         }
                         Interaction::Click(_) => {
                             if target > 0.0 {
