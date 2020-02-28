@@ -4,7 +4,7 @@ use crate::{
 };
 
 #[cfg(any(feature = "image", feature = "svg"))]
-use crate::{image, Image};
+use crate::image::{self, Image};
 
 use iced_native::{
     layout, Background, Color, Layout, MouseCursor, Point, Rectangle, Vector,

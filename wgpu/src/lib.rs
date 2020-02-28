@@ -55,6 +55,3 @@ pub(crate) use transformation::Transformation;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;
-
-#[cfg(any(feature = "image", feature = "svg"))]
-pub(crate) use self::image::Image;
