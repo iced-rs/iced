@@ -58,6 +58,11 @@ Add `iced` as a dependency in your `Cargo.toml`:
 iced = "0.1.0-beta"
 ```
 
+Make sure OpenGL and Vulkan are installed, for example on Ubuntu 18.04:
+```
+sudo apt install libglu1-mesa-dev freeglut3-dev mesa-common-dev libvulkan1 mesa-vulkan-drivers vulkan-utils
+```
+
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
 you want to learn about a specific release, check out [the release list].
 
