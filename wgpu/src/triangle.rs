@@ -248,7 +248,7 @@ impl Pipeline {
                 &vertex_buffer,
                 0,
                 &self.vertex_buffer.raw,
-                last_vertex as u64,
+                (std::mem::size_of::<Vertex2D>() * last_vertex) as u64,
                 (std::mem::size_of::<Vertex2D>() * mesh.vertices.len()) as u64,
             );
 
@@ -256,7 +256,7 @@ impl Pipeline {
                 &index_buffer,
                 0,
                 &self.index_buffer.raw,
-                last_index as u64,
+                (std::mem::size_of::<u32>() * last_index) as u64,
                 (std::mem::size_of::<u32>() * mesh.indices.len()) as u64,
             );
 
@@ -313,26 +313,29 @@ impl Pipeline {
                     depth_stencil_attachment: None,
                 });
 
+            render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
+
             for (i, (vertex_offset, index_offset, indices)) in
-                offsets.drain(..).enumerate()
+                offsets.into_iter().enumerate()
             {
-                render_pass.set_pipeline(&self.pipeline);
                 render_pass.set_bind_group(
                     0,
                     &self.constants,
                     &[(std::mem::size_of::<Uniforms>() * i) as u64],
                 );
+
                 render_pass
                     .set_index_buffer(&self.index_buffer.raw, index_offset);
+
                 render_pass.set_vertex_buffers(
                     0,
                     &[(&self.vertex_buffer.raw, vertex_offset)],
-                );
-                render_pass.set_scissor_rect(
-                    bounds.x,
-                    bounds.y,
-                    bounds.width,
-                    bounds.height,
                 );
 
                 render_pass.draw_indexed(0..indices as u32, 0, 0..1);
