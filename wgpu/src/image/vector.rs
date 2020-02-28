@@ -1,4 +1,4 @@
-use crate::texture::atlas::{self, Atlas};
+use crate::image::atlas::{self, Atlas};
 use iced_native::svg;
 use std::collections::{HashMap, HashSet};
 

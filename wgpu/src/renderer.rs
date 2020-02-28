@@ -1,7 +1,11 @@
 use crate::{
-    image, quad, text, triangle, Defaults, Image, Primitive, Quad, Settings,
-    Target, Transformation,
+    quad, text, triangle, Defaults, Primitive, Quad, Settings, Target,
+    Transformation,
 };
+
+#[cfg(any(feature = "image", feature = "svg"))]
+use crate::{image, Image};
+
 use iced_native::{
     layout, Background, Color, Layout, MouseCursor, Point, Rectangle, Vector,
     Widget,
@@ -16,18 +20,22 @@ mod widget;
 #[derive(Debug)]
 pub struct Renderer {
     quad_pipeline: quad::Pipeline,
-    image_pipeline: image::Pipeline,
     text_pipeline: text::Pipeline,
-    triangle_pipeline: crate::triangle::Pipeline,
+    triangle_pipeline: triangle::Pipeline,
+
+    #[cfg(any(feature = "image", feature = "svg"))]
+    image_pipeline: image::Pipeline,
 }
 
 struct Layer<'a> {
     bounds: Rectangle<u32>,
     offset: Vector<u32>,
     quads: Vec<Quad>,
-    images: Vec<Image>,
     meshes: Vec<(Point, Arc<triangle::Mesh2D>)>,
     text: Vec<wgpu_glyph::Section<'a>>,
+
+    #[cfg(any(feature = "image", feature = "svg"))]
+    images: Vec<Image>,
 }
 
 impl<'a> Layer<'a> {
@@ -36,9 +44,11 @@ impl<'a> Layer<'a> {
             bounds,
             offset,
             quads: Vec::new(),
-            images: Vec::new(),
             text: Vec::new(),
             meshes: Vec::new(),
+
+            #[cfg(any(feature = "image", feature = "svg"))]
+            images: Vec::new(),
         }
     }
 }
@@ -51,19 +61,22 @@ impl Renderer {
         let text_pipeline =
             text::Pipeline::new(device, settings.format, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(device, settings.format);
-        let image_pipeline =
-            crate::image::Pipeline::new(device, settings.format);
         let triangle_pipeline = triangle::Pipeline::new(
             device,
             settings.format,
             settings.antialiasing,
         );
 
+        #[cfg(any(feature = "image", feature = "svg"))]
+        let image_pipeline = image::Pipeline::new(device, settings.format);
+
         Self {
             quad_pipeline,
-            image_pipeline,
             text_pipeline,
             triangle_pipeline,
+
+            #[cfg(any(feature = "image", feature = "svg"))]
+            image_pipeline,
         }
     }
 
@@ -116,6 +129,7 @@ impl Renderer {
             );
         }
 
+        #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.trim_cache();
 
         *mouse_cursor
@@ -223,20 +237,6 @@ impl Renderer {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Image { handle, bounds } => {
-                layer.images.push(Image {
-                    handle: image::Handle::Raster(handle.clone()),
-                    position: [bounds.x, bounds.y],
-                    size: [bounds.width, bounds.height],
-                });
-            }
-            Primitive::Svg { handle, bounds } => {
-                layer.images.push(Image {
-                    handle: image::Handle::Vector(handle.clone()),
-                    position: [bounds.x, bounds.y],
-                    size: [bounds.width, bounds.height],
-                });
-            }
             Primitive::Mesh2D { origin, buffers } => {
                 layer.meshes.push((*origin, buffers.clone()));
             }
@@ -264,6 +264,28 @@ impl Renderer {
                     layers.push(new_layer);
                 }
             }
+
+            #[cfg(feature = "image")]
+            Primitive::Image { handle, bounds } => {
+                layer.images.push(Image {
+                    handle: image::Handle::Raster(handle.clone()),
+                    position: [bounds.x, bounds.y],
+                    size: [bounds.width, bounds.height],
+                });
+            }
+            #[cfg(not(feature = "image"))]
+            Primitive::Image { .. } => {}
+
+            #[cfg(feature = "svg")]
+            Primitive::Svg { handle, bounds } => {
+                layer.images.push(Image {
+                    handle: image::Handle::Vector(handle.clone()),
+                    position: [bounds.x, bounds.y],
+                    size: [bounds.width, bounds.height],
+                });
+            }
+            #[cfg(not(feature = "svg"))]
+            Primitive::Svg { .. } => {}
         }
     }
 
@@ -346,23 +368,26 @@ impl Renderer {
             );
         }
 
-        if layer.images.len() > 0 {
-            let translated_and_scaled = transformation
-                * Transformation::scale(scale_factor, scale_factor)
-                * Transformation::translate(
-                    -(layer.offset.x as f32),
-                    -(layer.offset.y as f32),
-                );
+        #[cfg(any(feature = "image", feature = "svg"))]
+        {
+            if layer.images.len() > 0 {
+                let translated_and_scaled = transformation
+                    * Transformation::scale(scale_factor, scale_factor)
+                    * Transformation::translate(
+                        -(layer.offset.x as f32),
+                        -(layer.offset.y as f32),
+                    );
 
-            self.image_pipeline.draw(
-                device,
-                encoder,
-                &layer.images,
-                translated_and_scaled,
-                bounds,
-                target,
-                scale_factor,
-            );
+                self.image_pipeline.draw(
+                    device,
+                    encoder,
+                    &layer.images,
+                    translated_and_scaled,
+                    bounds,
+                    target,
+                    scale_factor,
+                );
+            }
         }
 
         if layer.text.len() > 0 {

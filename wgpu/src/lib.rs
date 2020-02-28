@@ -30,13 +30,11 @@ pub mod triangle;
 pub mod widget;
 pub mod window;
 
-mod image;
 mod primitive;
 mod quad;
 mod renderer;
 mod target;
 mod text;
-mod texture;
 mod transformation;
 mod viewport;
 
@@ -52,6 +50,11 @@ pub use viewport::Viewport;
 #[doc(no_inline)]
 pub use widget::*;
 
-pub(crate) use self::image::Image;
 pub(crate) use quad::Quad;
 pub(crate) use transformation::Transformation;
+
+#[cfg(any(feature = "image", feature = "svg"))]
+mod image;
+
+#[cfg(any(feature = "image", feature = "svg"))]
+pub(crate) use self::image::Image;

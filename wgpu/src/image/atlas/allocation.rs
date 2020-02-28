@@ -1,4 +1,4 @@
-use crate::texture::atlas::{self, allocator};
+use crate::image::atlas::{self, allocator};
 
 #[derive(Debug)]
 pub enum Allocation {

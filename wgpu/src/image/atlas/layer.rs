@@ -1,4 +1,4 @@
-use crate::texture::atlas::Allocator;
+use crate::image::atlas::Allocator;
 
 #[derive(Debug)]
 pub enum Layer {

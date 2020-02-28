@@ -1,4 +1,4 @@
-use crate::texture::atlas;
+use crate::image::atlas;
 
 #[derive(Debug)]
 pub enum Entry {
@@ -10,6 +10,7 @@ pub enum Entry {
 }
 
 impl Entry {
+    #[cfg(feature = "image")]
     pub fn size(&self) -> (u32, u32) {
         match self {
             Entry::Contiguous(allocation) => allocation.size(),

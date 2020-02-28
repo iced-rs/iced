@@ -1,18 +1,23 @@
+mod atlas;
+
 #[cfg(feature = "image")]
 mod raster;
+
 #[cfg(feature = "svg")]
 mod vector;
 
-use crate::{texture, Transformation};
+use crate::Transformation;
+use atlas::Atlas;
 
-use iced_native::{image, svg, Rectangle};
+use iced_native::Rectangle;
+use std::cell::RefCell;
 use std::mem;
 
-#[cfg(any(feature = "image", feature = "svg"))]
-use std::cell::RefCell;
+#[cfg(feature = "image")]
+use iced_native::image;
 
-#[cfg(any(feature = "image", feature = "svg"))]
-use crate::texture::atlas;
+#[cfg(feature = "svg")]
+use iced_native::svg;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -30,7 +35,7 @@ pub struct Pipeline {
     texture: wgpu::BindGroup,
     texture_version: usize,
     texture_layout: wgpu::BindGroupLayout,
-    texture_atlas: texture::Atlas,
+    texture_atlas: Atlas,
 }
 
 impl Pipeline {
@@ -216,7 +221,7 @@ impl Pipeline {
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
         });
 
-        let texture_atlas = texture::Atlas::new(device);
+        let texture_atlas = Atlas::new(device);
 
         let texture = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &texture_layout,
@@ -284,33 +289,29 @@ impl Pipeline {
 
         for image in images {
             match &image.handle {
-                Handle::Raster(_handle) => {
-                    #[cfg(feature = "image")]
-                    {
-                        if let Some(atlas_entry) = raster_cache.upload(
-                            _handle,
-                            device,
-                            encoder,
-                            &mut self.texture_atlas,
-                        ) {
-                            add_instances(image, atlas_entry, instances);
-                        }
-                    };
+                #[cfg(feature = "image")]
+                Handle::Raster(handle) => {
+                    if let Some(atlas_entry) = raster_cache.upload(
+                        handle,
+                        device,
+                        encoder,
+                        &mut self.texture_atlas,
+                    ) {
+                        add_instances(image, atlas_entry, instances);
+                    }
                 }
-                Handle::Vector(_handle) => {
-                    #[cfg(feature = "svg")]
-                    {
-                        if let Some(atlas_entry) = vector_cache.upload(
-                            _handle,
-                            image.size,
-                            _scale,
-                            device,
-                            encoder,
-                            &mut self.texture_atlas,
-                        ) {
-                            add_instances(image, atlas_entry, instances);
-                        }
-                    };
+                #[cfg(feature = "svg")]
+                Handle::Vector(handle) => {
+                    if let Some(atlas_entry) = vector_cache.upload(
+                        handle,
+                        image.size,
+                        _scale,
+                        device,
+                        encoder,
+                        &mut self.texture_atlas,
+                    ) {
+                        add_instances(image, atlas_entry, instances);
+                    }
                 }
             }
         }
@@ -432,7 +433,10 @@ pub struct Image {
 }
 
 pub enum Handle {
+    #[cfg(feature = "image")]
     Raster(image::Handle),
+
+    #[cfg(feature = "svg")]
     Vector(svg::Handle),
 }
 
@@ -479,7 +483,6 @@ struct Uniforms {
     transform: [f32; 16],
 }
 
-#[cfg(any(feature = "image", feature = "svg"))]
 fn add_instances(
     image: &Image,
     entry: &atlas::Entry,
@@ -516,7 +519,6 @@ fn add_instances(
     }
 }
 
-#[cfg(any(feature = "image", feature = "svg"))]
 #[inline]
 fn add_instance(
     position: [f32; 2],
