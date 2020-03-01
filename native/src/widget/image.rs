@@ -125,7 +125,9 @@ impl Handle {
         Self::from_data(Data::Path(path.into()))
     }
 
-    /// Creates an image [`Handle`] containing the image pixels directly.
+    /// Creates an image [`Handle`] containing the image pixels directly. This
+    /// function expects the input data to be provided as a `Vec<u8>` of BGRA 
+    /// pixels.
     ///
     /// This is useful if you have already decoded your image.
     ///
