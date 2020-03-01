@@ -55,6 +55,21 @@ impl Cache {
                     Memory::Invalid
                 }
             }
+            image::Data::Pixels {
+                width,
+                height,
+                pixels,
+            } => {
+                if let Some(image) = ::image::ImageBuffer::from_vec(
+                    *width,
+                    *height,
+                    pixels.to_vec(),
+                ) {
+                    Memory::Host(image)
+                } else {
+                    Memory::Invalid
+                }
+            }
         };
 
         self.insert(handle, memory);

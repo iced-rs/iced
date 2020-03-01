@@ -125,6 +125,21 @@ impl Handle {
         Self::from_data(Data::Path(path.into()))
     }
 
+    /// Creates an image [`Handle`] containing the image pixels directly. This
+    /// function expects the input data to be provided as a `Vec<u8>` of BGRA 
+    /// pixels.
+    ///
+    /// This is useful if you have already decoded your image.
+    ///
+    /// [`Handle`]: struct.Handle.html
+    pub fn from_pixels(width: u32, height: u32, pixels: Vec<u8>) -> Handle {
+        Self::from_data(Data::Pixels {
+            width,
+            height,
+            pixels,
+        })
+    }
+
     /// Creates an image [`Handle`] containing the image data directly.
     ///
     /// This is useful if you already have your image loaded in-memory, maybe
@@ -188,6 +203,16 @@ pub enum Data {
 
     /// In-memory data
     Bytes(Vec<u8>),
+
+    /// Decoded image pixels in BGRA format.
+    Pixels {
+        /// The width of the image.
+        width: u32,
+        /// The height of the image.
+        height: u32,
+        /// The pixels.
+        pixels: Vec<u8>,
+    },
 }
 
 impl std::fmt::Debug for Data {
@@ -195,6 +220,9 @@ impl std::fmt::Debug for Data {
         match self {
             Data::Path(path) => write!(f, "Path({:?})", path),
             Data::Bytes(_) => write!(f, "Bytes(...)"),
+            Data::Pixels { width, height, .. } => {
+                write!(f, "Pixels({} * {})", width, height)
+            }
         }
     }
 }
