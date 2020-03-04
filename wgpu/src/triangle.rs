@@ -330,12 +330,17 @@ impl Pipeline {
                     &[(std::mem::size_of::<Uniforms>() * i) as u64],
                 );
 
-                render_pass
-                    .set_index_buffer(&self.index_buffer.raw, index_offset);
+                render_pass.set_index_buffer(
+                    &self.index_buffer.raw,
+                    index_offset * std::mem::size_of::<u32>() as u64,
+                );
 
                 render_pass.set_vertex_buffers(
                     0,
-                    &[(&self.vertex_buffer.raw, vertex_offset)],
+                    &[(
+                        &self.vertex_buffer.raw,
+                        vertex_offset * std::mem::size_of::<Vertex2D>() as u64,
+                    )],
                 );
 
                 render_pass.draw_indexed(0..indices as u32, 0, 0..1);
