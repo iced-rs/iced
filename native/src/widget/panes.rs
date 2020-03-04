@@ -160,6 +160,12 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pane(usize);
 
+impl Pane {
+    pub fn index(&self) -> usize {
+        self.0
+    }
+}
+
 #[derive(Debug)]
 pub struct State<T> {
     panes: HashMap<Pane, T>,
@@ -225,7 +231,12 @@ impl<T> State<T> {
         self.split(Split::Horizontal, pane, state)
     }
 
-    fn split(&mut self, kind: Split, pane: &Pane, state: T) -> Option<Pane> {
+    pub fn split(
+        &mut self,
+        kind: Split,
+        pane: &Pane,
+        state: T,
+    ) -> Option<Pane> {
         let node = self.internal.layout.find(pane)?;
 
         let new_pane = {
@@ -320,13 +331,13 @@ impl Node {
 }
 
 #[derive(Debug, Clone, Copy, Hash)]
-enum Split {
+pub enum Split {
     Horizontal,
     Vertical,
 }
 
 impl Split {
-    pub fn apply(
+    fn apply(
         &self,
         rectangle: &Rectangle,
         ratio: f32,
@@ -358,7 +369,7 @@ impl Split {
                         ..*rectangle
                     },
                     Rectangle {
-                        x: rectangle.x + height_top,
+                        y: rectangle.y + height_top,
                         height: height_bottom,
                         ..*rectangle
                     },
