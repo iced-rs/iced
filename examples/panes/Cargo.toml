@@ -7,5 +7,6 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["async-std"] }
+iced_native = { path = "../../native" }
 clock = { path = "../clock" }
 stopwatch = { path = "../stopwatch" }
