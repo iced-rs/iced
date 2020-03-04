@@ -25,6 +25,7 @@ pub mod checkbox;
 pub mod column;
 pub mod container;
 pub mod image;
+pub mod panes;
 pub mod progress_bar;
 pub mod radio;
 pub mod row;
@@ -45,6 +46,8 @@ pub use column::Column;
 pub use container::Container;
 #[doc(no_inline)]
 pub use image::Image;
+#[doc(no_inline)]
+pub use panes::Panes;
 #[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]

@@ -30,7 +30,7 @@ mod platform {
         pub use iced_winit::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::Text;
+    pub use iced_winit::{panes, Panes, Text};
 
     #[doc(no_inline)]
     pub use {
