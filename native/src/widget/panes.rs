@@ -1,6 +1,7 @@
 use crate::{
-    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point, Size,
-    Widget,
+    input::{mouse, ButtonState},
+    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 
 use std::collections::HashMap;
@@ -8,7 +9,7 @@ use std::collections::HashMap;
 #[allow(missing_debug_implementations)]
 pub struct Panes<'a, Message, Renderer> {
     state: &'a mut Internal,
-    elements: Vec<Element<'a, Message, Renderer>>,
+    elements: Vec<(Pane, Element<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
 }
@@ -21,7 +22,7 @@ impl<'a, Message, Renderer> Panes<'a, Message, Renderer> {
         let elements = state
             .panes
             .iter_mut()
-            .map(|(pane, state)| view(*pane, state))
+            .map(|(pane, state)| (*pane, view(*pane, state)))
             .collect();
 
         Self {
@@ -71,13 +72,65 @@ where
         let limits = limits.width(self.width).height(self.height);
         let size = limits.resolve(Size::ZERO);
 
+        let regions = self.state.layout.regions(size);
+
         let children = self
             .elements
             .iter()
-            .map(|element| element.layout(renderer, &limits))
+            .filter_map(|(pane, element)| {
+                let region = regions.get(pane)?;
+                let size = Size::new(region.width, region.height);
+
+                let mut node =
+                    element.layout(renderer, &layout::Limits::new(size, size));
+
+                node.move_to(Point::new(region.x, region.y));
+
+                Some(node)
+            })
             .collect();
 
         layout::Node::with_children(size, children)
+    }
+
+    fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+        renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
+    ) {
+        match event {
+            Event::Mouse(mouse::Event::Input {
+                button: mouse::Button::Left,
+                state: ButtonState::Pressed,
+            }) => {
+                let mut clicked_region =
+                    self.elements.iter().zip(layout.children()).filter(
+                        |(_, layout)| layout.bounds().contains(cursor_position),
+                    );
+
+                if let Some(((pane, _), _)) = clicked_region.next() {
+                    self.state.focused_pane = Some(*pane);
+                }
+            }
+            _ => {}
+        }
+
+        self.elements.iter_mut().zip(layout.children()).for_each(
+            |((_, pane), layout)| {
+                pane.widget.on_event(
+                    event.clone(),
+                    layout,
+                    cursor_position,
+                    messages,
+                    renderer,
+                    clipboard,
+                )
+            },
+        );
     }
 
     fn draw(
@@ -98,7 +151,7 @@ where
         self.height.hash(state);
         self.state.layout.hash(state);
 
-        for element in &self.elements {
+        for (_, element) in &self.elements {
             element.hash_layout(state);
         }
     }
@@ -161,11 +214,7 @@ impl<T> State<T> {
     }
 
     pub fn split_vertically(&mut self, pane: &Pane, state: T) -> Option<Pane> {
-        let new_pane = Pane(self.internal.last_pane.checked_add(1)?);
-
-        // TODO
-
-        Some(new_pane)
+        self.split(Split::Vertical, pane, state)
     }
 
     pub fn split_horizontally(
@@ -173,9 +222,22 @@ impl<T> State<T> {
         pane: &Pane,
         state: T,
     ) -> Option<Pane> {
-        let new_pane = Pane(self.internal.last_pane.checked_add(1)?);
+        self.split(Split::Horizontal, pane, state)
+    }
 
-        // TODO
+    fn split(&mut self, kind: Split, pane: &Pane, state: T) -> Option<Pane> {
+        let node = self.internal.layout.find(pane)?;
+
+        let new_pane = {
+            self.internal.last_pane = self.internal.last_pane.checked_add(1)?;
+
+            Pane(self.internal.last_pane)
+        };
+
+        node.split(kind, new_pane);
+
+        let _ = self.panes.insert(new_pane, state);
+        self.internal.focused_pane = Some(new_pane);
 
         Some(new_pane)
     }
@@ -192,10 +254,118 @@ enum Node {
     Pane(Pane),
 }
 
+impl Node {
+    pub fn find(&mut self, pane: &Pane) -> Option<&mut Node> {
+        match self {
+            Node::Split { a, b, .. } => {
+                if let Some(node) = a.find(pane) {
+                    Some(node)
+                } else {
+                    b.find(pane)
+                }
+            }
+            Node::Pane(p) => {
+                if p == pane {
+                    Some(self)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    pub fn split(&mut self, kind: Split, new_pane: Pane) {
+        *self = Node::Split {
+            kind,
+            ratio: 500_000,
+            a: Box::new(self.clone()),
+            b: Box::new(Node::Pane(new_pane)),
+        };
+    }
+
+    pub fn regions(&self, size: Size) -> HashMap<Pane, Rectangle> {
+        let mut regions = HashMap::new();
+
+        self.compute_regions(
+            &Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: size.width,
+                height: size.height,
+            },
+            &mut regions,
+        );
+
+        regions
+    }
+
+    fn compute_regions(
+        &self,
+        current: &Rectangle,
+        regions: &mut HashMap<Pane, Rectangle>,
+    ) {
+        match self {
+            Node::Split { kind, ratio, a, b } => {
+                let ratio = *ratio as f32 / 1_000_000.0;
+                let (region_a, region_b) = kind.apply(current, ratio);
+
+                a.compute_regions(&region_a, regions);
+                b.compute_regions(&region_b, regions);
+            }
+            Node::Pane(pane) => {
+                let _ = regions.insert(*pane, *current);
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash)]
 enum Split {
     Horizontal,
     Vertical,
+}
+
+impl Split {
+    pub fn apply(
+        &self,
+        rectangle: &Rectangle,
+        ratio: f32,
+    ) -> (Rectangle, Rectangle) {
+        match self {
+            Split::Horizontal => {
+                let width_left = rectangle.width * ratio;
+                let width_right = rectangle.width - width_left;
+
+                (
+                    Rectangle {
+                        width: width_left,
+                        ..*rectangle
+                    },
+                    Rectangle {
+                        x: rectangle.x + width_left,
+                        width: width_right,
+                        ..*rectangle
+                    },
+                )
+            }
+            Split::Vertical => {
+                let height_top = rectangle.height * ratio;
+                let height_bottom = rectangle.height - height_top;
+
+                (
+                    Rectangle {
+                        height: height_top,
+                        ..*rectangle
+                    },
+                    Rectangle {
+                        x: rectangle.x + height_top,
+                        height: height_bottom,
+                        ..*rectangle
+                    },
+                )
+            }
+        }
+    }
 }
 
 /// The renderer of some [`Panes`].
@@ -218,7 +388,7 @@ pub trait Renderer: crate::Renderer + Sized {
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        content: &[Element<'_, Message, Self>],
+        content: &[(Pane, Element<'_, Message, Self>)],
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output;

@@ -12,6 +12,7 @@ pub fn main() {
     })
 }
 
+#[derive(Debug)]
 struct Launcher {
     panes: panes::State<Example>,
 }
@@ -36,8 +37,6 @@ impl Application for Launcher {
         let (clock, _) = Clock::new();
         let (panes, _) = panes::State::new(Example::Clock(clock));
 
-        dbg!(&panes);
-
         (Self { panes }, Command::none())
     }
 
@@ -60,6 +59,8 @@ impl Application for Launcher {
                 }
             }
         }
+
+        dbg!(self);
 
         Command::none()
     }

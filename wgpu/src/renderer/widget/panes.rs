@@ -5,7 +5,7 @@ impl panes::Renderer for Renderer {
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        content: &[Element<'_, Message, Self>],
+        content: &[(panes::Pane, Element<'_, Message, Self>)],
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
@@ -16,9 +16,9 @@ impl panes::Renderer for Renderer {
                 primitives: content
                     .iter()
                     .zip(layout.children())
-                    .map(|(child, layout)| {
+                    .map(|((_, pane), layout)| {
                         let (primitive, new_mouse_cursor) =
-                            child.draw(self, defaults, layout, cursor_position);
+                            pane.draw(self, defaults, layout, cursor_position);
 
                         if new_mouse_cursor > mouse_cursor {
                             mouse_cursor = new_mouse_cursor;
