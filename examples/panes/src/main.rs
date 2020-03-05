@@ -77,8 +77,6 @@ impl Application for Launcher {
             }
         }
 
-        dbg!(self);
-
         Command::none()
     }
 
@@ -88,11 +86,14 @@ impl Application for Launcher {
                 match example {
                     Example::Clock(clock) => clock
                         .subscription()
-                        .map(move |message| Message::Clock(pane, message)),
+                        .with(pane)
+                        .map(|(pane, message)| Message::Clock(pane, message)),
 
-                    Example::Stopwatch(stopwatch) => stopwatch
-                        .subscription()
-                        .map(move |message| Message::Stopwatch(pane, message)),
+                    Example::Stopwatch(stopwatch) => {
+                        stopwatch.subscription().with(pane).map(
+                            |(pane, message)| Message::Stopwatch(pane, message),
+                        )
+                    }
                 }
             }));
 
