@@ -199,6 +199,10 @@ impl<T> State<T> {
         )
     }
 
+    pub fn len(&self) -> usize {
+        self.panes.len()
+    }
+
     pub fn get_mut(&mut self, pane: &Pane) -> Option<&mut T> {
         self.panes.get_mut(pane)
     }
@@ -252,6 +256,15 @@ impl<T> State<T> {
 
         Some(new_pane)
     }
+
+    pub fn close(&mut self, pane: &Pane) -> Option<T> {
+        if let Some(sibling) = self.internal.layout.remove(pane) {
+            self.internal.focused_pane = Some(sibling);
+            self.panes.remove(pane)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -266,7 +279,7 @@ enum Node {
 }
 
 impl Node {
-    pub fn find(&mut self, pane: &Pane) -> Option<&mut Node> {
+    fn find(&mut self, pane: &Pane) -> Option<&mut Node> {
         match self {
             Node::Split { a, b, .. } => {
                 if let Some(node) = a.find(pane) {
@@ -285,13 +298,30 @@ impl Node {
         }
     }
 
-    pub fn split(&mut self, kind: Split, new_pane: Pane) {
+    fn split(&mut self, kind: Split, new_pane: Pane) {
         *self = Node::Split {
             kind,
             ratio: 500_000,
             a: Box::new(self.clone()),
             b: Box::new(Node::Pane(new_pane)),
         };
+    }
+
+    fn remove(&mut self, pane: &Pane) -> Option<Pane> {
+        match self {
+            Node::Split { a, b, .. } => {
+                if a.pane() == Some(*pane) {
+                    *self = *b.clone();
+                    Some(self.first_pane())
+                } else if b.pane() == Some(*pane) {
+                    *self = *a.clone();
+                    Some(self.first_pane())
+                } else {
+                    a.remove(pane).or_else(|| b.remove(pane))
+                }
+            }
+            Node::Pane(_) => None,
+        }
     }
 
     pub fn regions(&self, size: Size) -> HashMap<Pane, Rectangle> {
@@ -308,6 +338,20 @@ impl Node {
         );
 
         regions
+    }
+
+    fn pane(&self) -> Option<Pane> {
+        match self {
+            Node::Split { .. } => None,
+            Node::Pane(pane) => Some(*pane),
+        }
+    }
+
+    fn first_pane(&self) -> Pane {
+        match self {
+            Node::Split { a, .. } => a.first_pane(),
+            Node::Pane(pane) => *pane,
+        }
     }
 
     fn compute_regions(
@@ -330,7 +374,7 @@ impl Node {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Split {
     Horizontal,
     Vertical,

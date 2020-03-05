@@ -29,6 +29,7 @@ enum Message {
     Clock(panes::Pane, clock::Message),
     Stopwatch(panes::Pane, stopwatch::Message),
     Split(panes::Split),
+    Close,
 }
 
 impl Application for Launcher {
@@ -75,6 +76,11 @@ impl Application for Launcher {
                     self.panes.split(kind, &pane, state);
                 }
             }
+            Message::Close => {
+                if let Some(pane) = self.panes.focused_pane() {
+                    self.panes.close(&pane);
+                }
+            }
         }
 
         Command::none()
@@ -102,6 +108,7 @@ impl Application for Launcher {
                 .map(|_| Message::Split(panes::Split::Horizontal)),
             events::key_released(keyboard::KeyCode::V)
                 .map(|_| Message::Split(panes::Split::Vertical)),
+            events::key_released(keyboard::KeyCode::Q).map(|_| Message::Close),
             panes_subscriptions,
         ])
     }
