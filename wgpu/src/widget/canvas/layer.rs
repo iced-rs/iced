@@ -3,10 +3,9 @@ mod cache;
 
 pub use cache::Cache;
 
-use crate::triangle;
+use crate::Primitive;
 
-use iced_native::Size;
-use std::sync::Arc;
+use iced_native::{Point, Size};
 
 /// A layer that can be presented at a [`Canvas`].
 ///
@@ -21,5 +20,5 @@ pub trait Layer: std::fmt::Debug {
     ///
     /// [`Layer`]: trait.Layer.html
     /// [`Mesh2D`]: ../../../triangle/struct.Mesh2D.html
-    fn draw(&self, bounds: Size) -> Arc<triangle::Mesh2D>;
+    fn draw(&self, origin: Point, bounds: Size) -> Primitive;
 }

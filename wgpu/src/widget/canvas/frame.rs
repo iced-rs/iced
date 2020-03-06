@@ -1,9 +1,11 @@
 use iced_native::{Point, Size, Vector};
 
 use crate::{
-    canvas::{Fill, Path, Stroke},
-    triangle,
+    canvas::{Fill, Path, Stroke, TextNode},
+    triangle, Primitive,
 };
+
+use std::sync::Arc;
 
 /// The frame of a [`Canvas`].
 ///
@@ -14,6 +16,7 @@ pub struct Frame {
     height: f32,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
     transforms: Transforms,
+    texts: Vec<TextNode>,
 }
 
 #[derive(Debug)]
@@ -40,6 +43,7 @@ impl Frame {
             width,
             height,
             buffers: lyon::tessellation::VertexBuffers::new(),
+            texts: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
                 current: Transform {
@@ -154,6 +158,14 @@ impl Frame {
         let _ = result.expect("Stroke path");
     }
 
+    /// Draws the text of the given [`TextNode`] on the [`Frame`]
+    ///
+    /// [`TextNode`]: struct.TextNode.html
+    /// [`Frame`]: struct.Frame.html
+    pub fn text(&mut self, text: TextNode) {
+        self.texts.push(text);
+    }
+
     /// Stores the current transform of the [`Frame`] and executes the given
     /// drawing operations, restoring the transform afterwards.
     ///
@@ -209,14 +221,38 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Produces the geometry that has been drawn on the [`Frame`].
+    /// Produces the primitive representing everything drawn on the [`Frame`].
     ///
     /// [`Frame`]: struct.Frame.html
-    pub fn into_mesh(self) -> triangle::Mesh2D {
-        triangle::Mesh2D {
-            vertices: self.buffers.vertices,
-            indices: self.buffers.indices,
-        }
+    pub fn into_primitive(self, origin: Point) -> Primitive {
+        let mut primitives: Vec<Primitive> = self
+            .texts
+            .into_iter()
+            .map(|mut t| {
+                t.bounds.x += origin.x;
+                t.bounds.y += origin.y;
+
+                Primitive::Text {
+                    content: t.content,
+                    bounds: t.bounds,
+                    color: t.color,
+                    size: t.size,
+                    font: t.font,
+                    horizontal_alignment: t.horizontal_alignment,
+                    vertical_alignment: t.vertical_alignment,
+                }
+            })
+            .collect();
+
+        primitives.push(Primitive::Mesh2D {
+            origin,
+            buffers: Arc::new(triangle::Mesh2D {
+                vertices: self.buffers.vertices,
+                indices: self.buffers.indices,
+            }),
+        });
+
+        Primitive::Group { primitives }
     }
 }
 

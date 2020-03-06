@@ -1,12 +1,10 @@
 use crate::{
     canvas::{Drawable, Frame, Layer},
-    triangle,
+    Primitive,
 };
 
-use iced_native::Size;
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::sync::Arc;
+use iced_native::{Point, Size};
+use std::{cell::RefCell, marker::PhantomData};
 
 /// A simple cache that stores generated geometry to avoid recomputation.
 ///
@@ -24,10 +22,7 @@ pub struct Cache<T: Drawable> {
 #[derive(Debug)]
 enum State {
     Empty,
-    Filled {
-        mesh: Arc<triangle::Mesh2D>,
-        bounds: Size,
-    },
+    Filled { bounds: Size, primitive: Primitive },
 }
 
 impl<T> Cache<T>
@@ -75,27 +70,27 @@ impl<'a, T> Layer for Bind<'a, T>
 where
     T: Drawable + std::fmt::Debug,
 {
-    fn draw(&self, current_bounds: Size) -> Arc<triangle::Mesh2D> {
+    fn draw(&self, origin: Point, current_bounds: Size) -> Primitive {
         use std::ops::Deref;
 
-        if let State::Filled { mesh, bounds } =
+        if let State::Filled { bounds, primitive } =
             self.cache.state.borrow().deref()
         {
             if *bounds == current_bounds {
-                return mesh.clone();
+                return primitive.clone();
             }
         }
 
         let mut frame = Frame::new(current_bounds.width, current_bounds.height);
         self.input.draw(&mut frame);
 
-        let mesh = Arc::new(frame.into_mesh());
+        let primitive = frame.into_primitive(origin);
 
         *self.cache.state.borrow_mut() = State::Filled {
-            mesh: mesh.clone(),
             bounds: current_bounds,
+            primitive: primitive.clone(),
         };
 
-        mesh
+        primitive
     }
 }
