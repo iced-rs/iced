@@ -1,7 +1,7 @@
 //! Write some text for your users to read.
 use crate::{
     layout::{Limits, Node},
-    Element, Hasher, Layout, Length, Point, Size, Widget,
+    Clipboard, Element, Event, Hasher, Layout, Length, Point, Size, Widget,
 };
 use std::{any::TypeId, hash::Hash, iter};
 
@@ -139,6 +139,29 @@ where
                 build_grid(columns, column_aligns, layouts, grid_width)
             }
         }
+    }
+
+    fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+        renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
+    ) {
+        self.elements.iter_mut().zip(layout.children()).for_each(
+            |(child, layout)| {
+                child.widget.on_event(
+                    event.clone(),
+                    layout,
+                    cursor_position,
+                    messages,
+                    renderer,
+                    clipboard,
+                )
+            },
+        );
     }
 
     fn draw(
