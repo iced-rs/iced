@@ -147,7 +147,7 @@ impl State {
     /// Creates a new [`State`].
     ///
     /// [`State`]: struct.State.html
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self
     }
 }

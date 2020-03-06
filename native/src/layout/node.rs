@@ -36,14 +36,14 @@ impl Node {
     ///
     /// [`Node`]: struct.Node.html
     /// [`Size`]: ../struct.Size.html
-    pub const fn size(&self) -> Size {
+    pub fn size(&self) -> Size {
         Size::new(self.bounds.width, self.bounds.height)
     }
 
     /// Returns the bounds of the [`Node`].
     ///
     /// [`Node`]: struct.Node.html
-    pub const fn bounds(&self) -> Rectangle {
+    pub fn bounds(&self) -> Rectangle {
         self.bounds
     }
 

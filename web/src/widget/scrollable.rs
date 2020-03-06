@@ -151,7 +151,7 @@ impl State {
     /// Creates a new [`State`] with the scrollbar located at the top.
     ///
     /// [`State`]: struct.State.html
-    pub const fn new() -> Self {
-        State
+    pub fn new() -> Self {
+        State::default()
     }
 }

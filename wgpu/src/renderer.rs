@@ -35,7 +35,7 @@ struct Layer<'a> {
 }
 
 impl<'a> Layer<'a> {
-    pub const fn new(bounds: Rectangle<u32>, offset: Vector<u32>) -> Self {
+    pub fn new(bounds: Rectangle<u32>, offset: Vector<u32>) -> Self {
         Self {
             bounds,
             offset,

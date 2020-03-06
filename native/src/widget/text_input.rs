@@ -326,17 +326,14 @@ impl State {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
     ///
     /// [`State`]: struct.State.html
-    pub const fn new() -> Self {
-        Self {
-            is_focused: false,
-            cursor_position: 0,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Creates a new [`State`], representing a focused [`TextInput`].
     ///
     /// [`State`]: struct.State.html
-    pub const fn focused() -> Self {
+    pub fn focused() -> Self {
         use std::usize;
 
         Self {
@@ -348,7 +345,7 @@ impl State {
     /// Returns whether the [`TextInput`] is currently focused or not.
     ///
     /// [`TextInput`]: struct.TextInput.html
-    pub const fn is_focused(&self) -> bool {
+    pub fn is_focused(&self) -> bool {
         self.is_focused
     }
 

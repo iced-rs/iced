@@ -95,8 +95,8 @@ impl State {
     /// Creates a new [`State`].
     ///
     /// [`State`]: struct.State.html
-    pub const fn new() -> State {
-        State { is_dragging: false }
+    pub fn new() -> State {
+        State::default()
     }
 }
 
