@@ -1,7 +1,7 @@
 use iced_native::{Point, Size, Vector};
 
 use crate::{
-    canvas::{Fill, Path, Stroke, TextNode},
+    canvas::{Fill, Path, Stroke, Text},
     triangle, Primitive,
 };
 
@@ -16,7 +16,7 @@ pub struct Frame {
     height: f32,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
     transforms: Transforms,
-    texts: Vec<TextNode>,
+    texts: Vec<Text>,
 }
 
 #[derive(Debug)]
@@ -158,11 +158,11 @@ impl Frame {
         let _ = result.expect("Stroke path");
     }
 
-    /// Draws the text of the given [`TextNode`] on the [`Frame`]
+    /// Draws the text of the given [`Text`] on the [`Frame`]
     ///
-    /// [`TextNode`]: struct.TextNode.html
+    /// [`Text`]: struct.Text.html
     /// [`Frame`]: struct.Frame.html
-    pub fn text(&mut self, text: TextNode) {
+    pub fn text(&mut self, text: Text) {
         self.texts.push(text);
     }
 

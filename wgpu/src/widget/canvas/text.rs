@@ -1,8 +1,10 @@
-use iced_native::{Color, Font, HorizontalAlignment, Rectangle, VerticalAlignment};
+use iced_native::{
+    Color, Font, HorizontalAlignment, Rectangle, VerticalAlignment,
+};
 
-/// A text node to be drawn to a canvas
+/// A bunch of text that can be drawn to a canvas
 #[derive(Debug, Clone)]
-pub struct TextNode {
+pub struct Text {
     /// The contents of the text
     pub content: String,
     /// The bounds of the text

@@ -28,7 +28,7 @@ pub use frame::Frame;
 pub use layer::Layer;
 pub use path::Path;
 pub use stroke::{LineCap, LineJoin, Stroke};
-pub use text::TextNode;
+pub use text::Text;
 
 /// A widget capable of drawing 2D graphics.
 ///
