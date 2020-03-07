@@ -1,14 +1,12 @@
-use iced_native::{
-    Color, Font, HorizontalAlignment, Rectangle, VerticalAlignment,
-};
+use iced_native::{Color, Font, HorizontalAlignment, Point, VerticalAlignment};
 
 /// A bunch of text that can be drawn to a canvas
 #[derive(Debug, Clone)]
 pub struct Text {
     /// The contents of the text
     pub content: String,
-    /// The bounds of the text
-    pub bounds: Rectangle,
+    /// The position where to begin drawing the text (top-left corner coordinates)
+    pub position: Point,
     /// The color of the text
     pub color: Color,
     /// The size of the text

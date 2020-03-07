@@ -123,7 +123,10 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
                 primitives: self
                     .layers
                     .iter()
-                    .map(|layer| layer.draw(origin, size))
+                    .map(|layer| Primitive::Cached {
+                        origin,
+                        cache: layer.draw(size),
+                    })
                     .collect(),
             },
             MouseCursor::Idle,

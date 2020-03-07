@@ -87,7 +87,7 @@ mod rainbow {
             (
                 Primitive::Mesh2D {
                     origin: Point::new(b.x, b.y),
-                    buffers: std::sync::Arc::new(Mesh2D {
+                    buffers: Mesh2D {
                         vertices: vec![
                             Vertex2D {
                                 position: posn_center,
@@ -136,7 +136,7 @@ mod rainbow {
                             0, 7, 8, // BL
                             0, 8, 1, // L
                         ],
-                    }),
+                    },
                 },
                 MouseCursor::OutOfBounds,
             )

@@ -3,8 +3,8 @@ use crate::{
     Primitive,
 };
 
-use iced_native::{Point, Size};
-use std::{cell::RefCell, marker::PhantomData};
+use iced_native::Size;
+use std::{cell::RefCell, marker::PhantomData, sync::Arc};
 
 /// A simple cache that stores generated geometry to avoid recomputation.
 ///
@@ -22,7 +22,10 @@ pub struct Cache<T: Drawable> {
 #[derive(Debug)]
 enum State {
     Empty,
-    Filled { bounds: Size, primitive: Primitive },
+    Filled {
+        bounds: Size,
+        primitive: Arc<Primitive>,
+    },
 }
 
 impl<T> Cache<T>
@@ -70,7 +73,7 @@ impl<'a, T> Layer for Bind<'a, T>
 where
     T: Drawable + std::fmt::Debug,
 {
-    fn draw(&self, origin: Point, current_bounds: Size) -> Primitive {
+    fn draw(&self, current_bounds: Size) -> Arc<Primitive> {
         use std::ops::Deref;
 
         if let State::Filled { bounds, primitive } =
@@ -84,7 +87,7 @@ where
         let mut frame = Frame::new(current_bounds.width, current_bounds.height);
         self.input.draw(&mut frame);
 
-        let primitive = frame.into_primitive(origin);
+        let primitive = Arc::new(frame.into_primitive());
 
         *self.cache.state.borrow_mut() = State::Filled {
             bounds: current_bounds,

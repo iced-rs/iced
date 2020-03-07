@@ -1,11 +1,9 @@
-use iced_native::{Point, Size, Vector};
+use iced_native::{Point, Rectangle, Size, Vector};
 
 use crate::{
     canvas::{Fill, Path, Stroke, Text},
     triangle, Primitive,
 };
-
-use std::sync::Arc;
 
 /// The frame of a [`Canvas`].
 ///
@@ -15,8 +13,8 @@ pub struct Frame {
     width: f32,
     height: f32,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
+    primitives: Vec<Primitive>,
     transforms: Transforms,
-    texts: Vec<Text>,
 }
 
 #[derive(Debug)]
@@ -43,7 +41,7 @@ impl Frame {
             width,
             height,
             buffers: lyon::tessellation::VertexBuffers::new(),
-            texts: Vec::new(),
+            primitives: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
                 current: Transform {
@@ -165,7 +163,23 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn fill_text(&mut self, text: Text) {
-        self.texts.push(text);
+        use std::f32;
+
+        // TODO: Use vectorial text instead of primitive
+        self.primitives.push(Primitive::Text {
+            content: text.content,
+            bounds: Rectangle {
+                x: text.position.x,
+                y: text.position.y,
+                width: f32::INFINITY,
+                height: f32::INFINITY,
+            },
+            color: text.color,
+            size: text.size,
+            font: text.font,
+            horizontal_alignment: text.horizontal_alignment,
+            vertical_alignment: text.vertical_alignment,
+        });
     }
 
     /// Stores the current transform of the [`Frame`] and executes the given
@@ -226,35 +240,18 @@ impl Frame {
     /// Produces the primitive representing everything drawn on the [`Frame`].
     ///
     /// [`Frame`]: struct.Frame.html
-    pub fn into_primitive(self, origin: Point) -> Primitive {
-        let mut primitives: Vec<Primitive> = self
-            .texts
-            .into_iter()
-            .map(|mut t| {
-                t.bounds.x += origin.x;
-                t.bounds.y += origin.y;
-
-                Primitive::Text {
-                    content: t.content,
-                    bounds: t.bounds,
-                    color: t.color,
-                    size: t.size,
-                    font: t.font,
-                    horizontal_alignment: t.horizontal_alignment,
-                    vertical_alignment: t.vertical_alignment,
-                }
-            })
-            .collect();
-
-        primitives.push(Primitive::Mesh2D {
-            origin,
-            buffers: Arc::new(triangle::Mesh2D {
+    pub fn into_primitive(mut self) -> Primitive {
+        self.primitives.push(Primitive::Mesh2D {
+            origin: Point::ORIGIN,
+            buffers: triangle::Mesh2D {
                 vertices: self.buffers.vertices,
                 indices: self.buffers.indices,
-            }),
+            },
         });
 
-        Primitive::Group { primitives }
+        Primitive::Group {
+            primitives: self.primitives,
+        }
     }
 }
 
