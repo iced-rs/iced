@@ -158,11 +158,13 @@ impl Frame {
         let _ = result.expect("Stroke path");
     }
 
-    /// Draws the text of the given [`Text`] on the [`Frame`]
+    /// Draws the characters of the given [`Text`] on the [`Frame`], filling
+    /// them with the given color.
     ///
     /// [`Text`]: struct.Text.html
     /// [`Frame`]: struct.Frame.html
-    pub fn text(&mut self, text: Text) {
+    #[inline]
+    pub fn fill_text(&mut self, text: Text) {
         self.texts.push(text);
     }
 
