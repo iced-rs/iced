@@ -159,18 +159,38 @@ impl Frame {
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
     /// them with the given color.
     ///
+    /// __Warning:__ Text currently does not work well with rotations and scale
+    /// transforms! The position will be correctly transformed, but the
+    /// resulting glyphs will not be rotated or scaled properly.
+    ///
+    /// Additionally, all text will be rendered on top of all the layers of
+    /// a [`Canvas`]. Therefore, it is currently only meant to be used for
+    /// overlays, which is the most common use case.
+    ///
+    /// Support for vectorial text is planned, and should address all these
+    /// limitations.
+    ///
     /// [`Text`]: struct.Text.html
     /// [`Frame`]: struct.Frame.html
-    #[inline]
     pub fn fill_text(&mut self, text: Text) {
         use std::f32;
+
+        let position = if self.transforms.current.is_identity {
+            text.position
+        } else {
+            let transformed = self.transforms.current.raw.transform_point(
+                lyon::math::Point::new(text.position.x, text.position.y),
+            );
+
+            Point::new(transformed.x, transformed.y)
+        };
 
         // TODO: Use vectorial text instead of primitive
         self.primitives.push(Primitive::Text {
             content: text.content,
             bounds: Rectangle {
-                x: text.position.x,
-                y: text.position.y,
+                x: position.x,
+                y: position.y,
                 width: f32::INFINITY,
                 height: f32::INFINITY,
             },
