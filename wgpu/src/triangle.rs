@@ -194,7 +194,7 @@ impl Pipeline {
         target_width: u32,
         target_height: u32,
         transformation: Transformation,
-        meshes: &Vec<(Point, &Mesh2D)>,
+        meshes: &[(Point, &Mesh2D)],
         bounds: Rectangle<u32>,
     ) {
         // This looks a bit crazy, but we are just counting how many vertices
