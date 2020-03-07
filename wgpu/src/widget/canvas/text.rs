@@ -18,3 +18,17 @@ pub struct Text {
     /// The vertical alignment of the text
     pub vertical_alignment: VerticalAlignment,
 }
+
+impl Default for Text {
+    fn default() -> Text {
+        Text {
+            content: String::new(),
+            position: Point::ORIGIN,
+            color: Color::BLACK,
+            size: 16.0,
+            font: Font::Default,
+            horizontal_alignment: HorizontalAlignment::Left,
+            vertical_alignment: VerticalAlignment::Top,
+        }
+    }
+}
