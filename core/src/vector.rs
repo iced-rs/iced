@@ -32,6 +32,17 @@ where
     }
 }
 
+impl<T> std::ops::Sub for Vector<T>
+where
+    T: std::ops::Sub<Output = T>,
+{
+    type Output = Self;
+
+    fn sub(self, b: Self) -> Self {
+        Self::new(self.x - b.x, self.y - b.y)
+    }
+}
+
 impl<T> Default for Vector<T>
 where
     T: Default,

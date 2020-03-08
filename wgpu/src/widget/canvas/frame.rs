@@ -1,8 +1,8 @@
-use iced_native::{Point, Size, Vector};
+use iced_native::{Point, Rectangle, Size, Vector};
 
 use crate::{
-    canvas::{Fill, Path, Stroke},
-    triangle,
+    canvas::{Fill, Path, Stroke, Text},
+    triangle, Primitive,
 };
 
 /// The frame of a [`Canvas`].
@@ -13,6 +13,7 @@ pub struct Frame {
     width: f32,
     height: f32,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
+    primitives: Vec<Primitive>,
     transforms: Transforms,
 }
 
@@ -40,6 +41,7 @@ impl Frame {
             width,
             height,
             buffers: lyon::tessellation::VertexBuffers::new(),
+            primitives: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
                 current: Transform {
@@ -154,6 +156,52 @@ impl Frame {
         let _ = result.expect("Stroke path");
     }
 
+    /// Draws the characters of the given [`Text`] on the [`Frame`], filling
+    /// them with the given color.
+    ///
+    /// __Warning:__ Text currently does not work well with rotations and scale
+    /// transforms! The position will be correctly transformed, but the
+    /// resulting glyphs will not be rotated or scaled properly.
+    ///
+    /// Additionally, all text will be rendered on top of all the layers of
+    /// a [`Canvas`]. Therefore, it is currently only meant to be used for
+    /// overlays, which is the most common use case.
+    ///
+    /// Support for vectorial text is planned, and should address all these
+    /// limitations.
+    ///
+    /// [`Text`]: struct.Text.html
+    /// [`Frame`]: struct.Frame.html
+    pub fn fill_text(&mut self, text: Text) {
+        use std::f32;
+
+        let position = if self.transforms.current.is_identity {
+            text.position
+        } else {
+            let transformed = self.transforms.current.raw.transform_point(
+                lyon::math::Point::new(text.position.x, text.position.y),
+            );
+
+            Point::new(transformed.x, transformed.y)
+        };
+
+        // TODO: Use vectorial text instead of primitive
+        self.primitives.push(Primitive::Text {
+            content: text.content,
+            bounds: Rectangle {
+                x: position.x,
+                y: position.y,
+                width: f32::INFINITY,
+                height: f32::INFINITY,
+            },
+            color: text.color,
+            size: text.size,
+            font: text.font,
+            horizontal_alignment: text.horizontal_alignment,
+            vertical_alignment: text.vertical_alignment,
+        });
+    }
+
     /// Stores the current transform of the [`Frame`] and executes the given
     /// drawing operations, restoring the transform afterwards.
     ///
@@ -209,13 +257,20 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Produces the geometry that has been drawn on the [`Frame`].
+    /// Produces the primitive representing everything drawn on the [`Frame`].
     ///
     /// [`Frame`]: struct.Frame.html
-    pub fn into_mesh(self) -> triangle::Mesh2D {
-        triangle::Mesh2D {
-            vertices: self.buffers.vertices,
-            indices: self.buffers.indices,
+    pub fn into_primitive(mut self) -> Primitive {
+        self.primitives.push(Primitive::Mesh2D {
+            origin: Point::ORIGIN,
+            buffers: triangle::Mesh2D {
+                vertices: self.buffers.vertices,
+                indices: self.buffers.indices,
+            },
+        });
+
+        Primitive::Group {
+            primitives: self.primitives,
         }
     }
 }
