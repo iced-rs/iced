@@ -1,5 +1,5 @@
 use crate::{
-    input::{mouse, ButtonState},
+    input::{keyboard, mouse, ButtonState},
     layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
     Rectangle, Size, Widget,
 };
@@ -12,6 +12,7 @@ pub struct PaneGrid<'a, Message, Renderer> {
     elements: Vec<(Pane, Element<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
+    on_drop: Option<Box<dyn Fn(Drop) -> Message>>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
@@ -30,6 +31,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
             elements,
             width: Length::Fill,
             height: Length::Fill,
+            on_drop: None,
         }
     }
 
@@ -48,6 +50,17 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         self.height = height;
         self
     }
+
+    pub fn on_drop(mut self, f: impl Fn(Drop) -> Message + 'static) -> Self {
+        self.on_drop = Some(Box::new(f));
+        self
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Drop {
+    pub pane: Pane,
+    pub target: Pane,
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -105,32 +118,76 @@ where
         match event {
             Event::Mouse(mouse::Event::Input {
                 button: mouse::Button::Left,
-                state: ButtonState::Pressed,
-            }) => {
-                let mut clicked_region =
-                    self.elements.iter().zip(layout.children()).filter(
-                        |(_, layout)| layout.bounds().contains(cursor_position),
-                    );
+                state,
+            }) => match state {
+                ButtonState::Pressed => {
+                    let mut clicked_region =
+                        self.elements.iter().zip(layout.children()).filter(
+                            |(_, layout)| {
+                                layout.bounds().contains(cursor_position)
+                            },
+                        );
 
-                if let Some(((pane, _), _)) = clicked_region.next() {
-                    self.state.focused_pane = Some(*pane);
+                    if let Some(((pane, _), _)) = clicked_region.next() {
+                        self.state.focus = if self.on_drop.is_some()
+                            && self.state.modifiers.alt
+                        {
+                            Some(Focus::Dragging(*pane))
+                        } else {
+                            Some(Focus::Idle(*pane))
+                        }
+                    }
                 }
+                ButtonState::Released => {
+                    if let Some(on_drop) = &self.on_drop {
+                        if let Some(Focus::Dragging(pane)) = self.state.focus {
+                            let mut dropped_region = self
+                                .elements
+                                .iter()
+                                .zip(layout.children())
+                                .filter(|(_, layout)| {
+                                    layout.bounds().contains(cursor_position)
+                                });
+
+                            if let Some(((target, _), _)) =
+                                dropped_region.next()
+                            {
+                                if pane != *target {
+                                    messages.push(on_drop(Drop {
+                                        pane,
+                                        target: *target,
+                                    }));
+                                }
+                            }
+
+                            self.state.focus = Some(Focus::Idle(pane));
+                        }
+                    }
+                }
+            },
+            Event::Keyboard(keyboard::Event::Input { modifiers, .. }) => {
+                self.state.modifiers = modifiers;
             }
             _ => {}
         }
 
-        self.elements.iter_mut().zip(layout.children()).for_each(
-            |((_, pane), layout)| {
-                pane.widget.on_event(
-                    event.clone(),
-                    layout,
-                    cursor_position,
-                    messages,
-                    renderer,
-                    clipboard,
-                )
-            },
-        );
+        match self.state.focus {
+            Some(Focus::Dragging(_)) => {}
+            _ => {
+                self.elements.iter_mut().zip(layout.children()).for_each(
+                    |((_, pane), layout)| {
+                        pane.widget.on_event(
+                            event.clone(),
+                            layout,
+                            cursor_position,
+                            messages,
+                            renderer,
+                            clipboard,
+                        )
+                    },
+                );
+            }
+        }
     }
 
     fn draw(
@@ -140,7 +197,18 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(defaults, &self.elements, layout, cursor_position)
+        let dragging = match self.state.focus {
+            Some(Focus::Dragging(pane)) => Some(pane),
+            _ => None,
+        };
+
+        renderer.draw(
+            defaults,
+            &self.elements,
+            dragging,
+            layout,
+            cursor_position,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -176,7 +244,14 @@ pub struct State<T> {
 struct Internal {
     layout: Node,
     last_pane: usize,
-    focused_pane: Option<Pane>,
+    focus: Option<Focus>,
+    modifiers: keyboard::ModifiersState,
+}
+
+#[derive(Debug)]
+enum Focus {
+    Idle(Pane),
+    Dragging(Pane),
 }
 
 impl<T> State<T> {
@@ -192,7 +267,8 @@ impl<T> State<T> {
                 internal: Internal {
                     layout: Node::Pane(first_pane),
                     last_pane: 0,
-                    focused_pane: None,
+                    focus: None,
+                    modifiers: keyboard::ModifiersState::default(),
                 },
             },
             first_pane,
@@ -216,11 +292,15 @@ impl<T> State<T> {
     }
 
     pub fn focused_pane(&self) -> Option<Pane> {
-        self.internal.focused_pane
+        match self.internal.focus {
+            Some(Focus::Idle(pane)) => Some(pane),
+            Some(Focus::Dragging(_)) => None,
+            None => None,
+        }
     }
 
     pub fn focus(&mut self, pane: Pane) {
-        self.internal.focused_pane = Some(pane);
+        self.internal.focus = Some(Focus::Idle(pane));
     }
 
     pub fn split_vertically(&mut self, pane: &Pane, state: T) -> Option<Pane> {
@@ -252,14 +332,27 @@ impl<T> State<T> {
         node.split(kind, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
-        self.internal.focused_pane = Some(new_pane);
+        self.internal.focus = Some(Focus::Idle(new_pane));
 
         Some(new_pane)
     }
 
+    pub fn swap(&mut self, a: &Pane, b: &Pane) {
+        self.internal.layout.update(&|node| match node {
+            Node::Split { .. } => {}
+            Node::Pane(pane) => {
+                if pane == a {
+                    *node = Node::Pane(*b);
+                } else if pane == b {
+                    *node = Node::Pane(*a);
+                }
+            }
+        });
+    }
+
     pub fn close(&mut self, pane: &Pane) -> Option<T> {
         if let Some(sibling) = self.internal.layout.remove(pane) {
-            self.internal.focused_pane = Some(sibling);
+            self.internal.focus = Some(Focus::Idle(sibling));
             self.panes.remove(pane)
         } else {
             None
@@ -305,6 +398,18 @@ impl Node {
             a: Box::new(self.clone()),
             b: Box::new(Node::Pane(new_pane)),
         };
+    }
+
+    fn update(&mut self, f: &impl Fn(&mut Node)) {
+        match self {
+            Node::Split { a, b, .. } => {
+                a.update(f);
+                b.update(f);
+            }
+            _ => {}
+        }
+
+        f(self);
     }
 
     fn remove(&mut self, pane: &Pane) -> Option<Pane> {
@@ -444,6 +549,7 @@ pub trait Renderer: crate::Renderer + Sized {
         &mut self,
         defaults: &Self::Defaults,
         content: &[(Pane, Element<'_, Message, Self>)],
+        dragging: Option<Pane>,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output;
