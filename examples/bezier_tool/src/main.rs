@@ -23,7 +23,6 @@ mod bezier {
         basic_shapes, BuffersBuilder, StrokeAttributes, StrokeOptions,
         StrokeTessellator, VertexBuffers,
     };
-    use std::sync::Arc;
 
     pub struct Bezier<'a, Message> {
         state: &'a mut State,
@@ -175,10 +174,10 @@ mod bezier {
 
             let mesh = Primitive::Mesh2D {
                 origin: Point::new(bounds.x, bounds.y),
-                buffers: Arc::new(Mesh2D {
+                buffers: Mesh2D {
                     vertices: buffer.vertices,
                     indices: buffer.indices,
-                }),
+                },
             };
 
             (

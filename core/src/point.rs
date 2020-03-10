@@ -46,3 +46,14 @@ impl std::ops::Add<Vector> for Point {
         }
     }
 }
+
+impl std::ops::Sub<Vector> for Point {
+    type Output = Self;
+
+    fn sub(self, vector: Vector) -> Self {
+        Self {
+            x: self.x - vector.x,
+            y: self.y - vector.y,
+        }
+    }
+}

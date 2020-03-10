@@ -20,6 +20,7 @@ mod drawable;
 mod fill;
 mod frame;
 mod stroke;
+mod text;
 
 pub use drawable::Drawable;
 pub use fill::Fill;
@@ -27,6 +28,7 @@ pub use frame::Frame;
 pub use layer::Layer;
 pub use path::Path;
 pub use stroke::{LineCap, LineJoin, Stroke};
+pub use text::Text;
 
 /// A widget capable of drawing 2D graphics.
 ///
@@ -121,9 +123,9 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
                 primitives: self
                     .layers
                     .iter()
-                    .map(|layer| Primitive::Mesh2D {
+                    .map(|layer| Primitive::Cached {
                         origin,
-                        buffers: layer.draw(size),
+                        cache: layer.draw(size),
                     })
                     .collect(),
             },
