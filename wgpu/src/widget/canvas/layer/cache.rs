@@ -101,10 +101,9 @@ impl std::fmt::Debug for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             State::Empty => write!(f, "Empty"),
-            State::Filled { mesh, bounds } => f
+            State::Filled { primitive, bounds } => f
                 .debug_struct("Filled")
-                .field("vertices", &mesh.vertices.len())
-                .field("indices", &mesh.indices.len())
+                .field("primitive", primitive)
                 .field("bounds", bounds)
                 .finish(),
         }
