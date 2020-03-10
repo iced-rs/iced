@@ -1,11 +1,11 @@
 use crate::{Primitive, Renderer};
-use iced_native::{panes, Element, Layout, MouseCursor, Point};
+use iced_native::{pane_grid, Element, Layout, MouseCursor, Point};
 
-impl panes::Renderer for Renderer {
+impl pane_grid::Renderer for Renderer {
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        content: &[(panes::Pane, Element<'_, Message, Self>)],
+        content: &[(pane_grid::Pane, Element<'_, Message, Self>)],
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {

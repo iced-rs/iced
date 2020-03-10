@@ -2,7 +2,7 @@ mod button;
 mod checkbox;
 mod column;
 mod container;
-mod panes;
+mod pane_grid;
 mod progress_bar;
 mod radio;
 mod row;

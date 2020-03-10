@@ -1,5 +1,5 @@
 use iced::{
-    panes, Application, Command, Element, Panes, Settings, Subscription,
+    pane_grid, Application, Command, Element, PaneGrid, Settings, Subscription,
 };
 use iced_native::input::keyboard;
 
@@ -15,7 +15,7 @@ pub fn main() {
 
 #[derive(Debug)]
 struct Launcher {
-    panes: panes::State<Example>,
+    panes: pane_grid::State<Example>,
 }
 
 #[derive(Debug)]
@@ -26,9 +26,9 @@ enum Example {
 
 #[derive(Debug, Clone)]
 enum Message {
-    Clock(panes::Pane, clock::Message),
-    Stopwatch(panes::Pane, stopwatch::Message),
-    Split(panes::Split),
+    Clock(pane_grid::Pane, clock::Message),
+    Stopwatch(pane_grid::Pane, stopwatch::Message),
+    Split(pane_grid::Split),
     Close,
 }
 
@@ -38,7 +38,7 @@ impl Application for Launcher {
 
     fn new() -> (Self, Command<Message>) {
         let (clock, _) = Clock::new();
-        let (panes, _) = panes::State::new(Example::Clock(clock));
+        let (panes, _) = pane_grid::State::new(Example::Clock(clock));
 
         (Self { panes }, Command::none())
     }
@@ -105,9 +105,9 @@ impl Application for Launcher {
 
         Subscription::batch(vec![
             events::key_released(keyboard::KeyCode::H)
-                .map(|_| Message::Split(panes::Split::Horizontal)),
+                .map(|_| Message::Split(pane_grid::Split::Horizontal)),
             events::key_released(keyboard::KeyCode::V)
-                .map(|_| Message::Split(panes::Split::Vertical)),
+                .map(|_| Message::Split(pane_grid::Split::Vertical)),
             events::key_released(keyboard::KeyCode::Q).map(|_| Message::Close),
             panes_subscriptions,
         ])
@@ -116,7 +116,7 @@ impl Application for Launcher {
     fn view(&mut self) -> Element<Message> {
         let Self { panes } = self;
 
-        Panes::new(panes, |pane, example| match example {
+        PaneGrid::new(panes, |pane, example| match example {
             Example::Clock(clock) => clock
                 .view()
                 .map(move |message| Message::Clock(pane, message)),

@@ -7,14 +7,14 @@ use crate::{
 use std::collections::HashMap;
 
 #[allow(missing_debug_implementations)]
-pub struct Panes<'a, Message, Renderer> {
+pub struct PaneGrid<'a, Message, Renderer> {
     state: &'a mut Internal,
     elements: Vec<(Pane, Element<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
 }
 
-impl<'a, Message, Renderer> Panes<'a, Message, Renderer> {
+impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     pub fn new<T>(
         state: &'a mut State<T>,
         view: impl Fn(Pane, &'a mut T) -> Element<'a, Message, Renderer>,
@@ -51,7 +51,7 @@ impl<'a, Message, Renderer> Panes<'a, Message, Renderer> {
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Panes<'a, Message, Renderer>
+    for PaneGrid<'a, Message, Renderer>
 where
     Renderer: self::Renderer + 'static,
     Message: 'static,
@@ -146,7 +146,7 @@ where
     fn hash_layout(&self, state: &mut Hasher) {
         use std::hash::Hash;
 
-        std::any::TypeId::of::<Panes<'_, Message, Renderer>>().hash(state);
+        std::any::TypeId::of::<PaneGrid<'_, Message, Renderer>>().hash(state);
         self.width.hash(state);
         self.height.hash(state);
         self.state.layout.hash(state);
@@ -449,14 +449,14 @@ pub trait Renderer: crate::Renderer + Sized {
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Panes<'a, Message, Renderer>>
+impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: self::Renderer + 'static,
     Message: 'static,
 {
     fn from(
-        panes: Panes<'a, Message, Renderer>,
+        panes: PaneGrid<'a, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(panes)
     }
