@@ -1,5 +1,5 @@
 /// The current state of the keyboard modifiers.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct ModifiersState {
     /// Whether a shift key is pressed
     pub shift: bool,
