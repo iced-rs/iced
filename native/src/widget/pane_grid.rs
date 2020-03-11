@@ -552,7 +552,7 @@ impl Split {
     ) -> (Rectangle, Rectangle) {
         match self {
             Split::Horizontal => {
-                let width_left = rectangle.width * ratio;
+                let width_left = (rectangle.width * ratio).round();
                 let width_right = rectangle.width - width_left;
 
                 (
@@ -568,7 +568,7 @@ impl Split {
                 )
             }
             Split::Vertical => {
-                let height_top = rectangle.height * ratio;
+                let height_top = (rectangle.height * ratio).round();
                 let height_bottom = rectangle.height - height_top;
 
                 (
