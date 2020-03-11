@@ -116,7 +116,7 @@ impl Application for Launcher {
     fn view(&mut self) -> Element<Message> {
         let Self { panes } = self;
 
-        PaneGrid::new(panes, |pane, example| match example {
+        PaneGrid::new(panes, |pane, example, _| match example {
             Example::Clock(clock) => clock
                 .view()
                 .map(move |message| Message::Clock(pane, message)),

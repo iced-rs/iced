@@ -18,13 +18,31 @@ pub struct PaneGrid<'a, Message, Renderer> {
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     pub fn new<T>(
         state: &'a mut State<T>,
-        view: impl Fn(Pane, &'a mut T) -> Element<'a, Message, Renderer>,
+        view: impl Fn(
+            Pane,
+            &'a mut T,
+            Option<Focus>,
+        ) -> Element<'a, Message, Renderer>,
     ) -> Self {
-        let elements = state
-            .panes
-            .iter_mut()
-            .map(|(pane, state)| (*pane, view(*pane, state)))
-            .collect();
+        let elements = {
+            let focused_pane = state.internal.focused_pane;
+
+            state
+                .panes
+                .iter_mut()
+                .map(move |(pane, pane_state)| {
+                    let focus = match focused_pane {
+                        FocusedPane::Some {
+                            pane: focused_pane,
+                            focus,
+                        } if *pane == focused_pane => Some(focus),
+                        _ => None,
+                    };
+
+                    (*pane, view(*pane, pane_state, focus))
+                })
+                .collect()
+        };
 
         Self {
             state: &mut state.internal,
@@ -129,18 +147,28 @@ where
                         );
 
                     if let Some(((pane, _), _)) = clicked_region.next() {
-                        self.state.focus = if self.on_drop.is_some()
+                        self.state.focused_pane = if self.on_drop.is_some()
                             && self.state.modifiers.alt
                         {
-                            Some(Focus::Dragging(*pane))
+                            FocusedPane::Some {
+                                pane: *pane,
+                                focus: Focus::Dragging,
+                            }
                         } else {
-                            Some(Focus::Idle(*pane))
+                            FocusedPane::Some {
+                                pane: *pane,
+                                focus: Focus::Idle,
+                            }
                         }
                     }
                 }
                 ButtonState::Released => {
                     if let Some(on_drop) = &self.on_drop {
-                        if let Some(Focus::Dragging(pane)) = self.state.focus {
+                        if let FocusedPane::Some {
+                            pane,
+                            focus: Focus::Dragging,
+                        } = self.state.focused_pane
+                        {
                             let mut dropped_region = self
                                 .elements
                                 .iter()
@@ -160,7 +188,10 @@ where
                                 }
                             }
 
-                            self.state.focus = Some(Focus::Idle(pane));
+                            self.state.focused_pane = FocusedPane::Some {
+                                pane,
+                                focus: Focus::Idle,
+                            };
                         }
                     }
                 }
@@ -171,8 +202,11 @@ where
             _ => {}
         }
 
-        match self.state.focus {
-            Some(Focus::Dragging(_)) => {}
+        match self.state.focused_pane {
+            FocusedPane::Some {
+                focus: Focus::Dragging,
+                ..
+            } => {}
             _ => {
                 self.elements.iter_mut().zip(layout.children()).for_each(
                     |((_, pane), layout)| {
@@ -197,8 +231,11 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        let dragging = match self.state.focus {
-            Some(Focus::Dragging(pane)) => Some(pane),
+        let dragging = match self.state.focused_pane {
+            FocusedPane::Some {
+                pane,
+                focus: Focus::Dragging,
+            } => Some(pane),
             _ => None,
         };
 
@@ -244,14 +281,20 @@ pub struct State<T> {
 struct Internal {
     layout: Node,
     last_pane: usize,
-    focus: Option<Focus>,
+    focused_pane: FocusedPane,
     modifiers: keyboard::ModifiersState,
 }
 
-#[derive(Debug)]
-enum Focus {
-    Idle(Pane),
-    Dragging(Pane),
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Focus {
+    Idle,
+    Dragging,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FocusedPane {
+    None,
+    Some { pane: Pane, focus: Focus },
 }
 
 impl<T> State<T> {
@@ -267,7 +310,7 @@ impl<T> State<T> {
                 internal: Internal {
                     layout: Node::Pane(first_pane),
                     last_pane: 0,
-                    focus: None,
+                    focused_pane: FocusedPane::None,
                     modifiers: keyboard::ModifiersState::default(),
                 },
             },
@@ -292,15 +335,24 @@ impl<T> State<T> {
     }
 
     pub fn focused_pane(&self) -> Option<Pane> {
-        match self.internal.focus {
-            Some(Focus::Idle(pane)) => Some(pane),
-            Some(Focus::Dragging(_)) => None,
-            None => None,
+        match self.internal.focused_pane {
+            FocusedPane::Some {
+                pane,
+                focus: Focus::Idle,
+            } => Some(pane),
+            FocusedPane::Some {
+                focus: Focus::Dragging,
+                ..
+            } => None,
+            FocusedPane::None => None,
         }
     }
 
     pub fn focus(&mut self, pane: Pane) {
-        self.internal.focus = Some(Focus::Idle(pane));
+        self.internal.focused_pane = FocusedPane::Some {
+            pane,
+            focus: Focus::Idle,
+        };
     }
 
     pub fn split_vertically(&mut self, pane: &Pane, state: T) -> Option<Pane> {
@@ -332,7 +384,10 @@ impl<T> State<T> {
         node.split(kind, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
-        self.internal.focus = Some(Focus::Idle(new_pane));
+        self.internal.focused_pane = FocusedPane::Some {
+            pane: new_pane,
+            focus: Focus::Idle,
+        };
 
         Some(new_pane)
     }
@@ -352,7 +407,11 @@ impl<T> State<T> {
 
     pub fn close(&mut self, pane: &Pane) -> Option<T> {
         if let Some(sibling) = self.internal.layout.remove(pane) {
-            self.internal.focus = Some(Focus::Idle(sibling));
+            self.internal.focused_pane = FocusedPane::Some {
+                pane: sibling,
+                focus: Focus::Idle,
+            };
+
             self.panes.remove(pane)
         } else {
             None
