@@ -14,7 +14,7 @@ categories = ["gui"]
 debug = []
 
 [dependencies]
-winit = "0.21"
+winit = "0.22"
 log = "0.4"
 
 [dependencies.iced_native]
