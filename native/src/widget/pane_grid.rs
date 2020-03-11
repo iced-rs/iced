@@ -53,17 +53,17 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         }
     }
 
-    /// Sets the width of the [`Panes`].
+    /// Sets the width of the [`PaneGrid`].
     ///
-    /// [`Panes`]: struct.Column.html
+    /// [`PaneGrid`]: struct.Column.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
-    /// Sets the height of the [`Panes`].
+    /// Sets the height of the [`PaneGrid`].
     ///
-    /// [`Panes`]: struct.Column.html
+    /// [`PaneGrid`]: struct.Column.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
@@ -587,19 +587,20 @@ impl Split {
     }
 }
 
-/// The renderer of some [`Panes`].
+/// The renderer of a [`PaneGrid`].
 ///
 /// Your [renderer] will need to implement this trait before being
-/// able to use [`Panes`] in your user interface.
+/// able to use a [`PaneGrid`] in your user interface.
 ///
-/// [`Panes`]: struct.Panes.html
+/// [`PaneGrid`]: struct.PaneGrid.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
-    /// Draws some [`Panes`].
+    /// Draws a [`PaneGrid`].
     ///
     /// It receives:
-    /// - the children of the [`Column`]
-    /// - the [`Layout`] of the [`Column`] and its children
+    /// - the elements of the [`PaneGrid`]
+    /// - the [`Pane`] that is currently being dragged
+    /// - the [`Layout`] of the [`PaneGrid`] and its elements
     /// - the cursor position
     ///
     /// [`Column`]: struct.Row.html
@@ -621,8 +622,8 @@ where
     Message: 'static,
 {
     fn from(
-        panes: PaneGrid<'a, Message, Renderer>,
+        pane_grid: PaneGrid<'a, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
-        Element::new(panes)
+        Element::new(pane_grid)
     }
 }
