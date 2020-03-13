@@ -12,7 +12,7 @@ pub struct PaneGrid<'a, Message, Renderer> {
     elements: Vec<(Pane, Element<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
-    on_drop: Option<Box<dyn Fn(Drop) -> Message>>,
+    on_drag: Option<Box<dyn Fn(DragEvent) -> Message>>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
@@ -49,7 +49,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
             elements,
             width: Length::Fill,
             height: Length::Fill,
-            on_drop: None,
+            on_drag: None,
         }
     }
 
@@ -69,16 +69,20 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         self
     }
 
-    pub fn on_drop(mut self, f: impl Fn(Drop) -> Message + 'static) -> Self {
-        self.on_drop = Some(Box::new(f));
+    pub fn on_drag(
+        mut self,
+        f: impl Fn(DragEvent) -> Message + 'static,
+    ) -> Self {
+        self.on_drag = Some(Box::new(f));
         self
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Drop {
-    pub pane: Pane,
-    pub target: Pane,
+pub enum DragEvent {
+    Picked { pane: Pane },
+    Dropped { pane: Pane, target: Pane },
+    Canceled { pane: Pane },
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -147,28 +151,38 @@ where
                         );
 
                     if let Some(((pane, _), _)) = clicked_region.next() {
-                        self.state.focused_pane = if self.on_drop.is_some()
-                            && self.state.modifiers.alt
-                        {
-                            FocusedPane::Some {
-                                pane: *pane,
-                                focus: Focus::Dragging,
+                        match &self.on_drag {
+                            Some(on_drag) if self.state.modifiers.alt => {
+                                self.state.focused_pane = FocusedPane::Some {
+                                    pane: *pane,
+                                    focus: Focus::Dragging,
+                                };
+
+                                messages.push(on_drag(DragEvent::Picked {
+                                    pane: *pane,
+                                }));
                             }
-                        } else {
-                            FocusedPane::Some {
-                                pane: *pane,
-                                focus: Focus::Idle,
+                            _ => {
+                                self.state.focused_pane = FocusedPane::Some {
+                                    pane: *pane,
+                                    focus: Focus::Idle,
+                                };
                             }
                         }
                     }
                 }
                 ButtonState::Released => {
-                    if let Some(on_drop) = &self.on_drop {
-                        if let FocusedPane::Some {
+                    if let FocusedPane::Some {
+                        pane,
+                        focus: Focus::Dragging,
+                    } = self.state.focused_pane
+                    {
+                        self.state.focused_pane = FocusedPane::Some {
                             pane,
-                            focus: Focus::Dragging,
-                        } = self.state.focused_pane
-                        {
+                            focus: Focus::Idle,
+                        };
+
+                        if let Some(on_drag) = &self.on_drag {
                             let mut dropped_region = self
                                 .elements
                                 .iter()
@@ -177,21 +191,17 @@ where
                                     layout.bounds().contains(cursor_position)
                                 });
 
-                            if let Some(((target, _), _)) =
-                                dropped_region.next()
-                            {
-                                if pane != *target {
-                                    messages.push(on_drop(Drop {
+                            let event = match dropped_region.next() {
+                                Some(((target, _), _)) if pane != *target => {
+                                    DragEvent::Dropped {
                                         pane,
                                         target: *target,
-                                    }));
+                                    }
                                 }
-                            }
-
-                            self.state.focused_pane = FocusedPane::Some {
-                                pane,
-                                focus: Focus::Idle,
+                                _ => DragEvent::Canceled { pane },
                             };
+
+                            messages.push(on_drag(event));
                         }
                     }
                 }
