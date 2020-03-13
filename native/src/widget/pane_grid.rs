@@ -386,9 +386,33 @@ impl<T> State<T> {
     }
 
     pub fn focus_adjacent(&mut self, pane: &Pane, direction: Direction) {
-        if let Some(pane) = self.internal.layout.find_adjacent(pane, direction)
-        {
-            self.focus(&pane);
+        let regions =
+            self.internal.layout.regions(0.0, Size::new(4096.0, 4096.0));
+
+        if let Some(current_region) = regions.get(pane) {
+            let target = match direction {
+                Direction::Left => {
+                    Point::new(current_region.x - 1.0, current_region.y + 1.0)
+                }
+                Direction::Right => Point::new(
+                    current_region.x + current_region.width + 1.0,
+                    current_region.y + 1.0,
+                ),
+                Direction::Top => {
+                    Point::new(current_region.x + 1.0, current_region.y - 1.0)
+                }
+                Direction::Bottom => Point::new(
+                    current_region.x + 1.0,
+                    current_region.y + current_region.height + 1.0,
+                ),
+            };
+
+            let mut colliding_regions =
+                regions.iter().filter(|(_, region)| region.contains(target));
+
+            if let Some((pane, _)) = colliding_regions.next() {
+                self.focus(&pane);
+            }
         }
     }
 
@@ -467,12 +491,6 @@ enum Node {
     Pane(Pane),
 }
 
-#[derive(Debug)]
-enum Branch {
-    First,
-    Second,
-}
-
 impl Node {
     fn find(&mut self, pane: &Pane) -> Option<&mut Node> {
         match self {
@@ -484,64 +502,6 @@ impl Node {
                     Some(self)
                 } else {
                     None
-                }
-            }
-        }
-    }
-
-    fn find_adjacent(
-        &mut self,
-        pane: &Pane,
-        direction: Direction,
-    ) -> Option<Pane> {
-        let (pane, _) = self.find_split(pane, &|kind, branch, a, b| match (
-            direction, kind, branch,
-        ) {
-            (Direction::Top, Split::Vertical, Branch::Second)
-            | (Direction::Left, Split::Horizontal, Branch::Second) => {
-                Some(a.first_pane())
-            }
-            (Direction::Bottom, Split::Vertical, Branch::First)
-            | (Direction::Right, Split::Horizontal, Branch::First) => {
-                Some(b.first_pane())
-            }
-            _ => None,
-        });
-
-        pane
-    }
-
-    fn find_split<T>(
-        &mut self,
-        pane: &Pane,
-        callback: &impl Fn(Split, Branch, &Node, &Node) -> Option<T>,
-    ) -> (Option<T>, bool) {
-        match self {
-            Node::Split { a, b, kind, .. } => {
-                let kind = *kind;
-                let (result, found) = a.find_split(pane, callback);
-
-                if result.is_some() {
-                    (result, found)
-                } else if found {
-                    (callback(kind, Branch::First, a, b), true)
-                } else {
-                    let (result, found) = b.find_split(pane, callback);
-
-                    if result.is_some() {
-                        (result, found)
-                    } else if found {
-                        (callback(kind, Branch::Second, a, b), true)
-                    } else {
-                        (None, false)
-                    }
-                }
-            }
-            Node::Pane(p) => {
-                if p == pane {
-                    (None, true)
-                } else {
-                    (None, false)
                 }
             }
         }
