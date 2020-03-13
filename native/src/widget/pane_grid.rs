@@ -179,6 +179,8 @@ where
                                 };
                             }
                         }
+                    } else {
+                        self.state.focused_pane = FocusedPane::None;
                     }
                 }
                 ButtonState::Released => {
