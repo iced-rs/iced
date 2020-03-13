@@ -12,6 +12,7 @@ pub struct PaneGrid<'a, Message, Renderer> {
     elements: Vec<(Pane, Element<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
+    spacing: u16,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message>>,
 }
 
@@ -49,6 +50,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
             elements,
             width: Length::Fill,
             height: Length::Fill,
+            spacing: 0,
             on_drag: None,
         }
     }
@@ -66,6 +68,14 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     /// [`PaneGrid`]: struct.Column.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
+        self
+    }
+
+    /// Sets the spacing _between_ the panes of the [`PaneGrid`].
+    ///
+    /// [`PaneGrid`]: struct.Column.html
+    pub fn spacing(mut self, units: u16) -> Self {
+        self.spacing = units;
         self
     }
 
@@ -107,7 +117,7 @@ where
         let limits = limits.width(self.width).height(self.height);
         let size = limits.resolve(Size::ZERO);
 
-        let regions = self.state.layout.regions(size);
+        let regions = self.state.layout.regions(f32::from(self.spacing), size);
 
         let children = self
             .elements
@@ -498,10 +508,15 @@ impl Node {
         }
     }
 
-    pub fn regions(&self, size: Size) -> HashMap<Pane, Rectangle> {
+    pub fn regions(
+        &self,
+        spacing: f32,
+        size: Size,
+    ) -> HashMap<Pane, Rectangle> {
         let mut regions = HashMap::new();
 
         self.compute_regions(
+            spacing / 2.0,
             &Rectangle {
                 x: 0.0,
                 y: 0.0,
@@ -530,16 +545,18 @@ impl Node {
 
     fn compute_regions(
         &self,
+        halved_spacing: f32,
         current: &Rectangle,
         regions: &mut HashMap<Pane, Rectangle>,
     ) {
         match self {
             Node::Split { kind, ratio, a, b } => {
                 let ratio = *ratio as f32 / 1_000_000.0;
-                let (region_a, region_b) = kind.apply(current, ratio);
+                let (region_a, region_b) =
+                    kind.apply(current, ratio, halved_spacing);
 
-                a.compute_regions(&region_a, regions);
-                b.compute_regions(&region_b, regions);
+                a.compute_regions(halved_spacing, &region_a, regions);
+                b.compute_regions(halved_spacing, &region_b, regions);
             }
             Node::Pane(pane) => {
                 let _ = regions.insert(*pane, *current);
@@ -559,11 +576,13 @@ impl Split {
         &self,
         rectangle: &Rectangle,
         ratio: f32,
+        halved_spacing: f32,
     ) -> (Rectangle, Rectangle) {
         match self {
             Split::Horizontal => {
-                let width_left = (rectangle.width * ratio).round();
-                let width_right = rectangle.width - width_left;
+                let width_left =
+                    (rectangle.width * ratio).round() - halved_spacing;
+                let width_right = rectangle.width - width_left - halved_spacing;
 
                 (
                     Rectangle {
@@ -571,15 +590,17 @@ impl Split {
                         ..*rectangle
                     },
                     Rectangle {
-                        x: rectangle.x + width_left,
+                        x: rectangle.x + width_left + halved_spacing,
                         width: width_right,
                         ..*rectangle
                     },
                 )
             }
             Split::Vertical => {
-                let height_top = (rectangle.height * ratio).round();
-                let height_bottom = rectangle.height - height_top;
+                let height_top =
+                    (rectangle.height * ratio).round() - halved_spacing;
+                let height_bottom =
+                    rectangle.height - height_top - halved_spacing;
 
                 (
                     Rectangle {
@@ -587,7 +608,7 @@ impl Split {
                         ..*rectangle
                     },
                     Rectangle {
-                        y: rectangle.y + height_top,
+                        y: rectangle.y + height_top + halved_spacing,
                         height: height_bottom,
                         ..*rectangle
                     },
