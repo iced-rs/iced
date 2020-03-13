@@ -324,7 +324,7 @@ where
                     }
                     _ => (),
                 }
-                self.value.insert(self.state.cursor.end(), c);
+                self.value.insert(self.state.cursor.end().min(self.value.len()), c);
                 self.state.cursor.move_right(&self.value);
 
                 let message = (self.on_change)(self.value.to_string());
@@ -347,11 +347,11 @@ where
                             self.state.cursor.move_left();
                         }
                         None => {
-                            if self.state.cursor.start() > 0 {
+                            if self.state.cursor.start().min(self.value.len()) > 0 {
                                 self.state.cursor.move_left();
                                 let _ = self
                                     .value
-                                    .remove(self.state.cursor.start() - 1);
+                                    .remove(self.state.cursor.start());
                             }
                         }
                     }
