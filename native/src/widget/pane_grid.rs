@@ -319,6 +319,14 @@ enum FocusedPane {
     Some { pane: Pane, focus: Focus },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
 impl<T> State<T> {
     pub fn new(first_pane_state: T) -> (Self, Pane) {
         let first_pane = Pane(0);
@@ -370,11 +378,18 @@ impl<T> State<T> {
         }
     }
 
-    pub fn focus(&mut self, pane: Pane) {
+    pub fn focus(&mut self, pane: &Pane) {
         self.internal.focused_pane = FocusedPane::Some {
-            pane,
+            pane: *pane,
             focus: Focus::Idle,
         };
+    }
+
+    pub fn focus_adjacent(&mut self, pane: &Pane, direction: Direction) {
+        if let Some(pane) = self.internal.layout.find_adjacent(pane, direction)
+        {
+            self.focus(&pane);
+        }
     }
 
     pub fn split_vertically(&mut self, pane: &Pane, state: T) -> Option<Pane> {
@@ -452,21 +467,81 @@ enum Node {
     Pane(Pane),
 }
 
+#[derive(Debug)]
+enum Branch {
+    First,
+    Second,
+}
+
 impl Node {
     fn find(&mut self, pane: &Pane) -> Option<&mut Node> {
         match self {
             Node::Split { a, b, .. } => {
-                if let Some(node) = a.find(pane) {
-                    Some(node)
-                } else {
-                    b.find(pane)
-                }
+                a.find(pane).or_else(move || b.find(pane))
             }
             Node::Pane(p) => {
                 if p == pane {
                     Some(self)
                 } else {
                     None
+                }
+            }
+        }
+    }
+
+    fn find_adjacent(
+        &mut self,
+        pane: &Pane,
+        direction: Direction,
+    ) -> Option<Pane> {
+        let (pane, _) = self.find_split(pane, &|kind, branch, a, b| match (
+            direction, kind, branch,
+        ) {
+            (Direction::Top, Split::Vertical, Branch::Second)
+            | (Direction::Left, Split::Horizontal, Branch::Second) => {
+                Some(a.first_pane())
+            }
+            (Direction::Bottom, Split::Vertical, Branch::First)
+            | (Direction::Right, Split::Horizontal, Branch::First) => {
+                Some(b.first_pane())
+            }
+            _ => None,
+        });
+
+        pane
+    }
+
+    fn find_split<T>(
+        &mut self,
+        pane: &Pane,
+        callback: &impl Fn(Split, Branch, &Node, &Node) -> Option<T>,
+    ) -> (Option<T>, bool) {
+        match self {
+            Node::Split { a, b, kind, .. } => {
+                let kind = *kind;
+                let (result, found) = a.find_split(pane, callback);
+
+                if result.is_some() {
+                    (result, found)
+                } else if found {
+                    (callback(kind, Branch::First, a, b), true)
+                } else {
+                    let (result, found) = b.find_split(pane, callback);
+
+                    if result.is_some() {
+                        (result, found)
+                    } else if found {
+                        (callback(kind, Branch::Second, a, b), true)
+                    } else {
+                        (None, false)
+                    }
+                }
+            }
+            Node::Pane(p) => {
+                if p == pane {
+                    (None, true)
+                } else {
+                    (None, false)
                 }
             }
         }
@@ -567,7 +642,7 @@ impl Node {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Split {
     Horizontal,
     Vertical,
