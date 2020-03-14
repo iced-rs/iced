@@ -93,6 +93,7 @@ impl Sandbox for Styling {
             ProgressBar::new(0.0..=100.0, self.slider_value).style(self.theme);
 
         let scrollable = Scrollable::new(&mut self.scroll)
+            .width(Length::Fill)
             .height(Length::Units(100))
             .style(self.theme)
             .push(Text::new("Scroll me!"))
