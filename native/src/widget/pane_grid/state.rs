@@ -31,8 +31,8 @@ impl<T> State<T> {
                 panes,
                 internal: Internal {
                     layout: Node::Pane(first_pane),
-                    last_pane: 0,
-                    focused_pane: FocusedPane::None,
+                    last_id: 0,
+                    action: Action::Idle { focus: None },
                 },
                 modifiers: keyboard::ModifiersState::default(),
             },
@@ -56,25 +56,14 @@ impl<T> State<T> {
         self.panes.iter_mut()
     }
 
-    pub fn focused_pane(&self) -> Option<Pane> {
-        match self.internal.focused_pane {
-            FocusedPane::Some {
-                pane,
-                focus: Focus::Idle,
-            } => Some(pane),
-            FocusedPane::Some {
-                focus: Focus::Dragging,
-                ..
-            } => None,
-            FocusedPane::None => None,
+    pub fn active(&self) -> Option<Pane> {
+        match self.internal.action {
+            Action::Idle { focus } => focus,
+            _ => None,
         }
     }
 
-    pub fn adjacent_pane(
-        &self,
-        pane: &Pane,
-        direction: Direction,
-    ) -> Option<Pane> {
+    pub fn adjacent(&self, pane: &Pane, direction: Direction) -> Option<Pane> {
         let regions =
             self.internal.layout.regions(0.0, Size::new(4096.0, 4096.0));
 
@@ -130,12 +119,18 @@ impl<T> State<T> {
         let node = self.internal.layout.find(pane)?;
 
         let new_pane = {
-            self.internal.last_pane = self.internal.last_pane.checked_add(1)?;
+            self.internal.last_id = self.internal.last_id.checked_add(1)?;
 
-            Pane(self.internal.last_pane)
+            Pane(self.internal.last_id)
         };
 
-        node.split(kind, new_pane);
+        let split_id = {
+            self.internal.last_id = self.internal.last_id.checked_add(1)?;
+
+            self.internal.last_id
+        };
+
+        node.split(split_id, kind, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
         self.focus(&new_pane);
@@ -169,26 +164,33 @@ impl<T> State<T> {
 #[derive(Debug)]
 pub struct Internal {
     layout: Node,
-    last_pane: usize,
-    focused_pane: FocusedPane,
+    last_id: usize,
+    action: Action,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FocusedPane {
-    None,
-    Some { pane: Pane, focus: Focus },
+pub enum Action {
+    Idle { focus: Option<Pane> },
+    Dragging { pane: Pane },
+}
+
+impl Action {
+    pub fn focus(&self) -> Option<(Pane, Focus)> {
+        match self {
+            Action::Idle { focus } => focus.map(|pane| (pane, Focus::Idle)),
+            Action::Dragging { pane } => Some((*pane, Focus::Dragging)),
+        }
+    }
 }
 
 impl Internal {
-    pub fn focused(&self) -> FocusedPane {
-        self.focused_pane
+    pub fn action(&self) -> Action {
+        self.action
     }
+
     pub fn dragged(&self) -> Option<Pane> {
-        match self.focused_pane {
-            FocusedPane::Some {
-                pane,
-                focus: Focus::Dragging,
-            } => Some(pane),
+        match self.action {
+            Action::Dragging { pane } => Some(pane),
             _ => None,
         }
     }
@@ -202,21 +204,15 @@ impl Internal {
     }
 
     pub fn focus(&mut self, pane: &Pane) {
-        self.focused_pane = FocusedPane::Some {
-            pane: *pane,
-            focus: Focus::Idle,
-        };
+        self.action = Action::Idle { focus: Some(*pane) };
     }
 
     pub fn drag(&mut self, pane: &Pane) {
-        self.focused_pane = FocusedPane::Some {
-            pane: *pane,
-            focus: Focus::Dragging,
-        };
+        self.action = Action::Dragging { pane: *pane };
     }
 
     pub fn unfocus(&mut self) {
-        self.focused_pane = FocusedPane::None;
+        self.action = Action::Idle { focus: None };
     }
 
     pub fn hash_layout(&self, hasher: &mut Hasher) {

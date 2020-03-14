@@ -8,6 +8,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Hash)]
 pub enum Node {
     Split {
+        id: usize,
         kind: Split,
         ratio: u32,
         a: Box<Node>,
@@ -32,8 +33,9 @@ impl Node {
         }
     }
 
-    pub fn split(&mut self, kind: Split, new_pane: Pane) {
+    pub fn split(&mut self, id: usize, kind: Split, new_pane: Pane) {
         *self = Node::Split {
+            id,
             kind,
             ratio: 500_000,
             a: Box::new(self.clone()),
@@ -112,7 +114,9 @@ impl Node {
         regions: &mut HashMap<Pane, Rectangle>,
     ) {
         match self {
-            Node::Split { kind, ratio, a, b } => {
+            Node::Split {
+                kind, ratio, a, b, ..
+            } => {
                 let ratio = *ratio as f32 / 1_000_000.0;
                 let (region_a, region_b) =
                     kind.apply(current, ratio, halved_spacing);

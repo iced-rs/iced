@@ -36,17 +36,19 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         ) -> Element<'a, Message, Renderer>,
     ) -> Self {
         let elements = {
-            let focused_pane = state.internal.focused();
+            let action = state.internal.action();
+            let current_focus = action.focus();
 
             state
                 .panes
                 .iter_mut()
                 .map(move |(pane, pane_state)| {
-                    let focus = match focused_pane {
-                        state::FocusedPane::Some {
-                            pane: focused_pane,
-                            focus,
-                        } if *pane == focused_pane => Some(focus),
+                    let focus = match current_focus {
+                        Some((focused_pane, focus))
+                            if *pane == focused_pane =>
+                        {
+                            Some(focus)
+                        }
                         _ => None,
                     };
 
