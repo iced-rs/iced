@@ -44,7 +44,6 @@ members = [
     "examples/events",
     "examples/geometry",
     "examples/integration",
-    "examples/pane_grid",
     "examples/pokedex",
     "examples/progress_bar",
     "examples/solar_system",
