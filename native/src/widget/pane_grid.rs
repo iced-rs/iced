@@ -321,8 +321,8 @@ enum FocusedPane {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
-    Top,
-    Bottom,
+    Up,
+    Down,
     Left,
     Right,
 }
@@ -378,42 +378,46 @@ impl<T> State<T> {
         }
     }
 
+    pub fn adjacent_pane(
+        &self,
+        pane: &Pane,
+        direction: Direction,
+    ) -> Option<Pane> {
+        let regions =
+            self.internal.layout.regions(0.0, Size::new(4096.0, 4096.0));
+
+        let current_region = regions.get(pane)?;
+
+        let target = match direction {
+            Direction::Left => {
+                Point::new(current_region.x - 1.0, current_region.y + 1.0)
+            }
+            Direction::Right => Point::new(
+                current_region.x + current_region.width + 1.0,
+                current_region.y + 1.0,
+            ),
+            Direction::Up => {
+                Point::new(current_region.x + 1.0, current_region.y - 1.0)
+            }
+            Direction::Down => Point::new(
+                current_region.x + 1.0,
+                current_region.y + current_region.height + 1.0,
+            ),
+        };
+
+        let mut colliding_regions =
+            regions.iter().filter(|(_, region)| region.contains(target));
+
+        let (pane, _) = colliding_regions.next()?;
+
+        Some(*pane)
+    }
+
     pub fn focus(&mut self, pane: &Pane) {
         self.internal.focused_pane = FocusedPane::Some {
             pane: *pane,
             focus: Focus::Idle,
         };
-    }
-
-    pub fn focus_adjacent(&mut self, pane: &Pane, direction: Direction) {
-        let regions =
-            self.internal.layout.regions(0.0, Size::new(4096.0, 4096.0));
-
-        if let Some(current_region) = regions.get(pane) {
-            let target = match direction {
-                Direction::Left => {
-                    Point::new(current_region.x - 1.0, current_region.y + 1.0)
-                }
-                Direction::Right => Point::new(
-                    current_region.x + current_region.width + 1.0,
-                    current_region.y + 1.0,
-                ),
-                Direction::Top => {
-                    Point::new(current_region.x + 1.0, current_region.y - 1.0)
-                }
-                Direction::Bottom => Point::new(
-                    current_region.x + 1.0,
-                    current_region.y + current_region.height + 1.0,
-                ),
-            };
-
-            let mut colliding_regions =
-                regions.iter().filter(|(_, region)| region.contains(target));
-
-            if let Some((pane, _)) = colliding_regions.next() {
-                self.focus(&pane);
-            }
-        }
     }
 
     pub fn split_vertically(&mut self, pane: &Pane, state: T) -> Option<Pane> {
