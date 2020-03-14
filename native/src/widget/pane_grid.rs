@@ -14,7 +14,7 @@ pub use state::{Focus, State};
 use crate::{
     input::{keyboard, mouse, ButtonState},
     layout, Clipboard, Element, Event, Hasher, Layout, Length, Point, Size,
-    Vector, Widget,
+    Widget,
 };
 
 #[allow(missing_debug_implementations)]
@@ -131,17 +131,17 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
                     let ratio = match axis {
                         Axis::Horizontal => {
                             let position =
-                                cursor_position.x - bounds.x + rectangle.x;
+                                cursor_position.y - bounds.y + rectangle.y;
 
-                            (position / (rectangle.x + rectangle.width))
+                            (position / (rectangle.y + rectangle.height))
                                 .max(0.1)
                                 .min(0.9)
                         }
                         Axis::Vertical => {
                             let position =
-                                cursor_position.y - bounds.y + rectangle.y;
+                                cursor_position.x - bounds.x + rectangle.x;
 
-                            (position / (rectangle.y + rectangle.height))
+                            (position / (rectangle.x + rectangle.width))
                                 .max(0.1)
                                 .min(0.9)
                         }
@@ -279,59 +279,61 @@ where
             },
             Event::Mouse(mouse::Event::Input {
                 button: mouse::Button::Right,
-                state,
+                state: ButtonState::Pressed,
             }) if self.on_resize.is_some()
                 && self.state.picked_pane().is_none()
                 && self.modifiers.alt =>
             {
-                match state {
-                    ButtonState::Pressed => {
-                        let bounds = layout.bounds();
+                let bounds = layout.bounds();
+                let relative_cursor = Point::new(
+                    cursor_position.x - bounds.x,
+                    cursor_position.y - bounds.y,
+                );
 
-                        let splits = self.state.splits(
-                            f32::from(self.spacing),
-                            Size::new(bounds.width, bounds.height),
-                        );
+                let splits = self.state.splits(
+                    f32::from(self.spacing),
+                    Size::new(bounds.width, bounds.height),
+                );
 
-                        let mut sorted_splits: Vec<_> = splits.iter().collect();
-                        let offset = Vector::new(bounds.x, bounds.y);
-
-                        sorted_splits.sort_by_key(
-                            |(_, (axis, rectangle, ratio))| {
-                                let center = match axis {
-                                    Axis::Horizontal => Point::new(
-                                        rectangle.x + rectangle.width / 2.0,
-                                        rectangle.y + rectangle.height * ratio,
-                                    ),
-
-                                    Axis::Vertical => Point::new(
-                                        rectangle.x + rectangle.width * ratio,
-                                        rectangle.y + rectangle.height / 2.0,
-                                    ),
-                                };
-
-                                cursor_position
-                                    .distance(center + offset)
-                                    .round()
-                                    as u32
-                            },
-                        );
-
-                        if let Some((split, (axis, _, _))) =
-                            sorted_splits.first()
-                        {
-                            self.state.pick_split(split, *axis);
-                            self.trigger_resize(
-                                layout,
-                                cursor_position,
-                                messages,
-                            );
+                let mut sorted_splits: Vec<_> = splits
+                    .iter()
+                    .filter(|(_, (axis, rectangle, _))| match axis {
+                        Axis::Horizontal => {
+                            relative_cursor.x > rectangle.x
+                                && relative_cursor.x
+                                    < rectangle.x + rectangle.width
                         }
-                    }
-                    ButtonState::Released => {
-                        self.state.drop_split();
-                    }
+                        Axis::Vertical => {
+                            relative_cursor.y > rectangle.y
+                                && relative_cursor.y
+                                    < rectangle.y + rectangle.height
+                        }
+                    })
+                    .collect();
+
+                sorted_splits.sort_by_key(|(_, (axis, rectangle, ratio))| {
+                    let distance = match axis {
+                        Axis::Horizontal => (relative_cursor.y
+                            - (rectangle.y + rectangle.height * ratio))
+                            .abs(),
+                        Axis::Vertical => (relative_cursor.x
+                            - (rectangle.x + rectangle.width * ratio))
+                            .abs(),
+                    };
+
+                    distance.round() as u32
+                });
+
+                if let Some((split, (axis, _, _))) = sorted_splits.first() {
+                    self.state.pick_split(split, *axis);
+                    self.trigger_resize(layout, cursor_position, messages);
                 }
+            }
+            Event::Mouse(mouse::Event::Input {
+                button: mouse::Button::Right,
+                state: ButtonState::Released,
+            }) if self.state.picked_split().is_some() => {
+                self.state.drop_split();
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 self.trigger_resize(layout, cursor_position, messages);

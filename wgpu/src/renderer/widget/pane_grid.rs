@@ -73,8 +73,8 @@ impl pane_grid::Renderer for Renderer {
                 MouseCursor::Grabbing
             } else if let Some(axis) = resizing {
                 match axis {
-                    Axis::Horizontal => MouseCursor::ResizingHorizontally,
-                    Axis::Vertical => MouseCursor::ResizingVertically,
+                    Axis::Horizontal => MouseCursor::ResizingVertically,
+                    Axis::Vertical => MouseCursor::ResizingHorizontally,
                 }
             } else {
                 mouse_cursor
