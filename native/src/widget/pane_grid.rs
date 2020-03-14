@@ -356,12 +356,12 @@ impl<T> State<T> {
         self.panes.get_mut(pane)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (Pane, &T)> {
-        self.panes.iter().map(|(pane, state)| (*pane, state))
+    pub fn iter(&self) -> impl Iterator<Item = (&Pane, &T)> {
+        self.panes.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (Pane, &mut T)> {
-        self.panes.iter_mut().map(|(pane, state)| (*pane, state))
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Pane, &mut T)> {
+        self.panes.iter_mut()
     }
 
     pub fn focused_pane(&self) -> Option<Pane> {
