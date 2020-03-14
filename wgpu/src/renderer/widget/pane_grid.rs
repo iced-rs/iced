@@ -1,6 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    pane_grid::{self, Pane},
+    pane_grid::{self, Axis, Pane},
     Element, Layout, MouseCursor, Point, Rectangle, Vector,
 };
 
@@ -10,6 +10,7 @@ impl pane_grid::Renderer for Renderer {
         defaults: &Self::Defaults,
         content: &[(Pane, Element<'_, Message, Self>)],
         dragging: Option<Pane>,
+        resizing: Option<Axis>,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
@@ -70,6 +71,11 @@ impl pane_grid::Renderer for Renderer {
             Primitive::Group { primitives },
             if dragging.is_some() {
                 MouseCursor::Grabbing
+            } else if let Some(axis) = resizing {
+                match axis {
+                    Axis::Horizontal => MouseCursor::ResizingHorizontally,
+                    Axis::Vertical => MouseCursor::ResizingVertically,
+                }
             } else {
                 mouse_cursor
             },

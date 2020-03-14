@@ -134,6 +134,10 @@ impl<T> State<T> {
         });
     }
 
+    pub fn resize(&mut self, split: &Split, percentage: f32) {
+        let _ = self.internal.layout.resize(split, percentage);
+    }
+
     pub fn close(&mut self, pane: &Pane) -> Option<T> {
         if let Some(sibling) = self.internal.layout.remove(pane) {
             self.focus(&sibling);
@@ -153,14 +157,25 @@ pub struct Internal {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
-    Idle { focus: Option<Pane> },
-    Dragging { pane: Pane },
+    Idle {
+        focus: Option<Pane>,
+    },
+    Dragging {
+        pane: Pane,
+    },
+    Resizing {
+        split: Split,
+        axis: Axis,
+        focus: Option<Pane>,
+    },
 }
 
 impl Action {
     pub fn focus(&self) -> Option<(Pane, Focus)> {
         match self {
-            Action::Idle { focus } => focus.map(|pane| (pane, Focus::Idle)),
+            Action::Idle { focus } | Action::Resizing { focus, .. } => {
+                focus.map(|pane| (pane, Focus::Idle))
+            }
             Action::Dragging { pane } => Some((*pane, Focus::Dragging)),
         }
     }
@@ -171,9 +186,16 @@ impl Internal {
         self.action
     }
 
-    pub fn dragged(&self) -> Option<Pane> {
+    pub fn picked_pane(&self) -> Option<Pane> {
         match self.action {
             Action::Dragging { pane } => Some(pane),
+            _ => None,
+        }
+    }
+
+    pub fn picked_split(&self) -> Option<(Split, Axis)> {
+        match self.action {
+            Action::Resizing { split, axis, .. } => Some((split, axis)),
             _ => None,
         }
     }
@@ -186,12 +208,45 @@ impl Internal {
         self.layout.regions(spacing, size)
     }
 
+    pub fn splits(
+        &self,
+        spacing: f32,
+        size: Size,
+    ) -> HashMap<Split, (Axis, Rectangle, f32)> {
+        self.layout.splits(spacing, size)
+    }
+
     pub fn focus(&mut self, pane: &Pane) {
         self.action = Action::Idle { focus: Some(*pane) };
     }
 
-    pub fn drag(&mut self, pane: &Pane) {
+    pub fn pick_pane(&mut self, pane: &Pane) {
         self.action = Action::Dragging { pane: *pane };
+    }
+
+    pub fn pick_split(&mut self, split: &Split, axis: Axis) {
+        // TODO: Obtain `axis` from layout itself. Maybe we should implement
+        // `Node::find_split`
+        if self.picked_pane().is_some() {
+            return;
+        }
+
+        let focus = self.action.focus().map(|(pane, _)| pane);
+
+        self.action = Action::Resizing {
+            split: *split,
+            axis,
+            focus,
+        };
+    }
+
+    pub fn drop_split(&mut self) {
+        match self.action {
+            Action::Resizing { focus, .. } => {
+                self.action = Action::Idle { focus };
+            }
+            _ => {}
+        }
     }
 
     pub fn unfocus(&mut self) {

@@ -21,6 +21,12 @@ pub enum MouseCursor {
 
     /// The cursor is over a text widget.
     Text,
+
+    /// The cursor is resizing a widget horizontally.
+    ResizingHorizontally,
+
+    /// The cursor is resizing a widget vertically.
+    ResizingVertically,
 }
 
 impl Default for MouseCursor {

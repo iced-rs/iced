@@ -22,6 +22,16 @@ impl Point {
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
+
+    /// Computes the distance to another [`Point`].
+    ///
+    /// [`Point`]: struct.Point.html
+    pub fn distance(&self, to: Point) -> f32 {
+        let a = self.x - to.x;
+        let b = self.y - to.y;
+
+        f32::sqrt(a * a + b * b)
+    }
 }
 
 impl From<[f32; 2]> for Point {

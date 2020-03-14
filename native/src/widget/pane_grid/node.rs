@@ -55,6 +55,25 @@ impl Node {
         f(self);
     }
 
+    pub fn resize(&mut self, split: &Split, percentage: f32) -> bool {
+        match self {
+            Node::Split {
+                id, ratio, a, b, ..
+            } => {
+                if id == split {
+                    *ratio = (percentage * 1_000_000.0).round() as u32;
+
+                    true
+                } else if a.resize(split, percentage) {
+                    true
+                } else {
+                    b.resize(split, percentage)
+                }
+            }
+            Node::Pane(_) => false,
+        }
+    }
+
     pub fn remove(&mut self, pane: &Pane) -> Option<Pane> {
         match self {
             Node::Split { a, b, .. } => {
@@ -93,6 +112,27 @@ impl Node {
         regions
     }
 
+    pub fn splits(
+        &self,
+        spacing: f32,
+        size: Size,
+    ) -> HashMap<Split, (Axis, Rectangle, f32)> {
+        let mut splits = HashMap::new();
+
+        self.compute_splits(
+            spacing / 2.0,
+            &Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: size.width,
+                height: size.height,
+            },
+            &mut splits,
+        );
+
+        splits
+    }
+
     pub fn pane(&self) -> Option<Pane> {
         match self {
             Node::Split { .. } => None,
@@ -127,6 +167,33 @@ impl Node {
             Node::Pane(pane) => {
                 let _ = regions.insert(*pane, *current);
             }
+        }
+    }
+
+    fn compute_splits(
+        &self,
+        halved_spacing: f32,
+        current: &Rectangle,
+        splits: &mut HashMap<Split, (Axis, Rectangle, f32)>,
+    ) {
+        match self {
+            Node::Split {
+                axis,
+                ratio,
+                a,
+                b,
+                id,
+            } => {
+                let ratio = *ratio as f32 / 1_000_000.0;
+                let (region_a, region_b) =
+                    axis.split(current, ratio, halved_spacing);
+
+                let _ = splits.insert(*id, (*axis, *current, ratio));
+
+                a.compute_splits(halved_spacing, &region_a, splits);
+                b.compute_splits(halved_spacing, &region_b, splits);
+            }
+            Node::Pane(_) => {}
         }
     }
 }
