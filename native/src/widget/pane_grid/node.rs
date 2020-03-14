@@ -1,5 +1,5 @@
 use crate::{
-    pane_grid::{Axis, Pane},
+    pane_grid::{Axis, Pane, Split},
     Rectangle, Size,
 };
 
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Hash)]
 pub enum Node {
     Split {
-        id: usize,
+        id: Split,
         axis: Axis,
         ratio: u32,
         a: Box<Node>,
@@ -33,7 +33,7 @@ impl Node {
         }
     }
 
-    pub fn split(&mut self, id: usize, axis: Axis, new_pane: Pane) {
+    pub fn split(&mut self, id: Split, axis: Axis, new_pane: Pane) {
         *self = Node::Split {
             id,
             axis,

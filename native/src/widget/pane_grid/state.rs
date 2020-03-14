@@ -1,6 +1,6 @@
 use crate::{
     input::keyboard,
-    pane_grid::{node::Node, Axis, Direction, Pane},
+    pane_grid::{node::Node, Axis, Direction, Pane, Split},
     Hasher, Point, Rectangle, Size,
 };
 
@@ -107,13 +107,13 @@ impl<T> State<T> {
             Pane(self.internal.last_id)
         };
 
-        let split_id = {
+        let new_split = {
             self.internal.last_id = self.internal.last_id.checked_add(1)?;
 
-            self.internal.last_id
+            Split(self.internal.last_id)
         };
 
-        node.split(split_id, axis, new_pane);
+        node.split(new_split, axis, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
         self.focus(&new_pane);
