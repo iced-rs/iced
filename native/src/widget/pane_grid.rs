@@ -449,10 +449,7 @@ impl<T> State<T> {
         node.split(kind, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
-        self.internal.focused_pane = FocusedPane::Some {
-            pane: new_pane,
-            focus: Focus::Idle,
-        };
+        self.focus(&new_pane);
 
         Some(new_pane)
     }
@@ -472,11 +469,7 @@ impl<T> State<T> {
 
     pub fn close(&mut self, pane: &Pane) -> Option<T> {
         if let Some(sibling) = self.internal.layout.remove(pane) {
-            self.internal.focused_pane = FocusedPane::Some {
-                pane: sibling,
-                focus: Focus::Idle,
-            };
-
+            self.focus(&sibling);
             self.panes.remove(pane)
         } else {
             None
