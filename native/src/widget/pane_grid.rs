@@ -111,6 +111,47 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         self.on_resize = Some(Box::new(f));
         self
     }
+
+    fn trigger_resize(
+        &mut self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+    ) {
+        if let Some(on_resize) = &self.on_resize {
+            if let Some((split, _)) = self.state.picked_split() {
+                let bounds = layout.bounds();
+
+                let splits = self.state.splits(
+                    f32::from(self.spacing),
+                    Size::new(bounds.width, bounds.height),
+                );
+
+                if let Some((axis, rectangle, _)) = splits.get(&split) {
+                    let ratio = match axis {
+                        Axis::Horizontal => {
+                            let position =
+                                cursor_position.x - bounds.x + rectangle.x;
+
+                            (position / (rectangle.x + rectangle.width))
+                                .max(0.1)
+                                .min(0.9)
+                        }
+                        Axis::Vertical => {
+                            let position =
+                                cursor_position.y - bounds.y + rectangle.y;
+
+                            (position / (rectangle.y + rectangle.height))
+                                .max(0.1)
+                                .min(0.9)
+                        }
+                    };
+
+                    messages.push(on_resize(ResizeEvent { split, ratio }));
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -280,6 +321,11 @@ where
                             sorted_splits.first()
                         {
                             self.state.pick_split(split, *axis);
+                            self.trigger_resize(
+                                layout,
+                                cursor_position,
+                                messages,
+                            );
                         }
                     }
                     ButtonState::Released => {
@@ -288,41 +334,7 @@ where
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                if let Some(on_resize) = &self.on_resize {
-                    if let Some((split, _)) = self.state.picked_split() {
-                        let bounds = layout.bounds();
-
-                        let splits = self.state.splits(
-                            f32::from(self.spacing),
-                            Size::new(bounds.width, bounds.height),
-                        );
-
-                        if let Some((axis, rectangle, _)) = splits.get(&split) {
-                            let ratio = match axis {
-                                Axis::Horizontal => {
-                                    let position = cursor_position.x - bounds.x
-                                        + rectangle.x;
-
-                                    (position / (rectangle.x + rectangle.width))
-                                        .max(0.1)
-                                        .min(0.9)
-                                }
-                                Axis::Vertical => {
-                                    let position = cursor_position.y - bounds.y
-                                        + rectangle.y;
-
-                                    (position
-                                        / (rectangle.y + rectangle.height))
-                                        .max(0.1)
-                                        .min(0.9)
-                                }
-                            };
-
-                            messages
-                                .push(on_resize(ResizeEvent { split, ratio }));
-                        }
-                    }
-                }
+                self.trigger_resize(layout, cursor_position, messages);
             }
             Event::Keyboard(keyboard::Event::Input { modifiers, .. }) => {
                 *self.modifiers = modifiers;
