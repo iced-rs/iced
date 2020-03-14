@@ -451,7 +451,7 @@ where
                             }
 
                             self.value.insert_many(
-                                self.state.cursor.end(),
+                                self.state.cursor.end().min(self.value.len()),
                                 content.clone(),
                             );
 
