@@ -98,18 +98,6 @@ impl<T> State<T> {
         self.internal.focus(pane);
     }
 
-    pub fn split_vertically(&mut self, pane: &Pane, state: T) -> Option<Pane> {
-        self.split(Axis::Vertical, pane, state)
-    }
-
-    pub fn split_horizontally(
-        &mut self,
-        pane: &Pane,
-        state: T,
-    ) -> Option<Pane> {
-        self.split(Axis::Horizontal, pane, state)
-    }
-
     pub fn split(&mut self, axis: Axis, pane: &Pane, state: T) -> Option<Pane> {
         let node = self.internal.layout.find(pane)?;
 
