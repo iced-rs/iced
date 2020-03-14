@@ -1,6 +1,6 @@
 use crate::{
     input::keyboard,
-    pane_grid::{node::Node, Direction, Pane, Split},
+    pane_grid::{node::Node, Axis, Direction, Pane},
     Hasher, Point, Rectangle, Size,
 };
 
@@ -99,7 +99,7 @@ impl<T> State<T> {
     }
 
     pub fn split_vertically(&mut self, pane: &Pane, state: T) -> Option<Pane> {
-        self.split(Split::Vertical, pane, state)
+        self.split(Axis::Vertical, pane, state)
     }
 
     pub fn split_horizontally(
@@ -107,15 +107,10 @@ impl<T> State<T> {
         pane: &Pane,
         state: T,
     ) -> Option<Pane> {
-        self.split(Split::Horizontal, pane, state)
+        self.split(Axis::Horizontal, pane, state)
     }
 
-    pub fn split(
-        &mut self,
-        kind: Split,
-        pane: &Pane,
-        state: T,
-    ) -> Option<Pane> {
+    pub fn split(&mut self, axis: Axis, pane: &Pane, state: T) -> Option<Pane> {
         let node = self.internal.layout.find(pane)?;
 
         let new_pane = {
@@ -130,7 +125,7 @@ impl<T> State<T> {
             self.internal.last_id
         };
 
-        node.split(split_id, kind, new_pane);
+        node.split(split_id, axis, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
         self.focus(&new_pane);

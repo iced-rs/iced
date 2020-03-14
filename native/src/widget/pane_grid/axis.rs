@@ -1,20 +1,20 @@
 use crate::Rectangle;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum Split {
+pub enum Axis {
     Horizontal,
     Vertical,
 }
 
-impl Split {
-    pub(super) fn apply(
+impl Axis {
+    pub(super) fn split(
         &self,
         rectangle: &Rectangle,
         ratio: f32,
         halved_spacing: f32,
     ) -> (Rectangle, Rectangle) {
         match self {
-            Split::Horizontal => {
+            Axis::Horizontal => {
                 let width_left =
                     (rectangle.width * ratio).round() - halved_spacing;
                 let width_right = rectangle.width - width_left - halved_spacing;
@@ -31,7 +31,7 @@ impl Split {
                     },
                 )
             }
-            Split::Vertical => {
+            Axis::Vertical => {
                 let height_top =
                     (rectangle.height * ratio).round() - halved_spacing;
                 let height_bottom =

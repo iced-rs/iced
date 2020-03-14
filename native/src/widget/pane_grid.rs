@@ -1,12 +1,12 @@
+mod axis;
 mod direction;
 mod node;
 mod pane;
-mod split;
 mod state;
 
+pub use axis::Axis;
 pub use direction::Direction;
 pub use pane::Pane;
-pub use split::Split;
 pub use state::{Focus, State};
 
 use crate::{
