@@ -37,6 +37,22 @@ impl<'a, Message> Row<'a, Message> {
         }
     }
 
+    /// Creates a [`Row`] with children.
+    ///
+    /// [`Row`]: struct.Row.html
+    pub fn new_with_children(children: Vec<Element<'a, Message>>) -> Self {
+        Row {
+            spacing: 0,
+            padding: 0,
+            width: Length::Fill,
+            height: Length::Shrink,
+            max_width: u32::MAX,
+            max_height: u32::MAX,
+            align_items: Align::Start,
+            children,
+        }
+    }
+
     /// Sets the horizontal spacing _between_ elements.
     ///
     /// Custom margins per element do not exist in Iced. You should use this
