@@ -25,22 +25,13 @@ impl<'a, Message> Column<'a, Message> {
     ///
     /// [`Column`]: struct.Column.html
     pub fn new() -> Self {
-        Column {
-            spacing: 0,
-            padding: 0,
-            width: Length::Fill,
-            height: Length::Shrink,
-            max_width: u32::MAX,
-            max_height: u32::MAX,
-            align_items: Align::Start,
-            children: Vec::new(),
-        }
+        Self::with_children(Vec::new())
     }
 
-    /// Creates a [`Column`] with children.
+    /// Creates a [`Column`] with the given elements.
     ///
     /// [`Column`]: struct.Column.html
-    pub fn new_with_children(children: Vec<Element<'a, Message>>) -> Self {
+    pub fn with_children(children: Vec<Element<'a, Message>>) -> Self {
         Column {
             spacing: 0,
             padding: 0,
