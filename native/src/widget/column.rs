@@ -42,10 +42,12 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         }
     }
 
-    /// Creates a [`Column`] with children.
+    /// Creates a [`Column`] with the given elements.
     ///
     /// [`Column`]: struct.Column.html
-    pub fn new_with_children(children: Vec<Element<'a, Message, Renderer>>) -> Self {
+    pub fn with_children(
+        children: Vec<Element<'a, Message, Renderer>>,
+    ) -> Self {
         Column {
             spacing: 0,
             padding: 0,

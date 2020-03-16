@@ -42,10 +42,12 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         }
     }
 
-    /// Creates a [`Row`] with children.
+    /// Creates a [`Row`] with the given elements.
     ///
     /// [`Row`]: struct.Row.html
-    pub fn new_with_children(children: Vec<Element<'a, Message, Renderer>>) -> Self {
+    pub fn with_children(
+        children: Vec<Element<'a, Message, Renderer>>,
+    ) -> Self {
         Row {
             spacing: 0,
             padding: 0,
