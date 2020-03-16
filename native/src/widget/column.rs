@@ -30,16 +30,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     ///
     /// [`Column`]: struct.Column.html
     pub fn new() -> Self {
-        Column {
-            spacing: 0,
-            padding: 0,
-            width: Length::Shrink,
-            height: Length::Shrink,
-            max_width: u32::MAX,
-            max_height: u32::MAX,
-            align_items: Align::Start,
-            children: Vec::new(),
-        }
+        Self::with_children(Vec::new())
     }
 
     /// Creates a [`Column`] with the given elements.
