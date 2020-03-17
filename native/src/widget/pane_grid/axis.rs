@@ -15,36 +15,33 @@ impl Axis {
     ) -> (Rectangle, Rectangle) {
         match self {
             Axis::Horizontal => {
-                let height_top =
-                    (rectangle.height * ratio).round() - halved_spacing;
-                let height_bottom =
-                    rectangle.height - height_top - halved_spacing;
+                let height_top = (rectangle.height * ratio).round();
+                let height_bottom = rectangle.height - height_top;
 
                 (
                     Rectangle {
-                        height: height_top,
+                        height: height_top - halved_spacing,
                         ..*rectangle
                     },
                     Rectangle {
                         y: rectangle.y + height_top + halved_spacing,
-                        height: height_bottom,
+                        height: height_bottom - halved_spacing,
                         ..*rectangle
                     },
                 )
             }
             Axis::Vertical => {
-                let width_left =
-                    (rectangle.width * ratio).round() - halved_spacing;
-                let width_right = rectangle.width - width_left - halved_spacing;
+                let width_left = (rectangle.width * ratio).round();
+                let width_right = rectangle.width - width_left;
 
                 (
                     Rectangle {
-                        width: width_left,
+                        width: width_left - halved_spacing,
                         ..*rectangle
                     },
                     Rectangle {
                         x: rectangle.x + width_left + halved_spacing,
-                        width: width_right,
+                        width: width_right - halved_spacing,
                         ..*rectangle
                     },
                 )
