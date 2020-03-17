@@ -30,6 +30,15 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     ///
     /// [`Row`]: struct.Row.html
     pub fn new() -> Self {
+        Self::with_children(Vec::new())
+    }
+
+    /// Creates a [`Row`] with the given elements.
+    ///
+    /// [`Row`]: struct.Row.html
+    pub fn with_children(
+        children: Vec<Element<'a, Message, Renderer>>,
+    ) -> Self {
         Row {
             spacing: 0,
             padding: 0,
@@ -38,7 +47,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
             max_width: u32::MAX,
             max_height: u32::MAX,
             align_items: Align::Start,
-            children: Vec::new(),
+            children,
         }
     }
 
