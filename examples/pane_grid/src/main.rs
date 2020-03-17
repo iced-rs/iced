@@ -2,6 +2,7 @@ use iced::{
     button, pane_grid, scrollable, Align, Button, Column, Container, Element,
     HorizontalAlignment, Length, PaneGrid, Sandbox, Scrollable, Settings, Text,
 };
+use iced_native::input::keyboard;
 
 pub fn main() {
     Example::run(Settings::default())
@@ -16,9 +17,11 @@ struct Example {
 enum Message {
     Split(pane_grid::Axis, pane_grid::Pane),
     SplitFocused(pane_grid::Axis),
+    FocusAdjacent(pane_grid::Direction),
     Dragged(pane_grid::DragEvent),
     Resized(pane_grid::ResizeEvent),
     Close(pane_grid::Pane),
+    CloseFocused,
 }
 
 impl Sandbox for Example {
@@ -59,6 +62,15 @@ impl Sandbox for Example {
                     self.panes_created += 1;
                 }
             }
+            Message::FocusAdjacent(direction) => {
+                if let Some(pane) = self.panes.active() {
+                    if let Some(adjacent) =
+                        self.panes.adjacent(&pane, direction)
+                    {
+                        self.panes.focus(&adjacent);
+                    }
+                }
+            }
             Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
                 self.panes.resize(&split, ratio);
             }
@@ -71,6 +83,11 @@ impl Sandbox for Example {
             Message::Dragged(_) => {}
             Message::Close(pane) => {
                 let _ = self.panes.close(&pane);
+            }
+            Message::CloseFocused => {
+                if let Some(pane) = self.panes.active() {
+                    let _ = self.panes.close(&pane);
+                }
             }
         }
     }
@@ -86,7 +103,8 @@ impl Sandbox for Example {
             .height(Length::Fill)
             .spacing(5)
             .on_drag(Message::Dragged)
-            .on_resize(Message::Resized);
+            .on_resize(Message::Resized)
+            .on_key_press(handle_hotkey);
 
         Column::new()
             .width(Length::Fill)
@@ -94,6 +112,26 @@ impl Sandbox for Example {
             .padding(10)
             .push(pane_grid)
             .into()
+    }
+}
+
+fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
+    use keyboard::KeyCode;
+    use pane_grid::{Axis, Direction};
+
+    let direction = match key_code {
+        KeyCode::Up => Some(Direction::Up),
+        KeyCode::Down => Some(Direction::Down),
+        KeyCode::Left => Some(Direction::Left),
+        KeyCode::Right => Some(Direction::Right),
+        _ => None,
+    };
+
+    match key_code {
+        KeyCode::V => Some(Message::SplitFocused(Axis::Vertical)),
+        KeyCode::H => Some(Message::SplitFocused(Axis::Horizontal)),
+        KeyCode::W => Some(Message::CloseFocused),
+        _ => direction.map(Message::FocusAdjacent),
     }
 }
 
@@ -189,7 +227,7 @@ mod style {
         fn style(&self) -> container::Style {
             container::Style {
                 background: Some(Background::Color(Color::WHITE)),
-                border_width: 1,
+                border_width: if self.is_focused { 2 } else { 1 },
                 border_color: if self.is_focused {
                     Color::from_rgb8(0x25, 0x7A, 0xFD)
                 } else {
