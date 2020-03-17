@@ -14,6 +14,7 @@
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
+pub mod keyboard;
 
 mod align;
 mod background;

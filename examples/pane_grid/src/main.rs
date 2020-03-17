@@ -1,8 +1,8 @@
 use iced::{
-    button, pane_grid, scrollable, Align, Button, Column, Container, Element,
-    HorizontalAlignment, Length, PaneGrid, Sandbox, Scrollable, Settings, Text,
+    button, keyboard, pane_grid, scrollable, Align, Button, Column, Container,
+    Element, HorizontalAlignment, Length, PaneGrid, Sandbox, Scrollable,
+    Settings, Text,
 };
-use iced_native::input::keyboard;
 
 pub fn main() {
     Example::run(Settings::default())
