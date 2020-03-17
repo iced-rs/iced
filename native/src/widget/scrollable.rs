@@ -118,7 +118,7 @@ where
     Renderer: 'static + self::Renderer + column::Renderer,
 {
     fn width(&self) -> Length {
-        Length::Fill
+        Widget::<Message, Renderer>::width(&self.content)
     }
 
     fn height(&self) -> Length {
@@ -132,7 +132,7 @@ where
     ) -> layout::Node {
         let limits = limits
             .max_height(self.max_height)
-            .width(Length::Fill)
+            .width(Widget::<Message, Renderer>::width(&self.content))
             .height(self.height);
 
         let child_limits = layout::Limits::new(
