@@ -115,11 +115,11 @@ impl Sandbox for Example {
     }
 }
 
-fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
+fn handle_hotkey(event: pane_grid::KeyPressEvent) -> Option<Message> {
     use keyboard::KeyCode;
     use pane_grid::{Axis, Direction};
 
-    let direction = match key_code {
+    let direction = match event.key_code {
         KeyCode::Up => Some(Direction::Up),
         KeyCode::Down => Some(Direction::Down),
         KeyCode::Left => Some(Direction::Left),
@@ -127,7 +127,7 @@ fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
         _ => None,
     };
 
-    match key_code {
+    match event.key_code {
         KeyCode::V => Some(Message::SplitFocused(Axis::Vertical)),
         KeyCode::H => Some(Message::SplitFocused(Axis::Horizontal)),
         KeyCode::W => Some(Message::CloseFocused),

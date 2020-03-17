@@ -28,7 +28,7 @@ pub struct PaneGrid<'a, Message, Renderer> {
     modifier_keys: keyboard::ModifiersState,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message>>,
     on_resize: Option<Box<dyn Fn(ResizeEvent) -> Message>>,
-    on_key_press: Option<Box<dyn Fn(keyboard::KeyCode) -> Option<Message>>>,
+    on_key_press: Option<Box<dyn Fn(KeyPressEvent) -> Option<Message>>>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
@@ -129,7 +129,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
 
     pub fn on_key_press(
         mut self,
-        f: impl Fn(keyboard::KeyCode) -> Option<Message> + 'static,
+        f: impl Fn(KeyPressEvent) -> Option<Message> + 'static,
     ) -> Self {
         self.on_key_press = Some(Box::new(f));
         self
@@ -184,6 +184,12 @@ pub enum DragEvent {
 pub struct ResizeEvent {
     pub split: Split,
     pub ratio: f32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct KeyPressEvent {
+    pub key_code: keyboard::KeyCode,
+    pub modifiers: keyboard::ModifiersState,
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -369,7 +375,12 @@ where
                     if state == ButtonState::Pressed {
                         if let Some(_) = self.state.idle_pane() {
                             if modifiers == self.modifier_keys {
-                                if let Some(message) = on_key_press(key_code) {
+                                if let Some(message) =
+                                    on_key_press(KeyPressEvent {
+                                        key_code,
+                                        modifiers,
+                                    })
+                                {
                                     messages.push(message);
                                 }
                             }
