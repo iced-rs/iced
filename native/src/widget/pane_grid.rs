@@ -25,8 +25,10 @@ pub struct PaneGrid<'a, Message, Renderer> {
     width: Length,
     height: Length,
     spacing: u16,
+    modifier_keys: keyboard::ModifiersState,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message>>,
     on_resize: Option<Box<dyn Fn(ResizeEvent) -> Message>>,
+    on_key_press: Option<Box<dyn Fn(keyboard::KeyCode) -> Option<Message>>>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
@@ -67,8 +69,13 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
             width: Length::Fill,
             height: Length::Fill,
             spacing: 0,
+            modifier_keys: keyboard::ModifiersState {
+                control: true,
+                ..Default::default()
+            },
             on_drag: None,
             on_resize: None,
+            on_key_press: None,
         }
     }
 
@@ -96,6 +103,14 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         self
     }
 
+    pub fn modifier_keys(
+        mut self,
+        modifier_keys: keyboard::ModifiersState,
+    ) -> Self {
+        self.modifier_keys = modifier_keys;
+        self
+    }
+
     pub fn on_drag(
         mut self,
         f: impl Fn(DragEvent) -> Message + 'static,
@@ -109,6 +124,14 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         f: impl Fn(ResizeEvent) -> Message + 'static,
     ) -> Self {
         self.on_resize = Some(Box::new(f));
+        self
+    }
+
+    pub fn on_key_press(
+        mut self,
+        f: impl Fn(keyboard::KeyCode) -> Option<Message> + 'static,
+    ) -> Self {
+        self.on_key_press = Some(Box::new(f));
         self
     }
 
@@ -230,7 +253,9 @@ where
 
                     if let Some(((pane, _), _)) = clicked_region.next() {
                         match &self.on_drag {
-                            Some(on_drag) if self.modifiers.alt => {
+                            Some(on_drag)
+                                if *self.modifiers == self.modifier_keys =>
+                            {
                                 self.state.pick_pane(pane);
 
                                 messages.push(on_drag(DragEvent::Picked {
@@ -278,7 +303,7 @@ where
                 state: ButtonState::Pressed,
             }) if self.on_resize.is_some()
                 && self.state.picked_pane().is_none()
-                && self.modifiers.alt =>
+                && *self.modifiers == self.modifier_keys =>
             {
                 let bounds = layout.bounds();
                 let relative_cursor = Point::new(
@@ -334,7 +359,24 @@ where
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 self.trigger_resize(layout, cursor_position, messages);
             }
-            Event::Keyboard(keyboard::Event::Input { modifiers, .. }) => {
+            Event::Keyboard(keyboard::Event::Input {
+                modifiers,
+                key_code,
+                state,
+            }) => {
+                if let Some(on_key_press) = &self.on_key_press {
+                    // TODO: Discard when event is captured
+                    if state == ButtonState::Pressed {
+                        if let Some(_) = self.state.idle_pane() {
+                            if modifiers == self.modifier_keys {
+                                if let Some(message) = on_key_press(key_code) {
+                                    messages.push(message);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 *self.modifiers = modifiers;
             }
             _ => {}

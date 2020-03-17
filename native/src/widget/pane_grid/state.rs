@@ -186,6 +186,13 @@ impl Internal {
         self.action
     }
 
+    pub fn idle_pane(&self) -> Option<Pane> {
+        match self.action {
+            Action::Idle { focus } => focus,
+            _ => None,
+        }
+    }
+
     pub fn picked_pane(&self) -> Option<Pane> {
         match self.action {
             Action::Dragging { pane } => Some(pane),
