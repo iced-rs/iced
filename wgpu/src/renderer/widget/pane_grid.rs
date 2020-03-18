@@ -14,6 +14,14 @@ impl pane_grid::Renderer for Renderer {
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
+        let pane_cursor_position = if dragging.is_some() {
+            // TODO: Remove once cursor availability is encoded in the type
+            // system
+            Point::new(-1.0, -1.0)
+        } else {
+            cursor_position
+        };
+
         let mut mouse_cursor = MouseCursor::OutOfBounds;
         let mut dragged_pane = None;
 
@@ -23,7 +31,7 @@ impl pane_grid::Renderer for Renderer {
             .enumerate()
             .map(|(i, ((id, pane), layout))| {
                 let (primitive, new_mouse_cursor) =
-                    pane.draw(self, defaults, layout, cursor_position);
+                    pane.draw(self, defaults, layout, pane_cursor_position);
 
                 if new_mouse_cursor > mouse_cursor {
                     mouse_cursor = new_mouse_cursor;
