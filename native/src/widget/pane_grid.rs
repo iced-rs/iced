@@ -260,7 +260,9 @@ where
                     if let Some(((pane, _), _)) = clicked_region.next() {
                         match &self.on_drag {
                             Some(on_drag)
-                                if *self.modifiers == self.modifier_keys =>
+                                if self
+                                    .modifiers
+                                    .matches(self.modifier_keys) =>
                             {
                                 self.state.pick_pane(pane);
 
@@ -309,7 +311,7 @@ where
                 state: ButtonState::Pressed,
             }) if self.on_resize.is_some()
                 && self.state.picked_pane().is_none()
-                && *self.modifiers == self.modifier_keys =>
+                && self.modifiers.matches(self.modifier_keys) =>
             {
                 let bounds = layout.bounds();
                 let relative_cursor = Point::new(
@@ -374,7 +376,7 @@ where
                     // TODO: Discard when event is captured
                     if state == ButtonState::Pressed {
                         if let Some(_) = self.state.idle_pane() {
-                            if modifiers == self.modifier_keys {
+                            if modifiers.matches(self.modifier_keys) {
                                 if let Some(message) =
                                     on_key_press(KeyPressEvent {
                                         key_code,
