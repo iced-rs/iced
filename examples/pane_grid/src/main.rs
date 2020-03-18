@@ -167,7 +167,7 @@ impl Content {
             close,
         } = self;
 
-        let button = |state, label, message| {
+        let button = |state, label, message, style| {
             Button::new(
                 state,
                 Text::new(label)
@@ -176,7 +176,9 @@ impl Content {
                     .size(16),
             )
             .width(Length::Fill)
+            .padding(8)
             .on_press(message)
+            .style(style)
         };
 
         let mut controls = Column::new()
@@ -186,16 +188,22 @@ impl Content {
                 split_horizontally,
                 "Split horizontally",
                 Message::Split(pane_grid::Axis::Horizontal, pane),
+                style::Button::Primary,
             ))
             .push(button(
                 split_vertically,
                 "Split vertically",
                 Message::Split(pane_grid::Axis::Vertical, pane),
+                style::Button::Primary,
             ));
 
         if total_panes > 1 {
-            controls =
-                controls.push(button(close, "Close", Message::Close(pane)));
+            controls = controls.push(button(
+                close,
+                "Close",
+                Message::Close(pane),
+                style::Button::Destructive,
+            ));
         }
 
         let content = Scrollable::new(scroll)
@@ -217,7 +225,7 @@ impl Content {
 }
 
 mod style {
-    use iced::{container, Background, Color};
+    use iced::{button, container, Background, Color, Vector};
 
     pub struct Pane {
         pub is_focused: bool,
@@ -234,6 +242,41 @@ mod style {
                     Color::BLACK
                 },
                 ..Default::default()
+            }
+        }
+    }
+
+    pub enum Button {
+        Primary,
+        Destructive,
+    }
+
+    impl button::StyleSheet for Button {
+        fn active(&self) -> button::Style {
+            let color = match self {
+                Button::Primary => Color::from_rgb8(0x25, 0x7A, 0xFD),
+                Button::Destructive => Color::from_rgb(0.8, 0.2, 0.2),
+            };
+
+            button::Style {
+                background: None,
+                border_color: color,
+                border_radius: 5,
+                border_width: 1,
+                shadow_offset: Vector::new(0.0, 0.0),
+                text_color: color,
+                ..button::Style::default()
+            }
+        }
+
+        fn hovered(&self) -> button::Style {
+            let active = self.active();
+
+            button::Style {
+                background: Some(Background::Color(active.border_color)),
+                text_color: Color::WHITE,
+                border_width: 0,
+                ..active
             }
         }
     }
