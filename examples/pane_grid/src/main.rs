@@ -101,7 +101,7 @@ impl Sandbox for Example {
             })
             .width(Length::Fill)
             .height(Length::Fill)
-            .spacing(5)
+            .spacing(10)
             .on_drag(Message::Dragged)
             .on_resize(Message::Resized)
             .on_key_press(handle_hotkey);
@@ -213,7 +213,7 @@ impl Content {
             .push(Text::new(format!("Pane {}", id)).size(30))
             .push(controls);
 
-        Container::new(Column::new().padding(10).push(content))
+        Container::new(Column::new().padding(5).push(content))
             .width(Length::Fill)
             .height(Length::Fill)
             .center_y()
@@ -227,6 +227,24 @@ impl Content {
 mod style {
     use iced::{button, container, Background, Color, Vector};
 
+    const SURFACE: Color = Color::from_rgb(
+        0xF2 as f32 / 255.0,
+        0xF3 as f32 / 255.0,
+        0xF5 as f32 / 255.0,
+    );
+
+    const ACTIVE: Color = Color::from_rgb(
+        0x72 as f32 / 255.0,
+        0x89 as f32 / 255.0,
+        0xDA as f32 / 255.0,
+    );
+
+    const HOVERED: Color = Color::from_rgb(
+        0x67 as f32 / 255.0,
+        0x7B as f32 / 255.0,
+        0xC4 as f32 / 255.0,
+    );
+
     pub struct Pane {
         pub is_focused: bool,
     }
@@ -234,12 +252,11 @@ mod style {
     impl container::StyleSheet for Pane {
         fn style(&self) -> container::Style {
             container::Style {
-                background: Some(Background::Color(Color::WHITE)),
-                border_width: if self.is_focused { 2 } else { 1 },
-                border_color: if self.is_focused {
-                    Color::from_rgb8(0x25, 0x7A, 0xFD)
-                } else {
-                    Color::BLACK
+                background: Some(Background::Color(SURFACE)),
+                border_width: 2,
+                border_color: Color {
+                    a: if self.is_focused { 1.0 } else { 0.3 },
+                    ..Color::BLACK
                 },
                 ..Default::default()
             }
@@ -253,18 +270,18 @@ mod style {
 
     impl button::StyleSheet for Button {
         fn active(&self) -> button::Style {
-            let color = match self {
-                Button::Primary => Color::from_rgb8(0x25, 0x7A, 0xFD),
-                Button::Destructive => Color::from_rgb(0.8, 0.2, 0.2),
+            let (background, text_color) = match self {
+                Button::Primary => (Some(ACTIVE), Color::WHITE),
+                Button::Destructive => {
+                    (None, Color::from_rgb8(0xFF, 0x47, 0x47))
+                }
             };
 
             button::Style {
-                background: None,
-                border_color: color,
+                text_color,
+                background: background.map(Background::Color),
                 border_radius: 5,
-                border_width: 1,
                 shadow_offset: Vector::new(0.0, 0.0),
-                text_color: color,
                 ..button::Style::default()
             }
         }
@@ -272,10 +289,16 @@ mod style {
         fn hovered(&self) -> button::Style {
             let active = self.active();
 
+            let background = match self {
+                Button::Primary => Some(HOVERED),
+                Button::Destructive => Some(Color {
+                    a: 0.2,
+                    ..active.text_color
+                }),
+            };
+
             button::Style {
-                background: Some(Background::Color(active.border_color)),
-                text_color: Color::WHITE,
-                border_width: 0,
+                background: background.map(Background::Color),
                 ..active
             }
         }
