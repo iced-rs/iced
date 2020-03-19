@@ -30,13 +30,14 @@ mod platform {
         pub use iced_winit::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::{pane_grid, PaneGrid, Text};
+    pub use iced_winit::Text;
 
     #[doc(no_inline)]
     pub use {
         button::Button, checkbox::Checkbox, container::Container, image::Image,
-        progress_bar::ProgressBar, radio::Radio, scrollable::Scrollable,
-        slider::Slider, svg::Svg, text_input::TextInput,
+        pane_grid::PaneGrid, progress_bar::ProgressBar, radio::Radio,
+        scrollable::Scrollable, slider::Slider, svg::Svg,
+        text_input::TextInput,
     };
 
     /// A container that distributes its contents vertically.
