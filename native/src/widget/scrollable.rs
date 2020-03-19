@@ -222,20 +222,6 @@ where
                 }) => {
                     self.state.scroller_grabbed_at = None;
                 }
-                Event::Mouse(mouse::Event::Input {
-                    button: mouse::Button::Left,
-                    state: ButtonState::Pressed,
-                })
-                | Event::Touch(Touch {
-                    phase: touch::Phase::Started,
-                    ..
-                }) => {
-                    self.state.scroll_to(
-                        cursor_position.y / (bounds.y + bounds.height),
-                        bounds,
-                        content_bounds,
-                    );
-                }
                 Event::Mouse(mouse::Event::CursorMoved { .. })
                 | Event::Touch(Touch {
                     phase: touch::Phase::Moved,
