@@ -20,7 +20,7 @@ use crate::{
 #[allow(missing_debug_implementations)]
 pub struct PaneGrid<'a, Message, Renderer> {
     state: &'a mut state::Internal,
-    modifiers: &'a mut keyboard::ModifiersState,
+    pressed_modifiers: &'a mut keyboard::ModifiersState,
     elements: Vec<(Pane, Element<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
@@ -64,7 +64,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
 
         Self {
             state: &mut state.internal,
-            modifiers: &mut state.modifiers,
+            pressed_modifiers: &mut state.modifiers,
             elements,
             width: Length::Fill,
             height: Length::Fill,
@@ -261,7 +261,7 @@ where
                         match &self.on_drag {
                             Some(on_drag)
                                 if self
-                                    .modifiers
+                                    .pressed_modifiers
                                     .matches(self.modifier_keys) =>
                             {
                                 self.state.pick_pane(pane);
@@ -311,7 +311,7 @@ where
                 state: ButtonState::Pressed,
             }) if self.on_resize.is_some()
                 && self.state.picked_pane().is_none()
-                && self.modifiers.matches(self.modifier_keys) =>
+                && self.pressed_modifiers.matches(self.modifier_keys) =>
             {
                 let bounds = layout.bounds();
                 let relative_cursor = Point::new(
@@ -390,7 +390,7 @@ where
                     }
                 }
 
-                *self.modifiers = modifiers;
+                *self.pressed_modifiers = modifiers;
             }
             _ => {}
         }
