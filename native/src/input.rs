@@ -6,3 +6,4 @@ pub mod touch;
 mod button_state;
 
 pub use button_state::ButtonState;
+pub use touch::Touch;

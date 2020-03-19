@@ -19,7 +19,7 @@ wgpu_glyph = "0.7"
 glyph_brush = "0.6"
 raw-window-handle = "0.3"
 glam = "0.8"
-font-kit = "0.5.0"
+font-kit = "0.5"
 log = "0.4"
 guillotiere = "0.4"
 

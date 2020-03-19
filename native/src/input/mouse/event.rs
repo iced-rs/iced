@@ -1,5 +1,5 @@
 use super::Button;
-use crate::input::ButtonState;
+use crate::{input::ButtonState, Point};
 
 /// A mouse event.
 ///
@@ -17,11 +17,8 @@ pub enum Event {
 
     /// The mouse cursor was moved
     CursorMoved {
-        /// The X coordinate of the mouse position
-        x: f32,
-
-        /// The Y coordinate of the mouse position
-        y: f32,
+        /// The new position of the mouse cursor
+        position: Point,
     },
 
     /// A mouse button was pressed or released.

@@ -2,7 +2,7 @@
 use std::hash::Hash;
 
 use crate::{
-    input::{mouse, touch::Touch, ButtonState},
+    input::{mouse, touch, ButtonState, Touch},
     layout, row, text, Align, Clipboard, Element, Event, Font, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
@@ -156,7 +156,10 @@ where
                 button: mouse::Button::Left,
                 state: ButtonState::Pressed,
             })
-            | Event::Touch(Touch::Started { .. }) => {
+            | Event::Touch(Touch {
+                phase: touch::Phase::Started,
+                ..
+            }) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {

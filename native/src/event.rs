@@ -1,5 +1,5 @@
 use crate::{
-    input::{keyboard, mouse, touch},
+    input::{keyboard, mouse, Touch},
     window,
 };
 
@@ -9,7 +9,7 @@ use crate::{
 /// additional events, feel free to [open an issue] and share your use case!_
 ///
 /// [open an issue]: https://github.com/hecrj/iced/issues
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     /// A keyboard event
     Keyboard(keyboard::Event),
@@ -21,5 +21,5 @@ pub enum Event {
     Window(window::Event),
 
     /// A touch event
-    Touch(touch::Touch),
+    Touch(Touch),
 }

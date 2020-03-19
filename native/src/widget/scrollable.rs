@@ -1,7 +1,7 @@
 //! Navigate an endless amount of content with a scrollbar.
 use crate::{
     column,
-    input::{mouse, touch, ButtonState},
+    input::{mouse, touch, ButtonState, Touch},
     layout, Align, Clipboard, Column, Element, Event, Hasher, Layout, Length,
     Point, Rectangle, Size, Widget,
 };
@@ -175,22 +175,26 @@ where
                         }
                     }
                 }
-                Event::Touch(touch::Touch::Started { .. }) => {
-                    self.state.scroll_box_touched_at = Some(cursor_position);
-                }
-                Event::Touch(touch::Touch::Moved { .. }) => {
-                    if let Some(scroll_box_touched_at) =
-                        self.state.scroll_box_touched_at
-                    {
-                        let delta = cursor_position.y - scroll_box_touched_at.y;
-                        self.state.scroll(delta, bounds, content_bounds);
+                Event::Touch(Touch { phase, .. }) => match phase {
+                    touch::Phase::Started => {
                         self.state.scroll_box_touched_at =
                             Some(cursor_position);
                     }
-                }
-                Event::Touch(touch::Touch::Ended { .. }) => {
-                    self.state.scroll_box_touched_at = None;
-                }
+                    touch::Phase::Moved => {
+                        if let Some(scroll_box_touched_at) =
+                            self.state.scroll_box_touched_at
+                        {
+                            let delta =
+                                cursor_position.y - scroll_box_touched_at.y;
+                            self.state.scroll(delta, bounds, content_bounds);
+                            self.state.scroll_box_touched_at =
+                                Some(cursor_position);
+                        }
+                    }
+                    touch::Phase::Ended | touch::Phase::Canceled => {
+                        self.state.scroll_box_touched_at = None;
+                    }
+                },
                 _ => {}
             }
         }
@@ -208,14 +212,24 @@ where
                     button: mouse::Button::Left,
                     state: ButtonState::Released,
                 })
-                | Event::Touch(touch::Touch::Ended { .. }) => {
+                | Event::Touch(Touch {
+                    phase: touch::Phase::Ended,
+                    ..
+                })
+                | Event::Touch(Touch {
+                    phase: touch::Phase::Canceled,
+                    ..
+                }) => {
                     self.state.scroller_grabbed_at = None;
                 }
                 Event::Mouse(mouse::Event::Input {
                     button: mouse::Button::Left,
                     state: ButtonState::Pressed,
                 })
-                | Event::Touch(touch::Touch::Started { .. }) => {
+                | Event::Touch(Touch {
+                    phase: touch::Phase::Started,
+                    ..
+                }) => {
                     self.state.scroll_to(
                         cursor_position.y / (bounds.y + bounds.height),
                         bounds,
@@ -223,7 +237,10 @@ where
                     );
                 }
                 Event::Mouse(mouse::Event::CursorMoved { .. })
-                | Event::Touch(touch::Touch::Moved { .. }) => {
+                | Event::Touch(Touch {
+                    phase: touch::Phase::Moved,
+                    ..
+                }) => {
                     if let (Some(scrollbar), Some(scroller_grabbed_at)) =
                         (scrollbar, self.state.scroller_grabbed_at)
                     {
@@ -245,7 +262,10 @@ where
                     button: mouse::Button::Left,
                     state: ButtonState::Pressed,
                 })
-                | Event::Touch(touch::Touch::Started { .. }) => {
+                | Event::Touch(Touch {
+                    phase: touch::Phase::Started,
+                    ..
+                }) => {
                     if let Some(scrollbar) = scrollbar {
                         if let Some(scroller_grabbed_at) =
                             scrollbar.grab_scroller(cursor_position)

@@ -5,7 +5,7 @@
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
 use crate::{
-    input::{mouse, touch::Touch, ButtonState},
+    input::{mouse, touch, ButtonState, Touch},
     layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
     Rectangle, Widget,
 };
@@ -189,16 +189,24 @@ where
                 button: mouse::Button::Left,
                 state: ButtonState::Pressed,
             })
-            | Event::Touch(Touch::Started { .. }) => {
-                let bounds = layout.bounds();
+            | Event::Touch(Touch {
+                phase: touch::Phase::Started,
+                ..
+            }) => {
+                if self.on_press.is_some() {
+                    let bounds = layout.bounds();
 
-                self.state.is_pressed = bounds.contains(cursor_position);
+                    self.state.is_pressed = bounds.contains(cursor_position);
+                }
             }
             Event::Mouse(mouse::Event::Input {
                 button: mouse::Button::Left,
                 state: ButtonState::Released,
             })
-            | Event::Touch(Touch::Ended { .. }) => {
+            | Event::Touch(Touch {
+                phase: touch::Phase::Ended,
+                ..
+            }) => {
                 if let Some(on_press) = self.on_press.clone() {
                     let bounds = layout.bounds();
                     let is_clicked = self.state.is_pressed
@@ -210,6 +218,12 @@ where
                         messages.push(on_press);
                     }
                 }
+            }
+            Event::Touch(Touch {
+                phase: touch::Phase::Canceled,
+                ..
+            }) => {
+                self.state.is_pressed = false;
             }
             _ => {}
         }

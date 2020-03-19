@@ -1,39 +1,36 @@
 //! Build touch events.
-/// The touch of a mobile device.
+
+use crate::Point;
+
+/// A touch interaction.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Touch {
-    /// The touch cursor was started
-    Started {
-        /// The X coordinate of the touch position
-        x: f32,
+pub struct Touch {
+    /// The finger of the touch.
+    pub finger: Finger,
 
-        /// The Y coordinate of the touch position
-        y: f32,
-    },
-    /// The touch cursor was ended
-    Ended {
-        /// The X coordinate of the touch position
-        x: f32,
+    /// The position of the touch.
+    pub position: Point,
 
-        /// The Y coordinate of the touch position
-        y: f32,
-    },
+    /// The state of the touch.
+    pub phase: Phase,
+}
 
-    /// The touch was moved.
-    Moved {
-        /// The X coordinate of the touch position
-        x: f32,
+/// A unique identifier representing a finger on a touch interaction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Finger(pub u64);
 
-        /// The Y coordinate of the touch position
-        y: f32,
-    },
+/// The state of a touch interaction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Phase {
+    /// A touch interaction was started.
+    Started,
 
-    /// Some canceled button.
-    Cancelled {
-        /// The X coordinate of the touch position
-        x: f32,
+    /// An on-going touch interaction was moved.
+    Moved,
 
-        /// The Y coordinate of the touch position
-        y: f32,
-    },
+    /// A touch interaction was ended.
+    Ended,
+
+    /// A touch interaction was canceled.
+    Canceled,
 }

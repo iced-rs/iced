@@ -1,5 +1,5 @@
 use crate::{
-    input::{mouse, touch},
+    input::{mouse, Touch},
     layout, Clipboard, Element, Event, Layout, Point, Size,
 };
 
@@ -183,12 +183,9 @@ where
 
         for event in events {
             match event {
-                Event::Mouse(mouse::Event::CursorMoved { x, y })
-                | Event::Touch(touch::Touch::Started { x, y })
-                | Event::Touch(touch::Touch::Ended { x, y })
-                | Event::Touch(touch::Touch::Moved { x, y })
-                | Event::Touch(touch::Touch::Cancelled { x, y }) => {
-                    self.cursor_position = Point::new(x, y);
+                Event::Mouse(mouse::Event::CursorMoved { position })
+                | Event::Touch(Touch { position, .. }) => {
+                    self.cursor_position = position;
                 }
                 _ => {}
             }

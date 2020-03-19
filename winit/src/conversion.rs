@@ -5,9 +5,9 @@
 use crate::{
     input::{
         keyboard::{self, KeyCode, ModifiersState},
-        mouse, touch, ButtonState,
+        mouse, touch, ButtonState, Touch,
     },
-    window, Event, Mode, MouseCursor,
+    window, Event, Mode, MouseCursor, Point,
 };
 
 /// Converts a winit window event into an iced event.
@@ -31,8 +31,7 @@ pub fn window_event(
             let position = position.to_logical::<f64>(scale_factor);
 
             Some(Event::Mouse(mouse::Event::CursorMoved {
-                x: position.x as f32,
-                y: position.y as f32,
+                position: Point::new(position.x as f32, position.y as f32),
             }))
         }
         WindowEvent::MouseInput { button, state, .. } => {
@@ -84,9 +83,7 @@ pub fn window_event(
         WindowEvent::HoveredFileCancelled => {
             Some(Event::Window(window::Event::FilesHoveredLeft))
         }
-        WindowEvent::Touch(touch) => {
-            Some(Event::Touch(touch_event(touch)))
-        }
+        WindowEvent::Touch(touch) => Some(Event::Touch(touch_event(touch))),
         _ => None,
     }
 }
@@ -159,6 +156,25 @@ pub fn modifiers_state(
         control: modifiers.ctrl(),
         alt: modifiers.alt(),
         logo: modifiers.logo(),
+    }
+}
+
+/// Converts a `Touch` from [`winit`] to an [`iced_native`] touch event.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+pub fn touch_event(touch: winit::event::Touch) -> Touch {
+    let phase = match touch.phase {
+        winit::event::TouchPhase::Started => touch::Phase::Started,
+        winit::event::TouchPhase::Moved => touch::Phase::Moved,
+        winit::event::TouchPhase::Ended => touch::Phase::Ended,
+        winit::event::TouchPhase::Cancelled => touch::Phase::Canceled,
+    };
+
+    Touch {
+        finger: touch::Finger(touch.id),
+        position: Point::new(touch.location.x as f32, touch.location.y as f32),
+        phase,
     }
 }
 
@@ -343,26 +359,5 @@ pub(crate) fn is_private_use_character(c: char) -> bool {
         | '\u{F0000}'..='\u{FFFFD}'
         | '\u{100000}'..='\u{10FFFD}' => true,
         _ => false,
-    }
-}
-pub(crate) fn touch_event(touch: winit::event::Touch) -> touch::Touch {
-    let location = touch.location;
-    match touch.phase {
-        winit::event::TouchPhase::Started => touch::Touch::Started {
-            x: location.x as f32,
-            y: location.y as f32,
-        },
-        winit::event::TouchPhase::Ended => touch::Touch::Ended {
-            x: location.x as f32,
-            y: location.y as f32,
-        },
-        winit::event::TouchPhase::Moved => touch::Touch::Moved {
-            x: location.x as f32,
-            y: location.y as f32,
-        },
-        winit::event::TouchPhase::Cancelled => touch::Touch::Cancelled {
-            x: location.x as f32,
-            y: location.y as f32,
-        },
     }
 }
