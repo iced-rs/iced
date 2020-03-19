@@ -1,3 +1,6 @@
+//! Let your users split regions of your application and organize layout dynamically.
+//!
+//! [![Pane grid - Iced](https://thumbs.gfycat.com/MixedFlatJellyfish-small.gif)](https://gfycat.com/mixedflatjellyfish)
 mod axis;
 mod direction;
 mod node;
@@ -17,6 +20,57 @@ use crate::{
     Widget,
 };
 
+/// A collection of panes distributed using either vertical or horizontal splits
+/// to completely fill the space available.
+///
+/// [![Pane grid - Iced](https://thumbs.gfycat.com/MixedFlatJellyfish-small.gif)](https://gfycat.com/mixedflatjellyfish)
+///
+/// This distribution of space is common in tiling window managers (like
+/// [`awesome`](https://awesomewm.org/), [`i3`](https://i3wm.org/), or even
+/// [`tmux`](https://github.com/tmux/tmux)).
+///
+/// A [`PaneGrid`] supports:
+///
+/// * Vertical and horizontal splits
+/// * Tracking of the last active pane
+/// * Mouse-based resizing
+/// * Drag and drop to reorganize panes
+/// * Hotkey support
+/// * Configurable modifier keys
+/// * [`State`] API to perform actions programmatically (`split`, `swap`, `resize`, etc.)
+///
+/// ## Example
+///
+/// ```
+/// # use iced_native::{pane_grid, Text};
+/// #
+/// # type PaneGrid<'a, Message> =
+/// #     iced_native::PaneGrid<'a, Message, iced_native::renderer::Null>;
+/// #
+/// enum PaneState {
+///     SomePane,
+///     AnotherKindOfPane,
+/// }
+///
+/// enum Message {
+///     PaneDragged(pane_grid::DragEvent),
+///     PaneResized(pane_grid::ResizeEvent),
+/// }
+///
+/// let (mut state, _) = pane_grid::State::new(PaneState::SomePane);
+///
+/// let pane_grid = PaneGrid::new(&mut state, |pane, state, focus| {
+///     match state {
+///         PaneState::SomePane => Text::new("This is some pane"),
+///         PaneState::AnotherKindOfPane => Text::new("This is another kind of pane"),
+///     }.into()
+/// })
+///     .on_drag(Message::PaneDragged)
+///     .on_resize(Message::PaneResized);
+/// ```
+///
+/// [`PaneGrid`]: struct.PaneGrid.html
+/// [`State`]: struct.State.html
 #[allow(missing_debug_implementations)]
 pub struct PaneGrid<'a, Message, Renderer> {
     state: &'a mut state::Internal,
@@ -32,6 +86,13 @@ pub struct PaneGrid<'a, Message, Renderer> {
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
+    /// Creates a [`PaneGrid`] with the given [`State`] and view function.
+    ///
+    /// The view function will be called to display each [`Pane`] present in the
+    /// [`State`].
+    ///
+    /// [`PaneGrid`]: struct.PaneGrid.html
+    /// [`State`]: struct.State.html
     pub fn new<T>(
         state: &'a mut State<T>,
         view: impl Fn(
@@ -81,7 +142,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
 
     /// Sets the width of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: struct.Column.html
+    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
@@ -89,7 +150,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
 
     /// Sets the height of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: struct.Column.html
+    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
@@ -97,12 +158,20 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
 
     /// Sets the spacing _between_ the panes of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: struct.Column.html
+    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn spacing(mut self, units: u16) -> Self {
         self.spacing = units;
         self
     }
 
+    /// Sets the modifier keys of the [`PaneGrid`].
+    ///
+    /// The modifier keys will need to be pressed to trigger dragging, resizing,
+    /// and key events.
+    ///
+    /// The default modifier key is `Ctrl`.
+    ///
+    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn modifier_keys(
         mut self,
         modifier_keys: keyboard::ModifiersState,
@@ -111,6 +180,12 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         self
     }
 
+    /// Enables the drag and drop interactions of the [`PaneGrid`], which will
+    /// use the provided function to produce messages.
+    ///
+    /// Panes can be dragged using `Modifier keys + Left click`.
+    ///
+    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn on_drag(
         mut self,
         f: impl Fn(DragEvent) -> Message + 'static,
@@ -119,6 +194,12 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         self
     }
 
+    /// Enables the resize interactions of the [`PaneGrid`], which will
+    /// use the provided function to produce messages.
+    ///
+    /// Panes can be resized using `Modifier keys + Right click`.
+    ///
+    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn on_resize(
         mut self,
         f: impl Fn(ResizeEvent) -> Message + 'static,
@@ -127,6 +208,23 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         self
     }
 
+    /// Captures hotkey interactions with the [`PaneGrid`], using the provided
+    /// function to produce messages.
+    ///
+    /// The function will be called when:
+    ///   - a [`Pane`] is focused
+    ///   - a key is pressed
+    ///   - all the modifier keys are pressed
+    ///
+    /// If the function returns `None`, the key press event will be discarded
+    /// without producing any message.
+    ///
+    /// This function is particularly useful to implement hotkey interactions.
+    /// For instance, you can use it to enable splitting, swapping, or resizing
+    /// panes by pressing combinations of keys.
+    ///
+    /// [`PaneGrid`]: struct.PaneGrid.html
+    /// [`Pane`]: struct.Pane.html
     pub fn on_key_press(
         mut self,
         f: impl Fn(KeyPressEvent) -> Option<Message> + 'static,
@@ -173,22 +271,72 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     }
 }
 
+/// An event produced during a drag and drop interaction of a [`PaneGrid`].
+///
+/// [`PaneGrid`]: struct.PaneGrid.html
 #[derive(Debug, Clone, Copy)]
 pub enum DragEvent {
-    Picked { pane: Pane },
-    Dropped { pane: Pane, target: Pane },
-    Canceled { pane: Pane },
+    /// A [`Pane`] was picked for dragging.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    Picked {
+        /// The picked [`Pane`].
+        ///
+        /// [`Pane`]: struct.Pane.html
+        pane: Pane,
+    },
+
+    /// A [`Pane`] was dropped on top of another [`Pane`].
+    ///
+    /// [`Pane`]: struct.Pane.html
+    Dropped {
+        /// The picked [`Pane`].
+        ///
+        /// [`Pane`]: struct.Pane.html
+        pane: Pane,
+
+        /// The [`Pane`] where the picked one was dropped on.
+        ///
+        /// [`Pane`]: struct.Pane.html
+        target: Pane,
+    },
+
+    /// A [`Pane`] was picked and then dropped outside of other [`Pane`]
+    /// boundaries.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    Canceled {
+        /// The picked [`Pane`].
+        ///
+        /// [`Pane`]: struct.Pane.html
+        pane: Pane,
+    },
 }
 
+/// An event produced during a resize interaction of a [`PaneGrid`].
+///
+/// [`PaneGrid`]: struct.PaneGrid.html
 #[derive(Debug, Clone, Copy)]
 pub struct ResizeEvent {
+    /// The [`Split`] that is being dragged for resizing.
     pub split: Split,
+
+    /// The new ratio of the [`Split`].
+    ///
+    /// The ratio is a value in [0, 1], representing the exact position of a
+    /// [`Split`] between two panes.
     pub ratio: f32,
 }
 
+/// An event produced during a key press interaction of a [`PaneGrid`].
+///
+/// [`PaneGrid`]: struct.PaneGrid.html
 #[derive(Debug, Clone, Copy)]
 pub struct KeyPressEvent {
+    /// The key that was pressed.
     pub key_code: keyboard::KeyCode,
+
+    /// The state of the modifier keys when the key was pressed.
     pub modifiers: keyboard::ModifiersState,
 }
 

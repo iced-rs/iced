@@ -21,8 +21,8 @@
 //! # Usage
 //! The strategy to use this crate depends on your particular use case. If you
 //! want to:
-//! - Implement a custom shell or integrate it in your own system, you should
-//!   check out the [`UserInterface`] type.
+//! - Implement a custom shell or integrate it in your own system, check out the
+//! [`UserInterface`] type.
 //! - Build a new renderer, see the [renderer] module.
 //! - Build a custom widget, start at the [`Widget`] trait.
 //!
@@ -34,7 +34,7 @@
 //! [`window::Renderer`]: window/trait.Renderer.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]

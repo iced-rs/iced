@@ -1,8 +1,11 @@
 use crate::Rectangle;
 
+/// A fixed reference line for the measurement of coordinates.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Axis {
+    /// The horizontal axis: —
     Horizontal,
+    /// The vertical axis: |
     Vertical,
 }
 
