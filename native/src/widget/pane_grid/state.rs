@@ -18,8 +18,9 @@ use std::collections::HashMap;
 ///
 /// [`PaneGrid`]: struct.PaneGrid.html
 /// [`PaneGrid::new`]: struct.PaneGrid.html#method.new
-/// [`State`]: struct.State.html
 /// [`Pane`]: struct.Pane.html
+/// [`Split`]: struct.Split.html
+/// [`State`]: struct.State.html
 #[derive(Debug)]
 pub struct State<T> {
     pub(super) panes: HashMap<Pane, T>,
@@ -28,6 +29,8 @@ pub struct State<T> {
 }
 
 /// The current focus of a [`Pane`].
+///
+/// [`Pane`]: struct.Pane.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focus {
     /// The [`Pane`] is just focused.

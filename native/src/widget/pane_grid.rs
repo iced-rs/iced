@@ -93,6 +93,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     ///
     /// [`PaneGrid`]: struct.PaneGrid.html
     /// [`State`]: struct.State.html
+    /// [`Pane`]: struct.Pane.html
     pub fn new<T>(
         state: &'a mut State<T>,
         view: impl Fn(
@@ -219,7 +220,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     /// If the function returns `None`, the key press event will be discarded
     /// without producing any message.
     ///
-    /// This function is particularly useful to implement hotkey interactions.
+    /// This method is particularly useful to implement hotkey interactions.
     /// For instance, you can use it to enable splitting, swapping, or resizing
     /// panes by pressing combinations of keys.
     ///
@@ -319,12 +320,16 @@ pub enum DragEvent {
 #[derive(Debug, Clone, Copy)]
 pub struct ResizeEvent {
     /// The [`Split`] that is being dragged for resizing.
+    ///
+    /// [`Split`]: struct.Split.html
     pub split: Split,
 
     /// The new ratio of the [`Split`].
     ///
     /// The ratio is a value in [0, 1], representing the exact position of a
     /// [`Split`] between two panes.
+    ///
+    /// [`Split`]: struct.Split.html
     pub ratio: f32,
 }
 
