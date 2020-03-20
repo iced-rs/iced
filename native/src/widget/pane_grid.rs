@@ -615,10 +615,12 @@ pub trait Renderer: crate::Renderer + Sized {
     /// It receives:
     /// - the elements of the [`PaneGrid`]
     /// - the [`Pane`] that is currently being dragged
+    /// - the [`Axis`] that is currently being resized
     /// - the [`Layout`] of the [`PaneGrid`] and its elements
     /// - the cursor position
     ///
-    /// [`Column`]: struct.Row.html
+    /// [`PaneGrid`]: struct.PaneGrid.html
+    /// [`Pane`]: struct.Pane.html
     /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,

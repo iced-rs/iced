@@ -219,7 +219,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// - the [`Layout`] of the [`Column`] and its children
     /// - the cursor position
     ///
-    /// [`Column`]: struct.Row.html
+    /// [`Column`]: struct.Column.html
     /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,
