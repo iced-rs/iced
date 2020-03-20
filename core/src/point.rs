@@ -30,7 +30,7 @@ impl Point {
         let a = self.x - to.x;
         let b = self.y - to.y;
 
-        f32::sqrt(a * a + b * b)
+        a.hypot(b)
     }
 }
 
