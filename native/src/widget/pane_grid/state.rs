@@ -109,10 +109,7 @@ impl<T> State<T> {
     /// [`Pane`]: struct.Pane.html
     /// [`State`]: struct.State.html
     pub fn active(&self) -> Option<Pane> {
-        match self.internal.action {
-            Action::Idle { focus } => focus,
-            _ => None,
-        }
+        self.internal.active_pane()
     }
 
     /// Returns the adjacent [`Pane`] of another [`Pane`] in the given
@@ -289,7 +286,7 @@ impl Internal {
         self.action
     }
 
-    pub fn idle_pane(&self) -> Option<Pane> {
+    pub fn active_pane(&self) -> Option<Pane> {
         match self.action {
             Action::Idle { focus } => focus,
             _ => None,
