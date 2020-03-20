@@ -20,10 +20,10 @@ impl ModifiersState {
     ///
     /// [`ModifiersState`]: struct.ModifiersState.html
     pub fn matches(&self, modifiers: ModifiersState) -> bool {
-        let shift = !modifiers.shift || modifiers.shift && self.shift;
-        let control = !modifiers.control || modifiers.control && self.control;
-        let alt = !modifiers.alt || modifiers.alt && self.alt;
-        let logo = !modifiers.logo || modifiers.logo && self.logo;
+        let shift = !modifiers.shift || self.shift;
+        let control = !modifiers.control || self.control;
+        let alt = !modifiers.alt || self.alt;
+        let logo = !modifiers.logo || self.logo;
 
         shift && control && alt && logo
     }
