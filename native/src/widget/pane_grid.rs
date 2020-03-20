@@ -467,48 +467,53 @@ where
                 && self.pressed_modifiers.matches(self.modifier_keys) =>
             {
                 let bounds = layout.bounds();
-                let relative_cursor = Point::new(
-                    cursor_position.x - bounds.x,
-                    cursor_position.y - bounds.y,
-                );
 
-                let splits = self.state.splits(
-                    f32::from(self.spacing),
-                    Size::new(bounds.width, bounds.height),
-                );
+                if bounds.contains(cursor_position) {
+                    let relative_cursor = Point::new(
+                        cursor_position.x - bounds.x,
+                        cursor_position.y - bounds.y,
+                    );
 
-                let mut sorted_splits: Vec<_> = splits
-                    .iter()
-                    .filter(|(_, (axis, rectangle, _))| match axis {
-                        Axis::Horizontal => {
-                            relative_cursor.x > rectangle.x
-                                && relative_cursor.x
-                                    < rectangle.x + rectangle.width
-                        }
-                        Axis::Vertical => {
-                            relative_cursor.y > rectangle.y
-                                && relative_cursor.y
-                                    < rectangle.y + rectangle.height
-                        }
-                    })
-                    .collect();
+                    let splits = self.state.splits(
+                        f32::from(self.spacing),
+                        Size::new(bounds.width, bounds.height),
+                    );
 
-                sorted_splits.sort_by_key(|(_, (axis, rectangle, ratio))| {
-                    let distance = match axis {
-                        Axis::Horizontal => (relative_cursor.y
-                            - (rectangle.y + rectangle.height * ratio))
-                            .abs(),
-                        Axis::Vertical => (relative_cursor.x
-                            - (rectangle.x + rectangle.width * ratio))
-                            .abs(),
-                    };
+                    let mut sorted_splits: Vec<_> = splits
+                        .iter()
+                        .filter(|(_, (axis, rectangle, _))| match axis {
+                            Axis::Horizontal => {
+                                relative_cursor.x > rectangle.x
+                                    && relative_cursor.x
+                                        < rectangle.x + rectangle.width
+                            }
+                            Axis::Vertical => {
+                                relative_cursor.y > rectangle.y
+                                    && relative_cursor.y
+                                        < rectangle.y + rectangle.height
+                            }
+                        })
+                        .collect();
 
-                    distance.round() as u32
-                });
+                    sorted_splits.sort_by_key(
+                        |(_, (axis, rectangle, ratio))| {
+                            let distance = match axis {
+                                Axis::Horizontal => (relative_cursor.y
+                                    - (rectangle.y + rectangle.height * ratio))
+                                    .abs(),
+                                Axis::Vertical => (relative_cursor.x
+                                    - (rectangle.x + rectangle.width * ratio))
+                                    .abs(),
+                            };
 
-                if let Some((split, (axis, _, _))) = sorted_splits.first() {
-                    self.state.pick_split(split, *axis);
-                    self.trigger_resize(layout, cursor_position, messages);
+                            distance.round() as u32
+                        },
+                    );
+
+                    if let Some((split, (axis, _, _))) = sorted_splits.first() {
+                        self.state.pick_split(split, *axis);
+                        self.trigger_resize(layout, cursor_position, messages);
+                    }
                 }
             }
             Event::Mouse(mouse::Event::Input {
