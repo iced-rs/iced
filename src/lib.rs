@@ -183,6 +183,7 @@ mod element;
 mod sandbox;
 
 pub mod executor;
+pub mod keyboard;
 pub mod settings;
 pub mod widget;
 pub mod window;

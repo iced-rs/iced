@@ -19,7 +19,6 @@ pub struct Cache<T: Drawable> {
     state: RefCell<State>,
 }
 
-#[derive(Debug)]
 enum State {
     Empty,
     Filled {
@@ -95,5 +94,18 @@ where
         };
 
         primitive
+    }
+}
+
+impl std::fmt::Debug for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            State::Empty => write!(f, "Empty"),
+            State::Filled { primitive, bounds } => f
+                .debug_struct("Filled")
+                .field("primitive", primitive)
+                .field("bounds", bounds)
+                .finish(),
+        }
     }
 }

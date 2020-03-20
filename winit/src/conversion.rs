@@ -116,6 +116,10 @@ pub fn mouse_cursor(mouse_cursor: MouseCursor) -> winit::window::CursorIcon {
         MouseCursor::Grab => winit::window::CursorIcon::Grab,
         MouseCursor::Grabbing => winit::window::CursorIcon::Grabbing,
         MouseCursor::Text => winit::window::CursorIcon::Text,
+        MouseCursor::ResizingHorizontally => {
+            winit::window::CursorIcon::EwResize
+        }
+        MouseCursor::ResizingVertically => winit::window::CursorIcon::NsResize,
     }
 }
 
