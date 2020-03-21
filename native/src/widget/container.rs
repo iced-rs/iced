@@ -77,7 +77,7 @@ where
         self.max_height = max_height;
         self
     }
-    
+
     /// Sets the content alignment for the horizontal axis of the [`Container`].
     ///
     /// [`Container`]: struct.Container.html
