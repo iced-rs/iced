@@ -2,17 +2,17 @@ use iced_futures::futures;
 
 // Just a little utility function
 pub fn file<T: ToString>(url: T) -> iced::Subscription<Progress> {
-    iced::Subscription::from_recipe(Downloader {
+    iced::Subscription::from_recipe(Download {
         url: url.to_string(),
     })
 }
 
-pub struct Downloader {
+pub struct Download {
     url: String,
 }
 
 // Make sure iced can use our download stream
-impl<H, I> iced_native::subscription::Recipe<H, I> for Downloader
+impl<H, I> iced_native::subscription::Recipe<H, I> for Download
 where
     H: std::hash::Hasher,
 {

@@ -3,7 +3,7 @@ use iced::{
     Element, Length, ProgressBar, Settings, Subscription, Text,
 };
 
-mod downloader;
+mod download;
 
 pub fn main() {
     Example::run(Settings::default())
@@ -18,7 +18,7 @@ enum Example {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    DownloadProgressed(downloader::Progress),
+    DownloadProgressed(download::Progress),
     Download,
 }
 
@@ -49,13 +49,13 @@ impl Application for Example {
             },
             Message::DownloadProgressed(message) => match self {
                 Example::Downloading { progress } => match message {
-                    downloader::Progress::Started => {
+                    download::Progress::Started => {
                         *progress = 0.0;
                     }
-                    downloader::Progress::Advanced(percentage) => {
+                    download::Progress::Advanced(percentage) => {
                         *progress = percentage;
                     }
-                    downloader::Progress::Finished => {
+                    download::Progress::Finished => {
                         *self = Example::Finished {
                             button: button::State::new(),
                         }
@@ -71,7 +71,7 @@ impl Application for Example {
     fn subscription(&self) -> Subscription<Message> {
         match self {
             Example::Downloading { .. } => {
-                downloader::file("https://speed.hetzner.de/100MB.bin")
+                download::file("https://speed.hetzner.de/100MB.bin")
                     .map(Message::DownloadProgressed)
             }
             _ => Subscription::none(),
