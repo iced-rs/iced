@@ -19,8 +19,8 @@ enum Example {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    DownloadProgressed(download::Progress),
     Download,
+    DownloadProgressed(download::Progress),
 }
 
 impl Application for Example {
@@ -43,7 +43,9 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Download => match self {
-                Example::Idle { .. } | Example::Finished { .. } => {
+                Example::Idle { .. }
+                | Example::Finished { .. }
+                | Example::Errored { .. } => {
                     *self = Example::Downloading { progress: 0.0 };
                 }
                 _ => {}
