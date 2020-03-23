@@ -14,6 +14,7 @@ enum Example {
     Idle { button: button::State },
     Downloading { progress: f32 },
     Finished { button: button::State },
+    Errored { button: button::State },
 }
 
 #[derive(Debug, Clone)]
@@ -60,6 +61,11 @@ impl Application for Example {
                             button: button::State::new(),
                         }
                     }
+                    download::Progress::Errored => {
+                        *self = Example::Errored {
+                            button: button::State::new(),
+                        };
+                    }
                 },
                 _ => {}
             },
@@ -83,6 +89,7 @@ impl Application for Example {
             Example::Idle { .. } => 0.0,
             Example::Downloading { progress } => *progress,
             Example::Finished { .. } => 100.0,
+            Example::Errored { .. } => 0.0,
         };
 
         let progress_bar = ProgressBar::new(0.0..=100.0, current_progress);
@@ -106,6 +113,15 @@ impl Application for Example {
                 Text::new(format!("Downloading... {:.2}%", current_progress))
                     .into()
             }
+            Example::Errored { button } => Column::new()
+                .spacing(10)
+                .align_items(Align::Center)
+                .push(Text::new("Something went wrong :("))
+                .push(
+                    Button::new(button, Text::new("Try again"))
+                        .on_press(Message::Download),
+                )
+                .into(),
         };
 
         let content = Column::new()

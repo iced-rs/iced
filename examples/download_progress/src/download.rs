@@ -35,15 +35,23 @@ where
                         let response = reqwest::get(&url).await;
 
                         match response {
-                            Ok(response) => Some((
-                                Progress::Started,
-                                State::Downloading {
-                                    total: response.content_length().unwrap(),
-                                    downloaded: 0,
-                                    response,
-                                },
-                            )),
-                            Err(_) => None,
+                            Ok(response) => {
+                                if let Some(total) = response.content_length() {
+                                    Some((
+                                        Progress::Started,
+                                        State::Downloading {
+                                            response,
+                                            total,
+                                            downloaded: 0,
+                                        },
+                                    ))
+                                } else {
+                                    Some((Progress::Errored, State::Finished))
+                                }
+                            }
+                            Err(_) => {
+                                Some((Progress::Errored, State::Finished))
+                            }
                         }
                     }
                     State::Downloading {
@@ -67,9 +75,16 @@ where
                             ))
                         }
                         Ok(None) => Some((Progress::Finished, State::Finished)),
-                        Err(_) => None,
+                        Err(_) => Some((Progress::Errored, State::Finished)),
                     },
-                    State::Finished => None,
+                    State::Finished => {
+                        // We do not let the stream die, as it would start a
+                        // new download repeatedly if the user is not careful
+                        // in case of errors.
+                        let _: () = iced::futures::future::pending().await;
+
+                        None
+                    }
                 }
             },
         ))
@@ -81,6 +96,7 @@ pub enum Progress {
     Started,
     Advanced(f32),
     Finished,
+    Errored,
 }
 
 pub enum State {
