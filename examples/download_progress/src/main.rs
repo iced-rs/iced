@@ -6,60 +6,61 @@ use iced::{
 mod downloader;
 
 pub fn main() {
-    Downloader::run(Settings::default())
-}
-
-#[derive(Debug, Default)]
-struct Downloader {
-    // Whether to start the download or not.
-    enabled: bool,
-    // The current percentage of the download
-    current_progress: u64,
-
-    btn_state: button::State,
+    Example::run(Settings::default())
 }
 
 #[derive(Debug)]
-pub enum Message {
-    DownloadUpdate(downloader::DownloadMessage),
-    Interaction(Interaction),
+enum Example {
+    Idle { button: button::State },
+    Downloading { progress: f32 },
+    Finished { button: button::State },
 }
 
-// For explanation of why we use an Interaction enum see here:
-// https://github.com/hecrj/iced/pull/155#issuecomment-573523405
 #[derive(Debug, Clone)]
-pub enum Interaction {
-    // User pressed the button to start the download
-    StartDownload,
+pub enum Message {
+    DownloadProgressed(downloader::Progress),
+    Download,
 }
 
-impl Application for Downloader {
+impl Application for Example {
     type Executor = executor::Default;
     type Message = Message;
 
-    fn new() -> (Downloader, Command<Message>) {
-        (Downloader::default(), Command::none())
+    fn new() -> (Example, Command<Message>) {
+        (
+            Example::Idle {
+                button: button::State::new(),
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
-        String::from("Download Progress - Iced")
+        String::from("Download progress - Iced")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Interaction(action) => match action {
-                Interaction::StartDownload => {
-                    self.enabled = true;
+            Message::Download => match self {
+                Example::Idle { .. } | Example::Finished { .. } => {
+                    *self = Example::Downloading { progress: 0.0 };
                 }
+                _ => {}
             },
-            Message::DownloadUpdate(update) => match update {
-                downloader::DownloadMessage::Downloading(percentage) => {
-                    self.current_progress = percentage;
-                }
-                downloader::DownloadMessage::Done => {
-                    self.current_progress = 100;
-                    self.enabled = false;
-                }
+            Message::DownloadProgressed(message) => match self {
+                Example::Downloading { progress } => match message {
+                    downloader::Progress::Started => {
+                        *progress = 0.0;
+                    }
+                    downloader::Progress::Advanced(percentage) => {
+                        *progress = percentage;
+                    }
+                    downloader::Progress::Finished => {
+                        *self = Example::Finished {
+                            button: button::State::new(),
+                        }
+                    }
+                },
                 _ => {}
             },
         };
@@ -68,43 +69,51 @@ impl Application for Downloader {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        if self.enabled {
-            downloader::file("https://speed.hetzner.de/100MB.bin")
-                .map(Message::DownloadUpdate)
-        } else {
-            Subscription::none()
+        match self {
+            Example::Downloading { .. } => {
+                downloader::file("https://speed.hetzner.de/100MB.bin")
+                    .map(Message::DownloadProgressed)
+            }
+            _ => Subscription::none(),
         }
     }
 
     fn view(&mut self) -> Element<Message> {
-        // Construct widgets
-
-        let toggle_text = match self.enabled {
-            true => "Downloading...",
-            false => "Start the download!",
+        let current_progress = match self {
+            Example::Idle { .. } => 0.0,
+            Example::Downloading { progress } => *progress,
+            Example::Finished { .. } => 100.0,
         };
 
-        let toggle: Element<Interaction> =
-            Button::new(&mut self.btn_state, Text::new(toggle_text))
-                .on_press(Interaction::StartDownload)
-                .into();
+        let progress_bar = ProgressBar::new(0.0..=100.0, current_progress);
 
-        let progress_bar =
-            ProgressBar::new(0.0..=100.0, self.current_progress as f32);
-
-        let progress_text = &match self.enabled {
-            true => format!("Downloading {}%", self.current_progress),
-            false => "Ready to rock!".into(),
+        let control: Element<_> = match self {
+            Example::Idle { button } => {
+                Button::new(button, Text::new("Start the download!"))
+                    .on_press(Message::Download)
+                    .into()
+            }
+            Example::Finished { button } => Column::new()
+                .spacing(10)
+                .align_items(Align::Center)
+                .push(Text::new("Download finished!"))
+                .push(
+                    Button::new(button, Text::new("Start again"))
+                        .on_press(Message::Download),
+                )
+                .into(),
+            Example::Downloading { .. } => {
+                Text::new(format!("Downloading... {:.2}%", current_progress))
+                    .into()
+            }
         };
 
-        // Construct layout
         let content = Column::new()
+            .spacing(10)
+            .padding(10)
             .align_items(Align::Center)
-            .spacing(20)
-            .padding(20)
-            .push(Text::new(progress_text))
             .push(progress_bar)
-            .push(toggle.map(Message::Interaction));
+            .push(control);
 
         Container::new(content)
             .width(Length::Fill)
