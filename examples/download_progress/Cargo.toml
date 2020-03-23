@@ -1,0 +1,13 @@
+[package]
+name = "download_progress"
+version = "0.1.0"
+authors = ["Songtronix <contact@songtronix.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+iced = { path = "../.." }
+iced_native = { path = "../../native" }
+iced_futures = { path = "../../futures" }
+async-std = { version = "1.0", features = ["unstable"] }
+isahc = "0.9.1"
