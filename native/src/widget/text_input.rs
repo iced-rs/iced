@@ -283,17 +283,17 @@ where
                     self.state.last_click = Some(click);
                 }
 
-                self.state.is_pressed = is_clicked;
+                self.state.is_dragging = is_clicked;
                 self.state.is_focused = is_clicked;
             }
             Event::Mouse(mouse::Event::Input {
                 button: mouse::Button::Left,
                 state: ButtonState::Released,
             }) => {
-                self.state.is_pressed = false;
+                self.state.is_dragging = false;
             }
             Event::Mouse(mouse::Event::CursorMoved { x, .. }) => {
-                if self.state.is_pressed {
+                if self.state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
                     let target = x - text_layout.bounds().x;
 
@@ -611,7 +611,7 @@ where
 #[derive(Debug, Default, Clone)]
 pub struct State {
     is_focused: bool,
-    is_pressed: bool,
+    is_dragging: bool,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
@@ -632,7 +632,7 @@ impl State {
     pub fn focused() -> Self {
         Self {
             is_focused: true,
-            is_pressed: false,
+            is_dragging: false,
             is_pasting: None,
             last_click: None,
             cursor: Cursor::default(),
