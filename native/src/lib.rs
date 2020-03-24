@@ -21,8 +21,8 @@
 //! # Usage
 //! The strategy to use this crate depends on your particular use case. If you
 //! want to:
-//! - Implement a custom shell or integrate it in your own system, you should
-//!   check out the [`UserInterface`] type.
+//! - Implement a custom shell or integrate it in your own system, check out the
+//! [`UserInterface`] type.
 //! - Build a new renderer, see the [renderer] module.
 //! - Build a custom widget, start at the [`Widget`] trait.
 //!

@@ -1,12 +1,15 @@
 use crate::{
-    image, quad, text, triangle, Defaults, Image, Primitive, Quad, Settings,
-    Target, Transformation,
+    quad, text, triangle, Defaults, Primitive, Quad, Settings, Target,
+    Transformation,
 };
+
+#[cfg(any(feature = "image", feature = "svg"))]
+use crate::image::{self, Image};
+
 use iced_native::{
     layout, Background, Color, Layout, MouseCursor, Point, Rectangle, Vector,
     Widget,
 };
-use std::sync::Arc;
 
 mod widget;
 
@@ -16,29 +19,33 @@ mod widget;
 #[derive(Debug)]
 pub struct Renderer {
     quad_pipeline: quad::Pipeline,
-    image_pipeline: image::Pipeline,
     text_pipeline: text::Pipeline,
-    triangle_pipeline: crate::triangle::Pipeline,
+    triangle_pipeline: triangle::Pipeline,
+
+    #[cfg(any(feature = "image", feature = "svg"))]
+    image_pipeline: image::Pipeline,
 }
 
 struct Layer<'a> {
     bounds: Rectangle<u32>,
-    offset: Vector<u32>,
     quads: Vec<Quad>,
-    images: Vec<Image>,
-    meshes: Vec<(Point, Arc<triangle::Mesh2D>)>,
+    meshes: Vec<(Point, &'a triangle::Mesh2D)>,
     text: Vec<wgpu_glyph::Section<'a>>,
+
+    #[cfg(any(feature = "image", feature = "svg"))]
+    images: Vec<Image>,
 }
 
 impl<'a> Layer<'a> {
-    pub fn new(bounds: Rectangle<u32>, offset: Vector<u32>) -> Self {
+    pub fn new(bounds: Rectangle<u32>) -> Self {
         Self {
             bounds,
-            offset,
             quads: Vec::new(),
-            images: Vec::new(),
             text: Vec::new(),
             meshes: Vec::new(),
+
+            #[cfg(any(feature = "image", feature = "svg"))]
+            images: Vec::new(),
         }
     }
 }
@@ -48,17 +55,25 @@ impl Renderer {
     ///
     /// [`Renderer`]: struct.Renderer.html
     pub fn new(device: &mut wgpu::Device, settings: Settings) -> Self {
-        let text_pipeline = text::Pipeline::new(device, settings.default_font);
-        let quad_pipeline = quad::Pipeline::new(device);
-        let image_pipeline = crate::image::Pipeline::new(device);
-        let triangle_pipeline =
-            triangle::Pipeline::new(device, settings.antialiasing);
+        let text_pipeline =
+            text::Pipeline::new(device, settings.format, settings.default_font);
+        let quad_pipeline = quad::Pipeline::new(device, settings.format);
+        let triangle_pipeline = triangle::Pipeline::new(
+            device,
+            settings.format,
+            settings.antialiasing,
+        );
+
+        #[cfg(any(feature = "image", feature = "svg"))]
+        let image_pipeline = image::Pipeline::new(device, settings.format);
 
         Self {
             quad_pipeline,
-            image_pipeline,
             text_pipeline,
             triangle_pipeline,
+
+            #[cfg(any(feature = "image", feature = "svg"))]
+            image_pipeline,
         }
     }
 
@@ -85,17 +100,14 @@ impl Renderer {
 
         let mut layers = Vec::new();
 
-        layers.push(Layer::new(
-            Rectangle {
-                x: 0,
-                y: 0,
-                width: u32::from(width),
-                height: u32::from(height),
-            },
-            Vector::new(0, 0),
-        ));
+        layers.push(Layer::new(Rectangle {
+            x: 0,
+            y: 0,
+            width: u32::from(width),
+            height: u32::from(height),
+        }));
 
-        self.draw_primitive(primitive, &mut layers);
+        self.draw_primitive(Vector::new(0.0, 0.0), primitive, &mut layers);
         self.draw_overlay(overlay, &mut layers);
 
         for layer in layers {
@@ -111,6 +123,7 @@ impl Renderer {
             );
         }
 
+        #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.trim_cache();
 
         *mouse_cursor
@@ -118,17 +131,16 @@ impl Renderer {
 
     fn draw_primitive<'a>(
         &mut self,
+        translation: Vector,
         primitive: &'a Primitive,
         layers: &mut Vec<Layer<'a>>,
     ) {
-        let layer = layers.last_mut().unwrap();
-
         match primitive {
             Primitive::None => {}
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
-                    self.draw_primitive(primitive, layers)
+                    self.draw_primitive(translation, primitive, layers)
                 }
             }
             Primitive::Text {
@@ -160,12 +172,11 @@ impl Renderer {
                     }
                 };
 
+                let layer = layers.last_mut().unwrap();
+
                 layer.text.push(wgpu_glyph::Section {
                     text: &content,
-                    screen_position: (
-                        x - layer.offset.x as f32,
-                        y - layer.offset.y as f32,
-                    ),
+                    screen_position: (x + translation.x, y + translation.y),
                     bounds: (bounds.width, bounds.height),
                     scale: wgpu_glyph::Scale { x: *size, y: *size },
                     color: color.into_linear(),
@@ -203,11 +214,13 @@ impl Renderer {
                 border_width,
                 border_color,
             } => {
-                // TODO: Move some of this computations to the GPU (?)
+                let layer = layers.last_mut().unwrap();
+
+                // TODO: Move some of these computations to the GPU (?)
                 layer.quads.push(Quad {
                     position: [
-                        bounds.x - layer.offset.x as f32,
-                        bounds.y - layer.offset.y as f32,
+                        bounds.x + translation.x,
+                        bounds.y + translation.y,
                     ],
                     scale: [bounds.width, bounds.height],
                     color: match background {
@@ -218,54 +231,81 @@ impl Renderer {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Image { handle, bounds } => {
-                layer.images.push(Image {
-                    handle: image::Handle::Raster(handle.clone()),
-                    position: [bounds.x, bounds.y],
-                    scale: [bounds.width, bounds.height],
-                });
-            }
-            Primitive::Svg { handle, bounds } => {
-                layer.images.push(Image {
-                    handle: image::Handle::Vector(handle.clone()),
-                    position: [bounds.x, bounds.y],
-                    scale: [bounds.width, bounds.height],
-                });
-            }
             Primitive::Mesh2D { origin, buffers } => {
-                layer.meshes.push((*origin, buffers.clone()));
+                let layer = layers.last_mut().unwrap();
+
+                layer.meshes.push((*origin + translation, buffers));
             }
             Primitive::Clip {
                 bounds,
                 offset,
                 content,
             } => {
-                let x = bounds.x - layer.offset.x as f32;
-                let y = bounds.y - layer.offset.y as f32;
-                let width = (bounds.width + x).min(bounds.width);
-                let height = (bounds.height + y).min(bounds.height);
+                let layer = layers.last_mut().unwrap();
 
-                // Only draw visible content on-screen
-                // TODO: Also, check for parent layer bounds to avoid further
-                // drawing in some circumstances.
-                if width > 0.0 && height > 0.0 {
-                    let clip_layer = Layer::new(
-                        Rectangle {
-                            x: x.max(0.0).floor() as u32,
-                            y: y.max(0.0).floor() as u32,
-                            width: width.ceil() as u32,
-                            height: height.ceil() as u32,
-                        },
-                        layer.offset + *offset,
-                    );
+                let layer_bounds: Rectangle<f32> = layer.bounds.into();
 
-                    let new_layer = Layer::new(layer.bounds, layer.offset);
+                let clip = Rectangle {
+                    x: bounds.x + translation.x,
+                    y: bounds.y + translation.y,
+                    ..*bounds
+                };
+
+                // Only draw visible content
+                if let Some(clip_bounds) = layer_bounds.intersection(&clip) {
+                    let clip_layer = Layer::new(clip_bounds.into());
+                    let new_layer = Layer::new(layer.bounds);
 
                     layers.push(clip_layer);
-                    self.draw_primitive(content, layers);
+                    self.draw_primitive(
+                        translation
+                            - Vector::new(offset.x as f32, offset.y as f32),
+                        content,
+                        layers,
+                    );
                     layers.push(new_layer);
                 }
             }
+
+            Primitive::Cached { origin, cache } => {
+                self.draw_primitive(
+                    translation + Vector::new(origin.x, origin.y),
+                    &cache,
+                    layers,
+                );
+            }
+
+            #[cfg(feature = "image")]
+            Primitive::Image { handle, bounds } => {
+                let layer = layers.last_mut().unwrap();
+
+                layer.images.push(Image {
+                    handle: image::Handle::Raster(handle.clone()),
+                    position: [
+                        bounds.x + translation.x,
+                        bounds.y + translation.y,
+                    ],
+                    size: [bounds.width, bounds.height],
+                });
+            }
+            #[cfg(not(feature = "image"))]
+            Primitive::Image { .. } => {}
+
+            #[cfg(feature = "svg")]
+            Primitive::Svg { handle, bounds } => {
+                let layer = layers.last_mut().unwrap();
+
+                layer.images.push(Image {
+                    handle: image::Handle::Vector(handle.clone()),
+                    position: [
+                        bounds.x + translation.x,
+                        bounds.y + translation.y,
+                    ],
+                    size: [bounds.width, bounds.height],
+                });
+            }
+            #[cfg(not(feature = "svg"))]
+            Primitive::Svg { .. } => {}
         }
     }
 
@@ -275,7 +315,7 @@ impl Renderer {
         layers: &mut Vec<Layer<'a>>,
     ) {
         let first = layers.first().unwrap();
-        let mut overlay = Layer::new(first.bounds, Vector::new(0, 0));
+        let mut overlay = Layer::new(first.bounds);
 
         let font_id = self.text_pipeline.overlay_font();
         let scale = wgpu_glyph::Scale { x: 20.0, y: 20.0 };
@@ -317,12 +357,8 @@ impl Renderer {
         let bounds = layer.bounds * scale_factor;
 
         if layer.meshes.len() > 0 {
-            let translated = transformation
-                * Transformation::scale(scale_factor, scale_factor)
-                * Transformation::translate(
-                    -(layer.offset.x as f32),
-                    -(layer.offset.y as f32),
-                );
+            let scaled = transformation
+                * Transformation::scale(scale_factor, scale_factor);
 
             self.triangle_pipeline.draw(
                 device,
@@ -330,7 +366,7 @@ impl Renderer {
                 target,
                 target_width,
                 target_height,
-                translated,
+                scaled,
                 &layer.meshes,
                 bounds,
             );
@@ -348,23 +384,22 @@ impl Renderer {
             );
         }
 
-        if layer.images.len() > 0 {
-            let translated_and_scaled = transformation
-                * Transformation::scale(scale_factor, scale_factor)
-                * Transformation::translate(
-                    -(layer.offset.x as f32),
-                    -(layer.offset.y as f32),
-                );
+        #[cfg(any(feature = "image", feature = "svg"))]
+        {
+            if layer.images.len() > 0 {
+                let scaled = transformation
+                    * Transformation::scale(scale_factor, scale_factor);
 
-            self.image_pipeline.draw(
-                device,
-                encoder,
-                &layer.images,
-                translated_and_scaled,
-                bounds,
-                target,
-                scale_factor,
-            );
+                self.image_pipeline.draw(
+                    device,
+                    encoder,
+                    &layer.images,
+                    scaled,
+                    bounds,
+                    target,
+                    scale_factor,
+                );
+            }
         }
 
         if layer.text.len() > 0 {

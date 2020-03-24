@@ -10,7 +10,7 @@ use iced_wgpu::{
 use iced_winit::{winit, Cache, Clipboard, MouseCursor, Size, UserInterface};
 
 use winit::{
-    event::{DeviceEvent, Event, ModifiersState, WindowEvent},
+    event::{Event, ModifiersState, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 
@@ -40,11 +40,12 @@ pub fn main() {
         });
 
     let surface = wgpu::Surface::create(&window);
+    let format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
     let mut swap_chain = {
         let size = window.inner_size();
 
-        SwapChain::new(&device, &surface, size.width, size.height)
+        SwapChain::new(&device, &surface, format, size.width, size.height)
     };
     let mut resized = false;
 
@@ -65,14 +66,11 @@ pub fn main() {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::DeviceEvent {
-                event: DeviceEvent::ModifiersChanged(new_modifiers),
-                ..
-            } => {
-                modifiers = new_modifiers;
-            }
             Event::WindowEvent { event, .. } => {
                 match event {
+                    WindowEvent::ModifiersChanged(new_modifiers) => {
+                        modifiers = new_modifiers;
+                    }
                     WindowEvent::Resized(new_size) => {
                         logical_size =
                             new_size.to_logical(window.scale_factor());
@@ -81,6 +79,7 @@ pub fn main() {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                     }
+
                     _ => {}
                 }
 
@@ -163,6 +162,7 @@ pub fn main() {
                     swap_chain = SwapChain::new(
                         &device,
                         &surface,
+                        format,
                         size.width,
                         size.height,
                     );

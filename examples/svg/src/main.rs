@@ -1,6 +1,8 @@
 use iced::{Column, Container, Element, Length, Sandbox, Settings, Svg};
 
 pub fn main() {
+    env_logger::init();
+
     Tiger::run(Settings::default())
 }
 
@@ -22,9 +24,12 @@ impl Sandbox for Tiger {
 
     fn view(&mut self) -> Element<()> {
         let content = Column::new().padding(20).push(
-            Svg::new(format!("{}/resources/tiger.svg", env!("CARGO_MANIFEST_DIR")))
-                .width(Length::Fill)
-                .height(Length::Fill),
+            Svg::new(format!(
+                "{}/resources/tiger.svg",
+                env!("CARGO_MANIFEST_DIR")
+            ))
+            .width(Length::Fill)
+            .height(Length::Fill),
         );
 
         Container::new(content)

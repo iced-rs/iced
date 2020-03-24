@@ -58,14 +58,14 @@ impl scrollable::Renderer for Renderer {
         style_sheet: &Self::Style,
         (content, mouse_cursor): Self::Output,
     ) -> Self::Output {
-        let clip = Primitive::Clip {
-            bounds,
-            offset: Vector::new(0, offset),
-            content: Box::new(content),
-        };
-
         (
             if let Some(scrollbar) = scrollbar {
+                let clip = Primitive::Clip {
+                    bounds,
+                    offset: Vector::new(0, offset),
+                    content: Box::new(content),
+                };
+
                 let style = if state.is_scroller_grabbed() {
                     style_sheet.dragging()
                 } else if is_mouse_over_scrollbar {
@@ -115,7 +115,7 @@ impl scrollable::Renderer for Renderer {
                     primitives: vec![clip, scrollbar, scroller],
                 }
             } else {
-                clip
+                content
             },
             if is_mouse_over_scrollbar || state.is_scroller_grabbed() {
                 MouseCursor::Idle

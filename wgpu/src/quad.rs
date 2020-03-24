@@ -14,7 +14,10 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(device: &mut wgpu::Device) -> Pipeline {
+    pub fn new(
+        device: &mut wgpu::Device,
+        format: wgpu::TextureFormat,
+    ) -> Pipeline {
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 bindings: &[wgpu::BindGroupLayoutBinding {
@@ -79,7 +82,7 @@ impl Pipeline {
                 }),
                 primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                 color_states: &[wgpu::ColorStateDescriptor {
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    format,
                     color_blend: wgpu::BlendDescriptor {
                         src_factor: wgpu::BlendFactor::SrcAlpha,
                         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,

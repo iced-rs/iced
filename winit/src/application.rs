@@ -347,6 +347,9 @@ pub trait Application: Sized {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                     }
+                    WindowEvent::ModifiersChanged(new_modifiers) => {
+                        modifiers = new_modifiers;
+                    }
                     #[cfg(target_os = "macos")]
                     WindowEvent::KeyboardInput {
                         input:
@@ -381,12 +384,6 @@ pub trait Application: Sized {
                 ) {
                     events.push(event);
                 }
-            }
-            event::Event::DeviceEvent {
-                event: event::DeviceEvent::ModifiersChanged(new_modifiers),
-                ..
-            } => {
-                modifiers = new_modifiers;
             }
             _ => {
                 *control_flow = ControlFlow::Wait;

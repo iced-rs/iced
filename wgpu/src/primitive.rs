@@ -78,7 +78,18 @@ pub enum Primitive {
         origin: Point,
 
         /// The vertex and index buffers of the mesh
-        buffers: Arc<triangle::Mesh2D>,
+        buffers: triangle::Mesh2D,
+    },
+    /// A cached primitive.
+    ///
+    /// This can be useful if you are implementing a widget where primitive
+    /// generation is expensive.
+    Cached {
+        /// The origin of the coordinate system of the cached primitives
+        origin: Point,
+
+        /// The cached primitive
+        cache: Arc<Primitive>,
     },
 }
 

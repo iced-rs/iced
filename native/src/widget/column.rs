@@ -30,6 +30,15 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     ///
     /// [`Column`]: struct.Column.html
     pub fn new() -> Self {
+        Self::with_children(Vec::new())
+    }
+
+    /// Creates a [`Column`] with the given elements.
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn with_children(
+        children: Vec<Element<'a, Message, Renderer>>,
+    ) -> Self {
         Column {
             spacing: 0,
             padding: 0,
@@ -38,7 +47,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
             max_width: u32::MAX,
             max_height: u32::MAX,
             align_items: Align::Start,
-            children: Vec::new(),
+            children,
         }
     }
 
@@ -210,7 +219,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// - the [`Layout`] of the [`Column`] and its children
     /// - the cursor position
     ///
-    /// [`Column`]: struct.Row.html
+    /// [`Column`]: struct.Column.html
     /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,

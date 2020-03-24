@@ -1,0 +1,12 @@
+[package]
+name = "download_progress"
+version = "0.1.0"
+authors = ["Songtronix <contact@songtronix.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = ["tokio"] }
+iced_native = { path = "../../native" }
+iced_futures = { path = "../../futures" }
+reqwest = "0.10"

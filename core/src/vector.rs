@@ -16,7 +16,7 @@ impl<T> Vector<T> {
     /// Creates a new [`Vector`] with the given components.
     ///
     /// [`Vector`]: struct.Vector.html
-    pub fn new(x: T, y: T) -> Self {
+    pub const fn new(x: T, y: T) -> Self {
         Self { x, y }
     }
 }
@@ -29,6 +29,17 @@ where
 
     fn add(self, b: Self) -> Self {
         Self::new(self.x + b.x, self.y + b.y)
+    }
+}
+
+impl<T> std::ops::Sub for Vector<T>
+where
+    T: std::ops::Sub<Output = T>,
+{
+    type Output = Self;
+
+    fn sub(self, b: Self) -> Self {
+        Self::new(self.x - b.x, self.y - b.y)
     }
 }
 

@@ -5,8 +5,13 @@
 /// The settings of a [`Renderer`].
 ///
 /// [`Renderer`]: ../struct.Renderer.html
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Settings {
+    /// The output format of the [`Renderer`].
+    ///
+    /// [`Renderer`]: ../struct.Renderer.html
+    pub format: wgpu::TextureFormat,
+
     /// The bytes of the font that will be used by default.
     ///
     /// If `None` is provided, a default system font will be chosen.
@@ -14,6 +19,16 @@ pub struct Settings {
 
     /// The antialiasing strategy that will be used for triangle primitives.
     pub antialiasing: Option<Antialiasing>,
+}
+
+impl Default for Settings {
+    fn default() -> Settings {
+        Settings {
+            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            default_font: None,
+            antialiasing: None,
+        }
+    }
 }
 
 /// An antialiasing strategy.

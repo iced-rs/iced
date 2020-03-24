@@ -22,6 +22,16 @@ impl Point {
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
+
+    /// Computes the distance to another [`Point`].
+    ///
+    /// [`Point`]: struct.Point.html
+    pub fn distance(&self, to: Point) -> f32 {
+        let a = self.x - to.x;
+        let b = self.y - to.y;
+
+        a.hypot(b)
+    }
 }
 
 impl From<[f32; 2]> for Point {
@@ -43,6 +53,17 @@ impl std::ops::Add<Vector> for Point {
         Self {
             x: self.x + vector.x,
             y: self.y + vector.y,
+        }
+    }
+}
+
+impl std::ops::Sub<Vector> for Point {
+    type Output = Self;
+
+    fn sub(self, vector: Vector) -> Self {
+        Self {
+            x: self.x - vector.x,
+            y: self.y - vector.y,
         }
     }
 }

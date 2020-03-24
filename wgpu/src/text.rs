@@ -22,7 +22,11 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(device: &mut wgpu::Device, default_font: Option<&[u8]>) -> Self {
+    pub fn new(
+        device: &mut wgpu::Device,
+        format: wgpu::TextureFormat,
+        default_font: Option<&[u8]>,
+    ) -> Self {
         // TODO: Font customization
         let font_source = font::Source::new();
 
@@ -54,7 +58,7 @@ impl Pipeline {
 
         let draw_brush = brush_builder
             .initial_cache_size((2048, 2048))
-            .build(device, wgpu::TextureFormat::Bgra8UnormSrgb);
+            .build(device, format);
 
         Pipeline {
             draw_brush: RefCell::new(draw_brush),

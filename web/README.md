@@ -36,7 +36,7 @@ For instance, let's say we want to build the [`tour` example]:
 ```
 cd examples
 cargo build --package tour --target wasm32-unknown-unknown
-wasm-bindgen ../target/wasm32-unknown-unknown/debug/examples/tour.wasm --out-dir tour --web
+wasm-bindgen ../target/wasm32-unknown-unknown/debug/tour.wasm --out-dir tour --web
 ```
 
 *__Note:__ Keep in mind that Iced is still in early exploration stages and most of the work needs to happen on the native side of the ecosystem. At this stage, it is important to be able to batch work without having to constantly jump back and forth. Because of this, there is currently no requirement for the `master` branch to contain a cross-platform API at all times. If you hit an issue when building an example and want to help, it may be a good way to [start contributing]!*

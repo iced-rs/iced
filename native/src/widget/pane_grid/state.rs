@@ -1,0 +1,368 @@
+use crate::{
+    input::keyboard,
+    pane_grid::{node::Node, Axis, Direction, Pane, Split},
+    Hasher, Point, Rectangle, Size,
+};
+
+use std::collections::HashMap;
+
+/// The state of a [`PaneGrid`].
+///
+/// It keeps track of the state of each [`Pane`] and the position of each
+/// [`Split`].
+///
+/// The [`State`] needs to own any mutable contents a [`Pane`] may need. This is
+/// why this struct is generic over the type `T`. Values of this type are
+/// provided to the view function of [`PaneGrid::new`] for displaying each
+/// [`Pane`].
+///
+/// [`PaneGrid`]: struct.PaneGrid.html
+/// [`PaneGrid::new`]: struct.PaneGrid.html#method.new
+/// [`Pane`]: struct.Pane.html
+/// [`Split`]: struct.Split.html
+/// [`State`]: struct.State.html
+#[derive(Debug)]
+pub struct State<T> {
+    pub(super) panes: HashMap<Pane, T>,
+    pub(super) internal: Internal,
+    pub(super) modifiers: keyboard::ModifiersState,
+}
+
+/// The current focus of a [`Pane`].
+///
+/// [`Pane`]: struct.Pane.html
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Focus {
+    /// The [`Pane`] is just focused.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    Idle,
+
+    /// The [`Pane`] is being dragged.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    Dragging,
+}
+
+impl<T> State<T> {
+    /// Creates a new [`State`], initializing the first pane with the provided
+    /// state.
+    ///
+    /// Alongside the [`State`], it returns the first [`Pane`] identifier.
+    ///
+    /// [`State`]: struct.State.html
+    /// [`Pane`]: struct.Pane.html
+    pub fn new(first_pane_state: T) -> (Self, Pane) {
+        let first_pane = Pane(0);
+
+        let mut panes = HashMap::new();
+        let _ = panes.insert(first_pane, first_pane_state);
+
+        (
+            State {
+                panes,
+                internal: Internal {
+                    layout: Node::Pane(first_pane),
+                    last_id: 0,
+                    action: Action::Idle { focus: None },
+                },
+                modifiers: keyboard::ModifiersState::default(),
+            },
+            first_pane,
+        )
+    }
+
+    /// Returns the total amount of panes in the [`State`].
+    ///
+    /// [`State`]: struct.State.html
+    pub fn len(&self) -> usize {
+        self.panes.len()
+    }
+
+    /// Returns the internal state of the given [`Pane`], if it exists.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    pub fn get_mut(&mut self, pane: &Pane) -> Option<&mut T> {
+        self.panes.get_mut(pane)
+    }
+
+    /// Returns an iterator over all the panes of the [`State`], alongside its
+    /// internal state.
+    ///
+    /// [`State`]: struct.State.html
+    pub fn iter(&self) -> impl Iterator<Item = (&Pane, &T)> {
+        self.panes.iter()
+    }
+
+    /// Returns a mutable iterator over all the panes of the [`State`],
+    /// alongside its internal state.
+    ///
+    /// [`State`]: struct.State.html
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Pane, &mut T)> {
+        self.panes.iter_mut()
+    }
+
+    /// Returns the active [`Pane`] of the [`State`], if there is one.
+    ///
+    /// A [`Pane`] is active if it is focused and is __not__ being dragged.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    /// [`State`]: struct.State.html
+    pub fn active(&self) -> Option<Pane> {
+        self.internal.active_pane()
+    }
+
+    /// Returns the adjacent [`Pane`] of another [`Pane`] in the given
+    /// direction, if there is one.
+    ///
+    /// ## Example
+    /// You can combine this with [`State::active`] to find the pane that is
+    /// adjacent to the current active one, and then swap them. For instance:
+    ///
+    /// ```
+    /// # use iced_native::pane_grid;
+    /// #
+    /// # let (mut state, _) = pane_grid::State::new(());
+    /// #
+    /// if let Some(active) = state.active() {
+    ///     if let Some(adjacent) = state.adjacent(&active, pane_grid::Direction::Right) {
+    ///         state.swap(&active, &adjacent);
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// [`Pane`]: struct.Pane.html
+    /// [`State::active`]: struct.State.html#method.active
+    pub fn adjacent(&self, pane: &Pane, direction: Direction) -> Option<Pane> {
+        let regions =
+            self.internal.layout.regions(0.0, Size::new(4096.0, 4096.0));
+
+        let current_region = regions.get(pane)?;
+
+        let target = match direction {
+            Direction::Left => {
+                Point::new(current_region.x - 1.0, current_region.y + 1.0)
+            }
+            Direction::Right => Point::new(
+                current_region.x + current_region.width + 1.0,
+                current_region.y + 1.0,
+            ),
+            Direction::Up => {
+                Point::new(current_region.x + 1.0, current_region.y - 1.0)
+            }
+            Direction::Down => Point::new(
+                current_region.x + 1.0,
+                current_region.y + current_region.height + 1.0,
+            ),
+        };
+
+        let mut colliding_regions =
+            regions.iter().filter(|(_, region)| region.contains(target));
+
+        let (pane, _) = colliding_regions.next()?;
+
+        Some(*pane)
+    }
+
+    /// Focuses the given [`Pane`].
+    ///
+    /// [`Pane`]: struct.Pane.html
+    pub fn focus(&mut self, pane: &Pane) {
+        self.internal.focus(pane);
+    }
+
+    /// Splits the given [`Pane`] into two in the given [`Axis`] and
+    /// initializing the new [`Pane`] with the provided internal state.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    /// [`Axis`]: enum.Axis.html
+    pub fn split(&mut self, axis: Axis, pane: &Pane, state: T) -> Option<Pane> {
+        let node = self.internal.layout.find(pane)?;
+
+        let new_pane = {
+            self.internal.last_id = self.internal.last_id.checked_add(1)?;
+
+            Pane(self.internal.last_id)
+        };
+
+        let new_split = {
+            self.internal.last_id = self.internal.last_id.checked_add(1)?;
+
+            Split(self.internal.last_id)
+        };
+
+        node.split(new_split, axis, new_pane);
+
+        let _ = self.panes.insert(new_pane, state);
+        self.focus(&new_pane);
+
+        Some(new_pane)
+    }
+
+    /// Swaps the position of the provided panes in the [`State`].
+    ///
+    /// If you want to swap panes on drag and drop in your [`PaneGrid`], you
+    /// will need to call this method when handling a [`DragEvent`].
+    ///
+    /// [`State`]: struct.State.html
+    /// [`PaneGrid`]: struct.PaneGrid.html
+    /// [`DragEvent`]: struct.DragEvent.html
+    pub fn swap(&mut self, a: &Pane, b: &Pane) {
+        self.internal.layout.update(&|node| match node {
+            Node::Split { .. } => {}
+            Node::Pane(pane) => {
+                if pane == a {
+                    *node = Node::Pane(*b);
+                } else if pane == b {
+                    *node = Node::Pane(*a);
+                }
+            }
+        });
+    }
+
+    /// Resizes two panes by setting the position of the provided [`Split`].
+    ///
+    /// The ratio is a value in [0, 1], representing the exact position of a
+    /// [`Split`] between two panes.
+    ///
+    /// If you want to enable resize interactions in your [`PaneGrid`], you will
+    /// need to call this method when handling a [`ResizeEvent`].
+    ///
+    /// [`Split`]: struct.Split.html
+    /// [`PaneGrid`]: struct.PaneGrid.html
+    /// [`ResizeEvent`]: struct.ResizeEvent.html
+    pub fn resize(&mut self, split: &Split, ratio: f32) {
+        let _ = self.internal.layout.resize(split, ratio);
+    }
+
+    /// Closes the given [`Pane`] and returns its internal state, if it exists.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    pub fn close(&mut self, pane: &Pane) -> Option<T> {
+        if let Some(sibling) = self.internal.layout.remove(pane) {
+            self.focus(&sibling);
+            self.panes.remove(pane)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Internal {
+    layout: Node,
+    last_id: usize,
+    action: Action,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Action {
+    Idle {
+        focus: Option<Pane>,
+    },
+    Dragging {
+        pane: Pane,
+    },
+    Resizing {
+        split: Split,
+        axis: Axis,
+        focus: Option<Pane>,
+    },
+}
+
+impl Action {
+    pub fn focus(&self) -> Option<(Pane, Focus)> {
+        match self {
+            Action::Idle { focus } | Action::Resizing { focus, .. } => {
+                focus.map(|pane| (pane, Focus::Idle))
+            }
+            Action::Dragging { pane } => Some((*pane, Focus::Dragging)),
+        }
+    }
+}
+
+impl Internal {
+    pub fn action(&self) -> Action {
+        self.action
+    }
+
+    pub fn active_pane(&self) -> Option<Pane> {
+        match self.action {
+            Action::Idle { focus } => focus,
+            _ => None,
+        }
+    }
+
+    pub fn picked_pane(&self) -> Option<Pane> {
+        match self.action {
+            Action::Dragging { pane } => Some(pane),
+            _ => None,
+        }
+    }
+
+    pub fn picked_split(&self) -> Option<(Split, Axis)> {
+        match self.action {
+            Action::Resizing { split, axis, .. } => Some((split, axis)),
+            _ => None,
+        }
+    }
+
+    pub fn regions(
+        &self,
+        spacing: f32,
+        size: Size,
+    ) -> HashMap<Pane, Rectangle> {
+        self.layout.regions(spacing, size)
+    }
+
+    pub fn splits(
+        &self,
+        spacing: f32,
+        size: Size,
+    ) -> HashMap<Split, (Axis, Rectangle, f32)> {
+        self.layout.splits(spacing, size)
+    }
+
+    pub fn focus(&mut self, pane: &Pane) {
+        self.action = Action::Idle { focus: Some(*pane) };
+    }
+
+    pub fn pick_pane(&mut self, pane: &Pane) {
+        self.action = Action::Dragging { pane: *pane };
+    }
+
+    pub fn pick_split(&mut self, split: &Split, axis: Axis) {
+        // TODO: Obtain `axis` from layout itself. Maybe we should implement
+        // `Node::find_split`
+        if self.picked_pane().is_some() {
+            return;
+        }
+
+        let focus = self.action.focus().map(|(pane, _)| pane);
+
+        self.action = Action::Resizing {
+            split: *split,
+            axis,
+            focus,
+        };
+    }
+
+    pub fn drop_split(&mut self) {
+        match self.action {
+            Action::Resizing { focus, .. } => {
+                self.action = Action::Idle { focus };
+            }
+            _ => {}
+        }
+    }
+
+    pub fn unfocus(&mut self) {
+        self.action = Action::Idle { focus: None };
+    }
+
+    pub fn hash_layout(&self, hasher: &mut Hasher) {
+        use std::hash::Hash;
+
+        self.layout.hash(hasher);
+    }
+}

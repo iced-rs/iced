@@ -1,7 +1,7 @@
 //! Draw meshes of triangles.
 use crate::{settings, Transformation};
 use iced_native::{Point, Rectangle};
-use std::{mem, sync::Arc};
+use std::mem;
 
 mod msaa;
 
@@ -61,6 +61,7 @@ impl<T> Buffer<T> {
 impl Pipeline {
     pub fn new(
         device: &mut wgpu::Device,
+        format: wgpu::TextureFormat,
         antialiasing: Option<settings::Antialiasing>,
     ) -> Pipeline {
         let constant_layout =
@@ -127,7 +128,7 @@ impl Pipeline {
                 }),
                 primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                 color_states: &[wgpu::ColorStateDescriptor {
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    format,
                     color_blend: wgpu::BlendDescriptor {
                         src_factor: wgpu::BlendFactor::SrcAlpha,
                         dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
@@ -169,7 +170,7 @@ impl Pipeline {
 
         Pipeline {
             pipeline,
-            blit: antialiasing.map(|a| msaa::Blit::new(device, a)),
+            blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
             constants: constant_bind_group,
             uniforms_buffer: constants_buffer,
             vertex_buffer: Buffer::new(
@@ -193,7 +194,7 @@ impl Pipeline {
         target_width: u32,
         target_height: u32,
         transformation: Transformation,
-        meshes: &Vec<(Point, Arc<Mesh2D>)>,
+        meshes: &[(Point, &Mesh2D)],
         bounds: Rectangle<u32>,
     ) {
         // This looks a bit crazy, but we are just counting how many vertices
@@ -247,7 +248,7 @@ impl Pipeline {
                 &vertex_buffer,
                 0,
                 &self.vertex_buffer.raw,
-                last_vertex as u64,
+                (std::mem::size_of::<Vertex2D>() * last_vertex) as u64,
                 (std::mem::size_of::<Vertex2D>() * mesh.vertices.len()) as u64,
             );
 
@@ -255,7 +256,7 @@ impl Pipeline {
                 &index_buffer,
                 0,
                 &self.index_buffer.raw,
-                last_index as u64,
+                (std::mem::size_of::<u32>() * last_index) as u64,
                 (std::mem::size_of::<u32>() * mesh.indices.len()) as u64,
             );
 
@@ -312,26 +313,34 @@ impl Pipeline {
                     depth_stencil_attachment: None,
                 });
 
+            render_pass.set_pipeline(&self.pipeline);
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
+
             for (i, (vertex_offset, index_offset, indices)) in
-                offsets.drain(..).enumerate()
+                offsets.into_iter().enumerate()
             {
-                render_pass.set_pipeline(&self.pipeline);
                 render_pass.set_bind_group(
                     0,
                     &self.constants,
                     &[(std::mem::size_of::<Uniforms>() * i) as u64],
                 );
-                render_pass
-                    .set_index_buffer(&self.index_buffer.raw, index_offset);
+
+                render_pass.set_index_buffer(
+                    &self.index_buffer.raw,
+                    index_offset * std::mem::size_of::<u32>() as u64,
+                );
+
                 render_pass.set_vertex_buffers(
                     0,
-                    &[(&self.vertex_buffer.raw, vertex_offset)],
-                );
-                render_pass.set_scissor_rect(
-                    bounds.x,
-                    bounds.y,
-                    bounds.width,
-                    bounds.height,
+                    &[(
+                        &self.vertex_buffer.raw,
+                        vertex_offset * std::mem::size_of::<Vertex2D>() as u64,
+                    )],
                 );
 
                 render_pass.draw_indexed(0..indices as u32, 0, 0..1);
