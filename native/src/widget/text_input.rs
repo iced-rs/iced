@@ -4,17 +4,18 @@
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
-mod cursor;
+pub mod cursor;
+
+pub use cursor::Cursor;
+
 use crate::{
     input::{
         keyboard,
         mouse::{self, click},
         ButtonState,
     },
-    layout,
-    widget::text_input::cursor::Cursor,
-    Clipboard, Element, Event, Font, Hasher, Layout, Length, Point, Rectangle,
-    Size, Widget,
+    layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 
 use std::u32;
@@ -261,7 +262,8 @@ where
                             if self.is_secure {
                                 self.state.cursor.select_all(&self.value);
                             } else {
-                                let end = self.state.cursor.end();
+                                let end = self.state.cursor.end(&self.value);
+
                                 self.state.cursor.select_range(
                                     self.value.previous_start_of_word(end),
                                     self.value.next_end_of_word(end),
@@ -307,7 +309,7 @@ where
                             self.font,
                         );
 
-                        let pos = find_cursor_position(
+                        let position = find_cursor_position(
                             renderer,
                             target + offset,
                             &value,
@@ -317,9 +319,10 @@ where
                             self.font,
                         );
 
-                        self.state
-                            .cursor
-                            .select_range(self.state.cursor.start(), pos);
+                        self.state.cursor.select_range(
+                            self.state.cursor.start(&value),
+                            position,
+                        );
                     }
                 }
             }
@@ -328,15 +331,15 @@ where
                     && self.state.is_pasting.is_none()
                     && !c.is_control() =>
             {
-                match self.state.cursor.selection_position() {
+                match self.state.cursor.selection() {
                     Some((left, right)) => {
                         self.value.remove_many(left, right);
-                        self.state.cursor.move_left();
+                        self.state.cursor.move_left(&self.value);
                     }
                     _ => (),
                 }
-                self.value
-                    .insert(self.state.cursor.end().min(self.value.len()), c);
+
+                self.value.insert(self.state.cursor.end(&self.value), c);
                 self.state.cursor.move_right(&self.value);
 
                 let message = (self.on_change)(self.value.to_string());
@@ -353,19 +356,18 @@ where
                     }
                 }
                 keyboard::KeyCode::Backspace => {
-                    match self.state.cursor.selection_position() {
+                    match self.state.cursor.selection() {
                         Some((start, end)) => {
                             self.value.remove_many(start, end);
-                            self.state.cursor.move_left();
+                            self.state.cursor.move_left(&self.value);
                         }
                         None => {
-                            if self.state.cursor.start().min(self.value.len())
-                                > 0
-                            {
-                                self.state.cursor.move_left();
-                                let _ = self
-                                    .value
-                                    .remove(self.state.cursor.start());
+                            if self.state.cursor.start(&self.value) > 0 {
+                                self.state.cursor.move_left(&self.value);
+
+                                let _ = self.value.remove(
+                                    self.state.cursor.start(&self.value),
+                                );
                             }
                         }
                     }
@@ -373,15 +375,16 @@ where
                     messages.push(message);
                 }
                 keyboard::KeyCode::Delete => {
-                    match self.state.cursor.selection_position() {
+                    match self.state.cursor.selection() {
                         Some((start, end)) => {
                             self.value.remove_many(start, end);
-                            self.state.cursor.move_left();
+                            self.state.cursor.move_left(&self.value);
                         }
                         None => {
-                            if self.state.cursor.end() < self.value.len() {
-                                let _ =
-                                    self.value.remove(self.state.cursor.end());
+                            let end = self.state.cursor.end(&self.value);
+
+                            if end > 0 {
+                                let _ = self.value.remove(end);
                             }
                         }
                     }
@@ -398,9 +401,9 @@ where
                             self.state.cursor.move_left_by_words(&self.value);
                         }
                     } else if modifiers.shift {
-                        self.state.cursor.select_left()
+                        self.state.cursor.select_left(&self.value)
                     } else {
-                        self.state.cursor.move_left();
+                        self.state.cursor.move_left(&self.value);
                     }
                 }
                 keyboard::KeyCode::Right => {
@@ -422,9 +425,10 @@ where
                 }
                 keyboard::KeyCode::Home => {
                     if modifiers.shift {
-                        self.state
-                            .cursor
-                            .select_range(self.state.cursor.start(), 0);
+                        self.state.cursor.select_range(
+                            self.state.cursor.start(&self.value),
+                            0,
+                        );
                     } else {
                         self.state.cursor.move_to(0);
                     }
@@ -432,7 +436,7 @@ where
                 keyboard::KeyCode::End => {
                     if modifiers.shift {
                         self.state.cursor.select_range(
-                            self.state.cursor.start(),
+                            self.state.cursor.start(&self.value),
                             self.value.len(),
                         );
                     } else {
@@ -456,16 +460,16 @@ where
                                 }
                             };
 
-                            match self.state.cursor.selection_position() {
+                            match self.state.cursor.selection() {
                                 Some((left, right)) => {
                                     self.value.remove_many(left, right);
-                                    self.state.cursor.move_left();
+                                    self.state.cursor.move_left(&self.value);
                                 }
                                 _ => (),
                             }
 
                             self.value.insert_many(
-                                self.state.cursor.end().min(self.value.len()),
+                                self.state.cursor.end(&self.value),
                                 content.clone(),
                             );
 

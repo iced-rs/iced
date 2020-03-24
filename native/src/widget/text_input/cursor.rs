@@ -1,7 +1,8 @@
+//! Track the cursor of a text input.
 use crate::widget::text_input::Value;
 
 #[derive(Debug, Copy, Clone)]
-enum State {
+pub enum State {
     Index(usize),
     Selection { start: usize, end: usize },
 }
@@ -20,7 +21,6 @@ impl Default for Cursor {
 }
 
 impl Cursor {
-    /* index move methods */
     pub fn move_to(&mut self, position: usize) {
         self.state = State::Index(position);
     }
@@ -30,42 +30,40 @@ impl Cursor {
     }
 
     pub fn move_right_by_words(&mut self, value: &Value) {
-        self.move_to(value.next_end_of_word(self.right()))
+        self.move_to(value.next_end_of_word(self.right(value)))
     }
 
     pub fn move_right_by_amount(&mut self, value: &Value, amount: usize) {
-        match self.state {
+        match self.state(value) {
             State::Index(index) => {
                 self.move_to(index.saturating_add(amount).min(value.len()))
             }
-            State::Selection { .. } => self.move_to(self.right()),
+            State::Selection { start, end } => self.move_to(end.max(start)),
         }
     }
 
-    pub fn move_left(&mut self) {
-        match self.state {
+    pub fn move_left(&mut self, value: &Value) {
+        match self.state(value) {
             State::Index(index) if index > 0 => self.move_to(index - 1),
-            State::Selection { .. } => self.move_to(self.left()),
+            State::Selection { start, end } => self.move_to(start.min(end)),
             _ => self.move_to(0),
         }
     }
 
     pub fn move_left_by_words(&mut self, value: &Value) {
-        self.move_to(value.previous_start_of_word(self.right()));
+        self.move_to(value.previous_start_of_word(self.left(value)));
     }
-    /* end of index move methods */
 
-    /* expand/shrink selection */
     pub fn select_range(&mut self, start: usize, end: usize) {
-        if start != end {
-            self.state = State::Selection { start, end };
-        } else {
+        if start == end {
             self.state = State::Index(start);
+        } else {
+            self.state = State::Selection { start, end };
         }
     }
 
-    pub fn select_left(&mut self) {
-        match self.state {
+    pub fn select_left(&mut self, value: &Value) {
+        match self.state(value) {
             State::Index(index) if index > 0 => {
                 self.select_range(index, index - 1)
             }
@@ -77,7 +75,7 @@ impl Cursor {
     }
 
     pub fn select_right(&mut self, value: &Value) {
-        match self.state {
+        match self.state(value) {
             State::Index(index) if index < value.len() => {
                 self.select_range(index, index + 1)
             }
@@ -89,7 +87,7 @@ impl Cursor {
     }
 
     pub fn select_left_by_words(&mut self, value: &Value) {
-        match self.state {
+        match self.state(value) {
             State::Index(index) => {
                 self.select_range(index, value.previous_start_of_word(index))
             }
@@ -100,7 +98,7 @@ impl Cursor {
     }
 
     pub fn select_right_by_words(&mut self, value: &Value) {
-        match self.state {
+        match self.state(value) {
             State::Index(index) => {
                 self.select_range(index, value.next_end_of_word(index))
             }
@@ -113,51 +111,56 @@ impl Cursor {
     pub fn select_all(&mut self, value: &Value) {
         self.select_range(0, value.len());
     }
-    /* end of selection section */
 
-    /* helpers */
-    // get start position of selection (can be left OR right boundary of selection) or index
-    pub(crate) fn start(&self) -> usize {
+    pub fn state(&self, value: &Value) -> State {
         match self.state {
+            State::Index(index) => State::Index(index.min(value.len())),
+            State::Selection { start, end } => {
+                let start = start.min(value.len());
+                let end = end.min(value.len());
+
+                if start == end {
+                    State::Index(start)
+                } else {
+                    State::Selection { start, end }
+                }
+            }
+        }
+    }
+
+    pub fn start(&self, value: &Value) -> usize {
+        let start = match self.state {
             State::Index(index) => index,
             State::Selection { start, .. } => start,
-        }
+        };
+
+        start.min(value.len())
     }
 
-    // get end position of selection (can be left OR right boundary of selection) or index
-    pub fn end(&self) -> usize {
-        match self.state {
+    pub fn end(&self, value: &Value) -> usize {
+        let end = match self.state {
             State::Index(index) => index,
             State::Selection { end, .. } => end,
-        }
+        };
+
+        end.min(value.len())
     }
 
-    // get left boundary of selection or index
-    pub fn left(&self) -> usize {
-        match self.state {
+    fn left(&self, value: &Value) -> usize {
+        match self.state(value) {
             State::Index(index) => index,
             State::Selection { start, end } => start.min(end),
         }
     }
 
-    // get right boundary of selection or index
-    pub fn right(&self) -> usize {
-        match self.state {
+    fn right(&self, value: &Value) -> usize {
+        match self.state(value) {
             State::Index(index) => index,
             State::Selection { start, end } => start.max(end),
         }
     }
 
-    pub fn cursor_position(&self, value: &Value) -> usize {
-        match self.state {
-            State::Index(index) => index.min(value.len()),
-            State::Selection { end, .. } => end.min(value.len()),
-        }
-    }
-
-    // returns Option of left and right border of selection
-    // a second method that returns start and end may be useful (see below)
-    pub fn selection_position(&self) -> Option<(usize, usize)> {
+    pub fn selection(&self) -> Option<(usize, usize)> {
         match self.state {
             State::Selection { start, end } => {
                 Some((start.min(end), start.max(end)))
@@ -165,11 +168,4 @@ impl Cursor {
             _ => None,
         }
     }
-
-    /* pub fn selection_position(&self) -> Option<(usize, usize)> {
-        match self.state {
-            State::Selection { start, end } => Some((start, end)),
-            _ => None,
-        }
-    } */
 }
