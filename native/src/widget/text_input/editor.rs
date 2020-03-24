@@ -47,8 +47,8 @@ impl<'a> Editor<'a> {
     pub fn backspace(&mut self) {
         match self.cursor.selection() {
             Some((start, end)) => {
-                self.value.remove_many(start, end);
                 self.cursor.move_left(&self.value);
+                self.value.remove_many(start, end);
             }
             None => {
                 let start = self.cursor.start(&self.value);
@@ -64,9 +64,8 @@ impl<'a> Editor<'a> {
 
     pub fn delete(&mut self) {
         match self.cursor.selection() {
-            Some((start, end)) => {
-                self.value.remove_many(start, end);
-                self.cursor.move_left(&self.value);
+            Some(_) => {
+                self.backspace();
             }
             None => {
                 let end = self.cursor.end(&self.value);
