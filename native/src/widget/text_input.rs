@@ -4,12 +4,15 @@
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
+mod editor;
 mod value;
 
 pub mod cursor;
 
 pub use cursor::Cursor;
 pub use value::Value;
+
+use editor::Editor;
 
 use crate::{
     input::{
@@ -333,18 +336,12 @@ where
                     && self.state.is_pasting.is_none()
                     && !c.is_control() =>
             {
-                match self.state.cursor.selection() {
-                    Some((left, right)) => {
-                        self.value.remove_many(left, right);
-                        self.state.cursor.move_left(&self.value);
-                    }
-                    _ => (),
-                }
+                let mut editor =
+                    Editor::new(&mut self.value, &mut self.state.cursor);
 
-                self.value.insert(self.state.cursor.end(&self.value), c);
-                self.state.cursor.move_right(&self.value);
+                editor.insert(c);
 
-                let message = (self.on_change)(self.value.to_string());
+                let message = (self.on_change)(editor.contents());
                 messages.push(message);
             }
             Event::Keyboard(keyboard::Event::Input {
@@ -358,39 +355,21 @@ where
                     }
                 }
                 keyboard::KeyCode::Backspace => {
-                    match self.state.cursor.selection() {
-                        Some((start, end)) => {
-                            self.value.remove_many(start, end);
-                            self.state.cursor.move_left(&self.value);
-                        }
-                        None => {
-                            let start = self.state.cursor.start(&self.value);
+                    let mut editor =
+                        Editor::new(&mut self.value, &mut self.state.cursor);
 
-                            if start > 0 {
-                                self.state.cursor.move_left(&self.value);
+                    editor.backspace();
 
-                                let _ = self.value.remove(start - 1);
-                            }
-                        }
-                    }
-                    let message = (self.on_change)(self.value.to_string());
+                    let message = (self.on_change)(editor.contents());
                     messages.push(message);
                 }
                 keyboard::KeyCode::Delete => {
-                    match self.state.cursor.selection() {
-                        Some((start, end)) => {
-                            self.value.remove_many(start, end);
-                            self.state.cursor.move_left(&self.value);
-                        }
-                        None => {
-                            let end = self.state.cursor.end(&self.value);
+                    let mut editor =
+                        Editor::new(&mut self.value, &mut self.state.cursor);
 
-                            if end < self.value.len() {
-                                let _ = self.value.remove(end);
-                            }
-                        }
-                    }
-                    let message = (self.on_change)(self.value.to_string());
+                    editor.delete();
+
+                    let message = (self.on_change)(editor.contents());
                     messages.push(message);
                 }
                 keyboard::KeyCode::Left => {
@@ -462,28 +441,17 @@ where
                                 }
                             };
 
-                            match self.state.cursor.selection() {
-                                Some((left, right)) => {
-                                    self.value.remove_many(left, right);
-                                    self.state.cursor.move_left(&self.value);
-                                }
-                                _ => (),
-                            }
-
-                            self.value.insert_many(
-                                self.state.cursor.end(&self.value),
-                                content.clone(),
+                            let mut editor = Editor::new(
+                                &mut self.value,
+                                &mut self.state.cursor,
                             );
 
-                            self.state.cursor.move_right_by_amount(
-                                &self.value,
-                                content.len(),
-                            );
-                            self.state.is_pasting = Some(content);
+                            editor.paste(content.clone());
 
-                            let message =
-                                (self.on_change)(self.value.to_string());
+                            let message = (self.on_change)(editor.contents());
                             messages.push(message);
+
+                            self.state.is_pasting = Some(content);
                         }
                     } else {
                         self.state.is_pasting = None;
