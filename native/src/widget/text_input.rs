@@ -6,7 +6,11 @@
 //! [`State`]: struct.State.html
 mod cursor;
 use crate::{
-    input::{keyboard, mouse, mouse::Interaction, ButtonState},
+    input::{
+        keyboard,
+        mouse::{self, click},
+        ButtonState,
+    },
     layout,
     widget::text_input::cursor::Cursor,
     Clipboard, Element, Event, Font, Hasher, Layout, Length, Point, Rectangle,
@@ -212,22 +216,13 @@ where
                     let text_layout = layout.children().next().unwrap();
                     let target = cursor_position.x - text_layout.bounds().x;
 
-                    match self.state.mouse.update(cursor_position) {
-                        Interaction::DoubleClick(_) => {
-                            if self.is_secure {
-                                self.state.cursor.select_all(&self.value);
-                            } else {
-                                let end = self.state.cursor.end();
-                                self.state.cursor.select_range(
-                                    self.value.previous_start_of_word(end),
-                                    self.value.next_end_of_word(end),
-                                );
-                            }
-                        }
-                        Interaction::TripleClick(_) => {
-                            self.state.cursor.select_all(&self.value);
-                        }
-                        Interaction::Click(_) => {
+                    let click = mouse::Click::new(
+                        cursor_position,
+                        self.state.last_click,
+                    );
+
+                    match click.kind() {
+                        click::Kind::Single => {
                             if target > 0.0 {
                                 let value = if self.is_secure {
                                     self.value.secure()
@@ -262,7 +257,23 @@ where
                                 self.state.cursor.move_to(0);
                             }
                         }
+                        click::Kind::Double => {
+                            if self.is_secure {
+                                self.state.cursor.select_all(&self.value);
+                            } else {
+                                let end = self.state.cursor.end();
+                                self.state.cursor.select_range(
+                                    self.value.previous_start_of_word(end),
+                                    self.value.next_end_of_word(end),
+                                );
+                            }
+                        }
+                        click::Kind::Triple => {
+                            self.state.cursor.select_all(&self.value);
+                        }
                     }
+
+                    self.state.last_click = Some(click);
                 }
 
                 self.state.is_pressed = is_clicked;
@@ -324,7 +335,8 @@ where
                     }
                     _ => (),
                 }
-                self.value.insert(self.state.cursor.end().min(self.value.len()), c);
+                self.value
+                    .insert(self.state.cursor.end().min(self.value.len()), c);
                 self.state.cursor.move_right(&self.value);
 
                 let message = (self.on_change)(self.value.to_string());
@@ -347,7 +359,9 @@ where
                             self.state.cursor.move_left();
                         }
                         None => {
-                            if self.state.cursor.start().min(self.value.len()) > 0 {
+                            if self.state.cursor.start().min(self.value.len())
+                                > 0
+                            {
                                 self.state.cursor.move_left();
                                 let _ = self
                                     .value
@@ -634,8 +648,8 @@ pub struct State {
     is_focused: bool,
     is_pressed: bool,
     is_pasting: Option<Value>,
+    last_click: Option<mouse::Click>,
     cursor: Cursor,
-    mouse: crate::input::mouse::State,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -655,8 +669,8 @@ impl State {
             is_focused: true,
             is_pressed: false,
             is_pasting: None,
+            last_click: None,
             cursor: Cursor::default(),
-            mouse: crate::input::mouse::State::default(),
         }
     }
 
