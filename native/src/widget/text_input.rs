@@ -457,15 +457,6 @@ where
                         self.state.is_pasting = None;
                     }
                 }
-                // I think this doesn't work with the current version of the clipboard lib
-                /*keyboard::KeyCode::C => {
-                    if platform::is_copy_paste_modifier_pressed(modifiers) {
-                        match self.state.cursor.selection_position() {
-                            None => (),
-                            Some((left, right)) => ()
-                        }
-                    }
-                }*/
                 keyboard::KeyCode::A => {
                     if platform::is_copy_paste_modifier_pressed(modifiers) {
                         self.state.cursor.select_all(&self.value);
