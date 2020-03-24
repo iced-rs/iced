@@ -68,6 +68,9 @@ impl Click {
 
     fn is_consecutive(&self, new_position: Point, time: Instant) -> bool {
         self.position == new_position
-            && time.duration_since(self.time).as_millis() <= 300
+            && time
+                .checked_duration_since(self.time)
+                .map(|duration| duration.as_millis() <= 300)
+                .unwrap_or(false)
     }
 }
