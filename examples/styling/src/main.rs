@@ -357,7 +357,7 @@ mod style {
             }
 
             fn selection_color(&self) -> Color {
-                Color::BLACK
+                ACTIVE
             }
         }
 
