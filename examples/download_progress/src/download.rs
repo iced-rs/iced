@@ -20,7 +20,9 @@ where
 
     fn hash(&self, state: &mut H) {
         use std::hash::Hash;
+
         std::any::TypeId::of::<Self>().hash(state);
+        self.url.hash(state);
     }
 
     fn stream(
