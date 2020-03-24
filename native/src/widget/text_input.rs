@@ -646,7 +646,10 @@ impl State {
         self.is_focused
     }
 
-    /// getter for cursor
+    /// Returns the [`Cursor`] of the [`TextInput`].
+    ///
+    /// [`Cursor`]: struct.Cursor.html
+    /// [`TextInput`]: struct.TextInput.html
     pub fn cursor(&self) -> Cursor {
         self.cursor
     }
