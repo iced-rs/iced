@@ -4,14 +4,27 @@
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
+mod editor;
+mod value;
+
+pub mod cursor;
+
+pub use cursor::Cursor;
+pub use value::Value;
+
+use editor::Editor;
+
 use crate::{
-    input::{keyboard, mouse, ButtonState},
+    input::{
+        keyboard,
+        mouse::{self, click},
+        ButtonState,
+    },
     layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
     Rectangle, Size, Widget,
 };
 
 use std::u32;
-use unicode_segmentation::UnicodeSegmentation;
 
 /// A field that can be filled with text.
 ///
@@ -209,6 +222,75 @@ where
                     let text_layout = layout.children().next().unwrap();
                     let target = cursor_position.x - text_layout.bounds().x;
 
+                    let click = mouse::Click::new(
+                        cursor_position,
+                        self.state.last_click,
+                    );
+
+                    match click.kind() {
+                        click::Kind::Single => {
+                            if target > 0.0 {
+                                let value = if self.is_secure {
+                                    self.value.secure()
+                                } else {
+                                    self.value.clone()
+                                };
+
+                                let position = renderer.find_cursor_position(
+                                    text_layout.bounds(),
+                                    self.font,
+                                    self.size,
+                                    &value,
+                                    &self.state,
+                                    target,
+                                );
+
+                                self.state.cursor.move_to(position);
+                            } else {
+                                self.state.cursor.move_to(0);
+                            }
+                        }
+                        click::Kind::Double => {
+                            if self.is_secure {
+                                self.state.cursor.select_all(&self.value);
+                            } else {
+                                let position = renderer.find_cursor_position(
+                                    text_layout.bounds(),
+                                    self.font,
+                                    self.size,
+                                    &self.value,
+                                    &self.state,
+                                    target,
+                                );
+
+                                self.state.cursor.select_range(
+                                    self.value.previous_start_of_word(position),
+                                    self.value.next_end_of_word(position),
+                                );
+                            }
+                        }
+                        click::Kind::Triple => {
+                            self.state.cursor.select_all(&self.value);
+                        }
+                    }
+
+                    self.state.last_click = Some(click);
+                }
+
+                self.state.is_dragging = is_clicked;
+                self.state.is_focused = is_clicked;
+            }
+            Event::Mouse(mouse::Event::Input {
+                button: mouse::Button::Left,
+                state: ButtonState::Released,
+            }) => {
+                self.state.is_dragging = false;
+            }
+            Event::Mouse(mouse::Event::CursorMoved { x, .. }) => {
+                if self.state.is_dragging {
+                    let text_layout = layout.children().next().unwrap();
+                    let target = x - text_layout.bounds().x;
+
                     if target > 0.0 {
                         let value = if self.is_secure {
                             self.value.secure()
@@ -216,43 +298,33 @@ where
                             self.value.clone()
                         };
 
-                        let size = self.size.unwrap_or(renderer.default_size());
-
-                        let offset = renderer.offset(
+                        let position = renderer.find_cursor_position(
                             text_layout.bounds(),
-                            size,
+                            self.font,
+                            self.size,
                             &value,
                             &self.state,
-                            self.font,
+                            target,
                         );
 
-                        self.state.cursor_position = find_cursor_position(
-                            renderer,
-                            target + offset,
-                            &value,
-                            size,
-                            0,
-                            self.value.len(),
-                            self.font,
+                        self.state.cursor.select_range(
+                            self.state.cursor.start(&value),
+                            position,
                         );
-                    } else {
-                        self.state.cursor_position = 0;
                     }
                 }
-
-                self.state.is_focused = is_clicked;
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
                     && self.state.is_pasting.is_none()
                     && !c.is_control() =>
             {
-                let cursor_position = self.state.cursor_position(&self.value);
+                let mut editor =
+                    Editor::new(&mut self.value, &mut self.state.cursor);
 
-                self.value.insert(cursor_position, c);
-                self.state.move_cursor_right(&self.value);
+                editor.insert(c);
 
-                let message = (self.on_change)(self.value.to_string());
+                let message = (self.on_change)(editor.contents());
                 messages.push(message);
             }
             Event::Keyboard(keyboard::Event::Input {
@@ -266,52 +338,74 @@ where
                     }
                 }
                 keyboard::KeyCode::Backspace => {
-                    let cursor_position =
-                        self.state.cursor_position(&self.value);
+                    let mut editor =
+                        Editor::new(&mut self.value, &mut self.state.cursor);
 
-                    if cursor_position > 0 {
-                        self.state.move_cursor_left(&self.value);
+                    editor.backspace();
 
-                        let _ = self.value.remove(cursor_position - 1);
-
-                        let message = (self.on_change)(self.value.to_string());
-                        messages.push(message);
-                    }
+                    let message = (self.on_change)(editor.contents());
+                    messages.push(message);
                 }
                 keyboard::KeyCode::Delete => {
-                    let cursor_position =
-                        self.state.cursor_position(&self.value);
+                    let mut editor =
+                        Editor::new(&mut self.value, &mut self.state.cursor);
 
-                    if cursor_position < self.value.len() {
-                        let _ = self.value.remove(cursor_position);
+                    editor.delete();
 
-                        let message = (self.on_change)(self.value.to_string());
-                        messages.push(message);
-                    }
+                    let message = (self.on_change)(editor.contents());
+                    messages.push(message);
                 }
                 keyboard::KeyCode::Left => {
                     if platform::is_jump_modifier_pressed(modifiers)
                         && !self.is_secure
                     {
-                        self.state.move_cursor_left_by_words(&self.value);
+                        if modifiers.shift {
+                            self.state.cursor.select_left_by_words(&self.value);
+                        } else {
+                            self.state.cursor.move_left_by_words(&self.value);
+                        }
+                    } else if modifiers.shift {
+                        self.state.cursor.select_left(&self.value)
                     } else {
-                        self.state.move_cursor_left(&self.value);
+                        self.state.cursor.move_left(&self.value);
                     }
                 }
                 keyboard::KeyCode::Right => {
                     if platform::is_jump_modifier_pressed(modifiers)
                         && !self.is_secure
                     {
-                        self.state.move_cursor_right_by_words(&self.value);
+                        if modifiers.shift {
+                            self.state
+                                .cursor
+                                .select_right_by_words(&self.value);
+                        } else {
+                            self.state.cursor.move_right_by_words(&self.value);
+                        }
+                    } else if modifiers.shift {
+                        self.state.cursor.select_right(&self.value)
                     } else {
-                        self.state.move_cursor_right(&self.value);
+                        self.state.cursor.move_right(&self.value);
                     }
                 }
                 keyboard::KeyCode::Home => {
-                    self.state.cursor_position = 0;
+                    if modifiers.shift {
+                        self.state.cursor.select_range(
+                            self.state.cursor.start(&self.value),
+                            0,
+                        );
+                    } else {
+                        self.state.cursor.move_to(0);
+                    }
                 }
                 keyboard::KeyCode::End => {
-                    self.state.move_cursor_to_end(&self.value);
+                    if modifiers.shift {
+                        self.state.cursor.select_range(
+                            self.state.cursor.start(&self.value),
+                            self.value.len(),
+                        );
+                    } else {
+                        self.state.cursor.move_to(self.value.len());
+                    }
                 }
                 keyboard::KeyCode::V => {
                     if platform::is_copy_paste_modifier_pressed(modifiers) {
@@ -330,24 +424,25 @@ where
                                 }
                             };
 
-                            let cursor_position =
-                                self.state.cursor_position(&self.value);
-
-                            self.value
-                                .insert_many(cursor_position, content.clone());
-
-                            self.state.move_cursor_right_by_amount(
-                                &self.value,
-                                content.len(),
+                            let mut editor = Editor::new(
+                                &mut self.value,
+                                &mut self.state.cursor,
                             );
-                            self.state.is_pasting = Some(content);
 
-                            let message =
-                                (self.on_change)(self.value.to_string());
+                            editor.paste(content.clone());
+
+                            let message = (self.on_change)(editor.contents());
                             messages.push(message);
+
+                            self.state.is_pasting = Some(content);
                         }
                     } else {
                         self.state.is_pasting = None;
+                    }
+                }
+                keyboard::KeyCode::A => {
+                    if platform::is_copy_paste_modifier_pressed(modifiers) {
+                        self.state.cursor.select_all(&self.value);
                     }
                 }
                 _ => {}
@@ -381,8 +476,8 @@ where
                 bounds,
                 text_bounds,
                 cursor_position,
-                self.size.unwrap_or(renderer.default_size()),
                 self.font,
+                self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
                 &self.value.secure(),
                 &self.state,
@@ -393,8 +488,8 @@ where
                 bounds,
                 text_bounds,
                 cursor_position,
-                self.size.unwrap_or(renderer.default_size()),
                 self.font,
+                self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
                 &self.value,
                 &self.state,
@@ -447,10 +542,10 @@ pub trait Renderer: crate::Renderer + Sized {
     fn offset(
         &self,
         text_bounds: Rectangle,
+        font: Font,
         size: u16,
         value: &Value,
         state: &State,
-        font: Font,
     ) -> f32;
 
     /// Draws a [`TextInput`].
@@ -471,13 +566,41 @@ pub trait Renderer: crate::Renderer + Sized {
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
-        size: u16,
         font: Font,
+        size: u16,
         placeholder: &str,
         value: &Value,
         state: &State,
         style: &Self::Style,
     ) -> Self::Output;
+
+    /// Computes the position of the text cursor at the given X coordinate of
+    /// a [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    fn find_cursor_position(
+        &self,
+        text_bounds: Rectangle,
+        font: Font,
+        size: Option<u16>,
+        value: &Value,
+        state: &State,
+        x: f32,
+    ) -> usize {
+        let size = size.unwrap_or(self.default_size());
+
+        let offset = self.offset(text_bounds, font, size, &value, &state);
+
+        find_cursor_position(
+            self,
+            &value,
+            font,
+            size,
+            x + offset,
+            0,
+            value.len(),
+        )
+    }
 }
 
 impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
@@ -499,8 +622,10 @@ where
 #[derive(Debug, Default, Clone)]
 pub struct State {
     is_focused: bool,
+    is_dragging: bool,
     is_pasting: Option<Value>,
-    cursor_position: usize,
+    last_click: Option<mouse::Click>,
+    cursor: Cursor,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -516,12 +641,12 @@ impl State {
     ///
     /// [`State`]: struct.State.html
     pub fn focused() -> Self {
-        use std::usize;
-
         Self {
             is_focused: true,
+            is_dragging: false,
             is_pasting: None,
-            cursor_position: usize::MAX,
+            last_click: None,
+            cursor: Cursor::default(),
         }
     }
 
@@ -532,207 +657,24 @@ impl State {
         self.is_focused
     }
 
-    /// Returns the cursor position of a [`TextInput`].
+    /// Returns the [`Cursor`] of the [`TextInput`].
     ///
+    /// [`Cursor`]: struct.Cursor.html
     /// [`TextInput`]: struct.TextInput.html
-    pub fn cursor_position(&self, value: &Value) -> usize {
-        self.cursor_position.min(value.len())
-    }
-
-    /// Moves the cursor of a [`TextInput`] to the left.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    pub(crate) fn move_cursor_left(&mut self, value: &Value) {
-        let current = self.cursor_position(value);
-
-        if current > 0 {
-            self.cursor_position = current - 1;
-        }
-    }
-
-    /// Moves the cursor of a [`TextInput`] to the right.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    pub(crate) fn move_cursor_right(&mut self, value: &Value) {
-        self.move_cursor_right_by_amount(value, 1)
-    }
-
-    pub(crate) fn move_cursor_right_by_amount(
-        &mut self,
-        value: &Value,
-        amount: usize,
-    ) {
-        let current = self.cursor_position(value);
-        let new_position = current.saturating_add(amount);
-
-        if new_position < value.len() + 1 {
-            self.cursor_position = new_position;
-        }
-    }
-
-    /// Moves the cursor of a [`TextInput`] to the previous start of a word.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    pub(crate) fn move_cursor_left_by_words(&mut self, value: &Value) {
-        let current = self.cursor_position(value);
-
-        self.cursor_position = value.previous_start_of_word(current);
-    }
-
-    /// Moves the cursor of a [`TextInput`] to the next end of a word.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    pub(crate) fn move_cursor_right_by_words(&mut self, value: &Value) {
-        let current = self.cursor_position(value);
-
-        self.cursor_position = value.next_end_of_word(current);
-    }
-
-    /// Moves the cursor of a [`TextInput`] to the end.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    pub(crate) fn move_cursor_to_end(&mut self, value: &Value) {
-        self.cursor_position = value.len();
-    }
-}
-
-/// The value of a [`TextInput`].
-///
-/// [`TextInput`]: struct.TextInput.html
-// TODO: Reduce allocations, cache results (?)
-#[derive(Debug, Clone)]
-pub struct Value {
-    graphemes: Vec<String>,
-}
-
-impl Value {
-    /// Creates a new [`Value`] from a string slice.
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn new(string: &str) -> Self {
-        let graphemes = UnicodeSegmentation::graphemes(string, true)
-            .map(String::from)
-            .collect();
-
-        Self { graphemes }
-    }
-
-    /// Returns the total amount of graphemes in the [`Value`].
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn len(&self) -> usize {
-        self.graphemes.len()
-    }
-
-    /// Returns the position of the previous start of a word from the given
-    /// grapheme `index`.
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn previous_start_of_word(&self, index: usize) -> usize {
-        let previous_string =
-            &self.graphemes[..index.min(self.graphemes.len())].concat();
-
-        UnicodeSegmentation::split_word_bound_indices(&previous_string as &str)
-            .filter(|(_, word)| !word.trim_start().is_empty())
-            .next_back()
-            .map(|(i, previous_word)| {
-                index
-                    - UnicodeSegmentation::graphemes(previous_word, true)
-                        .count()
-                    - UnicodeSegmentation::graphemes(
-                        &previous_string[i + previous_word.len()..] as &str,
-                        true,
-                    )
-                    .count()
-            })
-            .unwrap_or(0)
-    }
-
-    /// Returns the position of the next end of a word from the given grapheme
-    /// `index`.
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn next_end_of_word(&self, index: usize) -> usize {
-        let next_string = &self.graphemes[index..].concat();
-
-        UnicodeSegmentation::split_word_bound_indices(&next_string as &str)
-            .filter(|(_, word)| !word.trim_start().is_empty())
-            .next()
-            .map(|(i, next_word)| {
-                index
-                    + UnicodeSegmentation::graphemes(next_word, true).count()
-                    + UnicodeSegmentation::graphemes(
-                        &next_string[..i] as &str,
-                        true,
-                    )
-                    .count()
-            })
-            .unwrap_or(self.len())
-    }
-
-    /// Returns a new [`Value`] containing the graphemes until the given
-    /// `index`.
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn until(&self, index: usize) -> Self {
-        let graphemes = self.graphemes[..index.min(self.len())].to_vec();
-
-        Self { graphemes }
-    }
-
-    /// Converts the [`Value`] into a `String`.
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn to_string(&self) -> String {
-        self.graphemes.concat()
-    }
-
-    /// Inserts a new `char` at the given grapheme `index`.
-    pub fn insert(&mut self, index: usize, c: char) {
-        self.graphemes.insert(index, c.to_string());
-
-        self.graphemes =
-            UnicodeSegmentation::graphemes(&self.to_string() as &str, true)
-                .map(String::from)
-                .collect();
-    }
-
-    /// Inserts a bunch of graphemes at the given grapheme `index`.
-    pub fn insert_many(&mut self, index: usize, mut value: Value) {
-        let _ = self
-            .graphemes
-            .splice(index..index, value.graphemes.drain(..));
-    }
-
-    /// Removes the grapheme at the given `index`.
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn remove(&mut self, index: usize) {
-        let _ = self.graphemes.remove(index);
-    }
-
-    /// Returns a new [`Value`] with all its graphemes replaced with the
-    /// dot ('•') character.
-    ///
-    /// [`Value`]: struct.Value.html
-    pub fn secure(&self) -> Self {
-        Self {
-            graphemes: std::iter::repeat(String::from("•"))
-                .take(self.graphemes.len())
-                .collect(),
-        }
+    pub fn cursor(&self) -> Cursor {
+        self.cursor
     }
 }
 
 // TODO: Reduce allocations
 fn find_cursor_position<Renderer: self::Renderer>(
     renderer: &Renderer,
-    target: f32,
     value: &Value,
+    font: Font,
     size: u16,
+    target: f32,
     start: usize,
     end: usize,
-    font: Font,
 ) -> usize {
     if start >= end {
         if start == 0 {
@@ -760,22 +702,22 @@ fn find_cursor_position<Renderer: self::Renderer>(
     if width > target {
         find_cursor_position(
             renderer,
-            target,
             value,
+            font,
             size,
+            target,
             start,
             start + index,
-            font,
         )
     } else {
         find_cursor_position(
             renderer,
-            target,
             value,
+            font,
             size,
+            target,
             start + index + 1,
             end,
-            font,
         )
     }
 }

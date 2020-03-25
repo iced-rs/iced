@@ -33,6 +33,8 @@ pub trait StyleSheet {
 
     fn value_color(&self) -> Color;
 
+    fn selection_color(&self) -> Color;
+
     /// Produces the style of an hovered text input.
     fn hovered(&self) -> Style {
         self.focused()
@@ -64,6 +66,10 @@ impl StyleSheet for Default {
 
     fn value_color(&self) -> Color {
         Color::from_rgb(0.3, 0.3, 0.3)
+    }
+
+    fn selection_color(&self) -> Color {
+        Color::from_rgb(0.8, 0.8, 1.0)
     }
 }
 
