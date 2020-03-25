@@ -17,8 +17,8 @@ impl<'a> Editor<'a> {
     pub fn insert(&mut self, character: char) {
         match self.cursor.selection() {
             Some((left, right)) => {
-                self.value.remove_many(left, right);
                 self.cursor.move_left(&self.value);
+                self.value.remove_many(left, right);
             }
             _ => (),
         }
@@ -32,8 +32,8 @@ impl<'a> Editor<'a> {
 
         match self.cursor.selection() {
             Some((left, right)) => {
-                self.value.remove_many(left, right);
                 self.cursor.move_left(&self.value);
+                self.value.remove_many(left, right);
             }
             _ => (),
         }
