@@ -36,10 +36,10 @@ impl text_input::Renderer for Renderer {
     fn offset(
         &self,
         text_bounds: Rectangle,
+        font: Font,
         size: u16,
         value: &text_input::Value,
         state: &text_input::State,
-        font: Font,
     ) -> f32 {
         if state.is_focused() {
             let cursor = state.cursor();
@@ -69,8 +69,8 @@ impl text_input::Renderer for Renderer {
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
-        size: u16,
         font: Font,
+        size: u16,
         placeholder: &str,
         value: &text_input::Value,
         state: &text_input::State,

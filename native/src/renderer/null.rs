@@ -114,10 +114,10 @@ impl text_input::Renderer for Null {
     fn offset(
         &self,
         _text_bounds: Rectangle,
+        _font: Font,
         _size: u16,
         _value: &text_input::Value,
         _state: &text_input::State,
-        _font: Font,
     ) -> f32 {
         0.0
     }
@@ -127,8 +127,8 @@ impl text_input::Renderer for Null {
         _bounds: Rectangle,
         _text_bounds: Rectangle,
         _cursor_position: Point,
-        _size: u16,
         _font: Font,
+        _size: u16,
         _placeholder: &str,
         _value: &text_input::Value,
         _state: &text_input::State,

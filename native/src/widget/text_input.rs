@@ -236,29 +236,16 @@ where
                                     self.value.clone()
                                 };
 
-                                let size = self
-                                    .size
-                                    .unwrap_or(renderer.default_size());
-
-                                let offset = renderer.offset(
+                                let position = renderer.find_cursor_position(
                                     text_layout.bounds(),
-                                    size,
+                                    self.font,
+                                    self.size,
                                     &value,
                                     &self.state,
-                                    self.font,
+                                    target,
                                 );
 
-                                self.state.cursor.move_to(
-                                    find_cursor_position(
-                                        renderer,
-                                        target + offset,
-                                        &value,
-                                        size,
-                                        0,
-                                        self.value.len(),
-                                        self.font,
-                                    ),
-                                );
+                                self.state.cursor.move_to(position);
                             } else {
                                 self.state.cursor.move_to(0);
                             }
@@ -267,11 +254,18 @@ where
                             if self.is_secure {
                                 self.state.cursor.select_all(&self.value);
                             } else {
-                                let end = self.state.cursor.end(&self.value);
+                                let position = renderer.find_cursor_position(
+                                    text_layout.bounds(),
+                                    self.font,
+                                    self.size,
+                                    &self.value,
+                                    &self.state,
+                                    target,
+                                );
 
                                 self.state.cursor.select_range(
-                                    self.value.previous_start_of_word(end),
-                                    self.value.next_end_of_word(end),
+                                    self.value.previous_start_of_word(position),
+                                    self.value.next_end_of_word(position),
                                 );
                             }
                         }
@@ -304,24 +298,13 @@ where
                             self.value.clone()
                         };
 
-                        let size = self.size.unwrap_or(renderer.default_size());
-
-                        let offset = renderer.offset(
+                        let position = renderer.find_cursor_position(
                             text_layout.bounds(),
-                            size,
+                            self.font,
+                            self.size,
                             &value,
                             &self.state,
-                            self.font,
-                        );
-
-                        let position = find_cursor_position(
-                            renderer,
-                            target + offset,
-                            &value,
-                            size,
-                            0,
-                            self.value.len(),
-                            self.font,
+                            target,
                         );
 
                         self.state.cursor.select_range(
@@ -493,8 +476,8 @@ where
                 bounds,
                 text_bounds,
                 cursor_position,
-                self.size.unwrap_or(renderer.default_size()),
                 self.font,
+                self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
                 &self.value.secure(),
                 &self.state,
@@ -505,8 +488,8 @@ where
                 bounds,
                 text_bounds,
                 cursor_position,
-                self.size.unwrap_or(renderer.default_size()),
                 self.font,
+                self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
                 &self.value,
                 &self.state,
@@ -559,10 +542,10 @@ pub trait Renderer: crate::Renderer + Sized {
     fn offset(
         &self,
         text_bounds: Rectangle,
+        font: Font,
         size: u16,
         value: &Value,
         state: &State,
-        font: Font,
     ) -> f32;
 
     /// Draws a [`TextInput`].
@@ -583,13 +566,41 @@ pub trait Renderer: crate::Renderer + Sized {
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
-        size: u16,
         font: Font,
+        size: u16,
         placeholder: &str,
         value: &Value,
         state: &State,
         style: &Self::Style,
     ) -> Self::Output;
+
+    /// Computes the position of the text cursor at the given X coordinate of
+    /// a [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    fn find_cursor_position(
+        &self,
+        text_bounds: Rectangle,
+        font: Font,
+        size: Option<u16>,
+        value: &Value,
+        state: &State,
+        x: f32,
+    ) -> usize {
+        let size = size.unwrap_or(self.default_size());
+
+        let offset = self.offset(text_bounds, font, size, &value, &state);
+
+        find_cursor_position(
+            self,
+            &value,
+            font,
+            size,
+            x + offset,
+            0,
+            value.len(),
+        )
+    }
 }
 
 impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
@@ -658,12 +669,12 @@ impl State {
 // TODO: Reduce allocations
 fn find_cursor_position<Renderer: self::Renderer>(
     renderer: &Renderer,
-    target: f32,
     value: &Value,
+    font: Font,
     size: u16,
+    target: f32,
     start: usize,
     end: usize,
-    font: Font,
 ) -> usize {
     if start >= end {
         if start == 0 {
@@ -691,22 +702,22 @@ fn find_cursor_position<Renderer: self::Renderer>(
     if width > target {
         find_cursor_position(
             renderer,
-            target,
             value,
+            font,
             size,
+            target,
             start,
             start + index,
-            font,
         )
     } else {
         find_cursor_position(
             renderer,
-            target,
             value,
+            font,
             size,
+            target,
             start + index + 1,
             end,
-            font,
         )
     }
 }
