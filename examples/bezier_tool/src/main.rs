@@ -11,13 +11,13 @@ mod bezier {
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
     use iced_native::{
-        input, layout, Clipboard, Color, Element, Event, Font, Hasher,
+        input, layout, Clipboard, Color, Depth, Element, Event, Font, Hasher,
         HorizontalAlignment, Layout, Length, MouseCursor, Point, Size, Vector,
         VerticalAlignment, Widget,
     };
     use iced_wgpu::{
         triangle::{Mesh2D, Vertex2D},
-        Defaults, Primitive, Renderer,
+        Defaults, Item, Primitive, Renderer,
     };
     use lyon::tessellation::{
         basic_shapes, BuffersBuilder, StrokeAttributes, StrokeOptions,
@@ -92,7 +92,7 @@ mod bezier {
             defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
-        ) -> (Primitive, MouseCursor) {
+        ) -> (Item, MouseCursor) {
             let mut buffer: VertexBuffers<Vertex2D, u32> = VertexBuffers::new();
             let mut path_builder = lyon::path::Path::builder();
 
@@ -181,37 +181,47 @@ mod bezier {
             };
 
             (
-                Primitive::Clip {
-                    bounds,
-                    offset: Vector::new(0, 0),
-                    content: Box::new(
-                        if self.curves.is_empty()
-                            && self.state.pending.is_none()
-                        {
-                            let instructions = Primitive::Text {
-                                bounds,
-                                color: Color {
-                                    a: defaults.text.color.a * 0.7,
-                                    ..defaults.text.color
-                                },
-                                content: String::from(
-                                    "Click to create bezier curves!",
-                                ),
-                                font: Font::Default,
-                                size: 30.0,
-                                horizontal_alignment:
-                                    HorizontalAlignment::Center,
-                                vertical_alignment: VerticalAlignment::Center,
-                            };
+                (
+                    Primitive::Clip {
+                        bounds,
+                        offset: Vector::new(0, 0),
+                        content: Box::new(
+                            if self.curves.is_empty()
+                                && self.state.pending.is_none()
+                            {
+                                let instructions = Primitive::Text {
+                                    bounds,
+                                    color: Color {
+                                        a: defaults.text.color.a * 0.7,
+                                        ..defaults.text.color
+                                    },
+                                    content: String::from(
+                                        "Click to create bezier curves!",
+                                    ),
+                                    font: Font::Default,
+                                    size: 30.0,
+                                    horizontal_alignment:
+                                        HorizontalAlignment::Center,
+                                    vertical_alignment:
+                                        VerticalAlignment::Center,
+                                };
 
-                            Primitive::Group {
-                                primitives: vec![mesh, instructions],
-                            }
-                        } else {
-                            mesh
-                        },
-                    ),
-                },
+                                (
+                                    Primitive::Group {
+                                        primitives: vec![
+                                            (mesh, Depth::None),
+                                            (instructions, Depth::None),
+                                        ],
+                                    },
+                                    Depth::None,
+                                )
+                            } else {
+                                (mesh, Depth::None)
+                            },
+                        ),
+                    },
+                    Depth::None,
+                ),
                 MouseCursor::OutOfBounds,
             )
         }

@@ -2,7 +2,9 @@ use crate::{
     slider::{HandleShape, StyleSheet},
     Primitive, Renderer,
 };
-use iced_native::{slider, Background, Color, MouseCursor, Point, Rectangle};
+use iced_native::{
+    slider, Background, Color, Depth, MouseCursor, Point, Rectangle,
+};
 
 const HANDLE_HEIGHT: f32 = 22.0;
 
@@ -91,9 +93,16 @@ impl slider::Renderer for Renderer {
         };
 
         (
-            Primitive::Group {
-                primitives: vec![rail_top, rail_bottom, handle],
-            },
+            (
+                Primitive::Group {
+                    primitives: vec![
+                        (rail_top, Depth::None),
+                        (rail_bottom, Depth::None),
+                        (handle, Depth::None),
+                    ],
+                },
+                Depth::None,
+            ),
             if is_dragging {
                 MouseCursor::Grabbing
             } else if is_mouse_over {

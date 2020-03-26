@@ -54,6 +54,7 @@ members = [
     "examples/svg",
     "examples/todos",
     "examples/tour",
+    "examples/alert_widget",
 ]
 
 [dependencies]

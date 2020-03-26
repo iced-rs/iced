@@ -4,6 +4,7 @@ mod scene;
 use controls::Controls;
 use scene::Scene;
 
+use iced_native::Depth;
 use iced_wgpu::{
     wgpu, window::SwapChain, Primitive, Renderer, Settings, Target,
 };
@@ -53,7 +54,7 @@ pub fn main() {
     let mut events = Vec::new();
     let mut cache = Some(Cache::default());
     let mut renderer = Renderer::new(&mut device, Settings::default());
-    let mut output = (Primitive::None, MouseCursor::OutOfBounds);
+    let mut output = ((Primitive::None, Depth::None), MouseCursor::OutOfBounds);
     let clipboard = Clipboard::new(&window);
 
     // Initialize scene and GUI controls

@@ -1,6 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    scrollable, Background, Color, MouseCursor, Rectangle, Vector,
+    scrollable, Background, Color, Depth, MouseCursor, Rectangle, Vector,
 };
 
 const SCROLLBAR_WIDTH: u16 = 10;
@@ -111,9 +111,16 @@ impl scrollable::Renderer for Renderer {
                     Primitive::None
                 };
 
-                Primitive::Group {
-                    primitives: vec![clip, scrollbar, scroller],
-                }
+                (
+                    Primitive::Group {
+                        primitives: vec![
+                            (clip, Depth::None),
+                            (scrollbar, Depth::None),
+                            (scroller, Depth::None),
+                        ],
+                    },
+                    Depth::None,
+                )
             } else {
                 content
             },

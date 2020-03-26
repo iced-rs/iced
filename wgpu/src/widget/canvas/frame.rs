@@ -1,8 +1,8 @@
-use iced_native::{Point, Rectangle, Size, Vector};
+use iced_native::{Depth, Point, Rectangle, Size, Vector};
 
 use crate::{
     canvas::{Fill, Path, Stroke, Text},
-    triangle, Primitive,
+    triangle, Item, Primitive,
 };
 
 /// The frame of a [`Canvas`].
@@ -260,7 +260,7 @@ impl Frame {
     /// Produces the primitive representing everything drawn on the [`Frame`].
     ///
     /// [`Frame`]: struct.Frame.html
-    pub fn into_primitive(mut self) -> Primitive {
+    pub fn into_primitive(mut self) -> Item {
         self.primitives.push(Primitive::Mesh2D {
             origin: Point::ORIGIN,
             buffers: triangle::Mesh2D {
@@ -269,9 +269,16 @@ impl Frame {
             },
         });
 
-        Primitive::Group {
-            primitives: self.primitives,
-        }
+        (
+            Primitive::Group {
+                primitives: self
+                    .primitives
+                    .into_iter()
+                    .map(|x| (x, Depth::None))
+                    .collect(),
+            },
+            Depth::None,
+        )
     }
 }
 

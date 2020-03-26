@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
     pane_grid::{self, Axis, Pane},
-    Element, Layout, MouseCursor, Point, Rectangle, Vector,
+    Depth, Element, Layout, MouseCursor, Point,
 };
 
 impl pane_grid::Renderer for Renderer {
@@ -51,22 +51,16 @@ impl pane_grid::Renderer for Renderer {
 
             // TODO: Fix once proper layering is implemented.
             // This is a pretty hacky way to achieve layering.
-            let clip = Primitive::Clip {
-                bounds: Rectangle {
-                    x: cursor_position.x - bounds.width / 2.0,
-                    y: cursor_position.y - bounds.height / 2.0,
-                    width: bounds.width + 0.5,
-                    height: bounds.height + 0.5,
-                },
-                offset: Vector::new(0, 0),
-                content: Box::new(Primitive::Cached {
+            let clip = (
+                Primitive::Cached {
                     origin: Point::new(
                         cursor_position.x - bounds.x - bounds.width / 2.0,
                         cursor_position.y - bounds.y - bounds.height / 2.0,
                     ),
                     cache: std::sync::Arc::new(pane),
-                }),
-            };
+                },
+                Depth::Above,
+            );
 
             panes.push(clip);
 
@@ -76,7 +70,7 @@ impl pane_grid::Renderer for Renderer {
         };
 
         (
-            Primitive::Group { primitives },
+            (Primitive::Group { primitives }, Depth::None),
             if dragging.is_some() {
                 MouseCursor::Grabbing
             } else if let Some(axis) = resizing {

@@ -1,6 +1,6 @@
 use crate::{
     canvas::{Drawable, Frame, Layer},
-    Primitive,
+    Item,
 };
 
 use iced_native::Size;
@@ -21,10 +21,7 @@ pub struct Cache<T: Drawable> {
 
 enum State {
     Empty,
-    Filled {
-        bounds: Size,
-        primitive: Arc<Primitive>,
-    },
+    Filled { bounds: Size, primitive: Arc<Item> },
 }
 
 impl<T> Cache<T>
@@ -72,7 +69,7 @@ impl<'a, T> Layer for Bind<'a, T>
 where
     T: Drawable + std::fmt::Debug,
 {
-    fn draw(&self, current_bounds: Size) -> Arc<Primitive> {
+    fn draw(&self, current_bounds: Size) -> Arc<Item> {
         use std::ops::Deref;
 
         if let State::Filled { bounds, primitive } =

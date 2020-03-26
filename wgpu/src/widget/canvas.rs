@@ -6,10 +6,11 @@
 //!
 //! [`Canvas`]: struct.Canvas.html
 //! [`Frame`]: struct.Frame.html
-use crate::{Defaults, Primitive, Renderer};
+use crate::{Defaults, Item, Primitive, Renderer};
 
 use iced_native::{
-    layout, Element, Hasher, Layout, Length, MouseCursor, Point, Size, Widget,
+    layout, Depth, Element, Hasher, Layout, Length, MouseCursor, Point, Size,
+    Widget,
 };
 use std::hash::Hash;
 
@@ -113,22 +114,30 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
         _defaults: &Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
-    ) -> (Primitive, MouseCursor) {
+    ) -> (Item, MouseCursor) {
         let bounds = layout.bounds();
         let origin = Point::new(bounds.x, bounds.y);
         let size = Size::new(bounds.width, bounds.height);
 
         (
-            Primitive::Group {
-                primitives: self
-                    .layers
-                    .iter()
-                    .map(|layer| Primitive::Cached {
-                        origin,
-                        cache: layer.draw(size),
-                    })
-                    .collect(),
-            },
+            (
+                Primitive::Group {
+                    primitives: self
+                        .layers
+                        .iter()
+                        .map(|layer| {
+                            (
+                                Primitive::Cached {
+                                    origin,
+                                    cache: layer.draw(size),
+                                },
+                                Depth::None,
+                            )
+                        })
+                        .collect(),
+                },
+                Depth::None,
+            ),
             MouseCursor::Idle,
         )
     }

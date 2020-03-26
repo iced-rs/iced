@@ -1,10 +1,13 @@
 use iced_native::{
-    image, svg, Background, Color, Font, HorizontalAlignment, Point, Rectangle,
-    Vector, VerticalAlignment,
+    image, svg, Background, Color, Depth, Font, HorizontalAlignment, Point,
+    Rectangle, Vector, VerticalAlignment,
 };
 
 use crate::triangle;
 use std::sync::Arc;
+
+/// A rendering primitive and its relative depth
+pub type Item = (Primitive, Depth);
 
 /// A rendering primitive.
 #[derive(Debug, Clone)]
@@ -14,7 +17,7 @@ pub enum Primitive {
     /// A group of primitives
     Group {
         /// The primitives of the group
-        primitives: Vec<Primitive>,
+        primitives: Vec<Item>,
     },
     /// A text primitive
     Text {
@@ -68,7 +71,7 @@ pub enum Primitive {
         /// The offset transformation of the clip
         offset: Vector<u32>,
         /// The content of the clip
-        content: Box<Primitive>,
+        content: Box<Item>,
     },
     /// A low-level primitive to render a mesh of triangles.
     ///
@@ -89,7 +92,7 @@ pub enum Primitive {
         origin: Point,
 
         /// The cached primitive
-        cache: Arc<Primitive>,
+        cache: Arc<Item>,
     },
 }
 

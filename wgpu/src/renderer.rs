@@ -1,5 +1,5 @@
 use crate::{
-    quad, text, triangle, Defaults, Primitive, Quad, Settings, Target,
+    quad, text, triangle, Defaults, Item, Primitive, Quad, Settings, Target,
     Transformation,
 };
 
@@ -7,8 +7,8 @@ use crate::{
 use crate::image::{self, Image};
 
 use iced_native::{
-    layout, Background, Color, Layout, MouseCursor, Point, Rectangle, Vector,
-    Widget,
+    layout, Background, Color, Depth, Layout, MouseCursor, Point, Rectangle,
+    Vector, Widget,
 };
 
 mod widget;
@@ -88,7 +88,7 @@ impl Renderer {
         device: &mut wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: Target<'_>,
-        (primitive, mouse_cursor): &(Primitive, MouseCursor),
+        (primitive, mouse_cursor): &(Item, MouseCursor),
         scale_factor: f64,
         overlay: &[T],
     ) -> MouseCursor {
@@ -107,7 +107,21 @@ impl Renderer {
             height: u32::from(height),
         }));
 
-        self.draw_primitive(Vector::new(0.0, 0.0), primitive, &mut layers);
+        let mut topmost_layer = Layer::new(Rectangle {
+            x: 0,
+            y: 0,
+            width: u32::from(width),
+            height: u32::from(height),
+        });
+
+        self.draw_primitive(
+            Vector::new(0.0, 0.0),
+            primitive,
+            &mut layers,
+            &mut topmost_layer,
+            (width, height),
+        );
+        layers.push(topmost_layer);
         self.draw_overlay(overlay, &mut layers);
 
         for layer in layers {
@@ -132,15 +146,49 @@ impl Renderer {
     fn draw_primitive<'a>(
         &mut self,
         translation: Vector,
-        primitive: &'a Primitive,
+        primitive: &'a Item,
         layers: &mut Vec<Layer<'a>>,
+        topmost_layer: &mut Layer<'a>,
+        dimensions: (u32, u32),
     ) {
-        match primitive {
+        let draw_layer = match primitive.1 {
+            Depth::None => layers.last_mut().unwrap(),
+            Depth::Above => {
+                layers.push(Layer::new(Rectangle {
+                    x: 0,
+                    y: 0,
+                    width: u32::from(dimensions.0),
+                    height: u32::from(dimensions.1),
+                }));
+                layers.last_mut().unwrap()
+            }
+            Depth::Below => {
+                layers.push(Layer::new(Rectangle {
+                    x: 0,
+                    y: 0,
+                    width: u32::from(dimensions.0),
+                    height: u32::from(dimensions.1),
+                }));
+
+                let len = layers.len();
+
+                layers.get_mut(len - 2).unwrap()
+            }
+            Depth::Topmost => topmost_layer,
+        };
+
+        match &primitive.0 {
             Primitive::None => {}
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
-                    self.draw_primitive(translation, primitive, layers)
+                    self.draw_primitive(
+                        translation,
+                        primitive,
+                        layers,
+                        topmost_layer,
+                        dimensions,
+                    )
                 }
             }
             Primitive::Text {
@@ -172,9 +220,7 @@ impl Renderer {
                     }
                 };
 
-                let layer = layers.last_mut().unwrap();
-
-                layer.text.push(wgpu_glyph::Section {
+                draw_layer.text.push(wgpu_glyph::Section {
                     text: &content,
                     screen_position: (x + translation.x, y + translation.y),
                     bounds: (bounds.width, bounds.height),
@@ -214,10 +260,8 @@ impl Renderer {
                 border_width,
                 border_color,
             } => {
-                let layer = layers.last_mut().unwrap();
-
                 // TODO: Move some of these computations to the GPU (?)
-                layer.quads.push(Quad {
+                draw_layer.quads.push(Quad {
                     position: [
                         bounds.x + translation.x,
                         bounds.y + translation.y,
@@ -232,18 +276,14 @@ impl Renderer {
                 });
             }
             Primitive::Mesh2D { origin, buffers } => {
-                let layer = layers.last_mut().unwrap();
-
-                layer.meshes.push((*origin + translation, buffers));
+                draw_layer.meshes.push((*origin + translation, buffers));
             }
             Primitive::Clip {
                 bounds,
                 offset,
                 content,
             } => {
-                let layer = layers.last_mut().unwrap();
-
-                let layer_bounds: Rectangle<f32> = layer.bounds.into();
+                let layer_bounds: Rectangle<f32> = draw_layer.bounds.into();
 
                 let clip = Rectangle {
                     x: bounds.x + translation.x,
@@ -254,7 +294,7 @@ impl Renderer {
                 // Only draw visible content
                 if let Some(clip_bounds) = layer_bounds.intersection(&clip) {
                     let clip_layer = Layer::new(clip_bounds.into());
-                    let new_layer = Layer::new(layer.bounds);
+                    let new_layer = Layer::new(draw_layer.bounds);
 
                     layers.push(clip_layer);
                     self.draw_primitive(
@@ -262,6 +302,8 @@ impl Renderer {
                             - Vector::new(offset.x as f32, offset.y as f32),
                         content,
                         layers,
+                        topmost_layer,
+                        dimensions,
                     );
                     layers.push(new_layer);
                 }
@@ -272,14 +314,14 @@ impl Renderer {
                     translation + Vector::new(origin.x, origin.y),
                     &cache,
                     layers,
+                    topmost_layer,
+                    dimensions,
                 );
             }
 
             #[cfg(feature = "image")]
             Primitive::Image { handle, bounds } => {
-                let layer = layers.last_mut().unwrap();
-
-                layer.images.push(Image {
+                draw_layer.images.push(Image {
                     handle: image::Handle::Raster(handle.clone()),
                     position: [
                         bounds.x + translation.x,
@@ -293,9 +335,7 @@ impl Renderer {
 
             #[cfg(feature = "svg")]
             Primitive::Svg { handle, bounds } => {
-                let layer = layers.last_mut().unwrap();
-
-                layer.images.push(Image {
+                draw_layer.images.push(Image {
                     handle: image::Handle::Vector(handle.clone()),
                     position: [
                         bounds.x + translation.x,
@@ -454,7 +494,7 @@ impl Renderer {
 }
 
 impl iced_native::Renderer for Renderer {
-    type Output = (Primitive, MouseCursor);
+    type Output = (Item, MouseCursor);
     type Defaults = Defaults;
 
     fn layout<'a, Message>(
@@ -486,22 +526,25 @@ impl layout::Debugger for Renderer {
         explain_layout(layout, color, &mut primitives);
         primitives.push(primitive);
 
-        (Primitive::Group { primitives }, cursor)
+        ((Primitive::Group { primitives }, Depth::Topmost), cursor)
     }
 }
 
 fn explain_layout(
     layout: Layout<'_>,
     color: Color,
-    primitives: &mut Vec<Primitive>,
+    primitives: &mut Vec<Item>,
 ) {
-    primitives.push(Primitive::Quad {
-        bounds: layout.bounds(),
-        background: Background::Color(Color::TRANSPARENT),
-        border_radius: 0,
-        border_width: 1,
-        border_color: [0.6, 0.6, 0.6, 0.5].into(),
-    });
+    primitives.push((
+        Primitive::Quad {
+            bounds: layout.bounds(),
+            background: Background::Color(Color::TRANSPARENT),
+            border_radius: 0,
+            border_width: 1,
+            border_color: [0.6, 0.6, 0.6, 0.5].into(),
+        },
+        Depth::None,
+    ));
 
     for child in layout.children() {
         explain_layout(child, color, primitives);

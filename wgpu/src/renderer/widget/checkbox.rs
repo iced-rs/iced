@@ -1,6 +1,7 @@
 use crate::{checkbox::StyleSheet, Primitive, Renderer};
 use iced_native::{
-    checkbox, HorizontalAlignment, MouseCursor, Rectangle, VerticalAlignment,
+    checkbox, Depth, HorizontalAlignment, MouseCursor, Rectangle,
+    VerticalAlignment,
 };
 
 impl checkbox::Renderer for Renderer {
@@ -23,32 +24,43 @@ impl checkbox::Renderer for Renderer {
             style_sheet.active(is_checked)
         };
 
-        let checkbox = Primitive::Quad {
-            bounds,
-            background: style.background,
-            border_radius: style.border_radius,
-            border_width: style.border_width,
-            border_color: style.border_color,
-        };
+        let checkbox = (
+            Primitive::Quad {
+                bounds,
+                background: style.background,
+                border_radius: style.border_radius,
+                border_width: style.border_width,
+                border_color: style.border_color,
+            },
+            Depth::None,
+        );
 
         (
-            Primitive::Group {
-                primitives: if is_checked {
-                    let check = Primitive::Text {
-                        content: crate::text::CHECKMARK_ICON.to_string(),
-                        font: crate::text::BUILTIN_ICONS,
-                        size: bounds.height * 0.7,
-                        bounds: bounds,
-                        color: style.checkmark_color,
-                        horizontal_alignment: HorizontalAlignment::Center,
-                        vertical_alignment: VerticalAlignment::Center,
-                    };
+            (
+                Primitive::Group {
+                    primitives: if is_checked {
+                        let check = (
+                            Primitive::Text {
+                                content: crate::text::CHECKMARK_ICON
+                                    .to_string(),
+                                font: crate::text::BUILTIN_ICONS,
+                                size: bounds.height * 0.7,
+                                bounds: bounds,
+                                color: style.checkmark_color,
+                                horizontal_alignment:
+                                    HorizontalAlignment::Center,
+                                vertical_alignment: VerticalAlignment::Center,
+                            },
+                            Depth::None,
+                        );
 
-                    vec![checkbox, check, label]
-                } else {
-                    vec![checkbox, label]
+                        vec![checkbox, check, label]
+                    } else {
+                        vec![checkbox, label]
+                    },
                 },
-            },
+                Depth::None,
+            ),
             if is_mouse_over {
                 MouseCursor::Pointer
             } else {

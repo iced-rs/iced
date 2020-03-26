@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    text, Color, Font, HorizontalAlignment, MouseCursor, Rectangle, Size,
-    VerticalAlignment,
+    text, Color, Depth, Font, HorizontalAlignment, MouseCursor, Rectangle,
+    Size, VerticalAlignment,
 };
 
 use std::f32;
@@ -32,15 +32,18 @@ impl text::Renderer for Renderer {
         vertical_alignment: VerticalAlignment,
     ) -> Self::Output {
         (
-            Primitive::Text {
-                content: content.to_string(),
-                size: f32::from(size),
-                bounds,
-                color: color.unwrap_or(defaults.text.color),
-                font,
-                horizontal_alignment,
-                vertical_alignment,
-            },
+            (
+                Primitive::Text {
+                    content: content.to_string(),
+                    size: f32::from(size),
+                    bounds,
+                    color: color.unwrap_or(defaults.text.color),
+                    font,
+                    horizontal_alignment,
+                    vertical_alignment,
+                },
+                Depth::None,
+            ),
             MouseCursor::OutOfBounds,
         )
     }

@@ -41,7 +41,7 @@ mod viewport;
 pub use wgpu;
 
 pub use defaults::Defaults;
-pub use primitive::Primitive;
+pub use primitive::{Item, Primitive};
 pub use renderer::Renderer;
 pub use settings::Settings;
 pub use target::Target;

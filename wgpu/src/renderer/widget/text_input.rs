@@ -2,7 +2,7 @@ use crate::{text_input::StyleSheet, Primitive, Renderer};
 
 use iced_native::{
     text_input::{self, cursor},
-    Background, Color, Font, HorizontalAlignment, MouseCursor, Point,
+    Background, Color, Depth, Font, HorizontalAlignment, MouseCursor, Point,
     Rectangle, Size, Vector, VerticalAlignment,
 };
 use std::f32;
@@ -203,7 +203,10 @@ impl text_input::Renderer for Renderer {
 
             (
                 Primitive::Group {
-                    primitives: vec![cursor_primitive, text_value],
+                    primitives: vec![
+                        (cursor_primitive, Depth::None),
+                        (text_value, Depth::None),
+                    ],
                 },
                 Vector::new(offset as u32, 0),
             )
@@ -214,13 +217,19 @@ impl text_input::Renderer for Renderer {
         let contents = Primitive::Clip {
             bounds: text_bounds,
             offset,
-            content: Box::new(contents_primitive),
+            content: Box::new((contents_primitive, Depth::None)),
         };
 
         (
-            Primitive::Group {
-                primitives: vec![input, contents],
-            },
+            (
+                Primitive::Group {
+                    primitives: vec![
+                        (input, Depth::None),
+                        (contents, Depth::None),
+                    ],
+                },
+                Depth::None,
+            ),
             if is_mouse_over {
                 MouseCursor::Text
             } else {

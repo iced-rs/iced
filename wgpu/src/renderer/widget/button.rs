@@ -1,6 +1,7 @@
 use crate::{button::StyleSheet, defaults, Defaults, Primitive, Renderer};
 use iced_native::{
-    Background, Color, Element, Layout, MouseCursor, Point, Rectangle, Vector,
+    Background, Color, Depth, Element, Layout, MouseCursor, Point, Rectangle,
+    Vector,
 };
 
 impl iced_native::button::Renderer for Renderer {
@@ -58,9 +59,15 @@ impl iced_native::button::Renderer for Renderer {
                 };
 
                 if styling.shadow_offset == Vector::default() {
-                    Primitive::Group {
-                        primitives: vec![background, content],
-                    }
+                    (
+                        Primitive::Group {
+                            primitives: vec![
+                                (background, Depth::None),
+                                content,
+                            ],
+                        },
+                        Depth::None,
+                    )
                 } else {
                     // TODO: Implement proper shadow support
                     let shadow = Primitive::Quad {
@@ -77,9 +84,16 @@ impl iced_native::button::Renderer for Renderer {
                         border_color: Color::TRANSPARENT,
                     };
 
-                    Primitive::Group {
-                        primitives: vec![shadow, background, content],
-                    }
+                    (
+                        Primitive::Group {
+                            primitives: vec![
+                                (shadow, Depth::None),
+                                (background, Depth::None),
+                                content,
+                            ],
+                        },
+                        Depth::None,
+                    )
                 }
             } else {
                 content

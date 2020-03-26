@@ -10,10 +10,10 @@ mod circle {
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
     use iced_native::{
-        layout, Background, Color, Element, Hasher, Layout, Length,
+        layout, Background, Color, Depth, Element, Hasher, Layout, Length,
         MouseCursor, Point, Size, Widget,
     };
-    use iced_wgpu::{Defaults, Primitive, Renderer};
+    use iced_wgpu::{Defaults, Item, Primitive, Renderer};
 
     pub struct Circle {
         radius: u16,
@@ -57,15 +57,18 @@ mod circle {
             _defaults: &Defaults,
             layout: Layout<'_>,
             _cursor_position: Point,
-        ) -> (Primitive, MouseCursor) {
+        ) -> (Item, MouseCursor) {
             (
-                Primitive::Quad {
-                    bounds: layout.bounds(),
-                    background: Background::Color(Color::BLACK),
-                    border_radius: self.radius,
-                    border_width: 0,
-                    border_color: Color::TRANSPARENT,
-                },
+                (
+                    Primitive::Quad {
+                        bounds: layout.bounds(),
+                        background: Background::Color(Color::BLACK),
+                        border_radius: self.radius,
+                        border_width: 0,
+                        border_color: Color::TRANSPARENT,
+                    },
+                    Depth::None,
+                ),
                 MouseCursor::OutOfBounds,
             )
         }

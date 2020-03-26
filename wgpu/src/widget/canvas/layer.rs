@@ -3,7 +3,7 @@ mod cache;
 
 pub use cache::Cache;
 
-use crate::Primitive;
+use crate::Item;
 use iced_native::Size;
 
 use std::sync::Arc;
@@ -21,5 +21,5 @@ pub trait Layer: std::fmt::Debug {
     ///
     /// [`Layer`]: trait.Layer.html
     /// [`Primitive`]: ../../../enum.Primitive.html
-    fn draw(&self, bounds: Size) -> Arc<Primitive>;
+    fn draw(&self, bounds: Size) -> Arc<Item>;
 }
