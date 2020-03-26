@@ -2,7 +2,7 @@ use crate::{
     subscription::{EventStream, Recipe},
     Event, Hasher,
 };
-use iced_futures::futures::stream::BoxStream;
+use iced_futures::BoxStream;
 
 pub struct Events;
 
@@ -18,7 +18,7 @@ impl Recipe<Hasher, Event> for Events {
     fn stream(
         self: Box<Self>,
         event_stream: EventStream,
-    ) -> BoxStream<'static, Self::Output> {
+    ) -> BoxStream<Self::Output> {
         event_stream
     }
 }

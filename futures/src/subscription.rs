@@ -3,7 +3,7 @@ mod tracker;
 
 pub use tracker::Tracker;
 
-use futures::stream::BoxStream;
+use crate::BoxStream;
 
 /// A request to listen to external events.
 ///
@@ -168,8 +168,8 @@ pub trait Recipe<Hasher: std::hash::Hasher, Event> {
     /// [`Recipe`]: trait.Recipe.html
     fn stream(
         self: Box<Self>,
-        input: BoxStream<'static, Event>,
-    ) -> BoxStream<'static, Self::Output>;
+        input: BoxStream<Event>,
+    ) -> BoxStream<Self::Output>;
 }
 
 struct Map<Hasher, Event, A, B> {
@@ -201,18 +201,16 @@ where
         self.recipe.hash(state);
     }
 
-    fn stream(
-        self: Box<Self>,
-        input: BoxStream<'static, E>,
-    ) -> futures::stream::BoxStream<'static, Self::Output> {
+    fn stream(self: Box<Self>, input: BoxStream<E>) -> BoxStream<Self::Output> {
         use futures::StreamExt;
 
         let mapper = self.mapper;
 
-        self.recipe
-            .stream(input)
-            .map(move |element| mapper(element))
-            .boxed()
+        Box::pin(
+            self.recipe
+                .stream(input)
+                .map(move |element| mapper(element)),
+        )
     }
 }
 
@@ -243,17 +241,15 @@ where
         self.recipe.hash(state);
     }
 
-    fn stream(
-        self: Box<Self>,
-        input: BoxStream<'static, E>,
-    ) -> futures::stream::BoxStream<'static, Self::Output> {
+    fn stream(self: Box<Self>, input: BoxStream<E>) -> BoxStream<Self::Output> {
         use futures::StreamExt;
 
         let value = self.value;
 
-        self.recipe
-            .stream(input)
-            .map(move |element| (value.clone(), element))
-            .boxed()
+        Box::pin(
+            self.recipe
+                .stream(input)
+                .map(move |element| (value.clone(), element)),
+        )
     }
 }
