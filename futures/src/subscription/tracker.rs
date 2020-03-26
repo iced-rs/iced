@@ -1,6 +1,6 @@
-use crate::Subscription;
+use crate::{BoxFuture, Subscription};
 
-use futures::{channel::mpsc, future::BoxFuture, sink::Sink};
+use futures::{channel::mpsc, sink::Sink};
 use std::{collections::HashMap, marker::PhantomData};
 
 /// A registry of subscription streams.
@@ -59,7 +59,7 @@ where
         &mut self,
         subscription: Subscription<Hasher, Event, Message>,
         receiver: Receiver,
-    ) -> Vec<BoxFuture<'static, ()>>
+    ) -> Vec<BoxFuture<()>>
     where
         Message: 'static + Send,
         Receiver: 'static
@@ -70,7 +70,7 @@ where
     {
         use futures::{future::FutureExt, stream::StreamExt};
 
-        let mut futures = Vec::new();
+        let mut futures: Vec<BoxFuture<()>> = Vec::new();
 
         let recipes = subscription.recipes();
         let mut alive = std::collections::HashSet::new();
@@ -115,7 +115,7 @@ where
                 },
             );
 
-            futures.push(future.boxed());
+            futures.push(Box::pin(future));
         }
 
         self.subscriptions.retain(|id, _| alive.contains(&id));
