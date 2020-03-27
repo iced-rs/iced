@@ -378,7 +378,7 @@ pub trait Application: Sized {
                 }
 
                 if let Some(event) = conversion::window_event(
-                    window_event,
+                    &window_event,
                     size.scale_factor(),
                     modifiers,
                 ) {
