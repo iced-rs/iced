@@ -29,10 +29,7 @@ impl Controls {
         }
     }
 
-    pub fn view<'a>(
-        &'a mut self,
-        scene: &Scene,
-    ) -> Element<'a, Message, Renderer> {
+    pub fn view(&mut self, scene: &Scene) -> Element<Message, Renderer> {
         let [r, g, b] = &mut self.sliders;
         let background_color = scene.background_color;
 
