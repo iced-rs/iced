@@ -1,4 +1,4 @@
-//! Convert [`winit`] types to [`iced_native`] types, and viceversa.
+//! Convert [`winit`] types into [`iced_native`] types, and viceversa.
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
@@ -12,7 +12,7 @@ use crate::{
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
-    event: winit::event::WindowEvent<'_>,
+    event: &winit::event::WindowEvent<'_>,
     scale_factor: f64,
     modifiers: winit::event::ModifiersState,
 ) -> Option<Event> {
@@ -37,16 +37,16 @@ pub fn window_event(
         }
         WindowEvent::MouseInput { button, state, .. } => {
             Some(Event::Mouse(mouse::Event::Input {
-                button: mouse_button(button),
-                state: button_state(state),
+                button: mouse_button(*button),
+                state: button_state(*state),
             }))
         }
         WindowEvent::MouseWheel { delta, .. } => match delta {
             winit::event::MouseScrollDelta::LineDelta(delta_x, delta_y) => {
                 Some(Event::Mouse(mouse::Event::WheelScrolled {
                     delta: mouse::ScrollDelta::Lines {
-                        x: delta_x,
-                        y: delta_y,
+                        x: *delta_x,
+                        y: *delta_y,
                     },
                 }))
             }
@@ -59,8 +59,8 @@ pub fn window_event(
                 }))
             }
         },
-        WindowEvent::ReceivedCharacter(c) if !is_private_use_character(c) => {
-            Some(Event::Keyboard(keyboard::Event::CharacterReceived(c)))
+        WindowEvent::ReceivedCharacter(c) if !is_private_use_character(*c) => {
+            Some(Event::Keyboard(keyboard::Event::CharacterReceived(*c)))
         }
         WindowEvent::KeyboardInput {
             input:
@@ -71,15 +71,15 @@ pub fn window_event(
                 },
             ..
         } => Some(Event::Keyboard(keyboard::Event::Input {
-            key_code: key_code(virtual_keycode),
-            state: button_state(state),
+            key_code: key_code(*virtual_keycode),
+            state: button_state(*state),
             modifiers: modifiers_state(modifiers),
         })),
         WindowEvent::HoveredFile(path) => {
-            Some(Event::Window(window::Event::FileHovered(path)))
+            Some(Event::Window(window::Event::FileHovered(path.clone())))
         }
         WindowEvent::DroppedFile(path) => {
-            Some(Event::Window(window::Event::FileDropped(path)))
+            Some(Event::Window(window::Event::FileDropped(path.clone())))
         }
         WindowEvent::HoveredFileCancelled => {
             Some(Event::Window(window::Event::FilesHoveredLeft))
