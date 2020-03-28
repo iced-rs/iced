@@ -36,7 +36,7 @@ mod platform {
             &self,
             future: impl futures::Future<Output = ()> + Send + 'static,
         ) {
-            let _ = self.0.spawn(future);
+            self.0.spawn(future);
         }
 
         fn enter<R>(&self, f: impl FnOnce() -> R) -> R {

@@ -54,8 +54,7 @@ impl<'a> Editor<'a> {
 
                 if start > 0 {
                     self.cursor.move_left(self.value);
-
-                    let _ = self.value.remove(start - 1);
+                    self.value.remove(start - 1);
                 }
             }
         }
@@ -70,7 +69,7 @@ impl<'a> Editor<'a> {
                 let end = self.cursor.end(self.value);
 
                 if end < self.value.len() {
-                    let _ = self.value.remove(end);
+                    self.value.remove(end);
                 }
             }
         }
