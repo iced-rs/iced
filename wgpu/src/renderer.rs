@@ -104,7 +104,7 @@ impl Renderer {
             x: 0,
             y: 0,
             width,
-            height
+            height,
         }));
 
         self.draw_primitive(Vector::new(0.0, 0.0), primitive, &mut layers);
