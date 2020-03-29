@@ -45,7 +45,7 @@ pub enum Antialiasing {
 }
 
 impl Antialiasing {
-    pub(crate) fn sample_count(&self) -> u32 {
+    pub(crate) fn sample_count(self) -> u32 {
         match self {
             Antialiasing::MSAAx2 => 2,
             Antialiasing::MSAAx4 => 4,
