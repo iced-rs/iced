@@ -274,8 +274,8 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
-    Message: 'static + Clone,
+    Renderer: 'a + self::Renderer,
+    Message: 'a + Clone,
 {
     fn from(
         button: Button<'a, Message, Renderer>,

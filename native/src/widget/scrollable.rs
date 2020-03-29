@@ -506,7 +506,7 @@ impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer + column::Renderer,
-    Message: 'static,
+    Message: 'a,
 {
     fn from(
         scrollable: Scrollable<'a, Message, Renderer>,

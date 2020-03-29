@@ -187,10 +187,10 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     /// Panes can be dragged using `Modifier keys + Left click`.
     ///
     /// [`PaneGrid`]: struct.PaneGrid.html
-    pub fn on_drag(
-        mut self,
-        f: impl Fn(DragEvent) -> Message + 'static,
-    ) -> Self {
+    pub fn on_drag<F>(mut self, f: F) -> Self
+    where
+        F: 'static + Fn(DragEvent) -> Message,
+    {
         self.on_drag = Some(Box::new(f));
         self
     }
@@ -201,10 +201,10 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     /// Panes can be resized using `Modifier keys + Right click`.
     ///
     /// [`PaneGrid`]: struct.PaneGrid.html
-    pub fn on_resize(
-        mut self,
-        f: impl Fn(ResizeEvent) -> Message + 'static,
-    ) -> Self {
+    pub fn on_resize<F>(mut self, f: F) -> Self
+    where
+        F: 'static + Fn(ResizeEvent) -> Message,
+    {
         self.on_resize = Some(Box::new(f));
         self
     }
@@ -226,10 +226,10 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     ///
     /// [`PaneGrid`]: struct.PaneGrid.html
     /// [`Pane`]: struct.Pane.html
-    pub fn on_key_press(
-        mut self,
-        f: impl Fn(KeyPressEvent) -> Option<Message> + 'static,
-    ) -> Self {
+    pub fn on_key_press<F>(mut self, f: F) -> Self
+    where
+        F: 'static + Fn(KeyPressEvent) -> Option<Message>,
+    {
         self.on_key_press = Some(Box::new(f));
         self
     }
@@ -348,7 +348,7 @@ pub struct KeyPressEvent {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + 'static,
+    Renderer: 'static + self::Renderer,
     Message: 'static,
 {
     fn width(&self) -> Length {
@@ -636,7 +636,7 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + 'static,
+    Renderer: 'static + self::Renderer,
     Message: 'static,
 {
     fn from(

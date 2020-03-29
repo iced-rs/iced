@@ -251,8 +251,8 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Slider<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
-    Message: 'static,
+    Renderer: 'a + self::Renderer,
+    Message: 'a,
 {
     fn from(
         slider: Slider<'a, Message, Renderer>,

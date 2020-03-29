@@ -234,7 +234,7 @@ impl<'a, Message, Renderer> From<Column<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'a + self::Renderer,
-    Message: 'static,
+    Message: 'a,
 {
     fn from(
         column: Column<'a, Message, Renderer>,

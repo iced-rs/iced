@@ -157,8 +157,8 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<ProgressBar<Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
-    Message: 'static,
+    Renderer: 'a + self::Renderer,
+    Message: 'a,
 {
     fn from(
         progress_bar: ProgressBar<Renderer>,

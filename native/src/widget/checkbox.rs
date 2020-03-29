@@ -252,8 +252,8 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Checkbox<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer + text::Renderer + row::Renderer,
-    Message: 'static,
+    Renderer: 'a + self::Renderer + text::Renderer + row::Renderer,
+    Message: 'a,
 {
     fn from(
         checkbox: Checkbox<Message, Renderer>,

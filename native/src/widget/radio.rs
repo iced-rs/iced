@@ -211,8 +211,8 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer + row::Renderer + text::Renderer,
-    Message: 'static + Clone,
+    Renderer: 'a + self::Renderer + row::Renderer + text::Renderer,
+    Message: 'a + Clone,
 {
     fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(radio)

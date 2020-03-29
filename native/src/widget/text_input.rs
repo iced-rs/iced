@@ -607,7 +607,7 @@ impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer,
-    Message: 'static + Clone + std::fmt::Debug,
+    Message: 'a + Clone + std::fmt::Debug,
 {
     fn from(
         text_input: TextInput<'a, Message, Renderer>,

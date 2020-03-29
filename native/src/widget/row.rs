@@ -236,7 +236,7 @@ impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'a + self::Renderer,
-    Message: 'static,
+    Message: 'a,
 {
     fn from(row: Row<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(row)
