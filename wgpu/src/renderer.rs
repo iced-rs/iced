@@ -103,8 +103,8 @@ impl Renderer {
         layers.push(Layer::new(Rectangle {
             x: 0,
             y: 0,
-            width: u32::from(width),
-            height: u32::from(height),
+            width,
+            height,
         }));
 
         self.draw_primitive(Vector::new(0.0, 0.0), primitive, &mut layers);
@@ -356,7 +356,7 @@ impl Renderer {
     ) {
         let bounds = layer.bounds * scale_factor;
 
-        if layer.meshes.len() > 0 {
+        if !layer.meshes.is_empty() {
             let scaled = transformation
                 * Transformation::scale(scale_factor, scale_factor);
 
@@ -372,7 +372,7 @@ impl Renderer {
             );
         }
 
-        if layer.quads.len() > 0 {
+        if !layer.quads.is_empty() {
             self.quad_pipeline.draw(
                 device,
                 encoder,
@@ -386,7 +386,7 @@ impl Renderer {
 
         #[cfg(any(feature = "image", feature = "svg"))]
         {
-            if layer.images.len() > 0 {
+            if !layer.images.is_empty() {
                 let scaled = transformation
                     * Transformation::scale(scale_factor, scale_factor);
 
@@ -402,7 +402,7 @@ impl Renderer {
             }
         }
 
-        if layer.text.len() > 0 {
+        if !layer.text.is_empty() {
             for text in layer.text.iter() {
                 // Target physical coordinates directly to avoid blurry text
                 let text = wgpu_glyph::Section {

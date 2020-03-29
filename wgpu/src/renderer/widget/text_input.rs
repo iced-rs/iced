@@ -106,8 +106,7 @@ impl text_input::Renderer for Renderer {
                 style_sheet.placeholder_color()
             } else {
                 style_sheet.value_color()
-            }
-            .into(),
+            },
             font,
             bounds: Rectangle {
                 width: f32::INFINITY,

@@ -49,6 +49,6 @@ impl AsRef<[f32; 16]> for Transformation {
 
 impl From<Transformation> for [f32; 16] {
     fn from(t: Transformation) -> [f32; 16] {
-        t.as_ref().clone()
+        *t.as_ref()
     }
 }

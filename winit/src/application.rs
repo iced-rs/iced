@@ -123,7 +123,7 @@ pub trait Application: Sized {
             Runtime::new(executor, Proxy::new(event_loop.create_proxy()))
         };
 
-        let (mut application, init_command) = runtime.enter(|| Self::new());
+        let (mut application, init_command) = runtime.enter(Self::new);
         runtime.spawn(init_command);
 
         let subscription = application.subscription();
