@@ -38,7 +38,7 @@ impl checkbox::Renderer for Renderer {
                         content: crate::text::CHECKMARK_ICON.to_string(),
                         font: crate::text::BUILTIN_ICONS,
                         size: bounds.height * 0.7,
-                        bounds: bounds,
+                        bounds,
                         color: style.checkmark_color,
                         horizontal_alignment: HorizontalAlignment::Center,
                         vertical_alignment: VerticalAlignment::Center,

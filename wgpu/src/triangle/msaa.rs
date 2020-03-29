@@ -120,7 +120,7 @@ impl Blit {
             format,
             pipeline,
             constants: constant_bind_group,
-            texture_layout: texture_layout,
+            texture_layout,
             sample_count: antialiasing.sample_count(),
             targets: None,
         }
