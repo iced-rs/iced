@@ -386,7 +386,7 @@ impl Renderer {
 
         #[cfg(any(feature = "image", feature = "svg"))]
         {
-            if layer.images.len() > 0 {
+            if !layer.images.is_empty() {
                 let scaled = transformation
                     * Transformation::scale(scale_factor, scale_factor);
 
