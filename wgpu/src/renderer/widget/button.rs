@@ -10,7 +10,7 @@ impl iced_native::button::Renderer for Renderer {
 
     fn draw<Message>(
         &mut self,
-        defaults: &Defaults,
+        _defaults: &Defaults,
         bounds: Rectangle,
         cursor_position: Point,
         is_disabled: bool,
@@ -39,7 +39,6 @@ impl iced_native::button::Renderer for Renderer {
                 text: defaults::Text {
                     color: styling.text_color,
                 },
-                ..*defaults
             },
             content_layout,
             cursor_position,

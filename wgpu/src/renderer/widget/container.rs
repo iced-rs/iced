@@ -19,7 +19,6 @@ impl iced_native::container::Renderer for Renderer {
             text: defaults::Text {
                 color: style.text_color.unwrap_or(defaults.text.color),
             },
-            ..*defaults
         };
 
         let (content, mouse_cursor) =
