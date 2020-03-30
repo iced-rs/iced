@@ -72,7 +72,7 @@ impl<Renderer: self::Renderer> ProgressBar<Renderer> {
 
 impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -114,6 +114,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<ProgressBar<Renderer>>().hash(state);
+
         self.width.hash(state);
         self.height.hash(state);
     }
@@ -158,7 +160,7 @@ impl<'a, Message, Renderer> From<ProgressBar<Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer,
-    Message: 'static,
+    Message: 'a,
 {
     fn from(
         progress_bar: ProgressBar<Renderer>,

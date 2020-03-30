@@ -110,7 +110,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
 impl<Message, Renderer> Widget<Message, Renderer>
     for Checkbox<Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer + row::Renderer,
+    Renderer: 'static + self::Renderer + text::Renderer + row::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -205,6 +205,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Checkbox<(), Renderer>>().hash(state);
+
         self.label.hash(state);
     }
 }
@@ -253,7 +255,7 @@ impl<'a, Message, Renderer> From<Checkbox<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer + text::Renderer + row::Renderer,
-    Message: 'static,
+    Message: 'a,
 {
     fn from(
         checkbox: Checkbox<Message, Renderer>,

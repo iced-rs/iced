@@ -143,7 +143,7 @@ impl State {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
     Message: Clone,
 {
     fn width(&self) -> Length {
@@ -234,6 +234,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Button<'_, (), Renderer>>().hash(state);
+
         self.width.hash(state);
         self.content.hash_layout(state);
     }
@@ -275,7 +277,7 @@ impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'static + self::Renderer,
-    Message: 'static + Clone,
+    Message: 'a + Clone,
 {
     fn from(
         button: Button<'a, Message, Renderer>,

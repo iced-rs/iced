@@ -77,6 +77,7 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         std::any::TypeId::of::<Space>().hash(state);
+
         self.width.hash(state);
         self.height.hash(state);
     }
@@ -97,7 +98,7 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Space> for Element<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
-    Message: 'static,
+    Message: 'a,
 {
     fn from(space: Space) -> Element<'a, Message, Renderer> {
         Element::new(space)

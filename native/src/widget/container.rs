@@ -122,7 +122,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Container<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -189,7 +189,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        0.hash(state);
+        std::any::TypeId::of::<Container<'_, (), Renderer>>().hash(state);
+
         self.width.hash(state);
         self.height.hash(state);
         self.max_width.hash(state);
@@ -227,8 +228,8 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
-    Message: 'static,
+    Renderer: 'static + self::Renderer,
+    Message: 'a,
 {
     fn from(
         column: Container<'a, Message, Renderer>,
