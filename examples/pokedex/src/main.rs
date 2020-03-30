@@ -225,7 +225,7 @@ enum Error {
 
 impl From<reqwest::Error> for Error {
     fn from(error: reqwest::Error) -> Error {
-        dbg!(&error);
+        dbg!(error);
 
         Error::APIError
     }

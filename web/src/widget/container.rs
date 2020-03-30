@@ -8,6 +8,7 @@ pub use iced_style::container::{Style, StyleSheet};
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
 pub struct Container<'a, Message> {
+    padding: u16,
     width: Length,
     height: Length,
     max_width: u32,
@@ -29,6 +30,7 @@ impl<'a, Message> Container<'a, Message> {
         use std::u32;
 
         Container {
+            padding: 0,
             width: Length::Shrink,
             height: Length::Shrink,
             max_width: u32::MAX,
@@ -38,6 +40,14 @@ impl<'a, Message> Container<'a, Message> {
             style_sheet: Default::default(),
             content: content.into(),
         }
+    }
+
+    /// Sets the padding of the [`Container`].
+    ///
+    /// [`Container`]: struct.Column.html
+    pub fn padding(mut self, units: u16) -> Self {
+        self.padding = units;
+        self
     }
 
     /// Sets the width of the [`Container`].
@@ -113,12 +123,15 @@ where
 
         let column_class = style_sheet.insert(bump, css::Rule::Column);
 
+        let padding_class =
+            style_sheet.insert(bump, css::Rule::Padding(self.padding));
+
         let style = self.style_sheet.style();
 
         let node = div(bump)
             .attr(
                 "class",
-                bumpalo::format!(in bump, "{}", column_class).into_bump_str(),
+                bumpalo::format!(in bump, "{} {}", column_class, padding_class).into_bump_str(),
             )
             .attr(
                 "style",
