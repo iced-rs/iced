@@ -2,8 +2,9 @@
 use crate::{layout, Element, Hasher, Layout, Length, Point, Size, Widget};
 
 use std::{
-    hash::Hash,
-    path::{Path, PathBuf},
+    hash::{Hash, Hasher as _},
+    path::PathBuf,
+    sync::Arc,
 };
 
 /// A vector graphics image.
@@ -32,6 +33,14 @@ impl Svg {
             width: Length::Fill,
             height: Length::Shrink,
         }
+    }
+
+    /// Creates a new [`Svg`] that will display the contents of the file at the
+    /// provided path.
+    ///
+    /// [`Svg`]: struct.Svg.html
+    pub fn from_path(path: impl Into<PathBuf>) -> Self {
+        Self::new(Handle::from_path(path))
     }
 
     /// Sets the width of the [`Svg`].
@@ -101,6 +110,7 @@ where
     fn hash_layout(&self, state: &mut Hasher) {
         std::any::TypeId::of::<Svg>().hash(state);
 
+        self.handle.hash(state);
         self.width.hash(state);
         self.height.hash(state);
     }
@@ -112,7 +122,7 @@ where
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
-    path: PathBuf,
+    data: Arc<Data>,
 }
 
 impl Handle {
@@ -120,17 +130,28 @@ impl Handle {
     /// path.
     ///
     /// [`Handle`]: struct.Handle.html
-    pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
-        use std::hash::Hasher as _;
+    pub fn from_path(path: impl Into<PathBuf>) -> Handle {
+        Self::from_data(Data::Path(path.into()))
+    }
 
-        let path = path.into();
+    /// Creates an SVG [`Handle`] from raw bytes containing either an SVG string
+    /// or gzip compressed data.
+    ///
+    /// This is useful if you already have your SVG data in-memory, maybe
+    /// because you downloaded or generated it procedurally.
+    ///
+    /// [`Handle`]: struct.Handle.html
+    pub fn from_memory(bytes: impl Into<Vec<u8>>) -> Handle {
+        Self::from_data(Data::Bytes(bytes.into()))
+    }
 
+    fn from_data(data: Data) -> Handle {
         let mut hasher = Hasher::default();
-        path.hash(&mut hasher);
+        data.hash(&mut hasher);
 
         Handle {
             id: hasher.finish(),
-            path,
+            data: Arc::new(data),
         }
     }
 
@@ -141,20 +162,40 @@ impl Handle {
         self.id
     }
 
-    /// Returns a reference to the path of the [`Handle`].
+    /// Returns a reference to the SVG [`Data`].
     ///
-    /// [`Handle`]: enum.Handle.html
-    pub fn path(&self) -> &Path {
-        &self.path
+    /// [`Data`]: enum.Data.html
+    pub fn data(&self) -> &Data {
+        &self.data
     }
 }
 
-impl<T> From<T> for Handle
-where
-    T: Into<PathBuf>,
-{
-    fn from(path: T) -> Handle {
-        Handle::from_path(path)
+impl Hash for Handle {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+/// The data of an [`Svg`].
+///
+/// [`Svg`]: struct.Svg.html
+#[derive(Clone, Hash)]
+pub enum Data {
+    /// File data
+    Path(PathBuf),
+
+    /// In-memory data
+    ///
+    /// Can contain an SVG string or a gzip compressed data.
+    Bytes(Vec<u8>),
+}
+
+impl std::fmt::Debug for Data {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Data::Path(path) => write!(f, "Path({:?})", path),
+            Data::Bytes(_) => write!(f, "Bytes(...)"),
+        }
     }
 }
 
@@ -166,9 +207,10 @@ where
 /// [`Svg`]: struct.Svg.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
-    /// Returns the default dimensions of an [`Svg`] located on the given path.
+    /// Returns the default dimensions of an [`Svg`] for the given [`Handle`].
     ///
     /// [`Svg`]: struct.Svg.html
+    /// [`Handle`]: struct.Handle.html
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
 
     /// Draws an [`Svg`].
