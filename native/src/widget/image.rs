@@ -177,15 +177,12 @@ impl Handle {
     }
 }
 
-impl From<String> for Handle {
-    fn from(path: String) -> Handle {
-        Handle::from_path(path)
-    }
-}
-
-impl From<&str> for Handle {
-    fn from(path: &str) -> Handle {
-        Handle::from_path(path)
+impl<T> From<T> for Handle
+where
+    T: Into<PathBuf>,
+{
+    fn from(path: T) -> Handle {
+        Handle::from_path(path.into())
     }
 }
 
