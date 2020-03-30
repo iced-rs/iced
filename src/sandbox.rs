@@ -121,7 +121,7 @@ pub trait Sandbox {
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Sandbox`]: trait.Sandbox.html
-    fn run(settings: Settings)
+    fn run(settings: Settings<()>)
     where
         Self: 'static + Sized,
     {
@@ -134,9 +134,10 @@ where
     T: Sandbox,
 {
     type Executor = executor::Null;
+    type Flags = ();
     type Message = T::Message;
 
-    fn new() -> (Self, Command<T::Message>) {
+    fn new(_flags: ()) -> (Self, Command<T::Message>) {
         (T::new(), Command::none())
     }
 

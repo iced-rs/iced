@@ -28,7 +28,13 @@ pub trait Application: Sized {
     /// [`Application`]: trait.Application.html
     type Message: std::fmt::Debug + Send;
 
-    /// Initializes the [`Application`].
+    /// The data needed to initialize your [`Application`].
+    ///
+    /// [`Application`]: trait.Application.html
+    type Flags;
+
+    /// Initializes the [`Application`] with the flags provided to
+    /// [`run`] as part of the [`Settings`]:
     ///
     /// Here is where you should return the initial state of your app.
     ///
@@ -38,7 +44,9 @@ pub trait Application: Sized {
     /// request, etc.
     ///
     /// [`Application`]: trait.Application.html
-    fn new() -> (Self, Command<Self::Message>);
+    /// [`run`]: #method.run.html
+    /// [`Settings`]: struct.Settings.html
+    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
     /// Returns the current title of the [`Application`].
     ///
@@ -90,7 +98,7 @@ pub trait Application: Sized {
         Mode::Windowed
     }
 
-    /// Runs the [`Application`].
+    /// Runs the [`Application`] with the provided [`Settings`].
     ///
     /// This method will take control of the current thread and __will NOT
     /// return__.
@@ -98,8 +106,9 @@ pub trait Application: Sized {
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Application`]: trait.Application.html
+    /// [`Settings`]: struct.Settings.html
     fn run(
-        settings: Settings,
+        settings: Settings<Self::Flags>,
         backend_settings: <Self::Backend as window::Backend>::Settings,
     ) where
         Self: 'static,
@@ -123,7 +132,9 @@ pub trait Application: Sized {
             Runtime::new(executor, Proxy::new(event_loop.create_proxy()))
         };
 
-        let (mut application, init_command) = runtime.enter(Self::new);
+        let flags = settings.flags;
+        let (mut application, init_command) =
+            runtime.enter(|| Self::new(flags));
         runtime.spawn(init_command);
 
         let subscription = application.subscription();

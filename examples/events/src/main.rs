@@ -22,8 +22,9 @@ enum Message {
 impl Application for Events {
     type Executor = executor::Default;
     type Message = Message;
+    type Flags = ();
 
-    fn new() -> (Events, Command<Message>) {
+    fn new(_flags: ()) -> (Events, Command<Message>) {
         (Events::default(), Command::none())
     }
 

@@ -23,8 +23,9 @@ enum Message {
 impl Application for Clock {
     type Executor = executor::Default;
     type Message = Message;
+    type Flags = ();
 
-    fn new() -> (Self, Command<Message>) {
+    fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             Clock {
                 now: chrono::Local::now().into(),

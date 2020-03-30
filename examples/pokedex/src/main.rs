@@ -29,8 +29,9 @@ enum Message {
 impl Application for Pokedex {
     type Executor = iced::executor::Default;
     type Message = Message;
+    type Flags = ();
 
-    fn new() -> (Pokedex, Command<Message>) {
+    fn new(_flags: ()) -> (Pokedex, Command<Message>) {
         (
             Pokedex::Loading,
             Command::perform(Pokemon::search(), Message::PokemonFound),

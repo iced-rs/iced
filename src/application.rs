@@ -41,8 +41,9 @@ use crate::{window, Command, Element, Executor, Settings, Subscription};
 /// impl Application for Counter {
 ///     type Executor = executor::Null;
 ///     type Message = Message;
+///     type Flags = ();
 ///
-///     fn new() -> (Self, Command<Message>) {
+///     fn new(_flags: ()) -> (Self, Command<Message>) {
 ///         (Self::default(), Command::none())
 ///     }
 ///
@@ -94,7 +95,13 @@ pub trait Application: Sized {
     /// [`Application`]: trait.Application.html
     type Message: std::fmt::Debug + Send;
 
-    /// Initializes the [`Application`].
+    /// The data needed to initialize your [`Application`].
+    ///
+    /// [`Application`]: trait.Application.html
+    type Flags;
+
+    /// Initializes the [`Application`] with the flags provided to
+    /// [`run`] as part of the [`Settings`]:
     ///
     /// Here is where you should return the initial state of your app.
     ///
@@ -104,7 +111,9 @@ pub trait Application: Sized {
     /// request, etc.
     ///
     /// [`Application`]: trait.Application.html
-    fn new() -> (Self, Command<Self::Message>);
+    /// [`run`]: #method.run.html
+    /// [`Settings`]: struct.Settings.html
+    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
     /// Returns the current title of the [`Application`].
     ///
@@ -169,26 +178,30 @@ pub trait Application: Sized {
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Application`]: trait.Application.html
-    fn run(_settings: Settings)
+    fn run(settings: Settings<Self::Flags>)
     where
         Self: 'static,
     {
         #[cfg(not(target_arch = "wasm32"))]
-        <Instance<Self> as iced_winit::Application>::run(
-            _settings.into(),
-            iced_wgpu::Settings {
-                default_font: _settings.default_font,
-                antialiasing: if _settings.antialiasing {
+        {
+            let wgpu_settings = iced_wgpu::Settings {
+                default_font: settings.default_font,
+                antialiasing: if settings.antialiasing {
                     Some(iced_wgpu::settings::Antialiasing::MSAAx4)
                 } else {
                     None
                 },
                 ..iced_wgpu::Settings::default()
-            },
-        );
+            };
+
+            <Instance<Self> as iced_winit::Application>::run(
+                settings.into(),
+                wgpu_settings,
+            );
+        }
 
         #[cfg(target_arch = "wasm32")]
-        <Instance<Self> as iced_web::Application>::run();
+        <Instance<Self> as iced_web::Application>::run(settings.flags);
     }
 }
 
@@ -201,10 +214,11 @@ where
 {
     type Backend = iced_wgpu::window::Backend;
     type Executor = A::Executor;
+    type Flags = A::Flags;
     type Message = A::Message;
 
-    fn new() -> (Self, Command<A::Message>) {
-        let (app, command) = A::new();
+    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
+        let (app, command) = A::new(flags);
 
         (Instance(app), command)
     }
@@ -238,11 +252,12 @@ impl<A> iced_web::Application for Instance<A>
 where
     A: Application,
 {
-    type Message = A::Message;
     type Executor = A::Executor;
+    type Message = A::Message;
+    type Flags = A::Flags;
 
-    fn new() -> (Self, Command<A::Message>) {
-        let (app, command) = A::new();
+    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
+        let (app, command) = A::new(flags);
 
         (Instance(app), command)
     }

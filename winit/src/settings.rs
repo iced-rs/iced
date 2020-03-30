@@ -1,28 +1,25 @@
 //! Configure your application.
 #[cfg(target_os = "windows")]
-#[path = "windows.rs"]
+#[path = "settings/windows.rs"]
 mod platform;
 #[cfg(not(target_os = "windows"))]
-#[path = "not_windows.rs"]
+#[path = "settings/not_windows.rs"]
 mod platform;
 
 pub use platform::PlatformSpecific;
 
 /// The settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Settings {
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Settings<Flags> {
     /// The [`Window`] settings
     ///
     /// [`Window`]: struct.Window.html
     pub window: Window,
-}
 
-impl Default for Settings {
-    fn default() -> Settings {
-        Settings {
-            window: Window::default(),
-        }
-    }
+    /// The data needed to initialize an [`Application`].
+    ///
+    /// [`Application`]: trait.Application.html
+    pub flags: Flags,
 }
 
 /// The window settings of an application.
