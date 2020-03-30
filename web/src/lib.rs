@@ -188,7 +188,7 @@ pub trait Application {
             sender.clone(),
         );
 
-        let (app, command) = Self::new(flags);
+        let (app, command) = runtime.enter(|| Self::new(flags));
 
         let mut title = app.title();
         document.set_title(&title);
@@ -205,8 +205,13 @@ pub trait Application {
         let vdom = dodrio::Vdom::new(&body, instance);
 
         let event_loop = receiver.for_each(move |message| {
-            let command = application.borrow_mut().update(message);
-            let subscription = application.borrow().subscription();
+            let (command, subscription) = runtime.enter(|| {
+                let command = application.borrow_mut().update(message);
+                let subscription = application.borrow().subscription();
+
+                (command, subscription)
+            });
+
             let new_title = application.borrow().title();
 
             runtime.spawn(command);
