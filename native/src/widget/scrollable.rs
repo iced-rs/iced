@@ -311,7 +311,7 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Scrollable<'static, (), Renderer>>().hash(state);
+        std::any::TypeId::of::<Scrollable<'_, (), Renderer>>().hash(state);
 
         self.height.hash(state);
         self.max_height.hash(state);

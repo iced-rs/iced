@@ -114,7 +114,7 @@ impl State {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Slider<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -205,6 +205,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Slider<'_, (), Renderer>>().hash(state);
+
         self.width.hash(state);
     }
 }
@@ -251,7 +253,7 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Slider<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'static + self::Renderer,
     Message: 'a,
 {
     fn from(

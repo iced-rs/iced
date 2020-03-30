@@ -163,6 +163,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Text>().hash(state);
+
         self.content.hash(state);
         self.size.hash(state);
         self.width.hash(state);

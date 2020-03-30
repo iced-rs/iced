@@ -77,7 +77,7 @@ impl<Message, Renderer: self::Renderer> Radio<Message, Renderer> {
 
 impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer + row::Renderer,
+    Renderer: 'static + self::Renderer + text::Renderer + row::Renderer,
     Message: Clone,
 {
     fn width(&self) -> Length {
@@ -169,6 +169,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Radio<(), Renderer>>().hash(state);
+
         self.label.hash(state);
     }
 }
@@ -211,7 +213,7 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + row::Renderer + text::Renderer,
+    Renderer: 'static + self::Renderer + row::Renderer + text::Renderer,
     Message: 'a + Clone,
 {
     fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {

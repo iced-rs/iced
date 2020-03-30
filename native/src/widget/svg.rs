@@ -99,6 +99,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Svg>().hash(state);
+
         self.width.hash(state);
         self.height.hash(state);
     }

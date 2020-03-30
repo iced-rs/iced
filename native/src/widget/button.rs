@@ -143,7 +143,7 @@ impl State {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: 'static + self::Renderer,
     Message: Clone,
 {
     fn width(&self) -> Length {
@@ -234,6 +234,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Button<'_, (), Renderer>>().hash(state);
+
         self.width.hash(state);
         self.content.hash_layout(state);
     }
@@ -274,7 +276,7 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'static + self::Renderer,
     Message: 'a + Clone,
 {
     fn from(
