@@ -1,3 +1,6 @@
+#[cfg(feature = "colors")]
+use palette::rgb::Srgba;
+
 /// A color in the sRGB color space.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Color {
@@ -94,6 +97,24 @@ impl Color {
         ]
     }
 
+    #[cfg(feature = "colors")]
+    /// Convert from palette's [`Srgba`] type to a [`Color`]
+    ///
+    /// [`Srgba`]: ../palette/rgb/type.Srgba.html
+    /// [`Color`]: struct.Color.html
+    pub fn from_srgba(srgba: Srgba) -> Color {
+        Color::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+    }
+
+    #[cfg(feature = "colors")]
+    /// Convert from [`Color`] to palette's [`Srgba`] type
+    ///
+    /// [`Color`]: struct.Color.html
+    /// [`Srgba`]: ../palette/rgb/type.Srgba.html
+    pub fn into_srgba(self) -> Srgba {
+        Srgba::new(self.r, self.g, self.b, self.a)
+    }
+
     /// Invert the Color in-place
     pub fn invert(&mut self) {
         self.r = clamp(1.0f32 - self.r);
@@ -116,6 +137,28 @@ impl From<[f32; 3]> for Color {
 impl From<[f32; 4]> for Color {
     fn from([r, g, b, a]: [f32; 4]) -> Self {
         Color::new(r, g, b, a)
+    }
+}
+
+#[cfg(feature = "colors")]
+/// Convert from palette's [`Srgba`] type to a [`Color`]
+///
+/// [`Srgba`]: ../palette/rgb/type.Srgba.html
+/// [`Color`]: struct.Color.html
+impl From<Srgba> for Color {
+    fn from(srgba: Srgba) -> Self {
+        Color::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+    }
+}
+
+#[cfg(feature = "colors")]
+/// Convert from [`Color`] to palette's [`Srgba`] type
+///
+/// [`Color`]: struct.Color.html
+/// [`Srgba`]: ../palette/rgb/type.Srgba.html
+impl From<Color> for Srgba {
+    fn from(c: Color) -> Self {
+        Srgba::new(c.r, c.g, c.b, c.a)
     }
 }
 
