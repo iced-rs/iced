@@ -7,4 +7,3 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["svg"] }
-env_logger = "0.7"

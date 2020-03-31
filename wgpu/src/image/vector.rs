@@ -45,9 +45,19 @@ impl Cache {
 
         let opt = resvg::Options::default();
 
-        let svg = match resvg::usvg::Tree::from_file(handle.path(), &opt.usvg) {
-            Ok(tree) => Svg::Loaded(tree),
-            Err(_) => Svg::NotFound,
+        let svg = match handle.data() {
+            svg::Data::Path(path) => {
+                match resvg::usvg::Tree::from_file(path, &opt.usvg) {
+                    Ok(tree) => Svg::Loaded(tree),
+                    Err(_) => Svg::NotFound,
+                }
+            }
+            svg::Data::Bytes(bytes) => {
+                match resvg::usvg::Tree::from_data(&bytes, &opt.usvg) {
+                    Ok(tree) => Svg::Loaded(tree),
+                    Err(_) => Svg::NotFound,
+                }
+            }
         };
 
         let _ = self.svgs.insert(handle.id(), svg);
