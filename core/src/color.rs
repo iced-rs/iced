@@ -52,8 +52,8 @@ impl Color {
     /// Creates a [`Color`] from its RGB components.
     ///
     /// [`Color`]: struct.Color.html
-    pub fn from_rgb(r: f32, g: f32, b: f32) -> Color {
-        Color::new(r, g, b, 1.0)
+    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Color {
+        Color { r, g, b, a: 1.0 }
     }
 
     /// Creates a [`Color`] from its RGB8 components.
