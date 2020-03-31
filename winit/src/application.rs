@@ -100,8 +100,8 @@ pub trait Application: Sized {
 
     /// Runs the [`Application`] with the provided [`Settings`].
     ///
-    /// This method will take control of the current thread and __will NOT
-    /// return__.
+    /// On native platforms, this method will take control of the current thread
+    /// and __will NOT return__.
     ///
     /// It should probably be that last thing you call in your `main` function.
     ///

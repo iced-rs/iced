@@ -84,10 +84,10 @@ use crate::{window, Command, Element, Executor, Settings, Subscription};
 pub trait Application: Sized {
     /// The [`Executor`] that will run commands and subscriptions.
     ///
-    /// The [`executor::Default`] can be a good starting point!
+    /// The [default executor] can be a good starting point!
     ///
     /// [`Executor`]: trait.Executor.html
-    /// [`executor::Default`]: executor/struct.Default.html
+    /// [default executor]: executor/struct.Default.html
     type Executor: Executor;
 
     /// The type of __messages__ your [`Application`] will produce.
@@ -172,8 +172,8 @@ pub trait Application: Sized {
 
     /// Runs the [`Application`].
     ///
-    /// This method will take control of the current thread and __will NOT
-    /// return__.
+    /// On native platforms, this method will take control of the current thread
+    /// and __will NOT return__.
     ///
     /// It should probably be that last thing you call in your `main` function.
     ///

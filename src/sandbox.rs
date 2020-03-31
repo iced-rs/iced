@@ -115,8 +115,8 @@ pub trait Sandbox {
 
     /// Runs the [`Sandbox`].
     ///
-    /// This method will take control of the current thread and __will NOT
-    /// return__.
+    /// On native platforms, this method will take control of the current thread
+    /// and __will NOT return__.
     ///
     /// It should probably be that last thing you call in your `main` function.
     ///
