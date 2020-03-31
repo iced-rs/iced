@@ -7,9 +7,6 @@ description = "The essential concepts of Iced"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
 
-[features]
-colors = ["palette"]
-
 [dependencies]
 
 [dependencies.palette]

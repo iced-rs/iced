@@ -1,4 +1,4 @@
-#[cfg(feature = "colors")]
+#[cfg(feature = "palette")]
 use palette::rgb::Srgba;
 
 /// A color in the sRGB color space.
@@ -116,7 +116,7 @@ impl Color {
         ]
     }
 
-    #[cfg(feature = "colors")]
+    #[cfg(feature = "palette")]
     /// Convert from palette's [`Srgba`] type to a [`Color`]
     ///
     /// [`Srgba`]: ../palette/rgb/type.Srgba.html
@@ -125,7 +125,7 @@ impl Color {
         Color::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
     }
 
-    #[cfg(feature = "colors")]
+    #[cfg(feature = "palette")]
     /// Convert from [`Color`] to palette's [`Srgba`] type
     ///
     /// [`Color`]: struct.Color.html
@@ -159,7 +159,7 @@ impl From<[f32; 4]> for Color {
     }
 }
 
-#[cfg(feature = "colors")]
+#[cfg(feature = "palette")]
 /// Convert from palette's [`Srgba`] type to a [`Color`]
 ///
 /// [`Srgba`]: ../palette/rgb/type.Srgba.html
@@ -170,7 +170,7 @@ impl From<Srgba> for Color {
     }
 }
 
-#[cfg(feature = "colors")]
+#[cfg(feature = "palette")]
 /// Convert from [`Color`] to palette's [`Srgba`] type
 ///
 /// [`Color`]: struct.Color.html

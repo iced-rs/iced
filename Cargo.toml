@@ -25,7 +25,7 @@ tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
 async-std = ["iced_futures/async-std"]
 # Enables advanced color conversion via `palette`
-colors = ["iced_core/colors"]
+palette = ["iced_core/palette"]
 
 [badges]
 maintenance = { status = "actively-developed" }
