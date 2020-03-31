@@ -162,7 +162,7 @@ impl From<Color> for Srgba {
     }
 }
 
-/// Calmps a float value to the range [0.0, 1.0]
+/// Clamps a float value to the range [0.0, 1.0]
 pub fn clamp(v: f32) -> f32 {
     v.max(0.0f32).min(1.0f32)
 }
