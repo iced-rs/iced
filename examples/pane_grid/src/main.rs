@@ -106,11 +106,10 @@ impl Sandbox for Example {
             .on_resize(Message::Resized)
             .on_key_press(handle_hotkey);
 
-        Column::new()
+        Container::new(pane_grid)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(10)
-            .push(pane_grid)
             .into()
     }
 }
@@ -213,9 +212,10 @@ impl Content {
             .push(Text::new(format!("Pane {}", id)).size(30))
             .push(controls);
 
-        Container::new(Column::new().padding(5).push(content))
+        Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
+            .padding(5)
             .center_y()
             .style(style::Pane {
                 is_focused: focus.is_some(),

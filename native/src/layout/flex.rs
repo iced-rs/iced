@@ -171,8 +171,5 @@ where
     let (width, height) = axis.pack(main - padding, cross);
     let size = limits.resolve(Size::new(width, height));
 
-    Node::with_children(
-        Size::new(size.width + padding * 2.0, size.height + padding * 2.0),
-        nodes,
-    )
+    Node::with_children(size.pad(padding), nodes)
 }

@@ -66,6 +66,7 @@ impl Application for Clock {
         Container::new(canvas)
             .width(Length::Fill)
             .height(Length::Fill)
+            .padding(20)
             .center_x()
             .center_y()
             .into()

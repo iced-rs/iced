@@ -13,6 +13,7 @@ use std::u32;
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
 pub struct Container<'a, Message, Renderer: self::Renderer> {
+    padding: u16,
     width: Length,
     height: Length,
     max_width: u32,
@@ -35,6 +36,7 @@ where
         T: Into<Element<'a, Message, Renderer>>,
     {
         Container {
+            padding: 0,
             width: Length::Shrink,
             height: Length::Shrink,
             max_width: u32::MAX,
@@ -44,6 +46,14 @@ where
             style: Renderer::Style::default(),
             content: content.into(),
         }
+    }
+
+    /// Sets the padding of the [`Container`].
+    ///
+    /// [`Container`]: struct.Column.html
+    pub fn padding(mut self, units: u16) -> Self {
+        self.padding = units;
+        self
     }
 
     /// Sets the width of the [`Container`].
@@ -137,19 +147,23 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let padding = f32::from(self.padding);
+
         let limits = limits
             .loose()
             .max_width(self.max_width)
             .max_height(self.max_height)
             .width(self.width)
-            .height(self.height);
+            .height(self.height)
+            .pad(padding);
 
         let mut content = self.content.layout(renderer, &limits.loose());
         let size = limits.resolve(content.size());
 
+        content.move_to(Point::new(padding, padding));
         content.align(self.horizontal_alignment, self.vertical_alignment, size);
 
-        layout::Node::with_children(size, vec![content])
+        layout::Node::with_children(size.pad(padding), vec![content])
     }
 
     fn on_event(
@@ -191,6 +205,7 @@ where
     fn hash_layout(&self, state: &mut Hasher) {
         std::any::TypeId::of::<Container<'_, (), Renderer>>().hash(state);
 
+        self.padding.hash(state);
         self.width.hash(state);
         self.height.hash(state);
         self.max_width.hash(state);

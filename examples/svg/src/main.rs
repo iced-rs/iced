@@ -1,4 +1,4 @@
-use iced::{Column, Container, Element, Length, Sandbox, Settings, Svg};
+use iced::{Container, Element, Length, Sandbox, Settings, Svg};
 
 pub fn main() {
     Tiger::run(Settings::default())
@@ -20,18 +20,17 @@ impl Sandbox for Tiger {
     fn update(&mut self, _message: ()) {}
 
     fn view(&mut self) -> Element<()> {
-        let content = Column::new().padding(20).push(
-            Svg::from_path(format!(
-                "{}/resources/tiger.svg",
-                env!("CARGO_MANIFEST_DIR")
-            ))
-            .width(Length::Fill)
-            .height(Length::Fill),
-        );
+        let svg = Svg::from_path(format!(
+            "{}/resources/tiger.svg",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .width(Length::Fill)
+        .height(Length::Fill);
 
-        Container::new(content)
+        Container::new(svg)
             .width(Length::Fill)
             .height(Length::Fill)
+            .padding(20)
             .center_x()
             .center_y()
             .into()
