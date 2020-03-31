@@ -338,6 +338,17 @@ where
                     }
                 }
                 keyboard::KeyCode::Backspace => {
+                    if platform::is_jump_modifier_pressed(modifiers)
+                        && self.state.cursor.selection().is_none()
+                    {
+                        if self.is_secure {
+                            let cursor_pos = self.state.cursor.end(&self.value);
+                            self.state.cursor.select_range(0, cursor_pos);
+                        } else {
+                            self.state.cursor.select_left_by_words(&self.value);
+                        }
+                    }
+
                     let mut editor =
                         Editor::new(&mut self.value, &mut self.state.cursor);
 
