@@ -56,6 +56,8 @@ pub trait Executor: Sized {
     /// before creating futures. This method can be leveraged to set up this
     /// global state, call a function, restore the state, and obtain the result
     /// of the call.
+    ///
+    /// [`Executor`]: trait.Executor.html
     fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
         f()
     }
