@@ -180,3 +180,44 @@ impl From<Color> for Srgba {
         Srgba::new(c.r, c.g, c.b, c.a)
     }
 }
+
+#[cfg(feature = "palette")]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use palette::Blend;
+
+    #[test]
+    fn srgba_traits() {
+        let c = Color::from_rgb(0.5, 0.4, 0.3);
+        // Round-trip conversion to the palette:Srgba type
+        let s: Srgba = c.into();
+        let r: Color = s.into();
+        assert_eq!(c, r);
+    }
+
+    #[test]
+    fn color_manipulation() {
+        let c1 = Color::from_rgb(0.5, 0.4, 0.3);
+        let c2 = Color::from_rgb(0.2, 0.5, 0.3);
+
+        // Convert to linear color for manipulation
+        let l1 = c1.into_srgba().into_linear();
+        let l2 = c2.into_srgba().into_linear();
+
+        // Take the lighter of each of the RGB components
+        let lighter = l1.lighten(l2);
+
+        // Convert back to our Color
+        let r: Color = Srgba::from_linear(lighter).into();
+        assert_eq!(
+            r,
+            Color {
+                r: 0.5,
+                g: 0.5,
+                b: 0.3,
+                a: 1.0
+            }
+        );
+    }
+}
