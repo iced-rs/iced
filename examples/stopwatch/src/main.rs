@@ -30,8 +30,9 @@ enum Message {
 impl Application for Stopwatch {
     type Executor = iced_futures::executor::AsyncStd;
     type Message = Message;
+    type Flags = ();
 
-    fn new() -> (Stopwatch, Command<Message>) {
+    fn new(_flags: ()) -> (Stopwatch, Command<Message>) {
         (
             Stopwatch {
                 duration: Duration::default(),

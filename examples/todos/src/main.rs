@@ -40,8 +40,9 @@ enum Message {
 impl Application for Todos {
     type Executor = iced::executor::Default;
     type Message = Message;
+    type Flags = ();
 
-    fn new() -> (Todos, Command<Message>) {
+    fn new(_flags: ()) -> (Todos, Command<Message>) {
         (
             Todos::Loading,
             Command::perform(SavedState::load(), Message::Loaded),

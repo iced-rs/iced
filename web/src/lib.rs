@@ -94,11 +94,6 @@ pub use executor::Executor;
 /// An [`Application`](trait.Application.html) can execute asynchronous actions
 /// by returning a [`Command`](struct.Command.html) in some of its methods.
 pub trait Application {
-    /// The type of __messages__ your [`Application`] will produce.
-    ///
-    /// [`Application`]: trait.Application.html
-    type Message: Send;
-
     /// The [`Executor`] that will run commands and subscriptions.
     ///
     /// The [`executor::WasmBindgen`] can be a good choice for the Web.
@@ -106,6 +101,16 @@ pub trait Application {
     /// [`Executor`]: trait.Executor.html
     /// [`executor::Default`]: executor/struct.Default.html
     type Executor: Executor;
+
+    /// The type of __messages__ your [`Application`] will produce.
+    ///
+    /// [`Application`]: trait.Application.html
+    type Message: Send;
+
+    /// The data needed to initialize your [`Application`].
+    ///
+    /// [`Application`]: trait.Application.html
+    type Flags;
 
     /// Initializes the [`Application`].
     ///
@@ -117,7 +122,7 @@ pub trait Application {
     /// request, etc.
     ///
     /// [`Application`]: trait.Application.html
-    fn new() -> (Self, Command<Self::Message>)
+    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>)
     where
         Self: Sized;
 
@@ -165,20 +170,15 @@ pub trait Application {
     /// Runs the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    fn run()
+    fn run(flags: Self::Flags)
     where
         Self: 'static + Sized,
     {
         use futures::stream::StreamExt;
 
-        let (app, command) = Self::new();
-
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         let body = document.body().unwrap();
-
-        let mut title = app.title();
-        document.set_title(&title);
 
         let (sender, receiver) =
             iced_futures::futures::channel::mpsc::unbounded();
@@ -187,6 +187,12 @@ pub trait Application {
             Self::Executor::new().expect("Create executor"),
             sender.clone(),
         );
+
+        let (app, command) = runtime.enter(|| Self::new(flags));
+
+        let mut title = app.title();
+        document.set_title(&title);
+
         runtime.spawn(command);
 
         let application = Rc::new(RefCell::new(app));
@@ -199,8 +205,13 @@ pub trait Application {
         let vdom = dodrio::Vdom::new(&body, instance);
 
         let event_loop = receiver.for_each(move |message| {
-            let command = application.borrow_mut().update(message);
-            let subscription = application.borrow().subscription();
+            let (command, subscription) = runtime.enter(|| {
+                let command = application.borrow_mut().update(message);
+                let subscription = application.borrow().subscription();
+
+                (command, subscription)
+            });
+
             let new_title = application.borrow().title();
 
             runtime.spawn(command);

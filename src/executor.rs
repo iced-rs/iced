@@ -51,7 +51,11 @@ mod platform {
 
     /// A default cross-platform executor.
     ///
-    /// - On native platforms, it will use `iced_futures::executor::ThreadPool`.
+    /// - On native platforms, it will use:
+    ///   - `iced_futures::executor::Tokio` when the `tokio` feature is enabled.
+    ///   - `iced_futures::executor::AsyncStd` when the `async-std` feature is
+    ///     enabled.
+    ///   - `iced_futures::executor::ThreadPool` otherwise.
     /// - On the Web, it will use `iced_futures::executor::WasmBindgen`.
     #[derive(Debug)]
     pub struct Default(WasmBindgen);
@@ -63,6 +67,10 @@ mod platform {
 
         fn spawn(&self, future: impl futures::Future<Output = ()> + 'static) {
             self.0.spawn(future);
+        }
+
+        fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
+            self.0.enter(f)
         }
     }
 }

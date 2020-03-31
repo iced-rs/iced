@@ -7,8 +7,8 @@
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::{
-    canvas, executor, Application, Canvas, Color, Command, Container, Element,
-    Length, Point, Settings, Size, Subscription, Vector,
+    canvas, executor, window, Application, Canvas, Color, Command, Container,
+    Element, Length, Point, Settings, Size, Subscription, Vector,
 };
 
 use std::time::Instant;
@@ -33,8 +33,9 @@ enum Message {
 impl Application for SolarSystem {
     type Executor = executor::Default;
     type Message = Message;
+    type Flags = ();
 
-    fn new() -> (Self, Command<Message>) {
+    fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             SolarSystem {
                 state: State::new(),
@@ -95,7 +96,7 @@ impl State {
 
     pub fn new() -> State {
         let now = Instant::now();
-        let (width, height) = Settings::default().window.size;
+        let (width, height) = window::Settings::default().size;
 
         State {
             start: now,

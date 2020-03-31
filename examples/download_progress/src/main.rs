@@ -26,8 +26,9 @@ pub enum Message {
 impl Application for Example {
     type Executor = executor::Default;
     type Message = Message;
+    type Flags = ();
 
-    fn new() -> (Example, Command<Message>) {
+    fn new(_flags: ()) -> (Example, Command<Message>) {
         (
             Example::Idle {
                 button: button::State::new(),
