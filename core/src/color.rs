@@ -41,12 +41,24 @@ impl Color {
 
     /// New Color with range checks
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
-        Color {
-            r: clamp(r),
-            g: clamp(g),
-            b: clamp(b),
-            a: clamp(a),
-        }
+        debug_assert!(
+            (0.0f32..=1.0f32).contains(&r),
+            "Red component must be on [0, 1]"
+        );
+        debug_assert!(
+            (0.0f32..=1.0f32).contains(&g),
+            "Green component must be on [0, 1]"
+        );
+        debug_assert!(
+            (0.0f32..=1.0f32).contains(&b),
+            "Blue component must be on [0, 1]"
+        );
+        debug_assert!(
+            (0.0f32..=1.0f32).contains(&a),
+            "Alpha component must be on [0, 1]"
+        );
+
+        Color { r, g, b, a }
     }
 
     /// Creates a [`Color`] from its RGB components.
@@ -71,7 +83,7 @@ impl Color {
             r: f32::from(r) / 255.0,
             g: f32::from(g) / 255.0,
             b: f32::from(b) / 255.0,
-            a: clamp(a),
+            a,
         }
     }
 
@@ -117,9 +129,9 @@ impl Color {
 
     /// Invert the Color in-place
     pub fn invert(&mut self) {
-        self.r = clamp(1.0f32 - self.r);
-        self.b = clamp(1.0f32 - self.g);
-        self.g = clamp(1.0f32 - self.b);
+        self.r = 1.0f32 - self.r;
+        self.b = 1.0f32 - self.g;
+        self.g = 1.0f32 - self.b;
     }
 
     /// Return an inverted Color
@@ -160,9 +172,4 @@ impl From<Color> for Srgba {
     fn from(c: Color) -> Self {
         Srgba::new(c.r, c.g, c.b, c.a)
     }
-}
-
-/// Clamps a float value to the range [0.0, 1.0]
-pub fn clamp(v: f32) -> f32 {
-    v.max(0.0f32).min(1.0f32)
 }
