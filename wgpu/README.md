@@ -11,8 +11,9 @@
 Currently, `iced_wgpu` supports the following primitives:
 - Text, which is rendered using [`wgpu_glyph`]. No shaping at all.
 - Quads or rectangles, with rounded borders and a solid background color.
-- Images, lazily loaded from the filesystem.
 - Clip areas, useful to implement scrollables or hide overflowing content.
+- Images and SVG, loaded from memory or the file system.
+- Meshes of triangles, for rendering geometry freely.
 
 ![iced_wgpu](../docs/graphs/wgpu.png)
 
