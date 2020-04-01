@@ -116,24 +116,6 @@ impl Color {
         ]
     }
 
-    #[cfg(feature = "palette")]
-    /// Convert from palette's [`Srgba`] type to a [`Color`]
-    ///
-    /// [`Srgba`]: ../palette/rgb/type.Srgba.html
-    /// [`Color`]: struct.Color.html
-    pub fn from_srgba(srgba: Srgba) -> Color {
-        Color::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
-    }
-
-    #[cfg(feature = "palette")]
-    /// Convert from [`Color`] to palette's [`Srgba`] type
-    ///
-    /// [`Color`]: struct.Color.html
-    /// [`Srgba`]: ../palette/rgb/type.Srgba.html
-    pub fn into_srgba(self) -> Srgba {
-        Srgba::new(self.r, self.g, self.b, self.a)
-    }
-
     /// Invert the Color in-place
     pub fn invert(&mut self) {
         self.r = 1.0f32 - self.r;
@@ -202,8 +184,8 @@ mod tests {
         let c2 = Color::from_rgb(0.2, 0.5, 0.3);
 
         // Convert to linear color for manipulation
-        let l1 = c1.into_srgba().into_linear();
-        let l2 = c2.into_srgba().into_linear();
+        let l1 = Srgba::from(c1).into_linear();
+        let l2 = Srgba::from(c2).into_linear();
 
         // Take the lighter of each of the RGB components
         let lighter = l1.lighten(l2);
