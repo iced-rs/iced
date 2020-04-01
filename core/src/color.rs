@@ -42,19 +42,19 @@ impl Color {
     /// New Color with range checks
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         debug_assert!(
-            (0.0f32..=1.0f32).contains(&r),
+            (0.0..=1.0).contains(&r),
             "Red component must be on [0, 1]"
         );
         debug_assert!(
-            (0.0f32..=1.0f32).contains(&g),
+            (0.0..=1.0).contains(&g),
             "Green component must be on [0, 1]"
         );
         debug_assert!(
-            (0.0f32..=1.0f32).contains(&b),
+            (0.0..=1.0).contains(&b),
             "Blue component must be on [0, 1]"
         );
         debug_assert!(
-            (0.0f32..=1.0f32).contains(&a),
+            (0.0..=1.0).contains(&a),
             "Alpha component must be on [0, 1]"
         );
 
