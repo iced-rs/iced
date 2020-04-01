@@ -9,75 +9,76 @@ use crate::{window, Command, Element, Executor, Settings, Subscription};
 /// - On the web, it will take control of the `<title>` and the `<body>` of the
 ///   document.
 ///
-/// An [`Application`](trait.Application.html) can execute asynchronous actions
-/// by returning a [`Command`](struct.Command.html) in some of its methods. If
+/// An [`Application`] can execute asynchronous actions by returning a
+/// [`Command`](struct.Command.html) in some of its methods. If
 /// you do not intend to perform any background work in your program, the
 /// [`Sandbox`](trait.Sandbox.html) trait offers a simplified interface.
 ///
-/// # Example
-/// Let's say we want to run the [`Counter` example we implemented
-/// before](index.html#overview). We just need to fill in the gaps:
+/// [`Application`]: trait.Application.html
+///
+/// # Examples
+/// [The repository has a bunch of examples] that use the [`Application`] trait:
+///
+/// - [`clock`], an application that uses the [`Canvas`] widget to draw a clock
+/// and its hands to display the current time.
+/// - [`download_progress`], a basic application that asynchronously downloads
+/// a dummy file of 100 MB and tracks the download progress.
+/// - [`events`], a log of native events displayed using a conditional
+/// [`Subscription`].
+/// - [`pokedex`], an application that displays a random Pokédex entry (sprite
+/// included!) by using the [PokéAPI].
+/// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
+/// and showcasing how to compose different transforms.
+/// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
+/// to listen to time.
+/// - [`todos`], a todos tracker inspired by [TodoMVC].
+///
+/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.1/examples
+/// [`clock`]: https://github.com/hecrj/iced/tree/0.1/examples/clock
+/// [`download_progress`]: https://github.com/hecrj/iced/tree/0.1/examples/download_progress
+/// [`events`]: https://github.com/hecrj/iced/tree/0.1/examples/events
+/// [`pokedex`]: https://github.com/hecrj/iced/tree/0.1/examples/pokedex
+/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.1/examples/solar_system
+/// [`stopwatch`]: https://github.com/hecrj/iced/tree/0.1/examples/stopwatch
+/// [`todos`]: https://github.com/hecrj/iced/tree/0.1/examples/todos
+/// [`Canvas`]: widget/canvas/struct.Canvas.html
+/// [PokéAPI]: https://pokeapi.co/
+/// [`Subscription`]: type.Subscription.html
+/// [TodoMVC]: http://todomvc.com/
+///
+/// ## A simple "Hello, world!"
+///
+/// If you just want to get started, here is a simple [`Application`] that
+/// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::{button, executor, Application, Button, Column, Command, Element, Settings, Text};
+/// use iced::{executor, Application, Command, Element, Settings, Text};
 ///
 /// pub fn main() {
-///     Counter::run(Settings::default())
+///     Hello::run(Settings::default())
 /// }
 ///
-/// #[derive(Default)]
-/// struct Counter {
-///     value: i32,
-///     increment_button: button::State,
-///     decrement_button: button::State,
-/// }
+/// struct Hello;
 ///
-/// #[derive(Debug, Clone, Copy)]
-/// enum Message {
-///     IncrementPressed,
-///     DecrementPressed,
-/// }
-///
-/// impl Application for Counter {
+/// impl Application for Hello {
 ///     type Executor = executor::Null;
-///     type Message = Message;
+///     type Message = ();
 ///     type Flags = ();
 ///
-///     fn new(_flags: ()) -> (Self, Command<Message>) {
-///         (Self::default(), Command::none())
+///     fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
+///         (Hello, Command::none())
 ///     }
 ///
 ///     fn title(&self) -> String {
-///         String::from("A simple counter")
+///         String::from("A cool application")
 ///     }
 ///
-///     fn update(&mut self, message: Message) -> Command<Message> {
-///         match message {
-///             Message::IncrementPressed => {
-///                 self.value += 1;
-///             }
-///             Message::DecrementPressed => {
-///                 self.value -= 1;
-///             }
-///         }
-///
+///     fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
 ///         Command::none()
 ///     }
 ///
-///     fn view(&mut self) -> Element<Message> {
-///         Column::new()
-///             .push(
-///                 Button::new(&mut self.increment_button, Text::new("Increment"))
-///                     .on_press(Message::IncrementPressed),
-///             )
-///             .push(
-///                 Text::new(self.value.to_string()).size(50),
-///             )
-///             .push(
-///                 Button::new(&mut self.decrement_button, Text::new("Decrement"))
-///                     .on_press(Message::DecrementPressed),
-///             )
-///             .into()
+///     fn view(&mut self) -> Element<Self::Message> {
+///         Text::new("Hello, world!").into()
 ///     }
 /// }
 /// ```
@@ -101,7 +102,7 @@ pub trait Application: Sized {
     type Flags;
 
     /// Initializes the [`Application`] with the flags provided to
-    /// [`run`] as part of the [`Settings`]:
+    /// [`run`] as part of the [`Settings`].
     ///
     /// Here is where you should return the initial state of your app.
     ///

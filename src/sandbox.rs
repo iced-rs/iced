@@ -2,78 +2,89 @@ use crate::{executor, Application, Command, Element, Settings, Subscription};
 
 /// A sandboxed [`Application`].
 ///
-/// A [`Sandbox`] is just an [`Application`] that cannot run any asynchronous
-/// actions.
+/// If you are a just getting started with the library, this trait offers a
+/// simpler interface than [`Application`].
 ///
-/// If you do not need to leverage a [`Command`], you can use a [`Sandbox`]
-/// instead of returning a [`Command::none`] everywhere.
+/// Unlike an [`Application`], a [`Sandbox`] cannot run any asynchronous
+/// actions. However, both traits are very similar and upgrading from a
+/// [`Sandbox`] is very straightforward.
+///
+/// Therefore, it is recommended to always start by implementing this trait and
+/// upgrade only once you need to perform asynchronous work.
 ///
 /// [`Application`]: trait.Application.html
 /// [`Sandbox`]: trait.Sandbox.html
 /// [`Command`]: struct.Command.html
 /// [`Command::none`]: struct.Command.html#method.none
 ///
-/// # Example
-/// We can use a [`Sandbox`] to run the [`Counter` example we implemented
-/// before](index.html#overview), instead of an [`Application`]. We just need
-/// to remove the use of [`Command`]:
+/// # Examples
+/// [The repository has a bunch of examples] that use the [`Sandbox`] trait:
+///
+/// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using
+/// [`lyon`].
+/// - [`counter`], the classic counter example explained in [the overview].
+/// - [`custom_widget`], a demonstration of how to build a custom widget that
+/// draws a circle.
+/// - [`geometry`], a custom widget showcasing how to draw geometry with the
+/// `Mesh2D` primitive in [`iced_wgpu`].
+/// - [`pane_grid`], a grid of panes that can be split, resized, and
+/// reorganized.
+/// - [`progress_bar`], a simple progress bar that can be filled by using a
+/// slider.
+/// - [`styling`], an example showcasing custom styling with a light and dark
+/// theme.
+/// - [`svg`], an application that renders the [Ghostscript Tiger] by leveraging
+/// the [`Svg` widget].
+/// - [`tour`], a simple UI tour that can run both on native platforms and the
+/// web!
+///
+/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.1/examples
+/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.1/examples/bezier_tool
+/// [`counter`]: https://github.com/hecrj/iced/tree/0.1/examples/counter
+/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.1/examples/custom_widget
+/// [`geometry`]: https://github.com/hecrj/iced/tree/0.1/examples/geometry
+/// [`pane_grid`]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
+/// [`progress_bar`]: https://github.com/hecrj/iced/tree/0.1/examples/progress_bar
+/// [`styling`]: https://github.com/hecrj/iced/tree/0.1/examples/styling
+/// [`svg`]: https://github.com/hecrj/iced/tree/0.1/examples/svg
+/// [`tour`]: https://github.com/hecrj/iced/tree/0.1/examples/tour
+/// [`lyon`]: https://github.com/nical/lyon
+/// [the overview]: index.html#overview
+/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.1/wgpu
+/// [`Svg` widget]: widget/svg/struct.Svg.html
+/// [Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
+///
+/// ## A simple "Hello, world!"
+///
+/// If you just want to get started, here is a simple [`Sandbox`] that
+/// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::{button, Button, Column, Element, Sandbox, Settings, Text};
+/// use iced::{Element, Sandbox, Settings, Text};
 ///
 /// pub fn main() {
-///     Counter::run(Settings::default())
+///     Hello::run(Settings::default())
 /// }
 ///
-/// #[derive(Default)]
-/// struct Counter {
-///     value: i32,
-///     increment_button: button::State,
-///     decrement_button: button::State,
-/// }
+/// struct Hello;
 ///
-/// #[derive(Debug, Clone, Copy)]
-/// enum Message {
-///     IncrementPressed,
-///     DecrementPressed,
-/// }
+/// impl Sandbox for Hello {
+///     type Message = ();
 ///
-/// impl Sandbox for Counter {
-///     type Message = Message;
-///
-///     fn new() -> Self {
-///         Self::default()
+///     fn new() -> Hello {
+///         Hello
 ///     }
 ///
 ///     fn title(&self) -> String {
-///         String::from("A simple counter")
+///         String::from("A cool application")
 ///     }
 ///
-///     fn update(&mut self, message: Message) {
-///         match message {
-///             Message::IncrementPressed => {
-///                 self.value += 1;
-///             }
-///             Message::DecrementPressed => {
-///                 self.value -= 1;
-///             }
-///         }
+///     fn update(&mut self, _message: Self::Message) {
+///         // This application has no interactions
 ///     }
 ///
-///     fn view(&mut self) -> Element<Message> {
-///         Column::new()
-///             .push(
-///                 Button::new(&mut self.increment_button, Text::new("Increment"))
-///                     .on_press(Message::IncrementPressed),
-///             )
-///             .push(
-///                 Text::new(self.value.to_string()).size(50),
-///             )
-///             .push(
-///                 Button::new(&mut self.decrement_button, Text::new("Decrement"))
-///                     .on_press(Message::DecrementPressed),
-///             )
-///             .into()
+///     fn view(&mut self) -> Element<Self::Message> {
+///         Text::new("Hello, world!").into()
 ///     }
 /// }
 /// ```

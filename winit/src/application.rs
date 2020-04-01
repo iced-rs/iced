@@ -34,7 +34,7 @@ pub trait Application: Sized {
     type Flags;
 
     /// Initializes the [`Application`] with the flags provided to
-    /// [`run`] as part of the [`Settings`]:
+    /// [`run`] as part of the [`Settings`].
     ///
     /// Here is where you should return the initial state of your app.
     ///
