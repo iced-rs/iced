@@ -133,7 +133,7 @@ impl canvas::Drawable for LocalTime {
         frame.stroke(
             &hour_and_minute_hands,
             canvas::Stroke {
-                width: 6.0,
+                width: radius / 100.0 * 3.0,
                 color: Color::WHITE,
                 line_cap: canvas::LineCap::Round,
                 ..canvas::Stroke::default()
@@ -148,7 +148,7 @@ impl canvas::Drawable for LocalTime {
         frame.stroke(
             &second_hand,
             canvas::Stroke {
-                width: 3.0,
+                width: radius / 100.0,
                 color: Color::WHITE,
                 line_cap: canvas::LineCap::Round,
                 ..canvas::Stroke::default()
