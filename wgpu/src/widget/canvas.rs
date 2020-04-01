@@ -42,7 +42,7 @@ pub use text::Text;
 /// # Example
 /// Let's see how we can draw a circle:
 ///
-/// ```
+/// ```no_run
 /// # mod iced {
 /// #     pub use iced_wgpu::canvas;
 /// #     pub use iced_native::Color;

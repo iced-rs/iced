@@ -40,6 +40,10 @@ mod platform {
         text_input::TextInput,
     };
 
+    #[cfg(feature = "canvas")]
+    #[doc(no_inline)]
+    pub use canvas::Canvas;
+
     /// A container that distributes its contents vertically.
     ///
     /// This is an alias of an `iced_native` column with a default `Renderer`.

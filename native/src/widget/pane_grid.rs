@@ -59,12 +59,13 @@ use crate::{
 ///
 /// let (mut state, _) = pane_grid::State::new(PaneState::SomePane);
 ///
-/// let pane_grid = PaneGrid::new(&mut state, |pane, state, focus| {
-///     match state {
-///         PaneState::SomePane => Text::new("This is some pane"),
-///         PaneState::AnotherKindOfPane => Text::new("This is another kind of pane"),
-///     }.into()
-/// })
+/// let pane_grid =
+///     PaneGrid::new(&mut state, |pane, state, focus| {
+///         match state {
+///             PaneState::SomePane => Text::new("This is some pane"),
+///             PaneState::AnotherKindOfPane => Text::new("This is another kind of pane"),
+///         }.into()
+///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(Message::PaneResized);
 /// ```

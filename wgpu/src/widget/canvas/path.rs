@@ -3,6 +3,7 @@ pub mod arc;
 
 mod builder;
 
+#[doc(no_inline)]
 pub use arc::Arc;
 pub use builder::Builder;
 
