@@ -132,7 +132,7 @@ where
     /// This method publishes the given event to all the subscription streams
     /// currently open.
     ///
-    /// [`Recipe::stream`]: trait.Recipe.html#method.stream
+    /// [`Recipe::stream`]: trait.Recipe.html#tymethod.stream
     pub fn broadcast(&mut self, event: Event) {
         self.subscriptions
             .values_mut()
