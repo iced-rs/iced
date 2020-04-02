@@ -2,7 +2,7 @@
 use palette::rgb::Srgba;
 
 /// A color in the sRGB color space.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Color {
     /// Red component, 0.0 - 1.0
     pub r: f32,
