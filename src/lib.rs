@@ -30,7 +30,7 @@
 //! [windowing shell]: https://github.com/hecrj/iced/tree/master/winit
 //! [`dodrio`]: https://github.com/fitzgen/dodrio
 //! [web runtime]: https://github.com/hecrj/iced/tree/master/web
-//! [examples]: https://github.com/hecrj/iced/tree/master/examples
+//! [examples]: https://github.com/hecrj/iced/tree/0.1/examples
 //! [repository]: https://github.com/hecrj/iced
 //!
 //! # Overview
@@ -171,7 +171,6 @@
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-//! [examples]: https://github.com/hecrj/iced/tree/master/examples
 //! [`Application`]: trait.Application.html
 //! [`Sandbox`]: trait.Sandbox.html
 #![deny(missing_docs)]

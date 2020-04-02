@@ -51,7 +51,7 @@
 //!
 //! [`wasm-pack`]: https://github.com/rustwasm/wasm-pack
 //! [`wasm-bindgen`]: https://github.com/rustwasm/wasm-bindgen
-//! [`tour` example]: https://github.com/hecrj/iced/blob/master/examples/tour.rs
+//! [`tour` example]: https://github.com/hecrj/iced/tree/0.1/examples/tour
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
