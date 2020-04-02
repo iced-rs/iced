@@ -12,6 +12,9 @@ use crate::{
 ///
 /// An [`Application`](trait.Application.html) can execute asynchronous actions
 /// by returning a [`Command`](struct.Command.html) in some of its methods.
+///
+/// When using an [`Application`] with the `debug` feature enabled, a debug view
+/// can be toggled by pressing `F12`.
 pub trait Application: Sized {
     /// The graphics backend to use to draw the [`Application`].
     ///

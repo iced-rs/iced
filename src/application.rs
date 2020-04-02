@@ -14,6 +14,9 @@ use crate::{window, Command, Element, Executor, Settings, Subscription};
 /// you do not intend to perform any background work in your program, the
 /// [`Sandbox`](trait.Sandbox.html) trait offers a simplified interface.
 ///
+/// When using an [`Application`] with the `debug` feature enabled, a debug view
+/// can be toggled by pressing `F12`.
+///
 /// [`Application`]: trait.Application.html
 ///
 /// # Examples
