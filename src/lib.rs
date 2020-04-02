@@ -166,13 +166,14 @@
 //!   1. Draw the resulting user interface.
 //!
 //! # Usage
-//! Take a look at the [`Application`] trait, which streamlines all the process
-//! described above for you!
+//! The [`Application`] and [`Sandbox`] traits should get you started quickly,
+//! streamlining all the process described above!
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
 //! [examples]: https://github.com/hecrj/iced/tree/master/examples
 //! [`Application`]: trait.Application.html
+//! [`Sandbox`]: trait.Sandbox.html
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
@@ -198,12 +199,12 @@ pub use sandbox::Sandbox;
 pub use settings::Settings;
 
 #[cfg(not(target_arch = "wasm32"))]
-use iced_winit as common;
+use iced_winit as runtime;
 
 #[cfg(target_arch = "wasm32")]
-use iced_web as common;
+use iced_web as runtime;
 
-pub use common::{
+pub use runtime::{
     futures, Align, Background, Color, Command, Font, HorizontalAlignment,
-    Length, Point, Size, Space, Subscription, Vector, VerticalAlignment,
+    Length, Point, Size, Subscription, Vector, VerticalAlignment,
 };

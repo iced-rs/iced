@@ -12,6 +12,13 @@ use std::hash::Hasher;
 /// charge of using this type in your system in any way you want.
 ///
 /// [`Layout`]: struct.Layout.html
+///
+/// # Example
+/// The [`integration` example] uses a [`UserInterface`] to integrate Iced in
+/// an existing graphical application.
+///
+/// [`integration` example]: https://github.com/hecrj/iced/tree/0.1/examples/integration
+/// [`UserInterface`]: struct.UserInterface.html
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     hash: u64,

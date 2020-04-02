@@ -20,7 +20,7 @@ impl Size {
     /// [`Size`]: struct.Size.html
     pub const INFINITY: Size = Size::new(f32::INFINITY, f32::INFINITY);
 
-    /// A [`Size`] of infinite width and height.
+    /// Creates a new  [`Size`] with the given width and height.
     ///
     /// [`Size`]: struct.Size.html
     pub const fn new(width: f32, height: f32) -> Self {

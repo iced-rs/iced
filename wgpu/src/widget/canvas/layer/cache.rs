@@ -12,7 +12,7 @@ use std::{cell::RefCell, marker::PhantomData, sync::Arc};
 /// change or it is explicitly cleared.
 ///
 /// [`Layer`]: ../trait.Layer.html
-/// [`Cached`]: struct.Cached.html
+/// [`Cache`]: struct.Cache.html
 #[derive(Debug)]
 pub struct Cache<T: Drawable> {
     input: PhantomData<T>,

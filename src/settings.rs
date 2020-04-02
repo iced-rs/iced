@@ -13,7 +13,7 @@ pub struct Settings<Flags> {
 
     /// The data needed to initialize an [`Application`].
     ///
-    /// [`Application`]: trait.Application.html
+    /// [`Application`]: ../trait.Application.html
     pub flags: Flags,
 
     /// The bytes of the font that will be used by default.
@@ -26,9 +26,11 @@ pub struct Settings<Flags> {
     /// primitives.
     ///
     /// Enabling it can produce a smoother result in some widgets, like the
-    /// `Canvas`, at a performance cost.
+    /// [`Canvas`], at a performance cost.
     ///
     /// By default, it is disabled.
+    ///
+    /// [`Canvas`]: ../widget/canvas/struct.Canvas.html
     pub antialiasing: bool,
 }
 

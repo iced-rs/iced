@@ -33,11 +33,61 @@ pub use text::Text;
 /// A widget capable of drawing 2D graphics.
 ///
 /// A [`Canvas`] may contain multiple layers. A [`Layer`] is drawn using the
-/// painter's algorithm. In other words, layers will be drawn on top of each in
-/// the same order they are pushed into the [`Canvas`].
+/// painter's algorithm. In other words, layers will be drawn on top of each
+/// other in the same order they are pushed into the [`Canvas`].
 ///
 /// [`Canvas`]: struct.Canvas.html
 /// [`Layer`]: layer/trait.Layer.html
+///
+/// # Examples
+/// The repository has a couple of [examples] showcasing how to use a
+/// [`Canvas`]:
+///
+/// - [`clock`], an application that uses the [`Canvas`] widget to draw a clock
+/// and its hands to display the current time.
+/// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
+/// and showcasing how to compose different transforms.
+///
+/// [examples]: https://github.com/hecrj/iced/tree/0.1/examples
+/// [`clock`]: https://github.com/hecrj/iced/tree/0.1/examples/clock
+/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.1/examples/solar_system
+///
+/// ## Drawing a simple circle
+/// If you want to get a quick overview, here's how we can draw a simple circle:
+///
+/// ```no_run
+/// # mod iced {
+/// #     pub use iced_wgpu::canvas;
+/// #     pub use iced_native::Color;
+/// # }
+/// use iced::canvas::{self, layer, Canvas, Drawable, Fill, Frame, Path};
+/// use iced::Color;
+///
+/// // First, we define the data we need for drawing
+/// #[derive(Debug)]
+/// struct Circle {
+///     radius: f32,
+/// }
+///
+/// // Then, we implement the `Drawable` trait
+/// impl Drawable for Circle {
+///     fn draw(&self, frame: &mut Frame) {
+///         // We create a `Path` representing a simple circle
+///         let circle = Path::new(|p| p.circle(frame.center(), self.radius));
+///
+///         // And fill it with some color
+///         frame.fill(&circle, Fill::Color(Color::BLACK));
+///     }
+/// }
+///
+/// // We can use a `Cache` to avoid unnecessary re-tessellation
+/// let cache: layer::Cache<Circle> = layer::Cache::new();
+///
+/// // Finally, we simply provide the data to our `Cache` and push the resulting
+/// // layer into a `Canvas`
+/// let canvas = Canvas::new()
+///     .push(cache.with(&Circle { radius: 50.0 }));
+/// ```
 #[derive(Debug)]
 pub struct Canvas<'a> {
     width: Length,

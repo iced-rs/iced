@@ -562,7 +562,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// Draws a [`TextInput`].
     ///
     /// It receives:
-    /// - its bounds of the [`TextInput`]
+    /// - the bounds of the [`TextInput`]
     /// - the bounds of the text (i.e. the current value)
     /// - the cursor position
     /// - the placeholder to show when the value is empty

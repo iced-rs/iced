@@ -30,7 +30,7 @@ mod platform {
         pub use iced_winit::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::Text;
+    pub use iced_winit::{Space, Text};
 
     #[doc(no_inline)]
     pub use {
@@ -39,6 +39,10 @@ mod platform {
         scrollable::Scrollable, slider::Slider, svg::Svg,
         text_input::TextInput,
     };
+
+    #[cfg(feature = "canvas")]
+    #[doc(no_inline)]
+    pub use canvas::Canvas;
 
     /// A container that distributes its contents vertically.
     ///

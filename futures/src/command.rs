@@ -7,6 +7,7 @@ use futures::future::{Future, FutureExt};
 /// using the `From` trait or [`Command::perform`].
 ///
 /// [`Command`]: struct.Command.html
+/// [`Command::perform`]: #method.perform
 pub struct Command<T> {
     futures: Vec<BoxFuture<T>>,
 }

@@ -12,6 +12,9 @@ use crate::{
 ///
 /// An [`Application`](trait.Application.html) can execute asynchronous actions
 /// by returning a [`Command`](struct.Command.html) in some of its methods.
+///
+/// When using an [`Application`] with the `debug` feature enabled, a debug view
+/// can be toggled by pressing `F12`.
 pub trait Application: Sized {
     /// The graphics backend to use to draw the [`Application`].
     ///
@@ -34,7 +37,7 @@ pub trait Application: Sized {
     type Flags;
 
     /// Initializes the [`Application`] with the flags provided to
-    /// [`run`] as part of the [`Settings`]:
+    /// [`run`] as part of the [`Settings`].
     ///
     /// Here is where you should return the initial state of your app.
     ///
@@ -100,8 +103,8 @@ pub trait Application: Sized {
 
     /// Runs the [`Application`] with the provided [`Settings`].
     ///
-    /// This method will take control of the current thread and __will NOT
-    /// return__.
+    /// On native platforms, this method will take control of the current thread
+    /// and __will NOT return__.
     ///
     /// It should probably be that last thing you call in your `main` function.
     ///

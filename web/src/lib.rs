@@ -23,8 +23,8 @@
 //!
 //! ```bash
 //! cd examples
-//! cargo build --example tour --target wasm32-unknown-unknown
-//! wasm-bindgen ../target/wasm32-unknown-unknown/debug/examples/tour.wasm --out-dir tour --web
+//! cargo build --package tour --target wasm32-unknown-unknown
+//! wasm-bindgen ../target/wasm32-unknown-unknown/debug/tour.wasm --out-dir tour --web
 //! ```
 //!
 //! Then, we need to create an `.html` file to load our application:
@@ -34,6 +34,7 @@
 //! <html>
 //!   <head>
 //!     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+//!     <meta name="viewport" content="width=device-width, initial-scale=1">
 //!     <title>Tour - Iced</title>
 //!   </head>
 //!   <body>

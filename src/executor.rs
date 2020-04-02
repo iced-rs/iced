@@ -1,5 +1,5 @@
 //! Choose your preferred executor to power your application.
-pub use crate::common::{executor::Null, Executor};
+pub use crate::runtime::{executor::Null, Executor};
 
 pub use platform::Default;
 

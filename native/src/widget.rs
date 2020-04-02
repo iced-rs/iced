@@ -76,6 +76,24 @@ use crate::{layout, Clipboard, Event, Hasher, Layout, Length, Point};
 ///
 /// [`Widget`]: trait.Widget.html
 /// [`Element`]: ../struct.Element.html
+///
+/// # Examples
+/// The repository has some [examples] showcasing how to implement a custom
+/// widget:
+///
+/// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using
+/// [`lyon`].
+/// - [`custom_widget`], a demonstration of how to build a custom widget that
+/// draws a circle.
+/// - [`geometry`], a custom widget showcasing how to draw geometry with the
+/// `Mesh2D` primitive in [`iced_wgpu`].
+///
+/// [examples]: https://github.com/hecrj/iced/tree/0.1/examples
+/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.1/examples/bezier_tool
+/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.1/examples/custom_widget
+/// [`geometry`]: https://github.com/hecrj/iced/tree/0.1/examples/geometry
+/// [`lyon`]: https://github.com/nical/lyon
+/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.1/wgpu
 pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
@@ -139,12 +157,14 @@ where
     ///   * a mutable `Message` list, allowing the [`Widget`] to produce
     ///   new messages based on user interaction.
     ///   * the `Renderer`
+    ///   * a [`Clipboard`], if available
     ///
     /// By default, it does nothing.
     ///
     /// [`Event`]: ../enum.Event.html
     /// [`Widget`]: trait.Widget.html
     /// [`Layout`]: ../layout/struct.Layout.html
+    /// [`Clipboard`]: ../trait.Clipboard.html
     fn on_event(
         &mut self,
         _event: Event,

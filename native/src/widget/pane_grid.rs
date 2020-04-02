@@ -1,6 +1,13 @@
 //! Let your users split regions of your application and organize layout dynamically.
 //!
 //! [![Pane grid - Iced](https://thumbs.gfycat.com/MixedFlatJellyfish-small.gif)](https://gfycat.com/mixedflatjellyfish)
+//!
+//! # Example
+//! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
+//! drag and drop, and hotkey support.
+//!
+//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
+//! [`PaneGrid`]: struct.PaneGrid.html
 mod axis;
 mod direction;
 mod node;
@@ -59,12 +66,13 @@ use crate::{
 ///
 /// let (mut state, _) = pane_grid::State::new(PaneState::SomePane);
 ///
-/// let pane_grid = PaneGrid::new(&mut state, |pane, state, focus| {
-///     match state {
-///         PaneState::SomePane => Text::new("This is some pane"),
-///         PaneState::AnotherKindOfPane => Text::new("This is another kind of pane"),
-///     }.into()
-/// })
+/// let pane_grid =
+///     PaneGrid::new(&mut state, |pane, state, focus| {
+///         match state {
+///             PaneState::SomePane => Text::new("This is some pane"),
+///             PaneState::AnotherKindOfPane => Text::new("This is another kind of pane"),
+///         }.into()
+///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(Message::PaneResized);
 /// ```

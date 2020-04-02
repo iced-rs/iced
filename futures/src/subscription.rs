@@ -142,6 +142,18 @@ impl<I, O, H> std::fmt::Debug for Subscription<I, O, H> {
 ///
 /// [`Subscription`]: struct.Subscription.html
 /// [`Recipe`]: trait.Recipe.html
+///
+/// # Examples
+/// The repository has a couple of [examples] that use a custom [`Recipe`]:
+///
+/// - [`download_progress`], a basic application that asynchronously downloads
+/// a dummy file of 100 MB and tracks the download progress.
+/// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
+/// to listen to time.
+///
+/// [examples]: https://github.com/hecrj/iced/tree/0.1/examples
+/// [`download_progress`]: https://github.com/hecrj/iced/tree/0.1/examples/download_progress
+/// [`stopwatch`]: https://github.com/hecrj/iced/tree/0.1/examples/stopwatch
 pub trait Recipe<Hasher: std::hash::Hasher, Event> {
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].

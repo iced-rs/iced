@@ -24,7 +24,6 @@ Iced consists of different crates which offer different layers of abstractions f
 ![Ecosystem graph](docs/graphs/ecosystem.png)
 
 ### [`iced_core`]
-
 [`iced_core`] holds basic reusable types of the public API. For instance, basic data types like `Point`, `Rectangle`, `Length`, etc.
 
 This crate is meant to be a starting point for an Iced runtime.
@@ -38,7 +37,7 @@ This crate is meant to be a starting point for an Iced runtime.
 To achieve this, it introduces a bunch of reusable interfaces:
 - A `Widget` trait, which is used to implement new widgets: from layout requirements to event and drawing logic.
 - A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
-- A `Windowed` trait, leveraging [`raw-window-handle`], which can be implemented by graphical renderers that target _windows_. Window-based shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
+- A `Backend` trait, leveraging [`raw-window-handle`], which can be implemented by graphical renderers that target _windows_. Window-based shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
 
 [`druid`]: https://github.com/xi-editor/druid
 [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
@@ -58,8 +57,9 @@ The crate is currently a simple abstraction layer over [`dodrio`].
 Currently, [`iced_wgpu`] supports the following primitives:
 - Text, which is rendered using [`wgpu_glyph`]. No shaping at all.
 - Quads or rectangles, with rounded borders and a solid background color.
-- Images, lazily loaded from the filesystem.
 - Clip areas, useful to implement scrollables or hide overflowing content.
+- Images and SVG, loaded from memory or the file system.
+- Meshes of triangles, useful to draw geometry freely.
 
 [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 [WebGPU API]: https://gpuweb.github.io/gpuweb/

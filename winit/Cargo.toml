@@ -19,7 +19,7 @@ window_clipboard = "0.1"
 log = "0.4"
 
 [dependencies.iced_native]
-version = "0.1.0-alpha"
+version = "0.1.0"
 path = "../native"
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
