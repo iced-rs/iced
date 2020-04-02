@@ -90,7 +90,8 @@ pub fn window_event(
 
 /// Converts a [`Mode`] to a [`winit`] fullscreen mode.
 ///
-/// [`Mode`]:
+/// [`Mode`]: ../enum.Mode.html
+/// [`winit`]: https://github.com/rust-windowing/winit
 pub fn fullscreen(
     monitor: winit::monitor::MonitorHandle,
     mode: Mode,
