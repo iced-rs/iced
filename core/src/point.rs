@@ -11,7 +11,7 @@ pub struct Point {
 }
 
 impl Point {
-    /// The origin (i.e. a [`Point`] with both X=0 and Y=0).
+    /// The origin (i.e. a [`Point`] at (0, 0)).
     ///
     /// [`Point`]: struct.Point.html
     pub const ORIGIN: Point = Point::new(0.0, 0.0);
