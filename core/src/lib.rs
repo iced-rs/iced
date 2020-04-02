@@ -35,3 +35,6 @@ pub use point::Point;
 pub use rectangle::Rectangle;
 pub use size::Size;
 pub use vector::Vector;
+
+#[cfg(feature = "palette")]
+pub use palette;
