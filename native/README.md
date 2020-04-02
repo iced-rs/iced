@@ -26,7 +26,7 @@ To achieve this, it introduces a bunch of reusable interfaces:
 Add `iced_native` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_native = "0.1.0"
+iced_native = "0.2"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

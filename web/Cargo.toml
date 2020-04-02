@@ -1,6 +1,6 @@
 [package]
 name = "iced_web"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A web backend for Iced"
@@ -15,19 +15,22 @@ categories = ["web-programming"]
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-iced_style = { version = "0.1.0-alpha", path = "../style" }
 dodrio = "0.1.0"
 wasm-bindgen = "0.2.51"
 wasm-bindgen-futures = "0.4"
 url = "2.0"
 
 [dependencies.iced_core]
-version = "0.1.0"
+version = "0.2"
 path = "../core"
 
 [dependencies.iced_futures]
-version = "0.1.0-alpha"
+version = "0.1"
 path = "../futures"
+
+[dependencies.iced_style]
+version = "0.1"
+path = "../style"
 
 [dependencies.web-sys]
 version = "0.3.27"

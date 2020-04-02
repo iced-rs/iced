@@ -10,7 +10,7 @@ It exposes a renderer-agnostic `Application` trait that can be implemented and t
 
 ![iced_winit](../docs/graphs/winit.png)
 
-[documentation]: https://docs.rs/iced_winit/0.1.0-alpha.1/iced_winit/
+[documentation]: https://docs.rs/iced_winit
 [`iced_native`]: ../native
 [`winit`]: https://github.com/rust-windowing/winit
 
@@ -18,7 +18,7 @@ It exposes a renderer-agnostic `Application` trait that can be implemented and t
 Add `iced_winit` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_winit = "0.1.0-alpha"
+iced_winit = "0.1"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

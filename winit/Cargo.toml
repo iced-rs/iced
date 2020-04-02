@@ -1,6 +1,6 @@
 [package]
 name = "iced_winit"
-version = "0.1.0-alpha"
+version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A winit runtime for Iced"
@@ -19,7 +19,7 @@ window_clipboard = "0.1"
 log = "0.4"
 
 [dependencies.iced_native]
-version = "0.1.0"
+version = "0.2"
 path = "../native"
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
