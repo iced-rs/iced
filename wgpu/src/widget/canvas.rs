@@ -39,8 +39,21 @@ pub use text::Text;
 /// [`Canvas`]: struct.Canvas.html
 /// [`Layer`]: layer/trait.Layer.html
 ///
-/// # Example
-/// Let's see how we can draw a circle:
+/// # Examples
+/// The repository has a couple of [examples] showcasing how to use a
+/// [`Canvas`]:
+///
+/// - [`clock`], an application that uses the [`Canvas`] widget to draw a clock
+/// and its hands to display the current time.
+/// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
+/// and showcasing how to compose different transforms.
+///
+/// [examples]: https://github.com/hecrj/iced/tree/0.1/examples
+/// [`clock`]: https://github.com/hecrj/iced/tree/0.1/examples/clock
+/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.1/examples/solar_system
+///
+/// ## Drawing a simple circle
+/// If you want to get a quick overview, here's how we can draw a simple circle:
 ///
 /// ```no_run
 /// # mod iced {
