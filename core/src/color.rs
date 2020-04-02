@@ -1,5 +1,5 @@
 #[cfg(feature = "palette")]
-use palette::rgb::Srgba;
+use palette::rgb::{Srgb, Srgba};
 
 /// A color in the sRGB color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -160,6 +160,28 @@ impl From<Srgba> for Color {
 impl From<Color> for Srgba {
     fn from(c: Color) -> Self {
         Srgba::new(c.r, c.g, c.b, c.a)
+    }
+}
+
+#[cfg(feature = "palette")]
+/// Convert from palette's [`Srgb`] type to a [`Color`]
+///
+/// [`Srgb`]: ../palette/rgb/type.Srgb.html
+/// [`Color`]: struct.Color.html
+impl From<Srgb> for Color {
+    fn from(srgb: Srgb) -> Self {
+        Color::new(srgb.red, srgb.green, srgb.blue, 1.0)
+    }
+}
+
+#[cfg(feature = "palette")]
+/// Convert from [`Color`] to palette's [`Srgb`] type
+///
+/// [`Color`]: struct.Color.html
+/// [`Srgb`]: ../palette/rgb/type.Srgb.html
+impl From<Color> for Srgb {
+    fn from(c: Color) -> Self {
+        Srgb::new(c.r, c.g, c.b)
     }
 }
 
