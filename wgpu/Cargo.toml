@@ -1,6 +1,6 @@
 [package]
 name = "iced_wgpu"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A wgpu renderer for Iced"
@@ -12,8 +12,6 @@ svg = ["resvg"]
 canvas = ["lyon"]
 
 [dependencies]
-iced_native = { version = "0.1.0", path = "../native" }
-iced_style = { version = "0.1.0-alpha", path = "../style" }
 wgpu = "0.4"
 wgpu_glyph = "0.7"
 glyph_brush = "0.6"
@@ -22,6 +20,14 @@ glam = "0.8"
 font-kit = "0.4"
 log = "0.4"
 guillotiere = "0.4"
+
+[dependencies.iced_native]
+version = "0.2"
+path = "../native"
+
+[dependencies.iced_style]
+version = "0.1"
+path = "../style"
 
 [dependencies.image]
 version = "0.22"

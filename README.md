@@ -1,7 +1,7 @@
 # Iced
 [![Test Status](https://github.com/hecrj/iced/workflows/Test/badge.svg?event=push)](https://github.com/hecrj/iced/actions)
 [![Documentation](https://docs.rs/iced/badge.svg)][documentation]
-[![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced/0.1.0-beta)
+[![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
 [![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
 
@@ -55,7 +55,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.1.0-beta"
+iced = "0.1"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
@@ -217,7 +217,7 @@ the [Rust Community Discord]. I go by `lone_scientist#9554` there.
 ## Sponsors
 The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 
-[documentation]: https://docs.rs/iced/0.1.0-beta/iced/
+[documentation]: https://docs.rs/iced/
 [examples]: https://github.com/hecrj/iced/tree/master/examples
 [Coffee]: https://github.com/hecrj/coffee
 [Elm]: https://elm-lang.org/
