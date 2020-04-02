@@ -13,7 +13,7 @@ Currently, `iced_wgpu` supports the following primitives:
 - Quads or rectangles, with rounded borders and a solid background color.
 - Clip areas, useful to implement scrollables or hide overflowing content.
 - Images and SVG, loaded from memory or the file system.
-- Meshes of triangles, for rendering geometry freely.
+- Meshes of triangles, useful to draw geometry freely.
 
 ![iced_wgpu](../docs/graphs/wgpu.png)
 
