@@ -172,6 +172,7 @@ impl Frame {
     ///
     /// [`Text`]: struct.Text.html
     /// [`Frame`]: struct.Frame.html
+    /// [`Canvas`]: struct.Canvas.html
     pub fn fill_text(&mut self, text: Text) {
         use std::f32;
 
