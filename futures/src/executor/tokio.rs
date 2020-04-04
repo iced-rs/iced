@@ -3,6 +3,7 @@ use crate::Executor;
 use futures::Future;
 
 /// A `tokio` runtime.
+#[cfg_attr(docsrs, doc(cfg(feature = "tokio")))]
 pub type Tokio = tokio::runtime::Runtime;
 
 impl Executor for Tokio {
