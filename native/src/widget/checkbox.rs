@@ -50,14 +50,14 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     ///     `Message`.
     ///
     /// [`Checkbox`]: struct.Checkbox.html
-    pub fn new<F>(is_checked: bool, label: &str, f: F) -> Self
+    pub fn new<F>(is_checked: bool, label: impl Into<String>, f: F) -> Self
     where
         F: 'static + Fn(bool) -> Message,
     {
         Checkbox {
             is_checked,
             on_toggle: Box::new(f),
-            label: String::from(label),
+            label: label.into(),
             width: Length::Shrink,
             size: <Renderer as self::Renderer>::DEFAULT_SIZE,
             spacing: Renderer::DEFAULT_SPACING,
