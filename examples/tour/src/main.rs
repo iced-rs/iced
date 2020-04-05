@@ -528,9 +528,10 @@ impl<'a> Step {
             .push(Language::all().iter().cloned().fold(
                 Column::new().padding(10).spacing(20),
                 |choices, language| {
+                    let label: &str = language.into();
                     choices.push(Radio::new(
                         language,
-                        language.into(),
+                        label,
                         selection,
                         StepMessage::LanguageSelected,
                     ))
