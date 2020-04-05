@@ -178,6 +178,7 @@
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 mod application;
 mod element;
 mod sandbox;

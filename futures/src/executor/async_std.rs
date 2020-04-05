@@ -3,6 +3,7 @@ use crate::Executor;
 use futures::Future;
 
 /// An `async-std` runtime.
+#[cfg_attr(docsrs, doc(cfg(feature = "async-std")))]
 #[derive(Debug)]
 pub struct AsyncStd;
 

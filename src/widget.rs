@@ -18,13 +18,22 @@
 //! [`text_input::State`]: text_input/struct.State.html
 #[cfg(not(target_arch = "wasm32"))]
 mod platform {
-    pub use iced_wgpu::widget::*;
+    pub use iced_wgpu::widget::{
+        button, checkbox, container, pane_grid, progress_bar, radio,
+        scrollable, slider, text_input,
+    };
 
+    #[cfg(feature = "canvas")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
+    pub use iced_wgpu::widget::canvas;
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
         pub use iced_winit::image::{Handle, Image};
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
     pub mod svg {
         //! Display vector graphics in your user interface.
         pub use iced_winit::svg::{Handle, Svg};

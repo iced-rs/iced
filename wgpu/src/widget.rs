@@ -37,6 +37,7 @@ pub use slider::Slider;
 pub use text_input::TextInput;
 
 #[cfg(feature = "canvas")]
+#[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 pub mod canvas;
 
 #[cfg(feature = "canvas")]
