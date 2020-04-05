@@ -65,3 +65,7 @@ iced_wgpu = { version = "0.2", path = "wgpu" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced_web = { version = "0.2", path = "web" }
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+features = ["image", "svg", "canvas"]

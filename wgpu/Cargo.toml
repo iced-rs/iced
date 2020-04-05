@@ -41,3 +41,7 @@ optional = true
 [dependencies.lyon]
 version = "0.15"
 optional = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
