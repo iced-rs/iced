@@ -34,6 +34,22 @@ pub struct Settings<Flags> {
     pub antialiasing: bool,
 }
 
+impl<Flags> Settings<Flags> {
+    /// Initialize application settings using the given data.
+    ///
+    /// [`Application`]: ../trait.Application.html
+    pub fn with_flags(flags: Flags) -> Self {
+        Self {
+            flags,
+            // not using ..Default::default() struct update syntax since it is more permissive to
+            // allow initializing with flags without trait bound on Default
+            antialiasing: Default::default(),
+            default_font: Default::default(),
+            window: Default::default(),
+        }
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
