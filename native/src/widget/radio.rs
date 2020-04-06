@@ -53,7 +53,12 @@ impl<Message, Renderer: self::Renderer> Radio<Message, Renderer> {
     ///   receives the value of the radio and must produce a `Message`.
     ///
     /// [`Radio`]: struct.Radio.html
-    pub fn new<F, V>(value: V, label: &str, selected: Option<V>, f: F) -> Self
+    pub fn new<F, V>(
+        value: V,
+        label: impl Into<String>,
+        selected: Option<V>,
+        f: F,
+    ) -> Self
     where
         V: Eq + Copy,
         F: 'static + Fn(V) -> Message,
@@ -61,7 +66,7 @@ impl<Message, Renderer: self::Renderer> Radio<Message, Renderer> {
         Radio {
             is_selected: Some(value) == selected,
             on_click: f(value),
-            label: String::from(label),
+            label: label.into(),
             style: Renderer::Style::default(),
         }
     }

@@ -530,7 +530,7 @@ impl<'a> Step {
                 |choices, language| {
                     choices.push(Radio::new(
                         language,
-                        language.into(),
+                        language,
                         selection,
                         StepMessage::LanguageSelected,
                     ))
@@ -729,16 +729,16 @@ impl Language {
     }
 }
 
-impl From<Language> for &str {
-    fn from(language: Language) -> &'static str {
-        match language {
+impl From<Language> for String {
+    fn from(language: Language) -> String {
+        String::from(match language {
             Language::Rust => "Rust",
             Language::Elm => "Elm",
             Language::Ruby => "Ruby",
             Language::Haskell => "Haskell",
             Language::C => "C",
             Language::Other => "Other",
-        }
+        })
     }
 }
 
