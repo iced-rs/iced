@@ -7,7 +7,9 @@ use scene::Scene;
 use iced_wgpu::{
     wgpu, window::SwapChain, Primitive, Renderer, Settings, Target,
 };
-use iced_winit::{winit, Cache, Clipboard, MouseCursor, Size, UserInterface};
+use iced_winit::{
+    futures, winit, Cache, Clipboard, MouseCursor, Size, UserInterface,
+};
 
 use winit::{
     event::{Event, ModifiersState, WindowEvent},
@@ -25,21 +27,29 @@ pub fn main() {
     let mut modifiers = ModifiersState::default();
 
     // Initialize WGPU
-    let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
-        power_preference: wgpu::PowerPreference::Default,
-        backends: wgpu::BackendBit::PRIMARY,
-    })
-    .expect("Request adapter");
-
-    let (mut device, mut queue) =
-        adapter.request_device(&wgpu::DeviceDescriptor {
-            extensions: wgpu::Extensions {
-                anisotropic_filtering: false,
-            },
-            limits: wgpu::Limits::default(),
-        });
 
     let surface = wgpu::Surface::create(&window);
+    let (mut device, queue) = futures::executor::block_on(async {
+        let adapter = wgpu::Adapter::request(
+            &wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::Default,
+                compatible_surface: Some(&surface),
+            },
+            wgpu::BackendBit::PRIMARY,
+        )
+        .await
+        .expect("Request adapter");
+
+        adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                extensions: wgpu::Extensions {
+                    anisotropic_filtering: false,
+                },
+                limits: wgpu::Limits::default(),
+            })
+            .await
+    });
+
     let format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
     let mut swap_chain = {
@@ -168,10 +178,11 @@ pub fn main() {
                     );
                 }
 
-                let (frame, viewport) = swap_chain.next_frame();
+                let (frame, viewport) =
+                    swap_chain.next_frame().expect("Next frame");
 
                 let mut encoder = device.create_command_encoder(
-                    &wgpu::CommandEncoderDescriptor { todo: 0 },
+                    &wgpu::CommandEncoderDescriptor { label: None },
                 );
 
                 // We draw the scene first
