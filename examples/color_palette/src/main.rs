@@ -1,5 +1,6 @@
 use iced::{
-    slider, Color, Column, Element, Row, Sandbox, Settings, Slider, Text,
+    canvas, slider, Canvas, Color, Column, Element, Length, Point, Row,
+    Sandbox, Settings, Slider, Text,
 };
 use iced_core::palette::{self, Limited};
 
@@ -7,15 +8,39 @@ pub fn main() {
     ColorPalette::run(Settings::default())
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
+pub struct State {
+    color: Color,
+    theme: Vec<Color>,
+}
+
+fn generate_theme(base_color: &Color) -> Vec<Color> {
+    use palette::{Hsl, Hue, Shade, Srgb};
+    let mut theme = Vec::<Color>::new();
+    // Convert to linear color for manipulation
+    let srgb = Srgb::from(*base_color);
+
+    let hsl = Hsl::from(srgb);
+
+    theme.push(Srgb::from(hsl.shift_hue(-120.0)).clamp().into());
+    theme.push(Srgb::from(hsl.shift_hue(-115.0).darken(0.075)).clamp().into());
+    theme.push(Srgb::from(hsl.darken(0.075)).clamp().into());
+    theme.push(*base_color);
+    theme.push(Srgb::from(hsl.lighten(0.075)).clamp().into());
+    theme.push(Srgb::from(hsl.shift_hue(115.0).darken(0.075)).clamp().into());
+    theme.push(Srgb::from(hsl.shift_hue(120.0)).clamp().into());
+    theme
+}
+
 pub struct ColorPalette {
-    base_color: Color,
+    state: State,
     rgb_sliders: [slider::State; 3],
     hsl_sliders: [slider::State; 3],
     hsv_sliders: [slider::State; 3],
     hwb_sliders: [slider::State; 3],
     lab_sliders: [slider::State; 3],
     lch_sliders: [slider::State; 3],
+    canvas_layer: canvas::layer::Cache<State>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -32,9 +57,24 @@ impl Sandbox for ColorPalette {
     type Message = Message;
 
     fn new() -> Self {
-        let mut s = Self::default();
-        s.base_color = Color::from_rgb8(27, 135, 199);
-        s
+        fn triple_slider() -> [slider::State; 3] {
+            [
+                slider::State::new(),
+                slider::State::new(),
+                slider::State::new(),
+            ]
+        }
+
+        ColorPalette {
+            state: State::new(),
+            rgb_sliders: triple_slider(),
+            hsl_sliders: triple_slider(),
+            hsv_sliders: triple_slider(),
+            hwb_sliders: triple_slider(),
+            lab_sliders: triple_slider(),
+            lch_sliders: triple_slider(),
+            canvas_layer: canvas::layer::Cache::new(),
+        }
     }
 
     fn title(&self) -> String {
@@ -51,7 +91,11 @@ impl Sandbox for ColorPalette {
             Message::LchColorChanged(lch) => palette::Srgb::from(lch),
         };
         srgb.clamp_self();
-        self.base_color = Color::from(srgb);
+        self.canvas_layer.clear();
+        self.state.color = Color::from(srgb);
+
+        // Set theme colors
+        self.state.theme = generate_theme(&self.state.color);
     }
 
     fn view(&mut self) -> Element<Message> {
@@ -62,8 +106,8 @@ impl Sandbox for ColorPalette {
         let [lab1, lab2, lab3] = &mut self.lab_sliders;
         let [lch1, lch2, lch3] = &mut self.lch_sliders;
 
-        let color = self.base_color;
-        let srgb = palette::Srgb::from(self.base_color);
+        let color = self.state.color;
+        let srgb = palette::Srgb::from(self.state.color);
         let hsl = palette::Hsl::from(srgb);
         let hsv = palette::Hsv::from(srgb);
         let hwb = palette::Hwb::from(srgb);
@@ -245,6 +289,50 @@ impl Sandbox for ColorPalette {
                         },
                     )),
             )
+            .push(
+                Canvas::new()
+                    .width(Length::Fill)
+                    .height(Length::Units(150))
+                    .push(self.canvas_layer.with(&self.state)),
+            )
             .into()
+    }
+}
+
+impl State {
+    pub fn new() -> State {
+        let base = Color::from_rgb8(27, 135, 199);
+        State {
+            color: base,
+            theme: generate_theme(&base),
+        }
+    }
+}
+
+impl canvas::Drawable for State {
+    fn draw(&self, frame: &mut canvas::Frame) {
+        use canvas::{Fill, Path};
+        if self.theme.len() == 0 {
+            println!("Zero len");
+            return;
+        }
+
+        let box_width = frame.width() / self.theme.len() as f32;
+        for i in 0..self.theme.len() {
+            let anchor = Point {
+                x: (i as f32) * box_width,
+                y: 0.0,
+            };
+            let rect = Path::new(|path| {
+                path.move_to(anchor);
+                path.line_to(Point { x: anchor.x + box_width, y: anchor.y });
+                path.line_to(Point {
+                    x: anchor.x + box_width,
+                    y: anchor.y + frame.height(),
+                });
+                path.line_to(Point { x: anchor.x, y: anchor.y + frame.height() });
+            });
+            frame.fill(&rect, Fill::Color(self.theme[i]));
+        }
     }
 }

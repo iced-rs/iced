@@ -9,6 +9,6 @@ publish = false
 palette = []
 
 [dependencies]
-iced = { path = "../..", features = ["palette"] }
+iced = { path = "../..", features = ["canvas", "palette"] }
 iced_core = { path = "../../core" }
 iced_native = { path = "../../native" }

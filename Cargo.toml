@@ -60,7 +60,7 @@ members = [
 ]
 
 [dependencies]
-iced_core = { version = "0.1", path = "core" }
+iced_core = { version = "0.2", path = "core" }
 iced_futures = { version = "0.1", path = "futures" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
