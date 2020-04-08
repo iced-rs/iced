@@ -39,7 +39,7 @@ impl Application for SolarSystem {
         (
             SolarSystem {
                 state: State::new(),
-                solar_system: canvas::layer::Cache::new(),
+                solar_system: Default::default(),
             },
             Command::none(),
         )

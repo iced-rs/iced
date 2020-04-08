@@ -6,6 +6,19 @@ use crate::{
 use iced_native::Size;
 use std::{cell::RefCell, marker::PhantomData, sync::Arc};
 
+enum State {
+    Empty,
+    Filled {
+        bounds: Size,
+        primitive: Arc<Primitive>,
+    },
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State::Empty
+    }
+}
 /// A simple cache that stores generated geometry to avoid recomputation.
 ///
 /// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
@@ -19,12 +32,16 @@ pub struct Cache<T: Drawable> {
     state: RefCell<State>,
 }
 
-enum State {
-    Empty,
-    Filled {
-        bounds: Size,
-        primitive: Arc<Primitive>,
-    },
+impl<T> Default for Cache<T>
+where
+    T: Drawable,
+{
+    fn default() -> Self {
+        Self {
+            input: PhantomData,
+            state: Default::default(),
+        }
+    }
 }
 
 impl<T> Cache<T>
@@ -37,7 +54,7 @@ where
     pub fn new() -> Self {
         Cache {
             input: PhantomData,
-            state: RefCell::new(State::Empty),
+            state: Default::default(),
         }
     }
 
