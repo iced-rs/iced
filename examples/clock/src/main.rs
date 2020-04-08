@@ -29,7 +29,7 @@ impl Application for Clock {
         (
             Clock {
                 now: chrono::Local::now().into(),
-                clock: canvas::layer::Cache::new(),
+                clock: Default::default(),
             },
             Command::none(),
         )
