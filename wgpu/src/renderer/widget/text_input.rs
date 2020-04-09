@@ -210,10 +210,20 @@ impl text_input::Renderer for Renderer {
             (text_value, Vector::new(0, 0))
         };
 
-        let contents = Primitive::Clip {
-            bounds: text_bounds,
-            offset,
-            content: Box::new(contents_primitive),
+        let text_width = self.measure_value(
+            if text.is_empty() { placeholder } else { &text },
+            size,
+            font,
+        );
+
+        let contents = if text_width > text_bounds.width {
+            Primitive::Clip {
+                bounds: text_bounds,
+                offset,
+                content: Box::new(contents_primitive),
+            }
+        } else {
+            contents_primitive
         };
 
         (
