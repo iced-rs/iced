@@ -109,6 +109,7 @@ impl text_input::Renderer for Renderer {
             },
             font,
             bounds: Rectangle {
+                y: text_bounds.center_y(),
                 width: f32::INFINITY,
                 ..text_bounds
             },

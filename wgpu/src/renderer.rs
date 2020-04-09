@@ -152,31 +152,14 @@ impl Renderer {
                 horizontal_alignment,
                 vertical_alignment,
             } => {
-                let x = match horizontal_alignment {
-                    iced_native::HorizontalAlignment::Left => bounds.x,
-                    iced_native::HorizontalAlignment::Center => {
-                        bounds.x + bounds.width / 2.0
-                    }
-                    iced_native::HorizontalAlignment::Right => {
-                        bounds.x + bounds.width
-                    }
-                };
-
-                let y = match vertical_alignment {
-                    iced_native::VerticalAlignment::Top => bounds.y,
-                    iced_native::VerticalAlignment::Center => {
-                        bounds.y + bounds.height / 2.0
-                    }
-                    iced_native::VerticalAlignment::Bottom => {
-                        bounds.y + bounds.height
-                    }
-                };
-
                 let layer = layers.last_mut().unwrap();
 
                 layer.text.push(wgpu_glyph::Section {
                     text: &content,
-                    screen_position: (x + translation.x, y + translation.y),
+                    screen_position: (
+                        bounds.x + translation.x,
+                        bounds.y + translation.y,
+                    ),
                     bounds: (bounds.width, bounds.height),
                     scale: wgpu_glyph::Scale { x: *size, y: *size },
                     color: color.into_linear(),
