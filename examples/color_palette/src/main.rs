@@ -1,11 +1,14 @@
 use iced::{
-    canvas, slider, Canvas, Color, Column, Element, Length, Point, Row,
-    Sandbox, Settings, Slider, Text,
+    canvas, slider, text_input, Canvas, Color, Column, Element, Length, Point,
+    Row, Sandbox, Settings, Slider, Text, TextInput,
 };
 use iced_core::palette::{self, Limited};
 
 pub fn main() {
-    ColorPalette::run(Settings::default())
+    ColorPalette::run(Settings {
+        antialiasing: true,
+        ..Settings::default()
+    })
 }
 
 #[derive(Debug, Default)]
@@ -56,6 +59,18 @@ pub struct ColorPalette {
     hwb_sliders: [slider::State; 3],
     lab_sliders: [slider::State; 3],
     lch_sliders: [slider::State; 3],
+    rgb_text_state: text_input::State,
+    hsl_text_state: text_input::State,
+    hsv_text_state: text_input::State,
+    hwb_text_state: text_input::State,
+    lab_text_state: text_input::State,
+    lch_text_state: text_input::State,
+    rgb_text_value: String,
+    hsl_text_value: String,
+    hsv_text_value: String,
+    hwb_text_value: String,
+    lab_text_value: String,
+    lch_text_value: String,
     canvas_layer: canvas::layer::Cache<State>,
 }
 
@@ -67,6 +82,7 @@ pub enum Message {
     HwbColorChanged(palette::Hwb),
     LabColorChanged(palette::Lab),
     LchColorChanged(palette::Lch),
+    TextInput,
 }
 
 impl Sandbox for ColorPalette {
@@ -81,14 +97,34 @@ impl Sandbox for ColorPalette {
             ]
         }
 
+        let state = State::new();
+        let rgb_text_value = color_str(&state.color, ColorFormat::Rgb);
+        let hsl_text_value = color_str(&state.color, ColorFormat::Hsl);
+        let hsv_text_value = color_str(&state.color, ColorFormat::Hsv);
+        let hwb_text_value = color_str(&state.color, ColorFormat::Hwb);
+        let lab_text_value = color_str(&state.color, ColorFormat::Lab);
+        let lch_text_value = color_str(&state.color, ColorFormat::Lch);
+
         ColorPalette {
-            state: State::new(),
+            state,
             rgb_sliders: triple_slider(),
             hsl_sliders: triple_slider(),
             hsv_sliders: triple_slider(),
             hwb_sliders: triple_slider(),
             lab_sliders: triple_slider(),
             lch_sliders: triple_slider(),
+            rgb_text_state: text_input::State::new(),
+            hsl_text_state: text_input::State::new(),
+            hsv_text_state: text_input::State::new(),
+            hwb_text_state: text_input::State::new(),
+            lab_text_state: text_input::State::new(),
+            lch_text_state: text_input::State::new(),
+            rgb_text_value,
+            hsl_text_value,
+            hsv_text_value,
+            hwb_text_value,
+            lab_text_value,
+            lch_text_value,
             canvas_layer: canvas::layer::Cache::new(),
         }
     }
@@ -98,6 +134,11 @@ impl Sandbox for ColorPalette {
     }
 
     fn update(&mut self, message: Message) {
+        match message {
+            Message::TextInput => return,
+            _ => {}
+        }
+
         let mut srgb = match message {
             Message::RgbColorChanged(rgb) => palette::Srgb::from(rgb),
             Message::HslColorChanged(hsl) => palette::Srgb::from(hsl),
@@ -105,6 +146,7 @@ impl Sandbox for ColorPalette {
             Message::HwbColorChanged(hwb) => palette::Srgb::from(hwb),
             Message::LabColorChanged(lab) => palette::Srgb::from(lab),
             Message::LchColorChanged(lch) => palette::Srgb::from(lch),
+            _ => return,
         };
         srgb.clamp_self();
         self.canvas_layer.clear();
@@ -112,6 +154,14 @@ impl Sandbox for ColorPalette {
 
         // Set theme colors
         self.state.theme = generate_theme(&self.state.color);
+
+        // Set text
+        self.rgb_text_value = color_str(&self.state.color, ColorFormat::Rgb);
+        self.hsl_text_value = color_str(&self.state.color, ColorFormat::Hsl);
+        self.hsv_text_value = color_str(&self.state.color, ColorFormat::Hsv);
+        self.hwb_text_value = color_str(&self.state.color, ColorFormat::Hwb);
+        self.lab_text_value = color_str(&self.state.color, ColorFormat::Lab);
+        self.lch_text_value = color_str(&self.state.color, ColorFormat::Lch);
     }
 
     fn view(&mut self) -> Element<Message> {
@@ -131,12 +181,12 @@ impl Sandbox for ColorPalette {
         let lch = palette::Lch::from(srgb);
 
         Column::new()
-            .padding(20)
-            .spacing(20)
+            .padding(10)
+            .spacing(10)
             .push(
                 Row::new()
                     .spacing(10)
-                    .push(Text::new("RGB"))
+                    .push(Text::new("RGB").width(Length::Units(50)))
                     .push(Slider::new(rgb1, 0.0..=1.0, color.r, move |r| {
                         Message::RgbColorChanged(Color { r, ..color })
                     }))
@@ -145,12 +195,23 @@ impl Sandbox for ColorPalette {
                     }))
                     .push(Slider::new(rgb3, 0.0..=1.0, color.b, move |b| {
                         Message::RgbColorChanged(Color { b, ..color })
-                    })),
+                    }))
+                    .push(
+                        TextInput::new(
+                            &mut self.rgb_text_state,
+                            "",
+                            &mut self.rgb_text_value,
+                            |_s| Message::TextInput,
+                        )
+                        .width(Length::Units(150))
+                        .size(14)
+                        .padding(2),
+                    ),
             )
             .push(
                 Row::new()
                     .spacing(10)
-                    .push(Text::new("HSL"))
+                    .push(Text::new("HSL").width(Length::Units(50)))
                     .push(Slider::new(
                         hsl1,
                         0.0..=360.0,
@@ -183,12 +244,23 @@ impl Sandbox for ColorPalette {
                                 ..hsl
                             })
                         },
-                    )),
+                    ))
+                    .push(
+                        TextInput::new(
+                            &mut self.hsl_text_state,
+                            "",
+                            &mut self.hsl_text_value,
+                            |_s| Message::TextInput,
+                        )
+                        .width(Length::Units(150))
+                        .size(14)
+                        .padding(2),
+                    ),
             )
             .push(
                 Row::new()
                     .spacing(10)
-                    .push(Text::new("HSV"))
+                    .push(Text::new("HSV").width(Length::Units(50)))
                     .push(Slider::new(
                         hsv1,
                         0.0..=360.0,
@@ -221,12 +293,23 @@ impl Sandbox for ColorPalette {
                                 ..hsv
                             })
                         },
-                    )),
+                    ))
+                    .push(
+                        TextInput::new(
+                            &mut self.hsv_text_state,
+                            "",
+                            &mut self.hsv_text_value,
+                            |_s| Message::TextInput,
+                        )
+                        .width(Length::Units(150))
+                        .size(14)
+                        .padding(2),
+                    ),
             )
             .push(
                 Row::new()
                     .spacing(10)
-                    .push(Text::new("HWB"))
+                    .push(Text::new("HWB").width(Length::Units(50)))
                     .push(Slider::new(
                         hwb1,
                         0.0..=360.0,
@@ -259,12 +342,23 @@ impl Sandbox for ColorPalette {
                                 ..hwb
                             })
                         },
-                    )),
+                    ))
+                    .push(
+                        TextInput::new(
+                            &mut self.hwb_text_state,
+                            "",
+                            &mut self.hwb_text_value,
+                            |_s| Message::TextInput,
+                        )
+                        .width(Length::Units(150))
+                        .size(14)
+                        .padding(2),
+                    ),
             )
             .push(
                 Row::new()
                     .spacing(10)
-                    .push(Text::new("Lab"))
+                    .push(Text::new("Lab").width(Length::Units(50)))
                     .push(Slider::new(lab1, 0.0..=100.0, lab.l, move |l| {
                         Message::LabColorChanged(palette::Lab { l, ..lab })
                     }))
@@ -273,12 +367,23 @@ impl Sandbox for ColorPalette {
                     }))
                     .push(Slider::new(lab3, -128.0..=127.0, lab.b, move |b| {
                         Message::LabColorChanged(palette::Lab { b, ..lab })
-                    })),
+                    }))
+                    .push(
+                        TextInput::new(
+                            &mut self.lab_text_state,
+                            "",
+                            &mut self.lab_text_value,
+                            |_s| Message::TextInput,
+                        )
+                        .width(Length::Units(150))
+                        .size(14)
+                        .padding(2),
+                    ),
             )
             .push(
                 Row::new()
                     .spacing(10)
-                    .push(Text::new("Lch"))
+                    .push(Text::new("Lch").width(Length::Units(50)))
                     .push(Slider::new(lch1, 0.0..=100.0, lch.l, move |l| {
                         Message::LchColorChanged(palette::Lch { l, ..lch })
                     }))
@@ -303,12 +408,24 @@ impl Sandbox for ColorPalette {
                                 ..lch
                             })
                         },
-                    )),
+                    ))
+                    .push(
+                        TextInput::new(
+                            &mut self.lch_text_state,
+                            "",
+                            &mut self.lch_text_value,
+                            |_s| Message::TextInput,
+                        )
+                        .width(Length::Units(150))
+                        .size(14)
+                        .padding(2),
+                    ),
             )
             .push(
                 Canvas::new()
                     .width(Length::Fill)
-                    .height(Length::Units(150))
+                    // .height(Length::Units(250))
+                    .height(Length::Fill)
                     .push(self.canvas_layer.with(&self.state)),
             )
             .into()
@@ -317,7 +434,7 @@ impl Sandbox for ColorPalette {
 
 impl State {
     pub fn new() -> State {
-        let base = Color::from_rgb8(27, 135, 199);
+        let base = Color::from_rgb8(75, 128, 190);
         State {
             color: base,
             theme: generate_theme(&base),
@@ -328,6 +445,7 @@ impl State {
 impl canvas::Drawable for State {
     fn draw(&self, frame: &mut canvas::Frame) {
         use canvas::{Fill, Path};
+        use iced::{HorizontalAlignment, VerticalAlignment};
         use palette::{Hsl, Srgb};
 
         if self.theme.len() == 0 {
@@ -335,10 +453,16 @@ impl canvas::Drawable for State {
             return;
         }
 
-        let pad = 5.0;
+        let pad = 20.0;
 
         let box_width = frame.width() / self.theme.len() as f32;
         let box_height = frame.height() / 2.0 - pad;
+
+        let mut text = canvas::Text::default();
+        text.horizontal_alignment = HorizontalAlignment::Left;
+        text.vertical_alignment = VerticalAlignment::Top;
+        text.size = 15.0;
+
         for i in 0..self.theme.len() {
             let anchor = Point {
                 x: (i as f32) * box_width,
@@ -360,6 +484,57 @@ impl canvas::Drawable for State {
                 });
             });
             frame.fill(&rect, Fill::Color(self.theme[i]));
+
+            if self.theme[i] == self.color {
+                let cx = anchor.x + box_width / 2.0;
+                let tri_w = 10.0;
+
+                let tri = Path::new(|path| {
+                    path.move_to(Point {
+                        x: cx - tri_w,
+                        y: 0.0,
+                    });
+                    path.line_to(Point {
+                        x: cx + tri_w,
+                        y: 0.0,
+                    });
+                    path.line_to(Point { x: cx, y: tri_w });
+                    path.line_to(Point {
+                        x: cx - tri_w,
+                        y: 0.0,
+                    });
+                });
+                frame.fill(&tri, Fill::Color(Color::WHITE));
+
+                let tri = Path::new(|path| {
+                    path.move_to(Point {
+                        x: cx - tri_w,
+                        y: box_height,
+                    });
+                    path.line_to(Point {
+                        x: cx + tri_w,
+                        y: box_height,
+                    });
+                    path.line_to(Point {
+                        x: cx,
+                        y: box_height - tri_w,
+                    });
+                    path.line_to(Point {
+                        x: cx - tri_w,
+                        y: box_height,
+                    });
+                });
+                frame.fill(&tri, Fill::Color(Color::WHITE));
+            }
+
+            frame.fill_text(canvas::Text {
+                content: color_str(&self.theme[i], ColorFormat::Hex),
+                position: Point {
+                    x: anchor.x,
+                    y: box_height,
+                },
+                ..text
+            });
         }
 
         let hsl = Hsl::from(Srgb::from(self.color));
@@ -391,6 +566,76 @@ impl canvas::Drawable for State {
                 });
             });
             frame.fill(&rect, Fill::Color(color));
+
+            frame.fill_text(canvas::Text {
+                content: color_str(&color, ColorFormat::Hex),
+                position: Point {
+                    x: anchor.x,
+                    y: box_height + 2.0 * pad - 15.0,
+                },
+                ..text
+            });
         }
+    }
+}
+
+enum ColorFormat {
+    Hex,
+    Rgb,
+    Hsl,
+    Hsv,
+    Hwb,
+    Lab,
+    Lch,
+}
+
+fn color_str(color: &Color, color_format: ColorFormat) -> String {
+    let srgb = palette::Srgb::from(*color);
+    let hsl = palette::Hsl::from(srgb);
+    let hsv = palette::Hsv::from(srgb);
+    let hwb = palette::Hwb::from(srgb);
+    let lab = palette::Lab::from(srgb);
+    let lch = palette::Lch::from(srgb);
+
+    match color_format {
+        ColorFormat::Hex => format!(
+            "#{:x}{:x}{:x}",
+            (255.0 * color.r).round() as u8,
+            (255.0 * color.g).round() as u8,
+            (255.0 * color.b).round() as u8
+        ),
+        ColorFormat::Rgb => format!(
+            "rgb({:.0}, {:.0}, {:.0})",
+            255.0 * color.r,
+            255.0 * color.g,
+            255.0 * color.b
+        ),
+        ColorFormat::Hsl => format!(
+            "hsl({:.1}, {:.1}%, {:.1}%)",
+            hsl.hue.to_positive_degrees(),
+            100.0 * hsl.saturation,
+            100.0 * hsl.lightness
+        ),
+        ColorFormat::Hsv => format!(
+            "hsv({:.1}, {:.1}%, {:.1}%)",
+            hsv.hue.to_positive_degrees(),
+            100.0 * hsv.saturation,
+            100.0 * hsv.value
+        ),
+        ColorFormat::Hwb => format!(
+            "hwb({:.1}, {:.1}%, {:.1}%)",
+            hwb.hue.to_positive_degrees(),
+            100.0 * hwb.whiteness,
+            100.0 * hwb.blackness
+        ),
+        ColorFormat::Lab => {
+            format!("Lab({:.1}, {:.1}, {:.1})", lab.l, lab.a, lab.b)
+        }
+        ColorFormat::Lch => format!(
+            "Lch({:.1}, {:.1}, {:.1})",
+            lch.l,
+            lch.chroma,
+            lch.hue.to_positive_degrees()
+        ),
     }
 }
