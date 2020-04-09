@@ -23,11 +23,11 @@ impl text_input::Renderer for Renderer {
             Size::INFINITY,
         );
 
-        let spaces_at_the_end = value.len() - value.trim_end().len();
+        let spaces_around = value.len() - value.trim().len();
 
-        if spaces_at_the_end > 0 {
+        if spaces_around > 0 {
             let space_width = self.text_pipeline.space_width(size as f32);
-            width += spaces_at_the_end as f32 * space_width;
+            width += spaces_around as f32 * space_width;
         }
 
         width
