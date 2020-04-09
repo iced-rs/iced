@@ -17,18 +17,34 @@ pub struct State {
 fn generate_theme(base_color: &Color) -> Vec<Color> {
     use palette::{Hsl, Hue, Shade, Srgb};
     let mut theme = Vec::<Color>::new();
-    // Convert to linear color for manipulation
-    let srgb = Srgb::from(*base_color);
+    // Convert to HSL color for manipulation
+    let hsl = Hsl::from(Srgb::from(*base_color));
 
-    let hsl = Hsl::from(srgb);
-
+    theme.push(
+        Srgb::from(hsl.shift_hue(-135.0).lighten(0.075))
+            .clamp()
+            .into(),
+    );
     theme.push(Srgb::from(hsl.shift_hue(-120.0)).clamp().into());
-    theme.push(Srgb::from(hsl.shift_hue(-115.0).darken(0.075)).clamp().into());
+    theme.push(
+        Srgb::from(hsl.shift_hue(-105.0).darken(0.075))
+            .clamp()
+            .into(),
+    );
     theme.push(Srgb::from(hsl.darken(0.075)).clamp().into());
     theme.push(*base_color);
     theme.push(Srgb::from(hsl.lighten(0.075)).clamp().into());
-    theme.push(Srgb::from(hsl.shift_hue(115.0).darken(0.075)).clamp().into());
+    theme.push(
+        Srgb::from(hsl.shift_hue(105.0).darken(0.075))
+            .clamp()
+            .into(),
+    );
     theme.push(Srgb::from(hsl.shift_hue(120.0)).clamp().into());
+    theme.push(
+        Srgb::from(hsl.shift_hue(135.0).lighten(0.075))
+            .clamp()
+            .into(),
+    );
     theme
 }
 
@@ -312,12 +328,17 @@ impl State {
 impl canvas::Drawable for State {
     fn draw(&self, frame: &mut canvas::Frame) {
         use canvas::{Fill, Path};
+        use palette::{Hsl, Srgb};
+
         if self.theme.len() == 0 {
             println!("Zero len");
             return;
         }
 
+        let pad = 5.0;
+
         let box_width = frame.width() / self.theme.len() as f32;
+        let box_height = frame.height() / 2.0 - pad;
         for i in 0..self.theme.len() {
             let anchor = Point {
                 x: (i as f32) * box_width,
@@ -325,14 +346,51 @@ impl canvas::Drawable for State {
             };
             let rect = Path::new(|path| {
                 path.move_to(anchor);
-                path.line_to(Point { x: anchor.x + box_width, y: anchor.y });
                 path.line_to(Point {
                     x: anchor.x + box_width,
-                    y: anchor.y + frame.height(),
+                    y: anchor.y,
                 });
-                path.line_to(Point { x: anchor.x, y: anchor.y + frame.height() });
+                path.line_to(Point {
+                    x: anchor.x + box_width,
+                    y: anchor.y + box_height,
+                });
+                path.line_to(Point {
+                    x: anchor.x,
+                    y: anchor.y + box_height,
+                });
             });
             frame.fill(&rect, Fill::Color(self.theme[i]));
+        }
+
+        let hsl = Hsl::from(Srgb::from(self.color));
+        for i in 0..self.theme.len() {
+            let pct = (i as f32 + 1.0) / (self.theme.len() as f32 + 1.0);
+            let graded = Hsl {
+                lightness: 1.0 - pct,
+                ..hsl
+            };
+            let color: Color = Srgb::from(graded.clamp()).into();
+
+            let anchor = Point {
+                x: (i as f32) * box_width,
+                y: box_height + 2.0 * pad,
+            };
+            let rect = Path::new(|path| {
+                path.move_to(anchor);
+                path.line_to(Point {
+                    x: anchor.x + box_width,
+                    y: anchor.y,
+                });
+                path.line_to(Point {
+                    x: anchor.x + box_width,
+                    y: anchor.y + box_height,
+                });
+                path.line_to(Point {
+                    x: anchor.x,
+                    y: anchor.y + box_height,
+                });
+            });
+            frame.fill(&rect, Fill::Color(color));
         }
     }
 }
