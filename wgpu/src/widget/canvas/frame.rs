@@ -262,13 +262,15 @@ impl Frame {
     ///
     /// [`Frame`]: struct.Frame.html
     pub fn into_primitive(mut self) -> Primitive {
-        self.primitives.push(Primitive::Mesh2D {
-            origin: Point::ORIGIN,
-            buffers: triangle::Mesh2D {
-                vertices: self.buffers.vertices,
-                indices: self.buffers.indices,
-            },
-        });
+        if !self.buffers.indices.is_empty() {
+            self.primitives.push(Primitive::Mesh2D {
+                origin: Point::ORIGIN,
+                buffers: triangle::Mesh2D {
+                    vertices: self.buffers.vertices,
+                    indices: self.buffers.indices,
+                },
+            });
+        }
 
         Primitive::Group {
             primitives: self.primitives,
