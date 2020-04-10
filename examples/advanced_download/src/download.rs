@@ -21,8 +21,8 @@ pub enum State {
 
 // Make sure iced can use our download stream
 impl<H, I> iced_native::subscription::Recipe<H, I> for Download
-    where
-        H: std::hash::Hasher,
+where
+    H: std::hash::Hasher,
 {
     type Output = (String, Progress);
 
@@ -31,7 +31,10 @@ impl<H, I> iced_native::subscription::Recipe<H, I> for Download
         self.url.hash(state);
     }
 
-    fn stream(self: Box<Self>, _input: BoxStream<'static, I>) -> BoxStream<'static, Self::Output> {
+    fn stream(
+        self: Box<Self>,
+        _input: BoxStream<'static, I>,
+    ) -> BoxStream<'static, Self::Output> {
         Box::pin(stream::unfold(
             State::Ready(self.url.to_string()),
             |state| async move {
@@ -49,10 +52,15 @@ impl<H, I> iced_native::subscription::Recipe<H, I> for Download
                                     },
                                 ))
                             } else {
-                                Some(((url, Progress::Errored), State::Finished))
+                                Some((
+                                    (url, Progress::Errored),
+                                    State::Finished,
+                                ))
                             }
                         }
-                        Err(_) => Some(((url, Progress::Errored), State::Finished)),
+                        Err(_) => {
+                            Some(((url, Progress::Errored), State::Finished))
+                        }
                     },
                     State::Downloading {
                         url,
@@ -61,11 +69,16 @@ impl<H, I> iced_native::subscription::Recipe<H, I> for Download
                         mut bytes,
                     } => match response.chunk().await {
                         Ok(Some(chunk)) => {
-                            let downloaded = bytes.len() as u64 + chunk.len() as u64;
-                            let percentage = (downloaded as f32 / total as f32) * 100.0;
+                            let downloaded =
+                                bytes.len() as u64 + chunk.len() as u64;
+                            let percentage =
+                                (downloaded as f32 / total as f32) * 100.0;
                             bytes.put(chunk);
                             Some((
-                                (url.to_string(), Progress::Advanced(percentage)),
+                                (
+                                    url.to_string(),
+                                    Progress::Advanced(percentage),
+                                ),
                                 State::Downloading {
                                     url,
                                     response,
@@ -74,8 +87,13 @@ impl<H, I> iced_native::subscription::Recipe<H, I> for Download
                                 },
                             ))
                         }
-                        Ok(None) => Some(((url, Progress::Finished(bytes)), State::Finished)),
-                        Err(_) => Some(((url, Progress::Errored), State::Finished)),
+                        Ok(None) => Some((
+                            (url, Progress::Finished(bytes)),
+                            State::Finished,
+                        )),
+                        Err(_) => {
+                            Some(((url, Progress::Errored), State::Finished))
+                        }
                     },
                     State::Finished => {
                         // We do not let the stream die, as it would start a
