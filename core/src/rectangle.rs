@@ -17,6 +17,32 @@ pub struct Rectangle<T = f32> {
 }
 
 impl Rectangle<f32> {
+    /// Returns the [`Point`] at the center of the [`Rectangle`].
+    ///
+    /// [`Point`]: struct.Point.html
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn center(&self) -> Point {
+        Point::new(self.center_x(), self.center_y())
+    }
+
+    /// Returns the X coordinate of the [`Point`] at the center of the
+    /// [`Rectangle`].
+    ///
+    /// [`Point`]: struct.Point.html
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn center_x(&self) -> f32 {
+        self.x + self.width / 2.0
+    }
+
+    /// Returns the Y coordinate of the [`Point`] at the center of the
+    /// [`Rectangle`].
+    ///
+    /// [`Point`]: struct.Point.html
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn center_y(&self) -> f32 {
+        self.y + self.height / 2.0
+    }
+
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
     ///
     /// [`Point`]: struct.Point.html

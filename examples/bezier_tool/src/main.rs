@@ -12,8 +12,8 @@ mod bezier {
     // implemented by `iced_wgpu` and other renderers.
     use iced_native::{
         input, layout, Clipboard, Color, Element, Event, Font, Hasher,
-        HorizontalAlignment, Layout, Length, MouseCursor, Point, Size, Vector,
-        VerticalAlignment, Widget,
+        HorizontalAlignment, Layout, Length, MouseCursor, Point, Rectangle,
+        Size, Vector, VerticalAlignment, Widget,
     };
     use iced_wgpu::{
         triangle::{Mesh2D, Vertex2D},
@@ -189,7 +189,11 @@ mod bezier {
                             && self.state.pending.is_none()
                         {
                             let instructions = Primitive::Text {
-                                bounds,
+                                bounds: Rectangle {
+                                    x: bounds.center_x(),
+                                    y: bounds.center_y(),
+                                    ..bounds
+                                },
                                 color: Color {
                                     a: defaults.text.color.a * 0.7,
                                     ..defaults.text.color
