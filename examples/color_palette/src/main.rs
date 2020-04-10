@@ -459,7 +459,7 @@ impl canvas::Drawable for State {
         let box_height = frame.height() / 2.0 - pad;
 
         let mut text = canvas::Text::default();
-        text.horizontal_alignment = HorizontalAlignment::Left;
+        text.horizontal_alignment = HorizontalAlignment::Center;
         text.vertical_alignment = VerticalAlignment::Top;
         text.size = 15.0;
 
@@ -530,12 +530,14 @@ impl canvas::Drawable for State {
             frame.fill_text(canvas::Text {
                 content: color_str(&self.theme[i], ColorFormat::Hex),
                 position: Point {
-                    x: anchor.x,
+                    x: anchor.x + box_width / 2.0,
                     y: box_height,
                 },
                 ..text
             });
         }
+
+        text.vertical_alignment = VerticalAlignment::Bottom;
 
         let hsl = Hsl::from(Srgb::from(self.color));
         for i in 0..self.theme.len() {
@@ -570,8 +572,8 @@ impl canvas::Drawable for State {
             frame.fill_text(canvas::Text {
                 content: color_str(&color, ColorFormat::Hex),
                 position: Point {
-                    x: anchor.x,
-                    y: box_height + 2.0 * pad - 15.0,
+                    x: anchor.x + box_width / 2.0,
+                    y: box_height + 2.0 * pad,
                 },
                 ..text
             });
