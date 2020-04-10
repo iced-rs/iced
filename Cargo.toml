@@ -61,6 +61,7 @@ members = [
     "web",
     "wgpu",
     "winit",
+    "examples/advanced_download",
     "examples/bezier_tool",
     "examples/clock",
     "examples/color_palette",
