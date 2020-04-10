@@ -25,7 +25,7 @@ struct Task {
 
 #[derive(Debug, Clone, Default)]
 struct State {
-    files: Vec<Task>,
+    tasks: Vec<Task>,
     downloading_urls: Vec<String>,
     scrollable: scrollable::State,
 }
@@ -85,7 +85,7 @@ impl Task {
 
 impl Example {
     async fn load_data() -> State {
-        let files: Vec<_> = (1..=10)
+        let tasks: Vec<_> = (1..=10)
             .map(|n| Task {
                 name: format!("File {:0>2}", n),
                 url: format!("{}?{}", FILE_URL, n),
@@ -93,7 +93,7 @@ impl Example {
             })
             .collect();
         State {
-            files,
+            tasks,
             ..State::default()
         }
     }
@@ -123,21 +123,21 @@ impl Application for Example {
                 }
             }
             Example::Loaded(State {
-                files,
+                tasks,
                 downloading_urls,
                 ..
             }) => match message {
                 Message::StartDownload(url) => {
-                    if let Some(file) = files.iter_mut().find(|f| f.url == url)
+                    if let Some(task) = tasks.iter_mut().find(|t| t.url == url)
                     {
                         downloading_urls.push(url);
-                        file.state = TaskState::Downloading(0f32);
+                        task.state = TaskState::Downloading(0f32);
                     }
                 }
                 Message::DownloadProgressed((url, progress)) => {
-                    if let Some(file) = files.iter_mut().find(|f| f.url == url)
+                    if let Some(task) = tasks.iter_mut().find(|t| t.url == url)
                     {
-                        if let TaskState::Downloading(p) = &mut file.state {
+                        if let TaskState::Downloading(p) = &mut task.state {
                             match progress {
                                 Progress::Started => *p = 0.0,
                                 Progress::Advanced(percentage) => {
@@ -149,18 +149,18 @@ impl Application for Example {
                                         .position(|u| u == &url)
                                     {
                                         downloading_urls.remove(position);
-                                        file.state = TaskState::Finished;
+                                        task.state = TaskState::Finished;
                                     }
                                 }
                                 Progress::Errored => {
-                                    file.state = TaskState::Error;
+                                    task.state = TaskState::Error;
                                 }
                             }
                         }
                     }
                 }
                 Message::CancelDownload(url) => {
-                    if let Some(file) = files.iter_mut().find(|f| f.url == url)
+                    if let Some(task) = tasks.iter_mut().find(|t| t.url == url)
                     {
                         downloading_urls.remove(
                             downloading_urls
@@ -168,7 +168,7 @@ impl Application for Example {
                                 .position(|u| u == &url)
                                 .unwrap(),
                         );
-                        file.state = TaskState::Idle;
+                        task.state = TaskState::Idle;
                     }
                 }
                 _ => {}
@@ -216,14 +216,14 @@ impl Application for Example {
             .center_x()
             .into(),
             Example::Loaded(State {
-                files, scrollable, ..
+                tasks, scrollable, ..
             }) => {
-                let list = files.iter_mut().fold(
+                let list = tasks.iter_mut().fold(
                     Column::new()
                         .width(Length::Fill)
                         .spacing(20)
                         .align_items(Align::Center),
-                    |column, file| column.push(file.view()),
+                    |column, task| column.push(task.view()),
                 );
                 Container::new(
                     Scrollable::new(scrollable).padding(40).spacing(40).align_items(Align::Center)
