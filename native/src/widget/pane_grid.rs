@@ -356,7 +356,7 @@ pub struct KeyPressEvent {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -597,8 +597,9 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         use std::hash::Hash;
+        struct PaneGridWidget;
+        std::any::TypeId::of::<PaneGridWidget>().hash(state);
 
-        std::any::TypeId::of::<PaneGrid<'_, (), Renderer>>().hash(state);
         self.width.hash(state);
         self.height.hash(state);
         self.state.hash_layout(state);
@@ -643,7 +644,7 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: 'a + self::Renderer,
     Message: 'a,
 {
     fn from(

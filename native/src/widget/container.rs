@@ -132,7 +132,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Container<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -203,7 +203,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Container<'_, (), Renderer>>().hash(state);
+        struct ContainerWidget;
+        std::any::TypeId::of::<ContainerWidget>().hash(state);
 
         self.padding.hash(state);
         self.width.hash(state);
@@ -243,7 +244,7 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: 'a + self::Renderer,
     Message: 'a,
 {
     fn from(
