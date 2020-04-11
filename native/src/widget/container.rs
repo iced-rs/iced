@@ -203,8 +203,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct ContainerWidget;
-        std::any::TypeId::of::<ContainerWidget>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.padding.hash(state);
         self.width.hash(state);

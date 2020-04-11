@@ -597,8 +597,8 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         use std::hash::Hash;
-        struct PaneGridWidget;
-        std::any::TypeId::of::<PaneGridWidget>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.height.hash(state);

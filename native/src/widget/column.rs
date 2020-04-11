@@ -190,8 +190,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct ColumnWidget;
-        std::any::TypeId::of::<ColumnWidget>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.height.hash(state);

@@ -234,8 +234,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct ButtonWidget;
-        std::any::TypeId::of::<ButtonWidget>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.content.hash_layout(state);

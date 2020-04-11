@@ -205,8 +205,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct CheckboxWidget;
-        std::any::TypeId::of::<CheckboxWidget>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.label.hash(state);
     }

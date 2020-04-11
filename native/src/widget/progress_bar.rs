@@ -114,8 +114,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct ProgressBarWidget;
-        std::any::TypeId::of::<ProgressBarWidget>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.height.hash(state);

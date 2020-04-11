@@ -311,8 +311,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct ScrollableWidget;
-        std::any::TypeId::of::<ScrollableWidget>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.height.hash(state);
         self.max_height.hash(state);

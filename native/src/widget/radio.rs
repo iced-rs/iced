@@ -174,8 +174,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct RadioWidget;
-        std::any::TypeId::of::<RadioWidget>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.label.hash(state);
     }
