@@ -35,6 +35,8 @@ pub struct Radio<Message> {
     is_selected: bool,
     on_click: Message,
     label: String,
+    id: String,
+    name: String,
     style: Box<dyn StyleSheet>,
 }
 
@@ -63,6 +65,8 @@ impl<Message> Radio<Message> {
             is_selected: Some(value) == selected,
             on_click: f(value),
             label: label.into(),
+            id: Default::default(),
+            name: Default::default(),
             style: Default::default(),
         }
     }
@@ -72,6 +76,22 @@ impl<Message> Radio<Message> {
     /// [`Radio`]: struct.Radio.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style = style.into();
+        self
+    }
+
+    /// Sets the name attribute of the [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
+        self
+    }
+
+    /// Sets the id of the [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = id.into();
         self
     }
 }
@@ -88,7 +108,11 @@ where
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let radio_label = bumpalo::format!(in bump, "{}", self.label);
+        let radio_label =
+            bumpalo::format!(in bump, "{}", self.label).into_bump_str();
+        let radio_name =
+            bumpalo::format!(in bump, "{}", self.name).into_bump_str();
+        let radio_id = bumpalo::format!(in bump, "{}", self.id).into_bump_str();
 
         let event_bus = bus.clone();
         let on_click = self.on_click.clone();
@@ -96,16 +120,19 @@ where
         // TODO: Complete styling
         label(bump)
             .attr("style", "display: block; font-size: 20px")
+            .attr("for", radio_id)
             .children(vec![
                 input(bump)
                     .attr("type", "radio")
+                    .attr("id", radio_id)
+                    .attr("name", radio_name)
                     .attr("style", "margin-right: 10px")
                     .bool_attr("checked", self.is_selected)
                     .on("click", move |_root, _vdom, _event| {
                         event_bus.publish(on_click.clone());
                     })
                     .finish(),
-                text(radio_label.into_bump_str()),
+                text(radio_label),
             ])
             .finish()
     }

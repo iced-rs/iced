@@ -22,6 +22,9 @@ pub struct Image {
     /// The image path
     pub handle: Handle,
 
+    /// The alt text of the image
+    pub alt: String,
+
     /// The width of the image
     pub width: Length,
 
@@ -36,6 +39,7 @@ impl Image {
     pub fn new<T: Into<Handle>>(handle: T) -> Self {
         Image {
             handle: handle.into(),
+            alt: Default::default(),
             width: Length::Shrink,
             height: Length::Shrink,
         }
@@ -56,6 +60,14 @@ impl Image {
         self.height = height;
         self
     }
+
+    /// Sets the alt text of the [`Image`].
+    ///
+    /// [`Image`]: struct.Image.html
+    pub fn alt(mut self, alt: impl Into<String>) -> Self {
+        self.alt = alt.into();
+        self
+    }
 }
 
 impl<Message> Widget<Message> for Image {
@@ -70,8 +82,10 @@ impl<Message> Widget<Message> for Image {
         let src = bumpalo::format!(in bump, "{}", match self.handle.data.as_ref() {
             Data::Path(path) => path.to_str().unwrap_or("")
         });
+        let alt = bumpalo::format!(in bump, "{}", self.alt).into_bump_str();
 
-        let mut image = img(bump).attr("src", src.into_bump_str());
+        let mut image =
+            img(bump).attr("src", src.into_bump_str()).attr("alt", alt);
 
         match self.width {
             Length::Shrink => {}

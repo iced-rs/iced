@@ -28,6 +28,7 @@ pub struct Checkbox<Message> {
     is_checked: bool,
     on_toggle: Rc<dyn Fn(bool) -> Message>,
     label: String,
+    id: String,
     width: Length,
     style: Box<dyn StyleSheet>,
 }
@@ -51,6 +52,7 @@ impl<Message> Checkbox<Message> {
             is_checked,
             on_toggle: Rc::new(f),
             label: label.into(),
+            id: Default::default(),
             width: Length::Shrink,
             style: Default::default(),
         }
@@ -71,6 +73,14 @@ impl<Message> Checkbox<Message> {
         self.style = style.into();
         self
     }
+
+    /// Sets the id of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = id.into();
+        self
+    }
 }
 
 impl<Message> Widget<Message> for Checkbox<Message>
@@ -85,7 +95,10 @@ where
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let checkbox_label = bumpalo::format!(in bump, "{}", self.label);
+        let checkbox_label =
+            bumpalo::format!(in bump, "{}", self.label).into_bump_str();
+        let checkbox_id =
+            bumpalo::format!(in bump, "{}", self.id).into_bump_str();
 
         let event_bus = bus.clone();
         let on_toggle = self.on_toggle.clone();
@@ -96,6 +109,7 @@ where
         let spacing_class = style_sheet.insert(bump, css::Rule::Spacing(5));
 
         label(bump)
+            .attr("for", checkbox_id)
             .attr(
                 "class",
                 bumpalo::format!(in bump, "{} {}", row_class, spacing_class)
@@ -110,6 +124,7 @@ where
                 // TODO: Checkbox styling
                 input(bump)
                     .attr("type", "checkbox")
+                    .attr("id", checkbox_id)
                     .bool_attr("checked", self.is_checked)
                     .on("click", move |_root, vdom, _event| {
                         let msg = on_toggle(!is_checked);
@@ -118,8 +133,7 @@ where
                         vdom.schedule_render();
                     })
                     .finish(),
-                span(bump).children(vec![
-                text(checkbox_label.into_bump_str())]).finish(),
+                text(checkbox_label),
             ])
             .finish()
     }
