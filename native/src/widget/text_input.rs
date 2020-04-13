@@ -526,8 +526,8 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         use std::{any::TypeId, hash::Hash};
-        struct TextInputWidget;
-        TypeId::of::<TextInputWidget>().hash(state);
+        struct Marker;
+        TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.max_width.hash(state);
