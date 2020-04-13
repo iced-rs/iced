@@ -124,7 +124,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Column<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -190,7 +190,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Column<'_, (), Renderer>>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.height.hash(state);
@@ -234,7 +235,7 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<Column<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: 'a + self::Renderer,
     Message: 'a,
 {
     fn from(

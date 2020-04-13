@@ -115,7 +115,7 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Scrollable<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer + column::Renderer,
+    Renderer: self::Renderer + column::Renderer,
 {
     fn width(&self) -> Length {
         Widget::<Message, Renderer>::width(&self.content)
@@ -311,7 +311,8 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Scrollable<'_, (), Renderer>>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.height.hash(state);
         self.max_height.hash(state);
@@ -505,7 +506,7 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer + column::Renderer,
+    Renderer: 'a + self::Renderer + column::Renderer,
     Message: 'a,
 {
     fn from(

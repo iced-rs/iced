@@ -171,7 +171,7 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for TextInput<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: self::Renderer,
     Message: Clone,
 {
     fn width(&self) -> Length {
@@ -526,8 +526,8 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         use std::{any::TypeId, hash::Hash};
-
-        TypeId::of::<TextInput<'_, (), Renderer>>().hash(state);
+        struct Marker;
+        TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.max_width.hash(state);
@@ -632,7 +632,7 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'static + self::Renderer,
+    Renderer: 'a + self::Renderer,
     Message: 'a + Clone,
 {
     fn from(
