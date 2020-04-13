@@ -188,8 +188,15 @@ where
         let mut messages = Vec::new();
 
         for event in events {
-            if let Event::Mouse(mouse::Event::CursorMoved { x, y }) = event {
-                self.cursor_position = Point::new(x, y);
+            match event {
+                Event::Mouse(mouse::Event::CursorMoved { x, y }) => {
+                    self.cursor_position = Point::new(x, y);
+                }
+                Event::Mouse(mouse::Event::CursorLeft) => {
+                    // TODO: Encode cursor availability
+                    self.cursor_position = Point::new(-1.0, -1.0);
+                }
+                _ => {}
             }
 
             self.root.widget.on_event(
