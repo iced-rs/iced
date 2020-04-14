@@ -32,3 +32,12 @@ impl Default for Text {
         }
     }
 }
+
+impl From<String> for Text {
+    fn from(content: String) -> Text {
+        Text {
+            content,
+            ..Default::default()
+        }
+    }
+}
