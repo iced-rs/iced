@@ -35,6 +35,17 @@ impl Path {
         builder.build()
     }
 
+    /// Creates a new [`Path`] representing a line segment given its starting
+    /// and end points.
+    ///
+    /// [`Path`]: struct.Path.html
+    pub fn line(from: Point, to: Point) -> Self {
+        Self::new(|p| {
+            p.move_to(from);
+            p.line_to(to);
+        })
+    }
+
     /// Creates a new [`Path`] representing a rectangle given its top-left
     /// corner coordinate and its `Size`.
     ///
