@@ -95,11 +95,13 @@ impl From<chrono::DateTime<chrono::Local>> for LocalTime {
 
 impl canvas::Drawable for LocalTime {
     fn draw(&self, frame: &mut canvas::Frame) {
+        use canvas::Path;
+
         let center = frame.center();
         let radius = frame.width().min(frame.height()) / 2.0;
         let offset = Vector::new(center.x, center.y);
 
-        let clock = canvas::Path::new(|path| path.circle(center, radius));
+        let clock = Path::circle(center, radius);
 
         frame.fill(&clock, Color::from_rgb8(0x12, 0x93, 0xD8));
 

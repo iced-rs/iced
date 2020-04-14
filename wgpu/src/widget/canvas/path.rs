@@ -43,6 +43,14 @@ impl Path {
         Self::new(|p| p.rectangle(top_left, size))
     }
 
+    /// Creates a new [`Path`] representing a circle given its center
+    /// coordinate and its radius.
+    ///
+    /// [`Path`]: struct.Path.html
+    pub fn circle(center: Point, radius: f32) -> Self {
+        Self::new(|p| p.circle(center, radius))
+    }
+
     #[inline]
     pub(crate) fn raw(&self) -> &lyon::path::Path {
         &self.raw
