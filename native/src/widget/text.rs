@@ -112,7 +112,7 @@ impl<Renderer: self::Renderer> Text<Renderer> {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Text<Renderer>
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer> for Text<Renderer>
 where
     Renderer: self::Renderer,
 {

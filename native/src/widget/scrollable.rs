@@ -110,7 +110,7 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer>
     for Scrollable<'a, Message, Renderer>
 where
     Renderer: self::Renderer + column::Renderer,

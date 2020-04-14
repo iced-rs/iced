@@ -43,7 +43,7 @@ impl Space {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Space
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer> for Space
 where
     Renderer: self::Renderer,
 {

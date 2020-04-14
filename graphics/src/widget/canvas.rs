@@ -134,7 +134,7 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
     }
 }
 
-impl<Message, P, B> Widget<Message, Renderer<B>> for Canvas<Message, P>
+impl<'a, Message, P, B> Widget<'a, Message, Renderer<B>> for Canvas<Message, P>
 where
     P: Program<Message>,
     B: Backend,

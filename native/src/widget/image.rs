@@ -54,7 +54,7 @@ impl Image {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Image
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer> for Image
 where
     Renderer: self::Renderer,
 {

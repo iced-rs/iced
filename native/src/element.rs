@@ -1,5 +1,6 @@
 use crate::{
-    layout, Clipboard, Color, Event, Hasher, Layout, Length, Point, Widget,
+    layout, Clipboard, Color, Event, Hasher, Layout, Length, Overlay, Point,
+    Widget,
 };
 
 /// A generic [`Widget`].
@@ -15,7 +16,7 @@ use crate::{
 /// [`Element`]: struct.Element.html
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Renderer> {
-    pub(crate) widget: Box<dyn Widget<Message, Renderer> + 'a>,
+    pub(crate) widget: Box<dyn Widget<'a, Message, Renderer> + 'a>,
 }
 
 impl<'a, Message, Renderer> Element<'a, Message, Renderer>
@@ -27,7 +28,7 @@ where
     /// [`Element`]: struct.Element.html
     /// [`Widget`]: widget/trait.Widget.html
     pub fn new(
-        widget: impl Widget<Message, Renderer> + 'a,
+        widget: impl Widget<'a, Message, Renderer> + 'a,
     ) -> Element<'a, Message, Renderer> {
         Element {
             widget: Box::new(widget),
@@ -270,16 +271,22 @@ where
     pub fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
+
+    pub fn overlay(
+        &mut self,
+    ) -> Option<Box<dyn Overlay<Message, Renderer> + 'a>> {
+        self.widget.overlay()
+    }
 }
 
 struct Map<'a, A, B, Renderer> {
-    widget: Box<dyn Widget<A, Renderer> + 'a>,
+    widget: Box<dyn Widget<'a, A, Renderer> + 'a>,
     mapper: Box<dyn Fn(A) -> B>,
 }
 
 impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     pub fn new<F>(
-        widget: Box<dyn Widget<A, Renderer> + 'a>,
+        widget: Box<dyn Widget<'a, A, Renderer> + 'a>,
         mapper: F,
     ) -> Map<'a, A, B, Renderer>
     where
@@ -292,7 +299,7 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     }
 }
 
-impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
+impl<'a, A, B, Renderer> Widget<'a, B, Renderer> for Map<'a, A, B, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -367,7 +374,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer>
     for Explain<'a, Message, Renderer>
 where
     Renderer: crate::Renderer + layout::Debugger,

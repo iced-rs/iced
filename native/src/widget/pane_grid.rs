@@ -387,7 +387,7 @@ pub struct KeyPressEvent {
     pub modifiers: keyboard::ModifiersState,
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
     Renderer: self::Renderer,

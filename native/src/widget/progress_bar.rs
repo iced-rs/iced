@@ -70,7 +70,8 @@ impl<Renderer: self::Renderer> ProgressBar<Renderer> {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer>
+    for ProgressBar<Renderer>
 where
     Renderer: self::Renderer,
 {

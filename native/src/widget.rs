@@ -67,7 +67,7 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{layout, Clipboard, Event, Hasher, Layout, Length, Point};
+use crate::{layout, Clipboard, Event, Hasher, Layout, Length, Overlay, Point};
 
 /// A component that displays information and allows interaction.
 ///
@@ -94,7 +94,7 @@ use crate::{layout, Clipboard, Event, Hasher, Layout, Length, Point};
 /// [`geometry`]: https://github.com/hecrj/iced/tree/0.1/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
 /// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.1/wgpu
-pub trait Widget<Message, Renderer>
+pub trait Widget<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -174,5 +174,9 @@ where
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
+    }
+
+    fn overlay(&mut self) -> Option<Box<dyn Overlay<Message, Renderer> + 'a>> {
+        None
     }
 }

@@ -30,7 +30,7 @@
 //! [`Widget`]: widget/trait.Widget.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
@@ -48,6 +48,7 @@ mod clipboard;
 mod element;
 mod event;
 mod hasher;
+mod overlay;
 mod runtime;
 mod user_interface;
 
@@ -75,6 +76,7 @@ pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
+pub use overlay::Overlay;
 pub use program::Program;
 pub use renderer::Renderer;
 pub use runtime::Runtime;

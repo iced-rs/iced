@@ -129,7 +129,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer>
     for Container<'a, Message, Renderer>
 where
     Renderer: self::Renderer,

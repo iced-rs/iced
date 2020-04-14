@@ -425,7 +425,7 @@ impl Filter {
     }
 }
 
-fn loading_message() -> Element<'static, Message> {
+fn loading_message<'a>() -> Element<'a, Message> {
     Container::new(
         Text::new("Loading...")
             .horizontal_alignment(HorizontalAlignment::Center)
@@ -437,7 +437,7 @@ fn loading_message() -> Element<'static, Message> {
     .into()
 }
 
-fn empty_message(message: &str) -> Element<'static, Message> {
+fn empty_message<'a>(message: &str) -> Element<'a, Message> {
     Container::new(
         Text::new(message)
             .width(Length::Fill)

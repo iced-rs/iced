@@ -121,7 +121,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer>
     for Column<'a, Message, Renderer>
 where
     Renderer: self::Renderer,

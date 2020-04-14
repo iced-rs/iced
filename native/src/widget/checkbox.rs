@@ -106,7 +106,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer> Widget<'a, Message, Renderer>
     for Checkbox<Message, Renderer>
 where
     Renderer: self::Renderer + text::Renderer + row::Renderer,

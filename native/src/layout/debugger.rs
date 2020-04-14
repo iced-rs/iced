@@ -18,7 +18,7 @@ pub trait Debugger: Renderer {
     fn explain<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        widget: &dyn Widget<Message, Self>,
+        widget: &dyn Widget<'_, Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
         color: Color,
