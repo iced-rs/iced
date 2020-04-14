@@ -530,7 +530,7 @@ impl<'a> Step {
                 |choices, language| {
                     choices.push(Radio::new(
                         language,
-                        language,
+                        &String::from(language),
                         selection,
                         StepMessage::LanguageSelected,
                     ))
