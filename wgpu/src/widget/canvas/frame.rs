@@ -127,10 +127,12 @@ impl Frame {
     ///
     /// [`Path`]: path/struct.Path.html
     /// [`Frame`]: struct.Frame.html
-    pub fn stroke(&mut self, path: &Path, stroke: Stroke) {
+    pub fn stroke(&mut self, path: &Path, stroke: impl Into<Stroke>) {
         use lyon::tessellation::{
             BuffersBuilder, StrokeOptions, StrokeTessellator,
         };
+
+        let stroke = stroke.into();
 
         let mut buffers = BuffersBuilder::new(
             &mut self.buffers,
