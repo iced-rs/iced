@@ -1,7 +1,7 @@
 use iced::{
     button, scrollable, window, Align, Application, Button, Color, Column,
-    Command, Container, Element, HorizontalAlignment, Length, Row, Scrollable,
-    Settings, Subscription, Text,
+    Command, Container, Element, HorizontalAlignment, Length, ProgressBar, Row,
+    Scrollable, Settings, Space, Subscription, Text,
 };
 
 use crate::download::{Download, Progress};
@@ -54,31 +54,54 @@ impl Default for TaskState {
 
 impl Task {
     fn view(&mut self) -> Element<Message> {
+        let download_text = |text| {
+            Text::new(text)
+                .size(15)
+                .horizontal_alignment(HorizontalAlignment::Center)
+        };
         Row::new()
             .spacing(20)
+            .align_items(Align::Center)
             .push(Text::new(&self.name))
             .push(match self.state {
-                TaskState::Idle => {
-                    Button::new(&mut self.button, Text::new("Download"))
-                        .on_press(Message::StartDownload(
-                            (*self.url).to_string(),
-                        ))
+                TaskState::Downloading(progress) => {
+                    ProgressBar::new(0.0..=100.0, progress)
+                        .width(Length::Units(150))
+                        .height(Length::Units(18))
+                        .into()
                 }
-                TaskState::Downloading(progress) => Button::new(
-                    &mut self.button,
-                    Text::new(format!("{:.2}%", progress)),
-                )
-                .on_press(Message::CancelDownload((*self.url).to_string())),
-                TaskState::Finished => {
-                    Button::new(&mut self.button, Text::new("Downloaded"))
-                }
-                TaskState::Error => {
-                    Button::new(&mut self.button, Text::new("Errored"))
-                        .on_press(Message::StartDownload(
-                            (*self.url).to_string(),
-                        ))
+                _ => {
+                    let element: Element<_> =
+                        Space::new(Length::Units(150), Length::Shrink).into();
+                    element
                 }
             })
+            .push(
+                match self.state {
+                    TaskState::Idle => {
+                        Button::new(&mut self.button, download_text("Download"))
+                            .on_press(Message::StartDownload(
+                                (*self.url).to_string(),
+                            ))
+                    }
+                    TaskState::Downloading(progress) => Button::new(
+                        &mut self.button,
+                        download_text(&format!("{:.2}%", progress)),
+                    )
+                    .on_press(Message::CancelDownload((*self.url).to_string())),
+                    TaskState::Finished => Button::new(
+                        &mut self.button,
+                        download_text("Downloaded"),
+                    ),
+                    TaskState::Error => {
+                        Button::new(&mut self.button, download_text("Errored"))
+                            .on_press(Message::StartDownload(
+                                (*self.url).to_string(),
+                            ))
+                    }
+                }
+                .width(Length::Units(85)),
+            )
             .into()
     }
 }
