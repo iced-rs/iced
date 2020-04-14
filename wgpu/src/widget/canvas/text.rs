@@ -41,3 +41,9 @@ impl From<String> for Text {
         }
     }
 }
+
+impl From<&str> for Text {
+    fn from(content: &str) -> Text {
+        String::from(content).into()
+    }
+}
