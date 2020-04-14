@@ -101,10 +101,7 @@ impl canvas::Drawable for LocalTime {
 
         let clock = canvas::Path::new(|path| path.circle(center, radius));
 
-        frame.fill(
-            &clock,
-            canvas::Fill::Color(Color::from_rgb8(0x12, 0x93, 0xD8)),
-        );
+        frame.fill(&clock, Color::from_rgb8(0x12, 0x93, 0xD8));
 
         fn draw_hand(
             n: u32,

@@ -128,7 +128,7 @@ impl State {
 
 impl canvas::Drawable for State {
     fn draw(&self, frame: &mut canvas::Frame) {
-        use canvas::{Fill, Path, Stroke};
+        use canvas::{Path, Stroke};
         use std::f32::consts::PI;
 
         let center = frame.center();
@@ -146,9 +146,9 @@ impl canvas::Drawable for State {
         let sun = Path::new(|path| path.circle(center, Self::SUN_RADIUS));
         let orbit = Path::new(|path| path.circle(center, Self::ORBIT_RADIUS));
 
-        frame.fill(&space, Fill::Color(Color::BLACK));
-        frame.fill(&stars, Fill::Color(Color::WHITE));
-        frame.fill(&sun, Fill::Color(Color::from_rgb8(0xF9, 0xD7, 0x1C)));
+        frame.fill(&space, Color::BLACK);
+        frame.fill(&stars, Color::WHITE);
+        frame.fill(&sun, Color::from_rgb8(0xF9, 0xD7, 0x1C));
         frame.stroke(
             &orbit,
             Stroke {
@@ -184,7 +184,7 @@ impl canvas::Drawable for State {
                 )
             });
 
-            frame.fill(&earth, Fill::Color(Color::from_rgb8(0x6B, 0x93, 0xD6)));
+            frame.fill(&earth, Color::from_rgb8(0x6B, 0x93, 0xD6));
 
             frame.with_save(|frame| {
                 frame.rotate(
@@ -197,15 +197,15 @@ impl canvas::Drawable for State {
                     path.circle(Point::ORIGIN, Self::MOON_RADIUS)
                 });
 
-                frame.fill(&moon, Fill::Color(Color::WHITE));
+                frame.fill(&moon, Color::WHITE);
             });
 
             frame.fill(
                 &shadow,
-                Fill::Color(Color {
+                Color {
                     a: 0.7,
                     ..Color::BLACK
-                }),
+                },
             );
         });
     }
