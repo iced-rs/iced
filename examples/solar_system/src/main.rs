@@ -133,9 +133,7 @@ impl canvas::Drawable for State {
 
         let center = frame.center();
 
-        let space = Path::new(|path| {
-            path.rectangle(Point::new(0.0, 0.0), frame.size())
-        });
+        let space = Path::rectangle(Point::new(0.0, 0.0), frame.size());
 
         let stars = Path::new(|path| {
             for (p, size) in &self.stars {
@@ -174,15 +172,10 @@ impl canvas::Drawable for State {
                 path.circle(Point::ORIGIN, Self::EARTH_RADIUS)
             });
 
-            let shadow = Path::new(|path| {
-                path.rectangle(
-                    Point::new(0.0, -Self::EARTH_RADIUS),
-                    Size::new(
-                        Self::EARTH_RADIUS * 4.0,
-                        Self::EARTH_RADIUS * 2.0,
-                    ),
-                )
-            });
+            let shadow = Path::rectangle(
+                Point::new(0.0, -Self::EARTH_RADIUS),
+                Size::new(Self::EARTH_RADIUS * 4.0, Self::EARTH_RADIUS * 2.0),
+            );
 
             frame.fill(&earth, Color::from_rgb8(0x6B, 0x93, 0xD6));
 
