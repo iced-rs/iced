@@ -89,14 +89,14 @@ impl Frame {
     ///
     /// [`Path`]: path/struct.Path.html
     /// [`Frame`]: struct.Frame.html
-    pub fn fill(&mut self, path: &Path, fill: Fill) {
+    pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
         use lyon::tessellation::{
             BuffersBuilder, FillOptions, FillTessellator,
         };
 
         let mut buffers = BuffersBuilder::new(
             &mut self.buffers,
-            FillVertex(match fill {
+            FillVertex(match fill.into() {
                 Fill::Color(color) => color.into_linear(),
             }),
         );
