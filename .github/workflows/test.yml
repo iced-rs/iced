@@ -27,3 +27,5 @@ jobs:
     - uses: actions/checkout@master
     - name: Run checks
       run: cargo check --package iced --target wasm32-unknown-unknown
+    - name: Check compilation of `tour` example
+      run: cargo build --package tour --target wasm32-unknown-unknown

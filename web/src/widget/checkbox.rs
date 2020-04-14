@@ -43,14 +43,14 @@ impl<Message> Checkbox<Message> {
     ///     `Message`.
     ///
     /// [`Checkbox`]: struct.Checkbox.html
-    pub fn new<F>(is_checked: bool, label: &str, f: F) -> Self
+    pub fn new<F>(is_checked: bool, label: impl Into<String>, f: F) -> Self
     where
         F: 'static + Fn(bool) -> Message,
     {
         Checkbox {
             is_checked,
             on_toggle: Rc::new(f),
-            label: String::from(label),
+            label: label.into(),
             width: Length::Shrink,
             style: Default::default(),
         }
