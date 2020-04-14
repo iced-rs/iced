@@ -175,8 +175,10 @@ impl Frame {
     /// [`Text`]: struct.Text.html
     /// [`Frame`]: struct.Frame.html
     /// [`Canvas`]: struct.Canvas.html
-    pub fn fill_text(&mut self, text: Text) {
+    pub fn fill_text(&mut self, text: impl Into<Text>) {
         use std::f32;
+
+        let text = text.into();
 
         let position = if self.transforms.current.is_identity {
             text.position
