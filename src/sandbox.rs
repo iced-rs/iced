@@ -6,11 +6,11 @@ use crate::{executor, Application, Command, Element, Settings, Subscription};
 /// simpler interface than [`Application`].
 ///
 /// Unlike an [`Application`], a [`Sandbox`] cannot run any asynchronous
-/// actions. However, both traits are very similar and upgrading from a
-/// [`Sandbox`] is very straightforward.
+/// actions or be initialized with some external flags. However, both traits
+/// are very similar and upgrading from a [`Sandbox`] is very straightforward.
 ///
 /// Therefore, it is recommended to always start by implementing this trait and
-/// upgrade only once you need to perform asynchronous work.
+/// upgrade only once necessary.
 ///
 /// [`Application`]: trait.Application.html
 /// [`Sandbox`]: trait.Sandbox.html
