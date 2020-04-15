@@ -95,66 +95,55 @@ impl From<chrono::DateTime<chrono::Local>> for LocalTime {
 
 impl canvas::Drawable for LocalTime {
     fn draw(&self, frame: &mut canvas::Frame) {
+        use canvas::Path;
+
         let center = frame.center();
         let radius = frame.width().min(frame.height()) / 2.0;
-        let offset = Vector::new(center.x, center.y);
 
-        let clock = canvas::Path::new(|path| path.circle(center, radius));
+        let clock = Path::circle(center, radius);
+        frame.fill(&clock, Color::from_rgb8(0x12, 0x93, 0xD8));
 
-        frame.fill(
-            &clock,
-            canvas::Fill::Color(Color::from_rgb8(0x12, 0x93, 0xD8)),
-        );
+        let short_hand =
+            Path::line(Point::ORIGIN, Point::new(0.0, -0.5 * radius));
 
-        fn draw_hand(
-            n: u32,
-            total: u32,
-            length: f32,
-            offset: Vector,
-            path: &mut canvas::path::Builder,
-        ) {
-            let turns = n as f32 / total as f32;
-            let t = 2.0 * std::f32::consts::PI * (turns - 0.25);
+        let long_hand =
+            Path::line(Point::ORIGIN, Point::new(0.0, -0.8 * radius));
 
-            let x = length * t.cos();
-            let y = length * t.sin();
+        let thin_stroke = canvas::Stroke {
+            width: radius / 100.0,
+            color: Color::WHITE,
+            line_cap: canvas::LineCap::Round,
+            ..canvas::Stroke::default()
+        };
 
-            path.line_to(Point::new(x, y) + offset);
-        }
+        let wide_stroke = canvas::Stroke {
+            width: thin_stroke.width * 3.0,
+            ..thin_stroke
+        };
 
-        let hour_and_minute_hands = canvas::Path::new(|path| {
-            path.move_to(center);
-            draw_hand(self.hour, 12, 0.5 * radius, offset, path);
+        frame.translate(Vector::new(center.x, center.y));
 
-            path.move_to(center);
-            draw_hand(self.minute, 60, 0.8 * radius, offset, path)
+        frame.with_save(|frame| {
+            frame.rotate(hand_rotation(self.hour, 12));
+            frame.stroke(&short_hand, wide_stroke);
         });
 
-        frame.stroke(
-            &hour_and_minute_hands,
-            canvas::Stroke {
-                width: radius / 100.0 * 3.0,
-                color: Color::WHITE,
-                line_cap: canvas::LineCap::Round,
-                ..canvas::Stroke::default()
-            },
-        );
-
-        let second_hand = canvas::Path::new(|path| {
-            path.move_to(center);
-            draw_hand(self.second, 60, 0.8 * radius, offset, path)
+        frame.with_save(|frame| {
+            frame.rotate(hand_rotation(self.minute, 60));
+            frame.stroke(&long_hand, wide_stroke);
         });
 
-        frame.stroke(
-            &second_hand,
-            canvas::Stroke {
-                width: radius / 100.0,
-                color: Color::WHITE,
-                line_cap: canvas::LineCap::Round,
-                ..canvas::Stroke::default()
-            },
-        );
+        frame.with_save(|frame| {
+            frame.rotate(hand_rotation(self.second, 60));
+            frame.stroke(&long_hand, thin_stroke);
+        });
     }
+}
+
+fn hand_rotation(n: u32, total: u32) -> f32 {
+    let turns = n as f32 / total as f32;
+
+    2.0 * std::f32::consts::PI * turns
 }
 
 mod time {

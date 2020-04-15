@@ -12,3 +12,9 @@ impl Default for Fill {
         Fill::Color(Color::BLACK)
     }
 }
+
+impl From<Color> for Fill {
+    fn from(color: Color) -> Fill {
+        Fill::Color(color)
+    }
+}

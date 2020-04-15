@@ -7,6 +7,8 @@ mod builder;
 pub use arc::Arc;
 pub use builder::Builder;
 
+use iced_native::{Point, Size};
+
 /// An immutable set of points that may or may not be connected.
 ///
 /// A single [`Path`] can represent different kinds of 2D shapes!
@@ -31,6 +33,33 @@ impl Path {
         f(&mut builder);
 
         builder.build()
+    }
+
+    /// Creates a new [`Path`] representing a line segment given its starting
+    /// and end points.
+    ///
+    /// [`Path`]: struct.Path.html
+    pub fn line(from: Point, to: Point) -> Self {
+        Self::new(|p| {
+            p.move_to(from);
+            p.line_to(to);
+        })
+    }
+
+    /// Creates a new [`Path`] representing a rectangle given its top-left
+    /// corner coordinate and its `Size`.
+    ///
+    /// [`Path`]: struct.Path.html
+    pub fn rectangle(top_left: Point, size: Size) -> Self {
+        Self::new(|p| p.rectangle(top_left, size))
+    }
+
+    /// Creates a new [`Path`] representing a circle given its center
+    /// coordinate and its radius.
+    ///
+    /// [`Path`]: struct.Path.html
+    pub fn circle(center: Point, radius: f32) -> Self {
+        Self::new(|p| p.circle(center, radius))
     }
 
     #[inline]

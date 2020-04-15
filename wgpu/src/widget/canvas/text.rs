@@ -32,3 +32,18 @@ impl Default for Text {
         }
     }
 }
+
+impl From<String> for Text {
+    fn from(content: String) -> Text {
+        Text {
+            content,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&str> for Text {
+    fn from(content: &str) -> Text {
+        String::from(content).into()
+    }
+}

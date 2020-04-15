@@ -128,14 +128,12 @@ impl State {
 
 impl canvas::Drawable for State {
     fn draw(&self, frame: &mut canvas::Frame) {
-        use canvas::{Fill, Path, Stroke};
+        use canvas::{Path, Stroke};
         use std::f32::consts::PI;
 
         let center = frame.center();
 
-        let space = Path::new(|path| {
-            path.rectangle(Point::new(0.0, 0.0), frame.size())
-        });
+        let space = Path::rectangle(Point::new(0.0, 0.0), frame.size());
 
         let stars = Path::new(|path| {
             for (p, size) in &self.stars {
@@ -143,12 +141,12 @@ impl canvas::Drawable for State {
             }
         });
 
-        let sun = Path::new(|path| path.circle(center, Self::SUN_RADIUS));
-        let orbit = Path::new(|path| path.circle(center, Self::ORBIT_RADIUS));
+        let sun = Path::circle(center, Self::SUN_RADIUS);
+        let orbit = Path::circle(center, Self::ORBIT_RADIUS);
 
-        frame.fill(&space, Fill::Color(Color::BLACK));
-        frame.fill(&stars, Fill::Color(Color::WHITE));
-        frame.fill(&sun, Fill::Color(Color::from_rgb8(0xF9, 0xD7, 0x1C)));
+        frame.fill(&space, Color::BLACK);
+        frame.fill(&stars, Color::WHITE);
+        frame.fill(&sun, Color::from_rgb8(0xF9, 0xD7, 0x1C));
         frame.stroke(
             &orbit,
             Stroke {
@@ -170,21 +168,13 @@ impl canvas::Drawable for State {
             );
             frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
 
-            let earth = Path::new(|path| {
-                path.circle(Point::ORIGIN, Self::EARTH_RADIUS)
-            });
+            let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
+            let shadow = Path::rectangle(
+                Point::new(0.0, -Self::EARTH_RADIUS),
+                Size::new(Self::EARTH_RADIUS * 4.0, Self::EARTH_RADIUS * 2.0),
+            );
 
-            let shadow = Path::new(|path| {
-                path.rectangle(
-                    Point::new(0.0, -Self::EARTH_RADIUS),
-                    Size::new(
-                        Self::EARTH_RADIUS * 4.0,
-                        Self::EARTH_RADIUS * 2.0,
-                    ),
-                )
-            });
-
-            frame.fill(&earth, Fill::Color(Color::from_rgb8(0x6B, 0x93, 0xD6)));
+            frame.fill(&earth, Color::from_rgb8(0x6B, 0x93, 0xD6));
 
             frame.with_save(|frame| {
                 frame.rotate(
@@ -193,19 +183,16 @@ impl canvas::Drawable for State {
                 );
                 frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
 
-                let moon = Path::new(|path| {
-                    path.circle(Point::ORIGIN, Self::MOON_RADIUS)
-                });
-
-                frame.fill(&moon, Fill::Color(Color::WHITE));
+                let moon = Path::circle(Point::ORIGIN, Self::MOON_RADIUS);
+                frame.fill(&moon, Color::WHITE);
             });
 
             frame.fill(
                 &shadow,
-                Fill::Color(Color {
+                Color {
                     a: 0.7,
                     ..Color::BLACK
-                }),
+                },
             );
         });
     }

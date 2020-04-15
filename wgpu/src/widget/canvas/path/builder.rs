@@ -133,11 +133,14 @@ impl Builder {
     ///
     /// [`Path`]: struct.Path.html
     #[inline]
-    pub fn rectangle(&mut self, p: Point, size: Size) {
-        self.move_to(p);
-        self.line_to(Point::new(p.x + size.width, p.y));
-        self.line_to(Point::new(p.x + size.width, p.y + size.height));
-        self.line_to(Point::new(p.x, p.y + size.height));
+    pub fn rectangle(&mut self, top_left: Point, size: Size) {
+        self.move_to(top_left);
+        self.line_to(Point::new(top_left.x + size.width, top_left.y));
+        self.line_to(Point::new(
+            top_left.x + size.width,
+            top_left.y + size.height,
+        ));
+        self.line_to(Point::new(top_left.x, top_left.y + size.height));
         self.close();
     }
 
