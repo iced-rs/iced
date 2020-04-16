@@ -186,7 +186,7 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))]
         {
             let renderer_settings = crate::renderer::Settings {
                 default_font: settings.default_font,
@@ -207,12 +207,15 @@ pub trait Application: Sized {
 
         #[cfg(target_arch = "wasm32")]
         <Instance<Self> as iced_web::Application>::run(settings.flags);
+
+        #[cfg(target_os = "ios")]
+        <Instance<Self> as iced_ios::Application>::run(settings.flags);
     }
 }
 
 struct Instance<A: Application>(A);
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))]
 impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
@@ -260,6 +263,38 @@ where
 
 #[cfg(target_arch = "wasm32")]
 impl<A> iced_web::Application for Instance<A>
+where
+    A: Application,
+{
+    type Executor = A::Executor;
+    type Message = A::Message;
+    type Flags = A::Flags;
+
+    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
+        let (app, command) = A::new(flags);
+
+        (Instance(app), command)
+    }
+
+    fn title(&self) -> String {
+        self.0.title()
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        self.0.update(message)
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.0.subscription()
+    }
+
+    fn view(&mut self) -> Element<'_, Self::Message> {
+        self.0.view()
+    }
+}
+
+#[cfg(target_os = "ios")]
+impl<A> iced_ios::Application for Instance<A>
 where
     A: Application,
 {

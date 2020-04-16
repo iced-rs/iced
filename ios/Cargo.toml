@@ -1,0 +1,22 @@
+[package]
+name = "iced_ios"
+version = "0.1.0"
+authors = ["Sebastian Imlay <sebastian.imlay@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+twox-hash = "1.5"
+raw-window-handle = "0.3"
+unicode-segmentation = "1.6"
+winit = "0.22"
+
+[dependencies.iced_core]
+version = "0.2"
+path = "../core"
+
+[dependencies.iced_futures]
+version = "0.1"
+path = "../futures"
+features = ["thread-pool"]
