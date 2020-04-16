@@ -63,7 +63,7 @@ impl<T> Buffer<T> {
 
 impl Pipeline {
     pub fn new(
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         format: wgpu::TextureFormat,
         antialiasing: Option<settings::Antialiasing>,
     ) -> Pipeline {
@@ -195,7 +195,7 @@ impl Pipeline {
 
     pub fn draw(
         &mut self,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         target_width: u32,

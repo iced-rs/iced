@@ -280,7 +280,7 @@ impl Pipeline {
 
     pub fn draw(
         &mut self,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         images: &[Image],
         transformation: Transformation,

@@ -54,7 +54,7 @@ impl Renderer {
     /// Creates a new [`Renderer`].
     ///
     /// [`Renderer`]: struct.Renderer.html
-    pub fn new(device: &mut wgpu::Device, settings: Settings) -> Self {
+    pub fn new(device: &wgpu::Device, settings: Settings) -> Self {
         let text_pipeline =
             text::Pipeline::new(device, settings.format, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(device, settings.format);
@@ -85,7 +85,7 @@ impl Renderer {
     /// [`Target`]: struct.Target.html
     pub fn draw<T: AsRef<str>>(
         &mut self,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: Target<'_>,
         (primitive, mouse_cursor): &(Primitive, MouseCursor),
@@ -328,7 +328,7 @@ impl Renderer {
 
     fn flush(
         &mut self,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
