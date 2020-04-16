@@ -2,6 +2,7 @@
 use crate::{settings, Transformation};
 use iced_native::{Point, Rectangle};
 use std::mem;
+use zerocopy::AsBytes;
 
 mod msaa;
 
@@ -34,6 +35,7 @@ impl<T> Buffer<T> {
         usage: wgpu::BufferUsage,
     ) -> Self {
         let raw = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
             size: (std::mem::size_of::<T>() * size) as u64,
             usage,
         });
@@ -49,6 +51,7 @@ impl<T> Buffer<T> {
     pub fn ensure_capacity(&mut self, device: &wgpu::Device, size: usize) {
         if self.size < size {
             self.raw = device.create_buffer(&wgpu::BufferDescriptor {
+                label: None,
                 size: (std::mem::size_of::<T>() * size) as u64,
                 usage: self.usage,
             });
@@ -66,7 +69,8 @@ impl Pipeline {
     ) -> Pipeline {
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                bindings: &[wgpu::BindGroupLayoutBinding {
+                label: None,
+                bindings: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::UniformBuffer { dynamic: true },
@@ -81,6 +85,7 @@ impl Pipeline {
 
         let constant_bind_group =
             device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
                 layout: &constant_layout,
                 bindings: &[wgpu::Binding {
                     binding: 0,
@@ -142,25 +147,27 @@ impl Pipeline {
                     write_mask: wgpu::ColorWrite::ALL,
                 }],
                 depth_stencil_state: None,
-                index_format: wgpu::IndexFormat::Uint32,
-                vertex_buffers: &[wgpu::VertexBufferDescriptor {
-                    stride: mem::size_of::<Vertex2D>() as u64,
-                    step_mode: wgpu::InputStepMode::Vertex,
-                    attributes: &[
-                        // Position
-                        wgpu::VertexAttributeDescriptor {
-                            shader_location: 0,
-                            format: wgpu::VertexFormat::Float2,
-                            offset: 0,
-                        },
-                        // Color
-                        wgpu::VertexAttributeDescriptor {
-                            shader_location: 1,
-                            format: wgpu::VertexFormat::Float4,
-                            offset: 4 * 2,
-                        },
-                    ],
-                }],
+                vertex_state: wgpu::VertexStateDescriptor {
+                    index_format: wgpu::IndexFormat::Uint32,
+                    vertex_buffers: &[wgpu::VertexBufferDescriptor {
+                        stride: mem::size_of::<Vertex2D>() as u64,
+                        step_mode: wgpu::InputStepMode::Vertex,
+                        attributes: &[
+                            // Position
+                            wgpu::VertexAttributeDescriptor {
+                                shader_location: 0,
+                                format: wgpu::VertexFormat::Float2,
+                                offset: 0,
+                            },
+                            // Color
+                            wgpu::VertexAttributeDescriptor {
+                                shader_location: 1,
+                                format: wgpu::VertexFormat::Float4,
+                                offset: 4 * 2,
+                            },
+                        ],
+                    }],
+                },
                 sample_count: antialiasing
                     .map(|a| a.sample_count())
                     .unwrap_or(1),
@@ -230,19 +237,15 @@ impl Pipeline {
                 .into(),
             };
 
-            let vertex_buffer = device
-                .create_buffer_mapped(
-                    mesh.vertices.len(),
-                    wgpu::BufferUsage::COPY_SRC,
-                )
-                .fill_from_slice(&mesh.vertices);
+            let vertex_buffer = device.create_buffer_with_data(
+                mesh.vertices.as_bytes(),
+                wgpu::BufferUsage::COPY_SRC,
+            );
 
-            let index_buffer = device
-                .create_buffer_mapped(
-                    mesh.indices.len(),
-                    wgpu::BufferUsage::COPY_SRC,
-                )
-                .fill_from_slice(&mesh.indices);
+            let index_buffer = device.create_buffer_with_data(
+                mesh.indices.as_bytes(),
+                wgpu::BufferUsage::COPY_SRC,
+            );
 
             encoder.copy_buffer_to_buffer(
                 &vertex_buffer,
@@ -271,9 +274,10 @@ impl Pipeline {
             last_index += mesh.indices.len();
         }
 
-        let uniforms_buffer = device
-            .create_buffer_mapped(uniforms.len(), wgpu::BufferUsage::COPY_SRC)
-            .fill_from_slice(&uniforms);
+        let uniforms_buffer = device.create_buffer_with_data(
+            uniforms.as_bytes(),
+            wgpu::BufferUsage::COPY_SRC,
+        );
 
         encoder.copy_buffer_to_buffer(
             &uniforms_buffer,
@@ -327,20 +331,20 @@ impl Pipeline {
                 render_pass.set_bind_group(
                     0,
                     &self.constants,
-                    &[(std::mem::size_of::<Uniforms>() * i) as u64],
+                    &[(std::mem::size_of::<Uniforms>() * i) as u32],
                 );
 
                 render_pass.set_index_buffer(
                     &self.index_buffer.raw,
                     index_offset * std::mem::size_of::<u32>() as u64,
+                    0,
                 );
 
-                render_pass.set_vertex_buffers(
+                render_pass.set_vertex_buffer(
                     0,
-                    &[(
-                        &self.vertex_buffer.raw,
-                        vertex_offset * std::mem::size_of::<Vertex2D>() as u64,
-                    )],
+                    &self.vertex_buffer.raw,
+                    vertex_offset * std::mem::size_of::<Vertex2D>() as u64,
+                    0,
                 );
 
                 render_pass.draw_indexed(0..indices as u32, 0, 0..1);
@@ -354,7 +358,7 @@ impl Pipeline {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, AsBytes)]
 struct Uniforms {
     transform: [f32; 16],
 }
@@ -369,7 +373,7 @@ impl Default for Uniforms {
 
 /// A two-dimensional vertex with some color in __linear__ RGBA.
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, AsBytes)]
 pub struct Vertex2D {
     /// The vertex position
     pub position: [f32; 2],

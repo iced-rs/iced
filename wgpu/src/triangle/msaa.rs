@@ -25,20 +25,22 @@ impl Blit {
             mipmap_filter: wgpu::FilterMode::Linear,
             lod_min_clamp: -100.0,
             lod_max_clamp: 100.0,
-            compare_function: wgpu::CompareFunction::Always,
+            compare: wgpu::CompareFunction::Always,
         });
 
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                bindings: &[wgpu::BindGroupLayoutBinding {
+                label: None,
+                bindings: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler,
+                    ty: wgpu::BindingType::Sampler { comparison: false },
                 }],
             });
 
         let constant_bind_group =
             device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
                 layout: &constant_layout,
                 bindings: &[wgpu::Binding {
                     binding: 0,
@@ -48,12 +50,14 @@ impl Blit {
 
         let texture_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                bindings: &[wgpu::BindGroupLayoutBinding {
+                label: None,
+                bindings: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::SampledTexture {
-                        multisampled: false,
                         dimension: wgpu::TextureViewDimension::D2,
+                        component_type: wgpu::TextureComponentType::Float,
+                        multisampled: false,
                     },
                 }],
             });
@@ -109,8 +113,10 @@ impl Blit {
                     write_mask: wgpu::ColorWrite::ALL,
                 }],
                 depth_stencil_state: None,
-                index_format: wgpu::IndexFormat::Uint16,
-                vertex_buffers: &[],
+                vertex_state: wgpu::VertexStateDescriptor {
+                    index_format: wgpu::IndexFormat::Uint16,
+                    vertex_buffers: &[],
+                },
                 sample_count: 1,
                 sample_mask: !0,
                 alpha_to_coverage_enabled: false,
@@ -222,6 +228,7 @@ impl Targets {
         };
 
         let attachment = device.create_texture(&wgpu::TextureDescriptor {
+            label: None,
             size: extent,
             array_layer_count: 1,
             mip_level_count: 1,
@@ -232,6 +239,7 @@ impl Targets {
         });
 
         let resolve = device.create_texture(&wgpu::TextureDescriptor {
+            label: None,
             size: extent,
             array_layer_count: 1,
             mip_level_count: 1,
@@ -246,6 +254,7 @@ impl Targets {
         let resolve = resolve.create_default_view();
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
             layout: texture_layout,
             bindings: &[wgpu::Binding {
                 binding: 0,

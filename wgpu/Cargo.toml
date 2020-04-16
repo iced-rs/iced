@@ -12,8 +12,9 @@ svg = ["resvg"]
 canvas = ["lyon"]
 
 [dependencies]
-wgpu = "0.4"
-wgpu_glyph = "0.7"
+wgpu = "0.5"
+wgpu_glyph = "0.8"
+zerocopy = "0.3"
 glyph_brush = "0.6"
 raw-window-handle = "0.3"
 glam = "0.8"

@@ -1,6 +1,6 @@
 use crate::{window::SwapChain, Renderer, Settings, Target};
 
-use iced_native::MouseCursor;
+use iced_native::{futures, MouseCursor};
 use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `wgpu`.
@@ -18,23 +18,30 @@ impl iced_native::window::Backend for Backend {
     type SwapChain = SwapChain;
 
     fn new(settings: Self::Settings) -> (Backend, Renderer) {
-        let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
-            power_preference: if settings.antialiasing.is_none() {
-                wgpu::PowerPreference::Default
-            } else {
-                wgpu::PowerPreference::HighPerformance
-            },
-            backends: wgpu::BackendBit::all(),
-        })
-        .expect("Request adapter");
-
-        let (mut device, queue) =
-            adapter.request_device(&wgpu::DeviceDescriptor {
-                extensions: wgpu::Extensions {
-                    anisotropic_filtering: false,
+        let (mut device, queue) = futures::executor::block_on(async {
+            let adapter = wgpu::Adapter::request(
+                &wgpu::RequestAdapterOptions {
+                    power_preference: if settings.antialiasing.is_none() {
+                        wgpu::PowerPreference::Default
+                    } else {
+                        wgpu::PowerPreference::HighPerformance
+                    },
+                    compatible_surface: None,
                 },
-                limits: wgpu::Limits { max_bind_groups: 2 },
-            });
+                wgpu::BackendBit::all(),
+            )
+            .await
+            .expect("Request adapter");
+
+            adapter
+                .request_device(&wgpu::DeviceDescriptor {
+                    extensions: wgpu::Extensions {
+                        anisotropic_filtering: false,
+                    },
+                    limits: wgpu::Limits { max_bind_groups: 2 },
+                })
+                .await
+        });
 
         let renderer = Renderer::new(&mut device, settings);
 
@@ -72,10 +79,10 @@ impl iced_native::window::Backend for Backend {
         scale_factor: f64,
         overlay: &[T],
     ) -> MouseCursor {
-        let (frame, viewport) = swap_chain.next_frame();
+        let (frame, viewport) = swap_chain.next_frame().expect("Next frame");
 
         let mut encoder = self.device.create_command_encoder(
-            &wgpu::CommandEncoderDescriptor { todo: 0 },
+            &wgpu::CommandEncoderDescriptor { label: None },
         );
 
         let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

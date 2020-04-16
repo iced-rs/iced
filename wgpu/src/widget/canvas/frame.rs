@@ -248,7 +248,7 @@ impl Frame {
             .transforms
             .current
             .raw
-            .pre_rotate(lyon::math::Angle::radians(-angle));
+            .pre_rotate(lyon::math::Angle::radians(angle));
         self.transforms.current.is_identity = false;
     }
 

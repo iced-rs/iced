@@ -32,8 +32,12 @@ impl SwapChain {
     ///
     /// [`SwapChain`]: struct.SwapChain.html
     /// [`Viewport`]: ../struct.Viewport.html
-    pub fn next_frame(&mut self) -> (wgpu::SwapChainOutput<'_>, &Viewport) {
-        (self.raw.get_next_texture(), &self.viewport)
+    pub fn next_frame(
+        &mut self,
+    ) -> Result<(wgpu::SwapChainOutput, &Viewport), wgpu::TimeOut> {
+        let viewport = &self.viewport;
+
+        self.raw.get_next_texture().map(|output| (output, viewport))
     }
 }
 
@@ -51,7 +55,7 @@ fn new_swap_chain(
             format,
             width,
             height,
-            present_mode: wgpu::PresentMode::Vsync,
+            present_mode: wgpu::PresentMode::Mailbox,
         },
     )
 }

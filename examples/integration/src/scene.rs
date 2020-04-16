@@ -69,10 +69,12 @@ fn build_pipeline(
 
     let bind_group_layout =
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
             bindings: &[],
         });
 
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: None,
         layout: &bind_group_layout,
         bindings: &[],
     });
@@ -108,8 +110,10 @@ fn build_pipeline(
                 write_mask: wgpu::ColorWrite::ALL,
             }],
             depth_stencil_state: None,
-            index_format: wgpu::IndexFormat::Uint16,
-            vertex_buffers: &[],
+            vertex_state: wgpu::VertexStateDescriptor {
+                index_format: wgpu::IndexFormat::Uint16,
+                vertex_buffers: &[],
+            },
             sample_count: 1,
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
