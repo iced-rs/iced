@@ -23,7 +23,7 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         format: wgpu::TextureFormat,
         default_font: Option<&[u8]>,
     ) -> Self {
@@ -78,7 +78,7 @@ impl Pipeline {
 
     pub fn draw_queued(
         &mut self,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         transformation: Transformation,

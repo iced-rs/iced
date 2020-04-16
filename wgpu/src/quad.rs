@@ -16,7 +16,7 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         format: wgpu::TextureFormat,
     ) -> Pipeline {
         let constant_layout =
@@ -180,7 +180,7 @@ impl Pipeline {
 
     pub fn draw(
         &mut self,
-        device: &mut wgpu::Device,
+        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         instances: &[Quad],
         transformation: Transformation,
