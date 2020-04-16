@@ -15,10 +15,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(
-        device: &wgpu::Device,
-        format: wgpu::TextureFormat,
-    ) -> Pipeline {
+    pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Pipeline {
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: None,
