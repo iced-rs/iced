@@ -34,6 +34,13 @@ impl<'a> Layout<'a> {
         }
     }
 
+    /// Gets the position of the [`Layout`].
+    ///
+    /// [`Layout`]: struct.Layout.html
+    pub fn position(&self) -> Point {
+        self.position
+    }
+
     /// Gets the bounds of the [`Layout`].
     ///
     /// The returned [`Rectangle`] describes the position and size of a

@@ -1,26 +1,41 @@
-use crate::{layout, Clipboard, Event, Hasher, Layout, Point};
+use crate::{layout, Clipboard, Event, Hasher, Layer, Layout, Point, Size};
 
-pub trait Overlay<Message, Renderer>
+#[allow(missing_debug_implementations)]
+pub struct Overlay<'a, Message, Renderer> {
+    position: Point,
+    layer: Box<dyn Layer<Message, Renderer> + 'a>,
+}
+
+impl<'a, Message, Renderer> Overlay<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node;
+    pub fn new(
+        position: Point,
+        layer: Box<dyn Layer<Message, Renderer> + 'a>,
+    ) -> Self {
+        Self { position, layer }
+    }
 
-    fn draw(
+    pub fn layout(&self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.layer.layout(renderer, bounds, self.position)
+    }
+
+    pub fn draw(
         &self,
         renderer: &mut Renderer,
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Output;
+    ) -> Renderer::Output {
+        self.layer.draw(renderer, defaults, layout, cursor_position)
+    }
 
-    fn hash_layout(&self, state: &mut Hasher);
+    pub fn hash_layout(&self, state: &mut Hasher) {
+        self.layer.hash_layout(state, self.position);
+    }
 
-    fn on_event(
+    pub fn on_event(
         &mut self,
         _event: Event,
         _layout: Layout<'_>,

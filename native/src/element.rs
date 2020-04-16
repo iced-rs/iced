@@ -274,8 +274,9 @@ where
 
     pub fn overlay(
         &mut self,
-    ) -> Option<Box<dyn Overlay<Message, Renderer> + 'a>> {
-        self.widget.overlay()
+        layout: Layout<'_>,
+    ) -> Option<Overlay<'a, Message, Renderer>> {
+        self.widget.overlay(layout)
     }
 }
 

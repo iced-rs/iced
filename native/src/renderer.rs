@@ -25,7 +25,7 @@ mod null;
 #[cfg(debug_assertions)]
 pub use null::Null;
 
-use crate::{layout, Element};
+use crate::{layout, Element, Rectangle};
 
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
@@ -56,4 +56,11 @@ pub trait Renderer: Sized {
     ) -> layout::Node {
         element.layout(self, limits)
     }
+
+    fn overlay(
+        &mut self,
+        base: Self::Output,
+        overlay: Self::Output,
+        overlay_bounds: Rectangle,
+    ) -> Self::Output;
 }

@@ -176,7 +176,10 @@ where
     ) {
     }
 
-    fn overlay(&mut self) -> Option<Box<dyn Overlay<Message, Renderer> + 'a>> {
+    fn overlay(
+        &mut self,
+        _layout: Layout<'_>,
+    ) -> Option<Overlay<'a, Message, Renderer>> {
         None
     }
 }
