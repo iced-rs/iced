@@ -27,12 +27,6 @@ pub fn window_event(
                 height: logical_size.height,
             }))
         }
-        WindowEvent::CursorEntered { .. } => {
-            Some(Event::Mouse(mouse::Event::CursorEntered))
-        }
-        WindowEvent::CursorLeft { .. } => {
-            Some(Event::Mouse(mouse::Event::CursorLeft))
-        }
         WindowEvent::CursorMoved { position, .. } => {
             let position = position.to_logical::<f64>(scale_factor);
 
