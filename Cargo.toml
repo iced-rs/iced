@@ -69,3 +69,7 @@ iced_web = { version = "0.2", path = "web" }
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 features = ["image", "svg", "canvas"]
+
+[patch.'crates-io']
+winit = { git='https://github.com/Matthias-Fauconneau/winit' }
+#winit = { path = "../winit" }
