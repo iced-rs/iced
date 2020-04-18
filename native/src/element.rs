@@ -227,6 +227,28 @@ where
         self.widget.layout(renderer, limits)
     }
 
+    /// Processes a runtime [`Event`].
+    ///
+    /// [`Event`]: enum.Event.html
+    pub fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+        renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
+    ) {
+        self.widget.on_event(
+            event,
+            layout,
+            cursor_position,
+            messages,
+            renderer,
+            clipboard,
+        );
+    }
+
     /// Draws the [`Element`] and its children using the given [`Layout`].
     ///
     /// [`Element`]: struct.Element.html
