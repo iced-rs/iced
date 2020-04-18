@@ -1,7 +1,7 @@
 use crate::{
     layer::{self, menu},
     layout, mouse, scrollable, text, Clipboard, Element, Event, Hasher, Layout,
-    Length, Overlay, Point, Rectangle, Size, Vector, Widget,
+    Length, Overlay, Point, Rectangle, Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -210,14 +210,16 @@ where
 
         if is_open {
             if let Some(Internal { menu, on_selected }) = self.internal.take() {
+                let bounds = layout.bounds();
+
                 Some(Overlay::new(
-                    layout.position()
-                        + Vector::new(0.0, layout.bounds().height),
+                    layout.position(),
                     Box::new(layer::Menu::new(
                         menu,
                         self.options.clone(),
                         on_selected,
-                        layout.bounds().width.round() as u16,
+                        bounds.width.round() as u16,
+                        bounds.height,
                         self.text_size.unwrap_or(20),
                         self.padding,
                     )),

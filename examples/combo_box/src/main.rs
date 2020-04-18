@@ -60,10 +60,6 @@ impl Sandbox for Example {
             .push(Text::new("Which is your favorite language?"))
             .push(combo_box);
 
-        if self.selected_language == Language::Javascript {
-            content = content.push(Text::new("You are wrong!"));
-        }
-
         content = content
             .push(button)
             .push(Space::with_height(Length::Units(800)));
