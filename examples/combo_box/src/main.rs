@@ -1,6 +1,6 @@
 use iced::{
-    button, combo_box, Button, Column, ComboBox, Container, Element, Length,
-    Sandbox, Settings, Text,
+    button, combo_box, scrollable, Align, Button, ComboBox, Container, Element,
+    Length, Sandbox, Scrollable, Settings, Space, Text,
 };
 
 pub fn main() {
@@ -9,6 +9,7 @@ pub fn main() {
 
 #[derive(Default)]
 struct Example {
+    scroll: scrollable::State,
     button: button::State,
     combo_box: combo_box::State,
     selected_language: Language,
@@ -51,8 +52,11 @@ impl Sandbox for Example {
         let button = Button::new(&mut self.button, Text::new("Press me!"))
             .on_press(Message::ButtonPressed);
 
-        let mut content = Column::new()
+        let mut content = Scrollable::new(&mut self.scroll)
+            .width(Length::Fill)
+            .align_items(Align::Center)
             .spacing(10)
+            .push(Space::with_height(Length::Units(800)))
             .push(Text::new("Which is your favorite language?"))
             .push(combo_box);
 
@@ -60,7 +64,9 @@ impl Sandbox for Example {
             content = content.push(Text::new("You are wrong!"));
         }
 
-        content = content.push(button);
+        content = content
+            .push(button)
+            .push(Space::with_height(Length::Units(800)));
 
         Container::new(content)
             .width(Length::Fill)
