@@ -126,7 +126,9 @@ where
 
         let size = {
             let intrinsic = Size::new(
-                max_width as f32 + f32::from(text_size),
+                max_width as f32
+                    + f32::from(text_size)
+                    + f32::from(self.padding),
                 f32::from(text_size),
             );
 

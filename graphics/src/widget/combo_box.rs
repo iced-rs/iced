@@ -35,27 +35,41 @@ where
             border_radius: 0,
         };
 
-        (
-            if let Some(label) = selected {
-                let label = Primitive::Text {
-                    content: label,
-                    size: f32::from(text_size),
-                    font: Font::Default,
-                    color: Color::BLACK,
-                    bounds: Rectangle {
-                        x: bounds.x + f32::from(padding),
-                        y: bounds.center_y(),
-                        ..bounds
-                    },
-                    horizontal_alignment: HorizontalAlignment::Left,
-                    vertical_alignment: VerticalAlignment::Center,
-                };
+        let arrow_down = Primitive::Text {
+            content: B::ARROW_DOWN_ICON.to_string(),
+            font: B::ICON_FONT,
+            size: bounds.height * 0.7,
+            bounds: Rectangle {
+                x: bounds.x + bounds.width - f32::from(padding) * 2.0,
+                y: bounds.center_y(),
+                ..bounds
+            },
+            color: Color::BLACK,
+            horizontal_alignment: HorizontalAlignment::Right,
+            vertical_alignment: VerticalAlignment::Center,
+        };
 
-                Primitive::Group {
-                    primitives: vec![background, label],
-                }
-            } else {
-                background
+        (
+            Primitive::Group {
+                primitives: if let Some(label) = selected {
+                    let label = Primitive::Text {
+                        content: label,
+                        size: f32::from(text_size),
+                        font: Font::Default,
+                        color: Color::BLACK,
+                        bounds: Rectangle {
+                            x: bounds.x + f32::from(padding),
+                            y: bounds.center_y(),
+                            ..bounds
+                        },
+                        horizontal_alignment: HorizontalAlignment::Left,
+                        vertical_alignment: VerticalAlignment::Center,
+                    };
+
+                    vec![background, label, arrow_down]
+                } else {
+                    vec![background, arrow_down]
+                },
             },
             if is_mouse_over {
                 mouse::Interaction::Pointer
