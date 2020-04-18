@@ -1,4 +1,6 @@
-use crate::{layout, Clipboard, Event, Hasher, Layer, Layout, Point, Size};
+use crate::{
+    layout, Clipboard, Event, Hasher, Layer, Layout, Point, Size, Vector,
+};
 use std::rc::Rc;
 
 #[allow(missing_debug_implementations)]
@@ -16,6 +18,11 @@ where
         layer: Box<dyn Layer<Message, Renderer> + 'a>,
     ) -> Self {
         Self { position, layer }
+    }
+
+    pub fn translate(mut self, translation: Vector) -> Self {
+        self.position = self.position + translation;
+        self
     }
 
     pub fn map<B>(self, f: Rc<dyn Fn(Message) -> B>) -> Overlay<'a, B, Renderer>
