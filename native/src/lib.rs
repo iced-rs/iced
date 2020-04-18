@@ -31,11 +31,12 @@
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
 //#![deny(missing_docs)]
-#![deny(missing_debug_implementations)]
+//#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 pub mod keyboard;
+pub mod layer;
 pub mod layout;
 pub mod mouse;
 pub mod program;
@@ -48,7 +49,6 @@ mod clipboard;
 mod element;
 mod event;
 mod hasher;
-mod layer;
 mod overlay;
 mod runtime;
 mod user_interface;

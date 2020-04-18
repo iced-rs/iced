@@ -2,6 +2,7 @@ use crate::{
     layout, Clipboard, Color, Event, Hasher, Layout, Length, Overlay, Point,
     Widget,
 };
+use std::rc::Rc;
 
 /// A generic [`Widget`].
 ///
@@ -282,7 +283,7 @@ where
 
 struct Map<'a, A, B, Renderer> {
     widget: Box<dyn Widget<'a, A, Renderer> + 'a>,
-    mapper: Box<dyn Fn(A) -> B>,
+    mapper: Rc<dyn Fn(A) -> B>,
 }
 
 impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
@@ -295,14 +296,16 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     {
         Map {
             widget,
-            mapper: Box::new(mapper),
+            mapper: Rc::new(mapper),
         }
     }
 }
 
 impl<'a, A, B, Renderer> Widget<'a, B, Renderer> for Map<'a, A, B, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: crate::Renderer + 'a,
+    A: 'static,
+    B: 'static,
 {
     fn width(&self) -> Length {
         self.widget.width()
@@ -358,6 +361,15 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<Overlay<'a, B, Renderer>> {
+        self.widget
+            .overlay(layout)
+            .map(|overlay| overlay.map(self.mapper.clone()))
     }
 }
 
@@ -433,5 +445,12 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         self.element.widget.hash_layout(state);
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<Overlay<'a, Message, Renderer>> {
+        self.element.overlay(layout)
     }
 }

@@ -23,6 +23,7 @@
 pub mod button;
 pub mod checkbox;
 pub mod column;
+pub mod combo_box;
 pub mod container;
 pub mod image;
 pub mod pane_grid;
@@ -42,6 +43,8 @@ pub use button::Button;
 pub use checkbox::Checkbox;
 #[doc(no_inline)]
 pub use column::Column;
+#[doc(no_inline)]
+pub use combo_box::ComboBox;
 #[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]

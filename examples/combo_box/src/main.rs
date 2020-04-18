@@ -1,121 +1,6 @@
-mod combo_box {
-    use iced_native::{
-        layout, mouse, Background, Color, Element, Hasher, Layer, Layout,
-        Length, Overlay, Point, Size, Vector, Widget,
-    };
-    use iced_wgpu::{Defaults, Primitive, Renderer};
-
-    pub struct ComboBox;
-
-    impl ComboBox {
-        pub fn new() -> Self {
-            Self
-        }
-    }
-
-    impl<'a, Message> Widget<'a, Message, Renderer> for ComboBox {
-        fn width(&self) -> Length {
-            Length::Shrink
-        }
-
-        fn height(&self) -> Length {
-            Length::Shrink
-        }
-
-        fn layout(
-            &self,
-            _renderer: &Renderer,
-            _limits: &layout::Limits,
-        ) -> layout::Node {
-            layout::Node::new(Size::new(50.0, 50.0))
-        }
-
-        fn hash_layout(&self, _state: &mut Hasher) {}
-
-        fn draw(
-            &self,
-            _renderer: &mut Renderer,
-            _defaults: &Defaults,
-            layout: Layout<'_>,
-            _cursor_position: Point,
-        ) -> (Primitive, mouse::Interaction) {
-            let primitive = Primitive::Quad {
-                bounds: layout.bounds(),
-                background: Background::Color(Color::BLACK),
-                border_width: 0,
-                border_radius: 0,
-                border_color: Color::TRANSPARENT,
-            };
-
-            (primitive, mouse::Interaction::default())
-        }
-
-        fn overlay(
-            &mut self,
-            layout: Layout<'_>,
-        ) -> Option<Overlay<'a, Message, Renderer>> {
-            Some(Overlay::new(layout.position(), Box::new(Menu)))
-        }
-    }
-
-    impl<'a, Message> Into<Element<'a, Message, Renderer>> for ComboBox {
-        fn into(self) -> Element<'a, Message, Renderer> {
-            Element::new(self)
-        }
-    }
-
-    pub struct Menu;
-
-    impl<Message> Layer<Message, Renderer> for Menu {
-        fn layout(
-            &self,
-            _renderer: &Renderer,
-            _bounds: Size,
-            position: Point,
-        ) -> layout::Node {
-            let mut node = layout::Node::new(Size::new(100.0, 100.0));
-
-            node.move_to(position + Vector::new(25.0, 25.0));
-
-            node
-        }
-
-        fn hash_layout(&self, state: &mut Hasher, position: Point) {
-            use std::hash::Hash;
-
-            (position.x as u32).hash(state);
-            (position.y as u32).hash(state);
-        }
-
-        fn draw(
-            &self,
-            _renderer: &mut Renderer,
-            _defaults: &Defaults,
-            layout: Layout<'_>,
-            _cursor_position: Point,
-        ) -> (Primitive, mouse::Interaction) {
-            let primitive = Primitive::Quad {
-                bounds: layout.bounds(),
-                background: Background::Color(Color {
-                    r: 0.0,
-                    g: 0.0,
-                    b: 1.0,
-                    a: 0.5,
-                }),
-                border_width: 0,
-                border_radius: 0,
-                border_color: Color::TRANSPARENT,
-            };
-
-            (primitive, mouse::Interaction::default())
-        }
-    }
-}
-
-pub use combo_box::ComboBox;
-
 use iced::{
-    button, Button, Column, Container, Element, Length, Sandbox, Settings, Text,
+    button, combo_box, Button, Column, ComboBox, Container, Element, Length,
+    Sandbox, Settings, Text,
 };
 
 pub fn main() {
@@ -125,11 +10,14 @@ pub fn main() {
 #[derive(Default)]
 struct Example {
     button: button::State,
+    combo_box: combo_box::State,
+    selected_language: Language,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
     ButtonPressed,
+    LanguageSelected(Language),
 }
 
 impl Sandbox for Example {
@@ -143,15 +31,36 @@ impl Sandbox for Example {
         String::from("Combo box - Iced")
     }
 
-    fn update(&mut self, _message: Message) {}
+    fn update(&mut self, message: Message) {
+        match message {
+            Message::ButtonPressed => {}
+            Message::LanguageSelected(language) => {
+                self.selected_language = language;
+            }
+        }
+    }
 
     fn view(&mut self) -> Element<Message> {
-        let combo_box = ComboBox::new();
+        let combo_box = ComboBox::new(
+            &mut self.combo_box,
+            &Language::ALL[..],
+            Some(self.selected_language),
+            Message::LanguageSelected,
+        );
 
         let button = Button::new(&mut self.button, Text::new("Press me!"))
             .on_press(Message::ButtonPressed);
 
-        let content = Column::new().spacing(10).push(combo_box).push(button);
+        let mut content = Column::new()
+            .spacing(10)
+            .push(Text::new("Which is your favorite language?"))
+            .push(combo_box);
+
+        if self.selected_language == Language::Javascript {
+            content = content.push(Text::new("You are wrong!"));
+        }
+
+        content = content.push(button);
 
         Container::new(content)
             .width(Length::Fill)
@@ -159,5 +68,52 @@ impl Sandbox for Example {
             .center_x()
             .center_y()
             .into()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Language {
+    Rust,
+    Elm,
+    Ruby,
+    Haskell,
+    C,
+    Javascript,
+    Other,
+}
+
+impl Language {
+    const ALL: [Language; 7] = [
+        Language::C,
+        Language::Elm,
+        Language::Ruby,
+        Language::Haskell,
+        Language::Rust,
+        Language::Javascript,
+        Language::Other,
+    ];
+}
+
+impl Default for Language {
+    fn default() -> Language {
+        Language::Rust
+    }
+}
+
+impl std::fmt::Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Language::Rust => "Rust",
+                Language::Elm => "Elm",
+                Language::Ruby => "Ruby",
+                Language::Haskell => "Haskell",
+                Language::C => "C",
+                Language::Javascript => "Javascript",
+                Language::Other => "Some other language",
+            }
+        )
     }
 }
