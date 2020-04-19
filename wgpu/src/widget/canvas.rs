@@ -9,7 +9,8 @@
 use crate::{Defaults, Primitive, Renderer};
 
 use iced_native::{
-    layout, Element, Hasher, Layout, Length, MouseCursor, Point, Size, Widget,
+    input::mouse, layout, Clipboard, Element, Hasher, Layout, Length,
+    MouseCursor, Point, Size, Widget,
 };
 use std::hash::Hash;
 
@@ -17,16 +18,20 @@ pub mod layer;
 pub mod path;
 
 mod drawable;
+mod event;
 mod fill;
 mod frame;
+mod program;
 mod stroke;
 mod text;
 
 pub use drawable::Drawable;
+pub use event::Event;
 pub use fill::Fill;
 pub use frame::Frame;
 pub use layer::Layer;
 pub use path::Path;
+pub use program::Program;
 pub use stroke::{LineCap, LineJoin, Stroke};
 pub use text::Text;
 
@@ -81,31 +86,31 @@ pub use text::Text;
 /// }
 ///
 /// // We can use a `Cache` to avoid unnecessary re-tessellation
-/// let cache: layer::Cache<Circle> = layer::Cache::new();
+/// let mut cache: layer::Cache<Circle> = layer::Cache::new();
 ///
-/// // Finally, we simply provide the data to our `Cache` and push the resulting
-/// // layer into a `Canvas`
-/// let canvas = Canvas::new()
-///     .push(cache.with(&Circle { radius: 50.0 }));
+/// // Finally, we simply use our `Cache` to create the `Canvas`!
+/// let canvas = Canvas::new(&mut cache, &Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<'a> {
+pub struct Canvas<'a, P: Program> {
     width: Length,
     height: Length,
-    layers: Vec<Box<dyn Layer + 'a>>,
+    program: &'a mut P,
+    input: &'a P::Input,
 }
 
-impl<'a> Canvas<'a> {
+impl<'a, P: Program> Canvas<'a, P> {
     const DEFAULT_SIZE: u16 = 100;
 
     /// Creates a new [`Canvas`] with no layers.
     ///
     /// [`Canvas`]: struct.Canvas.html
-    pub fn new() -> Self {
+    pub fn new(program: &'a mut P, input: &'a P::Input) -> Self {
         Canvas {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
-            layers: Vec::new(),
+            program,
+            input,
         }
     }
 
@@ -124,20 +129,9 @@ impl<'a> Canvas<'a> {
         self.height = height;
         self
     }
-
-    /// Adds a [`Layer`] to the [`Canvas`].
-    ///
-    /// It will be drawn on top of previous layers.
-    ///
-    /// [`Layer`]: layer/trait.Layer.html
-    /// [`Canvas`]: struct.Canvas.html
-    pub fn push(mut self, layer: impl Layer + 'a) -> Self {
-        self.layers.push(Box::new(layer));
-        self
-    }
 }
 
-impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
+impl<'a, Message, P: Program> Widget<Message, Renderer> for Canvas<'a, P> {
     fn width(&self) -> Length {
         self.width
     }
@@ -157,6 +151,37 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
         layout::Node::new(size)
     }
 
+    fn on_event(
+        &mut self,
+        event: iced_native::Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _messages: &mut Vec<Message>,
+        _renderer: &Renderer,
+        _clipboard: Option<&dyn Clipboard>,
+    ) {
+        let bounds = layout.bounds();
+
+        let canvas_event = match event {
+            iced_native::Event::Mouse(mouse_event) => {
+                Some(Event::Mouse(match mouse_event {
+                    mouse::Event::CursorMoved { .. } => {
+                        mouse::Event::CursorMoved {
+                            x: cursor_position.x - bounds.x,
+                            y: cursor_position.y - bounds.y,
+                        }
+                    }
+                    _ => mouse_event,
+                }))
+            }
+            _ => None,
+        };
+
+        if let Some(canvas_event) = canvas_event {
+            self.program.update(canvas_event, bounds.size(), self.input)
+        }
+    }
+
     fn draw(
         &self,
         _renderer: &mut Renderer,
@@ -171,7 +196,8 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
         (
             Primitive::Group {
                 primitives: self
-                    .layers
+                    .program
+                    .layers(self.input)
                     .iter()
                     .map(|layer| Primitive::Cached {
                         origin,
@@ -184,18 +210,20 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Canvas<'static>>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.height.hash(state);
     }
 }
 
-impl<'a, Message> From<Canvas<'a>> for Element<'a, Message, Renderer>
+impl<'a, Message, P: Program> From<Canvas<'a, P>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'static,
 {
-    fn from(canvas: Canvas<'a>) -> Element<'a, Message, Renderer> {
+    fn from(canvas: Canvas<'a, P>) -> Element<'a, Message, Renderer> {
         Element::new(canvas)
     }
 }

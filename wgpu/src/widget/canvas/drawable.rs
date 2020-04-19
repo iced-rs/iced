@@ -10,3 +10,9 @@ pub trait Drawable {
     /// [`Frame`]: struct.Frame.html
     fn draw(&self, frame: &mut Frame);
 }
+
+impl<'a> Drawable for dyn Fn(&mut Frame) + 'a {
+    fn draw(&self, frame: &mut Frame) {
+        self(frame)
+    }
+}

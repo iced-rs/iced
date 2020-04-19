@@ -59,10 +59,9 @@ impl Application for Clock {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new()
+        let canvas = Canvas::new(&mut self.clock, &self.now)
             .width(Length::Units(400))
-            .height(Length::Units(400))
-            .push(self.clock.with(&self.now));
+            .height(Length::Units(400));
 
         Container::new(canvas)
             .width(Length::Fill)

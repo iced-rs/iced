@@ -1,5 +1,5 @@
 use crate::{
-    canvas::{Drawable, Frame, Layer},
+    canvas::{Drawable, Frame, Layer, Program},
     Primitive,
 };
 
@@ -76,6 +76,20 @@ where
             cache: self,
             input: input,
         }
+    }
+}
+
+impl<T> Program for Cache<T>
+where
+    T: Drawable + std::fmt::Debug,
+{
+    type Input = T;
+
+    fn layers<'a>(
+        &'a self,
+        input: &'a Self::Input,
+    ) -> Vec<Box<dyn Layer + 'a>> {
+        vec![Box::new(self.with(input))]
     }
 }
 

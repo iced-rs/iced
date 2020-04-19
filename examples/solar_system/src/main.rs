@@ -66,10 +66,9 @@ impl Application for SolarSystem {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new()
+        let canvas = Canvas::new(&mut self.solar_system, &self.state)
             .width(Length::Fill)
-            .height(Length::Fill)
-            .push(self.solar_system.with(&self.state));
+            .height(Length::Fill);
 
         Container::new(canvas)
             .width(Length::Fill)

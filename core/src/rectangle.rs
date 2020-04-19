@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{Point, Size};
 
 /// A rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -41,6 +41,14 @@ impl Rectangle<f32> {
     /// [`Rectangle`]: struct.Rectangle.html
     pub fn center_y(&self) -> f32 {
         self.y + self.height / 2.0
+    }
+
+    /// Returns the [`Size`] of the [`Rectangle`].
+    ///
+    /// [`Size`]: struct.Size.html
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn size(&self) -> Size {
+        Size::new(self.width, self.height)
     }
 
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
