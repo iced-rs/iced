@@ -1,5 +1,5 @@
 use crate::{
-    canvas::{Drawable, Frame, Layer, Program},
+    canvas::{Drawable, Frame, Layer},
     Primitive,
 };
 
@@ -26,34 +26,17 @@ impl Default for State {
 ///
 /// [`Layer`]: ../trait.Layer.html
 /// [`Cache`]: struct.Cache.html
-#[derive(Debug)]
-pub struct Cache<T: Drawable> {
-    input: PhantomData<T>,
+#[derive(Debug, Default)]
+pub struct Cache {
     state: RefCell<State>,
 }
 
-impl<T> Default for Cache<T>
-where
-    T: Drawable,
-{
-    fn default() -> Self {
-        Self {
-            input: PhantomData,
-            state: Default::default(),
-        }
-    }
-}
-
-impl<T> Cache<T>
-where
-    T: Drawable + std::fmt::Debug,
-{
+impl Cache {
     /// Creates a new empty [`Cache`].
     ///
     /// [`Cache`]: struct.Cache.html
     pub fn new() -> Self {
         Cache {
-            input: PhantomData,
             state: Default::default(),
         }
     }
@@ -71,35 +54,26 @@ where
     /// [`Cache`]: struct.Cache.html
     /// [`Layer`]: ../trait.Layer.html
     /// [`Canvas`]: ../../struct.Canvas.html
-    pub fn with<'a>(
+    pub fn with<'a, T>(
         &'a self,
         input: impl Borrow<T> + std::fmt::Debug + 'a,
-    ) -> impl Layer + 'a {
+    ) -> impl Layer + 'a
+    where
+        T: Drawable + std::fmt::Debug + 'a,
+    {
         Bind {
             cache: self,
             input: input,
+            drawable: PhantomData,
         }
-    }
-}
-
-impl<T> Program for Cache<T>
-where
-    T: Drawable + std::fmt::Debug,
-{
-    type Input = T;
-
-    fn layers<'a>(
-        &'a self,
-        input: &'a Self::Input,
-    ) -> Vec<Box<dyn Layer + 'a>> {
-        vec![Box::new(self.with(input))]
     }
 }
 
 #[derive(Debug)]
 struct Bind<'a, T: Drawable, I: Borrow<T> + 'a> {
-    cache: &'a Cache<T>,
+    cache: &'a Cache,
     input: I,
+    drawable: PhantomData<T>,
 }
 
 impl<'a, T, I> Layer for Bind<'a, T, I>

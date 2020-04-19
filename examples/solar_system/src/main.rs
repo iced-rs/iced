@@ -10,6 +10,7 @@ use iced::{
     canvas, executor, window, Application, Canvas, Color, Command, Container,
     Element, Length, Point, Settings, Size, Subscription, Vector,
 };
+use iced_native::input::{self, mouse};
 
 use std::time::Instant;
 
@@ -22,7 +23,7 @@ pub fn main() {
 
 struct SolarSystem {
     state: State,
-    solar_system: canvas::layer::Cache<State>,
+    now: Instant,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -39,7 +40,7 @@ impl Application for SolarSystem {
         (
             SolarSystem {
                 state: State::new(),
-                solar_system: Default::default(),
+                now: Instant::now(),
             },
             Command::none(),
         )
@@ -52,8 +53,8 @@ impl Application for SolarSystem {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Tick(instant) => {
-                self.state.update(instant);
-                self.solar_system.clear();
+                self.now = instant;
+                self.state.clear();
             }
         }
 
@@ -66,7 +67,7 @@ impl Application for SolarSystem {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new(&mut self.solar_system, &self.state)
+        let canvas = Canvas::new(&mut self.state, &self.now)
             .width(Length::Fill)
             .height(Length::Fill);
 
@@ -81,25 +82,21 @@ impl Application for SolarSystem {
 
 #[derive(Debug)]
 struct State {
+    cache: canvas::layer::Cache,
+    cursor_position: Point,
     start: Instant,
-    current: Instant,
     stars: Vec<(Point, f32)>,
 }
 
 impl State {
-    const SUN_RADIUS: f32 = 70.0;
-    const ORBIT_RADIUS: f32 = 150.0;
-    const EARTH_RADIUS: f32 = 12.0;
-    const MOON_RADIUS: f32 = 4.0;
-    const MOON_DISTANCE: f32 = 28.0;
-
     pub fn new() -> State {
         let now = Instant::now();
         let (width, height) = window::Settings::default().size;
 
         State {
+            cache: Default::default(),
+            cursor_position: Point::ORIGIN,
             start: now,
-            current: now,
             stars: {
                 use rand::Rng;
 
@@ -120,12 +117,66 @@ impl State {
         }
     }
 
-    pub fn update(&mut self, now: Instant) {
-        self.current = now;
+    pub fn clear(&mut self) {
+        self.cache.clear();
     }
 }
 
-impl canvas::Drawable for State {
+impl canvas::Program for State {
+    type Input = Instant;
+
+    fn update(
+        &mut self,
+        event: canvas::Event,
+        _bounds: Size,
+        _input: &Instant,
+    ) {
+        match event {
+            canvas::Event::Mouse(mouse_event) => match mouse_event {
+                mouse::Event::CursorMoved { x, y } => {
+                    self.cursor_position = Point::new(x, y);
+                }
+                mouse::Event::Input {
+                    button: mouse::Button::Left,
+                    state: input::ButtonState::Released,
+                } => {
+                    self.stars.push((self.cursor_position, 2.0));
+                }
+                _ => {}
+            },
+        }
+    }
+
+    fn layers<'a>(
+        &'a self,
+        now: &'a Instant,
+    ) -> Vec<Box<dyn canvas::Layer + 'a>> {
+        let system = System {
+            stars: &self.stars,
+            start: &self.start,
+            now,
+        };
+
+        vec![Box::new(self.cache.with(system))]
+    }
+}
+
+#[derive(Debug)]
+struct System<'a> {
+    stars: &'a [(Point, f32)],
+    start: &'a Instant,
+    now: &'a Instant,
+}
+
+impl System<'_> {
+    const SUN_RADIUS: f32 = 70.0;
+    const ORBIT_RADIUS: f32 = 150.0;
+    const EARTH_RADIUS: f32 = 12.0;
+    const MOON_RADIUS: f32 = 4.0;
+    const MOON_DISTANCE: f32 = 28.0;
+}
+
+impl<'a> canvas::Drawable for System<'a> {
     fn draw(&self, frame: &mut canvas::Frame) {
         use canvas::{Path, Stroke};
         use std::f32::consts::PI;
@@ -135,7 +186,7 @@ impl canvas::Drawable for State {
         let space = Path::rectangle(Point::new(0.0, 0.0), frame.size());
 
         let stars = Path::new(|path| {
-            for (p, size) in &self.stars {
+            for (p, size) in self.stars {
                 path.rectangle(*p, Size::new(*size, *size));
             }
         });
@@ -155,7 +206,7 @@ impl canvas::Drawable for State {
             },
         );
 
-        let elapsed = self.current - self.start;
+        let elapsed = *self.now - *self.start;
         let elapsed_seconds = elapsed.as_secs() as f32;
         let elapsed_millis = elapsed.subsec_millis() as f32;
 
