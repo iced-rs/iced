@@ -4,7 +4,7 @@ use crate::{
 };
 
 use iced_native::Size;
-use std::{cell::RefCell, marker::PhantomData, sync::Arc};
+use std::{borrow::Borrow, cell::RefCell, marker::PhantomData, sync::Arc};
 
 enum State {
     Empty,
@@ -71,7 +71,10 @@ where
     /// [`Cache`]: struct.Cache.html
     /// [`Layer`]: ../trait.Layer.html
     /// [`Canvas`]: ../../struct.Canvas.html
-    pub fn with<'a>(&'a self, input: &'a T) -> impl Layer + 'a {
+    pub fn with<'a>(
+        &'a self,
+        input: impl Borrow<T> + std::fmt::Debug + 'a,
+    ) -> impl Layer + 'a {
         Bind {
             cache: self,
             input: input,
@@ -94,14 +97,15 @@ where
 }
 
 #[derive(Debug)]
-struct Bind<'a, T: Drawable> {
+struct Bind<'a, T: Drawable, I: Borrow<T> + 'a> {
     cache: &'a Cache<T>,
-    input: &'a T,
+    input: I,
 }
 
-impl<'a, T> Layer for Bind<'a, T>
+impl<'a, T, I> Layer for Bind<'a, T, I>
 where
     T: Drawable + std::fmt::Debug,
+    I: Borrow<T> + std::fmt::Debug + 'a,
 {
     fn draw(&self, current_bounds: Size) -> Arc<Primitive> {
         use std::ops::Deref;
@@ -115,7 +119,7 @@ where
         }
 
         let mut frame = Frame::new(current_bounds.width, current_bounds.height);
-        self.input.draw(&mut frame);
+        self.input.borrow().draw(&mut frame);
 
         let primitive = Arc::new(frame.into_primitive());
 
