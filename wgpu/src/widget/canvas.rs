@@ -78,7 +78,7 @@ pub use text::Text;
 /// impl Drawable for Circle {
 ///     fn draw(&self, frame: &mut Frame) {
 ///         // We create a `Path` representing a simple circle
-///         let circle = Path::new(|p| p.circle(frame.center(), self.radius));
+///         let circle = Path::circle(frame.center(), self.radius);
 ///
 ///         // And fill it with some color
 ///         frame.fill(&circle, Fill::Color(Color::BLACK));
