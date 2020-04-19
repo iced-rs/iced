@@ -1,10 +1,10 @@
 use crate::{
-    canvas::{Drawable, Frame, Layer},
+    canvas::{Drawable, Frame, Geometry},
     Primitive,
 };
 
 use iced_native::Size;
-use std::{borrow::Borrow, cell::RefCell, marker::PhantomData, sync::Arc};
+use std::{cell::RefCell, sync::Arc};
 
 enum State {
     Empty,
@@ -48,61 +48,51 @@ impl Cache {
         *self.state.borrow_mut() = State::Empty;
     }
 
-    /// Binds the [`Cache`] with some data, producing a [`Layer`] that can be
-    /// added to a [`Canvas`].
-    ///
-    /// [`Cache`]: struct.Cache.html
-    /// [`Layer`]: ../trait.Layer.html
-    /// [`Canvas`]: ../../struct.Canvas.html
-    pub fn with<'a, T>(
-        &'a self,
-        input: impl Borrow<T> + std::fmt::Debug + 'a,
-    ) -> impl Layer + 'a
+    pub fn draw<T>(&self, new_bounds: Size, input: T) -> Geometry
     where
-        T: Drawable + std::fmt::Debug + 'a,
+        T: Drawable + std::fmt::Debug,
     {
-        Bind {
-            cache: self,
-            input: input,
-            drawable: PhantomData,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Bind<'a, T: Drawable, I: Borrow<T> + 'a> {
-    cache: &'a Cache,
-    input: I,
-    drawable: PhantomData<T>,
-}
-
-impl<'a, T, I> Layer for Bind<'a, T, I>
-where
-    T: Drawable + std::fmt::Debug,
-    I: Borrow<T> + std::fmt::Debug + 'a,
-{
-    fn draw(&self, current_bounds: Size) -> Arc<Primitive> {
         use std::ops::Deref;
 
-        if let State::Filled { bounds, primitive } =
-            self.cache.state.borrow().deref()
+        if let State::Filled { bounds, primitive } = self.state.borrow().deref()
         {
-            if *bounds == current_bounds {
-                return primitive.clone();
+            if *bounds == new_bounds {
+                return Geometry::from_primitive(primitive.clone());
             }
         }
 
-        let mut frame = Frame::new(current_bounds.width, current_bounds.height);
-        self.input.borrow().draw(&mut frame);
+        let mut frame = Frame::new(new_bounds.width, new_bounds.height);
+        input.draw(&mut frame);
 
         let primitive = Arc::new(frame.into_primitive());
 
-        *self.cache.state.borrow_mut() = State::Filled {
-            bounds: current_bounds,
+        *self.state.borrow_mut() = State::Filled {
+            bounds: new_bounds,
             primitive: primitive.clone(),
         };
 
-        primitive
+        Geometry::from_primitive(primitive)
+    }
+
+    pub fn with<'a, T>(&'a self, input: T) -> impl crate::canvas::State + 'a
+    where
+        T: Drawable + std::fmt::Debug + 'a,
+    {
+        Bind { cache: self, input }
+    }
+}
+
+struct Bind<'a, T> {
+    cache: &'a Cache,
+    input: T,
+}
+
+impl<'a, T> crate::canvas::State for Bind<'a, T>
+where
+    T: Drawable + std::fmt::Debug + 'a,
+{
+    fn draw(&self, bounds: Size) -> Vec<Geometry> {
+        vec![self.cache.draw(bounds, &self.input)]
     }
 }
 

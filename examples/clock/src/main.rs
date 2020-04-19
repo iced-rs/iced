@@ -12,7 +12,7 @@ pub fn main() {
 
 struct Clock {
     now: LocalTime,
-    clock: canvas::layer::Cache<LocalTime>,
+    clock: canvas::Cache,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -59,7 +59,7 @@ impl Application for Clock {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new(&mut self.clock, &self.now)
+        let canvas = Canvas::new(self.clock.with(&self.now))
             .width(Length::Units(400))
             .height(Length::Units(400));
 

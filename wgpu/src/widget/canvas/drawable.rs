@@ -16,3 +16,12 @@ impl<'a> Drawable for dyn Fn(&mut Frame) + 'a {
         self(frame)
     }
 }
+
+impl<T> Drawable for &T
+where
+    T: Drawable,
+{
+    fn draw(&self, frame: &mut Frame) {
+        T::draw(self, frame)
+    }
+}

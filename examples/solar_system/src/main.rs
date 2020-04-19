@@ -23,7 +23,6 @@ pub fn main() {
 
 struct SolarSystem {
     state: State,
-    now: Instant,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -40,7 +39,6 @@ impl Application for SolarSystem {
         (
             SolarSystem {
                 state: State::new(),
-                now: Instant::now(),
             },
             Command::none(),
         )
@@ -53,8 +51,7 @@ impl Application for SolarSystem {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Tick(instant) => {
-                self.now = instant;
-                self.state.clear();
+                self.state.update(instant);
             }
         }
 
@@ -67,7 +64,7 @@ impl Application for SolarSystem {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new(&mut self.state, &self.now)
+        let canvas = Canvas::new(&mut self.state)
             .width(Length::Fill)
             .height(Length::Fill);
 
@@ -82,9 +79,11 @@ impl Application for SolarSystem {
 
 #[derive(Debug)]
 struct State {
-    cache: canvas::layer::Cache,
+    space_cache: canvas::Cache,
+    system_cache: canvas::Cache,
     cursor_position: Point,
     start: Instant,
+    now: Instant,
     stars: Vec<(Point, f32)>,
 }
 
@@ -94,43 +93,52 @@ impl State {
         let (width, height) = window::Settings::default().size;
 
         State {
-            cache: Default::default(),
+            space_cache: Default::default(),
+            system_cache: Default::default(),
             cursor_position: Point::ORIGIN,
             start: now,
-            stars: {
-                use rand::Rng;
-
-                let mut rng = rand::thread_rng();
-
-                (0..100)
-                    .map(|_| {
-                        (
-                            Point::new(
-                                rng.gen_range(0.0, width as f32),
-                                rng.gen_range(0.0, height as f32),
-                            ),
-                            rng.gen_range(0.5, 1.0),
-                        )
-                    })
-                    .collect()
-            },
+            now,
+            stars: Self::generate_stars(width, height),
         }
     }
 
-    pub fn clear(&mut self) {
-        self.cache.clear();
+    pub fn space(&self) -> Space<'_> {
+        Space { stars: &self.stars }
+    }
+
+    pub fn system(&self) -> System {
+        System {
+            start: self.start,
+            now: self.now,
+        }
+    }
+
+    pub fn update(&mut self, now: Instant) {
+        self.now = now;
+        self.system_cache.clear();
+    }
+
+    fn generate_stars(width: u32, height: u32) -> Vec<(Point, f32)> {
+        use rand::Rng;
+
+        let mut rng = rand::thread_rng();
+
+        (0..100)
+            .map(|_| {
+                (
+                    Point::new(
+                        rng.gen_range(0.0, width as f32),
+                        rng.gen_range(0.0, height as f32),
+                    ),
+                    rng.gen_range(0.5, 1.0),
+                )
+            })
+            .collect()
     }
 }
 
-impl canvas::Program for State {
-    type Input = Instant;
-
-    fn update(
-        &mut self,
-        event: canvas::Event,
-        _bounds: Size,
-        _input: &Instant,
-    ) {
+impl canvas::State for State {
+    fn update(&mut self, event: canvas::Event, _bounds: Size) {
         match event {
             canvas::Event::Mouse(mouse_event) => match mouse_event {
                 mouse::Event::CursorMoved { x, y } => {
@@ -141,47 +149,29 @@ impl canvas::Program for State {
                     state: input::ButtonState::Released,
                 } => {
                     self.stars.push((self.cursor_position, 2.0));
+                    self.space_cache.clear();
                 }
                 _ => {}
             },
         }
     }
 
-    fn layers<'a>(
-        &'a self,
-        now: &'a Instant,
-    ) -> Vec<Box<dyn canvas::Layer + 'a>> {
-        let system = System {
-            stars: &self.stars,
-            start: &self.start,
-            now,
-        };
-
-        vec![Box::new(self.cache.with(system))]
+    fn draw(&self, bounds: Size) -> Vec<canvas::Geometry> {
+        vec![
+            self.space_cache.draw(bounds, self.space()),
+            self.system_cache.draw(bounds, self.system()),
+        ]
     }
 }
 
 #[derive(Debug)]
-struct System<'a> {
+struct Space<'a> {
     stars: &'a [(Point, f32)],
-    start: &'a Instant,
-    now: &'a Instant,
 }
 
-impl System<'_> {
-    const SUN_RADIUS: f32 = 70.0;
-    const ORBIT_RADIUS: f32 = 150.0;
-    const EARTH_RADIUS: f32 = 12.0;
-    const MOON_RADIUS: f32 = 4.0;
-    const MOON_DISTANCE: f32 = 28.0;
-}
-
-impl<'a> canvas::Drawable for System<'a> {
+impl canvas::Drawable for Space<'_> {
     fn draw(&self, frame: &mut canvas::Frame) {
-        use canvas::{Path, Stroke};
-        use std::f32::consts::PI;
-
-        let center = frame.center();
+        use canvas::Path;
 
         let space = Path::rectangle(Point::new(0.0, 0.0), frame.size());
 
@@ -191,11 +181,35 @@ impl<'a> canvas::Drawable for System<'a> {
             }
         });
 
+        frame.fill(&space, Color::BLACK);
+        frame.fill(&stars, Color::WHITE);
+    }
+}
+
+#[derive(Debug)]
+struct System {
+    start: Instant,
+    now: Instant,
+}
+
+impl System {
+    const SUN_RADIUS: f32 = 70.0;
+    const ORBIT_RADIUS: f32 = 150.0;
+    const EARTH_RADIUS: f32 = 12.0;
+    const MOON_RADIUS: f32 = 4.0;
+    const MOON_DISTANCE: f32 = 28.0;
+}
+
+impl canvas::Drawable for System {
+    fn draw(&self, frame: &mut canvas::Frame) {
+        use canvas::{Path, Stroke};
+        use std::f32::consts::PI;
+
+        let center = frame.center();
+
         let sun = Path::circle(center, Self::SUN_RADIUS);
         let orbit = Path::circle(center, Self::ORBIT_RADIUS);
 
-        frame.fill(&space, Color::BLACK);
-        frame.fill(&stars, Color::WHITE);
         frame.fill(&sun, Color::from_rgb8(0xF9, 0xD7, 0x1C));
         frame.stroke(
             &orbit,
@@ -206,7 +220,7 @@ impl<'a> canvas::Drawable for System<'a> {
             },
         );
 
-        let elapsed = *self.now - *self.start;
+        let elapsed = self.now - self.start;
         let elapsed_seconds = elapsed.as_secs() as f32;
         let elapsed_millis = elapsed.subsec_millis() as f32;
 

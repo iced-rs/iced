@@ -14,24 +14,26 @@ use iced_native::{
 };
 use std::hash::Hash;
 
-pub mod layer;
 pub mod path;
 
+mod cache;
 mod drawable;
 mod event;
 mod fill;
 mod frame;
-mod program;
+mod geometry;
+mod state;
 mod stroke;
 mod text;
 
+pub use cache::Cache;
 pub use drawable::Drawable;
 pub use event::Event;
 pub use fill::Fill;
 pub use frame::Frame;
-pub use layer::Layer;
+pub use geometry::Geometry;
 pub use path::Path;
-pub use program::Program;
+pub use state::State;
 pub use stroke::{LineCap, LineJoin, Stroke};
 pub use text::Text;
 
@@ -65,7 +67,7 @@ pub use text::Text;
 /// #     pub use iced_wgpu::canvas;
 /// #     pub use iced_native::Color;
 /// # }
-/// use iced::canvas::{self, layer, Canvas, Drawable, Fill, Frame, Path};
+/// use iced::canvas::{self, Cache, Canvas, Drawable, Fill, Frame, Path};
 /// use iced::Color;
 ///
 /// // First, we define the data we need for drawing
@@ -86,31 +88,29 @@ pub use text::Text;
 /// }
 ///
 /// // We can use a `Cache` to avoid unnecessary re-tessellation
-/// let mut cache: layer::Cache<Circle> = layer::Cache::new();
+/// let cache = Cache::new();
 ///
 /// // Finally, we simply use our `Cache` to create the `Canvas`!
-/// let canvas = Canvas::new(&mut cache, &Circle { radius: 50.0 });
+/// let canvas = Canvas::new(cache.with(Circle { radius: 50.0 }));
 /// ```
 #[derive(Debug)]
-pub struct Canvas<'a, P: Program> {
+pub struct Canvas<S: State> {
     width: Length,
     height: Length,
-    program: &'a mut P,
-    input: &'a P::Input,
+    state: S,
 }
 
-impl<'a, P: Program> Canvas<'a, P> {
+impl<S: State> Canvas<S> {
     const DEFAULT_SIZE: u16 = 100;
 
     /// Creates a new [`Canvas`] with no layers.
     ///
     /// [`Canvas`]: struct.Canvas.html
-    pub fn new(program: &'a mut P, input: &'a P::Input) -> Self {
+    pub fn new(state: S) -> Self {
         Canvas {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
-            program,
-            input,
+            state,
         }
     }
 
@@ -131,7 +131,7 @@ impl<'a, P: Program> Canvas<'a, P> {
     }
 }
 
-impl<'a, Message, P: Program> Widget<Message, Renderer> for Canvas<'a, P> {
+impl<Message, S: State> Widget<Message, Renderer> for Canvas<S> {
     fn width(&self) -> Length {
         self.width
     }
@@ -178,7 +178,7 @@ impl<'a, Message, P: Program> Widget<Message, Renderer> for Canvas<'a, P> {
         };
 
         if let Some(canvas_event) = canvas_event {
-            self.program.update(canvas_event, bounds.size(), self.input)
+            self.state.update(canvas_event, bounds.size())
         }
     }
 
@@ -196,12 +196,12 @@ impl<'a, Message, P: Program> Widget<Message, Renderer> for Canvas<'a, P> {
         (
             Primitive::Group {
                 primitives: self
-                    .program
-                    .layers(self.input)
-                    .iter()
-                    .map(|layer| Primitive::Cached {
+                    .state
+                    .draw(size)
+                    .into_iter()
+                    .map(|geometry| Primitive::Cached {
                         origin,
-                        cache: layer.draw(size),
+                        cache: geometry.into_primitive(),
                     })
                     .collect(),
             },
@@ -218,12 +218,12 @@ impl<'a, Message, P: Program> Widget<Message, Renderer> for Canvas<'a, P> {
     }
 }
 
-impl<'a, Message, P: Program> From<Canvas<'a, P>>
+impl<'a, Message, S: State + 'a> From<Canvas<S>>
     for Element<'a, Message, Renderer>
 where
     Message: 'static,
 {
-    fn from(canvas: Canvas<'a, P>) -> Element<'a, Message, Renderer> {
+    fn from(canvas: Canvas<S>) -> Element<'a, Message, Renderer> {
         Element::new(canvas)
     }
 }
