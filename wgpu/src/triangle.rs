@@ -224,11 +224,9 @@ impl Pipeline {
 
         // We upload everything upfront
         for (origin, mesh) in meshes {
-            let transform = Uniforms {
-                transform: (transformation
-                    * Transformation::translate(origin.x, origin.y))
-                .into(),
-            };
+            let transform = (transformation
+                * Transformation::translate(origin.x, origin.y))
+            .into();
 
             let vertex_buffer = device
                 .create_buffer_mapped(
@@ -357,12 +355,28 @@ impl Pipeline {
 #[derive(Debug, Clone, Copy)]
 struct Uniforms {
     transform: [f32; 16],
+    // We need to align this to 256 bytes to please `wgpu`...
+    // TODO: Be smarter and stop wasting memory!
+    _padding_a: [f32; 32],
+    _padding_b: [f32; 16],
 }
 
 impl Default for Uniforms {
     fn default() -> Self {
         Self {
             transform: *Transformation::identity().as_ref(),
+            _padding_a: [0.0; 32],
+            _padding_b: [0.0; 16],
+        }
+    }
+}
+
+impl From<Transformation> for Uniforms {
+    fn from(transformation: Transformation) -> Uniforms {
+        Self {
+            transform: transformation.into(),
+            _padding_a: [0.0; 32],
+            _padding_b: [0.0; 16],
         }
     }
 }
