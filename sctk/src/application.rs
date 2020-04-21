@@ -1,7 +1,6 @@
 use crate::{
-    Debug, Executor, Command, Subscription, Settings,
-    window, Element, Mode,
-    UserInterface, Cache
+    window, Cache, Command, Debug, Element, Executor, Mode, Settings,
+    Subscription, UserInterface,
 };
 
 /// An interactive, native cross-platform application.
@@ -19,7 +18,8 @@ pub trait Application: Sized {
     /// The graphics backend to use to draw the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    type Backend: window::Backend+crate::window_ext::NoHasRawWindowHandleBackend;
+    type Backend: window::Backend
+        + crate::window_ext::NoHasRawWindowHandleBackend;
 
     /// The [`Executor`] that will run commands and subscriptions.
     ///
@@ -87,7 +87,11 @@ pub trait Application: Sized {
     /// [`Application`]: trait.Application.html
     fn view(
         &mut self,
-    ) -> Element<'_, Self::Message, <Self::Backend as crate::window::Backend>::Renderer>;
+    ) -> Element<
+        '_,
+        Self::Message,
+        <Self::Backend as crate::window::Backend>::Renderer,
+    >;
 
     /// Returns the current [`Application`] mode.
     ///
@@ -117,19 +121,27 @@ pub trait Application: Sized {
         Self: 'static,
     {
         use {
+            crate::{
+                conversion,
+                input::{
+                    self,
+                    keyboard::{KeyCode, ModifiersState},
+                    mouse, ButtonState,
+                },
+                Event,
+                MouseCursor, //Clipboard,
+                Runtime,
+            },
             futures::{channel::mpsc::unbounded, select_biased},
             smithay_client_toolkit::{
-                reexports::client::EventQueue,
                 default_environment, init_default_environment,
                 reexports::client::protocol::wl_pointer as pointer,
-                seat::{keyboard::{self, RepeatKind}, pointer::{AutoThemer, ThemeSpec, AutoPointer}},
-                window::{self, Window, ConceptFrame, Decorations},
-            },
-            crate::{
-                Runtime,
-                Event, input::{self, keyboard::{KeyCode, ModifiersState}, ButtonState, mouse},
-                MouseCursor, //Clipboard,
-                conversion,
+                reexports::client::EventQueue,
+                seat::{
+                    keyboard::{self, RepeatKind},
+                    pointer::{AutoPointer, AutoThemer, ThemeSpec},
+                },
+                window::{self, ConceptFrame, Decorations, Window},
             },
         };
 
@@ -141,24 +153,37 @@ pub trait Application: Sized {
         let mut runtime = Runtime::new(Self::Executor::new().unwrap(), sink);
 
         let flags = settings.flags;
-        let (mut application, init_command) = runtime.enter(|| Self::new(flags));
+        let (mut application, init_command) =
+            runtime.enter(|| Self::new(flags));
         runtime.spawn(init_command);
 
         let subscription = application.subscription();
         runtime.track(subscription);
 
         default_environment!(Env, desktop);
-        let (env, display, queue) = init_default_environment!(Env, desktop).unwrap();
+        let (env, display, queue) =
+            init_default_environment!(Env, desktop).unwrap();
 
-        let auto_themer = AutoThemer::init(ThemeSpec::System, env.require_global(), env.require_global());
+        let auto_themer = AutoThemer::init(
+            ThemeSpec::System,
+            env.require_global(),
+            env.require_global(),
+        );
 
-        enum ControlFlow { Wait, Exit, }
+        enum ControlFlow {
+            Wait,
+            Exit,
+        }
+        use async_std::stream::{interval, Interval as NoFuseInterval};
         use futures::stream::StreamExt;
-        use async_std::stream::{Interval as NoFuseInterval, interval};
         //#[derive(derive_more::Deref)] struct Interval(IntervalNoFused)
         //impl FusedStream for Interval { fn is_terminated() { return false; } }
         type Interval = futures::stream::Fuse<NoFuseInterval>;
-        struct Repeat {key: KeyCode, utf8: Option<String>, interval: Interval}
+        struct Repeat {
+            key: KeyCode,
+            utf8: Option<String>,
+            interval: Interval,
+        }
         struct State {
             control_flow: ControlFlow,
             events: Vec<Event>,
@@ -280,36 +305,55 @@ pub trait Application: Sized {
             }
         });
 
-        let surface = env.create_surface_with_scale_callback( |scale, surface, mut state| {
-            let State{ scale_factor, need_refresh, .. } = state.get().unwrap();
-            surface.set_buffer_scale(scale);
-            *scale_factor = scale as u32;
-            *need_refresh = true;
-        });
+        let surface = env.create_surface_with_scale_callback(
+            |scale, surface, mut state| {
+                let State {
+                    scale_factor,
+                    need_refresh,
+                    ..
+                } = state.get().unwrap();
+                surface.set_buffer_scale(scale);
+                *scale_factor = scale as u32;
+                *need_refresh = true;
+            },
+        );
 
-        let window = env.create_window::<ConceptFrame, _>(surface, settings.window.size, move |event, mut state| {
-            let State{
-                window,
-                ref mut size,
-                ref mut resized,
-                events,
-                control_flow,
-                ..
-            } = state.get().unwrap();
-            match event {
-                window::Event::Configure{new_size:None, ..} => (),
-                window::Event::Configure{new_size:Some(new_size), ..} => {
-                    *size = new_size;
-                    *resized = true;
-                    events.push(Event::Window(crate::window::Event::Resized{
-                        width: new_size.0,
-                        height: new_size.1,
-                    }));
-                }
-                window::Event::Close => *control_flow = ControlFlow::Exit,
-                window::Event::Refresh => window.refresh(),
-            }
-        }).unwrap();
+        let window = env
+            .create_window::<ConceptFrame, _>(
+                surface,
+                settings.window.size,
+                move |event, mut state| {
+                    let State {
+                        window,
+                        ref mut size,
+                        ref mut resized,
+                        events,
+                        control_flow,
+                        ..
+                    } = state.get().unwrap();
+                    match event {
+                        window::Event::Configure { new_size: None, .. } => (),
+                        window::Event::Configure {
+                            new_size: Some(new_size),
+                            ..
+                        } => {
+                            *size = new_size;
+                            *resized = true;
+                            events.push(Event::Window(
+                                crate::window::Event::Resized {
+                                    width: new_size.0,
+                                    height: new_size.1,
+                                },
+                            ));
+                        }
+                        window::Event::Close => {
+                            *control_flow = ControlFlow::Exit
+                        }
+                        window::Event::Refresh => window.refresh(),
+                    }
+                },
+            )
+            .unwrap();
 
         let mut title = application.title();
         window.set_title(title.clone());
@@ -325,7 +369,8 @@ pub trait Application: Sized {
         }
 
         let size = settings.window.size; // in pixels / scale factor (initially 1) (i.e initially both 'physical'/'logical')
-        let mut state = State{ // for event callbacks
+        let mut state = State {
+            // for event callbacks
             window,
             scale_factor: 1,
             size,
@@ -341,7 +386,8 @@ pub trait Application: Sized {
 
         let mut update = {
             use iced_native::window::Backend; // new
-            let (mut backend, mut renderer) = Self::Backend::new(backend_settings);
+            let (mut backend, mut renderer) =
+                Self::Backend::new(backend_settings);
 
             let user_interface = build_user_interface(
                 &mut application,
@@ -360,35 +406,57 @@ pub trait Application: Sized {
             display.flush().unwrap();
             debug.startup_finished();
 
-            let surface = crate::window_ext::NoHasRawWindowHandleBackend::create_surface(&mut backend, &/*window*/());
+            let surface =
+                crate::window_ext::NoHasRawWindowHandleBackend::create_surface(
+                    &mut backend,
+                    &/*window*/(),
+                );
             let mut swap_chain = {
                 // Initially display a lowres buffer, compositor will notify output mapping (surface enter) so we can immediately update with proper resolution
-                backend.create_swap_chain(
-                    &surface,
-                    size.0, size.1,
-                )
+                backend.create_swap_chain(&surface, size.0, size.1)
             };
 
             let mut mouse_cursor = MouseCursor::OutOfBounds; // for idle callback
-            move |state:&mut State, messages:Vec<_>| {
-                let State{ window, scale_factor, size, resized, need_refresh, pointer, events, control_flow, .. } = state;
+            move |state: &mut State, messages: Vec<_>| {
+                let State {
+                    window,
+                    scale_factor,
+                    size,
+                    resized,
+                    need_refresh,
+                    pointer,
+                    events,
+                    control_flow,
+                    ..
+                } = state;
 
                 if events.is_empty() && messages.is_empty() {
                     return;
                 }
 
                 for e in events.iter() {
-                    if let Event::Keyboard(input::keyboard::Event::Input{state:ButtonState::Pressed, modifiers, key_code}) = e {
+                    if let Event::Keyboard(input::keyboard::Event::Input {
+                        state: ButtonState::Pressed,
+                        modifiers,
+                        key_code,
+                    }) = e
+                    {
                         match (modifiers, key_code) {
-                            (ModifiersState{logo:true, ..}, KeyCode::Q) => *control_flow = ControlFlow::Exit,
-                            #[cfg(feature = "debug")] (_, KeyCode::F12) => debug.toggle(),
+                            (ModifiersState { logo: true, .. }, KeyCode::Q) => {
+                                *control_flow = ControlFlow::Exit
+                            }
+                            #[cfg(feature = "debug")]
+                            (_, KeyCode::F12) => debug.toggle(),
                             _ => (),
                         }
                     }
                 }
 
                 debug.event_processing_started();
-                events.iter().cloned().for_each(|event| runtime.broadcast(event) );
+                events
+                    .iter()
+                    .cloned()
+                    .for_each(|event| runtime.broadcast(event));
 
                 let mut user_interface = build_user_interface(
                     &mut application,
@@ -403,8 +471,8 @@ pub trait Application: Sized {
                     let mut sync_messages = user_interface.update(
                         events.drain(..),
                         None, /*clipboard
-                            .as_ref()
-                            .map(|c| c as &dyn iced_native::Clipboard),*/
+                              .as_ref()
+                              .map(|c| c as &dyn iced_native::Clipboard),*/
                         &renderer,
                     );
                     sync_messages.extend(messages);
@@ -412,7 +480,8 @@ pub trait Application: Sized {
                 };
                 debug.event_processing_finished();
 
-                if messages.is_empty() { // Redraw after any event processing even yielding no messages
+                if messages.is_empty() {
+                    // Redraw after any event processing even yielding no messages
                     debug.draw_started();
                     primitive = user_interface.draw(&mut renderer);
                     debug.draw_finished();
@@ -483,8 +552,8 @@ pub trait Application: Sized {
                     if *resized {
                         swap_chain = backend.create_swap_chain(
                             &surface,
-                            size.0* *scale_factor,
-                            size.1* *scale_factor,
+                            size.0 * *scale_factor,
+                            size.1 * *scale_factor,
                         );
 
                         *resized = false;
@@ -503,7 +572,12 @@ pub trait Application: Sized {
                     if new_mouse_cursor != mouse_cursor {
                         //pointer.as_mut().map(|pointer|
                         for pointer in pointer.iter_mut() {
-                            pointer.set_cursor(conversion::mouse_cursor(new_mouse_cursor), None).expect("Unknown cursor");
+                            pointer
+                                .set_cursor(
+                                    conversion::mouse_cursor(new_mouse_cursor),
+                                    None,
+                                )
+                                .expect("Unknown cursor");
                         }
 
                         mouse_cursor = new_mouse_cursor;
@@ -515,7 +589,13 @@ pub trait Application: Sized {
         };
 
         fn repeat(state: &mut State) {
-            if let State{ modifiers, repeat:Some(Repeat{key, utf8, ..}), events, .. } = state {
+            if let State {
+                modifiers,
+                repeat: Some(Repeat { key, utf8, .. }),
+                events,
+                ..
+            } = state
+            {
                 events.push(Event::Keyboard(input::keyboard::Event::Input {
                     key_code: *key,
                     state: ButtonState::Pressed,
@@ -523,18 +603,32 @@ pub trait Application: Sized {
                 }));
                 if let Some(txt) = utf8 {
                     for char in txt.chars() {
-                        events.push(Event::Keyboard(input::keyboard::Event::CharacterReceived(char)));
+                        events.push(Event::Keyboard(
+                            input::keyboard::Event::CharacterReceived(char),
+                        ));
                     }
                 }
-            } else { unreachable!(); }
+            } else {
+                unreachable!();
+            }
         }
 
-        fn dispatch<State:'static>(queue: &mut EventQueue, state: &mut State) {
+        fn dispatch<State: 'static>(queue: &mut EventQueue, state: &mut State) {
             loop {
                 if let Some(guard) = queue.prepare_read() {
-                    guard.read_events() .unwrap_or_else(|e| assert!(e.kind() != std::io::ErrorKind::WouldBlock) );
+                    guard.read_events().unwrap_or_else(|e| {
+                        assert!(e.kind() != std::io::ErrorKind::WouldBlock)
+                    });
                 }
-                if queue.dispatch_pending(state, |_, _, _| { unimplemented!(); }).unwrap() == 0 { break; }
+                if queue
+                    .dispatch_pending(state, |_, _, _| {
+                        unimplemented!();
+                    })
+                    .unwrap()
+                    == 0
+                {
+                    break;
+                }
             }
         }
 
@@ -548,11 +642,14 @@ pub trait Application: Sized {
         while let ControlFlow::Wait = state.control_flow {
             let mut messages = Vec::new();
             //use futures::{future::FutureExt/*fuse*/, stream::StreamExt, io::AsyncReadExt}, async_std::stream::from_fn};
-            use futures::{future::{OptionFuture, FutureExt}, io::AsyncReadExt};
+            use futures::{
+                future::{FutureExt, OptionFuture},
+                io::AsyncReadExt,
+            };
             //let interval_next = None; //OptionFuture<_>
             //_  = state.repeat.map(|r| r.interval.fuse().select_next_some()).into() => repeat(&mut state),
             //if let Some(Repeat{interval}) = state.repeat {
-                //interval_next = Some(r.interval.fuse().select_next_some());
+            //interval_next = Some(r.interval.fuse().select_next_some());
             //}
             select_biased! {
                 m = channel.select_next_some() => messages.push(m),
@@ -587,10 +684,7 @@ fn build_user_interface<'a, A: Application>(
     debug.layout_started();
     let user_interface = UserInterface::build(
         view,
-        iced_native::Size::new(
-            size.0 as f32,
-            size.1 as f32,
-        ),
+        iced_native::Size::new(size.0 as f32, size.1 as f32),
         cache,
         renderer,
     );

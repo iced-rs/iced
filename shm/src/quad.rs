@@ -4,12 +4,11 @@ use iced_native::Rectangle;
 //use zerocopy::AsBytes;
 
 #[derive(Debug)]
-pub struct Pipeline {
-}
+pub struct Pipeline {}
 
 impl Pipeline {
     pub fn new(_device: &()) -> Pipeline {
-        Self{}
+        Self {}
     }
 
     pub fn draw(

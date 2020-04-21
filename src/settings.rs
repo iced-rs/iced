@@ -50,7 +50,7 @@ impl<Flags> Settings<Flags> {
     }
 }
 
-#[cfg(feature="iced_sctk")]
+#[cfg(feature = "iced_sctk")]
 impl<Flags> From<Settings<Flags>> for iced_sctk::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_sctk::Settings<Flags> {
         iced_sctk::Settings {
@@ -65,7 +65,7 @@ impl<Flags> From<Settings<Flags>> for iced_sctk::Settings<Flags> {
     }
 }
 
-#[cfg(feature="iced_winit")]
+#[cfg(feature = "iced_winit")]
 impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {

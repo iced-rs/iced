@@ -14,11 +14,7 @@ impl SwapChain {
     /// Creates a new [`SwapChain`] for the given surface.
     ///
     /// [`SwapChain`]: struct.SwapChain.html
-    pub fn new(
-        _surface: &(),
-        width: u32,
-        height: u32,
-    ) -> SwapChain {
+    pub fn new(_surface: &(), width: u32, height: u32) -> SwapChain {
         SwapChain {
             viewport: Viewport::new(width, height),
         }
@@ -28,11 +24,8 @@ impl SwapChain {
     ///
     /// [`SwapChain`]: struct.SwapChain.html
     /// [`Viewport`]: ../struct.Viewport.html
-    pub fn next_frame(
-        &mut self,
-    ) -> Result<((), &Viewport), ()> {
+    pub fn next_frame(&mut self) -> Result<((), &Viewport), ()> {
         let viewport = &self.viewport;
         Ok(((), viewport))
     }
 }
-

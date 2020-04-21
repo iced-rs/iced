@@ -62,8 +62,7 @@ mod platform {
     /// A container that distributes its contents horizontally.
     ///
     /// This is an alias of an `iced_native` row with a default `Renderer`.
-    pub type Row<'a, Message> =
-        iced_sctk::Row<'a, Message, iced_shm::Renderer>;
+    pub type Row<'a, Message> = iced_sctk::Row<'a, Message, iced_shm::Renderer>;
 }
 
 #[cfg(feature = "iced_winit")]

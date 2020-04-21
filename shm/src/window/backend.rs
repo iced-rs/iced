@@ -4,17 +4,13 @@ use iced_native::MouseCursor;
 
 /// A window graphics backend for iced
 #[derive(Debug)]
-pub struct Backend {
-}
+pub struct Backend {}
 
 impl iced_sctk::window_ext::NoHasRawWindowHandleBackend for Backend {
     /// Creates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: #associatedtype.Surface
-    fn create_surface<W>(
-        &mut self,
-        _window: &W,
-    ) -> Self::Surface {
+    fn create_surface<W>(&mut self, _window: &W) -> Self::Surface {
         ()
     }
 }
@@ -27,7 +23,7 @@ impl iced_native::window::Backend for Backend {
 
     fn new(settings: Self::Settings) -> (Backend, Renderer) {
         let renderer = Renderer::new(&mut (), settings);
-        (Backend{}, renderer)
+        (Backend {}, renderer)
     }
 
     fn create_surface<W: iced_native::window::HasRawWindowHandle>(

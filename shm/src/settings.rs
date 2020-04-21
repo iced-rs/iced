@@ -15,8 +15,6 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings {
-            default_font: None,
-        }
+        Settings { default_font: None }
     }
 }

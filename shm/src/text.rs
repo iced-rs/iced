@@ -24,13 +24,10 @@ pub const CHECKMARK_ICON: char = '\u{F00C}';
 const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
 
 #[derive(Debug)]
-pub struct Pipeline {
-}
+pub struct Pipeline {}
 
 impl Pipeline {
-    pub fn new(
-        default_font: Option<&[u8]>,
-    ) -> Self {
+    pub fn new(default_font: Option<&[u8]>) -> Self {
         // TODO: Font customization
         let font_source = font::Source::new();
 
@@ -41,13 +38,28 @@ impl Pipeline {
                     .unwrap_or_else(|_| FALLBACK_FONT.to_vec())
             });
 
-        Pipeline {
-        }
+        Pipeline {}
     }
 
     pub fn queue(&mut self, section: Section) {
-        let Section{content,bounds,color,size,font,horizontal_alignment,vertical_alignment} = section;
-        let _ = (content,bounds,color,size,font,horizontal_alignment,vertical_alignment);
+        let Section {
+            content,
+            bounds,
+            color,
+            size,
+            font,
+            horizontal_alignment,
+            vertical_alignment,
+        } = section;
+        let _ = (
+            content,
+            bounds,
+            color,
+            size,
+            font,
+            horizontal_alignment,
+            vertical_alignment,
+        );
     }
 
     pub fn draw_queued(

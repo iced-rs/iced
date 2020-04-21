@@ -33,17 +33,14 @@ pub mod settings;
 
 /// Extends iced_native::window
 pub mod window_ext {
-/// window::Backend requires to pass a HasRawWindowHandle which requires wayland-client[system-lib]
-/// To fix this the RawWindowHandle::Wayland FFI should be a wayland object id
-pub trait NoHasRawWindowHandleBackend : crate::window::Backend {
-    /// Crates a new [`Surface`] for the given window.
-    ///
-    /// [`Surface`]: #associatedtype.Surface
-    fn create_surface<W>(
-        &mut self,
-        window: &W,
-    ) -> Self::Surface;
-}
+    /// window::Backend requires to pass a HasRawWindowHandle which requires wayland-client[system-lib]
+    /// To fix this the RawWindowHandle::Wayland FFI should be a wayland object id
+    pub trait NoHasRawWindowHandleBackend: crate::window::Backend {
+        /// Crates a new [`Surface`] for the given window.
+        ///
+        /// [`Surface`]: #associatedtype.Surface
+        fn create_surface<W>(&mut self, window: &W) -> Self::Surface;
+    }
 }
 
 mod application;

@@ -186,7 +186,7 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
-        #[cfg(all(feature="iced_sctk",feature="iced_shm"))]
+        #[cfg(all(feature = "iced_sctk", feature = "iced_shm"))]
         {
             let shm_settings = iced_shm::Settings {
                 default_font: settings.default_font,
@@ -199,7 +199,7 @@ pub trait Application: Sized {
             );
         }
 
-        #[cfg(all(feature="iced_winit",feature="iced_wgpu"))]
+        #[cfg(all(feature = "iced_winit", feature = "iced_wgpu"))]
         {
             let wgpu_settings = iced_wgpu::Settings {
                 default_font: settings.default_font,
@@ -224,7 +224,7 @@ pub trait Application: Sized {
 
 struct Instance<A: Application>(A);
 
-#[cfg(all(feature="iced_sctk",feature="iced_shm"))]
+#[cfg(all(feature = "iced_sctk", feature = "iced_shm"))]
 impl<A> iced_sctk::Application for Instance<A>
 where
     A: Application,
@@ -264,7 +264,7 @@ where
     }
 }
 
-#[cfg(all(feature="iced_winit",feature="iced_wgpu"))]
+#[cfg(all(feature = "iced_winit", feature = "iced_wgpu"))]
 impl<A> iced_winit::Application for Instance<A>
 where
     A: Application,

@@ -1,6 +1,5 @@
 use crate::{
-    quad, text, Quad, Defaults, Primitive, Settings, Target,
-    Transformation,
+    quad, text, Defaults, Primitive, Quad, Settings, Target, Transformation,
 };
 
 #[cfg(any(feature = "image", feature = "svg"))]
@@ -128,7 +127,7 @@ impl Renderer {
 
                 layer.text.push(text::Section {
                     content: &content,
-                    bounds: Rectangle{
+                    bounds: Rectangle {
                         x: (bounds.x + translation.x) as u32,
                         y: (bounds.y + translation.y) as u32,
                         ..bounds.into()
@@ -239,7 +238,7 @@ impl Renderer {
 
     fn draw_overlay<T: AsRef<str>>(
         &mut self,
-        _lines: & [T],
+        _lines: &[T],
         _layers: &mut Vec<Layer>,
     ) {
         /*let mut overlay = Layer::new(layers.bounds);
@@ -315,11 +314,8 @@ impl Renderer {
                 self.text_pipeline.queue(text);
             }
 
-            self.text_pipeline.draw_queued(
-                target,
-                transformation,
-                bounds,
-            );
+            self.text_pipeline
+                .draw_queued(target, transformation, bounds);
         }
     }
 }
