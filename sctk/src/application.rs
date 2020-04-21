@@ -622,7 +622,7 @@ pub trait Application: Sized {
                 }
                 if queue
                     .dispatch_pending(state, |_, _, _| {
-                        unimplemented!();
+                        panic!("Orphan event");
                     })
                     .unwrap()
                     == 0

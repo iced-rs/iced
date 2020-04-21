@@ -25,7 +25,7 @@ tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
 async-std = ["iced_futures/async-std"]
 
-default = ['iced_winit']
+default = ["iced_winit", "iced_wgpu"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -66,8 +66,8 @@ iced_futures = { version = "0.1", path = "futures" }
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced_sctk = { version = "0.0", path = "sctk", optional=true }
 iced_winit = { version = "0.1", path = "winit", optional=true }
-iced_wgpu = { version = "0.2", path = "wgpu", optional=true }
 iced_shm = { version = "0.0", path = "shm", optional=true }
+iced_wgpu = { version = "0.2", path = "wgpu", optional=true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced_web = { version = "0.2", path = "web" }

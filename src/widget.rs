@@ -16,12 +16,12 @@
 //!
 //! [`TextInput`]: text_input/struct.TextInput.html
 //! [`text_input::State`]: text_input/struct.State.html
-#[cfg(feature = "iced_sctk")]
+#[cfg(feature = "iced_shm")]
 mod platform {
-    /*pub use iced_wgpu::widget::{
+    pub use iced_shm::widget::{
         button, checkbox, container, pane_grid, progress_bar, radio,
         scrollable, slider, text_input,
-    };*/
+    };
 
     #[cfg(feature = "canvas")]
     #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
@@ -41,13 +41,8 @@ mod platform {
 
     pub use iced_sctk::{Space, Text};
 
-    /*#[doc(no_inline)]
-    pub use {
-        button::Button, checkbox::Checkbox, container::Container, image::Image,
-        pane_grid::PaneGrid, progress_bar::ProgressBar, radio::Radio,
-        scrollable::Scrollable, slider::Slider, svg::Svg,
-        text_input::TextInput,
-    };*/
+    #[doc(no_inline)]
+    pub use text_input::TextInput;
 
     #[cfg(feature = "canvas")]
     #[doc(no_inline)]
@@ -65,7 +60,7 @@ mod platform {
     pub type Row<'a, Message> = iced_sctk::Row<'a, Message, iced_shm::Renderer>;
 }
 
-#[cfg(feature = "iced_winit")]
+#[cfg(feature = "iced_wgpu")]
 mod platform {
     pub use iced_wgpu::widget::{
         button, checkbox, container, pane_grid, progress_bar, radio,

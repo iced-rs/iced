@@ -10,6 +10,7 @@ pub struct Section<'t> {
     pub vertical_alignment: VerticalAlignment,
 }
 
+#[cfg(feature = "fontkit")]
 mod font;
 
 use crate::Transformation;
@@ -21,22 +22,21 @@ pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
 
 pub const CHECKMARK_ICON: char = '\u{F00C}';
 
-const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
+//const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
 
 #[derive(Debug)]
 pub struct Pipeline {}
 
 impl Pipeline {
-    pub fn new(default_font: Option<&[u8]>) -> Self {
-        // TODO: Font customization
-        let font_source = font::Source::new();
+    pub fn new(_default_font: Option<&[u8]>) -> Self {
+        /*let font_source = font::Source::new();
 
-        let _default_font =
+        let default_font =
             default_font.map(|slice| slice.to_vec()).unwrap_or_else(|| {
                 font_source
                     .load(&[font::Family::SansSerif, font::Family::Serif])
                     .unwrap_or_else(|_| FALLBACK_FONT.to_vec())
-            });
+            });*/
 
         Pipeline {}
     }
@@ -72,31 +72,37 @@ impl Pipeline {
 
     pub fn measure(
         &self,
-        _content: &str,
+        text: &str,
         _size: f32,
         _font: iced_native::Font,
-        _bounds: iced_native::Size,
+        bounds: iced_native::Size,
     ) -> (f32, f32) {
-        /*use wgpu_glyph::GlyphCruncher;
-
-        let wgpu_glyph::FontId(font_id) = self.find_font(font);
-
-        let section = wgpu_glyph::Section {
-            text: content,
-            scale: wgpu_glyph::Scale { x: size, y: size },
-            bounds: (bounds.width, bounds.height),
-            font_id: wgpu_glyph::FontId(font_id),
-            ..Default::default()
+        use framework::{
+            text::{
+                Attribute, Color, FontStyle, Style, Text, TextRange, TextSize,
+            },
+            vector::vec2,
+            widget::Widget,
         };
-
-        if let Some(bounds) =
-            self.measure_brush.borrow_mut().glyph_bounds(section)
-        {
-            (bounds.width().ceil(), bounds.height().ceil())
-        } else {
-            (0.0, 0.0)
-        }*/
-        unimplemented!();
+        let style = vec![Attribute::<Style> {
+            range: TextRange::new(TextSize::zero(), TextSize::of(&text)),
+            attribute: Style {
+                color: Color {
+                    b: 1.,
+                    r: 1.,
+                    g: 1.,
+                },
+                style: FontStyle::Normal,
+            },
+        }];
+        #[allow(non_camel_case_types)]
+        type size2f = vec2;
+        (<Text as Widget>::size(
+            &mut Text::new(text, &style),
+            ((bounds.into(): [f32; 2]).into(): size2f).into(),
+        )
+        .into(): size2f)
+            .into()
     }
 
     pub fn space_width(&self, _size: f32) -> f32 {
@@ -111,6 +117,6 @@ impl Pipeline {
             .scaled(wgpu_glyph::Scale { x: size, y: size })
             .h_metrics()
             .advance_width*/
-        unimplemented!();
+        panic!("space_width");
     }
 }

@@ -2,5 +2,5 @@
 mod backend;
 mod event;
 
-pub use backend::{HasRawWindowHandle, Backend};
+pub use backend::{Backend, HasRawWindowHandle};
 pub use event::Event;
