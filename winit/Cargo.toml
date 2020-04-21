@@ -14,7 +14,10 @@ categories = ["gui"]
 debug = []
 
 [dependencies]
-winit = "0.22"
+#winit = "0.22"
+# default-features includes x11-dl which we don't want on linux
+#winit = { git='https://github.com/Matthias-Fauconneau/winit', default-features=false }
+winit = { path='../../winit', default-features=false }
 window_clipboard = "0.1"
 log = "0.4"
 

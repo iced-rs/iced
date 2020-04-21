@@ -1,0 +1,30 @@
+[package]
+name = "iced_sctk"
+version = "0.0.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>", "Matthias Fauconneau <matthias.fauconneau@gmail.com>"]
+edition = "2018"
+description = "An sctk runtime for Iced"
+license = "MIT"
+repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced_sctk"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
+
+[features]
+debug = []
+
+[dependencies]
+futures = "^0.3"
+futures-util = "^0.3"
+async-std = { version = "1.5", features = ["unstable"] }
+smithay-client-toolkit = { version = "^0.8", default-features=false, features=["frames"] } #-calloop
+#raw-window-handle = "0.3"
+#window_clipboard = "0.1"
+log = "0.4"
+
+[dependencies.iced_native]
+version = "0.2"
+path = "../native"
+
+[target.'cfg(target_os = "windows")'.dependencies.winapi]
+version = "0.3.6"

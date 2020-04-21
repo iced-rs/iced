@@ -1,6 +1,6 @@
 use crate::MouseCursor;
 
-use raw_window_handle::HasRawWindowHandle;
+pub use raw_window_handle::HasRawWindowHandle;
 
 /// A graphics backend that can render to windows.
 pub trait Backend: Sized {

@@ -16,7 +16,57 @@
 //!
 //! [`TextInput`]: text_input/struct.TextInput.html
 //! [`text_input::State`]: text_input/struct.State.html
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "iced_sctk")]
+mod platform {
+    /*pub use iced_wgpu::widget::{
+        button, checkbox, container, pane_grid, progress_bar, radio,
+        scrollable, slider, text_input,
+    };*/
+
+    #[cfg(feature = "canvas")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
+    pub use iced_wgpu::widget::canvas;
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
+    pub mod image {
+        //! Display images in your user interface.
+        pub use iced_sctk::image::{Handle, Image};
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
+    pub mod svg {
+        //! Display vector graphics in your user interface.
+        pub use iced_sctk::svg::{Handle, Svg};
+    }
+
+    pub use iced_sctk::{Space, Text};
+
+    /*#[doc(no_inline)]
+    pub use {
+        button::Button, checkbox::Checkbox, container::Container, image::Image,
+        pane_grid::PaneGrid, progress_bar::ProgressBar, radio::Radio,
+        scrollable::Scrollable, slider::Slider, svg::Svg,
+        text_input::TextInput,
+    };*/
+
+    #[cfg(feature = "canvas")]
+    #[doc(no_inline)]
+    pub use canvas::Canvas;
+
+    /// A container that distributes its contents vertically.
+    ///
+    /// This is an alias of an `iced_native` column with a default `Renderer`.
+    pub type Column<'a, Message> =
+        iced_sctk::Column<'a, Message, iced_shm::Renderer>;
+
+    /// A container that distributes its contents horizontally.
+    ///
+    /// This is an alias of an `iced_native` row with a default `Renderer`.
+    pub type Row<'a, Message> =
+        iced_sctk::Row<'a, Message, iced_shm::Renderer>;
+}
+
+#[cfg(feature = "iced_winit")]
 mod platform {
     pub use iced_wgpu::widget::{
         button, checkbox, container, pane_grid, progress_bar, radio,

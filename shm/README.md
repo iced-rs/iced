@@ -1,0 +1,50 @@
+# `iced_wgpu`
+[![Documentation](https://docs.rs/iced_wgpu/badge.svg)][documentation]
+[![Crates.io](https://img.shields.io/crates/v/iced_wgpu.svg)](https://crates.io/crates/iced_wgpu)
+[![License](https://img.shields.io/crates/l/iced_wgpu.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+[![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
+
+`iced_wgpu` is a [`wgpu`] renderer for [`iced_native`]. For now, it is the default renderer of Iced in native platforms.
+
+[`wgpu`] supports most modern graphics backends: Vulkan, Metal, DX11, and DX12 (OpenGL and WebGL are still WIP). Additionally, it will support the incoming [WebGPU API].
+
+Currently, `iced_wgpu` supports the following primitives:
+- Text, which is rendered using [`wgpu_glyph`]. No shaping at all.
+- Quads or rectangles, with rounded borders and a solid background color.
+- Clip areas, useful to implement scrollables or hide overflowing content.
+- Images and SVG, loaded from memory or the file system.
+- Meshes of triangles, useful to draw geometry freely.
+
+![iced_wgpu](../docs/graphs/wgpu.png)
+
+[documentation]: https://docs.rs/iced_wgpu
+[`iced_native`]: ../native
+[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[WebGPU API]: https://gpuweb.github.io/gpuweb/
+[`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
+
+## Installation
+Add `iced_wgpu` as a dependency in your `Cargo.toml`:
+
+```toml
+iced_wgpu = "0.2"
+```
+
+__Iced moves fast and the `master` branch can contain breaking changes!__ If
+you want to learn about a specific release, check out [the release list].
+
+[the release list]: https://github.com/hecrj/iced/releases
+
+## Current limitations
+
+The current implementation is quite naive, it uses:
+
+- A different pipeline/shader for each primitive
+- A very simplistic layer model: every `Clip` primitive will generate new layers
+- _Many_ render passes instead of preparing everything upfront
+- A glyph cache that is trimmed incorrectly when there are multiple layers (a [`glyph_brush`] limitation)
+
+Some of these issues are already being worked on! If you want to help, [get in touch!]
+
+[get in touch!]: ../CONTRIBUTING.md
+[`glyph_brush`]: https://github.com/alexheretic/glyph-brush

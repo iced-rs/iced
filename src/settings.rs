@@ -50,7 +50,22 @@ impl<Flags> Settings<Flags> {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature="iced_sctk")]
+impl<Flags> From<Settings<Flags>> for iced_sctk::Settings<Flags> {
+    fn from(settings: Settings<Flags>) -> iced_sctk::Settings<Flags> {
+        iced_sctk::Settings {
+            window: iced_sctk::settings::Window {
+                size: settings.window.size,
+                resizable: settings.window.resizable,
+                decorations: settings.window.decorations,
+                platform_specific: Default::default(),
+            },
+            flags: settings.flags,
+        }
+    }
+}
+
+#[cfg(feature="iced_winit")]
 impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {

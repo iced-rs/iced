@@ -186,7 +186,20 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(feature="iced_sctk",feature="iced_shm"))]
+        {
+            let shm_settings = iced_shm::Settings {
+                default_font: settings.default_font,
+                ..iced_shm::Settings::default()
+            };
+
+            <Instance<Self> as iced_sctk::Application>::run(
+                settings.into(),
+                shm_settings,
+            );
+        }
+
+        #[cfg(all(feature="iced_winit",feature="iced_wgpu"))]
         {
             let wgpu_settings = iced_wgpu::Settings {
                 default_font: settings.default_font,
@@ -211,7 +224,47 @@ pub trait Application: Sized {
 
 struct Instance<A: Application>(A);
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature="iced_sctk",feature="iced_shm"))]
+impl<A> iced_sctk::Application for Instance<A>
+where
+    A: Application,
+{
+    type Backend = iced_shm::window::Backend;
+    type Executor = A::Executor;
+    type Flags = A::Flags;
+    type Message = A::Message;
+
+    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
+        let (app, command) = A::new(flags);
+
+        (Instance(app), command)
+    }
+
+    fn title(&self) -> String {
+        self.0.title()
+    }
+
+    fn mode(&self) -> iced_sctk::Mode {
+        match self.0.mode() {
+            window::Mode::Windowed => iced_sctk::Mode::Windowed,
+            window::Mode::Fullscreen => iced_sctk::Mode::Fullscreen,
+        }
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        self.0.update(message)
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.0.subscription()
+    }
+
+    fn view(&mut self) -> Element<'_, Self::Message> {
+        self.0.view()
+    }
+}
+
+#[cfg(all(feature="iced_winit",feature="iced_wgpu"))]
 impl<A> iced_winit::Application for Instance<A>
 where
     A: Application,

@@ -193,12 +193,15 @@ pub mod window;
 pub use widget::*;
 
 pub use application::Application;
-pub use element::Element;
+pub use element::Element; // Use either wasm32, ["iced_sctk","iced_shm"] or ["iced_winit","iced_wgpu"]
 pub use executor::Executor;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "iced_sctk")]
+use iced_sctk as runtime;
+
+#[cfg(feature = "iced_winit")]
 use iced_winit as runtime;
 
 #[cfg(target_arch = "wasm32")]
