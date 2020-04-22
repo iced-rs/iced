@@ -105,18 +105,8 @@ impl Pipeline {
             .into()
     }
 
-    pub fn space_width(&self, _size: f32) -> f32 {
-        /*use wgpu_glyph::GlyphCruncher;
-
-        let glyph_brush = self.measure_brush.borrow();
-
-        // TODO: Select appropriate font
-        let font = &glyph_brush.fonts()[0];
-
-        font.glyph(' ')
-            .scaled(wgpu_glyph::Scale { x: size, y: size })
-            .h_metrics()
-            .advance_width*/
-        panic!("space_width");
+    pub fn space_width(&self, size: f32) -> f32 {
+        let font = framework::text::default_font.suffix();
+        size * font.glyph_hor_advance(font.glyph_index(' ').unwrap()).unwrap() as f32
     }
 }
