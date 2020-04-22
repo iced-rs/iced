@@ -107,6 +107,8 @@ impl Pipeline {
 
     pub fn space_width(&self, size: f32) -> f32 {
         let font = framework::text::default_font.suffix();
-        size * font.glyph_hor_advance(font.glyph_index(' ').unwrap()).unwrap() as f32
+        let space_index = font.glyph_index(' ').unwrap();
+        let space_advance = font.glyph_hor_advance(space_index).unwrap();
+        size * space_advance as f32
     }
 }

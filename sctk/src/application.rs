@@ -129,10 +129,12 @@ pub trait Application: Sized {
                     mouse, ButtonState,
                 },
                 Event,
-                MouseCursor, //Clipboard,
+                MouseCursor,
+                //Clipboard,
                 Runtime,
             },
             futures::{channel::mpsc::unbounded, select_biased},
+            log::trace,
             smithay_client_toolkit::{
                 default_environment, init_default_environment,
                 reexports::client::protocol::wl_pointer as pointer,
@@ -614,6 +616,7 @@ pub trait Application: Sized {
         }
 
         fn dispatch<State: 'static>(queue: &mut EventQueue, state: &mut State) {
+            trace!("dispatch");
             loop {
                 if let Some(guard) = queue.prepare_read() {
                     guard.read_events().unwrap_or_else(|e| {
@@ -641,24 +644,14 @@ pub trait Application: Sized {
         let mut channel = channel;
         while let ControlFlow::Wait = state.control_flow {
             let mut messages = Vec::new();
-            //use futures::{future::FutureExt/*fuse*/, stream::StreamExt, io::AsyncReadExt}, async_std::stream::from_fn};
             use futures::{
                 future::{FutureExt, OptionFuture},
                 io::AsyncReadExt,
             };
-            //let interval_next = None; //OptionFuture<_>
-            //_  = state.repeat.map(|r| r.interval.fuse().select_next_some()).into() => repeat(&mut state),
-            //if let Some(Repeat{interval}) = state.repeat {
-            //interval_next = Some(r.interval.fuse().select_next_some());
-            //}
             select_biased! {
                 m = channel.select_next_some() => messages.push(m),
-                _ = display.read(&mut[]).fuse() => dispatch(&mut queue, &mut state), // Triggers per event callbacks which mutate state
+                _ = { trace!("display.read"); display.read(&mut[]).fuse() } => dispatch(&mut queue, &mut state), // Triggers per event callbacks which mutate state
                 _  = state.repeat.as_mut().map(|r| r.interval.select_next_some()).into():OptionFuture<_> => repeat(&mut state),
-                //_  = state.repeat.as_mut().map(|r| r.interval.fuse().select_next_some()).into():OptionFuture<_> => repeat(&mut state),
-                //_  = state.repeat.as_mut().map(|ref mut r| r.interval.fuse().select_next_some()).into():OptionFuture<_> => repeat(&mut state),
-                //_ = from_fn(|| state.repeat.as_mut().map(|r| &mut r.interval).map(|i| i.next() ) ).fuse().select_next_some() => repeat(&mut state),
-                //_ = from_fn(|| state.repeat.as_mut().map(|r| &mut r.interval).map(|i| i.next() ) ).fuse().select_next_some() => repeat(&mut state),
                 complete => break,
                 default => {
                     update(&mut state, messages.drain(..).collect()); // Update state after dispatching all pending events or/and on pending messages
