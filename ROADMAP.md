@@ -13,7 +13,7 @@ Once a step is completed, it is collapsed and added to this list:
   * [x] Scrollables / Clippables ([#24])
   * [x] Text input widget ([#25])
   * [x] TodoMVC example ([#26])
-  * [x] Async actions ([#27])
+  * [x] Async actions ([#28])
   * [x] Custom layout engine ([#52])
   * [x] Event subscriptions ([#122])
   * [x] Custom styling ([#146])
