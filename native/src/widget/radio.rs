@@ -1,7 +1,7 @@
 //! Create choices using radio buttons.
 use crate::{
     input::{mouse, ButtonState},
-    layout, row, text, Align, Clipboard, Element, Event, Font, Hasher,
+    layout, row, text, Align, Clipboard, Element, Event, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
 };
@@ -155,7 +155,7 @@ where
             label_layout.bounds(),
             &self.label,
             <Renderer as text::Renderer>::DEFAULT_SIZE,
-            Font::Default,
+            Default::default(),
             None,
             HorizontalAlignment::Left,
             VerticalAlignment::Center,
