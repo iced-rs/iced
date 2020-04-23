@@ -119,6 +119,13 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         self.children.push(child.into());
         self
     }
+
+    /// Gets the children size of the [`Column`].
+    ///
+    /// [`Column`]: struct.Column.html
+    pub fn children_size(&self) -> usize {
+        self.children.len()
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>

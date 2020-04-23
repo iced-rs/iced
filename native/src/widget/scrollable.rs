@@ -110,6 +110,13 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
         self.content = self.content.push(child);
         self
     }
+
+    /// Gets the children size of the [`Scrollable`].
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn children_size(&self) -> usize {
+        self.content.children_size()
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>

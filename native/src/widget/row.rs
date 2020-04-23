@@ -120,6 +120,13 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         self.children.push(child.into());
         self
     }
+
+    /// Gets the children size of the [`Row`].
+    ///
+    /// [`Row`]: struct.Row.html
+    pub fn children_size(&self) -> usize {
+        self.children.len()
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
