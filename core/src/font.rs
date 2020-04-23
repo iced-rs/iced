@@ -16,3 +16,9 @@ pub enum Font {
         bytes: &'static [u8],
     },
 }
+
+impl Default for Font {
+    fn default() -> Font {
+        Font::Default
+    }
+}
