@@ -33,6 +33,12 @@ mod platform {
         pub use iced_winit::image::{Handle, Image};
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
+    pub mod image_pane {
+        //! Zoom and pan on an image.
+        pub use iced_wgpu::image_pane::{ImagePane, State};
+    }
+
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
     pub mod svg {
         //! Display vector graphics in your user interface.
@@ -44,8 +50,8 @@ mod platform {
     #[doc(no_inline)]
     pub use {
         button::Button, checkbox::Checkbox, container::Container, image::Image,
-        pane_grid::PaneGrid, progress_bar::ProgressBar, radio::Radio,
-        scrollable::Scrollable, slider::Slider, svg::Svg,
+        image_pane::ImagePane, pane_grid::PaneGrid, progress_bar::ProgressBar,
+        radio::Radio, scrollable::Scrollable, slider::Slider, svg::Svg,
         text_input::TextInput,
     };
 

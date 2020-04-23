@@ -17,3 +17,5 @@ mod svg;
 
 #[cfg(feature = "image")]
 mod image;
+#[cfg(feature = "image")]
+mod image_pane;
