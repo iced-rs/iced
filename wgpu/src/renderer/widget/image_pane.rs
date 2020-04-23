@@ -25,10 +25,13 @@ impl image_pane::Renderer for Renderer {
             {
                 if state.is_cursor_clicked() {
                     MouseCursor::Grabbing
-                } else if is_mouse_over {
+                } else if is_mouse_over
+                    && (image_bounds.width > bounds.width
+                        || image_bounds.height > bounds.height)
+                {
                     MouseCursor::Grab
                 } else {
-                    MouseCursor::OutOfBounds
+                    MouseCursor::Idle
                 }
             },
         )
