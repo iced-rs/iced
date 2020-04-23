@@ -54,6 +54,18 @@ mod mouse_cursor;
 mod runtime;
 mod user_interface;
 
+/*#[cfg(not(any(
+    feature = "iced_sctk",
+    feature = "iced_winit",
+)))]
+compile_error!("Select iced_sctk or iced_winit platform");
+
+#[cfg(not(any(
+    feature = "iced_wgpu",
+    feature = "iced_shm",
+)))]
+compile_error!("Select iced_wgpu or iced_shm renderer");*/
+
 pub use iced_core::{
     Align, Background, Color, Font, HorizontalAlignment, Length, Point,
     Rectangle, Size, Vector, VerticalAlignment,

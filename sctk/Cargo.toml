@@ -14,10 +14,14 @@ categories = ["gui"]
 debug = []
 
 [dependencies]
+derive_more = "0"
+pin-utils = "^0.1"
 futures = "^0.3"
 futures-util = "^0.3"
-async-std = { version = "1.5", features = ["unstable"] }
+#async-std = { version = "1.5", features = ["unstable"] }
 smithay-client-toolkit = { version = "^0.8", default-features=false, features=["frames"] } #-calloop
+#smol = { git ="ssh://git@github.com/stjepang/smol.git" }
+smol = { path ="../../smol" }
 #raw-window-handle = "0.3"
 #window_clipboard = "0.1"
 log = "0.4"

@@ -15,14 +15,13 @@
 //! [`smithay-client-toolkit`]: https://github.com/smithay/client-toolkit
 //! [`Application`]: trait.Application.html
 //! [`conversion`]: conversion
-#![feature(type_ascription)] // OptionFuture
+#![feature(async_closure)]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 //#![forbid(unsafe_code)]
 // application.rs:417: get_connection_fd: only poll
 // application.rs:418: UnixStream::from_raw_fd:  hidden ownership transfer
-#![forbid(rust_2018_idioms)]
 
 #[doc(no_inline)]
 pub use iced_native::*;
@@ -43,7 +42,26 @@ pub mod window_ext {
     }
 }
 
+mod sink_clone;
+
+use {std::marker::Unpin, futures::stream::{Stream, Peekable, SelectAll}};
+
+enum ControlFlow {
+    Wait,
+    Exit,
+}
+
+// A frame of event processing
+struct Frame<'t, St: Stream+Unpin> {
+    control_flow: ControlFlow,
+    streams: &'t mut Peekable<SelectAll<St>>,
+    events: &'t mut Vec<Event>,
+}
+
+mod keyboard;
+mod pointer;
 mod application;
+
 mod mode;
 
 // We disable debug capabilities on release builds unless the `debug` feature

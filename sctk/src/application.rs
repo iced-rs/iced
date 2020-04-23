@@ -120,39 +120,20 @@ pub trait Application: Sized {
     ) where
         Self: 'static,
     {
-        use {
-            crate::{
-                conversion,
-                input::{
-                    self,
-                    keyboard::{KeyCode, ModifiersState},
-                    mouse, ButtonState,
-                },
-                Event,
-                MouseCursor,
-                //Clipboard,
-                Runtime,
-            },
-            futures::{channel::mpsc::unbounded, select_biased},
-            log::trace,
-            smithay_client_toolkit::{
-                default_environment, init_default_environment,
-                reexports::client::protocol::wl_pointer as pointer,
-                reexports::client::EventQueue,
-                seat::{
-                    keyboard::{self, RepeatKind},
-                    pointer::{AutoPointer, AutoThemer, ThemeSpec},
-                },
-                window::{self, ConceptFrame, Decorations, Window},
-            },
-        };
+        use {crate::{Event, Runtime}, futures::{stream::{self, Stream, SelectAll}, channel}, super::{Frame, ControlFlow}};
 
         let mut debug = Debug::new();
-
         debug.startup_started();
 
-        let (sink, channel) = unbounded();
-        let mut runtime = Runtime::new(Self::Executor::new().unwrap(), sink);
+        // Shared between user message channel, display interface events, keyboard repeat timer
+        enum Item<Message> {
+            Message(Message),
+            Events,
+            KeyRepeat(crate::keyboard::Event<'static>),
+        }
+
+        let (sink, channel) = channel::mpsc::unbounded();
+        let mut runtime = Runtime::new(Self::Executor::new().unwrap(), sink.with_(async move |x| Item::Message(x.await)));
 
         let flags = settings.flags;
         let (mut application, init_command) =
@@ -162,176 +143,86 @@ pub trait Application: Sized {
         let subscription = application.subscription();
         runtime.track(subscription);
 
+        use smithay_client_toolkit::{default_environment, init_default_environment, seat, window::{Window, ConceptFrame, Decorations}};
         default_environment!(Env, desktop);
-        let (env, display, queue) =
-            init_default_environment!(Env, desktop).unwrap();
+        let (env, display, queue) = init_default_environment!(Env, desktop).unwrap();
 
-        let auto_themer = AutoThemer::init(
-            ThemeSpec::System,
-            env.require_global(),
-            env.require_global(),
-        );
-
-        enum ControlFlow {
-            Wait,
-            Exit,
-        }
-        use async_std::stream::{interval, Interval as NoFuseInterval};
-        use futures::stream::StreamExt;
-        //#[derive(derive_more::Deref)] struct Interval(IntervalNoFused)
-        //impl FusedStream for Interval { fn is_terminated() { return false; } }
-        type Interval = futures::stream::Fuse<NoFuseInterval>;
-        struct Repeat {
-            key: KeyCode,
-            utf8: Option<String>,
-            interval: Interval,
-        }
+        /// Mutable state time shared by stream handlers on main thread
         struct State {
-            control_flow: ControlFlow,
-            events: Vec<Event>,
+            keyboard: crate::keyboard::Keyboard,
+            pointer: Option<crate::pointer::Pointer>,
+
             window: Window<ConceptFrame>,
+            current_cursor: &'static str,
             scale_factor: u32,
             size: (u32, u32),
             resized: bool,
             need_refresh: bool,
-            current_cursor: &'static str,
-            pointer: Option<AutoPointer>,
-            modifiers: ModifiersState,
-            repeat: Option<Repeat>,
+        }
+        //
+        struct DispatchData<'t, St:Stream+Unpin> {
+            frame: &'t mut Frame<'t, St>,
+            state: &'t mut State,
         }
 
-        let seat_listener = env.listen_for_seats(move |seat, seat_data, mut state| {
-            let State{ pointer, .. } = state.get().unwrap();
+        let seat_handler = { // for a simple setup
+            use seat::{
+                pointer::{ThemeManager, ThemeSpec},
+                keyboard::{map_keyboard, RepeatKind},
+            };
+
+            let theme_manager = ThemeManager::init(
+                ThemeSpec::System,
+                env.require_global(),
+                env.require_global(),
+            );
+
+            env.listen_for_seats(move |seat, seat_data, mut data| {
+                let DispatchData{state:State{pointer, .. }} = data.get().unwrap();
                 if seat_data.has_pointer {
-                    let mut mouse_focus = None;
-                    let mut axis_buffer = None;
-                    let mut axis_discrete_buffer = None;
-                    *pointer = Some(auto_themer.theme_pointer_with_impl(&seat, move |event, pointer, mut state| {
-                        let State{window, current_cursor, events, .. } = state.get().unwrap();
-                        match event {
-                            pointer::Event::Enter { surface, surface_x:x,surface_y:y, .. } if surface == *window.surface() => {
-                                mouse_focus = Some(surface);
-                                pointer.set_cursor(current_cursor, None).expect("Unknown cursor");
-                                events.push(Event::Mouse(mouse::Event::CursorEntered));
-                                events.push(Event::Mouse(mouse::Event::CursorMoved{x: x as f32, y: y as f32}));
-                            }
-                            pointer::Event::Leave { .. } => {
-                                mouse_focus = None;
-                                events.push(Event::Mouse(mouse::Event::CursorEntered));
-                            }
-                            pointer::Event::Motion { surface_x: x, surface_y: y, .. } if mouse_focus.is_some() => {
-                                events.push(Event::Mouse(mouse::Event::CursorMoved{x: x as f32, y: y as f32}));
-                            }
-                            pointer::Event::Button { button, state, .. } if mouse_focus.is_some() => {
-                                let state = match state {
-                                    pointer::ButtonState::Pressed => ButtonState::Pressed,
-                                    pointer::ButtonState::Released => ButtonState::Released,
-                                    _ => unreachable!(),
-                                };
-                                events.push(Event::Mouse(mouse::Event::Input{button: conversion::button(button), state}));
-                            }
-                            pointer::Event::Axis { axis, value, .. } if mouse_focus.is_some() => {
-                                let (mut x, mut y) = axis_buffer.unwrap_or((0.0, 0.0));
-                                match axis {
-                                    // wayland vertical sign convention is the inverse of winit
-                                    pointer::Axis::VerticalScroll => y -= value as f32,
-                                    pointer::Axis::HorizontalScroll => x += value as f32,
-                                    _ => unreachable!(),
-                                }
-                                axis_buffer = Some((x, y));
-                            }
-                            pointer::Event::Frame if mouse_focus.is_some() => {
-                                let axis_buffer = axis_buffer.take();
-                                let axis_discrete_buffer = axis_discrete_buffer.take();
-                                if let Some((x, y)) = axis_discrete_buffer {
-                                    events.push(Event::Mouse(mouse::Event::WheelScrolled {delta: mouse::ScrollDelta::Lines {x: x as f32, y: y as f32}}));
-                                }
-                                else if let Some((x, y)) = axis_buffer {
-                                    events.push(Event::Mouse(mouse::Event::WheelScrolled { delta: mouse::ScrollDelta::Pixels {x,y}}));
-                                }
-                            }
-                            pointer::Event::AxisSource { .. } => (),
-                            pointer::Event::AxisStop { .. } => (),
-                            pointer::Event::AxisDiscrete { axis, discrete } if mouse_focus.is_some() => {
-                                let (mut x, mut y) = axis_discrete_buffer.unwrap_or((0, 0));
-                                match axis {
-                                    // wayland vertical sign convention is the inverse of iced
-                                    pointer::Axis::VerticalScroll => y -= discrete,
-                                    pointer::Axis::HorizontalScroll => x += discrete,
-                                    _ => unreachable!(),
-                                }
-                                axis_discrete_buffer = Some((x, y));
-                            }
-                            _ => unreachable!(),
-                    }
-                }));
-            }
-            if seat_data.has_keyboard {
-                let (_, _) = keyboard::map_keyboard(&seat, None, RepeatKind::System, move |event, _, mut state| {
-                    let State{ modifiers, repeat, events, .. } = state.get().unwrap();
-                    match event {
-                        keyboard::Event::Enter { .. } => (),
-                        keyboard::Event::Leave { .. } => *repeat = None,
-                        keyboard::Event::Key {
-                            rawkey,
-                            keysym,
-                            state,
-                            utf8,
-                            ..
-                        } => {
-                            let key = conversion::key(rawkey, keysym);
-                            events.push(Event::Keyboard(input::keyboard::Event::Input{
-                                key_code: key,
-                                state: if state == keyboard::KeyState::Pressed { ButtonState::Pressed } else { ButtonState::Released },
-                                modifiers: *modifiers,
-                            }));
-                            if let Some(ref txt) = utf8 {
-                                for char in txt.chars() {
-                                    events.push(Event::Keyboard(input::keyboard::Event::CharacterReceived(char)));
-                                }
-                            }
-                            if state == keyboard::KeyState::Pressed {
-                                *repeat = Some(Repeat{key, utf8, interval: interval(std::time::Duration::from_millis(100)).fuse()})
-                            } else {
-                                if let Some(Repeat{key:repeat_key, ..}) = repeat { if *repeat_key==key { *repeat = None } }
+                    assert!(pointer.is_none());
+                    *pointer = Some(theme_manager.theme_pointer_with_impl(&seat,
+                        {
+                            let pointer = crate::pointer::Pointer::default(); // Track focus and reconstruct scroll events
+                            move/*pointer*/ |event, themed_pointer, data| {
+                                let DispatchData{frame, state:State{ window, current_cursor, .. }} = data.get().unwrap();
+                                pointer.handle(event, themed_pointer, frame, window, current_cursor);
                             }
                         }
-                        keyboard::Event::Modifiers {
-                            modifiers: new_modifiers,
-                        } => {
-                            *modifiers = conversion::modifiers(new_modifiers);
+                    ).unwrap());
+                }
+                if seat_data.has_keyboard {
+                    let (_, _) = map_keyboard(&seat, None, RepeatKind::System,
+                        |event, _, data| {
+                            let DispatchData{frame, state} = data.get().unwrap();
+                            state.keyboard.handle(event, frame);
                         }
-                        keyboard::Event::Repeat {..} => (), // todo: xkb only, no sctk repeat
-                    }
-                }).unwrap();
-            }
-        });
+                    ).unwrap();
+                }
+            });
+        };
 
         let surface = env.create_surface_with_scale_callback(
             |scale, surface, mut state| {
-                let State {
+                let DispatchData{state:State {
                     scale_factor,
                     need_refresh,
                     ..
-                } = state.get().unwrap();
+                }} = state.get().unwrap();
                 surface.set_buffer_scale(scale);
                 *scale_factor = scale as u32;
                 *need_refresh = true;
             },
         );
 
-        let window = env
-            .create_window::<ConceptFrame, _>(
+        let window = {
+            env.create_window::<ConceptFrame, _>(
                 surface,
                 settings.window.size,
                 move |event, mut state| {
-                    let State {
-                        window,
-                        ref mut size,
-                        ref mut resized,
-                        events,
-                        control_flow,
-                        ..
+                    let DispatchData{
+                        frame: Frame { control_flow, events, .. },
+                        state: State { window, size, resized, .. },
                     } = state.get().unwrap();
                     match event {
                         window::Event::Configure { new_size: None, .. } => (),
@@ -354,8 +245,8 @@ pub trait Application: Sized {
                         window::Event::Refresh => window.refresh(),
                     }
                 },
-            )
-            .unwrap();
+            ).unwrap()
+        };
 
         let mut title = application.title();
         window.set_title(title.clone());
@@ -380,8 +271,6 @@ pub trait Application: Sized {
             need_refresh: false,
             pointer: None,
             current_cursor: "left_ptr",
-            modifiers: Default::default(),
-            repeat: None,
             events: Vec::new(),
             control_flow: ControlFlow::Wait,
         };
@@ -418,7 +307,7 @@ pub trait Application: Sized {
                 backend.create_swap_chain(&surface, size.0, size.1)
             };
 
-            let mut mouse_cursor = MouseCursor::OutOfBounds; // for idle callback
+            let mut mouse_cursor = crate::MouseCursor::OutOfBounds; // for idle callback
             move |state: &mut State, messages: Vec<_>| {
                 let State {
                     window,
@@ -437,7 +326,8 @@ pub trait Application: Sized {
                 }
 
                 for e in events.iter() {
-                    if let Event::Keyboard(input::keyboard::Event::Input {
+                    use crate::input::{*, keyboard::*};
+                    if let Event::Keyboard(keyboard::Event::Input {
                         state: ButtonState::Pressed,
                         modifiers,
                         key_code,
@@ -572,16 +462,9 @@ pub trait Application: Sized {
                     debug.render_finished();
 
                     if new_mouse_cursor != mouse_cursor {
-                        //pointer.as_mut().map(|pointer|
                         for pointer in pointer.iter_mut() {
-                            pointer
-                                .set_cursor(
-                                    conversion::mouse_cursor(new_mouse_cursor),
-                                    None,
-                                )
-                                .expect("Unknown cursor");
+                            pointer.set_cursor( crate::conversion::mouse_cursor(new_mouse_cursor), None).expect("Unknown cursor");
                         }
-
                         mouse_cursor = new_mouse_cursor;
                     }
 
@@ -590,76 +473,56 @@ pub trait Application: Sized {
             }
         };
 
-        fn repeat(state: &mut State) {
-            if let State {
-                modifiers,
-                repeat: Some(Repeat { key, utf8, .. }),
-                events,
-                ..
-            } = state
-            {
-                events.push(Event::Keyboard(input::keyboard::Event::Input {
-                    key_code: *key,
-                    state: ButtonState::Pressed,
-                    modifiers: *modifiers,
-                }));
-                if let Some(txt) = utf8 {
-                    for char in txt.chars() {
-                        events.push(Event::Keyboard(
-                            input::keyboard::Event::CharacterReceived(char),
-                        ));
+        let streams = SelectAll::new().peekable();  //<Item>;
+        // Gather pending messages (spawns a blocking thread)
+        streams.push(channel);
+
+        // Dispatch socket to per event callbacks which mutate state
+        mod nix {
+            pub struct RawPollFd(pub std::os::unix::io::RawFd);
+            pub trait AsRawPollFd {
+                fn as_raw_poll_fd(&self) -> RawPollFd;
+            }
+            impl AsRawPollFd for std::os::unix::io::RawFd { fn as_raw_poll_fd(&self) -> RawPollFd { RawPollFd(self.as_raw_fd().0) } }
+        }
+        struct Async<T>(T);
+        impl<T> Async<T> {
+            fn new(poll_fd: impl nix::AsRawPollFd) -> Result<smol::Async<T>, std::io::Error> {
+                struct AsRawFd<T>(T);
+                impl<T> std::os::unix::io::AsRawFd for AsRawFd<T> { fn as_raw_fd(&self) -> std::os::unix::io::RawFd { self.as_raw_poll_fd().0 /*->smol::Reactor*/ } }
+                smol::Async::new()
+            }
+        }
+        impl nix::AsRawPollFd for smithay_client_toolkit::reexports::client::EventQueue {
+            fn as_raw_poll_fd(&self) -> nix::RawPollFd { nix::RawPollFd(self.display().get_connection_fd()) }
+        }
+
+        let queue = Async::new(queue).unwrap();  // Registers in the reactor
+        streams.push( stream::poll_fn(|_| queue.with_mut(|q| Item::Event(q.prepare_read()?.read_events()?) ) ) );
+
+        smol::run(async {
+            while let ControlFlow::Wait = state.control_flow {
+                queue.get_ref().display().flush().unwrap();
+                // Framing: Amortizes display update by pulling buffers as much as possible to the latest state before embarking on the intensive evaluation
+                let messages = Vec::new();
+                let events = Vec::new(); // Buffered event handling present the opportunity to reduce some redundant work (e.g resizes/motions+)
+                while let Some(item) = streams.peek().now_or_never() {
+                    let mut frame = Frame{streams, events};
+                    match item {
+                        Item::Message(message) => messages.push(message),
+                        Item::Events => queue.dispatch_pending(&mut DispatchData{state, frame}, |_,_,_| ()),
+                        Item::KeyRepeat(event) => state.keyboard.handle(frame, event),
                     }
+                    let _next = streams.next(); // That should just drop the peek
+                    assert!(_next.now_or_never().is_some());
                 }
-            } else {
-                unreachable!();
+                update(&mut state, messages); // Update state after dispatching all pending events or/and on pending messages
+                queue.get_ref().display().flush().unwrap();
+                smol::block_on(streams.peek());
             }
-        }
-
-        fn dispatch<State: 'static>(queue: &mut EventQueue, state: &mut State) {
-            trace!("dispatch");
-            loop {
-                if let Some(guard) = queue.prepare_read() {
-                    guard.read_events().unwrap_or_else(|e| {
-                        assert!(e.kind() != std::io::ErrorKind::WouldBlock)
-                    });
-                }
-                if queue
-                    .dispatch_pending(state, |_, _, _| {
-                        panic!("Orphan event");
-                    })
-                    .unwrap()
-                    == 0
-                {
-                    break;
-                }
-            }
-        }
-
-        let mut display = {
-            let fd = std::convert::identity(display).get_connection_fd(); // get_connection_fd: only poll
-            use std::os::unix::io::FromRawFd;
-            unsafe { async_std::os::unix::net::UnixStream::from_raw_fd(fd) } // from_raw_fd: hidden ownership transfer
-        };
-        let mut queue = queue;
-        let mut channel = channel;
-        while let ControlFlow::Wait = state.control_flow {
-            let mut messages = Vec::new();
-            use futures::{
-                future::{FutureExt, OptionFuture},
-                io::AsyncReadExt,
-            };
-            select_biased! {
-                m = channel.select_next_some() => messages.push(m),
-                _ = { trace!("display.read"); display.read(&mut[]).fuse() } => dispatch(&mut queue, &mut state), // Triggers per event callbacks which mutate state
-                _  = state.repeat.as_mut().map(|r| r.interval.select_next_some()).into():OptionFuture<_> => repeat(&mut state),
-                complete => break,
-                default => {
-                    update(&mut state, messages.drain(..).collect()); // Update state after dispatching all pending events or/and on pending messages
-                    queue.display().flush().unwrap();
-                }
-            }
-        }
-        drop(seat_listener)
+        });
+        drop(seat_handler);
+        drop(display)
     }
 }
 
