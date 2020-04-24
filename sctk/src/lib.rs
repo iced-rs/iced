@@ -73,14 +73,12 @@ struct Frame<'t, St: Stream+Unpin> {
 mod keyboard;
 // Track focus and reconstruct scroll events
 mod pointer;
-// Implements an Application trait wrapped by
+// Implements an Application trait wrapped by iced
 mod application;
-
-mod debug;
+// Implements additional functionality wrapped by iced
+mod mode;
 
 pub use application::Application;
 //pub use clipboard::Clipboard;
 pub use mode::Mode;
 pub use settings::Settings;
-
-use debug::Debug;

@@ -1,5 +1,5 @@
 use std::{rc::Rc, cell::Cell, time::{Instant, Duration}};
-use futures::stream::Stream;
+use futures::{future::FutureExt, stream::Stream};
 pub use smithay_client_toolkit::seat::keyboard::{Event, KeyState};
 use {super::Frame, crate::{input::{ButtonState, keyboard::{self, ModifiersState}}}, super::conversion};
 
@@ -28,13 +28,16 @@ impl Keyboard {
                         //assert!(!is_repeat);
                         let repeat = Rc::new(Cell::new(event));
                         use futures::stream;
-                        streams.get_mut().push(stream::unfold(Instant::now()+Duration::from_millis(300), {
-                            let repeat = Rc::downgrade(&repeat);
-                            |last| {
-                                let next = last+Duration::from_millis(100);
-                                smol::Timer::at(next).map(move || { repeat.upgrade().map(Cell::get) }) // Option<Key> (None stops the stream, autodrops from streams)
-                            }
-                        }));
+                        streams.get_mut().push(
+                            stream::unfold(Instant::now()+Duration::from_millis(300), {
+                                let repeat = Rc::downgrade(&repeat);
+                                |last| {
+                                    let next = last+Duration::from_millis(100);
+                                    smol::Timer::at(next).map(move |_| { repeat.upgrade().map(|x| x.clone().into_inner() ) }) // Option<Key> (None stops the stream, autodrops from streams)
+                                }
+                            })
+                            .map(|(item, _t)| item)
+                        );
                         repeat = Some(Cell::new(event));
                     }
                 } else {

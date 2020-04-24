@@ -1,7 +1,5 @@
-use iced_native::{
-    window, Cache, Command, Debug, Element, Executor, Mode, Settings,
-    Subscription, UserInterface,
-};
+use iced_native::{window, Cache, Command, Debug, Element, Executor, Subscription, UserInterface};
+use crate::{Mode, Settings};
 
 /// An interactive, native cross-platform application.
 ///

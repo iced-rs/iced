@@ -53,6 +53,7 @@ mod hasher;
 mod mouse_cursor;
 mod runtime;
 mod user_interface;
+mod debug;
 
 /*#[cfg(not(any(
     feature = "iced_sctk",
@@ -86,3 +87,4 @@ pub use runtime::Runtime;
 pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;
+pub use debug::Debug;
