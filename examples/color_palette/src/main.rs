@@ -1,6 +1,6 @@
 use iced::{
-    canvas, slider, text_input, Canvas, Color, Column, Element, Length, Point,
-    Row, Sandbox, Settings, Slider, Text, TextInput,
+    canvas, slider, Canvas, Color, Column, Element, Length, Point, Row,
+    Sandbox, Settings, Slider, Text,
 };
 use palette::{self, Limited};
 
@@ -59,12 +59,6 @@ pub struct ColorPalette {
     hwb_sliders: [slider::State; 3],
     lab_sliders: [slider::State; 3],
     lch_sliders: [slider::State; 3],
-    rgb_text_state: text_input::State,
-    hsl_text_state: text_input::State,
-    hsv_text_state: text_input::State,
-    hwb_text_state: text_input::State,
-    lab_text_state: text_input::State,
-    lch_text_state: text_input::State,
     rgb_text_value: String,
     hsl_text_value: String,
     hsv_text_value: String,
@@ -82,7 +76,6 @@ pub enum Message {
     HwbColorChanged(palette::Hwb),
     LabColorChanged(palette::Lab),
     LchColorChanged(palette::Lch),
-    TextInput,
 }
 
 impl Sandbox for ColorPalette {
@@ -113,12 +106,6 @@ impl Sandbox for ColorPalette {
             hwb_sliders: triple_slider(),
             lab_sliders: triple_slider(),
             lch_sliders: triple_slider(),
-            rgb_text_state: text_input::State::new(),
-            hsl_text_state: text_input::State::new(),
-            hsv_text_state: text_input::State::new(),
-            hwb_text_state: text_input::State::new(),
-            lab_text_state: text_input::State::new(),
-            lch_text_state: text_input::State::new(),
             rgb_text_value,
             hsl_text_value,
             hsv_text_value,
@@ -134,11 +121,6 @@ impl Sandbox for ColorPalette {
     }
 
     fn update(&mut self, message: Message) {
-        match message {
-            Message::TextInput => return,
-            _ => {}
-        }
-
         let mut srgb = match message {
             Message::RgbColorChanged(rgb) => palette::Srgb::from(rgb),
             Message::HslColorChanged(hsl) => palette::Srgb::from(hsl),
@@ -146,7 +128,6 @@ impl Sandbox for ColorPalette {
             Message::HwbColorChanged(hwb) => palette::Srgb::from(hwb),
             Message::LabColorChanged(lab) => palette::Srgb::from(lab),
             Message::LchColorChanged(lch) => palette::Srgb::from(lch),
-            _ => return,
         };
         srgb.clamp_self();
         self.canvas_layer.clear();
@@ -197,15 +178,9 @@ impl Sandbox for ColorPalette {
                         Message::RgbColorChanged(Color { b, ..color })
                     }))
                     .push(
-                        TextInput::new(
-                            &mut self.rgb_text_state,
-                            "",
-                            &mut self.rgb_text_value,
-                            |_s| Message::TextInput,
-                        )
-                        .width(Length::Units(150))
-                        .size(14)
-                        .padding(2),
+                        Text::new(&self.rgb_text_value)
+                            .width(Length::Units(185))
+                            .size(16),
                     ),
             )
             .push(
@@ -246,15 +221,9 @@ impl Sandbox for ColorPalette {
                         },
                     ))
                     .push(
-                        TextInput::new(
-                            &mut self.hsl_text_state,
-                            "",
-                            &mut self.hsl_text_value,
-                            |_s| Message::TextInput,
-                        )
-                        .width(Length::Units(150))
-                        .size(14)
-                        .padding(2),
+                        Text::new(&self.hsl_text_value)
+                            .width(Length::Units(185))
+                            .size(16),
                     ),
             )
             .push(
@@ -295,15 +264,9 @@ impl Sandbox for ColorPalette {
                         },
                     ))
                     .push(
-                        TextInput::new(
-                            &mut self.hsv_text_state,
-                            "",
-                            &mut self.hsv_text_value,
-                            |_s| Message::TextInput,
-                        )
-                        .width(Length::Units(150))
-                        .size(14)
-                        .padding(2),
+                        Text::new(&self.hsv_text_value)
+                            .width(Length::Units(185))
+                            .size(16),
                     ),
             )
             .push(
@@ -344,15 +307,9 @@ impl Sandbox for ColorPalette {
                         },
                     ))
                     .push(
-                        TextInput::new(
-                            &mut self.hwb_text_state,
-                            "",
-                            &mut self.hwb_text_value,
-                            |_s| Message::TextInput,
-                        )
-                        .width(Length::Units(150))
-                        .size(14)
-                        .padding(2),
+                        Text::new(&self.hwb_text_value)
+                            .width(Length::Units(185))
+                            .size(16),
                     ),
             )
             .push(
@@ -369,15 +326,9 @@ impl Sandbox for ColorPalette {
                         Message::LabColorChanged(palette::Lab { b, ..lab })
                     }))
                     .push(
-                        TextInput::new(
-                            &mut self.lab_text_state,
-                            "",
-                            &mut self.lab_text_value,
-                            |_s| Message::TextInput,
-                        )
-                        .width(Length::Units(150))
-                        .size(14)
-                        .padding(2),
+                        Text::new(&self.lab_text_value)
+                            .width(Length::Units(185))
+                            .size(16),
                     ),
             )
             .push(
@@ -410,15 +361,9 @@ impl Sandbox for ColorPalette {
                         },
                     ))
                     .push(
-                        TextInput::new(
-                            &mut self.lch_text_state,
-                            "",
-                            &mut self.lch_text_value,
-                            |_s| Message::TextInput,
-                        )
-                        .width(Length::Units(150))
-                        .size(14)
-                        .padding(2),
+                        Text::new(&self.lch_text_value)
+                            .width(Length::Units(185))
+                            .size(16),
                     ),
             )
             .push(
