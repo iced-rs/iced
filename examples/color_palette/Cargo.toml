@@ -5,10 +5,8 @@ authors = ["Clark Moody <clark@clarkmoody.com>"]
 edition = "2018"
 publish = false
 
-[features]
-palette = []
-
 [dependencies]
 iced = { path = "../..", features = ["canvas", "palette"] }
 iced_core = { path = "../../core" }
 iced_native = { path = "../../native" }
+palette = "0.5.0"

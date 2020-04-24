@@ -2,7 +2,7 @@ use iced::{
     canvas, slider, text_input, Canvas, Color, Column, Element, Length, Point,
     Row, Sandbox, Settings, Slider, Text, TextInput,
 };
-use iced_core::palette::{self, Limited};
+use palette::{self, Limited};
 
 pub fn main() {
     ColorPalette::run(Settings {
