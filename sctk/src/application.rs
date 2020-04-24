@@ -1,4 +1,4 @@
-use crate::{
+use iced_native::{
     window, Cache, Command, Debug, Element, Executor, Mode, Settings,
     Subscription, UserInterface,
 };
@@ -120,7 +120,7 @@ pub trait Application: Sized {
     ) where
         Self: 'static,
     {
-        use {crate::{Event, Runtime}, futures::{stream::{self, Stream, SelectAll}, channel}, super::{Frame, ControlFlow}};
+        use {iced_native::{Event, Runtime}, futures::{stream::{self, Stream, SelectAll}, channel}, super::{Frame, ControlFlow}};
 
         let mut debug = Debug::new();
         debug.startup_started();
@@ -192,7 +192,7 @@ pub trait Application: Sized {
                     ).unwrap());
                 }
                 if seat_data.has_keyboard {
-                    let (_, _) = map_keyboard(&seat, None, RepeatKind::System,
+                    let _ = map_keyboard(&seat, None, RepeatKind::System,
                         |event, _, data| {
                             let DispatchData{frame, state} = data.get().unwrap();
                             state.keyboard.handle(event, frame);

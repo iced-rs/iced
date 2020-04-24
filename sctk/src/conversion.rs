@@ -2,7 +2,7 @@
 //!
 //! [`smithay-client-toolkit`]: https://github.com/smithay/client-toolkit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-use crate::{
+use iced_native::{
     input::{
         keyboard::{KeyCode, ModifiersState},
         mouse,

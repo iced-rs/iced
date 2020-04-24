@@ -1,13 +1,16 @@
 /// A generic widget.
 ///
-/// This is an alias of an `iced_native` element with a default `Renderer`.
-#[cfg(all(feature = "iced_sctk", feature = "iced_shm"))]
+/// This selects the shm `Renderer` for `iced_native` elements
+#[cfg(feature = "iced_shm")]
 pub type Element<'a, Message> =
-    iced_sctk::Element<'a, Message, iced_shm::Renderer>;
+    crate::runtime::Element<'a, Message, iced_shm::Renderer>;
 
-#[cfg(all(feature = "iced_winit", feature = "iced_wgpu"))]
+/// A generic widget.
+///
+/// This selects the wgpu `Renderer` for `iced_native` elements
+#[cfg(feature = "iced_wgpu")]
 pub type Element<'a, Message> =
-    iced_winit::Element<'a, Message, iced_wgpu::Renderer>;
+    crate::runtime::Element<'a, Message, iced_wgpu::Renderer>;
 
 #[cfg(target_arch = "wasm32")]
 pub use iced_web::Element;

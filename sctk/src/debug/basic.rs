@@ -4,6 +4,7 @@ use std::{collections::VecDeque, time};
 pub struct Debug {
     is_enabled: bool,
 
+    // TODO: make a map, factorize with winit
     startup_start: time::Instant,
     startup_duration: time::Duration,
 

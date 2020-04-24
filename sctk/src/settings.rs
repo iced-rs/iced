@@ -39,7 +39,7 @@ pub struct Window {
 impl Default for Window {
     fn default() -> Window {
         Window {
-            size: (1024, 768),
+            size: (0, 0),
             resizable: true,
             decorations: true,
             platform_specific: Default::default(),

@@ -58,7 +58,6 @@ impl Keyboard {
                 *modifiers = conversion::modifiers(new_modifiers);
                     if let Some(repeat) = repeat { repeat.update(|r| r.modifiers = modifiers )} // Optional logic
             }
-            Event::Repeat {..} => (), // client-toolkit#119
         }
     }
 }

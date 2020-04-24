@@ -20,20 +20,23 @@
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 //#![forbid(unsafe_code)]
-// application.rs:417: get_connection_fd: only poll
-// application.rs:418: UnixStream::from_raw_fd:  hidden ownership transfer
+// mod sink_clone (unpin macro)
 
+// Public interface
+
+// Re-exports directly used iced_native definitions
 #[doc(no_inline)]
 pub use iced_native::*;
-pub use smithay_client_toolkit;
 
+// smithay-client-toolkit -> iced_native (~iced_winit/conversion)
 pub mod conversion;
-pub mod settings;
 
 /// Extends iced_native::window
 pub mod window_ext {
-    /// window::Backend requires to pass a HasRawWindowHandle which requires wayland-client[system-lib]
-    /// To fix this the RawWindowHandle::Wayland FFI should be a wayland object id
+    /// Renderers such as Mesa require a wayland-client[system-lib] handle to implement display extensions such as KHR_display_surface using libwayland-client.
+    /// This is presented by window::Backend through HasRawWindowHandle.
+    /// This trait extends Backend by providing an alternative create_surface for non-Mesa renderers (i.e software)
+    /// The alternative constraint interface is to be determined
     pub trait NoHasRawWindowHandleBackend: crate::window::Backend {
         /// Crates a new [`Surface`] for the given window.
         ///
@@ -42,10 +45,18 @@ pub mod window_ext {
     }
 }
 
+// Settings module compatible with iced_winit/settings
+pub mod settings;
+
+// Private definitions used by modules of this crate to implement Application
+
+// iced_futures::Runtime::Sender: Clone to send futures
 mod sink_clone;
 
+// Futures-based event loop
 use {std::marker::Unpin, futures::stream::{Stream, Peekable, SelectAll}};
 
+// Signal event loop termination on next frame
 enum ControlFlow {
     Wait,
     Exit,
@@ -58,19 +69,13 @@ struct Frame<'t, St: Stream+Unpin> {
     events: &'t mut Vec<Event>,
 }
 
+// Track modifiers and key repetition
 mod keyboard;
+// Track focus and reconstruct scroll events
 mod pointer;
+// Implements an Application trait wrapped by
 mod application;
 
-mod mode;
-
-// We disable debug capabilities on release builds unless the `debug` feature
-// is explicitly enabled.
-#[cfg(feature = "debug")]
-#[path = "debug/basic.rs"]
-mod debug;
-#[cfg(not(feature = "debug"))]
-#[path = "debug/null.rs"]
 mod debug;
 
 pub use application::Application;

@@ -184,7 +184,7 @@ mod element;
 mod sandbox;
 
 pub mod executor;
-pub mod keyboard;
+pub use crate::runtime::input::keyboard::{self, KeyCode, ModifiersState};
 pub mod settings;
 pub mod widget;
 pub mod window;
