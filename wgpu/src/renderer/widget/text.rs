@@ -7,6 +7,8 @@ use iced_native::{
 use std::f32;
 
 impl text::Renderer for Renderer {
+    type Font = Font;
+
     const DEFAULT_SIZE: u16 = 20;
 
     fn measure(

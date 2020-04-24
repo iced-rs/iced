@@ -20,7 +20,7 @@
 mod platform {
     pub use iced_wgpu::widget::{
         button, checkbox, container, pane_grid, progress_bar, radio,
-        scrollable, slider, text_input,
+        scrollable, slider, text_input, Text,
     };
 
     #[cfg(feature = "canvas")]
@@ -39,7 +39,7 @@ mod platform {
         pub use iced_winit::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::{Space, Text};
+    pub use iced_winit::Space;
 
     #[doc(no_inline)]
     pub use {
