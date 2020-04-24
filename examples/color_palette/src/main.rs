@@ -1,6 +1,6 @@
 use iced::{
-    canvas, slider, Canvas, Color, Column, Element, Length, Point, Row,
-    Sandbox, Settings, Slider, Text,
+    canvas, slider, Canvas, Color, Column, Element, Length, Row, Sandbox,
+    Settings, Slider, Text,
 };
 use palette::{self, Limited};
 
@@ -391,6 +391,7 @@ impl canvas::Drawable for State {
     fn draw(&self, frame: &mut canvas::Frame) {
         use canvas::{Fill, Path};
         use iced::{HorizontalAlignment, VerticalAlignment};
+        use iced_native::{Point, Size};
         use palette::{Hsl, Srgb};
 
         if self.theme.len() == 0 {
@@ -400,8 +401,10 @@ impl canvas::Drawable for State {
 
         let pad = 20.0;
 
-        let box_width = frame.width() / self.theme.len() as f32;
-        let box_height = frame.height() / 2.0 - pad;
+        let box_size = Size {
+            width: frame.width() / self.theme.len() as f32,
+            height: frame.height() / 2.0 - pad,
+        };
 
         let mut text = canvas::Text::default();
         text.horizontal_alignment = HorizontalAlignment::Center;
@@ -410,28 +413,16 @@ impl canvas::Drawable for State {
 
         for i in 0..self.theme.len() {
             let anchor = Point {
-                x: (i as f32) * box_width,
+                x: (i as f32) * box_size.width,
                 y: 0.0,
             };
             let rect = Path::new(|path| {
-                path.move_to(anchor);
-                path.line_to(Point {
-                    x: anchor.x + box_width,
-                    y: anchor.y,
-                });
-                path.line_to(Point {
-                    x: anchor.x + box_width,
-                    y: anchor.y + box_height,
-                });
-                path.line_to(Point {
-                    x: anchor.x,
-                    y: anchor.y + box_height,
-                });
+                path.rectangle(anchor, box_size);
             });
             frame.fill(&rect, Fill::Color(self.theme[i]));
 
             if self.theme[i] == self.color {
-                let cx = anchor.x + box_width / 2.0;
+                let cx = anchor.x + box_size.width / 2.0;
                 let tri_w = 10.0;
 
                 let tri = Path::new(|path| {
@@ -454,19 +445,19 @@ impl canvas::Drawable for State {
                 let tri = Path::new(|path| {
                     path.move_to(Point {
                         x: cx - tri_w,
-                        y: box_height,
+                        y: box_size.height,
                     });
                     path.line_to(Point {
                         x: cx + tri_w,
-                        y: box_height,
+                        y: box_size.height,
                     });
                     path.line_to(Point {
                         x: cx,
-                        y: box_height - tri_w,
+                        y: box_size.height - tri_w,
                     });
                     path.line_to(Point {
                         x: cx - tri_w,
-                        y: box_height,
+                        y: box_size.height,
                     });
                 });
                 frame.fill(&tri, Fill::Color(Color::WHITE));
@@ -475,8 +466,8 @@ impl canvas::Drawable for State {
             frame.fill_text(canvas::Text {
                 content: color_str(&self.theme[i], ColorFormat::Hex),
                 position: Point {
-                    x: anchor.x + box_width / 2.0,
-                    y: box_height,
+                    x: anchor.x + box_size.width / 2.0,
+                    y: box_size.height,
                 },
                 ..text
             });
@@ -494,31 +485,19 @@ impl canvas::Drawable for State {
             let color: Color = Srgb::from(graded.clamp()).into();
 
             let anchor = Point {
-                x: (i as f32) * box_width,
-                y: box_height + 2.0 * pad,
+                x: (i as f32) * box_size.width,
+                y: box_size.height + 2.0 * pad,
             };
             let rect = Path::new(|path| {
-                path.move_to(anchor);
-                path.line_to(Point {
-                    x: anchor.x + box_width,
-                    y: anchor.y,
-                });
-                path.line_to(Point {
-                    x: anchor.x + box_width,
-                    y: anchor.y + box_height,
-                });
-                path.line_to(Point {
-                    x: anchor.x,
-                    y: anchor.y + box_height,
-                });
+                path.rectangle(anchor, box_size);
             });
             frame.fill(&rect, Fill::Color(color));
 
             frame.fill_text(canvas::Text {
                 content: color_str(&color, ColorFormat::Hex),
                 position: Point {
-                    x: anchor.x + box_width / 2.0,
-                    y: box_height + 2.0 * pad,
+                    x: anchor.x + box_size.width / 2.0,
+                    y: box_size.height + 2.0 * pad,
                 },
                 ..text
             });
