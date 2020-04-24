@@ -130,7 +130,7 @@ pub trait Application: Sized {
             KeyRepeat(crate::keyboard::Event<'static>),
         }
 
-        let (sink, channel) = channel::mpsc::unbounded();
+        let (sink, receiver) = channel::mpsc::unbounded();
         let mut runtime = Runtime::new(Self::Executor::new().unwrap(), sink.with_(async move |x| Item::Message(x.await)));
 
         let flags = settings.flags;
@@ -473,7 +473,7 @@ pub trait Application: Sized {
 
         let streams = SelectAll::new().peekable();  //<Item>;
         // Gather pending messages (spawns a blocking thread)
-        streams.push(channel);
+        streams.push(receiver);
 
         // Dispatch socket to per event callbacks which mutate state
         mod nix {

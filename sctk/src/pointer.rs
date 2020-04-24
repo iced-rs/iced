@@ -3,8 +3,8 @@ use smithay_client_toolkit::{
     seat::pointer::ThemedPointer,
     window
 };
+type SCTKWindow = window::Window<window::ConceptFrame>;
 use {crate::{Event::Mouse, input::{self, mouse}}, super::conversion};
-type Window = window::Window<window::ConceptFrame>;
 
 // Track focus and reconstruct scroll events
 #[derive(Default)] pub struct Pointer {
@@ -14,7 +14,7 @@ type Window = window::Window<window::ConceptFrame>;
 }
 
 impl Pointer {
-    fn handle(&mut self, event : Event, pointer: ThemedPointer, events: &mut Vec<Event>, window: &Window, current_cursor: &'static str) {
+    fn handle(&mut self, event : Event, pointer: ThemedPointer, events: &mut Vec<Event>, window: &SCTKWindow, current_cursor: &'static str) {
         let Self{focus, axis_buffer, axis_discrete_buffer} = self;
         match event {
             Event::Enter { surface, surface_x:x,surface_y:y, .. } if surface == *window.surface() => {
@@ -25,7 +25,7 @@ impl Pointer {
             }
             Event::Leave { .. } => {
                 focus = None;
-                events.push(Event::Mouse(mouse::Event::CursorEntered));
+                events.push(Event::Mouse(mouse::Event::CursorLeft));
             }
             Event::Motion { surface_x: x, surface_y: y, .. } if focus.is_some() => {
                 events.push(Event::Mouse(mouse::Event::CursorMoved{x: x as f32, y: y as f32}));
@@ -70,7 +70,7 @@ impl Pointer {
                 }
                 axis_discrete_buffer = Some((x, y));
             }
-            _ => unreachable!(),
+            _ => panic!("Out of focus"),
         }
     }
 }
