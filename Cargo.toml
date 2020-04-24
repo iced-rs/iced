@@ -24,8 +24,12 @@ debug = ["iced_winit/debug"]
 tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
 async-std = ["iced_futures/async-std"]
-
-default = ["iced_winit", "iced_wgpu"]
+# Alias to avoid iced/iced_
+winit = ["iced_winit"]
+wgpu = ["iced_wgpu"]
+sctk = ["iced_sctk"]
+shm = ["iced_shm"]
+default = ["winit", "wgpu"]
 
 [badges]
 maintenance = { status = "actively-developed" }
