@@ -29,3 +29,5 @@ jobs:
       run: cargo check --package iced --target wasm32-unknown-unknown
     - name: Check compilation of `tour` example
       run: cargo build --package tour --target wasm32-unknown-unknown
+    - name: Check compilation of `pokedex` example
+      run: cargo build --package pokedex --target wasm32-unknown-unknown
