@@ -81,10 +81,7 @@ impl<T> Command<T> {
     ///
     /// [`Command`]: struct.Command.html
     #[cfg(target_arch = "wasm32")]
-    pub fn map<A>(
-        mut self,
-        f: impl Fn(T) -> A + 'static,
-    ) -> Command<A>
+    pub fn map<A>(mut self, f: impl Fn(T) -> A + 'static) -> Command<A>
     where
         T: 'static,
     {
@@ -150,7 +147,6 @@ where
         }
     }
 }
-
 
 impl<T> std::fmt::Debug for Command<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
