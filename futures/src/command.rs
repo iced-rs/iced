@@ -85,7 +85,7 @@ impl<T> Command<T> {
     where
         T: 'static,
     {
-        let f = std::sync::Arc::new(f);
+        let f = std::rc::Rc::new(f);
 
         Command {
             futures: self
