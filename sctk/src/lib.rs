@@ -56,16 +56,16 @@ mod sink_clone;
 // Futures-based event loop
 use {std::marker::Unpin, futures::stream::{Stream, Peekable, SelectAll}};
 
-// Signal event loop termination on next frame
-enum ControlFlow {
-    Wait,
-    Exit,
+// Shared across the application between user message channel, display interface events, keyboard repeat timer
+enum Item<Message> {
+    Push(Message),
+    Apply,
+    KeyRepeat(crate::keyboard::Event<'static>),
 }
 
-// A frame of event processing
-struct Frame<'t, St: Stream+Unpin> {
-    control_flow: ControlFlow,
-    streams: &'t mut Peekable<SelectAll<St>>,
+// Application state update
+struct Update<'t, Item> {
+    streams: &'t mut Peekable<SelectAll<Box<dyn Stream<Item>>>>,
     events: &'t mut Vec<Event>,
 }
 
@@ -73,6 +73,8 @@ struct Frame<'t, St: Stream+Unpin> {
 mod keyboard;
 // Track focus and reconstruct scroll events
 mod pointer;
+//
+mod window;
 // Implements an Application trait wrapped by iced
 mod application;
 // Implements additional functionality wrapped by iced

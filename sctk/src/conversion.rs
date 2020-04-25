@@ -2,44 +2,40 @@
 //!
 //! [`smithay-client-toolkit`]: https://github.com/smithay/client-toolkit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-use iced_native::{
-    input::{
-        keyboard::{KeyCode, ModifiersState},
-        mouse,
-    },
-    MouseCursor,
-};
 
-/// Converts a `MouseCursor` from `iced_native` to a `cursor-spec` cursor icon.
-pub fn mouse_cursor(mouse_cursor: MouseCursor) -> &'static str {
-    match mouse_cursor {
-        MouseCursor::OutOfBounds | MouseCursor::Idle => "left_ptr",
-        MouseCursor::Pointer => "hand",
-        MouseCursor::Working => "progress",
-        MouseCursor::Grab => "grab",
-        MouseCursor::Grabbing => "grabbing",
-        MouseCursor::Text => "text",
-        MouseCursor::ResizingHorizontally => "h_double_arrow",
-        MouseCursor::ResizingVertically => "v_double_arrow",
+use iced_native::MouseCursor;
+/// Converts an `iced_native::MouseCursor` to a `cursor-spec` cursor icon.
+pub fn cursor(cursor: MouseCursor) -> &'static str {
+    use MouseCursor::*;
+    match cursor {
+        OutOfBounds | Idle => "left_ptr",
+        Pointer => "hand",
+        Working => "progress",
+        Grab => "grab",
+        Grabbing => "grabbing",
+        Text => "text",
+        ResizingHorizontally => "h_double_arrow",
+        ResizingVertically => "v_double_arrow",
     }
 }
 
+use iced_native::input::mouse::Button;
 /// Converts from `input-event-codes` to an `iced_native` mouse button.
-pub fn button(button: u32) -> mouse::Button {
+pub fn button(button: u32) -> Button {
     match button {
-        0x110 => mouse::Button::Left,
-        0x111 => mouse::Button::Right,
-        0x112 => mouse::Button::Middle,
-        other => mouse::Button::Other(other as u8),
+        0x110 => Button::Left,
+        0x111 => Button::Right,
+        0x112 => Button::Middle,
+        other => Button::Other(other as u8),
     }
 }
 
+use smithay_client_toolkit::seat::keyboard::{self, Event};
+use iced_native::input::keyboard::{KeyCode, ModifiersState};
 /// Converts a `smithay_client_toolkit::seat::keyboard::ModifiersState` to an `iced_native`
 /// modifiers state.
-pub fn modifiers(
-    modifiers: smithay_client_toolkit::seat::keyboard::ModifiersState,
-) -> ModifiersState {
-    let smithay_client_toolkit::seat::keyboard::ModifiersState {
+pub fn modifiers(modifiers: keyboard::ModifiersState) -> ModifiersState {
+    let keyboard::ModifiersState {
         shift,
         ctrl,
         alt,
@@ -56,8 +52,8 @@ pub fn modifiers(
 }
 
 /// Converts an `xkb` keysym to an `iced_native` key code.
-pub fn key(rawkey: u32, keysym: u32) -> KeyCode {
-    use {smithay_client_toolkit::seat::keyboard::keysyms::*, KeyCode::*};
+pub fn key(key : Event/*::Key*/) -> KeyCode { if let Event::Key{rawkey, keysym,..} = key { //#2593
+    use {keyboard::keysyms::*, KeyCode::*};
     #[allow(non_upper_case_globals)]
     match rawkey {
         1 => Escape,
@@ -192,4 +188,4 @@ pub fn key(rawkey: u32, keysym: u32) -> KeyCode {
             _ => panic!("Unknown keysym"),
         },
     }
-}
+} else {unreachable!()}}

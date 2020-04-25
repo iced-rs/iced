@@ -1,7 +1,7 @@
 use std::{rc::Rc, cell::Cell, time::{Instant, Duration}};
-use futures::{future::FutureExt, stream::Stream};
+use futures::{future::FutureExt, stream::{Stream, StreamExt}};
 pub use smithay_client_toolkit::seat::keyboard::{Event, KeyState};
-use {super::Frame, crate::{input::{ButtonState, keyboard::{self, ModifiersState}}}, super::conversion};
+use {super::{Update,Item}, crate::{input::{ButtonState, keyboard::{self, ModifiersState}}}, super::conversion};
 
 // Track modifiers and key repetition
 #[derive(Default)] pub struct Keyboard {
@@ -10,16 +10,12 @@ use {super::Frame, crate::{input::{ButtonState, keyboard::{self, ModifiersState}
 }
 
 impl Keyboard {
-    fn handle<St:Stream+Unpin>(&mut self, Frame{streams, events, ..}: &mut Frame<St>, event: Event) {
+    fn handle(&mut self, Update{streams, events, ..}: &mut Update, event: Event) {
         let Self{modifiers, repeat} = self;
         match event {
             Event::Enter { .. } => (),
             Event::Leave { .. } => *repeat = None, // will drop the timer on its next event (Weak::upgrade=None)
-            event @ Event::Key{ rawkey,
-                    keysym,
-                    state,
-                    utf8,
-                    .. } => {
+            key @ Event::Key{ state, utf8, .. } => {
                 if state == KeyState::Pressed {
                     if let Some(repeat) = repeat { // Update existing repeat cell (also triggered by the actual repetition => noop)
                         repeat.set(event);
@@ -33,19 +29,17 @@ impl Keyboard {
                                 let repeat = Rc::downgrade(&repeat);
                                 |last| {
                                     let next = last+Duration::from_millis(100);
-                                    smol::Timer::at(next).map(move |_| { repeat.upgrade().map(|x| x.clone().into_inner() ) }) // Option<Key> (None stops the stream, autodrops from streams)
+                                    smol::Timer::at(next).map(move |_| { repeat.upgrade().map(|x| (Item::Key(x.clone().into_inner()), next) ) }) // Option<Key> (None stops the stream, autodrops from streams)
                                 }
                             })
-                            .map(|(item, _t)| item)
                         );
                         repeat = Some(Cell::new(event));
                     }
                 } else {
                     if repeat.filter(|r| r.get()==event).is_some() { repeat = None }
                 }
-                let key = conversion::key(rawkey, keysym);
                 events.push(Event::Keyboard(keyboard::Event::Input{
-                    key_code: key,
+                    key_code: conversion::key(key),
                     state: if state == KeyState::Pressed { ButtonState::Pressed } else { ButtonState::Released },
                     modifiers,
                 }));

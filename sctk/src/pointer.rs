@@ -31,11 +31,9 @@ impl Pointer {
                 events.push(Event::Mouse(mouse::Event::CursorMoved{x: x as f32, y: y as f32}));
             }
             Event::Button { button, state, .. } if focus.is_some() => {
-                let state = match state {
-                    ButtonState::Pressed => input::ButtonState::Pressed,
-                    ButtonState::Released => input::ButtonState::Released,
-                    _ => unreachable!(),
-                };
+                state = if let ButtonState::Pressed = state
+                    { input::ButtonState::Pressed } else
+                    { input::ButtonState::Released };
                 events.push(Event::Mouse(mouse::Event::Input{button: conversion::button(button), state}));
             }
             Event::Axis { axis, value, .. } if focus.is_some() => {
@@ -49,14 +47,11 @@ impl Pointer {
                 axis_buffer = Some((x, y));
             }
             Event::Frame if focus.is_some() => {
-                let axis_buffer = axis_buffer.take();
-                let axis_discrete_buffer = axis_discrete_buffer.take();
-                if let Some((x, y)) = axis_discrete_buffer {
-                    events.push(Event::Mouse(mouse::Event::WheelScrolled {delta: mouse::ScrollDelta::Lines {x: x as f32, y: y as f32}}));
-                }
-                else if let Some((x, y)) = axis_buffer {
-                    events.push(Event::Mouse(mouse::Event::WheelScrolled { delta: mouse::ScrollDelta::Pixels {x,y}}));
-                }
+                let delta =
+                    if let Some(x,y) = axis_buffer.take() { mouse::ScrollDelta::Pixels{x:x as f64, y:y as f64} }
+                    else if let Some(x,y) = axis_discrete_buffer.take() { mouse::ScrollDelta::Lines{x:x as f32, y:y as f32} }
+                    else { debug_assert!(false); mouse::ScrollDelta::PixelDelta(0,0) };
+                events.push(Event::Mouse(mouse::Event::WheelScrolled{delta}));
             }
             Event::AxisSource { .. } => (),
             Event::AxisStop { .. } => (),

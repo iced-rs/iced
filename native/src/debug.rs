@@ -53,7 +53,7 @@ impl<'t> Drop for ProfileScope<'t> {
 
 use enum_iterator::IntoEnumIterator;
 #[derive(IntoEnumIterator,Debug)]
-pub enum Component { Update, View, Layout, Event, Draw, Render, Len }
+pub enum Component { Startup, Event, Update, View, Layout, Draw, Render, Len }
 
 /// Collects application execution time profile and log messages
 #[derive(Default,Debug)]
