@@ -168,10 +168,16 @@ where
                     match delta {
                         mouse::ScrollDelta::Lines { y, .. } => {
                             // TODO: Configurable speed (?)
-                            self.state.scroll(y * 60.0, bounds, content_bounds);
+                            let speed = 60.0;
+                            self.state.scroll(
+                                speed * -y
+                                    / (content_bounds.height - bounds.height),
+                            );
                         }
                         mouse::ScrollDelta::Pixels { y, .. } => {
-                            self.state.scroll(y, bounds, content_bounds);
+                            self.state.scroll(
+                                -y / (content_bounds.height - bounds.height),
+                            );
                         }
                     }
                 }
@@ -198,14 +204,10 @@ where
                     if let (Some(scrollbar), Some(scroller_grabbed_at)) =
                         (scrollbar, self.state.scroller_grabbed_at)
                     {
-                        self.state.scroll_to(
-                            scrollbar.scroll_percentage(
-                                scroller_grabbed_at,
-                                cursor_position,
-                            ),
-                            bounds,
-                            content_bounds,
-                        );
+                        self.state.scroll_to(scrollbar.scroll_percentage(
+                            scroller_grabbed_at,
+                            cursor_position,
+                        ));
                     }
                 }
                 _ => {}
@@ -220,14 +222,10 @@ where
                         if let Some(scroller_grabbed_at) =
                             scrollbar.grab_scroller(cursor_position)
                         {
-                            self.state.scroll_to(
-                                scrollbar.scroll_percentage(
-                                    scroller_grabbed_at,
-                                    cursor_position,
-                                ),
-                                bounds,
-                                content_bounds,
-                            );
+                            self.state.scroll_to(scrollbar.scroll_percentage(
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ));
 
                             self.state.scroller_grabbed_at =
                                 Some(scroller_grabbed_at);
@@ -327,7 +325,7 @@ where
 #[derive(Debug, Clone, Copy, Default)]
 pub struct State {
     scroller_grabbed_at: Option<f32>,
-    offset: f32,
+    position: f32,
 }
 
 impl State {
@@ -338,54 +336,40 @@ impl State {
         State::default()
     }
 
-    /// Apply a scrolling offset to the current [`State`], given the bounds of
-    /// the [`Scrollable`] and its contents.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
-    /// [`State`]: struct.State.html
-    pub fn scroll(
-        &mut self,
-        delta_y: f32,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
-        if bounds.height >= content_bounds.height {
-            return;
-        }
-
-        self.offset = (self.offset - delta_y)
-            .max(0.0)
-            .min((content_bounds.height - bounds.height) as f32);
-    }
-
-    /// Moves the scroll position to a relative amount, given the bounds of
-    /// the [`Scrollable`] and its contents.
+    /// Updates the scroll position of the [`State`] by some delta.
     ///
     /// `0` represents scrollbar at the top, while `1` represents scrollbar at
     /// the bottom.
     ///
     /// [`Scrollable`]: struct.Scrollable.html
     /// [`State`]: struct.State.html
-    pub fn scroll_to(
-        &mut self,
-        percentage: f32,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) {
-        self.offset =
-            ((content_bounds.height - bounds.height) * percentage).max(0.0);
+    pub fn scroll(&mut self, delta: f32) {
+        self.scroll_to(self.position + delta);
     }
 
-    /// Returns the current scrolling offset of the [`State`], given the bounds
-    /// of the [`Scrollable`] and its contents.
+    /// Updates the scroll position of the [`State`].
+    ///
+    /// `0` represents scrollbar at the top, while `1` represents scrollbar at
+    /// the bottom.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    /// [`State`]: struct.State.html
+    pub fn scroll_to(&mut self, position: f32) {
+        self.position = position.max(0.0).min(1.0);
+    }
+
+    /// Returns the current scrolling offset, given the current position of the [`State`]
+    /// the bounds of the [`Scrollable`] and the bounds its contents.
+    /// This function is publicly exposed for use in custom widget implementations.
     ///
     /// [`Scrollable`]: struct.Scrollable.html
     /// [`State`]: struct.State.html
     pub fn offset(&self, bounds: Rectangle, content_bounds: Rectangle) -> u32 {
-        let hidden_content =
-            (content_bounds.height - bounds.height).max(0.0).round() as u32;
+        let hidden_content_height =
+            (content_bounds.height - bounds.height).max(0.0).round();
 
-        self.offset.min(hidden_content as f32) as u32
+        (self.position * hidden_content_height).min(hidden_content_height)
+            as u32
     }
 
     /// Returns whether the scroller is currently grabbed or not.
