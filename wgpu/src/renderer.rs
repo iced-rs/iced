@@ -339,6 +339,18 @@ impl Renderer {
     ) {
         let bounds = layer.bounds * scale_factor;
 
+        if !layer.quads.is_empty() {
+            self.quad_pipeline.draw(
+                device,
+                encoder,
+                &layer.quads,
+                transformation,
+                scale_factor,
+                bounds,
+                target,
+            );
+        }
+
         if !layer.meshes.is_empty() {
             let scaled = transformation
                 * Transformation::scale(scale_factor, scale_factor);
@@ -352,18 +364,6 @@ impl Renderer {
                 scaled,
                 &layer.meshes,
                 bounds,
-            );
-        }
-
-        if !layer.quads.is_empty() {
-            self.quad_pipeline.draw(
-                device,
-                encoder,
-                &layer.quads,
-                transformation,
-                scale_factor,
-                bounds,
-                target,
             );
         }
 
