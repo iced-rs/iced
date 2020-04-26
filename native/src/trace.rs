@@ -38,7 +38,7 @@ impl Default for TimeBuffer { fn default() -> Self { Self::new(200) } }*/
 
 type Profile = VecDeque<time::Duration>;
 
-//
+/// Time scope execution
 #[derive(Debug)]
 pub struct ProfileScope<'t>{
     profile: &'t mut Profile,
@@ -52,12 +52,19 @@ impl<'t> Drop for ProfileScope<'t> {
 }
 
 use enum_iterator::IntoEnumIterator;
+/// Split profile into components
 #[derive(IntoEnumIterator,Debug)]
-pub enum Component { Startup, Event, Update, View, Layout, Draw, Render, Len }
+pub enum Component {
+/// Until first request
+    Setup,
+    //Event, Update, View, Layout, Draw, Render,
+    ///
+    _Length
+}
 
 /// Collects application execution time profile and log messages
 #[derive(Default,Debug)]
-pub struct Debug {
+pub struct Trace {
     is_enabled: bool,
 
     profile: Vec<Profile>,
@@ -66,9 +73,9 @@ pub struct Debug {
     last_messages: VecDeque<String>,
 }
 
-impl Debug {
+impl Trace {
     /// Creates an empty profile
-    pub fn new() -> Self { Self{ profile: { let mut vec = Vec::new(); vec.resize_with(Component::Len as usize, Default::default); vec }, ..Self::default() } }
+    pub fn new() -> Self { Self{ profile: { let mut vec = Vec::new(); vec.resize_with(Component::_Length as usize, Default::default); vec }, ..Self::default() } }
 
     /// Toggle profiling
     pub fn toggle(&mut self) {
@@ -76,7 +83,7 @@ impl Debug {
     }
 
     /// Appends scope execution time to profile
-    pub fn profile_scope(&mut self, component: Component) -> ProfileScope<'_> { ProfileScope{profile: &mut self.profile[component as usize], start: time::Instant::now()} }
+    pub fn scope(&mut self, component: Component) -> ProfileScope<'_> { ProfileScope{profile: &mut self.profile[component as usize], start: time::Instant::now()} }
 
     /// Appends message to log
     pub fn log_message<Message: std::fmt::Debug>(&mut self, message: &Message) {

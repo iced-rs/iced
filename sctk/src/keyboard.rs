@@ -1,5 +1,5 @@
 use std::{rc::Rc, cell::Cell, time::{Instant, Duration}};
-use futures::{future::FutureExt, stream::{Stream, StreamExt}};
+use futures::{future::FutureExt, stream::StreamExt};
 pub use smithay_client_toolkit::seat::keyboard::{Event, KeyState};
 use {super::{Update,Item}, crate::{input::{ButtonState, keyboard::{self, ModifiersState}}}, super::conversion};
 
@@ -10,7 +10,7 @@ use {super::{Update,Item}, crate::{input::{ButtonState, keyboard::{self, Modifie
 }
 
 impl Keyboard {
-    fn handle(&mut self, Update{streams, events, ..}: &mut Update, event: Event) {
+    fn handle<W>(&mut self, Update{streams, events, ..}: &mut Update<W>, event: Event) {
         let Self{modifiers, repeat} = self;
         match event {
             Event::Enter { .. } => (),

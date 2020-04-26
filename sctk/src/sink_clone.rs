@@ -179,7 +179,7 @@ impl<Si, Item, U, Fut, F, E> Sink<U> for With<Si, Item, U, Fut, F>
 }
 }
 
-use iced_native::futures::{
+use futures::{
     future::Future,
     sink::Sink,
 };
