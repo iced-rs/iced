@@ -1,7 +1,7 @@
 use iced::{
-    button, scrollable, Align, Application, Button, Color, Column, Command,
-    Container, Element, HorizontalAlignment, Length, ProgressBar, Row,
-    Scrollable, Settings, Space, Subscription, Text,
+    button, scrollable, Align, Application, Button, Column, Command, Container,
+    Element, HorizontalAlignment, Length, ProgressBar, Row, Scrollable,
+    Settings, Space, Subscription, Text,
 };
 
 use crate::download::{Download, Progress};
@@ -15,7 +15,6 @@ pub fn main() -> iced::Result {
 const FILE_URL: &str = "https://speed.hetzner.de/100MB.bin";
 
 enum Example {
-    Loading,
     Loaded(State),
 }
 
@@ -30,16 +29,29 @@ struct Task {
 #[derive(Debug, Clone, Default)]
 struct State {
     tasks: Vec<Task>,
-    downloading_urls: Vec<String>,
     scrollable: scrollable::State,
 }
 
 #[derive(Debug, Clone)]
-enum Message {
-    Loaded(State),
-    StartDownload(String),
-    CancelDownload(String),
-    DownloadProgressed((String, Progress)),
+struct Message {
+    url: String,
+    download_message: DownloadMessage,
+}
+
+impl Message {
+    fn from(url: String, download_message: DownloadMessage) -> Self {
+        Message {
+            url,
+            download_message,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+enum DownloadMessage {
+    StartDownload,
+    CancelDownload,
+    DownloadProgressed(Progress),
 }
 
 #[derive(Debug, Clone)]
@@ -84,23 +96,28 @@ impl Task {
                 match self.state {
                     TaskState::Idle => {
                         Button::new(&mut self.button, download_text("Download"))
-                            .on_press(Message::StartDownload(
+                            .on_press(Message::from(
                                 (*self.url).to_string(),
+                                DownloadMessage::StartDownload,
                             ))
                     }
                     TaskState::Downloading(progress) => Button::new(
                         &mut self.button,
                         download_text(&format!("{:.2}%", progress)),
                     )
-                    .on_press(Message::CancelDownload((*self.url).to_string())),
+                    .on_press(Message::from(
+                        (*self.url).to_string(),
+                        DownloadMessage::CancelDownload,
+                    )),
                     TaskState::Finished => Button::new(
                         &mut self.button,
                         download_text("Downloaded"),
                     ),
                     TaskState::Error => {
                         Button::new(&mut self.button, download_text("Errored"))
-                            .on_press(Message::StartDownload(
+                            .on_press(Message::from(
                                 (*self.url).to_string(),
+                                DownloadMessage::StartDownload,
                             ))
                     }
                 }
@@ -110,8 +127,12 @@ impl Task {
     }
 }
 
-impl Example {
-    async fn load_data() -> State {
+impl Application for Example {
+    type Executor = iced::executor::Default;
+    type Message = Message;
+    type Flags = ();
+
+    fn new(_flags: ()) -> (Example, Command<Message>) {
         let tasks: Vec<_> = (1..=10)
             .map(|n| Task {
                 name: format!("File {:0>2}", n),
@@ -119,129 +140,65 @@ impl Example {
                 ..Task::default()
             })
             .collect();
-        State {
-            tasks,
-            ..State::default()
-        }
-    }
-}
 
-impl Application for Example {
-    type Executor = iced::executor::Default;
-    type Message = Message;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Example, Command<Message>) {
         (
-            Example::Loading,
-            Command::perform(Example::load_data(), Message::Loaded),
+            Example::Loaded(State {
+                tasks,
+                ..State::default()
+            }),
+            Command::none(),
         )
     }
 
     fn title(&self) -> String {
-        "Download Progress".to_string()
+        String::from("Download progress - Iced")
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match self {
-            Example::Loading => {
-                if let Message::Loaded(state) = message {
-                    *self = Example::Loaded(state)
-                }
-            }
-            Example::Loaded(State {
-                tasks,
-                downloading_urls,
-                ..
-            }) => match message {
-                Message::StartDownload(url) => {
-                    if let Some(task) = tasks.iter_mut().find(|t| t.url == url)
-                    {
-                        downloading_urls.push(url);
-                        task.state = TaskState::Downloading(0f32);
-                    }
-                }
-                Message::DownloadProgressed((url, progress)) => {
-                    if let Some(task) = tasks.iter_mut().find(|t| t.url == url)
-                    {
-                        if let TaskState::Downloading(p) = &mut task.state {
-                            match progress {
-                                Progress::Started => *p = 0.0,
-                                Progress::Advanced(percentage) => {
-                                    *p = percentage
-                                }
-                                Progress::Finished(_bytes) => {
-                                    if let Some(position) = downloading_urls
-                                        .iter()
-                                        .position(|u| u == &url)
-                                    {
-                                        downloading_urls.remove(position);
+            Example::Loaded(State { tasks, .. }) => {
+                let url = message.url;
+                if let Some(task) = tasks.iter_mut().find(|t| t.url == url) {
+                    match message.download_message {
+                        DownloadMessage::StartDownload => {
+                            task.state = TaskState::Downloading(0f32);
+                        }
+                        DownloadMessage::DownloadProgressed(progress) => {
+                            if let TaskState::Downloading(p) = &mut task.state {
+                                match progress {
+                                    Progress::Started => *p = 0.0,
+                                    Progress::Advanced(percentage) => {
+                                        *p = percentage
+                                    }
+                                    Progress::Finished(_bytes) => {
                                         task.state = TaskState::Finished;
                                     }
-                                }
-                                Progress::Errored => {
-                                    task.state = TaskState::Error;
+                                    Progress::Errored => {
+                                        task.state = TaskState::Error;
+                                    }
                                 }
                             }
                         }
+                        DownloadMessage::CancelDownload => {
+                            task.state = TaskState::Idle;
+                        }
                     }
                 }
-                Message::CancelDownload(url) => {
-                    if let Some(task) = tasks.iter_mut().find(|t| t.url == url)
-                    {
-                        downloading_urls.remove(
-                            downloading_urls
-                                .iter()
-                                .position(|u| u == &url)
-                                .unwrap(),
-                        );
-                        task.state = TaskState::Idle;
-                    }
-                }
-                _ => {}
-            },
+            }
         }
         Command::none()
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
         match self {
-            Example::Loading => Subscription::none(),
-            Example::Loaded(State {
-                downloading_urls, ..
-            }) => Subscription::batch(downloading_urls.iter().map(|url| {
-                Subscription::from_recipe(Download {
-                    url: url.to_string(),
-                })
-                .map(Message::DownloadProgressed)
-            })),
+            Example::Loaded(State { tasks, .. }) => {
+                Subscription::batch(tasks.iter().map(|task| file(&task.url)))
+            }
         }
     }
 
     fn view(&mut self) -> Element<Self::Message> {
         match self {
-            Example::Loading => Container::new(
-                Column::new()
-                    .padding(80)
-                    .spacing(20)
-                    .push(
-                        Text::new("Download Progress")
-                            .width(Length::Fill)
-                            .size(40)
-                            .horizontal_alignment(HorizontalAlignment::Center)
-                            .color(Color::from_rgb8(16, 93, 208)),
-                    )
-                    .push(
-                        Text::new("Loading...")
-                            .width(Length::Fill)
-                            .size(28)
-                            .horizontal_alignment(HorizontalAlignment::Center)
-                            .color(Color::from_rgb(0.3, 0.3, 0.3)),
-                    ),
-            )
-            .width(Length::Fill)
-            .center_x()
-            .into(),
             Example::Loaded(State {
                 tasks, scrollable, ..
             }) => {
@@ -265,4 +222,14 @@ impl Application for Example {
             }
         }
     }
+}
+
+// Just a little utility function
+fn file<T: ToString>(url: T) -> iced::Subscription<Message> {
+    iced::Subscription::from_recipe(Download {
+        url: url.to_string(),
+    })
+    .map(|(url, progress)| {
+        Message::from(url, DownloadMessage::DownloadProgressed(progress))
+    })
 }

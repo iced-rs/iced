@@ -35,77 +35,64 @@ where
         self: Box<Self>,
         _input: BoxStream<'static, I>,
     ) -> BoxStream<'static, Self::Output> {
-        Box::pin(stream::unfold(
-            State::Ready(self.url.to_string()),
-            |state| async move {
-                match state {
-                    State::Ready(url) => match reqwest::get(&url).await {
-                        Ok(response) => {
-                            if let Some(total) = response.content_length() {
-                                Some((
-                                    (url.to_string(), Progress::Started),
-                                    State::Downloading {
-                                        url,
-                                        response,
-                                        total,
-                                        bytes: vec![],
-                                    },
-                                ))
-                            } else {
-                                Some((
-                                    (url, Progress::Errored),
-                                    State::Finished,
-                                ))
-                            }
-                        }
-                        Err(_) => {
-                            Some(((url, Progress::Errored), State::Finished))
-                        }
-                    },
-                    State::Downloading {
-                        url,
-                        mut response,
-                        total,
-                        mut bytes,
-                    } => match response.chunk().await {
-                        Ok(Some(chunk)) => {
-                            let downloaded =
-                                bytes.len() as u64 + chunk.len() as u64;
-                            let percentage =
-                                (downloaded as f32 / total as f32) * 100.0;
-                            bytes.put(chunk);
+        Box::pin(stream::unfold(State::Ready(self.url), |state| async move {
+            match state {
+                State::Ready(url) => match reqwest::get(&url).await {
+                    Ok(response) => {
+                        if let Some(total) = response.content_length() {
                             Some((
-                                (
-                                    url.to_string(),
-                                    Progress::Advanced(percentage),
-                                ),
+                                (url.clone(), Progress::Started),
                                 State::Downloading {
                                     url,
                                     response,
                                     total,
-                                    bytes,
+                                    bytes: vec![],
                                 },
                             ))
-                        }
-                        Ok(None) => Some((
-                            (url, Progress::Finished(bytes)),
-                            State::Finished,
-                        )),
-                        Err(_) => {
+                        } else {
                             Some(((url, Progress::Errored), State::Finished))
                         }
-                    },
-                    State::Finished => {
-                        // We do not let the stream die, as it would start a
-                        // new download repeatedly if the user is not careful
-                        // in case of errors.
-                        iced::futures::future::pending::<()>().await;
-
-                        None
                     }
+                    Err(_) => Some(((url, Progress::Errored), State::Finished)),
+                },
+                State::Downloading {
+                    url,
+                    mut response,
+                    total,
+                    mut bytes,
+                } => match response.chunk().await {
+                    Ok(Some(chunk)) => {
+                        let downloaded =
+                            bytes.len() as u64 + chunk.len() as u64;
+                        let percentage =
+                            (downloaded as f32 / total as f32) * 100.0;
+                        bytes.put(chunk);
+                        Some((
+                            (url.to_string(), Progress::Advanced(percentage)),
+                            State::Downloading {
+                                url,
+                                response,
+                                total,
+                                bytes,
+                            },
+                        ))
+                    }
+                    Ok(None) => Some((
+                        (url, Progress::Finished(bytes)),
+                        State::Finished,
+                    )),
+                    Err(_) => Some(((url, Progress::Errored), State::Finished)),
+                },
+                State::Finished => {
+                    // We do not let the stream die, as it would start a
+                    // new download repeatedly if the user is not careful
+                    // in case of errors.
+                    iced::futures::future::pending::<()>().await;
+
+                    None
                 }
-            },
-        ))
+            }
+        }))
     }
 }
 
