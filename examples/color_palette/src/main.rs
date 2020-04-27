@@ -3,6 +3,8 @@ use iced::{
     Settings, Slider, Text,
 };
 use palette::{self, Limited};
+use std::marker::PhantomData;
+use std::ops::RangeInclusive;
 
 pub fn main() {
     ColorPalette::run(Settings {
@@ -51,20 +53,288 @@ fn generate_theme(base_color: &Color) -> Vec<Color> {
     theme
 }
 
+struct ColorPicker<C: ColorSpace> {
+    sliders: [slider::State; 3],
+    color_space: PhantomData<C>,
+}
+
+trait ColorSpace: Sized {
+    const LABEL: &'static str;
+    const COMPONENT_RANGES: [RangeInclusive<f32>; 3];
+
+    fn new(a: f32, b: f32, c: f32) -> Self;
+
+    fn components(&self) -> [f32; 3];
+
+    fn update_component(c: Self, i: usize, val: f32) -> Self;
+
+    fn to_string(&self) -> String;
+}
+
+impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
+    fn view(&mut self, color: C) -> Element<C> {
+        let [c1, c2, c3] = color.components();
+        let [s1, s2, s3] = &mut self.sliders;
+        let [cr1, cr2, cr3] = C::COMPONENT_RANGES;
+        Row::new()
+            .spacing(10)
+            .push(Text::new(C::LABEL).width(Length::Units(50)))
+            .push(Slider::new(s1, cr1, c1, move |v| {
+                C::update_component(color, 0, v)
+            }))
+            .push(Slider::new(s2, cr2, c2, move |v| {
+                C::update_component(color, 1, v)
+            }))
+            .push(Slider::new(s3, cr3, c3, move |v| {
+                C::update_component(color, 2, v)
+            }))
+            .push(
+                Text::new(color.to_string())
+                    .width(Length::Units(185))
+                    .size(16),
+            )
+            .into()
+    }
+}
+
+impl ColorSpace for Color {
+    const LABEL: &'static str = "RGB";
+    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+        [0.0..=1.0, 0.0..=1.0, 0.0..=1.0];
+
+    fn new(r: f32, g: f32, b: f32) -> Self {
+        Color::from_rgb(r, g, b)
+    }
+
+    fn components(&self) -> [f32; 3] {
+        [self.r, self.g, self.b]
+    }
+
+    fn update_component(c: Color, i: usize, val: f32) -> Self {
+        match i {
+            0 => Color { r: val, ..c },
+            1 => Color { g: val, ..c },
+            2 => Color { b: val, ..c },
+            _ => panic!("Invalid component index: {:?}", i),
+        }
+    }
+
+    fn to_string(&self) -> String {
+        format!(
+            "rgb({:.0}, {:.0}, {:.0})",
+            255.0 * self.r,
+            255.0 * self.g,
+            255.0 * self.b
+        )
+    }
+}
+
+impl ColorSpace for palette::Hsl {
+    const LABEL: &'static str = "HSL";
+    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+        [0.0..=360.0, 0.0..=1.0, 0.0..=1.0];
+
+    fn new(hue: f32, saturation: f32, lightness: f32) -> Self {
+        palette::Hsl::new(
+            palette::RgbHue::from_degrees(hue),
+            saturation,
+            lightness,
+        )
+    }
+
+    fn components(&self) -> [f32; 3] {
+        [
+            self.hue.to_positive_degrees(),
+            self.saturation,
+            self.lightness,
+        ]
+    }
+
+    fn update_component(c: palette::Hsl, i: usize, val: f32) -> Self {
+        match i {
+            0 => palette::Hsl {
+                hue: palette::RgbHue::from_degrees(val),
+                ..c
+            },
+            1 => palette::Hsl {
+                saturation: val,
+                ..c
+            },
+            2 => palette::Hsl {
+                lightness: val,
+                ..c
+            },
+            _ => panic!("Invalid component index: {:?}", i),
+        }
+    }
+
+    fn to_string(&self) -> String {
+        format!(
+            "hsl({:.1}, {:.1}%, {:.1}%)",
+            self.hue.to_positive_degrees(),
+            100.0 * self.saturation,
+            100.0 * self.lightness
+        )
+    }
+}
+
+impl ColorSpace for palette::Hsv {
+    const LABEL: &'static str = "HSV";
+    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+        [0.0..=360.0, 0.0..=1.0, 0.0..=1.0];
+
+    fn new(hue: f32, saturation: f32, value: f32) -> Self {
+        palette::Hsv::new(palette::RgbHue::from_degrees(hue), saturation, value)
+    }
+
+    fn components(&self) -> [f32; 3] {
+        [self.hue.to_positive_degrees(), self.saturation, self.value]
+    }
+
+    fn update_component(c: palette::Hsv, i: usize, val: f32) -> Self {
+        match i {
+            0 => palette::Hsv {
+                hue: palette::RgbHue::from_degrees(val),
+                ..c
+            },
+            1 => palette::Hsv {
+                saturation: val,
+                ..c
+            },
+            2 => palette::Hsv { value: val, ..c },
+            _ => panic!("Invalid component index: {:?}", i),
+        }
+    }
+
+    fn to_string(&self) -> String {
+        format!(
+            "hsv({:.1}, {:.1}%, {:.1}%)",
+            self.hue.to_positive_degrees(),
+            100.0 * self.saturation,
+            100.0 * self.value
+        )
+    }
+}
+
+impl ColorSpace for palette::Hwb {
+    const LABEL: &'static str = "HWB";
+    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+        [0.0..=360.0, 0.0..=1.0, 0.0..=1.0];
+
+    fn new(hue: f32, whiteness: f32, blackness: f32) -> Self {
+        palette::Hwb::new(
+            palette::RgbHue::from_degrees(hue),
+            whiteness,
+            blackness,
+        )
+    }
+
+    fn components(&self) -> [f32; 3] {
+        [
+            self.hue.to_positive_degrees(),
+            self.whiteness,
+            self.blackness,
+        ]
+    }
+
+    fn update_component(c: palette::Hwb, i: usize, val: f32) -> Self {
+        match i {
+            0 => palette::Hwb {
+                hue: palette::RgbHue::from_degrees(val),
+                ..c
+            },
+            1 => palette::Hwb {
+                whiteness: val,
+                ..c
+            },
+            2 => palette::Hwb {
+                blackness: val,
+                ..c
+            },
+            _ => panic!("Invalid component index: {:?}", i),
+        }
+    }
+
+    fn to_string(&self) -> String {
+        format!(
+            "hwb({:.1}, {:.1}%, {:.1}%)",
+            self.hue.to_positive_degrees(),
+            100.0 * self.whiteness,
+            100.0 * self.blackness
+        )
+    }
+}
+
+impl ColorSpace for palette::Lab {
+    const LABEL: &'static str = "Lab";
+    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+        [0.0..=100.0, -128.0..=127.0, -128.0..=127.0];
+
+    fn new(l: f32, a: f32, b: f32) -> Self {
+        palette::Lab::new(l, a, b)
+    }
+
+    fn components(&self) -> [f32; 3] {
+        [self.l, self.a, self.b]
+    }
+
+    fn update_component(c: palette::Lab, i: usize, val: f32) -> Self {
+        match i {
+            0 => palette::Lab { l: val, ..c },
+            1 => palette::Lab { a: val, ..c },
+            2 => palette::Lab { b: val, ..c },
+            _ => panic!("Invalid component index: {:?}", i),
+        }
+    }
+
+    fn to_string(&self) -> String {
+        format!("Lab({:.1}, {:.1}, {:.1})", self.l, self.a, self.b)
+    }
+}
+
+impl ColorSpace for palette::Lch {
+    const LABEL: &'static str = "Lch";
+    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+        [0.0..=100.0, 0.0..=128.0, 0.0..=360.0];
+
+    fn new(l: f32, chroma: f32, hue: f32) -> Self {
+        palette::Lch::new(l, chroma, palette::LabHue::from_degrees(hue))
+    }
+
+    fn components(&self) -> [f32; 3] {
+        [self.l, self.chroma, self.hue.to_positive_degrees()]
+    }
+
+    fn update_component(c: palette::Lch, i: usize, val: f32) -> Self {
+        match i {
+            0 => palette::Lch { l: val, ..c },
+            1 => palette::Lch { chroma: val, ..c },
+            2 => palette::Lch {
+                hue: palette::LabHue::from_degrees(val),
+                ..c
+            },
+            _ => panic!("Invalid component index: {:?}", i),
+        }
+    }
+
+    fn to_string(&self) -> String {
+        format!(
+            "Lch({:.1}, {:.1}, {:.1})",
+            self.l,
+            self.chroma,
+            self.hue.to_positive_degrees()
+        )
+    }
+}
+
 pub struct ColorPalette {
     state: State,
-    rgb_sliders: [slider::State; 3],
-    hsl_sliders: [slider::State; 3],
-    hsv_sliders: [slider::State; 3],
-    hwb_sliders: [slider::State; 3],
-    lab_sliders: [slider::State; 3],
-    lch_sliders: [slider::State; 3],
-    rgb_text_value: String,
-    hsl_text_value: String,
-    hsv_text_value: String,
-    hwb_text_value: String,
-    lab_text_value: String,
-    lch_text_value: String,
+    rgb: ColorPicker<Color>,
+    hsl: ColorPicker<palette::Hsl>,
+    hsv: ColorPicker<palette::Hsv>,
+    hwb: ColorPicker<palette::Hwb>,
+    lab: ColorPicker<palette::Lab>,
+    lch: ColorPicker<palette::Lch>,
     canvas_layer: canvas::layer::Cache<State>,
 }
 
@@ -90,28 +360,33 @@ impl Sandbox for ColorPalette {
             ]
         }
 
-        let state = State::new();
-        let rgb_text_value = color_str(&state.color, ColorFormat::Rgb);
-        let hsl_text_value = color_str(&state.color, ColorFormat::Hsl);
-        let hsv_text_value = color_str(&state.color, ColorFormat::Hsv);
-        let hwb_text_value = color_str(&state.color, ColorFormat::Hwb);
-        let lab_text_value = color_str(&state.color, ColorFormat::Lab);
-        let lch_text_value = color_str(&state.color, ColorFormat::Lch);
-
         ColorPalette {
-            state,
-            rgb_sliders: triple_slider(),
-            hsl_sliders: triple_slider(),
-            hsv_sliders: triple_slider(),
-            hwb_sliders: triple_slider(),
-            lab_sliders: triple_slider(),
-            lch_sliders: triple_slider(),
-            rgb_text_value,
-            hsl_text_value,
-            hsv_text_value,
-            hwb_text_value,
-            lab_text_value,
-            lch_text_value,
+            state: State::new(),
+            rgb: ColorPicker {
+                sliders: triple_slider(),
+                color_space: PhantomData::<Color>,
+            },
+            hsl: ColorPicker {
+                sliders: triple_slider(),
+                color_space: PhantomData::<palette::Hsl>,
+            },
+            hsv: ColorPicker {
+                sliders: triple_slider(),
+                color_space: PhantomData::<palette::Hsv>,
+            },
+
+            hwb: ColorPicker {
+                sliders: triple_slider(),
+                color_space: PhantomData::<palette::Hwb>,
+            },
+            lab: ColorPicker {
+                sliders: triple_slider(),
+                color_space: PhantomData::<palette::Lab>,
+            },
+            lch: ColorPicker {
+                sliders: triple_slider(),
+                color_space: PhantomData::<palette::Lch>,
+            },
             canvas_layer: canvas::layer::Cache::new(),
         }
     }
@@ -135,24 +410,9 @@ impl Sandbox for ColorPalette {
 
         // Set theme colors
         self.state.theme = generate_theme(&self.state.color);
-
-        // Set text
-        self.rgb_text_value = color_str(&self.state.color, ColorFormat::Rgb);
-        self.hsl_text_value = color_str(&self.state.color, ColorFormat::Hsl);
-        self.hsv_text_value = color_str(&self.state.color, ColorFormat::Hsv);
-        self.hwb_text_value = color_str(&self.state.color, ColorFormat::Hwb);
-        self.lab_text_value = color_str(&self.state.color, ColorFormat::Lab);
-        self.lch_text_value = color_str(&self.state.color, ColorFormat::Lch);
     }
 
     fn view(&mut self) -> Element<Message> {
-        let [rgb1, rgb2, rgb3] = &mut self.rgb_sliders;
-        let [hsl1, hsl2, hsl3] = &mut self.hsl_sliders;
-        let [hsv1, hsv2, hsv3] = &mut self.hsv_sliders;
-        let [hwb1, hwb2, hwb3] = &mut self.hwb_sliders;
-        let [lab1, lab2, lab3] = &mut self.lab_sliders;
-        let [lch1, lch2, lch3] = &mut self.lch_sliders;
-
         let color = self.state.color;
         let srgb = palette::Srgb::from(self.state.color);
         let hsl = palette::Hsl::from(srgb);
@@ -164,208 +424,12 @@ impl Sandbox for ColorPalette {
         Column::new()
             .padding(10)
             .spacing(10)
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .push(Text::new("RGB").width(Length::Units(50)))
-                    .push(Slider::new(rgb1, 0.0..=1.0, color.r, move |r| {
-                        Message::RgbColorChanged(Color { r, ..color })
-                    }))
-                    .push(Slider::new(rgb2, 0.0..=1.0, color.g, move |g| {
-                        Message::RgbColorChanged(Color { g, ..color })
-                    }))
-                    .push(Slider::new(rgb3, 0.0..=1.0, color.b, move |b| {
-                        Message::RgbColorChanged(Color { b, ..color })
-                    }))
-                    .push(
-                        Text::new(&self.rgb_text_value)
-                            .width(Length::Units(185))
-                            .size(16),
-                    ),
-            )
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .push(Text::new("HSL").width(Length::Units(50)))
-                    .push(Slider::new(
-                        hsl1,
-                        0.0..=360.0,
-                        hsl.hue.to_positive_degrees(),
-                        move |hue| {
-                            Message::HslColorChanged(palette::Hsl {
-                                hue: palette::RgbHue::from_degrees(hue),
-                                ..hsl
-                            })
-                        },
-                    ))
-                    .push(Slider::new(
-                        hsl2,
-                        0.0..=1.0,
-                        hsl.saturation,
-                        move |saturation| {
-                            Message::HslColorChanged(palette::Hsl {
-                                saturation,
-                                ..hsl
-                            })
-                        },
-                    ))
-                    .push(Slider::new(
-                        hsl3,
-                        0.0..=1.0,
-                        hsl.lightness,
-                        move |lightness| {
-                            Message::HslColorChanged(palette::Hsl {
-                                lightness,
-                                ..hsl
-                            })
-                        },
-                    ))
-                    .push(
-                        Text::new(&self.hsl_text_value)
-                            .width(Length::Units(185))
-                            .size(16),
-                    ),
-            )
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .push(Text::new("HSV").width(Length::Units(50)))
-                    .push(Slider::new(
-                        hsv1,
-                        0.0..=360.0,
-                        hsv.hue.to_positive_degrees(),
-                        move |hue| {
-                            Message::HsvColorChanged(palette::Hsv {
-                                hue: palette::RgbHue::from_degrees(hue),
-                                ..hsv
-                            })
-                        },
-                    ))
-                    .push(Slider::new(
-                        hsv2,
-                        0.0..=1.0,
-                        hsv.saturation,
-                        move |saturation| {
-                            Message::HsvColorChanged(palette::Hsv {
-                                saturation,
-                                ..hsv
-                            })
-                        },
-                    ))
-                    .push(Slider::new(
-                        hsv3,
-                        0.0..=1.0,
-                        hsv.value,
-                        move |value| {
-                            Message::HsvColorChanged(palette::Hsv {
-                                value,
-                                ..hsv
-                            })
-                        },
-                    ))
-                    .push(
-                        Text::new(&self.hsv_text_value)
-                            .width(Length::Units(185))
-                            .size(16),
-                    ),
-            )
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .push(Text::new("HWB").width(Length::Units(50)))
-                    .push(Slider::new(
-                        hwb1,
-                        0.0..=360.0,
-                        hwb.hue.to_positive_degrees(),
-                        move |hue| {
-                            Message::HwbColorChanged(palette::Hwb {
-                                hue: palette::RgbHue::from_degrees(hue),
-                                ..hwb
-                            })
-                        },
-                    ))
-                    .push(Slider::new(
-                        hwb2,
-                        0.0..=1.0,
-                        hwb.whiteness,
-                        move |whiteness| {
-                            Message::HwbColorChanged(palette::Hwb {
-                                whiteness,
-                                ..hwb
-                            })
-                        },
-                    ))
-                    .push(Slider::new(
-                        hwb3,
-                        0.0..=1.0,
-                        hwb.blackness,
-                        move |blackness| {
-                            Message::HwbColorChanged(palette::Hwb {
-                                blackness,
-                                ..hwb
-                            })
-                        },
-                    ))
-                    .push(
-                        Text::new(&self.hwb_text_value)
-                            .width(Length::Units(185))
-                            .size(16),
-                    ),
-            )
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .push(Text::new("Lab").width(Length::Units(50)))
-                    .push(Slider::new(lab1, 0.0..=100.0, lab.l, move |l| {
-                        Message::LabColorChanged(palette::Lab { l, ..lab })
-                    }))
-                    .push(Slider::new(lab2, -128.0..=127.0, lab.a, move |a| {
-                        Message::LabColorChanged(palette::Lab { a, ..lab })
-                    }))
-                    .push(Slider::new(lab3, -128.0..=127.0, lab.b, move |b| {
-                        Message::LabColorChanged(palette::Lab { b, ..lab })
-                    }))
-                    .push(
-                        Text::new(&self.lab_text_value)
-                            .width(Length::Units(185))
-                            .size(16),
-                    ),
-            )
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .push(Text::new("Lch").width(Length::Units(50)))
-                    .push(Slider::new(lch1, 0.0..=100.0, lch.l, move |l| {
-                        Message::LchColorChanged(palette::Lch { l, ..lch })
-                    }))
-                    .push(Slider::new(
-                        lch2,
-                        0.0..=128.0,
-                        lch.chroma,
-                        move |chroma| {
-                            Message::LchColorChanged(palette::Lch {
-                                chroma,
-                                ..lch
-                            })
-                        },
-                    ))
-                    .push(Slider::new(
-                        lch3,
-                        0.0..=360.0,
-                        lch.hue.to_positive_degrees(),
-                        move |hue| {
-                            Message::LchColorChanged(palette::Lch {
-                                hue: palette::LabHue::from_degrees(hue),
-                                ..lch
-                            })
-                        },
-                    ))
-                    .push(
-                        Text::new(&self.lch_text_value)
-                            .width(Length::Units(185))
-                            .size(16),
-                    ),
-            )
+            .push(self.rgb.view(color).map(Message::RgbColorChanged))
+            .push(self.hsl.view(hsl).map(Message::HslColorChanged))
+            .push(self.hsv.view(hsv).map(Message::HsvColorChanged))
+            .push(self.hwb.view(hwb).map(Message::HwbColorChanged))
+            .push(self.lab.view(lab).map(Message::LabColorChanged))
+            .push(self.lch.view(lch).map(Message::LchColorChanged))
             .push(
                 Canvas::new()
                     .width(Length::Fill)
@@ -395,7 +459,6 @@ impl canvas::Drawable for State {
         use palette::{Hsl, Srgb};
 
         if self.theme.len() == 0 {
-            println!("Zero len");
             return;
         }
 
@@ -464,7 +527,7 @@ impl canvas::Drawable for State {
             }
 
             frame.fill_text(canvas::Text {
-                content: color_str(&self.theme[i], ColorFormat::Hex),
+                content: color_hex_str(&self.theme[i]),
                 position: Point {
                     x: anchor.x + box_size.width / 2.0,
                     y: box_size.height,
@@ -494,7 +557,7 @@ impl canvas::Drawable for State {
             frame.fill(&rect, Fill::Color(color));
 
             frame.fill_text(canvas::Text {
-                content: color_str(&color, ColorFormat::Hex),
+                content: color_hex_str(&color),
                 position: Point {
                     x: anchor.x + box_size.width / 2.0,
                     y: box_size.height + 2.0 * pad,
@@ -505,63 +568,11 @@ impl canvas::Drawable for State {
     }
 }
 
-enum ColorFormat {
-    Hex,
-    Rgb,
-    Hsl,
-    Hsv,
-    Hwb,
-    Lab,
-    Lch,
-}
-
-fn color_str(color: &Color, color_format: ColorFormat) -> String {
-    let srgb = palette::Srgb::from(*color);
-    let hsl = palette::Hsl::from(srgb);
-    let hsv = palette::Hsv::from(srgb);
-    let hwb = palette::Hwb::from(srgb);
-    let lab = palette::Lab::from(srgb);
-    let lch = palette::Lch::from(srgb);
-
-    match color_format {
-        ColorFormat::Hex => format!(
-            "#{:x}{:x}{:x}",
-            (255.0 * color.r).round() as u8,
-            (255.0 * color.g).round() as u8,
-            (255.0 * color.b).round() as u8
-        ),
-        ColorFormat::Rgb => format!(
-            "rgb({:.0}, {:.0}, {:.0})",
-            255.0 * color.r,
-            255.0 * color.g,
-            255.0 * color.b
-        ),
-        ColorFormat::Hsl => format!(
-            "hsl({:.1}, {:.1}%, {:.1}%)",
-            hsl.hue.to_positive_degrees(),
-            100.0 * hsl.saturation,
-            100.0 * hsl.lightness
-        ),
-        ColorFormat::Hsv => format!(
-            "hsv({:.1}, {:.1}%, {:.1}%)",
-            hsv.hue.to_positive_degrees(),
-            100.0 * hsv.saturation,
-            100.0 * hsv.value
-        ),
-        ColorFormat::Hwb => format!(
-            "hwb({:.1}, {:.1}%, {:.1}%)",
-            hwb.hue.to_positive_degrees(),
-            100.0 * hwb.whiteness,
-            100.0 * hwb.blackness
-        ),
-        ColorFormat::Lab => {
-            format!("Lab({:.1}, {:.1}, {:.1})", lab.l, lab.a, lab.b)
-        }
-        ColorFormat::Lch => format!(
-            "Lch({:.1}, {:.1}, {:.1})",
-            lch.l,
-            lch.chroma,
-            lch.hue.to_positive_degrees()
-        ),
-    }
+fn color_hex_str(color: &Color) -> String {
+    format!(
+        "#{:x}{:x}{:x}",
+        (255.0 * color.r).round() as u8,
+        (255.0 * color.g).round() as u8,
+        (255.0 * color.b).round() as u8
+    )
 }
