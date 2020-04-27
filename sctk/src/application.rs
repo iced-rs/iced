@@ -12,7 +12,7 @@ pub trait Application: Sized {
     fn subscription(&self) -> Subscription<Self::Message>;
     fn view(&mut self) -> Element<'_, Self::Message, <Self::Backend as Backend>::Renderer>;
     fn mode(&self) -> Mode { Mode::Windowed }
-    fn run(settings: Settings<Self::Flags>, backend_settings: <Self::Backend as Backend>::Settings) {
-        smol::run(async_sctk::future(settings, backend_settings));
+    fn run(settings: Settings<Self::Flags>, backend: <Self::Backend as Backend>::Settings) {
+        smol::run(async_sctk::future(settings, backend));
     }
 }

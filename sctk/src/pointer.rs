@@ -14,7 +14,7 @@ use {crate::{Event::Mouse, input::{self, mouse}}, super::conversion};
 }
 
 impl Pointer {
-    fn handle(&mut self, event : Event, pointer: ThemedPointer, events: &mut Vec<Event>, window: &SCTKWindow, current_cursor: &'static str) {
+    pub fn handle(&mut self, event : Event, pointer: ThemedPointer, events: &mut Vec<crate::Event>, window: &SCTKWindow, current_cursor: &'static str) {
         let Self{focus, axis_buffer, axis_discrete_buffer} = self;
         match event {
             Event::Enter { surface, surface_x:x,surface_y:y, .. } if surface == *window.surface() => {

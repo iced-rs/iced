@@ -1,6 +1,5 @@
-use smithay_client_toolkit::window::{Window as SCTKWindow, ConceptFrame, Decorations};
-use iced_native::{Runtime, Trace, UserInterface, Cache, window, Event};
-use super::pointer::Pointer;
+use smithay_client_toolkit::{seat::pointer::ThemedPointer, window::{Window as SCTKWindow, ConceptFrame, Decorations}};
+use iced_native::{Runtime, Trace, UserInterface, Cache, window::Backend, Renderer, Event};
 
 type Cursor = &'static str;
 
@@ -14,21 +13,21 @@ pub struct Settings {
 }
 impl Default for Settings { fn default() -> Self { Self{ resizable: true, decorations: true, ..Default::default() } } }
 
-pub struct Window<Backend:window::Backend, Renderer:iced_native::Renderer> {
+pub struct Window<B:Backend> {
     pub window: SCTKWindow<ConceptFrame>, // Refresh window
     pub size: (u32, u32), pub scale_factor: u32, // Configure window
     pub current_cursor: Cursor, // pointer::Enter window
-    pub pointer: Option<Pointer>, // render set_pointer
+    pub pointer: Option<ThemedPointer>, // render() { set_pointer }
 
     title: String,
     mode: Mode,
-    backend : Backend, renderer : Renderer, swap_chain: Backend::SwapChain,
+    backend : B, renderer : B::Renderer, swap_chain: B::SwapChain,
     pub buffer_size: (u32, u32), pub buffer_scale_factor: u32, // fixme: should be in swap_chain
     cache: Option<Cache>
 }
 
-impl<Backend:window::Backend, Renderer:iced_native::Renderer> Window<Backend, Renderer> {
-    fn new(window: SCTKWindow<ConceptFrame>, settings: Settings, backend: Backend::Settings) -> Self {
+impl<B:Backend> Window<B> {
+    pub fn new(window: SCTKWindow<ConceptFrame>, settings: self::Settings, backend: B::Settings) -> Self {
         window.set_resizable(settings.resizable);
         window.set_decorate(
             if settings.decorations { Decorations::FollowServer }
@@ -36,7 +35,7 @@ impl<Backend:window::Backend, Renderer:iced_native::Renderer> Window<Backend, Re
         );
 
         let size = settings.size;
-        let (mut backend, mut renderer) = Backend::new(backend);
+        let (mut backend, mut renderer) = B::new(backend);
         let mut swap_chain = backend.create_swap_chain(&backend.create_surface(&window.surface), size.0, size.1);
 
         Self {
@@ -47,8 +46,8 @@ impl<Backend:window::Backend, Renderer:iced_native::Renderer> Window<Backend, Re
             cache: None,
         }
     }
-    fn update<Executor, Receiver, Message>(&mut self, runtime: &Runtime<Executor, Receiver, Message>, // fixme: trait Runtime
-                                                                                                                          events: Vec<Event>, messages: Vec<Message>) -> Renderer::Output {
+    pub fn update<Executor, Receiver, Message>(&mut self, runtime: &Runtime<Executor, Receiver, Message>, // fixme: trait Runtime
+                                                                                                                          events: Vec<Event>, messages: Vec<Message>) -> <B::Renderer as Renderer>::Output {
         //debug.profile(Layout);
         let mut user_interface = UserInterface::build(self.application.view(), self.size.into(), self.cache.unwrap_or(Cache::new()), self.renderer);
 
@@ -99,7 +98,7 @@ impl<Backend:window::Backend, Renderer:iced_native::Renderer> Window<Backend, Re
         self.cache = Some(user_interface.into_cache());
         renderer_output
     }
-    fn render(&mut self, renderer_output: Renderer::Output, trace: &Trace) -> Cursor {
+    pub fn render(&mut self, renderer_output: <B::Renderer as Renderer>::Output, trace: &Trace) -> Cursor {
         //debug.profile(Render);
 
         let cursor = self.backend.draw(&mut self.renderer, &mut self.swap_chain, &renderer_output, self.scale_factor as f64, &trace.overlay());

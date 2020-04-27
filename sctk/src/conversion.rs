@@ -30,8 +30,8 @@ pub fn button(button: u32) -> Button {
     }
 }
 
-use smithay_client_toolkit::seat::keyboard::{self, Event};
-use iced_native::input::keyboard::{KeyCode, ModifiersState};
+use smithay_client_toolkit::seat::keyboard;
+use iced_native::input::keyboard::ModifiersState;
 /// Converts a `smithay_client_toolkit::seat::keyboard::ModifiersState` to an `iced_native`
 /// modifiers state.
 pub fn modifiers(modifiers: keyboard::ModifiersState) -> ModifiersState {
@@ -51,6 +51,7 @@ pub fn modifiers(modifiers: keyboard::ModifiersState) -> ModifiersState {
     }
 }
 
+use {keyboard::Event, iced_native::input::keyboard::KeyCode};
 /// Converts an `xkb` keysym to an `iced_native` key code.
 pub fn key(key : Event/*::Key*/) -> KeyCode { if let Event::Key{rawkey, keysym,..} = key { //#2593
     use {keyboard::keysyms::*, KeyCode::*};
