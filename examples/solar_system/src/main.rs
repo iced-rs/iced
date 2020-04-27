@@ -7,10 +7,9 @@
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::{
-    canvas, executor, window, Application, Canvas, Color, Command, Container,
-    Element, Length, Point, Settings, Size, Subscription, Vector,
+    canvas, executor, window, Application, Canvas, Color, Command, Element,
+    Length, Point, Settings, Size, Subscription, Vector,
 };
-use iced_native::input::{self, mouse};
 
 use std::time::Instant;
 
@@ -64,15 +63,9 @@ impl Application for SolarSystem {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new(&mut self.state)
-            .width(Length::Fill)
-            .height(Length::Fill);
-
-        Container::new(canvas)
+        Canvas::new(&mut self.state)
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x()
-            .center_y()
             .into()
     }
 }
@@ -127,8 +120,14 @@ impl State {
             .map(|_| {
                 (
                     Point::new(
-                        rng.gen_range(0.0, width as f32),
-                        rng.gen_range(0.0, height as f32),
+                        rng.gen_range(
+                            -(width as f32) / 2.0,
+                            width as f32 / 2.0,
+                        ),
+                        rng.gen_range(
+                            -(height as f32) / 2.0,
+                            height as f32 / 2.0,
+                        ),
                     ),
                     rng.gen_range(0.5, 1.0),
                 )
@@ -138,24 +137,6 @@ impl State {
 }
 
 impl canvas::State for State {
-    fn update(&mut self, event: canvas::Event, _bounds: Size) {
-        match event {
-            canvas::Event::Mouse(mouse_event) => match mouse_event {
-                mouse::Event::CursorMoved { x, y } => {
-                    self.cursor_position = Point::new(x, y);
-                }
-                mouse::Event::Input {
-                    button: mouse::Button::Left,
-                    state: input::ButtonState::Released,
-                } => {
-                    self.stars.push((self.cursor_position, 2.0));
-                    self.space_cache.clear();
-                }
-                _ => {}
-            },
-        }
-    }
-
     fn draw(&self, bounds: Size) -> Vec<canvas::Geometry> {
         vec![
             self.space_cache.draw(bounds, self.space()),
@@ -182,6 +163,8 @@ impl canvas::Drawable for Space<'_> {
         });
 
         frame.fill(&space, Color::BLACK);
+
+        frame.translate(frame.center() - Point::ORIGIN);
         frame.fill(&stars, Color::WHITE);
     }
 }
@@ -221,15 +204,12 @@ impl canvas::Drawable for System {
         );
 
         let elapsed = self.now - self.start;
-        let elapsed_seconds = elapsed.as_secs() as f32;
-        let elapsed_millis = elapsed.subsec_millis() as f32;
+        let rotation = (2.0 * PI / 60.0) * elapsed.as_secs() as f32
+            + (2.0 * PI / 60_000.0) * elapsed.subsec_millis() as f32;
 
         frame.with_save(|frame| {
             frame.translate(Vector::new(center.x, center.y));
-            frame.rotate(
-                (2.0 * PI / 60.0) * elapsed_seconds
-                    + (2.0 * PI / 60_000.0) * elapsed_millis,
-            );
+            frame.rotate(rotation);
             frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
 
             let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
@@ -241,10 +221,7 @@ impl canvas::Drawable for System {
             frame.fill(&earth, Color::from_rgb8(0x6B, 0x93, 0xD6));
 
             frame.with_save(|frame| {
-                frame.rotate(
-                    ((2.0 * PI) / 6.0) * elapsed_seconds
-                        + ((2.0 * PI) / 6_000.0) * elapsed_millis,
-                );
+                frame.rotate(rotation * 10.0);
                 frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
 
                 let moon = Path::circle(Point::ORIGIN, Self::MOON_RADIUS);
