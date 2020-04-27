@@ -12,3 +12,4 @@ iced_futures = { path = "../../futures" }
 reqwest = "0.10"
 futures-util = "0.3.4"
 bytes = "0.5.4"
+url = "2.1.1"

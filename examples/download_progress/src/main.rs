@@ -1,3 +1,5 @@
+use url::Url;
+
 use iced::{
     button, scrollable, Align, Application, Button, Column, Command, Container,
     Element, HorizontalAlignment, Length, ProgressBar, Row, Scrollable,
@@ -227,9 +229,12 @@ impl Application for Example {
 // Just a little utility function
 fn file<T: ToString>(url: T) -> iced::Subscription<Message> {
     iced::Subscription::from_recipe(Download {
-        url: url.to_string(),
+        url: Url::parse(&url.to_string()).unwrap(),
     })
     .map(|(url, progress)| {
-        Message::from(url, DownloadMessage::DownloadProgressed(progress))
+        Message::from(
+            url.as_str().to_string(),
+            DownloadMessage::DownloadProgressed(progress),
+        )
     })
 }

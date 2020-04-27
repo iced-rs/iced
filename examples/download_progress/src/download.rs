@@ -3,15 +3,16 @@ use std::hash::Hash;
 use bytes::BufMut;
 use futures_util::stream::{self, BoxStream};
 use reqwest;
+use url::Url;
 
 pub struct Download {
-    pub url: String,
+    pub url: Url,
 }
 
 pub enum State {
-    Ready(String),
+    Ready(Url),
     Downloading {
-        url: String,
+        url: Url,
         response: reqwest::Response,
         total: u64,
         bytes: Vec<u8>,
@@ -24,7 +25,7 @@ impl<H, I> iced_native::subscription::Recipe<H, I> for Download
 where
     H: std::hash::Hasher,
 {
-    type Output = (String, Progress);
+    type Output = (Url, Progress);
 
     fn hash(&self, state: &mut H) {
         std::any::TypeId::of::<Self>().hash(state);
@@ -37,7 +38,7 @@ where
     ) -> BoxStream<'static, Self::Output> {
         Box::pin(stream::unfold(State::Ready(self.url), |state| async move {
             match state {
-                State::Ready(url) => match reqwest::get(&url).await {
+                State::Ready(url) => match reqwest::get(url.as_str()).await {
                     Ok(response) => {
                         if let Some(total) = response.content_length() {
                             Some((
@@ -68,7 +69,7 @@ where
                             (downloaded as f32 / total as f32) * 100.0;
                         bytes.put(chunk);
                         Some((
-                            (url.to_string(), Progress::Advanced(percentage)),
+                            (url.clone(), Progress::Advanced(percentage)),
                             State::Downloading {
                                 url,
                                 response,
