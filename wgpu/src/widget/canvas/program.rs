@@ -1,6 +1,6 @@
 use crate::canvas::{Event, Geometry, Size};
 
-pub trait State<Message> {
+pub trait Program<Message> {
     fn update(&mut self, _event: Event, _bounds: Size) -> Option<Message> {
         None
     }
@@ -8,9 +8,9 @@ pub trait State<Message> {
     fn draw(&self, bounds: Size) -> Vec<Geometry>;
 }
 
-impl<T, Message> State<Message> for &mut T
+impl<T, Message> Program<Message> for &mut T
 where
-    T: State<Message>,
+    T: Program<Message>,
 {
     fn update(&mut self, event: Event, bounds: Size) -> Option<Message> {
         T::update(self, event, bounds)

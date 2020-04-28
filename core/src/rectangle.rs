@@ -135,8 +135,8 @@ impl From<Rectangle<f32>> for Rectangle<u32> {
         Rectangle {
             x: rectangle.x as u32,
             y: rectangle.y as u32,
-            width: rectangle.width.ceil() as u32,
-            height: rectangle.height.ceil() as u32,
+            width: (rectangle.width + 0.5).round() as u32,
+            height: (rectangle.height + 0.5).round() as u32,
         }
     }
 }

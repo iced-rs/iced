@@ -1,5 +1,5 @@
 use crate::{
-    canvas::{Drawable, Frame, Geometry},
+    canvas::{Frame, Geometry},
     Primitive,
 };
 
@@ -48,10 +48,11 @@ impl Cache {
         *self.state.borrow_mut() = State::Empty;
     }
 
-    pub fn draw<T>(&self, new_bounds: Size, input: T) -> Geometry
-    where
-        T: Drawable + std::fmt::Debug,
-    {
+    pub fn draw(
+        &self,
+        new_bounds: Size,
+        draw_fn: impl Fn(&mut Frame),
+    ) -> Geometry {
         use std::ops::Deref;
 
         if let State::Filled { bounds, primitive } = self.state.borrow().deref()
@@ -64,7 +65,7 @@ impl Cache {
         }
 
         let mut frame = Frame::new(new_bounds);
-        input.draw(&mut frame);
+        draw_fn(&mut frame);
 
         let primitive = {
             let geometry = frame.into_geometry();
@@ -78,30 +79,6 @@ impl Cache {
         };
 
         Geometry::from_primitive(Primitive::Cached { cache: primitive })
-    }
-
-    pub fn with<'a, T, Message>(
-        &'a self,
-        input: T,
-    ) -> impl crate::canvas::State<Message> + 'a
-    where
-        T: Drawable + std::fmt::Debug + 'a,
-    {
-        Bind { cache: self, input }
-    }
-}
-
-struct Bind<'a, T> {
-    cache: &'a Cache,
-    input: T,
-}
-
-impl<'a, T, Message> crate::canvas::State<Message> for Bind<'a, T>
-where
-    T: Drawable + std::fmt::Debug + 'a,
-{
-    fn draw(&self, bounds: Size) -> Vec<Geometry> {
-        vec![self.cache.draw(bounds, &self.input)]
     }
 }
 

@@ -18,34 +18,27 @@ use std::marker::PhantomData;
 pub mod path;
 
 mod cache;
-mod drawable;
 mod event;
 mod fill;
 mod frame;
 mod geometry;
-mod state;
+mod program;
 mod stroke;
 mod text;
 
 pub use cache::Cache;
-pub use drawable::Drawable;
 pub use event::Event;
 pub use fill::Fill;
 pub use frame::Frame;
 pub use geometry::Geometry;
 pub use path::Path;
-pub use state::State;
+pub use program::Program;
 pub use stroke::{LineCap, LineJoin, Stroke};
 pub use text::Text;
 
 /// A widget capable of drawing 2D graphics.
 ///
-/// A [`Canvas`] may contain multiple layers. A [`Layer`] is drawn using the
-/// painter's algorithm. In other words, layers will be drawn on top of each
-/// other in the same order they are pushed into the [`Canvas`].
-///
 /// [`Canvas`]: struct.Canvas.html
-/// [`Layer`]: layer/trait.Layer.html
 ///
 /// # Examples
 /// The repository has a couple of [examples] showcasing how to use a
@@ -66,10 +59,10 @@ pub use text::Text;
 /// ```no_run
 /// # mod iced {
 /// #     pub use iced_wgpu::canvas;
-/// #     pub use iced_native::Color;
+/// #     pub use iced_native::{Color, Size};
 /// # }
-/// use iced::canvas::{self, Cache, Canvas, Drawable, Fill, Frame, Path};
-/// use iced::Color;
+/// use iced::canvas::{self, Cache, Canvas, Fill, Frame, Geometry, Path, Program};
+/// use iced::{Color, Size};
 ///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
@@ -77,42 +70,45 @@ pub use text::Text;
 ///     radius: f32,
 /// }
 ///
-/// // Then, we implement the `Drawable` trait
-/// impl Drawable for Circle {
-///     fn draw(&self, frame: &mut Frame) {
+/// // Then, we implement the `Program` trait
+/// impl Program<()> for Circle {
+///     fn draw(&self, bounds: Size) -> Vec<Geometry>{
+///         // We prepare a new `Frame`
+///         let mut frame = Frame::new(bounds);
+///
 ///         // We create a `Path` representing a simple circle
 ///         let circle = Path::circle(frame.center(), self.radius);
 ///
 ///         // And fill it with some color
 ///         frame.fill(&circle, Fill::Color(Color::BLACK));
+///
+///         // Finally, we produce the geometry
+///         vec![frame.into_geometry()]
 ///     }
 /// }
 ///
-/// // We can use a `Cache` to avoid unnecessary re-tessellation
-/// let cache = Cache::new();
-///
 /// // Finally, we simply use our `Cache` to create the `Canvas`!
-/// let canvas: Canvas<_, ()> = Canvas::new(cache.with(Circle { radius: 50.0 }));
+/// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<S: State<Message>, Message> {
+pub struct Canvas<Message, P: Program<Message>> {
     width: Length,
     height: Length,
-    state: S,
+    program: P,
     phantom: PhantomData<Message>,
 }
 
-impl<Message, S: State<Message>> Canvas<S, Message> {
+impl<Message, P: Program<Message>> Canvas<Message, P> {
     const DEFAULT_SIZE: u16 = 100;
 
-    /// Creates a new [`Canvas`] with no layers.
+    /// Creates a new [`Canvas`].
     ///
     /// [`Canvas`]: struct.Canvas.html
-    pub fn new(state: S) -> Self {
+    pub fn new(program: P) -> Self {
         Canvas {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
-            state,
+            program,
             phantom: PhantomData,
         }
     }
@@ -134,8 +130,8 @@ impl<Message, S: State<Message>> Canvas<S, Message> {
     }
 }
 
-impl<Message, S: State<Message>> Widget<Message, Renderer>
-    for Canvas<S, Message>
+impl<Message, P: Program<Message>> Widget<Message, Renderer>
+    for Canvas<Message, P>
 {
     fn width(&self) -> Length {
         self.width
@@ -184,7 +180,7 @@ impl<Message, S: State<Message>> Widget<Message, Renderer>
 
         if let Some(canvas_event) = canvas_event {
             if let Some(message) =
-                self.state.update(canvas_event, bounds.size())
+                self.program.update(canvas_event, bounds.size())
             {
                 messages.push(message);
             }
@@ -207,7 +203,7 @@ impl<Message, S: State<Message>> Widget<Message, Renderer>
                 translation,
                 content: Box::new(Primitive::Group {
                     primitives: self
-                        .state
+                        .program
                         .draw(size)
                         .into_iter()
                         .map(Geometry::into_primitive)
@@ -227,12 +223,12 @@ impl<Message, S: State<Message>> Widget<Message, Renderer>
     }
 }
 
-impl<'a, Message, S: State<Message> + 'a> From<Canvas<S, Message>>
+impl<'a, Message, P: Program<Message> + 'a> From<Canvas<Message, P>>
     for Element<'a, Message, Renderer>
 where
     Message: 'static,
 {
-    fn from(canvas: Canvas<S, Message>) -> Element<'a, Message, Renderer> {
+    fn from(canvas: Canvas<Message, P>) -> Element<'a, Message, Renderer> {
         Element::new(canvas)
     }
 }

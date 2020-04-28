@@ -81,6 +81,12 @@ struct State {
 }
 
 impl State {
+    const SUN_RADIUS: f32 = 70.0;
+    const ORBIT_RADIUS: f32 = 150.0;
+    const EARTH_RADIUS: f32 = 12.0;
+    const MOON_RADIUS: f32 = 4.0;
+    const MOON_DISTANCE: f32 = 28.0;
+
     pub fn new() -> State {
         let now = Instant::now();
         let (width, height) = window::Settings::default().size;
@@ -92,17 +98,6 @@ impl State {
             start: now,
             now,
             stars: Self::generate_stars(width, height),
-        }
-    }
-
-    pub fn space(&self) -> Space<'_> {
-        Space { stars: &self.stars }
-    }
-
-    pub fn system(&self) -> System {
-        System {
-            start: self.start,
-            now: self.now,
         }
     }
 
@@ -136,106 +131,81 @@ impl State {
     }
 }
 
-impl<Message> canvas::State<Message> for State {
+impl<Message> canvas::Program<Message> for State {
     fn draw(&self, bounds: Size) -> Vec<canvas::Geometry> {
-        vec![
-            self.space_cache.draw(bounds, self.space()),
-            self.system_cache.draw(bounds, self.system()),
-        ]
-    }
-}
-
-#[derive(Debug)]
-struct Space<'a> {
-    stars: &'a [(Point, f32)],
-}
-
-impl canvas::Drawable for Space<'_> {
-    fn draw(&self, frame: &mut canvas::Frame) {
-        use canvas::Path;
-
-        let space = Path::rectangle(Point::new(0.0, 0.0), frame.size());
-
-        let stars = Path::new(|path| {
-            for (p, size) in self.stars {
-                path.rectangle(*p, Size::new(*size, *size));
-            }
-        });
-
-        frame.fill(&space, Color::BLACK);
-
-        frame.translate(frame.center() - Point::ORIGIN);
-        frame.fill(&stars, Color::WHITE);
-    }
-}
-
-#[derive(Debug)]
-struct System {
-    start: Instant,
-    now: Instant,
-}
-
-impl System {
-    const SUN_RADIUS: f32 = 70.0;
-    const ORBIT_RADIUS: f32 = 150.0;
-    const EARTH_RADIUS: f32 = 12.0;
-    const MOON_RADIUS: f32 = 4.0;
-    const MOON_DISTANCE: f32 = 28.0;
-}
-
-impl canvas::Drawable for System {
-    fn draw(&self, frame: &mut canvas::Frame) {
         use canvas::{Path, Stroke};
         use std::f32::consts::PI;
 
-        let center = frame.center();
+        let background = self.space_cache.draw(bounds, |frame| {
+            let space = Path::rectangle(Point::new(0.0, 0.0), frame.size());
 
-        let sun = Path::circle(center, Self::SUN_RADIUS);
-        let orbit = Path::circle(center, Self::ORBIT_RADIUS);
-
-        frame.fill(&sun, Color::from_rgb8(0xF9, 0xD7, 0x1C));
-        frame.stroke(
-            &orbit,
-            Stroke {
-                width: 1.0,
-                color: Color::from_rgba8(0, 153, 255, 0.1),
-                ..Stroke::default()
-            },
-        );
-
-        let elapsed = self.now - self.start;
-        let rotation = (2.0 * PI / 60.0) * elapsed.as_secs() as f32
-            + (2.0 * PI / 60_000.0) * elapsed.subsec_millis() as f32;
-
-        frame.with_save(|frame| {
-            frame.translate(Vector::new(center.x, center.y));
-            frame.rotate(rotation);
-            frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
-
-            let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
-            let shadow = Path::rectangle(
-                Point::new(0.0, -Self::EARTH_RADIUS),
-                Size::new(Self::EARTH_RADIUS * 4.0, Self::EARTH_RADIUS * 2.0),
-            );
-
-            frame.fill(&earth, Color::from_rgb8(0x6B, 0x93, 0xD6));
-
-            frame.with_save(|frame| {
-                frame.rotate(rotation * 10.0);
-                frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
-
-                let moon = Path::circle(Point::ORIGIN, Self::MOON_RADIUS);
-                frame.fill(&moon, Color::WHITE);
+            let stars = Path::new(|path| {
+                for (p, size) in &self.stars {
+                    path.rectangle(*p, Size::new(*size, *size));
+                }
             });
 
-            frame.fill(
-                &shadow,
-                Color {
-                    a: 0.7,
-                    ..Color::BLACK
+            frame.fill(&space, Color::BLACK);
+
+            frame.translate(frame.center() - Point::ORIGIN);
+            frame.fill(&stars, Color::WHITE);
+        });
+
+        let system = self.system_cache.draw(bounds, |frame| {
+            let center = frame.center();
+
+            let sun = Path::circle(center, Self::SUN_RADIUS);
+            let orbit = Path::circle(center, Self::ORBIT_RADIUS);
+
+            frame.fill(&sun, Color::from_rgb8(0xF9, 0xD7, 0x1C));
+            frame.stroke(
+                &orbit,
+                Stroke {
+                    width: 1.0,
+                    color: Color::from_rgba8(0, 153, 255, 0.1),
+                    ..Stroke::default()
                 },
             );
+
+            let elapsed = self.now - self.start;
+            let rotation = (2.0 * PI / 60.0) * elapsed.as_secs() as f32
+                + (2.0 * PI / 60_000.0) * elapsed.subsec_millis() as f32;
+
+            frame.with_save(|frame| {
+                frame.translate(Vector::new(center.x, center.y));
+                frame.rotate(rotation);
+                frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
+
+                let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
+                let shadow = Path::rectangle(
+                    Point::new(0.0, -Self::EARTH_RADIUS),
+                    Size::new(
+                        Self::EARTH_RADIUS * 4.0,
+                        Self::EARTH_RADIUS * 2.0,
+                    ),
+                );
+
+                frame.fill(&earth, Color::from_rgb8(0x6B, 0x93, 0xD6));
+
+                frame.with_save(|frame| {
+                    frame.rotate(rotation * 10.0);
+                    frame.translate(Vector::new(0.0, Self::MOON_DISTANCE));
+
+                    let moon = Path::circle(Point::ORIGIN, Self::MOON_RADIUS);
+                    frame.fill(&moon, Color::WHITE);
+                });
+
+                frame.fill(
+                    &shadow,
+                    Color {
+                        a: 0.7,
+                        ..Color::BLACK
+                    },
+                );
+            });
         });
+
+        vec![background, system]
     }
 }
 
