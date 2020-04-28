@@ -17,6 +17,21 @@ pub struct Rectangle<T = f32> {
 }
 
 impl Rectangle<f32> {
+    /// Creates a new [`Rectangle`] with its top-left corner in the given
+    /// [`Point`] and with the provided [`Size`].
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    /// [`Point`]: struct.Point.html
+    /// [`Size`]: struct.Size.html
+    pub fn new(top_left: Point, size: Size) -> Self {
+        Self {
+            x: top_left.x,
+            y: top_left.y,
+            width: size.width,
+            height: size.height,
+        }
+    }
+
     /// Returns the [`Point`] at the center of the [`Rectangle`].
     ///
     /// [`Point`]: struct.Point.html
