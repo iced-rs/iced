@@ -13,6 +13,7 @@ use iced_native::{
     MouseCursor, Point, Size, Vector, Widget,
 };
 use std::hash::Hash;
+use std::marker::PhantomData;
 
 pub mod path;
 
@@ -91,16 +92,17 @@ pub use text::Text;
 /// let cache = Cache::new();
 ///
 /// // Finally, we simply use our `Cache` to create the `Canvas`!
-/// let canvas = Canvas::new(cache.with(Circle { radius: 50.0 }));
+/// let canvas: Canvas<_, ()> = Canvas::new(cache.with(Circle { radius: 50.0 }));
 /// ```
 #[derive(Debug)]
-pub struct Canvas<S: State> {
+pub struct Canvas<S: State<Message>, Message> {
     width: Length,
     height: Length,
     state: S,
+    phantom: PhantomData<Message>,
 }
 
-impl<S: State> Canvas<S> {
+impl<Message, S: State<Message>> Canvas<S, Message> {
     const DEFAULT_SIZE: u16 = 100;
 
     /// Creates a new [`Canvas`] with no layers.
@@ -111,6 +113,7 @@ impl<S: State> Canvas<S> {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
             state,
+            phantom: PhantomData,
         }
     }
 
@@ -131,7 +134,9 @@ impl<S: State> Canvas<S> {
     }
 }
 
-impl<Message, S: State> Widget<Message, Renderer> for Canvas<S> {
+impl<Message, S: State<Message>> Widget<Message, Renderer>
+    for Canvas<S, Message>
+{
     fn width(&self) -> Length {
         self.width
     }
@@ -156,7 +161,7 @@ impl<Message, S: State> Widget<Message, Renderer> for Canvas<S> {
         event: iced_native::Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _messages: &mut Vec<Message>,
+        messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
@@ -178,7 +183,11 @@ impl<Message, S: State> Widget<Message, Renderer> for Canvas<S> {
         };
 
         if let Some(canvas_event) = canvas_event {
-            self.state.update(canvas_event, bounds.size())
+            if let Some(message) =
+                self.state.update(canvas_event, bounds.size())
+            {
+                messages.push(message);
+            }
         }
     }
 
@@ -218,12 +227,12 @@ impl<Message, S: State> Widget<Message, Renderer> for Canvas<S> {
     }
 }
 
-impl<'a, Message, S: State + 'a> From<Canvas<S>>
+impl<'a, Message, S: State<Message> + 'a> From<Canvas<S, Message>>
     for Element<'a, Message, Renderer>
 where
     Message: 'static,
 {
-    fn from(canvas: Canvas<S>) -> Element<'a, Message, Renderer> {
+    fn from(canvas: Canvas<S, Message>) -> Element<'a, Message, Renderer> {
         Element::new(canvas)
     }
 }

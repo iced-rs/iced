@@ -136,7 +136,7 @@ impl State {
     }
 }
 
-impl canvas::State for State {
+impl<Message> canvas::State<Message> for State {
     fn draw(&self, bounds: Size) -> Vec<canvas::Geometry> {
         vec![
             self.space_cache.draw(bounds, self.space()),

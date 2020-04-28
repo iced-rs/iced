@@ -80,7 +80,10 @@ impl Cache {
         Geometry::from_primitive(Primitive::Cached { cache: primitive })
     }
 
-    pub fn with<'a, T>(&'a self, input: T) -> impl crate::canvas::State + 'a
+    pub fn with<'a, T, Message>(
+        &'a self,
+        input: T,
+    ) -> impl crate::canvas::State<Message> + 'a
     where
         T: Drawable + std::fmt::Debug + 'a,
     {
@@ -93,7 +96,7 @@ struct Bind<'a, T> {
     input: T,
 }
 
-impl<'a, T> crate::canvas::State for Bind<'a, T>
+impl<'a, T, Message> crate::canvas::State<Message> for Bind<'a, T>
 where
     T: Drawable + std::fmt::Debug + 'a,
 {
