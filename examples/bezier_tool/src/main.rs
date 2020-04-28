@@ -1,290 +1,4 @@
-//! This example showcases a simple native custom widget that renders arbitrary
-//! path with `lyon`.
-mod bezier {
-    // For now, to implement a custom native widget you will need to add
-    // `iced_native` and `iced_wgpu` to your dependencies.
-    //
-    // Then, you simply need to define your widget type and implement the
-    // `iced_native::Widget` trait with the `iced_wgpu::Renderer`.
-    //
-    // Of course, you can choose to make the implementation renderer-agnostic,
-    // if you wish to, by creating your own `Renderer` trait, which could be
-    // implemented by `iced_wgpu` and other renderers.
-    use iced_native::{
-        input, layout, Clipboard, Color, Element, Event, Font, Hasher,
-        HorizontalAlignment, Layout, Length, MouseCursor, Point, Rectangle,
-        Size, Vector, VerticalAlignment, Widget,
-    };
-    use iced_wgpu::{
-        triangle::{Mesh2D, Vertex2D},
-        Defaults, Primitive, Renderer,
-    };
-    use lyon::tessellation::{
-        basic_shapes, BuffersBuilder, StrokeAttributes, StrokeOptions,
-        StrokeTessellator, VertexBuffers,
-    };
-
-    pub struct Bezier<'a, Message> {
-        state: &'a mut State,
-        curves: &'a [Curve],
-        // [from, to, ctrl]
-        on_click: Box<dyn Fn(Curve) -> Message>,
-    }
-
-    #[derive(Debug, Clone, Copy)]
-    pub struct Curve {
-        from: Point,
-        to: Point,
-        control: Point,
-    }
-
-    #[derive(Default)]
-    pub struct State {
-        pending: Option<Pending>,
-    }
-
-    enum Pending {
-        One { from: Point },
-        Two { from: Point, to: Point },
-    }
-
-    impl<'a, Message> Bezier<'a, Message> {
-        pub fn new<F>(
-            state: &'a mut State,
-            curves: &'a [Curve],
-            on_click: F,
-        ) -> Self
-        where
-            F: 'static + Fn(Curve) -> Message,
-        {
-            Self {
-                state,
-                curves,
-                on_click: Box::new(on_click),
-            }
-        }
-    }
-
-    impl<'a, Message> Widget<Message, Renderer> for Bezier<'a, Message> {
-        fn width(&self) -> Length {
-            Length::Fill
-        }
-
-        fn height(&self) -> Length {
-            Length::Fill
-        }
-
-        fn layout(
-            &self,
-            _renderer: &Renderer,
-            limits: &layout::Limits,
-        ) -> layout::Node {
-            let size = limits
-                .height(Length::Fill)
-                .width(Length::Fill)
-                .resolve(Size::ZERO);
-            layout::Node::new(size)
-        }
-
-        fn draw(
-            &self,
-            _renderer: &mut Renderer,
-            defaults: &Defaults,
-            layout: Layout<'_>,
-            cursor_position: Point,
-        ) -> (Primitive, MouseCursor) {
-            let mut buffer: VertexBuffers<Vertex2D, u32> = VertexBuffers::new();
-            let mut path_builder = lyon::path::Path::builder();
-
-            let bounds = layout.bounds();
-
-            // Draw rectangle border with lyon.
-            basic_shapes::stroke_rectangle(
-                &lyon::math::Rect::new(
-                    lyon::math::Point::new(0.5, 0.5),
-                    lyon::math::Size::new(
-                        bounds.width - 1.0,
-                        bounds.height - 1.0,
-                    ),
-                ),
-                &StrokeOptions::default().with_line_width(1.0),
-                &mut BuffersBuilder::new(
-                    &mut buffer,
-                    |pos: lyon::math::Point, _: StrokeAttributes| Vertex2D {
-                        position: pos.to_array(),
-                        color: [0.0, 0.0, 0.0, 1.0],
-                    },
-                ),
-            )
-            .unwrap();
-
-            for curve in self.curves {
-                path_builder.move_to(lyon::math::Point::new(
-                    curve.from.x,
-                    curve.from.y,
-                ));
-
-                path_builder.quadratic_bezier_to(
-                    lyon::math::Point::new(curve.control.x, curve.control.y),
-                    lyon::math::Point::new(curve.to.x, curve.to.y),
-                );
-            }
-
-            match self.state.pending {
-                None => {}
-                Some(Pending::One { from }) => {
-                    path_builder
-                        .move_to(lyon::math::Point::new(from.x, from.y));
-                    path_builder.line_to(lyon::math::Point::new(
-                        cursor_position.x - bounds.x,
-                        cursor_position.y - bounds.y,
-                    ));
-                }
-                Some(Pending::Two { from, to }) => {
-                    path_builder
-                        .move_to(lyon::math::Point::new(from.x, from.y));
-                    path_builder.quadratic_bezier_to(
-                        lyon::math::Point::new(
-                            cursor_position.x - bounds.x,
-                            cursor_position.y - bounds.y,
-                        ),
-                        lyon::math::Point::new(to.x, to.y),
-                    );
-                }
-            }
-
-            let mut tessellator = StrokeTessellator::new();
-
-            // Draw strokes with lyon.
-            tessellator
-                .tessellate(
-                    &path_builder.build(),
-                    &StrokeOptions::default().with_line_width(3.0),
-                    &mut BuffersBuilder::new(
-                        &mut buffer,
-                        |pos: lyon::math::Point, _: StrokeAttributes| {
-                            Vertex2D {
-                                position: pos.to_array(),
-                                color: [0.0, 0.0, 0.0, 1.0],
-                            }
-                        },
-                    ),
-                )
-                .unwrap();
-
-            let mesh = Primitive::Translate {
-                translation: Vector::new(bounds.x, bounds.y),
-                content: Box::new(Primitive::Mesh2D {
-                    buffers: Mesh2D {
-                        vertices: buffer.vertices,
-                        indices: buffer.indices,
-                    },
-                }),
-            };
-
-            (
-                Primitive::Clip {
-                    bounds,
-                    offset: Vector::new(0, 0),
-                    content: Box::new(
-                        if self.curves.is_empty()
-                            && self.state.pending.is_none()
-                        {
-                            let instructions = Primitive::Text {
-                                bounds: Rectangle {
-                                    x: bounds.center_x(),
-                                    y: bounds.center_y(),
-                                    ..bounds
-                                },
-                                color: Color {
-                                    a: defaults.text.color.a * 0.7,
-                                    ..defaults.text.color
-                                },
-                                content: String::from(
-                                    "Click to create bezier curves!",
-                                ),
-                                font: Font::Default,
-                                size: 30.0,
-                                horizontal_alignment:
-                                    HorizontalAlignment::Center,
-                                vertical_alignment: VerticalAlignment::Center,
-                            };
-
-                            Primitive::Group {
-                                primitives: vec![mesh, instructions],
-                            }
-                        } else {
-                            mesh
-                        },
-                    ),
-                },
-                MouseCursor::OutOfBounds,
-            )
-        }
-
-        fn hash_layout(&self, _state: &mut Hasher) {}
-
-        fn on_event(
-            &mut self,
-            event: Event,
-            layout: Layout<'_>,
-            cursor_position: Point,
-            messages: &mut Vec<Message>,
-            _renderer: &Renderer,
-            _clipboard: Option<&dyn Clipboard>,
-        ) {
-            let bounds = layout.bounds();
-
-            if bounds.contains(cursor_position) {
-                match event {
-                    Event::Mouse(input::mouse::Event::Input {
-                        state: input::ButtonState::Pressed,
-                        ..
-                    }) => {
-                        let new_point = Point::new(
-                            cursor_position.x - bounds.x,
-                            cursor_position.y - bounds.y,
-                        );
-
-                        match self.state.pending {
-                            None => {
-                                self.state.pending =
-                                    Some(Pending::One { from: new_point });
-                            }
-                            Some(Pending::One { from }) => {
-                                self.state.pending = Some(Pending::Two {
-                                    from,
-                                    to: new_point,
-                                });
-                            }
-                            Some(Pending::Two { from, to }) => {
-                                self.state.pending = None;
-
-                                messages.push((self.on_click)(Curve {
-                                    from,
-                                    to,
-                                    control: new_point,
-                                }));
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-    }
-
-    impl<'a, Message> Into<Element<'a, Message, Renderer>> for Bezier<'a, Message>
-    where
-        Message: 'static,
-    {
-        fn into(self) -> Element<'a, Message, Renderer> {
-            Element::new(self)
-        }
-    }
-}
-
-use bezier::Bezier;
+//! This example showcases an interactive `Canvas` for drawing Bézier curves.
 use iced::{
     button, Align, Button, Column, Container, Element, Length, Sandbox,
     Settings, Text,
@@ -325,6 +39,7 @@ impl Sandbox for Example {
         match message {
             Message::AddCurve(curve) => {
                 self.curves.push(curve);
+                self.bezier.request_redraw();
             }
             Message::Clear => {
                 self.bezier = bezier::State::default();
@@ -343,11 +58,7 @@ impl Sandbox for Example {
                     .width(Length::Shrink)
                     .size(50),
             )
-            .push(Bezier::new(
-                &mut self.bezier,
-                self.curves.as_slice(),
-                Message::AddCurve,
-            ))
+            .push(self.bezier.view(&self.curves).map(Message::AddCurve))
             .push(
                 Button::new(&mut self.button_state, Text::new("Clear"))
                     .padding(8)
@@ -360,5 +71,149 @@ impl Sandbox for Example {
             .center_x()
             .center_y()
             .into()
+    }
+}
+
+mod bezier {
+    use iced::{
+        canvas::{
+            self, Canvas, Drawable, Event, Frame, Geometry, Path, Stroke,
+        },
+        mouse, ButtonState, Element, Length, Point, Size,
+    };
+
+    #[derive(Default)]
+    pub struct State {
+        pending: Option<Pending>,
+        cursor_position: Point,
+        cache: canvas::Cache,
+    }
+
+    impl State {
+        pub fn view<'a>(
+            &'a mut self,
+            curves: &'a [Curve],
+        ) -> Element<'a, Curve> {
+            Canvas::new(Bezier {
+                state: self,
+                curves,
+            })
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+        }
+
+        pub fn request_redraw(&mut self) {
+            self.cache.clear()
+        }
+    }
+
+    struct Bezier<'a> {
+        state: &'a mut State,
+        curves: &'a [Curve],
+    }
+
+    impl<'a> canvas::State<Curve> for Bezier<'a> {
+        fn update(&mut self, event: Event, _bounds: Size) -> Option<Curve> {
+            match event {
+                Event::Mouse(mouse_event) => match mouse_event {
+                    mouse::Event::CursorMoved { x, y } => {
+                        self.state.cursor_position = Point::new(x, y);
+
+                        None
+                    }
+                    mouse::Event::Input {
+                        button: mouse::Button::Left,
+                        state: ButtonState::Pressed,
+                    } => match self.state.pending {
+                        None => {
+                            self.state.pending = Some(Pending::One {
+                                from: self.state.cursor_position,
+                            });
+                            None
+                        }
+                        Some(Pending::One { from }) => {
+                            self.state.pending = Some(Pending::Two {
+                                from,
+                                to: self.state.cursor_position,
+                            });
+
+                            None
+                        }
+                        Some(Pending::Two { from, to }) => {
+                            self.state.pending = None;
+
+                            Some(Curve {
+                                from,
+                                to,
+                                control: self.state.cursor_position,
+                            })
+                        }
+                    },
+                    _ => None,
+                },
+            }
+        }
+
+        fn draw(&self, bounds: Size) -> Vec<Geometry> {
+            let curves = self.state.cache.draw(bounds, &self.curves);
+
+            if let Some(pending) = &self.state.pending {
+                let pending_curve =
+                    pending.draw(bounds, self.state.cursor_position);
+
+                vec![curves, pending_curve]
+            } else {
+                vec![curves]
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct Curve {
+        from: Point,
+        to: Point,
+        control: Point,
+    }
+
+    impl Drawable for Curve {
+        fn draw(&self, frame: &mut Frame) {
+            let curve = Path::new(|p| {
+                p.move_to(self.from);
+                p.quadratic_curve_to(self.control, self.to);
+            });
+
+            frame.stroke(&curve, Stroke::default().with_width(2.0));
+        }
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    enum Pending {
+        One { from: Point },
+        Two { from: Point, to: Point },
+    }
+
+    impl Pending {
+        fn draw(&self, bounds: Size, cursor_position: Point) -> Geometry {
+            let mut frame = Frame::new(bounds);
+
+            match *self {
+                Pending::One { from } => {
+                    let line = Path::line(from, cursor_position);
+                    frame.stroke(&line, Stroke::default().with_width(2.0));
+                }
+                Pending::Two { from, to } => {
+                    let curve = Curve {
+                        from,
+                        to,
+                        control: cursor_position,
+                    };
+
+                    curve.draw(&mut frame);
+                }
+            };
+
+            frame.into_geometry()
+        }
     }
 }

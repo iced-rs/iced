@@ -69,7 +69,7 @@ cargo run --package styling
 ## Extras
 A bunch of simpler examples exist:
 
-- [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bézier curves using [`lyon`].
+- [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bézier curves using the `Canvas` widget.
 - [`clock`](clock), an application that uses the `Canvas` widget to draw a clock and its hands to display the current time.
 - [`counter`](counter), the classic counter example explained in the [`README`](../README.md).
 - [`custom_widget`](custom_widget), a demonstration of how to build a custom widget that draws a circle.

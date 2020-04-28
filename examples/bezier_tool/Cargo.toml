@@ -6,7 +6,4 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../.." }
-iced_native = { path = "../../native" }
-iced_wgpu = { path = "../../wgpu" }
-lyon = "0.15"
+iced = { path = "../..", features = ["canvas"] }
