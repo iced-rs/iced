@@ -20,10 +20,10 @@ pin-utils = "^0.1"
 futures = "^0.3"
 futures-util = "^0.3"
 #async-std = { version = "1.5", features = ["unstable"] }
-smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"] } #-calloop
+smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"], path="../../client-toolkit" } #-calloop #120
 #smol = { git ="ssh://git@github.com/stjepang/smol.git" }
 smol = { path ="../../smol" }
-#raw-window-handle = "0.3"
+raw-window-handle = "0.3"
 #window_clipboard = "0.1"
 log = "0.4"
 iced_native = { version = "0.2", path = "../native" }

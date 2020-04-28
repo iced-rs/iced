@@ -1,5 +1,9 @@
-use smithay_client_toolkit::{seat::pointer::ThemedPointer, window::{Window as SCTKWindow, ConceptFrame, Decorations}};
-use iced_native::{Runtime, Trace, UserInterface, Cache, window::Backend, Renderer, Event};
+use smithay_client_toolkit::{
+    reexports::client::protocol::wl_surface::WlSurface,
+    seat::pointer::ThemedPointer,
+    window::{Window as SCTKWindow, ConceptFrame, Decorations}
+};
+use iced_native::{Trace, UserInterface, Cache, window::Backend, Renderer, Event};
 
 type Cursor = &'static str;
 
@@ -21,7 +25,7 @@ pub struct Window<B:Backend> {
 
     title: String,
     mode: Mode,
-    backend : B, renderer : B::Renderer, swap_chain: B::SwapChain,
+    pub backend : B, renderer : B::Renderer, pub surface: B::Surface, pub swap_chain: B::SwapChain,
     pub buffer_size: (u32, u32), pub buffer_scale_factor: u32, // fixme: should be in swap_chain
     cache: Option<Cache>
 }
@@ -36,18 +40,36 @@ impl<B:Backend> Window<B> {
 
         let size = settings.size;
         let (mut backend, mut renderer) = B::new(backend);
-        let mut swap_chain = backend.create_swap_chain(&backend.create_surface(&window.surface), size.0, size.1);
+
+        struct Surface(WlSurface);
+        use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, unix::WaylandHandle};
+        unsafe impl HasRawWindowHandle for Surface {
+            fn raw_window_handle(&self) -> RawWindowHandle { WaylandHandle { ..WaylandHandle::empty() }  }
+        }
+        let surface = backend.create_surface(&Surface(window.surface()));
+        let mut swap_chain = backend.create_swap_chain(&surface, size.0, size.1);
 
         Self {
             window,
             size, scale_factor: 1,
             current_cursor: "left_ptr",
-            backend, renderer, swap_chain,
+            backend, renderer, surface, swap_chain,
             cache: None,
         }
     }
-    pub fn update<Executor, Receiver, Message>(&mut self, runtime: &Runtime<Executor, Receiver, Message>, // fixme: trait Runtime
-                                                                                                                          events: Vec<Event>, messages: Vec<Message>) -> <B::Renderer as Renderer>::Output {
+    pub fn update</*Executor, Receiver,*/ Message>(&mut self, //runtime: &Runtime<Executor, Receiver, Message>, // fixme: trait Runtime
+                                                                                                                        messages: Vec<Message>, events: Vec<Event>) {
+        if
+            !if self.buffer_size != self.size || self.buffer_scale_factor != self.scale_factor {
+                //(self.buffer_size, self.buffer_scale_factor) = (self.size, self.scale_factor);
+                self.buffer_size = self.size; self.buffer_scale_factor = self.scale_factor;
+                self.swap_chain = self.backend.create_swap_chain(&self.surface,
+                    self.buffer_size.0 * self.buffer_scale_factor,
+                    self.buffer_size.1 * self.buffer_scale_factor);
+                true
+            } else { false }
+            && events.len().is_empty() && messages.len().is_empty() { return }
+
         //debug.profile(Layout);
         let mut user_interface = UserInterface::build(self.application.view(), self.size.into(), self.cache.unwrap_or(Cache::new()), self.renderer);
 
@@ -69,13 +91,13 @@ impl<B:Backend> Window<B> {
                 let cache = user_interface.into_cache();
                 // drop('user_interface &application)
                 // yield messages;
-                for message in messages {
+                /*for message in messages {
                     log::debug!("Updating");
                     //debug.log_message(&message);
                     //debug.profile(Update);
                     runtime.spawn(runtime.enter(|| self.application.update(message)));
                 }
-                runtime.track(self.application.subscription());
+                runtime.track(self.application.subscription());*/
 
                 // fixme
                 if self.title != self.application.title() {
@@ -98,7 +120,7 @@ impl<B:Backend> Window<B> {
         self.cache = Some(user_interface.into_cache());
         renderer_output
     }
-    pub fn render(&mut self, renderer_output: <B::Renderer as Renderer>::Output, trace: &Trace) -> Cursor {
+    pub fn render(&mut self, renderer_output: <B::Renderer as Renderer>::Output, trace: &Trace) {
         //debug.profile(Render);
 
         let cursor = self.backend.draw(&mut self.renderer, &mut self.swap_chain, &renderer_output, self.scale_factor as f64, &trace.overlay());

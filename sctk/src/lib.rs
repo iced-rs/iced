@@ -36,7 +36,7 @@ pub mod window_ext {
 mod sink_clone;
 
 // Futures-based event loop
-use {std::pin::Pin, futures::{stream::{BoxStream, Peekable, SelectAll}}};
+use {/*std::pin::Pin,*/ futures::{stream::{LocalBoxStream, Peekable, SelectAll}}};
 
 // Shared across the application between user message channel, display interface events, keyboard repeat timer
 enum Item<Message> {
@@ -48,7 +48,7 @@ enum Item<Message> {
 
 // Application state update
 struct Update<'t, Item> {
-    streams: Pin<&'t mut Peekable<SelectAll<BoxStream<'t, Item>>>>,
+    streams: &'t mut Peekable<SelectAll<LocalBoxStream<'t, Item>>>,
     events: &'t mut Vec<Event>,
 }
 

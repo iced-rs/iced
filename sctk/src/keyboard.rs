@@ -10,7 +10,7 @@ use {super::{Update,Item}, crate::{input::{ButtonState, keyboard::{self, Modifie
 }
 
 impl Keyboard {
-    pub fn handle<W>(&mut self, Update{streams, events, ..}: &mut Update<W>, event: Event) {
+    pub fn handle<W>(&mut self, Update{streams, events, ..}: &mut Update<W>, event: &Event) {
         let Self{modifiers, repeat} = self;
         match event {
             Event::Enter { .. } => (),

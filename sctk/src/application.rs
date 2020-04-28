@@ -1,9 +1,9 @@
 use {iced_native::{window::Backend, Executor, Command, Element, Subscription}, super::{Mode, Settings, async_sctk}};
 
 pub trait Application: Sized {
-    type Backend: Backend; //+ crate::window_ext::NoHasRawWindowHandleBackend;
+    type Backend: Backend + 'static; // 'static: smithay/client-toolkit DispatchData //+ crate::window_ext::NoHasRawWindowHandleBackend;
     type Executor: Executor;
-    type Message: std::fmt::Debug + Send;
+    type Message: std::fmt::Debug + Send + 'static; // 'static: smithay/client-toolkit DispatchData
     type Flags;
 
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
