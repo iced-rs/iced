@@ -1,4 +1,4 @@
-use crate::{Point, Size};
+use crate::{Point, Size, Vector};
 
 /// A rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -137,6 +137,21 @@ impl From<Rectangle<f32>> for Rectangle<u32> {
             y: rectangle.y as u32,
             width: rectangle.width.ceil() as u32,
             height: rectangle.height.ceil() as u32,
+        }
+    }
+}
+
+impl<T> std::ops::Add<Vector<T>> for Rectangle<T>
+where
+    T: std::ops::Add<Output = T>,
+{
+    type Output = Rectangle<T>;
+
+    fn add(self, translation: Vector<T>) -> Self {
+        Rectangle {
+            x: self.x + translation.x,
+            y: self.y + translation.y,
+            ..self
         }
     }
 }
