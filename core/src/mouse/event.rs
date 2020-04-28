@@ -1,5 +1,5 @@
 use super::Button;
-use crate::input::ButtonState;
+use crate::ButtonState;
 
 /// A mouse event.
 ///
@@ -26,11 +26,11 @@ pub enum Event {
 
     /// A mouse button was pressed or released.
     Input {
-        /// The state of the button
-        state: ButtonState,
-
         /// The button identifier
         button: Button,
+
+        /// The state of the button
+        state: ButtonState,
     },
 
     /// The mouse wheel was scrolled.

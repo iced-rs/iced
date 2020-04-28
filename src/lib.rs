@@ -185,6 +185,7 @@ mod sandbox;
 
 pub mod executor;
 pub mod keyboard;
+pub mod mouse;
 pub mod settings;
 pub mod widget;
 pub mod window;
@@ -208,3 +209,6 @@ pub use runtime::{
     futures, Align, Background, Color, Command, Font, HorizontalAlignment,
     Length, Point, Size, Subscription, Vector, VerticalAlignment,
 };
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use runtime::input::ButtonState;

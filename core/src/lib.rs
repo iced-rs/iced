@@ -15,9 +15,11 @@
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 pub mod keyboard;
+pub mod mouse;
 
 mod align;
 mod background;
+mod button_state;
 mod color;
 mod font;
 mod length;
@@ -28,6 +30,7 @@ mod vector;
 
 pub use align::{Align, HorizontalAlignment, VerticalAlignment};
 pub use background::Background;
+pub use button_state::ButtonState;
 pub use color::Color;
 pub use font::Font;
 pub use length::Length;
