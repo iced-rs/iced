@@ -14,6 +14,24 @@ pub struct Stroke {
     pub line_join: LineJoin,
 }
 
+impl Stroke {
+    pub fn with_color(self, color: Color) -> Stroke {
+        Stroke { color, ..self }
+    }
+
+    pub fn with_width(self, width: f32) -> Stroke {
+        Stroke { width, ..self }
+    }
+
+    pub fn with_line_cap(self, line_cap: LineCap) -> Stroke {
+        Stroke { line_cap, ..self }
+    }
+
+    pub fn with_line_join(self, line_join: LineJoin) -> Stroke {
+        Stroke { line_join, ..self }
+    }
+}
+
 impl Default for Stroke {
     fn default() -> Stroke {
         Stroke {
