@@ -59,12 +59,12 @@ impl pane_grid::Renderer for Renderer {
                     height: bounds.height + 0.5,
                 },
                 offset: Vector::new(0, 0),
-                content: Box::new(Primitive::Cached {
-                    origin: Point::new(
+                content: Box::new(Primitive::Translate {
+                    translation: Vector::new(
                         cursor_position.x - bounds.x - bounds.width / 2.0,
                         cursor_position.y - bounds.y - bounds.height / 2.0,
                     ),
-                    cache: std::sync::Arc::new(pane),
+                    content: Box::new(pane),
                 }),
             };
 

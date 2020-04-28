@@ -10,7 +10,7 @@ use crate::{Defaults, Primitive, Renderer};
 
 use iced_native::{
     input::mouse, layout, Clipboard, Element, Hasher, Layout, Length,
-    MouseCursor, Point, Size, Widget,
+    MouseCursor, Point, Size, Vector, Widget,
 };
 use std::hash::Hash;
 
@@ -190,20 +190,20 @@ impl<Message, S: State> Widget<Message, Renderer> for Canvas<S> {
         _cursor_position: Point,
     ) -> (Primitive, MouseCursor) {
         let bounds = layout.bounds();
-        let origin = Point::new(bounds.x, bounds.y);
+        let translation = Vector::new(bounds.x, bounds.y);
         let size = Size::new(bounds.width, bounds.height);
 
         (
-            Primitive::Group {
-                primitives: self
-                    .state
-                    .draw(size)
-                    .into_iter()
-                    .map(|geometry| Primitive::Cached {
-                        origin,
-                        cache: geometry.into_primitive(),
-                    })
-                    .collect(),
+            Primitive::Translate {
+                translation,
+                content: Box::new(Primitive::Group {
+                    primitives: self
+                        .state
+                        .draw(size)
+                        .into_iter()
+                        .map(Geometry::into_primitive)
+                        .collect(),
+                }),
             },
             MouseCursor::Idle,
         )

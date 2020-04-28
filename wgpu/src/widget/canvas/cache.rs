@@ -57,21 +57,27 @@ impl Cache {
         if let State::Filled { bounds, primitive } = self.state.borrow().deref()
         {
             if *bounds == new_bounds {
-                return Geometry::from_primitive(primitive.clone());
+                return Geometry::from_primitive(Primitive::Cached {
+                    cache: primitive.clone(),
+                });
             }
         }
 
         let mut frame = Frame::new(new_bounds);
         input.draw(&mut frame);
 
-        let primitive = Arc::new(frame.into_primitive());
+        let primitive = {
+            let geometry = frame.into_geometry();
+
+            Arc::new(geometry.into_primitive())
+        };
 
         *self.state.borrow_mut() = State::Filled {
             bounds: new_bounds,
             primitive: primitive.clone(),
         };
 
-        Geometry::from_primitive(primitive)
+        Geometry::from_primitive(Primitive::Cached { cache: primitive })
     }
 
     pub fn with<'a, T>(&'a self, input: T) -> impl crate::canvas::State + 'a

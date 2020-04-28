@@ -1,7 +1,7 @@
 use iced_native::{Point, Rectangle, Size, Vector};
 
 use crate::{
-    canvas::{Fill, Path, Stroke, Text},
+    canvas::{Fill, Geometry, Path, Stroke, Text},
     triangle, Primitive,
 };
 
@@ -260,13 +260,13 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Produces the primitive representing everything drawn on the [`Frame`].
+    /// Produces the [`Geometry`] representing everything drawn on the [`Frame`].
     ///
     /// [`Frame`]: struct.Frame.html
-    pub fn into_primitive(mut self) -> Primitive {
+    /// [`Geometry`]: struct.Geometry.html
+    pub fn into_geometry(mut self) -> Geometry {
         if !self.buffers.indices.is_empty() {
             self.primitives.push(Primitive::Mesh2D {
-                origin: Point::ORIGIN,
                 buffers: triangle::Mesh2D {
                     vertices: self.buffers.vertices,
                     indices: self.buffers.indices,
@@ -274,9 +274,9 @@ impl Frame {
             });
         }
 
-        Primitive::Group {
+        Geometry::from_primitive(Primitive::Group {
             primitives: self.primitives,
-        }
+        })
     }
 }
 

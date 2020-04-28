@@ -1,5 +1,5 @@
 use iced_native::{
-    image, svg, Background, Color, Font, HorizontalAlignment, Point, Rectangle,
+    image, svg, Background, Color, Font, HorizontalAlignment, Rectangle,
     Vector, VerticalAlignment,
 };
 
@@ -70,13 +70,18 @@ pub enum Primitive {
         /// The content of the clip
         content: Box<Primitive>,
     },
+    /// A primitive that applies a translation
+    Translate {
+        /// The top-left coordinate of the mesh
+        translation: Vector,
+
+        /// The primitive to translate
+        content: Box<Primitive>,
+    },
     /// A low-level primitive to render a mesh of triangles.
     ///
     /// It can be used to render many kinds of geometry freely.
     Mesh2D {
-        /// The top-left coordinate of the mesh
-        origin: Point,
-
         /// The vertex and index buffers of the mesh
         buffers: triangle::Mesh2D,
     },
@@ -85,9 +90,6 @@ pub enum Primitive {
     /// This can be useful if you are implementing a widget where primitive
     /// generation is expensive.
     Cached {
-        /// The origin of the coordinate system of the cached primitives
-        origin: Point,
-
         /// The cached primitive
         cache: Arc<Primitive>,
     },

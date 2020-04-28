@@ -29,7 +29,7 @@ pub struct Renderer {
 struct Layer<'a> {
     bounds: Rectangle<u32>,
     quads: Vec<Quad>,
-    meshes: Vec<(Point, &'a triangle::Mesh2D)>,
+    meshes: Vec<(Vector, &'a triangle::Mesh2D)>,
     text: Vec<wgpu_glyph::Section<'a>>,
 
     #[cfg(any(feature = "image", feature = "svg"))]
@@ -214,10 +214,10 @@ impl Renderer {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Mesh2D { origin, buffers } => {
+            Primitive::Mesh2D { buffers } => {
                 let layer = layers.last_mut().unwrap();
 
-                layer.meshes.push((*origin + translation, buffers));
+                layer.meshes.push((translation, buffers));
             }
             Primitive::Clip {
                 bounds,
@@ -249,13 +249,19 @@ impl Renderer {
                     layers.push(new_layer);
                 }
             }
-
-            Primitive::Cached { origin, cache } => {
+            Primitive::Translate {
+                translation: new_translation,
+                content,
+            } => {
                 self.draw_primitive(
-                    translation + Vector::new(origin.x, origin.y),
-                    &cache,
+                    translation + *new_translation,
+                    &content,
                     layers,
                 );
+            }
+
+            Primitive::Cached { cache } => {
+                self.draw_primitive(translation, &cache, layers);
             }
 
             #[cfg(feature = "image")]

@@ -172,12 +172,14 @@ mod bezier {
                 )
                 .unwrap();
 
-            let mesh = Primitive::Mesh2D {
-                origin: Point::new(bounds.x, bounds.y),
-                buffers: Mesh2D {
-                    vertices: buffer.vertices,
-                    indices: buffer.indices,
-                },
+            let mesh = Primitive::Translate {
+                translation: Vector::new(bounds.x, bounds.y),
+                content: Box::new(Primitive::Mesh2D {
+                    buffers: Mesh2D {
+                        vertices: buffer.vertices,
+                        indices: buffer.indices,
+                    },
+                }),
             };
 
             (
