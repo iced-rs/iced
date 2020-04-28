@@ -123,6 +123,8 @@ pub struct Handle {
 impl Handle {
     /// Creates an image [`Handle`] pointing to the image of the given path.
     ///
+    /// Makes an educated guess about the image format by examining the data in the file.
+    ///
     /// [`Handle`]: struct.Handle.html
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
         Self::from_data(Data::Path(path.into()))
@@ -144,6 +146,8 @@ impl Handle {
     }
 
     /// Creates an image [`Handle`] containing the image data directly.
+    ///
+    /// Makes an educated guess about the image format by examining the given data.
     ///
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
