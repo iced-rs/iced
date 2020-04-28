@@ -1,7 +1,7 @@
 use crate::Vector;
 
 /// A 2D point.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Point {
     /// The X coordinate.
     pub x: f32,
