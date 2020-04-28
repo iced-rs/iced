@@ -25,3 +25,12 @@ where
         T::draw(self, frame)
     }
 }
+
+impl<T> Drawable for &[T]
+where
+    T: Drawable,
+{
+    fn draw(&self, frame: &mut Frame) {
+        self.iter().for_each(|drawable| drawable.draw(frame));
+    }
+}
