@@ -1,5 +1,5 @@
 use iced_native::{
-    image, svg, Background, Color, Font, HorizontalAlignment, Rectangle,
+    image, svg, Background, Color, Font, HorizontalAlignment, Rectangle, Size,
     Vector, VerticalAlignment,
 };
 
@@ -72,7 +72,7 @@ pub enum Primitive {
     },
     /// A primitive that applies a translation
     Translate {
-        /// The top-left coordinate of the mesh
+        /// The translation vector
         translation: Vector,
 
         /// The primitive to translate
@@ -82,6 +82,11 @@ pub enum Primitive {
     ///
     /// It can be used to render many kinds of geometry freely.
     Mesh2D {
+        /// The size of the drawable region of the mesh.
+        ///
+        /// Any geometry that falls out of this region will be clipped.
+        size: Size,
+
         /// The vertex and index buffers of the mesh
         buffers: triangle::Mesh2D,
     },

@@ -267,6 +267,7 @@ impl Frame {
     pub fn into_geometry(mut self) -> Geometry {
         if !self.buffers.indices.is_empty() {
             self.primitives.push(Primitive::Mesh2D {
+                size: self.size,
                 buffers: triangle::Mesh2D {
                     vertices: self.buffers.vertices,
                     indices: self.buffers.indices,

@@ -201,15 +201,15 @@ impl Pipeline {
         target_width: u32,
         target_height: u32,
         transformation: Transformation,
-        meshes: &[(Vector, &Mesh2D)],
-        bounds: Rectangle<u32>,
+        scale_factor: f32,
+        meshes: &[(Vector, Rectangle<u32>, &Mesh2D)],
     ) {
         // This looks a bit crazy, but we are just counting how many vertices
         // and indices we will need to handle.
         // TODO: Improve readability
         let (total_vertices, total_indices) = meshes
             .iter()
-            .map(|(_, mesh)| (mesh.vertices.len(), mesh.indices.len()))
+            .map(|(_, _, mesh)| (mesh.vertices.len(), mesh.indices.len()))
             .fold((0, 0), |(total_v, total_i), (v, i)| {
                 (total_v + v, total_i + i)
             });
@@ -230,7 +230,7 @@ impl Pipeline {
         let mut last_index = 0;
 
         // We upload everything upfront
-        for (origin, mesh) in meshes {
+        for (origin, _, mesh) in meshes {
             let transform = (transformation
                 * Transformation::translate(origin.x, origin.y))
             .into();
@@ -316,16 +316,19 @@ impl Pipeline {
                 });
 
             render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_scissor_rect(
-                bounds.x,
-                bounds.y,
-                bounds.width,
-                bounds.height,
-            );
 
             for (i, (vertex_offset, index_offset, indices)) in
                 offsets.into_iter().enumerate()
             {
+                let bounds = meshes[i].1 * scale_factor;
+
+                render_pass.set_scissor_rect(
+                    bounds.x,
+                    bounds.y,
+                    bounds.width,
+                    bounds.height,
+                );
+
                 render_pass.set_bind_group(
                     0,
                     &self.constants,

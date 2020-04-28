@@ -88,6 +88,7 @@ mod rainbow {
                 Primitive::Translate {
                     translation: Vector::new(b.x, b.y),
                     content: Box::new(Primitive::Mesh2D {
+                        size: b.size(),
                         buffers: Mesh2D {
                             vertices: vec![
                                 Vertex2D {

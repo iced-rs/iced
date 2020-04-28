@@ -29,7 +29,7 @@ pub struct Renderer {
 struct Layer<'a> {
     bounds: Rectangle<u32>,
     quads: Vec<Quad>,
-    meshes: Vec<(Vector, &'a triangle::Mesh2D)>,
+    meshes: Vec<(Vector, Rectangle<u32>, &'a triangle::Mesh2D)>,
     text: Vec<wgpu_glyph::Section<'a>>,
 
     #[cfg(any(feature = "image", feature = "svg"))]
@@ -47,6 +47,12 @@ impl<'a> Layer<'a> {
             #[cfg(any(feature = "image", feature = "svg"))]
             images: Vec::new(),
         }
+    }
+
+    pub fn intersection(&self, rectangle: Rectangle) -> Option<Rectangle<u32>> {
+        let layer_bounds: Rectangle<f32> = self.bounds.into();
+
+        layer_bounds.intersection(&rectangle).map(Into::into)
     }
 }
 
@@ -214,10 +220,20 @@ impl Renderer {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Mesh2D { buffers } => {
+            Primitive::Mesh2D { size, buffers } => {
                 let layer = layers.last_mut().unwrap();
 
-                layer.meshes.push((translation, buffers));
+                // Only draw visible content
+                if let Some(clip_bounds) = layer.intersection(Rectangle::new(
+                    Point::new(translation.x, translation.y),
+                    *size,
+                )) {
+                    layer.meshes.push((
+                        translation,
+                        clip_bounds.into(),
+                        buffers,
+                    ));
+                }
             }
             Primitive::Clip {
                 bounds,
@@ -226,16 +242,10 @@ impl Renderer {
             } => {
                 let layer = layers.last_mut().unwrap();
 
-                let layer_bounds: Rectangle<f32> = layer.bounds.into();
-
-                let clip = Rectangle {
-                    x: bounds.x + translation.x,
-                    y: bounds.y + translation.y,
-                    ..*bounds
-                };
-
                 // Only draw visible content
-                if let Some(clip_bounds) = layer_bounds.intersection(&clip) {
+                if let Some(clip_bounds) =
+                    layer.intersection(*bounds + translation)
+                {
                     let clip_layer = Layer::new(clip_bounds.into());
                     let new_layer = Layer::new(layer.bounds);
 
@@ -356,8 +366,8 @@ impl Renderer {
                 target_width,
                 target_height,
                 scaled,
+                scale_factor,
                 &layer.meshes,
-                bounds,
             );
         }
 
