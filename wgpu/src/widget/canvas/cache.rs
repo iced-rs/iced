@@ -61,7 +61,7 @@ impl Cache {
             }
         }
 
-        let mut frame = Frame::new(new_bounds.width, new_bounds.height);
+        let mut frame = Frame::new(new_bounds);
         input.draw(&mut frame);
 
         let primitive = Arc::new(frame.into_primitive());

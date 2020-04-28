@@ -10,8 +10,7 @@ use crate::{
 /// [`Canvas`]: struct.Canvas.html
 #[derive(Debug)]
 pub struct Frame {
-    width: f32,
-    height: f32,
+    size: Size,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
     primitives: Vec<Primitive>,
     transforms: Transforms,
@@ -36,10 +35,9 @@ impl Frame {
     /// top-left corner of its bounds.
     ///
     /// [`Frame`]: struct.Frame.html
-    pub fn new(width: f32, height: f32) -> Frame {
+    pub fn new(size: Size) -> Frame {
         Frame {
-            width,
-            height,
+            size,
             buffers: lyon::tessellation::VertexBuffers::new(),
             primitives: Vec::new(),
             transforms: Transforms {
@@ -57,7 +55,7 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn width(&self) -> f32 {
-        self.width
+        self.size.width
     }
 
     /// Returns the width of the [`Frame`].
@@ -65,7 +63,7 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn height(&self) -> f32 {
-        self.height
+        self.size.height
     }
 
     /// Returns the dimensions of the [`Frame`].
@@ -73,7 +71,7 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn size(&self) -> Size {
-        Size::new(self.width, self.height)
+        self.size
     }
 
     /// Returns the coordinate of the center of the [`Frame`].
@@ -81,7 +79,7 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn center(&self) -> Point {
-        Point::new(self.width / 2.0, self.height / 2.0)
+        Point::new(self.size.width / 2.0, self.size.height / 2.0)
     }
 
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
