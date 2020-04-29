@@ -298,7 +298,7 @@ mod grid {
                 self.mouse_pressed = state == ButtonState::Pressed;
             }
 
-            let cursor_position = cursor.internal_position(&bounds)?;
+            let cursor_position = cursor.position_in(&bounds)?;
 
             let region = self.region(bounds.size());
             let (i, j) = self.cell_at(region, cursor_position)?;
@@ -365,8 +365,7 @@ mod grid {
                 frame.translate(Vector::new(region.x, region.y));
                 frame.scale(region.width / SIZE as f32);
 
-                if let Some(cursor_position) = cursor.internal_position(&bounds)
-                {
+                if let Some(cursor_position) = cursor.position_in(&bounds) {
                     if let Some((i, j)) = self.cell_at(region, cursor_position)
                     {
                         let interaction = Path::rectangle(
@@ -397,7 +396,7 @@ mod grid {
         ) -> MouseCursor {
             let region = self.region(bounds.size());
 
-            match cursor.internal_position(&bounds) {
+            match cursor.position_in(&bounds) {
                 Some(position) if region.contains(position) => {
                     MouseCursor::Crosshair
                 }

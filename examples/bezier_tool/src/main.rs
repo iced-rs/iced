@@ -110,7 +110,7 @@ mod bezier {
             bounds: Rectangle,
             cursor: Cursor,
         ) -> Option<Curve> {
-            let cursor_position = cursor.internal_position(&bounds)?;
+            let cursor_position = cursor.position_in(&bounds)?;
 
             match event {
                 Event::Mouse(mouse_event) => match mouse_event {
@@ -210,7 +210,7 @@ mod bezier {
         fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Geometry {
             let mut frame = Frame::new(bounds.size());
 
-            if let Some(cursor_position) = cursor.internal_position(&bounds) {
+            if let Some(cursor_position) = cursor.position_in(&bounds) {
                 match *self {
                     Pending::One { from } => {
                         let line = Path::line(from, cursor_position);

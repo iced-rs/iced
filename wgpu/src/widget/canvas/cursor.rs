@@ -24,20 +24,20 @@ impl Cursor {
         }
     }
 
-    pub fn relative_position(&self, bounds: &Rectangle) -> Option<Point> {
-        match self {
-            Cursor::Available(position) => {
-                Some(Point::new(position.x - bounds.x, position.y - bounds.y))
-            }
-            _ => None,
+    pub fn position_in(&self, bounds: &Rectangle) -> Option<Point> {
+        if self.is_over(bounds) {
+            self.position_from(bounds.position())
+        } else {
+            None
         }
     }
 
-    pub fn internal_position(&self, bounds: &Rectangle) -> Option<Point> {
-        if self.is_over(bounds) {
-            self.relative_position(bounds)
-        } else {
-            None
+    pub fn position_from(&self, origin: Point) -> Option<Point> {
+        match self {
+            Cursor::Available(position) => {
+                Some(Point::new(position.x - origin.x, position.y - origin.y))
+            }
+            Cursor::Unavailable => None,
         }
     }
 
