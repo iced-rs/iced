@@ -50,13 +50,12 @@ mod clipboard;
 mod element;
 mod event;
 mod hasher;
-mod mouse_cursor;
 mod runtime;
 mod user_interface;
 
 pub use iced_core::{
-    Align, Background, Color, Font, HorizontalAlignment, Length, Point,
-    Rectangle, Size, Vector, VerticalAlignment,
+    Align, Background, Color, Font, HorizontalAlignment, Length, MouseCursor,
+    Point, Rectangle, Size, Vector, VerticalAlignment,
 };
 pub use iced_futures::{executor, futures, Command};
 
@@ -68,7 +67,6 @@ pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
-pub use mouse_cursor::MouseCursor;
 pub use renderer::Renderer;
 pub use runtime::Runtime;
 pub use subscription::Subscription;

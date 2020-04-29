@@ -207,7 +207,8 @@ use iced_web as runtime;
 
 pub use runtime::{
     futures, Align, Background, Color, Command, Font, HorizontalAlignment,
-    Length, Point, Rectangle, Size, Subscription, Vector, VerticalAlignment,
+    Length, MouseCursor, Point, Rectangle, Size, Subscription, Vector,
+    VerticalAlignment,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
