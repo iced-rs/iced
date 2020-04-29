@@ -81,7 +81,7 @@ where
     ///
     /// ```
     /// # mod counter {
-    /// #     use iced_native::{text, Text};
+    /// #     type Text = iced_native::Text<iced_native::renderer::Null>;
     /// #
     /// #     #[derive(Debug, Clone, Copy)]
     /// #     pub enum Message {}
@@ -225,6 +225,28 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         self.widget.layout(renderer, limits)
+    }
+
+    /// Processes a runtime [`Event`].
+    ///
+    /// [`Event`]: enum.Event.html
+    pub fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+        renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
+    ) {
+        self.widget.on_event(
+            event,
+            layout,
+            cursor_position,
+            messages,
+            renderer,
+            clipboard,
+        );
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].

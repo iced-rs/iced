@@ -1,6 +1,6 @@
 [package]
 name = "iced_native"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A renderer-agnostic library for native GUIs"
