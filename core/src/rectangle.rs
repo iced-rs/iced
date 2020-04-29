@@ -32,6 +32,20 @@ impl Rectangle<f32> {
         }
     }
 
+    /// Creates a new [`Rectangle`] with its top-left corner at the origin
+    /// and with the provided [`Size`].
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    /// [`Size`]: struct.Size.html
+    pub fn with_size(size: Size) -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            width: size.width,
+            height: size.height,
+        }
+    }
+
     /// Returns the [`Point`] at the center of the [`Rectangle`].
     ///
     /// [`Point`]: struct.Point.html
