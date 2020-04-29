@@ -7,8 +7,8 @@ use zerocopy::AsBytes;
 mod msaa;
 
 const UNIFORM_BUFFER_SIZE: usize = 100;
-const VERTEX_BUFFER_SIZE: usize = 100_000;
-const INDEX_BUFFER_SIZE: usize = 100_000;
+const VERTEX_BUFFER_SIZE: usize = 10_000;
+const INDEX_BUFFER_SIZE: usize = 10_000;
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {
