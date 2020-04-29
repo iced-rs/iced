@@ -13,11 +13,14 @@ pub enum MouseCursor {
     /// The cursor is over a grabbable widget.
     Grab,
 
-    /// The cursor is grabbing a widget.
-    Grabbing,
-
     /// The cursor is over a text widget.
     Text,
+
+    /// The cursor is over a widget that requires precision.
+    Crosshair,
+
+    /// The cursor is grabbing a widget.
+    Grabbing,
 
     /// The cursor is resizing a widget horizontally.
     ResizingHorizontally,
