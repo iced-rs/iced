@@ -205,7 +205,7 @@ pub trait Application: Sized {
 
         let mut cache = Some(user_interface.into_cache());
         let mut events = Vec::new();
-        let mut mouse_cursor = MouseCursor::OutOfBounds;
+        let mut mouse_cursor = MouseCursor::default();
         let mut modifiers = winit::event::ModifiersState::default();
         debug.startup_finished();
 

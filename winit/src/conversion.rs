@@ -110,7 +110,6 @@ pub fn fullscreen(
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn mouse_cursor(mouse_cursor: MouseCursor) -> winit::window::CursorIcon {
     match mouse_cursor {
-        MouseCursor::OutOfBounds => winit::window::CursorIcon::Default,
         MouseCursor::Idle => winit::window::CursorIcon::Default,
         MouseCursor::Pointer => winit::window::CursorIcon::Hand,
         MouseCursor::Working => winit::window::CursorIcon::Progress,

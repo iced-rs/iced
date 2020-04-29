@@ -1,9 +1,6 @@
 /// The state of the mouse cursor.
 #[derive(Debug, Eq, PartialEq, Clone, Copy, PartialOrd, Ord)]
 pub enum MouseCursor {
-    /// The cursor is out of the bounds of the user interface.
-    OutOfBounds,
-
     /// The cursor is over a non-interactive widget.
     Idle,
 
@@ -31,6 +28,6 @@ pub enum MouseCursor {
 
 impl Default for MouseCursor {
     fn default() -> MouseCursor {
-        MouseCursor::OutOfBounds
+        MouseCursor::Idle
     }
 }

@@ -22,7 +22,7 @@ impl pane_grid::Renderer for Renderer {
             cursor_position
         };
 
-        let mut mouse_cursor = MouseCursor::OutOfBounds;
+        let mut mouse_cursor = MouseCursor::default();
         let mut dragged_pane = None;
 
         let mut panes: Vec<_> = content

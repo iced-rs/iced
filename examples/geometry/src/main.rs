@@ -141,7 +141,7 @@ mod rainbow {
                         },
                     }),
                 },
-                MouseCursor::OutOfBounds,
+                MouseCursor::default(),
             )
         }
     }

@@ -63,7 +63,7 @@ pub fn main() {
     let mut events = Vec::new();
     let mut cache = Some(Cache::default());
     let mut renderer = Renderer::new(&mut device, Settings::default());
-    let mut output = (Primitive::None, MouseCursor::OutOfBounds);
+    let mut output = (Primitive::None, MouseCursor::default());
     let clipboard = Clipboard::new(&window);
 
     // Initialize scene and GUI controls

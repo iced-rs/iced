@@ -66,7 +66,7 @@ mod circle {
                     border_width: 0,
                     border_color: Color::TRANSPARENT,
                 },
-                MouseCursor::OutOfBounds,
+                MouseCursor::default(),
             )
         }
     }

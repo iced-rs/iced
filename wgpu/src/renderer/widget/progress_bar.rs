@@ -48,7 +48,7 @@ impl progress_bar::Renderer for Renderer {
             } else {
                 background
             },
-            MouseCursor::OutOfBounds,
+            MouseCursor::default(),
         )
     }
 }

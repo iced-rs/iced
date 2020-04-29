@@ -234,7 +234,7 @@ impl text_input::Renderer for Renderer {
             if is_mouse_over {
                 MouseCursor::Text
             } else {
-                MouseCursor::OutOfBounds
+                MouseCursor::default()
             },
         )
     }

@@ -9,7 +9,7 @@ impl row::Renderer for Renderer {
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
-        let mut mouse_cursor = MouseCursor::OutOfBounds;
+        let mut mouse_cursor = MouseCursor::default();
 
         (
             Primitive::Group {

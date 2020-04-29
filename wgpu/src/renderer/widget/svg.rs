@@ -16,7 +16,7 @@ impl svg::Renderer for Renderer {
                 handle,
                 bounds: layout.bounds(),
             },
-            MouseCursor::OutOfBounds,
+            MouseCursor::default(),
         )
     }
 }

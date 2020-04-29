@@ -53,7 +53,7 @@ impl text::Renderer for Renderer {
                 horizontal_alignment,
                 vertical_alignment,
             },
-            MouseCursor::OutOfBounds,
+            MouseCursor::default(),
         )
     }
 }

@@ -86,7 +86,7 @@ impl iced_native::button::Renderer for Renderer {
             if is_mouse_over {
                 MouseCursor::Pointer
             } else {
-                MouseCursor::OutOfBounds
+                MouseCursor::default()
             },
         )
     }
