@@ -1,7 +1,7 @@
 [package]
 name = "iced_sctk"
 version = "0.0.0"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>", "Matthias Fauconneau <matthias.fauconneau@gmail.com>"]
+authors = ["Matthias Fauconneau <matthias.fauconneau@gmail.com>"]
 edition = "2018"
 description = "An sctk runtime for Iced"
 license = "MIT"
@@ -21,8 +21,7 @@ futures = "^0.3"
 futures-util = "^0.3"
 #async-std = { version = "1.5", features = ["unstable"] }
 smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"], path="../../client-toolkit" } #-calloop #120
-#smol = { git ="ssh://git@github.com/stjepang/smol.git" }
-smol = { path ="../../smol" }
+smol = ''
 raw-window-handle = "0.3"
 #window_clipboard = "0.1"
 log = "0.4"

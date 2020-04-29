@@ -21,7 +21,7 @@ pub struct Window<B:Backend> {
     pub window: SCTKWindow<ConceptFrame>, // Refresh window
     pub size: (u32, u32), pub scale_factor: u32, // Configure window
     pub current_cursor: Cursor, // pointer::Enter window
-    pub pointer: Option<ThemedPointer>, // render() { set_pointer }
+    pub pointer: Option<ThemedPointer>, // Window::render() { set_pointer }
 
     title: String,
     mode: Mode,

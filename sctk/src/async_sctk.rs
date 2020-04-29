@@ -1,7 +1,7 @@
 use iced_native::{window::Backend, Executor};
 use super::{Settings, Window, Application};
 
-pub async fn future<A:Application>(settings: Settings<A::Flags>, backend: <A::Backend as Backend>::Settings) -> Result<(),std::io::Error> {
+pub async fn application<A:Application>(settings: Settings<A::Flags>, backend: <A::Backend as Backend>::Settings) -> Result<(),std::io::Error> {
     use {std::iter::once, futures::{pin_mut, FutureExt, stream::{unfold, iter, StreamExt, SelectAll}}};
     use iced_native::{Event, trace::{Trace, Component::{Setup}}};
     use super::{Item, Update, Keyboard};
