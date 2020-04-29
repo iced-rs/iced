@@ -72,6 +72,13 @@ impl Rectangle<f32> {
         self.y + self.height / 2.0
     }
 
+    /// Returns the position of the top left corner of the [`Rectangle`].
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn position(&self) -> Point {
+        Point::new(self.x, self.y)
+    }
+
     /// Returns the [`Size`] of the [`Rectangle`].
     ///
     /// [`Size`]: struct.Size.html
