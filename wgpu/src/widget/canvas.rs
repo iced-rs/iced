@@ -210,7 +210,7 @@ impl<Message, P: Program<Message>> Widget<Message, Renderer>
                         .collect(),
                 }),
             },
-            MouseCursor::Idle,
+            self.program.mouse_cursor(size),
         )
     }
 
