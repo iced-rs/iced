@@ -200,14 +200,12 @@ mod grid {
                 let is_populated = self.alive_cells.contains(&(i, j));
 
                 match amount {
-                    2 if is_populated => {}
+                    2 | 3 if is_populated => {}
                     3 => {
-                        if !is_populated {
-                            self.alive_cells.insert((i, j));
-                        }
+                        let _ = self.alive_cells.insert((i, j));
                     }
                     _ if is_populated => {
-                        self.alive_cells.remove(&(i, j));
+                        let _ = self.alive_cells.remove(&(i, j));
                     }
                     _ => {}
                 }
