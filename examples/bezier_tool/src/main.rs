@@ -70,7 +70,8 @@ impl Sandbox for Example {
 mod bezier {
     use iced::{
         canvas::{self, Canvas, Event, Frame, Geometry, Path, Stroke},
-        mouse, ButtonState, Element, Length, Point, Rectangle, Size,
+        mouse, ButtonState, Element, Length, MouseCursor, Point, Rectangle,
+        Size,
     };
 
     #[derive(Default)]
@@ -106,8 +107,6 @@ mod bezier {
 
     impl<'a> canvas::Program<Curve> for Bezier<'a> {
         fn update(&mut self, event: Event, bounds: Size) -> Option<Curve> {
-            let bounds = Rectangle::new(Point::ORIGIN, bounds);
-
             match event {
                 Event::Mouse(mouse_event) => match mouse_event {
                     mouse::Event::CursorMoved { x, y } => {
@@ -118,7 +117,9 @@ mod bezier {
                     mouse::Event::Input {
                         button: mouse::Button::Left,
                         state: ButtonState::Pressed,
-                    } if bounds.contains(self.state.cursor_position) => {
+                    } if Rectangle::with_size(bounds)
+                        .contains(self.state.cursor_position) =>
+                    {
                         match self.state.pending {
                             None => {
                                 self.state.pending = Some(Pending::One {
@@ -167,6 +168,15 @@ mod bezier {
                 vec![content, pending_curve]
             } else {
                 vec![content]
+            }
+        }
+
+        fn mouse_cursor(&self, bounds: Size) -> MouseCursor {
+            if Rectangle::with_size(bounds).contains(self.state.cursor_position)
+            {
+                MouseCursor::Crosshair
+            } else {
+                MouseCursor::default()
             }
         }
     }
