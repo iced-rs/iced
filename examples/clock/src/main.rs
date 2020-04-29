@@ -1,7 +1,7 @@
 use iced::{
-    canvas::{self, Cache, Canvas, Geometry, LineCap, Path, Stroke},
+    canvas::{self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke},
     executor, Application, Color, Command, Container, Element, Length, Point,
-    Settings, Size, Subscription, Vector,
+    Rectangle, Settings, Subscription, Vector,
 };
 
 pub fn main() {
@@ -75,10 +75,10 @@ impl Application for Clock {
 }
 
 impl canvas::Program<Message> for Clock {
-    fn draw(&self, bounds: Size) -> Vec<Geometry> {
+    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         use chrono::Timelike;
 
-        let clock = self.clock.draw(bounds, |frame| {
+        let clock = self.clock.draw(bounds.size(), |frame| {
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 2.0;
 

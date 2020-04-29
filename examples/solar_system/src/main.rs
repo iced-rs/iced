@@ -7,8 +7,9 @@
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::{
-    canvas, executor, window, Application, Canvas, Color, Command, Element,
-    Length, Point, Settings, Size, Subscription, Vector,
+    canvas::{self, Cursor, Path, Stroke},
+    executor, window, Application, Canvas, Color, Command, Element, Length,
+    Point, Rectangle, Settings, Size, Subscription, Vector,
 };
 
 use std::time::Instant;
@@ -132,11 +133,14 @@ impl State {
 }
 
 impl<Message> canvas::Program<Message> for State {
-    fn draw(&self, bounds: Size) -> Vec<canvas::Geometry> {
-        use canvas::{Path, Stroke};
+    fn draw(
+        &self,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<canvas::Geometry> {
         use std::f32::consts::PI;
 
-        let background = self.space_cache.draw(bounds, |frame| {
+        let background = self.space_cache.draw(bounds.size(), |frame| {
             let space = Path::rectangle(Point::new(0.0, 0.0), frame.size());
 
             let stars = Path::new(|path| {
@@ -151,7 +155,7 @@ impl<Message> canvas::Program<Message> for State {
             frame.fill(&stars, Color::WHITE);
         });
 
-        let system = self.system_cache.draw(bounds, |frame| {
+        let system = self.system_cache.draw(bounds.size(), |frame| {
             let center = frame.center();
 
             let sun = Path::circle(center, Self::SUN_RADIUS);

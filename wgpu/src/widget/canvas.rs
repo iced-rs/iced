@@ -9,8 +9,8 @@
 use crate::{Defaults, Primitive, Renderer};
 
 use iced_native::{
-    input::mouse, layout, Clipboard, Element, Hasher, Layout, Length,
-    MouseCursor, Point, Size, Vector, Widget,
+    layout, Clipboard, Element, Hasher, Layout, Length, MouseCursor, Point,
+    Size, Vector, Widget,
 };
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -18,6 +18,7 @@ use std::marker::PhantomData;
 pub mod path;
 
 mod cache;
+mod cursor;
 mod event;
 mod fill;
 mod frame;
@@ -27,6 +28,7 @@ mod stroke;
 mod text;
 
 pub use cache::Cache;
+pub use cursor::Cursor;
 pub use event::Event;
 pub use fill::Fill;
 pub use frame::Frame;
@@ -59,10 +61,10 @@ pub use text::Text;
 /// ```no_run
 /// # mod iced {
 /// #     pub use iced_wgpu::canvas;
-/// #     pub use iced_native::{Color, Size};
+/// #     pub use iced_native::{Color, Rectangle};
 /// # }
-/// use iced::canvas::{self, Cache, Canvas, Fill, Frame, Geometry, Path, Program};
-/// use iced::{Color, Size};
+/// use iced::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
+/// use iced::{Color, Rectangle};
 ///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
@@ -72,9 +74,9 @@ pub use text::Text;
 ///
 /// // Then, we implement the `Program` trait
 /// impl Program<()> for Circle {
-///     fn draw(&self, bounds: Size) -> Vec<Geometry>{
+///     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
 ///         // We prepare a new `Frame`
-///         let mut frame = Frame::new(bounds);
+///         let mut frame = Frame::new(bounds.size());
 ///
 ///         // We create a `Path` representing a simple circle
 ///         let circle = Path::circle(frame.center(), self.radius);
@@ -165,22 +167,16 @@ impl<Message, P: Program<Message>> Widget<Message, Renderer>
 
         let canvas_event = match event {
             iced_native::Event::Mouse(mouse_event) => {
-                Some(Event::Mouse(match mouse_event {
-                    mouse::Event::CursorMoved { .. } => {
-                        mouse::Event::CursorMoved {
-                            x: cursor_position.x - bounds.x,
-                            y: cursor_position.y - bounds.y,
-                        }
-                    }
-                    _ => mouse_event,
-                }))
+                Some(Event::Mouse(mouse_event))
             }
             _ => None,
         };
 
+        let cursor = Cursor::from_window_position(cursor_position);
+
         if let Some(canvas_event) = canvas_event {
             if let Some(message) =
-                self.program.update(canvas_event, bounds.size())
+                self.program.update(canvas_event, bounds, cursor)
             {
                 messages.push(message);
             }
@@ -192,11 +188,11 @@ impl<Message, P: Program<Message>> Widget<Message, Renderer>
         _renderer: &mut Renderer,
         _defaults: &Defaults,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        cursor_position: Point,
     ) -> (Primitive, MouseCursor) {
         let bounds = layout.bounds();
         let translation = Vector::new(bounds.x, bounds.y);
-        let size = Size::new(bounds.width, bounds.height);
+        let cursor = Cursor::from_window_position(cursor_position);
 
         (
             Primitive::Translate {
@@ -204,13 +200,13 @@ impl<Message, P: Program<Message>> Widget<Message, Renderer>
                 content: Box::new(Primitive::Group {
                     primitives: self
                         .program
-                        .draw(size)
+                        .draw(bounds, cursor)
                         .into_iter()
                         .map(Geometry::into_primitive)
                         .collect(),
                 }),
             },
-            self.program.mouse_cursor(size),
+            self.program.mouse_cursor(bounds, cursor),
         )
     }
 

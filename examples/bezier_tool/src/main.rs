@@ -69,15 +69,13 @@ impl Sandbox for Example {
 
 mod bezier {
     use iced::{
-        canvas::{self, Canvas, Event, Frame, Geometry, Path, Stroke},
+        canvas::{self, Canvas, Cursor, Event, Frame, Geometry, Path, Stroke},
         mouse, ButtonState, Element, Length, MouseCursor, Point, Rectangle,
-        Size,
     };
 
     #[derive(Default)]
     pub struct State {
         pending: Option<Pending>,
-        cursor_position: Point,
         cache: canvas::Cache,
     }
 
@@ -106,64 +104,62 @@ mod bezier {
     }
 
     impl<'a> canvas::Program<Curve> for Bezier<'a> {
-        fn update(&mut self, event: Event, bounds: Size) -> Option<Curve> {
+        fn update(
+            &mut self,
+            event: Event,
+            bounds: Rectangle,
+            cursor: Cursor,
+        ) -> Option<Curve> {
+            let cursor_position = cursor.internal_position(&bounds)?;
+
             match event {
                 Event::Mouse(mouse_event) => match mouse_event {
-                    mouse::Event::CursorMoved { x, y } => {
-                        self.state.cursor_position = Point::new(x, y);
-
-                        None
-                    }
                     mouse::Event::Input {
                         button: mouse::Button::Left,
                         state: ButtonState::Pressed,
-                    } if Rectangle::with_size(bounds)
-                        .contains(self.state.cursor_position) =>
-                    {
-                        match self.state.pending {
-                            None => {
-                                self.state.pending = Some(Pending::One {
-                                    from: self.state.cursor_position,
-                                });
-                                None
-                            }
-                            Some(Pending::One { from }) => {
-                                self.state.pending = Some(Pending::Two {
-                                    from,
-                                    to: self.state.cursor_position,
-                                });
-
-                                None
-                            }
-                            Some(Pending::Two { from, to }) => {
-                                self.state.pending = None;
-
-                                Some(Curve {
-                                    from,
-                                    to,
-                                    control: self.state.cursor_position,
-                                })
-                            }
+                    } => match self.state.pending {
+                        None => {
+                            self.state.pending = Some(Pending::One {
+                                from: cursor_position,
+                            });
+                            None
                         }
-                    }
+                        Some(Pending::One { from }) => {
+                            self.state.pending = Some(Pending::Two {
+                                from,
+                                to: cursor_position,
+                            });
+
+                            None
+                        }
+                        Some(Pending::Two { from, to }) => {
+                            self.state.pending = None;
+
+                            Some(Curve {
+                                from,
+                                to,
+                                control: cursor_position,
+                            })
+                        }
+                    },
                     _ => None,
                 },
             }
         }
 
-        fn draw(&self, bounds: Size) -> Vec<Geometry> {
-            let content = self.state.cache.draw(bounds, |frame: &mut Frame| {
-                Curve::draw_all(self.curves, frame);
+        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+            let content =
+                self.state.cache.draw(bounds.size(), |frame: &mut Frame| {
+                    Curve::draw_all(self.curves, frame);
 
-                frame.stroke(
-                    &Path::rectangle(Point::ORIGIN, frame.size()),
-                    Stroke::default(),
-                );
-            });
+                    frame.stroke(
+                        &Path::rectangle(Point::ORIGIN, frame.size()),
+                        Stroke::default(),
+                    );
+                });
 
             if let Some(pending) = &self.state.pending {
-                let pending_curve =
-                    pending.draw(bounds, self.state.cursor_position);
+                let pending_curve = pending.draw(bounds, cursor);
 
                 vec![content, pending_curve]
             } else {
@@ -171,9 +167,12 @@ mod bezier {
             }
         }
 
-        fn mouse_cursor(&self, bounds: Size) -> MouseCursor {
-            if Rectangle::with_size(bounds).contains(self.state.cursor_position)
-            {
+        fn mouse_cursor(
+            &self,
+            bounds: Rectangle,
+            cursor: Cursor,
+        ) -> MouseCursor {
+            if cursor.is_over(&bounds) {
                 MouseCursor::Crosshair
             } else {
                 MouseCursor::default()
@@ -208,24 +207,26 @@ mod bezier {
     }
 
     impl Pending {
-        fn draw(&self, bounds: Size, cursor_position: Point) -> Geometry {
-            let mut frame = Frame::new(bounds);
+        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Geometry {
+            let mut frame = Frame::new(bounds.size());
 
-            match *self {
-                Pending::One { from } => {
-                    let line = Path::line(from, cursor_position);
-                    frame.stroke(&line, Stroke::default().with_width(2.0));
-                }
-                Pending::Two { from, to } => {
-                    let curve = Curve {
-                        from,
-                        to,
-                        control: cursor_position,
-                    };
+            if let Some(cursor_position) = cursor.internal_position(&bounds) {
+                match *self {
+                    Pending::One { from } => {
+                        let line = Path::line(from, cursor_position);
+                        frame.stroke(&line, Stroke::default().with_width(2.0));
+                    }
+                    Pending::Two { from, to } => {
+                        let curve = Curve {
+                            from,
+                            to,
+                            control: cursor_position,
+                        };
 
-                    Curve::draw_all(&[curve], &mut frame);
-                }
-            };
+                        Curve::draw_all(&[curve], &mut frame);
+                    }
+                };
+            }
 
             frame.into_geometry()
         }
