@@ -158,8 +158,8 @@ impl Application for GameOfLife {
 mod grid {
     use iced::{
         canvas::{self, Canvas, Cursor, Event, Frame, Geometry, Path},
-        mouse, ButtonState, Color, Element, Length, MouseCursor, Point,
-        Rectangle, Size, Vector,
+        mouse, Color, Element, Length, MouseCursor, Point, Rectangle, Size,
+        Vector,
     };
     use std::collections::{HashMap, HashSet};
 
@@ -268,11 +268,7 @@ mod grid {
             bounds: Rectangle,
             cursor: Cursor,
         ) -> Option<Message> {
-            if let Event::Mouse(mouse::Event::Input {
-                state: ButtonState::Released,
-                ..
-            }) = event
-            {
+            if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 self.interaction = None;
             }
 
@@ -287,10 +283,7 @@ mod grid {
 
             match event {
                 Event::Mouse(mouse_event) => match mouse_event {
-                    mouse::Event::Input {
-                        button,
-                        state: ButtonState::Pressed,
-                    } => match button {
+                    mouse::Event::ButtonPressed(button) => match button {
                         mouse::Button::Left => {
                             self.interaction = Some(Interaction::Drawing);
 

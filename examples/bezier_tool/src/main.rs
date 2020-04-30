@@ -70,7 +70,7 @@ impl Sandbox for Example {
 mod bezier {
     use iced::{
         canvas::{self, Canvas, Cursor, Event, Frame, Geometry, Path, Stroke},
-        mouse, ButtonState, Element, Length, MouseCursor, Point, Rectangle,
+        mouse, Element, Length, MouseCursor, Point, Rectangle,
     };
 
     #[derive(Default)]
@@ -114,34 +114,33 @@ mod bezier {
 
             match event {
                 Event::Mouse(mouse_event) => match mouse_event {
-                    mouse::Event::Input {
-                        button: mouse::Button::Left,
-                        state: ButtonState::Pressed,
-                    } => match self.state.pending {
-                        None => {
-                            self.state.pending = Some(Pending::One {
-                                from: cursor_position,
-                            });
-                            None
-                        }
-                        Some(Pending::One { from }) => {
-                            self.state.pending = Some(Pending::Two {
-                                from,
-                                to: cursor_position,
-                            });
+                    mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                        match self.state.pending {
+                            None => {
+                                self.state.pending = Some(Pending::One {
+                                    from: cursor_position,
+                                });
+                                None
+                            }
+                            Some(Pending::One { from }) => {
+                                self.state.pending = Some(Pending::Two {
+                                    from,
+                                    to: cursor_position,
+                                });
 
-                            None
-                        }
-                        Some(Pending::Two { from, to }) => {
-                            self.state.pending = None;
+                                None
+                            }
+                            Some(Pending::Two { from, to }) => {
+                                self.state.pending = None;
 
-                            Some(Curve {
-                                from,
-                                to,
-                                control: cursor_position,
-                            })
+                                Some(Curve {
+                                    from,
+                                    to,
+                                    control: cursor_position,
+                                })
+                            }
                         }
-                    },
+                    }
                     _ => None,
                 },
             }

@@ -36,9 +36,15 @@ pub fn window_event(
             }))
         }
         WindowEvent::MouseInput { button, state, .. } => {
-            Some(Event::Mouse(mouse::Event::Input {
-                button: mouse_button(*button),
-                state: button_state(*state),
+            let button = mouse_button(*button);
+
+            Some(Event::Mouse(match state {
+                winit::event::ElementState::Pressed => {
+                    mouse::Event::ButtonPressed(button)
+                }
+                winit::event::ElementState::Released => {
+                    mouse::Event::ButtonReleased(button)
+                }
             }))
         }
         WindowEvent::MouseWheel { delta, .. } => match delta {

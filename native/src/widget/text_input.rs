@@ -18,7 +18,6 @@ use crate::{
     input::{
         keyboard,
         mouse::{self, click},
-        ButtonState,
     },
     layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
     Rectangle, Size, Widget,
@@ -212,10 +211,7 @@ where
         clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state: ButtonState::Pressed,
-            }) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
 
                 if is_clicked {
@@ -280,10 +276,7 @@ where
                 self.state.is_dragging = is_clicked;
                 self.state.is_focused = is_clicked;
             }
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state: ButtonState::Released,
-            }) => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 self.state.is_dragging = false;
             }
             Event::Mouse(mouse::Event::CursorMoved { x, .. }) => {

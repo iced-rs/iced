@@ -1,7 +1,6 @@
 //! Create choices using radio buttons.
 use crate::{
-    input::{mouse, ButtonState},
-    layout, row, text, Align, Clipboard, Element, Event, Hasher,
+    input::mouse, layout, row, text, Align, Clipboard, Element, Event, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
 };
@@ -123,10 +122,7 @@ where
         _clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state: ButtonState::Pressed,
-            }) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if layout.bounds().contains(cursor_position) {
                     messages.push(self.on_click.clone());
                 }
