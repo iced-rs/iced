@@ -214,6 +214,5 @@ use iced_web as runtime;
 
 pub use runtime::{
     futures, Align, Background, Color, Command, Font, HorizontalAlignment,
-    Length, MouseCursor, Point, Rectangle, Size, Subscription, Vector,
-    VerticalAlignment,
+    Length, Point, Rectangle, Size, Subscription, Vector, VerticalAlignment,
 };

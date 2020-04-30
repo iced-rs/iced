@@ -157,8 +157,7 @@ impl Application for GameOfLife {
 mod grid {
     use iced::{
         canvas::{self, Canvas, Cursor, Event, Frame, Geometry, Path},
-        mouse, Color, Element, Length, MouseCursor, Point, Rectangle, Size,
-        Vector,
+        mouse, Color, Element, Length, Point, Rectangle, Size, Vector,
     };
     use std::collections::{HashMap, HashSet};
 
@@ -397,16 +396,20 @@ mod grid {
             vec![life, hovered_cell]
         }
 
-        fn mouse_cursor(
+        fn mouse_interaction(
             &self,
             bounds: Rectangle,
             cursor: Cursor,
-        ) -> MouseCursor {
+        ) -> mouse::Interaction {
             match self.interaction {
-                Some(Interaction::Drawing) => MouseCursor::Crosshair,
-                Some(Interaction::Panning { .. }) => MouseCursor::Grabbing,
-                None if cursor.is_over(&bounds) => MouseCursor::Crosshair,
-                _ => MouseCursor::default(),
+                Some(Interaction::Drawing) => mouse::Interaction::Crosshair,
+                Some(Interaction::Panning { .. }) => {
+                    mouse::Interaction::Grabbing
+                }
+                None if cursor.is_over(&bounds) => {
+                    mouse::Interaction::Crosshair
+                }
+                _ => mouse::Interaction::default(),
             }
         }
     }

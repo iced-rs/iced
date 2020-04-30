@@ -9,8 +9,8 @@
 use crate::{Defaults, Primitive, Renderer};
 
 use iced_native::{
-    layout, Clipboard, Element, Hasher, Layout, Length, MouseCursor, Point,
-    Size, Vector, Widget,
+    layout, mouse, Clipboard, Element, Hasher, Layout, Length, Point, Size,
+    Vector, Widget,
 };
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -192,7 +192,7 @@ impl<Message, P: Program<Message>> Widget<Message, Renderer>
         _defaults: &Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> (Primitive, MouseCursor) {
+    ) -> (Primitive, mouse::Interaction) {
         let bounds = layout.bounds();
         let translation = Vector::new(bounds.x, bounds.y);
         let cursor = Cursor::from_window_position(cursor_position);
@@ -209,7 +209,7 @@ impl<Message, P: Program<Message>> Widget<Message, Renderer>
                         .collect(),
                 }),
             },
-            self.program.mouse_cursor(bounds, cursor),
+            self.program.mouse_interaction(bounds, cursor),
         )
     }
 

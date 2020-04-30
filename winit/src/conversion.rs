@@ -4,7 +4,7 @@
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::{
     keyboard::{self, KeyCode, ModifiersState},
-    mouse, window, Event, Mode, MouseCursor,
+    mouse, window, Event, Mode,
 };
 
 /// Converts a winit window event into an iced event.
@@ -125,19 +125,23 @@ pub fn fullscreen(
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn mouse_cursor(mouse_cursor: MouseCursor) -> winit::window::CursorIcon {
-    match mouse_cursor {
-        MouseCursor::Idle => winit::window::CursorIcon::Default,
-        MouseCursor::Pointer => winit::window::CursorIcon::Hand,
-        MouseCursor::Working => winit::window::CursorIcon::Progress,
-        MouseCursor::Grab => winit::window::CursorIcon::Grab,
-        MouseCursor::Grabbing => winit::window::CursorIcon::Grabbing,
-        MouseCursor::Crosshair => winit::window::CursorIcon::Crosshair,
-        MouseCursor::Text => winit::window::CursorIcon::Text,
-        MouseCursor::ResizingHorizontally => {
+pub fn mouse_interaction(
+    interaction: mouse::Interaction,
+) -> winit::window::CursorIcon {
+    use mouse::Interaction;
+
+    match interaction {
+        Interaction::Idle => winit::window::CursorIcon::Default,
+        Interaction::Pointer => winit::window::CursorIcon::Hand,
+        Interaction::Working => winit::window::CursorIcon::Progress,
+        Interaction::Grab => winit::window::CursorIcon::Grab,
+        Interaction::Grabbing => winit::window::CursorIcon::Grabbing,
+        Interaction::Crosshair => winit::window::CursorIcon::Crosshair,
+        Interaction::Text => winit::window::CursorIcon::Text,
+        Interaction::ResizingHorizontally => {
             winit::window::CursorIcon::EwResize
         }
-        MouseCursor::ResizingVertically => winit::window::CursorIcon::NsResize,
+        Interaction::ResizingVertically => winit::window::CursorIcon::NsResize,
     }
 }
 

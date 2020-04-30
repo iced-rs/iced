@@ -1,7 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{
-    scrollable, Background, Color, MouseCursor, Rectangle, Vector,
-};
+use iced_native::{mouse, scrollable, Background, Color, Rectangle, Vector};
 
 const SCROLLBAR_WIDTH: u16 = 10;
 const SCROLLBAR_MARGIN: u16 = 2;
@@ -56,7 +54,7 @@ impl scrollable::Renderer for Renderer {
         scrollbar: Option<scrollable::Scrollbar>,
         offset: u32,
         style_sheet: &Self::Style,
-        (content, mouse_cursor): Self::Output,
+        (content, mouse_interaction): Self::Output,
     ) -> Self::Output {
         (
             if let Some(scrollbar) = scrollbar {
@@ -118,9 +116,9 @@ impl scrollable::Renderer for Renderer {
                 content
             },
             if is_mouse_over_scrollbar || state.is_scroller_grabbed() {
-                MouseCursor::Idle
+                mouse::Interaction::Idle
             } else {
-                mouse_cursor
+                mouse_interaction
             },
         )
     }

@@ -11,8 +11,8 @@ mod rainbow {
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
     use iced_native::{
-        layout, Element, Hasher, Layout, Length, MouseCursor, Point, Size,
-        Vector, Widget,
+        layout, mouse, Element, Hasher, Layout, Length, Point, Size, Vector,
+        Widget,
     };
     use iced_wgpu::{
         triangle::{Mesh2D, Vertex2D},
@@ -54,7 +54,7 @@ mod rainbow {
             _defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
-        ) -> (Primitive, MouseCursor) {
+        ) -> (Primitive, mouse::Interaction) {
             let b = layout.bounds();
 
             // R O Y G B I V
@@ -141,7 +141,7 @@ mod rainbow {
                         },
                     }),
                 },
-                MouseCursor::default(),
+                mouse::Interaction::default(),
             )
         }
     }

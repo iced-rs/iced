@@ -70,7 +70,7 @@ impl Sandbox for Example {
 mod bezier {
     use iced::{
         canvas::{self, Canvas, Cursor, Event, Frame, Geometry, Path, Stroke},
-        mouse, Element, Length, MouseCursor, Point, Rectangle,
+        mouse, Element, Length, Point, Rectangle,
     };
 
     #[derive(Default)]
@@ -166,15 +166,15 @@ mod bezier {
             }
         }
 
-        fn mouse_cursor(
+        fn mouse_interaction(
             &self,
             bounds: Rectangle,
             cursor: Cursor,
-        ) -> MouseCursor {
+        ) -> mouse::Interaction {
             if cursor.is_over(&bounds) {
-                MouseCursor::Crosshair
+                mouse::Interaction::Crosshair
             } else {
-                MouseCursor::default()
+                mouse::Interaction::default()
             }
         }
     }

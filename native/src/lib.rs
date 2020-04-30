@@ -55,8 +55,8 @@ mod runtime;
 mod user_interface;
 
 pub use iced_core::{
-    Align, Background, Color, Font, HorizontalAlignment, Length, MouseCursor,
-    Point, Rectangle, Size, Vector, VerticalAlignment,
+    Align, Background, Color, Font, HorizontalAlignment, Length, Point,
+    Rectangle, Size, Vector, VerticalAlignment,
 };
 pub use iced_futures::{executor, futures, Command};
 

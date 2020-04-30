@@ -1,5 +1,5 @@
 use crate::canvas::{Cursor, Event, Geometry};
-use iced_native::{MouseCursor, Rectangle};
+use iced_native::{mouse, Rectangle};
 
 /// The state and logic of a [`Canvas`].
 ///
@@ -42,15 +42,19 @@ pub trait Program<Message> {
     /// [`Cache`]: struct.Cache.html
     fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry>;
 
-    /// Returns the mouse cursor state of the [`Program`].
+    /// Returns the current mouse interaction of the [`Program`].
     ///
-    /// The mouse cursor returned will be in effect even if the cursor position
+    /// The interaction returned will be in effect even if the cursor position
     /// is out of bounds of the program's [`Canvas`].
     ///
     /// [`Program`]: trait.Program.html
     /// [`Canvas`]: struct.Canvas.html
-    fn mouse_cursor(&self, _bounds: Rectangle, _cursor: Cursor) -> MouseCursor {
-        MouseCursor::default()
+    fn mouse_interaction(
+        &self,
+        _bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> mouse::Interaction {
+        mouse::Interaction::default()
     }
 }
 
@@ -71,7 +75,11 @@ where
         T::draw(self, bounds, cursor)
     }
 
-    fn mouse_cursor(&self, bounds: Rectangle, cursor: Cursor) -> MouseCursor {
-        T::mouse_cursor(self, bounds, cursor)
+    fn mouse_interaction(
+        &self,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> mouse::Interaction {
+        T::mouse_interaction(self, bounds, cursor)
     }
 }

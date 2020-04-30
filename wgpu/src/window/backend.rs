@@ -1,6 +1,6 @@
 use crate::{window::SwapChain, Renderer, Settings, Target};
 
-use iced_native::{futures, MouseCursor};
+use iced_native::{futures, mouse};
 use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `wgpu`.
@@ -78,7 +78,7 @@ impl iced_native::window::Backend for Backend {
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         scale_factor: f64,
         overlay: &[T],
-    ) -> MouseCursor {
+    ) -> mouse::Interaction {
         let (frame, viewport) = swap_chain.next_frame().expect("Next frame");
 
         let mut encoder = self.device.create_command_encoder(
@@ -101,7 +101,7 @@ impl iced_native::window::Backend for Backend {
             depth_stencil_attachment: None,
         });
 
-        let mouse_cursor = renderer.draw(
+        let mouse_interaction = renderer.draw(
             &mut self.device,
             &mut encoder,
             Target {
@@ -115,6 +115,6 @@ impl iced_native::window::Backend for Backend {
 
         self.queue.submit(&[encoder.finish()]);
 
-        mouse_cursor
+        mouse_interaction
     }
 }

@@ -7,8 +7,7 @@ use crate::{
 use crate::image::{self, Image};
 
 use iced_native::{
-    layout, Background, Color, Layout, MouseCursor, Point, Rectangle, Vector,
-    Widget,
+    layout, mouse, Background, Color, Layout, Point, Rectangle, Vector, Widget,
 };
 
 mod widget;
@@ -94,10 +93,10 @@ impl Renderer {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: Target<'_>,
-        (primitive, mouse_cursor): &(Primitive, MouseCursor),
+        (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
         scale_factor: f64,
         overlay: &[T],
-    ) -> MouseCursor {
+    ) -> mouse::Interaction {
         log::debug!("Drawing");
 
         let (width, height) = target.viewport.dimensions();
@@ -132,7 +131,7 @@ impl Renderer {
         #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.trim_cache();
 
-        *mouse_cursor
+        *mouse_interaction
     }
 
     fn draw_primitive<'a>(
@@ -453,7 +452,7 @@ impl Renderer {
 }
 
 impl iced_native::Renderer for Renderer {
-    type Output = (Primitive, MouseCursor);
+    type Output = (Primitive, mouse::Interaction);
     type Defaults = Defaults;
 
     fn layout<'a, Message>(
