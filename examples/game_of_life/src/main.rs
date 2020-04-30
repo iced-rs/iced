@@ -161,11 +161,9 @@ mod grid {
     };
     use std::collections::{HashMap, HashSet};
 
-    const CELL_SIZE: usize = 20;
-
     #[derive(Default)]
     pub struct Grid {
-        alive_cells: HashSet<(isize, isize)>,
+        life: HashSet<Cell>,
         interaction: Option<Interaction>,
         cache: canvas::Cache,
         translation: Vector,
@@ -173,7 +171,7 @@ mod grid {
 
     #[derive(Debug, Clone, Copy)]
     pub enum Message {
-        Populate { cell: (isize, isize) },
+        Populate(Cell),
     }
 
     enum Interaction {
@@ -182,41 +180,26 @@ mod grid {
     }
 
     impl Grid {
-        fn with_neighbors(
-            i: isize,
-            j: isize,
-        ) -> impl Iterator<Item = (isize, isize)> {
-            use itertools::Itertools;
-
-            let rows = i.saturating_sub(1)..=i.saturating_add(1);
-            let columns = j.saturating_sub(1)..=j.saturating_add(1);
-
-            rows.cartesian_product(columns)
-        }
-
         pub fn tick(&mut self) {
             use itertools::Itertools;
 
-            let populated_neighbors: HashMap<(isize, isize), usize> = self
-                .alive_cells
+            let populated_neighbors: HashMap<Cell, usize> = self
+                .life
                 .iter()
-                .flat_map(|&(i, j)| Self::with_neighbors(i, j))
+                .flat_map(Cell::cluster)
                 .unique()
-                .map(|(i, j)| ((i, j), self.populated_neighbors(i, j)))
+                .map(|cell| (cell, self.count_adjacent_life(cell)))
                 .collect();
 
-            for (&(i, j), amount) in populated_neighbors.iter() {
-                let is_populated = self.alive_cells.contains(&(i, j));
-
+            for (cell, amount) in populated_neighbors.iter() {
                 match amount {
-                    2 | 3 if is_populated => {}
+                    2 => {}
                     3 => {
-                        let _ = self.alive_cells.insert((i, j));
+                        let _ = self.life.insert(*cell);
                     }
-                    _ if is_populated => {
-                        let _ = self.alive_cells.remove(&(i, j));
+                    _ => {
+                        let _ = self.life.remove(cell);
                     }
-                    _ => {}
                 }
             }
 
@@ -225,8 +208,8 @@ mod grid {
 
         pub fn update(&mut self, message: Message) {
             match message {
-                Message::Populate { cell } => {
-                    self.alive_cells.insert(cell);
+                Message::Populate(cell) => {
+                    self.life.insert(cell);
                     self.cache.clear()
                 }
             }
@@ -239,23 +222,15 @@ mod grid {
                 .into()
         }
 
-        fn populated_neighbors(&self, row: isize, column: isize) -> usize {
-            let with_neighbors = Self::with_neighbors(row, column);
+        fn count_adjacent_life(&self, cell: Cell) -> usize {
+            let cluster = Cell::cluster(&cell);
 
-            let is_neighbor = |i: isize, j: isize| i != row || j != column;
-            let is_populated =
-                |i: isize, j: isize| self.alive_cells.contains(&(i, j));
+            let is_neighbor = |candidate| candidate != cell;
+            let is_populated = |cell| self.life.contains(&cell);
 
-            with_neighbors
-                .filter(|&(i, j)| is_neighbor(i, j) && is_populated(i, j))
+            cluster
+                .filter(|&cell| is_neighbor(cell) && is_populated(cell))
                 .count()
-        }
-
-        fn cell_at(&self, position: Point) -> Option<(isize, isize)> {
-            let i = (position.y / CELL_SIZE as f32).ceil() as isize;
-            let j = (position.x / CELL_SIZE as f32).ceil() as isize;
-
-            Some((i.saturating_sub(1), j.saturating_sub(1)))
         }
     }
 
@@ -271,12 +246,12 @@ mod grid {
             }
 
             let cursor_position = cursor.position_in(&bounds)?;
-            let cell = self.cell_at(cursor_position - self.translation)?;
+            let cell = Cell::at(cursor_position - self.translation);
 
-            let populate = if self.alive_cells.contains(&cell) {
+            let populate = if self.life.contains(&cell) {
                 None
             } else {
-                Some(Message::Populate { cell })
+                Some(Message::Populate(cell))
             };
 
             match event {
@@ -333,31 +308,24 @@ mod grid {
                     ),
                 );
 
-                let first_row =
-                    (-self.translation.y / CELL_SIZE as f32).floor() as isize;
-                let first_column =
-                    (-self.translation.x / CELL_SIZE as f32).floor() as isize;
-
-                let visible_rows =
-                    (frame.height() / CELL_SIZE as f32).ceil() as isize;
-                let visible_columns =
-                    (frame.width() / CELL_SIZE as f32).ceil() as isize;
-
                 frame.with_save(|frame| {
                     frame.translate(self.translation);
-                    frame.scale(CELL_SIZE as f32);
+                    frame.scale(Cell::SIZE as f32);
 
                     let cells = Path::new(|p| {
-                        for i in first_row..=(first_row + visible_rows) {
-                            for j in
-                                first_column..=(first_column + visible_columns)
-                            {
-                                if self.alive_cells.contains(&(i, j)) {
-                                    p.rectangle(
-                                        Point::new(j as f32, i as f32),
-                                        cell_size,
-                                    );
-                                }
+                        let region = Rectangle {
+                            x: -self.translation.x,
+                            y: -self.translation.y,
+                            width: frame.width(),
+                            height: frame.height(),
+                        };
+
+                        for cell in Cell::all_visible_in(region) {
+                            if self.life.contains(&cell) {
+                                p.rectangle(
+                                    Point::new(cell.j as f32, cell.i as f32),
+                                    cell_size,
+                                );
                             }
                         }
                     });
@@ -369,25 +337,23 @@ mod grid {
                 let mut frame = Frame::new(bounds.size());
 
                 frame.translate(self.translation);
-                frame.scale(CELL_SIZE as f32);
+                frame.scale(Cell::SIZE as f32);
 
                 if let Some(cursor_position) = cursor.position_in(&bounds) {
-                    if let Some((i, j)) =
-                        self.cell_at(cursor_position - self.translation)
-                    {
-                        let interaction = Path::rectangle(
-                            Point::new(j as f32, i as f32),
-                            cell_size,
-                        );
+                    let cell = Cell::at(cursor_position - self.translation);
 
-                        frame.fill(
-                            &interaction,
-                            Color {
-                                a: 0.5,
-                                ..Color::BLACK
-                            },
-                        );
-                    }
+                    let interaction = Path::rectangle(
+                        Point::new(cell.j as f32, cell.i as f32),
+                        cell_size,
+                    );
+
+                    frame.fill(
+                        &interaction,
+                        Color {
+                            a: 0.5,
+                            ..Color::BLACK
+                        },
+                    );
                 }
 
                 frame.into_geometry()
@@ -411,6 +377,52 @@ mod grid {
                 }
                 _ => mouse::Interaction::default(),
             }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct Cell {
+        i: isize,
+        j: isize,
+    }
+
+    impl Cell {
+        const SIZE: usize = 20;
+
+        fn at(position: Point) -> Cell {
+            let i = (position.y / Cell::SIZE as f32).ceil() as isize;
+            let j = (position.x / Cell::SIZE as f32).ceil() as isize;
+
+            Cell {
+                i: i.saturating_sub(1),
+                j: j.saturating_sub(1),
+            }
+        }
+
+        fn cluster(cell: &Cell) -> impl Iterator<Item = Cell> {
+            use itertools::Itertools;
+
+            let rows = cell.i.saturating_sub(1)..=cell.i.saturating_add(1);
+            let columns = cell.j.saturating_sub(1)..=cell.j.saturating_add(1);
+
+            rows.cartesian_product(columns).map(|(i, j)| Cell { i, j })
+        }
+
+        fn all_visible_in(region: Rectangle) -> impl Iterator<Item = Cell> {
+            use itertools::Itertools;
+
+            let first_row = (region.y / Cell::SIZE as f32).floor() as isize;
+            let first_column = (region.x / Cell::SIZE as f32).floor() as isize;
+
+            let visible_rows =
+                (region.height / Cell::SIZE as f32).ceil() as isize;
+            let visible_columns =
+                (region.width / Cell::SIZE as f32).ceil() as isize;
+
+            let rows = first_row..=first_row + visible_rows;
+            let columns = first_column..=first_column + visible_columns;
+
+            rows.cartesian_product(columns).map(|(i, j)| Cell { i, j })
         }
     }
 }

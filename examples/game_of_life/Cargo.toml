@@ -6,5 +6,5 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "tokio"] }
+iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
 itertools = "0.9"
