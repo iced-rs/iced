@@ -15,12 +15,10 @@ pub use value::Value;
 use editor::Editor;
 
 use crate::{
-    input::{
-        keyboard,
-        mouse::{self, click},
-    },
-    layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    keyboard, layout,
+    mouse::{self, click},
+    Clipboard, Element, Event, Font, Hasher, Layout, Length, Point, Rectangle,
+    Size, Widget,
 };
 
 use std::u32;
@@ -739,7 +737,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
 }
 
 mod platform {
-    use crate::input::keyboard;
+    use crate::keyboard;
 
     pub fn is_jump_modifier_pressed(
         modifiers: keyboard::ModifiersState,

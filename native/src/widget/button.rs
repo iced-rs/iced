@@ -5,8 +5,8 @@
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
 use crate::{
-    input::mouse, layout, Clipboard, Element, Event, Hasher, Layout, Length,
-    Point, Rectangle, Widget,
+    layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Rectangle, Widget,
 };
 use std::hash::Hash;
 

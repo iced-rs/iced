@@ -2,7 +2,7 @@
 use std::hash::Hash;
 
 use crate::{
-    input::mouse, layout, row, text, Align, Clipboard, Element, Event, Hasher,
+    layout, mouse, row, text, Align, Clipboard, Element, Event, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
 };

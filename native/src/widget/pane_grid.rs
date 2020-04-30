@@ -22,9 +22,8 @@ pub use split::Split;
 pub use state::{Focus, State};
 
 use crate::{
-    input::{keyboard, mouse},
-    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point, Size,
-    Widget,
+    keyboard, layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length,
+    Point, Size, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits

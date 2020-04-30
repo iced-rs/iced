@@ -39,8 +39,9 @@
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
-pub mod input;
+pub mod keyboard;
 pub mod layout;
+pub mod mouse;
 pub mod renderer;
 pub mod subscription;
 pub mod widget;

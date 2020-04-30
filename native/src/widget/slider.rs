@@ -5,8 +5,8 @@
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
 use crate::{
-    input::mouse, layout, Clipboard, Element, Event, Hasher, Layout, Length,
-    Point, Rectangle, Size, Widget,
+    layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 
 use std::{hash::Hash, ops::RangeInclusive};

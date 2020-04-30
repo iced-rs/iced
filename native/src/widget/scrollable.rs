@@ -1,7 +1,7 @@
 //! Navigate an endless amount of content with a scrollbar.
 use crate::{
-    column, input::mouse, layout, Align, Clipboard, Column, Element, Event,
-    Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    column, layout, mouse, Align, Clipboard, Column, Element, Event, Hasher,
+    Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 use std::{f32, hash::Hash, u32};

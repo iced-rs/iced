@@ -3,11 +3,8 @@
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::{
-    input::{
-        keyboard::{self, KeyCode, ModifiersState},
-        mouse,
-    },
-    window, Event, Mode, MouseCursor,
+    keyboard::{self, KeyCode, ModifiersState},
+    mouse, window, Event, Mode, MouseCursor,
 };
 
 /// Converts a winit window event into an iced event.
