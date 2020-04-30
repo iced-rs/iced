@@ -353,17 +353,19 @@ mod grid {
         }
 
         fn tick(&mut self) {
-            use itertools::Itertools;
+            let mut adjacent_life = HashMap::new();
 
-            let populated_neighbors: HashMap<Cell, usize> = self
-                .cells
-                .iter()
-                .flat_map(Cell::cluster)
-                .unique()
-                .map(|cell| (cell, self.count_adjacent(cell)))
-                .collect();
+            for cell in &self.cells {
+                let _ = adjacent_life.entry(*cell).or_insert(0);
 
-            for (cell, amount) in populated_neighbors.iter() {
+                for neighbor in Cell::neighbors(*cell) {
+                    let amount = adjacent_life.entry(neighbor).or_insert(0);
+
+                    *amount += 1;
+                }
+            }
+
+            for (cell, amount) in adjacent_life.iter() {
                 match amount {
                     2 => {}
                     3 => {
@@ -374,17 +376,6 @@ mod grid {
                     }
                 }
             }
-        }
-
-        fn count_adjacent(&self, cell: Cell) -> usize {
-            let cluster = Cell::cluster(&cell);
-
-            let is_neighbor = |candidate| candidate != cell;
-            let is_populated = |cell| self.cells.contains(&cell);
-
-            cluster
-                .filter(|&cell| is_neighbor(cell) && is_populated(cell))
-                .count()
         }
     }
 
@@ -407,13 +398,17 @@ mod grid {
             }
         }
 
-        fn cluster(cell: &Cell) -> impl Iterator<Item = Cell> {
+        fn cluster(cell: Cell) -> impl Iterator<Item = Cell> {
             use itertools::Itertools;
 
             let rows = cell.i.saturating_sub(1)..=cell.i.saturating_add(1);
             let columns = cell.j.saturating_sub(1)..=cell.j.saturating_add(1);
 
             rows.cartesian_product(columns).map(|(i, j)| Cell { i, j })
+        }
+
+        fn neighbors(cell: Cell) -> impl Iterator<Item = Cell> {
+            Cell::cluster(cell).filter(move |candidate| *candidate != cell)
         }
 
         fn all_visible_in(region: Rectangle) -> impl Iterator<Item = Cell> {
