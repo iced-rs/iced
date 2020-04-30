@@ -1,7 +1,7 @@
 use iced::{
     canvas::{self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke},
-    executor, Application, Color, Command, Container, Element, Length, Point,
-    Rectangle, Settings, Subscription, Vector,
+    executor, time, Application, Color, Command, Container, Element, Length,
+    Point, Rectangle, Settings, Subscription, Vector,
 };
 
 pub fn main() {
@@ -43,7 +43,7 @@ impl Application for Clock {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Tick(local_time) => {
-                let now = local_time.into();
+                let now = local_time;
 
                 if now != self.now {
                     self.now = now;
@@ -56,7 +56,8 @@ impl Application for Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(500)).map(Message::Tick)
+        time::every(std::time::Duration::from_millis(500))
+            .map(|_| Message::Tick(chrono::Local::now()))
     }
 
     fn view(&mut self) -> Element<Message> {
@@ -129,41 +130,4 @@ fn hand_rotation(n: u32, total: u32) -> f32 {
     let turns = n as f32 / total as f32;
 
     2.0 * std::f32::consts::PI * turns
-}
-
-mod time {
-    use iced::futures;
-
-    pub fn every(
-        duration: std::time::Duration,
-    ) -> iced::Subscription<chrono::DateTime<chrono::Local>> {
-        iced::Subscription::from_recipe(Every(duration))
-    }
-
-    struct Every(std::time::Duration);
-
-    impl<H, I> iced_native::subscription::Recipe<H, I> for Every
-    where
-        H: std::hash::Hasher,
-    {
-        type Output = chrono::DateTime<chrono::Local>;
-
-        fn hash(&self, state: &mut H) {
-            use std::hash::Hash;
-
-            std::any::TypeId::of::<Self>().hash(state);
-            self.0.hash(state);
-        }
-
-        fn stream(
-            self: Box<Self>,
-            _input: futures::stream::BoxStream<'static, I>,
-        ) -> futures::stream::BoxStream<'static, Self::Output> {
-            use futures::stream::StreamExt;
-
-            async_std::stream::interval(self.0)
-                .map(|_| chrono::Local::now())
-                .boxed()
-        }
-    }
 }

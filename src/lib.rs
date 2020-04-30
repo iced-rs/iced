@@ -190,6 +190,10 @@ pub mod settings;
 pub mod widget;
 pub mod window;
 
+#[cfg(any(feature = "tokio", feature = "async-std"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "tokio", feature = "async-std"))))]
+pub mod time;
+
 #[doc(no_inline)]
 pub use widget::*;
 

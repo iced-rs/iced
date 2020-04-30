@@ -1,14 +1,13 @@
 //! This example showcases an interactive version of the Game of Life, invented
 //! by John Conway. It leverages a `Canvas` together with other widgets.
 mod style;
-mod time;
 
 use grid::Grid;
 use iced::{
     button::{self, Button},
     executor,
     slider::{self, Slider},
-    Align, Application, Column, Command, Container, Element, Length, Row,
+    time, Align, Application, Column, Command, Container, Element, Length, Row,
     Settings, Subscription, Text,
 };
 use std::time::{Duration, Instant};

@@ -8,8 +8,8 @@
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::{
     canvas::{self, Cursor, Path, Stroke},
-    executor, window, Application, Canvas, Color, Command, Element, Length,
-    Point, Rectangle, Settings, Size, Subscription, Vector,
+    executor, time, window, Application, Canvas, Color, Command, Element,
+    Length, Point, Rectangle, Settings, Size, Subscription, Vector,
 };
 
 use std::time::Instant;
@@ -210,41 +210,5 @@ impl<Message> canvas::Program<Message> for State {
         });
 
         vec![background, system]
-    }
-}
-
-mod time {
-    use iced::futures;
-    use std::time::Instant;
-
-    pub fn every(duration: std::time::Duration) -> iced::Subscription<Instant> {
-        iced::Subscription::from_recipe(Every(duration))
-    }
-
-    struct Every(std::time::Duration);
-
-    impl<H, I> iced_native::subscription::Recipe<H, I> for Every
-    where
-        H: std::hash::Hasher,
-    {
-        type Output = Instant;
-
-        fn hash(&self, state: &mut H) {
-            use std::hash::Hash;
-
-            std::any::TypeId::of::<Self>().hash(state);
-            self.0.hash(state);
-        }
-
-        fn stream(
-            self: Box<Self>,
-            _input: futures::stream::BoxStream<'static, I>,
-        ) -> futures::stream::BoxStream<'static, Self::Output> {
-            use futures::stream::StreamExt;
-
-            async_std::stream::interval(self.0)
-                .map(|_| Instant::now())
-                .boxed()
-        }
     }
 }

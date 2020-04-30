@@ -14,6 +14,10 @@ mod runtime;
 pub mod executor;
 pub mod subscription;
 
+#[cfg(any(feature = "tokio", feature = "async-std"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "tokio", feature = "async-std"))))]
+pub mod time;
+
 pub use command::Command;
 pub use executor::Executor;
 pub use runtime::Runtime;

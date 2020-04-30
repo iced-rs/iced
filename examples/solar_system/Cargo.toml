@@ -6,7 +6,5 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "async-std", "debug"] }
-iced_native = { path = "../../native" }
-async-std = { version = "1.0", features = ["unstable"] }
+iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
 rand = "0.7"

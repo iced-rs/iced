@@ -6,7 +6,4 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../.." }
-iced_native = { path = "../../native" }
-iced_futures = { path = "../../futures", features = ["async-std"] }
-async-std = { version = "1.0", features = ["unstable"] }
+iced = { path = "../..", features = ["tokio"] }
