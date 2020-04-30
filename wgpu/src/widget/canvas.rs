@@ -48,12 +48,15 @@ pub use text::Text;
 ///
 /// - [`clock`], an application that uses the [`Canvas`] widget to draw a clock
 /// and its hands to display the current time.
+/// - [`game_of_life`], an interactive version of the Game of Life, invented by
+/// John Conway.
 /// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
 /// and showcasing how to compose different transforms.
 ///
-/// [examples]: https://github.com/hecrj/iced/tree/0.1/examples
-/// [`clock`]: https://github.com/hecrj/iced/tree/0.1/examples/clock
-/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.1/examples/solar_system
+/// [examples]: https://github.com/hecrj/iced/tree/master/examples
+/// [`clock`]: https://github.com/hecrj/iced/tree/master/examples/clock
+/// [`game_of_life`]: https://github.com/hecrj/iced/tree/master/examples/game_of_life
+/// [`solar_system`]: https://github.com/hecrj/iced/tree/master/examples/solar_system
 ///
 /// ## Drawing a simple circle
 /// If you want to get a quick overview, here's how we can draw a simple circle:
@@ -89,7 +92,7 @@ pub use text::Text;
 ///     }
 /// }
 ///
-/// // Finally, we simply use our `Cache` to create the `Canvas`!
+/// // Finally, we simply use our `Circle` to create the `Canvas`!
 /// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]

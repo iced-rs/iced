@@ -19,13 +19,14 @@ impl Default for State {
         State::Empty
     }
 }
-/// A simple cache that stores generated geometry to avoid recomputation.
+/// A simple cache that stores generated [`Geometry`] to avoid recomputation.
 ///
 /// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
 /// change or it is explicitly cleared.
 ///
 /// [`Layer`]: ../trait.Layer.html
 /// [`Cache`]: struct.Cache.html
+/// [`Geometry`]: struct.Geometry.html
 #[derive(Debug, Default)]
 pub struct Cache {
     state: RefCell<State>,
@@ -41,30 +42,41 @@ impl Cache {
         }
     }
 
-    /// Clears the cache, forcing a redraw the next time it is used.
+    /// Clears the [`Cache`], forcing a redraw the next time it is used.
     ///
-    /// [`Cached`]: struct.Cached.html
+    /// [`Cache`]: struct.Cache.html
     pub fn clear(&mut self) {
         *self.state.borrow_mut() = State::Empty;
     }
 
-    pub fn draw(
-        &self,
-        new_bounds: Size,
-        draw_fn: impl Fn(&mut Frame),
-    ) -> Geometry {
+    /// Draws [`Geometry`] using the provided closure and stores it in the
+    /// [`Cache`].
+    ///
+    /// The closure will only be called when
+    /// - the bounds have changed since the previous draw call.
+    /// - the [`Cache`] is empty or has been explicitly cleared.
+    ///
+    /// Otherwise, the previously stored [`Geometry`] will be returned. The
+    /// [`Cache`] is not cleared in this case. In other words, it will keep
+    /// returning the stored [`Geometry`] if needed.
+    ///
+    /// [`Cache`]: struct.Cache.html
+    pub fn draw(&self, bounds: Size, draw_fn: impl Fn(&mut Frame)) -> Geometry {
         use std::ops::Deref;
 
-        if let State::Filled { bounds, primitive } = self.state.borrow().deref()
+        if let State::Filled {
+            bounds: cached_bounds,
+            primitive,
+        } = self.state.borrow().deref()
         {
-            if *bounds == new_bounds {
+            if *cached_bounds == bounds {
                 return Geometry::from_primitive(Primitive::Cached {
                     cache: primitive.clone(),
                 });
             }
         }
 
-        let mut frame = Frame::new(new_bounds);
+        let mut frame = Frame::new(bounds);
         draw_fn(&mut frame);
 
         let primitive = {
@@ -74,7 +86,7 @@ impl Cache {
         };
 
         *self.state.borrow_mut() = State::Filled {
-            bounds: new_bounds,
+            bounds,
             primitive: primitive.clone(),
         };
 
