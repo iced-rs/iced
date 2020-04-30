@@ -136,13 +136,13 @@ impl Application for GameOfLife {
             .align_items(Align::Center);
 
         let controls = Row::new()
+            .padding(10)
             .spacing(20)
             .push(playback_controls)
             .push(speed_controls);
 
         let content = Column::new()
             .spacing(10)
-            .padding(10)
             .align_items(Align::Center)
             .push(self.grid.view().map(Message::Grid))
             .push(controls);
@@ -167,16 +167,27 @@ mod grid {
 
     #[derive(Default)]
     pub struct Grid {
-        alive_cells: HashSet<(usize, usize)>,
-        mouse_pressed: bool,
+        alive_cells: HashSet<(isize, isize)>,
+        interaction: Option<Interaction>,
         cache: canvas::Cache,
+        translation: Vector,
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub enum Message {
+        Populate { cell: (isize, isize) },
+    }
+
+    enum Interaction {
+        Drawing,
+        Panning { translation: Vector, start: Point },
     }
 
     impl Grid {
         fn with_neighbors(
-            i: usize,
-            j: usize,
-        ) -> impl Iterator<Item = (usize, usize)> {
+            i: isize,
+            j: isize,
+        ) -> impl Iterator<Item = (isize, isize)> {
             use itertools::Itertools;
 
             let rows = i.saturating_sub(1)..=i.saturating_add(1);
@@ -188,7 +199,7 @@ mod grid {
         pub fn tick(&mut self) {
             use itertools::Itertools;
 
-            let populated_neighbors: HashMap<(usize, usize), usize> = self
+            let populated_neighbors: HashMap<(isize, isize), usize> = self
                 .alive_cells
                 .iter()
                 .flat_map(|&(i, j)| Self::with_neighbors(i, j))
@@ -230,53 +241,24 @@ mod grid {
                 .into()
         }
 
-        fn populated_neighbors(&self, row: usize, column: usize) -> usize {
+        fn populated_neighbors(&self, row: isize, column: isize) -> usize {
             let with_neighbors = Self::with_neighbors(row, column);
 
-            let is_neighbor = |i: usize, j: usize| i != row || j != column;
+            let is_neighbor = |i: isize, j: isize| i != row || j != column;
             let is_populated =
-                |i: usize, j: usize| self.alive_cells.contains(&(i, j));
+                |i: isize, j: isize| self.alive_cells.contains(&(i, j));
 
             with_neighbors
                 .filter(|&(i, j)| is_neighbor(i, j) && is_populated(i, j))
                 .count()
         }
 
-        fn region(&self, size: Size) -> Rectangle {
-            let width =
-                (size.width / CELL_SIZE as f32).floor() * CELL_SIZE as f32;
-            let height =
-                (size.height / CELL_SIZE as f32).floor() * CELL_SIZE as f32;
+        fn cell_at(&self, position: Point) -> Option<(isize, isize)> {
+            let i = (position.y / CELL_SIZE as f32).ceil() as isize;
+            let j = (position.x / CELL_SIZE as f32).ceil() as isize;
 
-            Rectangle {
-                x: (size.width - width) / 2.0,
-                y: (size.height - height) / 2.0,
-                width,
-                height,
-            }
+            Some((i.saturating_sub(1), j.saturating_sub(1)))
         }
-
-        fn cell_at(
-            &self,
-            region: Rectangle,
-            position: Point,
-        ) -> Option<(usize, usize)> {
-            if region.contains(position) {
-                let i = ((position.y - region.y) / CELL_SIZE as f32).ceil()
-                    as usize;
-                let j = ((position.x - region.x) / CELL_SIZE as f32).ceil()
-                    as usize;
-
-                Some((i.saturating_sub(1), j.saturating_sub(1)))
-            } else {
-                None
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, Copy)]
-    pub enum Message {
-        Populate { cell: (usize, usize) },
     }
 
     impl<'a> canvas::Program<Message> for Grid {
@@ -287,17 +269,15 @@ mod grid {
             cursor: Cursor,
         ) -> Option<Message> {
             if let Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state,
+                state: ButtonState::Released,
+                ..
             }) = event
             {
-                self.mouse_pressed = state == ButtonState::Pressed;
+                self.interaction = None;
             }
 
             let cursor_position = cursor.position_in(&bounds)?;
-
-            let region = self.region(bounds.size());
-            let cell = self.cell_at(region, cursor_position)?;
+            let cell = self.cell_at(cursor_position - self.translation)?;
 
             let populate = if self.alive_cells.contains(&cell) {
                 None
@@ -306,26 +286,53 @@ mod grid {
             };
 
             match event {
-                Event::Mouse(mouse::Event::Input {
-                    button: mouse::Button::Left,
-                    ..
-                }) if self.mouse_pressed => populate,
-                Event::Mouse(mouse::Event::CursorMoved { .. })
-                    if self.mouse_pressed =>
-                {
-                    populate
-                }
-                _ => None,
+                Event::Mouse(mouse_event) => match mouse_event {
+                    mouse::Event::Input {
+                        button,
+                        state: ButtonState::Pressed,
+                    } => match button {
+                        mouse::Button::Left => {
+                            self.interaction = Some(Interaction::Drawing);
+
+                            populate
+                        }
+                        mouse::Button::Right => {
+                            self.interaction = Some(Interaction::Panning {
+                                translation: self.translation,
+                                start: cursor_position,
+                            });
+
+                            None
+                        }
+                        _ => None,
+                    },
+                    mouse::Event::CursorMoved { .. } => {
+                        match self.interaction {
+                            Some(Interaction::Drawing) => populate,
+                            Some(Interaction::Panning {
+                                translation,
+                                start,
+                            }) => {
+                                self.translation =
+                                    translation + (cursor_position - start);
+
+                                self.cache.clear();
+
+                                None
+                            }
+                            _ => None,
+                        }
+                    }
+                    _ => None,
+                },
             }
         }
 
         fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
-            let region = self.region(bounds.size());
             let cell_size = Size::new(1.0, 1.0);
 
             let life = self.cache.draw(bounds.size(), |frame| {
-                let background =
-                    Path::rectangle(region.position(), region.size());
+                let background = Path::rectangle(Point::ORIGIN, frame.size());
                 frame.fill(
                     &background,
                     Color::from_rgb(
@@ -335,16 +342,25 @@ mod grid {
                     ),
                 );
 
-                let visible_rows = region.height as usize / CELL_SIZE;
-                let visible_columns = region.width as usize / CELL_SIZE;
+                let first_row =
+                    (-self.translation.y / CELL_SIZE as f32).floor() as isize;
+                let first_column =
+                    (-self.translation.x / CELL_SIZE as f32).floor() as isize;
+
+                let visible_rows =
+                    (frame.height() / CELL_SIZE as f32).ceil() as isize;
+                let visible_columns =
+                    (frame.width() / CELL_SIZE as f32).ceil() as isize;
 
                 frame.with_save(|frame| {
-                    frame.translate(Vector::new(region.x, region.y));
+                    frame.translate(self.translation);
                     frame.scale(CELL_SIZE as f32);
 
                     let cells = Path::new(|p| {
-                        for i in 0..visible_rows {
-                            for j in 0..visible_columns {
+                        for i in first_row..=(first_row + visible_rows) {
+                            for j in
+                                first_column..=(first_column + visible_columns)
+                            {
                                 if self.alive_cells.contains(&(i, j)) {
                                     p.rectangle(
                                         Point::new(j as f32, i as f32),
@@ -361,11 +377,12 @@ mod grid {
             let hovered_cell = {
                 let mut frame = Frame::new(bounds.size());
 
-                frame.translate(Vector::new(region.x, region.y));
+                frame.translate(self.translation);
                 frame.scale(CELL_SIZE as f32);
 
                 if let Some(cursor_position) = cursor.position_in(&bounds) {
-                    if let Some((i, j)) = self.cell_at(region, cursor_position)
+                    if let Some((i, j)) =
+                        self.cell_at(cursor_position - self.translation)
                     {
                         let interaction = Path::rectangle(
                             Point::new(j as f32, i as f32),
@@ -393,12 +410,10 @@ mod grid {
             bounds: Rectangle,
             cursor: Cursor,
         ) -> MouseCursor {
-            let region = self.region(bounds.size());
-
-            match cursor.position_in(&bounds) {
-                Some(position) if region.contains(position) => {
-                    MouseCursor::Crosshair
-                }
+            match self.interaction {
+                Some(Interaction::Drawing) => MouseCursor::Crosshair,
+                Some(Interaction::Panning { .. }) => MouseCursor::Grabbing,
+                None if cursor.is_over(&bounds) => MouseCursor::Crosshair,
                 _ => MouseCursor::default(),
             }
         }
