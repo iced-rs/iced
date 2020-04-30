@@ -164,7 +164,7 @@ mod grid {
     #[derive(Default)]
     pub struct Grid {
         life: HashSet<Cell>,
-        interaction: Option<Interaction>,
+        interaction: Interaction,
         cache: canvas::Cache,
         translation: Vector,
     }
@@ -172,11 +172,6 @@ mod grid {
     #[derive(Debug, Clone, Copy)]
     pub enum Message {
         Populate(Cell),
-    }
-
-    enum Interaction {
-        Drawing,
-        Panning { translation: Vector, start: Point },
     }
 
     impl Grid {
@@ -242,7 +237,7 @@ mod grid {
             cursor: Cursor,
         ) -> Option<Message> {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
-                self.interaction = None;
+                self.interaction = Interaction::None;
             }
 
             let cursor_position = cursor.position_in(&bounds)?;
@@ -258,15 +253,15 @@ mod grid {
                 Event::Mouse(mouse_event) => match mouse_event {
                     mouse::Event::ButtonPressed(button) => match button {
                         mouse::Button::Left => {
-                            self.interaction = Some(Interaction::Drawing);
+                            self.interaction = Interaction::Drawing;
 
                             populate
                         }
                         mouse::Button::Right => {
-                            self.interaction = Some(Interaction::Panning {
+                            self.interaction = Interaction::Panning {
                                 translation: self.translation,
                                 start: cursor_position,
-                            });
+                            };
 
                             None
                         }
@@ -274,11 +269,8 @@ mod grid {
                     },
                     mouse::Event::CursorMoved { .. } => {
                         match self.interaction {
-                            Some(Interaction::Drawing) => populate,
-                            Some(Interaction::Panning {
-                                translation,
-                                start,
-                            }) => {
+                            Interaction::Drawing => populate,
+                            Interaction::Panning { translation, start } => {
                                 self.translation =
                                     translation + (cursor_position - start);
 
@@ -368,11 +360,9 @@ mod grid {
             cursor: Cursor,
         ) -> mouse::Interaction {
             match self.interaction {
-                Some(Interaction::Drawing) => mouse::Interaction::Crosshair,
-                Some(Interaction::Panning { .. }) => {
-                    mouse::Interaction::Grabbing
-                }
-                None if cursor.is_over(&bounds) => {
+                Interaction::Drawing => mouse::Interaction::Crosshair,
+                Interaction::Panning { .. } => mouse::Interaction::Grabbing,
+                Interaction::None if cursor.is_over(&bounds) => {
                     mouse::Interaction::Crosshair
                 }
                 _ => mouse::Interaction::default(),
@@ -423,6 +413,18 @@ mod grid {
             let columns = first_column..=first_column + visible_columns;
 
             rows.cartesian_product(columns).map(|(i, j)| Cell { i, j })
+        }
+    }
+
+    enum Interaction {
+        None,
+        Drawing,
+        Panning { translation: Vector, start: Point },
+    }
+
+    impl Default for Interaction {
+        fn default() -> Interaction {
+            Interaction::None
         }
     }
 }
