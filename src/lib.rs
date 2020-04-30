@@ -210,6 +210,3 @@ pub use runtime::{
     Length, MouseCursor, Point, Rectangle, Size, Subscription, Vector,
     VerticalAlignment,
 };
-
-#[cfg(not(target_arch = "wasm32"))]
-pub use runtime::input::ButtonState;

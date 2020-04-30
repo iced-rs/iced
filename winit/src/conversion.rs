@@ -5,7 +5,7 @@
 use crate::{
     input::{
         keyboard::{self, KeyCode, ModifiersState},
-        mouse, ButtonState,
+        mouse,
     },
     window, Event, Mode, MouseCursor,
 };
@@ -154,17 +154,6 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
         winit::event::MouseButton::Right => mouse::Button::Right,
         winit::event::MouseButton::Middle => mouse::Button::Middle,
         winit::event::MouseButton::Other(other) => mouse::Button::Other(other),
-    }
-}
-
-/// Converts an `ElementState` from [`winit`] to an [`iced_native`] button state.
-///
-/// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn button_state(element_state: winit::event::ElementState) -> ButtonState {
-    match element_state {
-        winit::event::ElementState::Pressed => ButtonState::Pressed,
-        winit::event::ElementState::Released => ButtonState::Released,
     }
 }
 
