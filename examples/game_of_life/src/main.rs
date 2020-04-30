@@ -163,7 +163,7 @@ mod grid {
 
     #[derive(Default)]
     pub struct Grid {
-        life: HashSet<Cell>,
+        life: Life,
         interaction: Interaction,
         cache: canvas::Cache,
         translation: Vector,
@@ -176,35 +176,14 @@ mod grid {
 
     impl Grid {
         pub fn tick(&mut self) {
-            use itertools::Itertools;
-
-            let populated_neighbors: HashMap<Cell, usize> = self
-                .life
-                .iter()
-                .flat_map(Cell::cluster)
-                .unique()
-                .map(|cell| (cell, self.count_adjacent_life(cell)))
-                .collect();
-
-            for (cell, amount) in populated_neighbors.iter() {
-                match amount {
-                    2 => {}
-                    3 => {
-                        let _ = self.life.insert(*cell);
-                    }
-                    _ => {
-                        let _ = self.life.remove(cell);
-                    }
-                }
-            }
-
+            self.life.tick();
             self.cache.clear()
         }
 
         pub fn update(&mut self, message: Message) {
             match message {
                 Message::Populate(cell) => {
-                    self.life.insert(cell);
+                    self.life.populate(cell);
                     self.cache.clear()
                 }
             }
@@ -215,17 +194,6 @@ mod grid {
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .into()
-        }
-
-        fn count_adjacent_life(&self, cell: Cell) -> usize {
-            let cluster = Cell::cluster(&cell);
-
-            let is_neighbor = |candidate| candidate != cell;
-            let is_populated = |cell| self.life.contains(&cell);
-
-            cluster
-                .filter(|&cell| is_neighbor(cell) && is_populated(cell))
-                .count()
         }
     }
 
@@ -367,6 +335,56 @@ mod grid {
                 }
                 _ => mouse::Interaction::default(),
             }
+        }
+    }
+
+    #[derive(Default)]
+    pub struct Life {
+        cells: HashSet<Cell>,
+    }
+
+    impl Life {
+        fn contains(&self, cell: &Cell) -> bool {
+            self.cells.contains(cell)
+        }
+
+        fn populate(&mut self, cell: Cell) {
+            self.cells.insert(cell);
+        }
+
+        fn tick(&mut self) {
+            use itertools::Itertools;
+
+            let populated_neighbors: HashMap<Cell, usize> = self
+                .cells
+                .iter()
+                .flat_map(Cell::cluster)
+                .unique()
+                .map(|cell| (cell, self.count_adjacent(cell)))
+                .collect();
+
+            for (cell, amount) in populated_neighbors.iter() {
+                match amount {
+                    2 => {}
+                    3 => {
+                        let _ = self.cells.insert(*cell);
+                    }
+                    _ => {
+                        let _ = self.cells.remove(cell);
+                    }
+                }
+            }
+        }
+
+        fn count_adjacent(&self, cell: Cell) -> usize {
+            let cluster = Cell::cluster(&cell);
+
+            let is_neighbor = |candidate| candidate != cell;
+            let is_populated = |cell| self.cells.contains(&cell);
+
+            cluster
+                .filter(|&cell| is_neighbor(cell) && is_populated(cell))
+                .count()
         }
     }
 
