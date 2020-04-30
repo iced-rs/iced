@@ -532,29 +532,29 @@ where
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 self.trigger_resize(layout, cursor_position, messages);
             }
-            Event::Keyboard(keyboard::Event::Input {
+            Event::Keyboard(keyboard::Event::KeyPressed {
                 modifiers,
                 key_code,
-                state,
             }) => {
                 if let Some(on_key_press) = &self.on_key_press {
                     // TODO: Discard when event is captured
-                    if state == ButtonState::Pressed {
-                        if let Some(_) = self.state.active_pane() {
-                            if modifiers.matches(self.modifier_keys) {
-                                if let Some(message) =
-                                    on_key_press(KeyPressEvent {
-                                        key_code,
-                                        modifiers,
-                                    })
-                                {
-                                    messages.push(message);
-                                }
+                    if let Some(_) = self.state.active_pane() {
+                        if modifiers.matches(self.modifier_keys) {
+                            if let Some(message) = on_key_press(KeyPressEvent {
+                                key_code,
+                                modifiers,
+                            }) {
+                                messages.push(message);
                             }
                         }
                     }
                 }
 
+                *self.pressed_modifiers = modifiers;
+            }
+            Event::Keyboard(keyboard::Event::KeyReleased {
+                modifiers, ..
+            }) => {
                 *self.pressed_modifiers = modifiers;
             }
             _ => {}

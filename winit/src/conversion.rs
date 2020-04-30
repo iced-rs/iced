@@ -70,10 +70,24 @@ pub fn window_event(
                     ..
                 },
             ..
-        } => Some(Event::Keyboard(keyboard::Event::Input {
-            key_code: key_code(*virtual_keycode),
-            state: button_state(*state),
-            modifiers: modifiers_state(modifiers),
+        } => Some(Event::Keyboard({
+            let key_code = key_code(*virtual_keycode);
+            let modifiers = modifiers_state(modifiers);
+
+            match state {
+                winit::event::ElementState::Pressed => {
+                    keyboard::Event::KeyPressed {
+                        key_code,
+                        modifiers,
+                    }
+                }
+                winit::event::ElementState::Released => {
+                    keyboard::Event::KeyReleased {
+                        key_code,
+                        modifiers,
+                    }
+                }
+            }
         })),
         WindowEvent::HoveredFile(path) => {
             Some(Event::Window(window::Event::FileHovered(path.clone())))

@@ -327,9 +327,8 @@ where
                 let message = (self.on_change)(editor.contents());
                 messages.push(message);
             }
-            Event::Keyboard(keyboard::Event::Input {
+            Event::Keyboard(keyboard::Event::KeyPressed {
                 key_code,
-                state: ButtonState::Pressed,
                 modifiers,
             }) if self.state.is_focused => match key_code {
                 keyboard::KeyCode::Enter => {
@@ -473,10 +472,8 @@ where
                 }
                 _ => {}
             },
-            Event::Keyboard(keyboard::Event::Input {
-                key_code,
-                state: ButtonState::Released,
-                ..
+            Event::Keyboard(keyboard::Event::KeyReleased {
+                key_code, ..
             }) => match key_code {
                 keyboard::KeyCode::V => {
                     self.state.is_pasting = None;

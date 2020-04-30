@@ -1,5 +1,4 @@
 use super::{KeyCode, ModifiersState};
-use crate::input::ButtonState;
 
 /// A keyboard event.
 ///
@@ -9,11 +8,17 @@ use crate::input::ButtonState;
 /// [open an issue]: https://github.com/hecrj/iced/issues
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
-    /// A keyboard key was pressed or released.
-    Input {
-        /// The state of the key
-        state: ButtonState,
+    /// A keyboard key was pressed.
+    KeyPressed {
+        /// The key identifier
+        key_code: KeyCode,
 
+        /// The state of the modifier keys
+        modifiers: ModifiersState,
+    },
+
+    /// A keyboard key was released.
+    KeyReleased {
         /// The key identifier
         key_code: KeyCode,
 
