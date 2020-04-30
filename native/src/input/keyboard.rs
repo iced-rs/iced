@@ -1,5 +1,2 @@
-//! Build keyboard events.
-mod event;
-
-pub use event::Event;
+//! Track keyboard events.
 pub use iced_core::keyboard::*;

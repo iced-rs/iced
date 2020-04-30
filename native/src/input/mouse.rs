@@ -1,4 +1,4 @@
-//! Build mouse events.
+//! Track mouse events.
 
 pub mod click;
 
