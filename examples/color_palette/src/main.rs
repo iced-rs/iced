@@ -21,36 +21,24 @@ pub struct State {
 
 fn generate_theme(base_color: &Color) -> Vec<Color> {
     use palette::{Hsl, Hue, Shade, Srgb};
-    let mut theme = Vec::<Color>::new();
+
     // Convert to HSL color for manipulation
     let hsl = Hsl::from(Srgb::from(*base_color));
 
-    theme.push(
-        Srgb::from(hsl.shift_hue(-135.0).lighten(0.075))
-            .clamp()
-            .into(),
-    );
-    theme.push(Srgb::from(hsl.shift_hue(-120.0)).clamp().into());
-    theme.push(
-        Srgb::from(hsl.shift_hue(-105.0).darken(0.075))
-            .clamp()
-            .into(),
-    );
-    theme.push(Srgb::from(hsl.darken(0.075)).clamp().into());
-    theme.push(*base_color);
-    theme.push(Srgb::from(hsl.lighten(0.075)).clamp().into());
-    theme.push(
-        Srgb::from(hsl.shift_hue(105.0).darken(0.075))
-            .clamp()
-            .into(),
-    );
-    theme.push(Srgb::from(hsl.shift_hue(120.0)).clamp().into());
-    theme.push(
-        Srgb::from(hsl.shift_hue(135.0).lighten(0.075))
-            .clamp()
-            .into(),
-    );
-    theme
+    [
+        hsl.shift_hue(-135.0).lighten(0.075),
+        hsl.shift_hue(-120.0),
+        hsl.shift_hue(-105.0).darken(0.075),
+        hsl.darken(0.075),
+        hsl,
+        hsl.lighten(0.075),
+        hsl.shift_hue(105.0).darken(0.075),
+        hsl.shift_hue(120.0),
+        hsl.shift_hue(135.0).lighten(0.075),
+    ]
+    .iter()
+    .map(|&color| Srgb::from(color).clamp().into())
+    .collect()
 }
 
 struct ColorPicker<C: ColorSpace> {
