@@ -339,13 +339,9 @@ mod grid {
                     let cell =
                         Cell::at(self.project(cursor_position, frame.size()));
 
-                    let interaction = Path::rectangle(
+                    frame.fill_rectangle(
                         Point::new(cell.j as f32, cell.i as f32),
                         Size::UNIT,
-                    );
-
-                    frame.fill(
-                        &interaction,
                         Color {
                             a: 0.5,
                             ..Color::BLACK
