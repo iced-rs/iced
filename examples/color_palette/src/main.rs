@@ -66,8 +66,6 @@ trait ColorSpace: Sized {
 
     fn components(&self) -> [f32; 3];
 
-    fn update_component(c: Self, i: usize, val: f32) -> Self;
-
     fn to_string(&self) -> String;
 }
 
@@ -76,18 +74,13 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
         let [c1, c2, c3] = color.components();
         let [s1, s2, s3] = &mut self.sliders;
         let [cr1, cr2, cr3] = C::COMPONENT_RANGES;
+
         Row::new()
             .spacing(10)
             .push(Text::new(C::LABEL).width(Length::Units(50)))
-            .push(Slider::new(s1, cr1, c1, move |v| {
-                C::update_component(color, 0, v)
-            }))
-            .push(Slider::new(s2, cr2, c2, move |v| {
-                C::update_component(color, 1, v)
-            }))
-            .push(Slider::new(s3, cr3, c3, move |v| {
-                C::update_component(color, 2, v)
-            }))
+            .push(Slider::new(s1, cr1, c1, move |v| C::new(v, c2, c3)))
+            .push(Slider::new(s2, cr2, c2, move |v| C::new(c1, v, c3)))
+            .push(Slider::new(s3, cr3, c3, move |v| C::new(c1, c2, v)))
             .push(
                 Text::new(color.to_string())
                     .width(Length::Units(185))
@@ -108,15 +101,6 @@ impl ColorSpace for Color {
 
     fn components(&self) -> [f32; 3] {
         [self.r, self.g, self.b]
-    }
-
-    fn update_component(c: Color, i: usize, val: f32) -> Self {
-        match i {
-            0 => Color { r: val, ..c },
-            1 => Color { g: val, ..c },
-            2 => Color { b: val, ..c },
-            _ => panic!("Invalid component index: {:?}", i),
-        }
     }
 
     fn to_string(&self) -> String {
@@ -150,24 +134,6 @@ impl ColorSpace for palette::Hsl {
         ]
     }
 
-    fn update_component(c: palette::Hsl, i: usize, val: f32) -> Self {
-        match i {
-            0 => palette::Hsl {
-                hue: palette::RgbHue::from_degrees(val),
-                ..c
-            },
-            1 => palette::Hsl {
-                saturation: val,
-                ..c
-            },
-            2 => palette::Hsl {
-                lightness: val,
-                ..c
-            },
-            _ => panic!("Invalid component index: {:?}", i),
-        }
-    }
-
     fn to_string(&self) -> String {
         format!(
             "hsl({:.1}, {:.1}%, {:.1}%)",
@@ -189,21 +155,6 @@ impl ColorSpace for palette::Hsv {
 
     fn components(&self) -> [f32; 3] {
         [self.hue.to_positive_degrees(), self.saturation, self.value]
-    }
-
-    fn update_component(c: palette::Hsv, i: usize, val: f32) -> Self {
-        match i {
-            0 => palette::Hsv {
-                hue: palette::RgbHue::from_degrees(val),
-                ..c
-            },
-            1 => palette::Hsv {
-                saturation: val,
-                ..c
-            },
-            2 => palette::Hsv { value: val, ..c },
-            _ => panic!("Invalid component index: {:?}", i),
-        }
     }
 
     fn to_string(&self) -> String {
@@ -237,24 +188,6 @@ impl ColorSpace for palette::Hwb {
         ]
     }
 
-    fn update_component(c: palette::Hwb, i: usize, val: f32) -> Self {
-        match i {
-            0 => palette::Hwb {
-                hue: palette::RgbHue::from_degrees(val),
-                ..c
-            },
-            1 => palette::Hwb {
-                whiteness: val,
-                ..c
-            },
-            2 => palette::Hwb {
-                blackness: val,
-                ..c
-            },
-            _ => panic!("Invalid component index: {:?}", i),
-        }
-    }
-
     fn to_string(&self) -> String {
         format!(
             "hwb({:.1}, {:.1}%, {:.1}%)",
@@ -278,15 +211,6 @@ impl ColorSpace for palette::Lab {
         [self.l, self.a, self.b]
     }
 
-    fn update_component(c: palette::Lab, i: usize, val: f32) -> Self {
-        match i {
-            0 => palette::Lab { l: val, ..c },
-            1 => palette::Lab { a: val, ..c },
-            2 => palette::Lab { b: val, ..c },
-            _ => panic!("Invalid component index: {:?}", i),
-        }
-    }
-
     fn to_string(&self) -> String {
         format!("Lab({:.1}, {:.1}, {:.1})", self.l, self.a, self.b)
     }
@@ -303,18 +227,6 @@ impl ColorSpace for palette::Lch {
 
     fn components(&self) -> [f32; 3] {
         [self.l, self.chroma, self.hue.to_positive_degrees()]
-    }
-
-    fn update_component(c: palette::Lch, i: usize, val: f32) -> Self {
-        match i {
-            0 => palette::Lch { l: val, ..c },
-            1 => palette::Lch { chroma: val, ..c },
-            2 => palette::Lch {
-                hue: palette::LabHue::from_degrees(val),
-                ..c
-            },
-            _ => panic!("Invalid component index: {:?}", i),
-        }
     }
 
     fn to_string(&self) -> String {
