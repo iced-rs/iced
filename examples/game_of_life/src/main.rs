@@ -124,7 +124,7 @@ impl Application for GameOfLife {
             .push(
                 Slider::new(
                     &mut self.speed_slider,
-                    1.0..=20.0,
+                    1.0..=200.0,
                     selected_speed as f32,
                     Message::SpeedChanged,
                 )
