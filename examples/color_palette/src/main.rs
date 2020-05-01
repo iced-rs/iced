@@ -1,6 +1,6 @@
 use iced::{
     canvas, slider, Align, Canvas, Color, Column, Element, Length, Row,
-    Sandbox, Settings, Slider, Text,
+    Sandbox, Settings, Slider, Text, Vector,
 };
 use palette::{self, Limited};
 use std::marker::PhantomData;
@@ -146,7 +146,7 @@ impl Theme {
 
 impl canvas::Drawable for Theme {
     fn draw(&self, frame: &mut canvas::Frame) {
-        use canvas::{Fill, Path};
+        use canvas::Path;
         use iced::{HorizontalAlignment, VerticalAlignment};
         use iced_native::{Point, Size};
         use palette::{Hsl, Srgb};
@@ -157,6 +157,13 @@ impl canvas::Drawable for Theme {
             width: frame.width() / self.len() as f32,
             height: frame.height() / 2.0 - pad,
         };
+
+        let triangle = Path::new(|path| {
+            path.move_to(Point { x: 0.0, y: -0.5 });
+            path.line_to(Point { x: -0.5, y: 0.0 });
+            path.line_to(Point { x: 0.5, y: 0.0 });
+            path.close();
+        });
 
         let mut text = canvas::Text {
             horizontal_alignment: HorizontalAlignment::Center,
@@ -171,48 +178,26 @@ impl canvas::Drawable for Theme {
                 y: 0.0,
             };
             let rect = Path::rectangle(anchor, box_size);
-            frame.fill(&rect, Fill::Color(color));
+            frame.fill(&rect, color);
 
-            if self.base == color {
-                let cx = anchor.x + box_size.width / 2.0;
-                let tri_w = 10.0;
+            // We show a little indicator for the base color
+            if color == self.base {
+                let triangle_x = anchor.x + box_size.width / 2.0;
 
-                let tri = Path::new(|path| {
-                    path.move_to(Point {
-                        x: cx - tri_w,
-                        y: 0.0,
-                    });
-                    path.line_to(Point {
-                        x: cx + tri_w,
-                        y: 0.0,
-                    });
-                    path.line_to(Point { x: cx, y: tri_w });
-                    path.line_to(Point {
-                        x: cx - tri_w,
-                        y: 0.0,
-                    });
+                frame.with_save(|frame| {
+                    frame.translate(Vector::new(triangle_x, 0.0));
+                    frame.scale(10.0);
+                    frame.rotate(std::f32::consts::PI);
+
+                    frame.fill(&triangle, Color::WHITE);
                 });
-                frame.fill(&tri, Fill::Color(Color::WHITE));
 
-                let tri = Path::new(|path| {
-                    path.move_to(Point {
-                        x: cx - tri_w,
-                        y: box_size.height,
-                    });
-                    path.line_to(Point {
-                        x: cx + tri_w,
-                        y: box_size.height,
-                    });
-                    path.line_to(Point {
-                        x: cx,
-                        y: box_size.height - tri_w,
-                    });
-                    path.line_to(Point {
-                        x: cx - tri_w,
-                        y: box_size.height,
-                    });
+                frame.with_save(|frame| {
+                    frame.translate(Vector::new(triangle_x, box_size.height));
+                    frame.scale(10.0);
+
+                    frame.fill(&triangle, Color::WHITE);
                 });
-                frame.fill(&tri, Fill::Color(Color::WHITE));
             }
 
             frame.fill_text(canvas::Text {
@@ -242,7 +227,7 @@ impl canvas::Drawable for Theme {
             };
 
             let rect = Path::rectangle(anchor, box_size);
-            frame.fill(&rect, Fill::Color(color));
+            frame.fill(&rect, color);
 
             frame.fill_text(canvas::Text {
                 content: color_hex_string(&color),
