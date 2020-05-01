@@ -178,7 +178,7 @@ mod grid {
         fn default() -> Self {
             Self {
                 life: Life::default(),
-                interaction: Interaction::default(),
+                interaction: Interaction::None,
                 cache: Cache::default(),
                 translation: Vector::default(),
                 scaling: 1.0,
@@ -187,6 +187,9 @@ mod grid {
     }
 
     impl Grid {
+        const MIN_SCALING: f32 = 0.1;
+        const MAX_SCALING: f32 = 2.0;
+
         pub fn tick(&mut self) {
             self.life.tick();
             self.cache.clear()
@@ -286,10 +289,12 @@ mod grid {
                     mouse::Event::WheelScrolled { delta } => match delta {
                         mouse::ScrollDelta::Lines { y, .. }
                         | mouse::ScrollDelta::Pixels { y, .. } => {
-                            if y > 0.0 && self.scaling < 2.0
-                                || y < 0.0 && self.scaling > 0.25
+                            if y < 0.0 && self.scaling > Self::MIN_SCALING
+                                || y > 0.0 && self.scaling < Self::MAX_SCALING
                             {
-                                self.scaling += y / 30.0;
+                                self.scaling = (self.scaling + y / 30.0)
+                                    .max(Self::MIN_SCALING)
+                                    .min(Self::MAX_SCALING);
 
                                 self.cache.clear();
                             }
@@ -466,11 +471,5 @@ mod grid {
         None,
         Drawing,
         Panning { translation: Vector, start: Point },
-    }
-
-    impl Default for Interaction {
-        fn default() -> Interaction {
-            Interaction::None
-        }
     }
 }
