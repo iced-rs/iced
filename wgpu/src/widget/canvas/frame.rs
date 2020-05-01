@@ -120,6 +120,43 @@ impl Frame {
         let _ = result.expect("Tessellate path");
     }
 
+    /// Draws an axis-aligned rectangle given its top-left corner coordinate and
+    /// its `Size` on the [`Frame`] by filling it with the provided style.
+    ///
+    /// [`Frame`]: struct.Frame.html
+    pub fn fill_rectangle(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        fill: impl Into<Fill>,
+    ) {
+        use lyon::tessellation::{BuffersBuilder, FillOptions};
+
+        let mut buffers = BuffersBuilder::new(
+            &mut self.buffers,
+            FillVertex(match fill.into() {
+                Fill::Color(color) => color.into_linear(),
+            }),
+        );
+
+        let top_left =
+            self.transforms.current.raw.transform_point(
+                lyon::math::Point::new(top_left.x, top_left.y),
+            );
+
+        let size =
+            self.transforms.current.raw.transform_vector(
+                lyon::math::Vector::new(size.width, size.height),
+            );
+
+        let _ = lyon::tessellation::basic_shapes::fill_rectangle(
+            &lyon::math::Rect::new(top_left, size.into()),
+            &FillOptions::default(),
+            &mut buffers,
+        )
+        .expect("Fill rectangle");
+    }
+
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
     ///
@@ -282,6 +319,20 @@ impl Frame {
 }
 
 struct FillVertex([f32; 4]);
+
+impl lyon::tessellation::BasicVertexConstructor<triangle::Vertex2D>
+    for FillVertex
+{
+    fn new_vertex(
+        &mut self,
+        position: lyon::math::Point,
+    ) -> triangle::Vertex2D {
+        triangle::Vertex2D {
+            position: [position.x, position.y],
+            color: self.0,
+        }
+    }
+}
 
 impl lyon::tessellation::FillVertexConstructor<triangle::Vertex2D>
     for FillVertex
