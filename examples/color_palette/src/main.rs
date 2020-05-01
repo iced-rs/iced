@@ -1,6 +1,6 @@
 use iced::{
-    canvas, slider, Canvas, Color, Column, Element, Length, Row, Sandbox,
-    Settings, Slider, Text,
+    canvas, slider, Align, Canvas, Color, Column, Element, Length, Row,
+    Sandbox, Settings, Slider, Text,
 };
 use palette::{self, Limited};
 use std::marker::PhantomData;
@@ -13,34 +13,68 @@ pub fn main() {
     })
 }
 
-#[derive(Debug, Default)]
-pub struct State {
-    color: Color,
-    theme: Vec<Color>,
+#[derive(Debug)]
+pub struct Theme {
+    lower: Vec<Color>,
+    base: Color,
+    higher: Vec<Color>,
 }
 
-fn generate_theme(base_color: &Color) -> Vec<Color> {
-    use palette::{Hsl, Hue, Shade, Srgb};
-
-    // Convert to HSL color for manipulation
-    let hsl = Hsl::from(Srgb::from(*base_color));
-
-    [
-        hsl.shift_hue(-135.0).lighten(0.075),
-        hsl.shift_hue(-120.0),
-        hsl.shift_hue(-105.0).darken(0.075),
-        hsl.darken(0.075),
-        hsl,
-        hsl.lighten(0.075),
-        hsl.shift_hue(105.0).darken(0.075),
-        hsl.shift_hue(120.0),
-        hsl.shift_hue(135.0).lighten(0.075),
-    ]
-    .iter()
-    .map(|&color| Srgb::from(color).clamp().into())
-    .collect()
+impl Default for Theme {
+    fn default() -> Self {
+        Theme::new(Color::from_rgb8(75, 128, 190))
+    }
 }
 
+impl Theme {
+    pub fn new(base: impl Into<Color>) -> Theme {
+        use palette::{Hsl, Hue, Shade, Srgb};
+
+        let base = base.into();
+
+        // Convert to HSL color for manipulation
+        let hsl = Hsl::from(Srgb::from(base));
+
+        let lower = [
+            hsl.shift_hue(-135.0).lighten(0.075),
+            hsl.shift_hue(-120.0),
+            hsl.shift_hue(-105.0).darken(0.075),
+            hsl.darken(0.075),
+        ];
+
+        let higher = [
+            hsl.lighten(0.075),
+            hsl.shift_hue(105.0).darken(0.075),
+            hsl.shift_hue(120.0),
+            hsl.shift_hue(135.0).lighten(0.075),
+        ];
+
+        Theme {
+            lower: lower
+                .iter()
+                .map(|&color| Srgb::from(color).clamp().into())
+                .collect(),
+            base,
+            higher: higher
+                .iter()
+                .map(|&color| Srgb::from(color).clamp().into())
+                .collect(),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.lower.len() + self.higher.len() + 1
+    }
+
+    pub fn colors(&self) -> impl Iterator<Item = &Color> {
+        self.lower
+            .iter()
+            .chain(std::iter::once(&self.base))
+            .chain(self.higher.iter())
+    }
+}
+
+#[derive(Default)]
 struct ColorPicker<C: ColorSpace> {
     sliders: [slider::State; 3],
     color_space: PhantomData<C>,
@@ -65,6 +99,7 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
 
         Row::new()
             .spacing(10)
+            .align_items(Align::Center)
             .push(Text::new(C::LABEL).width(Length::Units(50)))
             .push(Slider::new(s1, cr1, c1, move |v| C::new(v, c2, c3)))
             .push(Slider::new(s2, cr2, c2, move |v| C::new(c1, v, c3)))
@@ -227,15 +262,16 @@ impl ColorSpace for palette::Lch {
     }
 }
 
+#[derive(Default)]
 pub struct ColorPalette {
-    state: State,
+    theme: Theme,
     rgb: ColorPicker<Color>,
     hsl: ColorPicker<palette::Hsl>,
     hsv: ColorPicker<palette::Hsv>,
     hwb: ColorPicker<palette::Hwb>,
     lab: ColorPicker<palette::Lab>,
     lch: ColorPicker<palette::Lch>,
-    canvas_layer: canvas::layer::Cache<State>,
+    canvas_layer: canvas::layer::Cache<Theme>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -252,43 +288,7 @@ impl Sandbox for ColorPalette {
     type Message = Message;
 
     fn new() -> Self {
-        fn triple_slider() -> [slider::State; 3] {
-            [
-                slider::State::new(),
-                slider::State::new(),
-                slider::State::new(),
-            ]
-        }
-
-        ColorPalette {
-            state: State::new(),
-            rgb: ColorPicker {
-                sliders: triple_slider(),
-                color_space: PhantomData::<Color>,
-            },
-            hsl: ColorPicker {
-                sliders: triple_slider(),
-                color_space: PhantomData::<palette::Hsl>,
-            },
-            hsv: ColorPicker {
-                sliders: triple_slider(),
-                color_space: PhantomData::<palette::Hsv>,
-            },
-
-            hwb: ColorPicker {
-                sliders: triple_slider(),
-                color_space: PhantomData::<palette::Hwb>,
-            },
-            lab: ColorPicker {
-                sliders: triple_slider(),
-                color_space: PhantomData::<palette::Lab>,
-            },
-            lch: ColorPicker {
-                sliders: triple_slider(),
-                color_space: PhantomData::<palette::Lch>,
-            },
-            canvas_layer: canvas::layer::Cache::new(),
-        }
+        Self::default()
     }
 
     fn title(&self) -> String {
@@ -296,7 +296,7 @@ impl Sandbox for ColorPalette {
     }
 
     fn update(&mut self, message: Message) {
-        let mut srgb = match message {
+        let srgb = match message {
             Message::RgbColorChanged(rgb) => palette::Srgb::from(rgb),
             Message::HslColorChanged(hsl) => palette::Srgb::from(hsl),
             Message::HsvColorChanged(hsv) => palette::Srgb::from(hsv),
@@ -304,17 +304,15 @@ impl Sandbox for ColorPalette {
             Message::LabColorChanged(lab) => palette::Srgb::from(lab),
             Message::LchColorChanged(lch) => palette::Srgb::from(lch),
         };
-        srgb.clamp_self();
-        self.canvas_layer.clear();
-        self.state.color = Color::from(srgb);
 
-        // Set theme colors
-        self.state.theme = generate_theme(&self.state.color);
+        self.theme = Theme::new(srgb.clamp());
+        self.canvas_layer.clear();
     }
 
     fn view(&mut self) -> Element<Message> {
-        let color = self.state.color;
-        let srgb = palette::Srgb::from(self.state.color);
+        let base = self.theme.base;
+
+        let srgb = palette::Srgb::from(base);
         let hsl = palette::Hsl::from(srgb);
         let hsv = palette::Hsv::from(srgb);
         let hwb = palette::Hwb::from(srgb);
@@ -324,7 +322,7 @@ impl Sandbox for ColorPalette {
         Column::new()
             .padding(10)
             .spacing(10)
-            .push(self.rgb.view(color).map(Message::RgbColorChanged))
+            .push(self.rgb.view(base).map(Message::RgbColorChanged))
             .push(self.hsl.view(hsl).map(Message::HslColorChanged))
             .push(self.hsv.view(hsv).map(Message::HsvColorChanged))
             .push(self.hwb.view(hwb).map(Message::HwbColorChanged))
@@ -333,48 +331,35 @@ impl Sandbox for ColorPalette {
             .push(
                 Canvas::new()
                     .width(Length::Fill)
-                    // .height(Length::Units(250))
                     .height(Length::Fill)
-                    .push(self.canvas_layer.with(&self.state)),
+                    .push(self.canvas_layer.with(&self.theme)),
             )
             .into()
     }
 }
 
-impl State {
-    pub fn new() -> State {
-        let base = Color::from_rgb8(75, 128, 190);
-        State {
-            color: base,
-            theme: generate_theme(&base),
-        }
-    }
-}
-
-impl canvas::Drawable for State {
+impl canvas::Drawable for Theme {
     fn draw(&self, frame: &mut canvas::Frame) {
         use canvas::{Fill, Path};
         use iced::{HorizontalAlignment, VerticalAlignment};
         use iced_native::{Point, Size};
         use palette::{Hsl, Srgb};
 
-        if self.theme.len() == 0 {
-            return;
-        }
-
         let pad = 20.0;
 
         let box_size = Size {
-            width: frame.width() / self.theme.len() as f32,
+            width: frame.width() / self.len() as f32,
             height: frame.height() / 2.0 - pad,
         };
 
-        let mut text = canvas::Text::default();
-        text.horizontal_alignment = HorizontalAlignment::Center;
-        text.vertical_alignment = VerticalAlignment::Top;
-        text.size = 15.0;
+        let mut text = canvas::Text {
+            horizontal_alignment: HorizontalAlignment::Center,
+            vertical_alignment: VerticalAlignment::Top,
+            size: 15.0,
+            ..canvas::Text::default()
+        };
 
-        for i in 0..self.theme.len() {
+        for (i, &color) in self.colors().enumerate() {
             let anchor = Point {
                 x: (i as f32) * box_size.width,
                 y: 0.0,
@@ -382,9 +367,9 @@ impl canvas::Drawable for State {
             let rect = Path::new(|path| {
                 path.rectangle(anchor, box_size);
             });
-            frame.fill(&rect, Fill::Color(self.theme[i]));
+            frame.fill(&rect, Fill::Color(color));
 
-            if self.theme[i] == self.color {
+            if self.base == color {
                 let cx = anchor.x + box_size.width / 2.0;
                 let tri_w = 10.0;
 
@@ -427,7 +412,7 @@ impl canvas::Drawable for State {
             }
 
             frame.fill_text(canvas::Text {
-                content: color_hex_str(&self.theme[i]),
+                content: color_hex_str(&color),
                 position: Point {
                     x: anchor.x + box_size.width / 2.0,
                     y: box_size.height,
@@ -438,9 +423,9 @@ impl canvas::Drawable for State {
 
         text.vertical_alignment = VerticalAlignment::Bottom;
 
-        let hsl = Hsl::from(Srgb::from(self.color));
-        for i in 0..self.theme.len() {
-            let pct = (i as f32 + 1.0) / (self.theme.len() as f32 + 1.0);
+        let hsl = Hsl::from(Srgb::from(self.base));
+        for i in 0..self.len() {
+            let pct = (i as f32 + 1.0) / (self.len() as f32 + 1.0);
             let graded = Hsl {
                 lightness: 1.0 - pct,
                 ..hsl
