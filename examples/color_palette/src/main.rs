@@ -170,9 +170,7 @@ impl canvas::Drawable for Theme {
                 x: (i as f32) * box_size.width,
                 y: 0.0,
             };
-            let rect = Path::new(|path| {
-                path.rectangle(anchor, box_size);
-            });
+            let rect = Path::rectangle(anchor, box_size);
             frame.fill(&rect, Fill::Color(color));
 
             if self.base == color {
@@ -242,9 +240,8 @@ impl canvas::Drawable for Theme {
                 x: (i as f32) * box_size.width,
                 y: box_size.height + 2.0 * pad,
             };
-            let rect = Path::new(|path| {
-                path.rectangle(anchor, box_size);
-            });
+
+            let rect = Path::rectangle(anchor, box_size);
             frame.fill(&rect, Fill::Color(color));
 
             frame.fill_text(canvas::Text {
