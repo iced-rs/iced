@@ -292,7 +292,21 @@ mod grid {
                             if y < 0.0 && self.scaling > Self::MIN_SCALING
                                 || y > 0.0 && self.scaling < Self::MAX_SCALING
                             {
-                                self.scaling = (self.scaling + y / 30.0)
+                                let factor = y / 30.0;
+
+                                if let Some(cursor_to_center) =
+                                    cursor.position_from(bounds.center())
+                                {
+                                    self.translation = self.translation
+                                        - Vector::new(
+                                            cursor_to_center.x * factor
+                                                / (self.scaling * self.scaling),
+                                            cursor_to_center.y * factor
+                                                / (self.scaling * self.scaling),
+                                        );
+                                }
+
+                                self.scaling = (self.scaling + factor)
                                     .max(Self::MIN_SCALING)
                                     .min(Self::MAX_SCALING);
 
