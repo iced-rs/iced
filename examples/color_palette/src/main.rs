@@ -13,17 +13,87 @@ pub fn main() {
     })
 }
 
+#[derive(Default)]
+pub struct ColorPalette {
+    theme: Theme,
+    rgb: ColorPicker<Color>,
+    hsl: ColorPicker<palette::Hsl>,
+    hsv: ColorPicker<palette::Hsv>,
+    hwb: ColorPicker<palette::Hwb>,
+    lab: ColorPicker<palette::Lab>,
+    lch: ColorPicker<palette::Lch>,
+    canvas_layer: canvas::layer::Cache<Theme>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Message {
+    RgbColorChanged(Color),
+    HslColorChanged(palette::Hsl),
+    HsvColorChanged(palette::Hsv),
+    HwbColorChanged(palette::Hwb),
+    LabColorChanged(palette::Lab),
+    LchColorChanged(palette::Lch),
+}
+
+impl Sandbox for ColorPalette {
+    type Message = Message;
+
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn title(&self) -> String {
+        String::from("Color palette - Iced")
+    }
+
+    fn update(&mut self, message: Message) {
+        let srgb = match message {
+            Message::RgbColorChanged(rgb) => palette::Srgb::from(rgb),
+            Message::HslColorChanged(hsl) => palette::Srgb::from(hsl),
+            Message::HsvColorChanged(hsv) => palette::Srgb::from(hsv),
+            Message::HwbColorChanged(hwb) => palette::Srgb::from(hwb),
+            Message::LabColorChanged(lab) => palette::Srgb::from(lab),
+            Message::LchColorChanged(lch) => palette::Srgb::from(lch),
+        };
+
+        self.theme = Theme::new(srgb.clamp());
+        self.canvas_layer.clear();
+    }
+
+    fn view(&mut self) -> Element<Message> {
+        let base = self.theme.base;
+
+        let srgb = palette::Srgb::from(base);
+        let hsl = palette::Hsl::from(srgb);
+        let hsv = palette::Hsv::from(srgb);
+        let hwb = palette::Hwb::from(srgb);
+        let lab = palette::Lab::from(srgb);
+        let lch = palette::Lch::from(srgb);
+
+        Column::new()
+            .padding(10)
+            .spacing(10)
+            .push(self.rgb.view(base).map(Message::RgbColorChanged))
+            .push(self.hsl.view(hsl).map(Message::HslColorChanged))
+            .push(self.hsv.view(hsv).map(Message::HsvColorChanged))
+            .push(self.hwb.view(hwb).map(Message::HwbColorChanged))
+            .push(self.lab.view(lab).map(Message::LabColorChanged))
+            .push(self.lch.view(lch).map(Message::LchColorChanged))
+            .push(
+                Canvas::new()
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .push(self.canvas_layer.with(&self.theme)),
+            )
+            .into()
+    }
+}
+
 #[derive(Debug)]
 pub struct Theme {
     lower: Vec<Color>,
     base: Color,
     higher: Vec<Color>,
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        Theme::new(Color::from_rgb8(75, 128, 190))
-    }
 }
 
 impl Theme {
@@ -72,6 +142,136 @@ impl Theme {
             .chain(std::iter::once(&self.base))
             .chain(self.higher.iter())
     }
+}
+
+impl canvas::Drawable for Theme {
+    fn draw(&self, frame: &mut canvas::Frame) {
+        use canvas::{Fill, Path};
+        use iced::{HorizontalAlignment, VerticalAlignment};
+        use iced_native::{Point, Size};
+        use palette::{Hsl, Srgb};
+
+        let pad = 20.0;
+
+        let box_size = Size {
+            width: frame.width() / self.len() as f32,
+            height: frame.height() / 2.0 - pad,
+        };
+
+        let mut text = canvas::Text {
+            horizontal_alignment: HorizontalAlignment::Center,
+            vertical_alignment: VerticalAlignment::Top,
+            size: 15.0,
+            ..canvas::Text::default()
+        };
+
+        for (i, &color) in self.colors().enumerate() {
+            let anchor = Point {
+                x: (i as f32) * box_size.width,
+                y: 0.0,
+            };
+            let rect = Path::new(|path| {
+                path.rectangle(anchor, box_size);
+            });
+            frame.fill(&rect, Fill::Color(color));
+
+            if self.base == color {
+                let cx = anchor.x + box_size.width / 2.0;
+                let tri_w = 10.0;
+
+                let tri = Path::new(|path| {
+                    path.move_to(Point {
+                        x: cx - tri_w,
+                        y: 0.0,
+                    });
+                    path.line_to(Point {
+                        x: cx + tri_w,
+                        y: 0.0,
+                    });
+                    path.line_to(Point { x: cx, y: tri_w });
+                    path.line_to(Point {
+                        x: cx - tri_w,
+                        y: 0.0,
+                    });
+                });
+                frame.fill(&tri, Fill::Color(Color::WHITE));
+
+                let tri = Path::new(|path| {
+                    path.move_to(Point {
+                        x: cx - tri_w,
+                        y: box_size.height,
+                    });
+                    path.line_to(Point {
+                        x: cx + tri_w,
+                        y: box_size.height,
+                    });
+                    path.line_to(Point {
+                        x: cx,
+                        y: box_size.height - tri_w,
+                    });
+                    path.line_to(Point {
+                        x: cx - tri_w,
+                        y: box_size.height,
+                    });
+                });
+                frame.fill(&tri, Fill::Color(Color::WHITE));
+            }
+
+            frame.fill_text(canvas::Text {
+                content: color_hex_string(&color),
+                position: Point {
+                    x: anchor.x + box_size.width / 2.0,
+                    y: box_size.height,
+                },
+                ..text
+            });
+        }
+
+        text.vertical_alignment = VerticalAlignment::Bottom;
+
+        let hsl = Hsl::from(Srgb::from(self.base));
+        for i in 0..self.len() {
+            let pct = (i as f32 + 1.0) / (self.len() as f32 + 1.0);
+            let graded = Hsl {
+                lightness: 1.0 - pct,
+                ..hsl
+            };
+            let color: Color = Srgb::from(graded.clamp()).into();
+
+            let anchor = Point {
+                x: (i as f32) * box_size.width,
+                y: box_size.height + 2.0 * pad,
+            };
+            let rect = Path::new(|path| {
+                path.rectangle(anchor, box_size);
+            });
+            frame.fill(&rect, Fill::Color(color));
+
+            frame.fill_text(canvas::Text {
+                content: color_hex_string(&color),
+                position: Point {
+                    x: anchor.x + box_size.width / 2.0,
+                    y: box_size.height + 2.0 * pad,
+                },
+                ..text
+            });
+        }
+    }
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Theme::new(Color::from_rgb8(75, 128, 190))
+    }
+}
+
+fn color_hex_string(color: &Color) -> String {
+    format!(
+        "#{:x}{:x}{:x}",
+        (255.0 * color.r).round() as u8,
+        (255.0 * color.g).round() as u8,
+        (255.0 * color.b).round() as u8
+    )
 }
 
 #[derive(Default)]
@@ -260,204 +460,4 @@ impl ColorSpace for palette::Lch {
             self.hue.to_positive_degrees()
         )
     }
-}
-
-#[derive(Default)]
-pub struct ColorPalette {
-    theme: Theme,
-    rgb: ColorPicker<Color>,
-    hsl: ColorPicker<palette::Hsl>,
-    hsv: ColorPicker<palette::Hsv>,
-    hwb: ColorPicker<palette::Hwb>,
-    lab: ColorPicker<palette::Lab>,
-    lch: ColorPicker<palette::Lch>,
-    canvas_layer: canvas::layer::Cache<Theme>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Message {
-    RgbColorChanged(Color),
-    HslColorChanged(palette::Hsl),
-    HsvColorChanged(palette::Hsv),
-    HwbColorChanged(palette::Hwb),
-    LabColorChanged(palette::Lab),
-    LchColorChanged(palette::Lch),
-}
-
-impl Sandbox for ColorPalette {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("Color Palette")
-    }
-
-    fn update(&mut self, message: Message) {
-        let srgb = match message {
-            Message::RgbColorChanged(rgb) => palette::Srgb::from(rgb),
-            Message::HslColorChanged(hsl) => palette::Srgb::from(hsl),
-            Message::HsvColorChanged(hsv) => palette::Srgb::from(hsv),
-            Message::HwbColorChanged(hwb) => palette::Srgb::from(hwb),
-            Message::LabColorChanged(lab) => palette::Srgb::from(lab),
-            Message::LchColorChanged(lch) => palette::Srgb::from(lch),
-        };
-
-        self.theme = Theme::new(srgb.clamp());
-        self.canvas_layer.clear();
-    }
-
-    fn view(&mut self) -> Element<Message> {
-        let base = self.theme.base;
-
-        let srgb = palette::Srgb::from(base);
-        let hsl = palette::Hsl::from(srgb);
-        let hsv = palette::Hsv::from(srgb);
-        let hwb = palette::Hwb::from(srgb);
-        let lab = palette::Lab::from(srgb);
-        let lch = palette::Lch::from(srgb);
-
-        Column::new()
-            .padding(10)
-            .spacing(10)
-            .push(self.rgb.view(base).map(Message::RgbColorChanged))
-            .push(self.hsl.view(hsl).map(Message::HslColorChanged))
-            .push(self.hsv.view(hsv).map(Message::HsvColorChanged))
-            .push(self.hwb.view(hwb).map(Message::HwbColorChanged))
-            .push(self.lab.view(lab).map(Message::LabColorChanged))
-            .push(self.lch.view(lch).map(Message::LchColorChanged))
-            .push(
-                Canvas::new()
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .push(self.canvas_layer.with(&self.theme)),
-            )
-            .into()
-    }
-}
-
-impl canvas::Drawable for Theme {
-    fn draw(&self, frame: &mut canvas::Frame) {
-        use canvas::{Fill, Path};
-        use iced::{HorizontalAlignment, VerticalAlignment};
-        use iced_native::{Point, Size};
-        use palette::{Hsl, Srgb};
-
-        let pad = 20.0;
-
-        let box_size = Size {
-            width: frame.width() / self.len() as f32,
-            height: frame.height() / 2.0 - pad,
-        };
-
-        let mut text = canvas::Text {
-            horizontal_alignment: HorizontalAlignment::Center,
-            vertical_alignment: VerticalAlignment::Top,
-            size: 15.0,
-            ..canvas::Text::default()
-        };
-
-        for (i, &color) in self.colors().enumerate() {
-            let anchor = Point {
-                x: (i as f32) * box_size.width,
-                y: 0.0,
-            };
-            let rect = Path::new(|path| {
-                path.rectangle(anchor, box_size);
-            });
-            frame.fill(&rect, Fill::Color(color));
-
-            if self.base == color {
-                let cx = anchor.x + box_size.width / 2.0;
-                let tri_w = 10.0;
-
-                let tri = Path::new(|path| {
-                    path.move_to(Point {
-                        x: cx - tri_w,
-                        y: 0.0,
-                    });
-                    path.line_to(Point {
-                        x: cx + tri_w,
-                        y: 0.0,
-                    });
-                    path.line_to(Point { x: cx, y: tri_w });
-                    path.line_to(Point {
-                        x: cx - tri_w,
-                        y: 0.0,
-                    });
-                });
-                frame.fill(&tri, Fill::Color(Color::WHITE));
-
-                let tri = Path::new(|path| {
-                    path.move_to(Point {
-                        x: cx - tri_w,
-                        y: box_size.height,
-                    });
-                    path.line_to(Point {
-                        x: cx + tri_w,
-                        y: box_size.height,
-                    });
-                    path.line_to(Point {
-                        x: cx,
-                        y: box_size.height - tri_w,
-                    });
-                    path.line_to(Point {
-                        x: cx - tri_w,
-                        y: box_size.height,
-                    });
-                });
-                frame.fill(&tri, Fill::Color(Color::WHITE));
-            }
-
-            frame.fill_text(canvas::Text {
-                content: color_hex_str(&color),
-                position: Point {
-                    x: anchor.x + box_size.width / 2.0,
-                    y: box_size.height,
-                },
-                ..text
-            });
-        }
-
-        text.vertical_alignment = VerticalAlignment::Bottom;
-
-        let hsl = Hsl::from(Srgb::from(self.base));
-        for i in 0..self.len() {
-            let pct = (i as f32 + 1.0) / (self.len() as f32 + 1.0);
-            let graded = Hsl {
-                lightness: 1.0 - pct,
-                ..hsl
-            };
-            let color: Color = Srgb::from(graded.clamp()).into();
-
-            let anchor = Point {
-                x: (i as f32) * box_size.width,
-                y: box_size.height + 2.0 * pad,
-            };
-            let rect = Path::new(|path| {
-                path.rectangle(anchor, box_size);
-            });
-            frame.fill(&rect, Fill::Color(color));
-
-            frame.fill_text(canvas::Text {
-                content: color_hex_str(&color),
-                position: Point {
-                    x: anchor.x + box_size.width / 2.0,
-                    y: box_size.height + 2.0 * pad,
-                },
-                ..text
-            });
-        }
-    }
-}
-
-fn color_hex_str(color: &Color) -> String {
-    format!(
-        "#{:x}{:x}{:x}",
-        (255.0 * color.r).round() as u8,
-        (255.0 * color.g).round() as u8,
-        (255.0 * color.b).round() as u8
-    )
 }
