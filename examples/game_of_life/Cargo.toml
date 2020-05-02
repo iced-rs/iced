@@ -8,3 +8,4 @@ publish = false
 [dependencies]
 iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
 itertools = "0.9"
+rustc-hash = "1.1"

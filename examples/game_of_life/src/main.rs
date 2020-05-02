@@ -159,7 +159,7 @@ mod grid {
         canvas::{self, Cache, Canvas, Cursor, Event, Frame, Geometry, Path},
         mouse, Color, Element, Length, Point, Rectangle, Size, Vector,
     };
-    use std::collections::{HashMap, HashSet};
+    use rustc_hash::{FxHashMap, FxHashSet};
 
     pub struct Grid {
         life: Life,
@@ -395,12 +395,12 @@ mod grid {
 
     #[derive(Default)]
     pub struct Life {
-        cells: HashSet<Cell>,
+        cells: FxHashSet<Cell>,
     }
 
     impl Life {
         fn tick(&mut self) {
-            let mut adjacent_life = HashMap::new();
+            let mut adjacent_life = FxHashMap::default();
 
             for cell in &self.cells {
                 let _ = adjacent_life.entry(*cell).or_insert(0);
