@@ -13,7 +13,10 @@ use iced::{
 use std::time::{Duration, Instant};
 
 pub fn main() {
-    GameOfLife::run(Settings::default())
+    GameOfLife::run(Settings {
+        antialiasing: true,
+        ..Settings::default()
+    })
 }
 
 #[derive(Default)]
@@ -132,12 +135,14 @@ mod grid {
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
+    use std::ops::RangeInclusive;
     use std::time::{Duration, Instant};
 
     pub struct Grid {
         state: State,
         interaction: Interaction,
-        cache: Cache,
+        life_cache: Cache,
+        grid_cache: Cache,
         translation: Vector,
         scaling: f32,
         version: usize,
@@ -163,7 +168,8 @@ mod grid {
             Self {
                 state: State::default(),
                 interaction: Interaction::None,
-                cache: Cache::default(),
+                life_cache: Cache::default(),
+                grid_cache: Cache::default(),
                 translation: Vector::default(),
                 scaling: 1.0,
                 version: 0,
@@ -203,14 +209,14 @@ mod grid {
             self.state = State::default();
             self.version += 1;
 
-            self.cache.clear();
+            self.life_cache.clear();
         }
 
         pub fn update(&mut self, message: Message) -> Option<Duration> {
             match message {
                 Message::Populate(cell) => {
                     self.state.populate(cell);
-                    self.cache.clear();
+                    self.life_cache.clear();
 
                     None
                 }
@@ -220,7 +226,7 @@ mod grid {
                     tick_duration,
                 } if version == self.version => {
                     self.state.update(life);
-                    self.cache.clear();
+                    self.life_cache.clear();
 
                     Some(tick_duration)
                 }
@@ -310,7 +316,8 @@ mod grid {
                                     + (cursor_position - start)
                                         * (1.0 / self.scaling);
 
-                                self.cache.clear();
+                                self.life_cache.clear();
+                                self.grid_cache.clear();
 
                                 None
                             }
@@ -344,7 +351,8 @@ mod grid {
                                         );
                                 }
 
-                                self.cache.clear();
+                                self.life_cache.clear();
+                                self.grid_cache.clear();
                             }
 
                             None
@@ -358,7 +366,7 @@ mod grid {
         fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
-            let life = self.cache.draw(bounds.size(), |frame| {
+            let life = self.life_cache.draw(bounds.size(), |frame| {
                 let background = Path::rectangle(Point::ORIGIN, frame.size());
                 frame.fill(&background, Color::from_rgb8(0x40, 0x44, 0x4B));
 
@@ -370,7 +378,7 @@ mod grid {
 
                     let region = self.visible_region(frame.size());
 
-                    for cell in region.view(self.state.cells()) {
+                    for cell in region.cull(self.state.cells()) {
                         frame.fill_rectangle(
                             Point::new(cell.j as f32, cell.i as f32),
                             Size::UNIT,
@@ -405,7 +413,44 @@ mod grid {
                 frame.into_geometry()
             };
 
-            vec![life, hovered_cell]
+            if self.scaling < 0.2 {
+                vec![life, hovered_cell]
+            } else {
+                let grid = self.grid_cache.draw(bounds.size(), |frame| {
+                    frame.translate(center);
+                    frame.scale(self.scaling);
+                    frame.translate(self.translation);
+                    frame.scale(Cell::SIZE as f32);
+
+                    let region = self.visible_region(frame.size());
+                    let rows = region.rows();
+                    let columns = region.columns();
+                    let (total_rows, total_columns) =
+                        (rows.clone().count(), columns.clone().count());
+                    let width = 2.0 / Cell::SIZE as f32;
+                    let color = Color::from_rgb8(70, 74, 83);
+
+                    frame.translate(Vector::new(-width / 2.0, -width / 2.0));
+
+                    for row in region.rows() {
+                        frame.fill_rectangle(
+                            Point::new(*columns.start() as f32, row as f32),
+                            Size::new(total_columns as f32, width),
+                            color,
+                        );
+                    }
+
+                    for column in region.columns() {
+                        frame.fill_rectangle(
+                            Point::new(column as f32, *rows.start() as f32),
+                            Size::new(width, total_rows as f32),
+                            color,
+                        );
+                    }
+                });
+
+                vec![life, grid, hovered_cell]
+            }
         }
 
         fn mouse_interaction(
@@ -583,20 +628,30 @@ mod grid {
     }
 
     impl Region {
-        fn view<'a>(
-            &self,
-            cells: impl Iterator<Item = &'a Cell>,
-        ) -> impl Iterator<Item = &'a Cell> {
+        fn rows(&self) -> RangeInclusive<isize> {
             let first_row = (self.y / Cell::SIZE as f32).floor() as isize;
-            let first_column = (self.x / Cell::SIZE as f32).floor() as isize;
 
             let visible_rows =
                 (self.height / Cell::SIZE as f32).ceil() as isize;
+
+            first_row..=first_row + visible_rows
+        }
+
+        fn columns(&self) -> RangeInclusive<isize> {
+            let first_column = (self.x / Cell::SIZE as f32).floor() as isize;
+
             let visible_columns =
                 (self.width / Cell::SIZE as f32).ceil() as isize;
 
-            let rows = first_row..=first_row + visible_rows;
-            let columns = first_column..=first_column + visible_columns;
+            first_column..=first_column + visible_columns
+        }
+
+        fn cull<'a>(
+            &self,
+            cells: impl Iterator<Item = &'a Cell>,
+        ) -> impl Iterator<Item = &'a Cell> {
+            let rows = self.rows();
+            let columns = self.columns();
 
             cells.filter(move |cell| {
                 rows.contains(&cell.i) && columns.contains(&cell.j)
