@@ -26,6 +26,8 @@ struct GameOfLife {
     next_button: button::State,
     clear_button: button::State,
     speed_slider: slider::State,
+    tick_duration: Duration,
+    tick_amount: usize,
 }
 
 enum State {
@@ -71,7 +73,12 @@ impl Application for GameOfLife {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Grid(message) => {
-                self.grid.update(message);
+                if let Some((tick_duration, tick_amount)) =
+                    self.grid.update(message)
+                {
+                    self.tick_duration = tick_duration;
+                    self.tick_amount = tick_amount;
+                }
             }
             Message::Tick(_) | Message::Next => match &mut self.state {
                 State::Paused => {
@@ -86,7 +93,7 @@ impl Application for GameOfLife {
                     let needed_ticks =
                         (self.speed as f32 * seconds_elapsed).ceil() as usize;
 
-                    if let Some(task) = self.grid.tick(needed_ticks) {
+                    if let Some(task) = self.grid.tick(needed_ticks.max(1)) {
                         *last_tick = Instant::now();
 
                         if let Some(speed) = self.next_speed.take() {
@@ -154,33 +161,49 @@ impl Application for GameOfLife {
 
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let speed_controls = Row::new()
+            .width(Length::Fill)
+            .align_items(Align::Center)
             .spacing(10)
             .push(
                 Slider::new(
                     &mut self.speed_slider,
-                    1.0..=100.0,
+                    1.0..=1000.0,
                     selected_speed as f32,
                     Message::SpeedChanged,
                 )
-                .width(Length::Units(200))
                 .style(style::Slider),
             )
-            .push(Text::new(format!("x{}", selected_speed)).size(16))
-            .align_items(Align::Center);
+            .push(Text::new(format!("x{}", selected_speed)).size(16));
+
+        let stats = Column::new()
+            .width(Length::Units(150))
+            .align_items(Align::Center)
+            .spacing(2)
+            .push(
+                Text::new(format!("{} cells", self.grid.cell_count())).size(14),
+            )
+            .push(
+                Text::new(format!(
+                    "{:?} ({})",
+                    self.tick_duration, self.tick_amount
+                ))
+                .size(14),
+            );
 
         let controls = Row::new()
             .padding(10)
             .spacing(20)
+            .align_items(Align::Center)
             .push(playback_controls)
             .push(speed_controls)
+            .push(stats)
             .push(
                 Button::new(&mut self.clear_button, Text::new("Clear"))
                     .on_press(Message::Clear)
-                    .style(style::Button),
+                    .style(style::Clear),
             );
 
         let content = Column::new()
-            .align_items(Align::Center)
             .push(self.grid.view().map(Message::Grid))
             .push(controls);
 
@@ -199,6 +222,7 @@ mod grid {
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
+    use std::time::{Duration, Instant};
 
     pub struct Grid {
         state: State,
@@ -214,6 +238,8 @@ mod grid {
         Populate(Cell),
         Ticked {
             result: Result<Life, TickError>,
+            tick_duration: Duration,
+            tick_amount: usize,
             version: usize,
         },
     }
@@ -240,16 +266,29 @@ mod grid {
         const MIN_SCALING: f32 = 0.1;
         const MAX_SCALING: f32 = 2.0;
 
+        pub fn cell_count(&self) -> usize {
+            self.state.cell_count()
+        }
+
         pub fn tick(
             &mut self,
             amount: usize,
         ) -> Option<impl Future<Output = Message>> {
-            use iced::futures::FutureExt;
-
             let version = self.version;
             let tick = self.state.tick(amount)?;
 
-            Some(tick.map(move |result| Message::Ticked { result, version }))
+            Some(async move {
+                let start = Instant::now();
+                let result = tick.await;
+                let tick_duration = start.elapsed() / amount as u32;
+
+                Message::Ticked {
+                    result,
+                    version,
+                    tick_duration,
+                    tick_amount: amount,
+                }
+            })
         }
 
         pub fn clear(&mut self) {
@@ -259,25 +298,36 @@ mod grid {
             self.cache.clear();
         }
 
-        pub fn update(&mut self, message: Message) {
+        pub fn update(
+            &mut self,
+            message: Message,
+        ) -> Option<(Duration, usize)> {
             match message {
                 Message::Populate(cell) => {
                     self.state.populate(cell);
-                    self.cache.clear()
+                    self.cache.clear();
+
+                    None
                 }
                 Message::Ticked {
                     result: Ok(life),
                     version,
+                    tick_duration,
+                    tick_amount,
                 } if version == self.version => {
                     self.state.update(life);
-                    self.cache.clear()
+                    self.cache.clear();
+
+                    Some((tick_duration, tick_amount))
                 }
                 Message::Ticked {
                     result: Err(error), ..
                 } => {
                     dbg!(error);
+
+                    None
                 }
-                Message::Ticked { .. } => {}
+                Message::Ticked { .. } => None,
             }
         }
 
@@ -478,6 +528,10 @@ mod grid {
     }
 
     impl State {
+        fn cell_count(&self) -> usize {
+            self.life.len() + self.births.len()
+        }
+
         fn contains(&self, cell: &Cell) -> bool {
             self.life.contains(cell) || self.births.contains(cell)
         }
@@ -533,6 +587,18 @@ mod grid {
     }
 
     impl Life {
+        fn len(&self) -> usize {
+            self.cells.len()
+        }
+
+        fn contains(&self, cell: &Cell) -> bool {
+            self.cells.contains(cell)
+        }
+
+        fn populate(&mut self, cell: Cell) {
+            self.cells.insert(cell);
+        }
+
         fn tick(&mut self) {
             let mut adjacent_life = FxHashMap::default();
 
@@ -557,14 +623,6 @@ mod grid {
                     }
                 }
             }
-        }
-
-        fn contains(&self, cell: &Cell) -> bool {
-            self.cells.contains(cell)
-        }
-
-        fn populate(&mut self, cell: Cell) {
-            self.cells.insert(cell);
         }
 
         pub fn iter(&self) -> impl Iterator<Item = &Cell> {
