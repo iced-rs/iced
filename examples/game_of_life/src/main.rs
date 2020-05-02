@@ -339,7 +339,7 @@ mod grid {
 
                     let region = self.visible_region(frame.size());
 
-                    for cell in self.life.visible_in(region) {
+                    for cell in self.life.within(region) {
                         frame.fill_rectangle(
                             Point::new(cell.j as f32, cell.i as f32),
                             Size::UNIT,
@@ -433,7 +433,7 @@ mod grid {
             self.cells.insert(cell);
         }
 
-        fn visible_in(&self, region: Rectangle) -> impl Iterator<Item = &Cell> {
+        fn within(&self, region: Rectangle) -> impl Iterator<Item = &Cell> {
             let first_row = (region.y / Cell::SIZE as f32).floor() as isize;
             let first_column = (region.x / Cell::SIZE as f32).floor() as isize;
 
