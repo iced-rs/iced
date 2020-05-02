@@ -7,8 +7,8 @@ use iced::{
     button::{self, Button},
     executor,
     slider::{self, Slider},
-    time, Align, Application, Column, Command, Container, Element, Length, Row,
-    Settings, Subscription, Text,
+    time, Align, Application, Checkbox, Column, Command, Container, Element,
+    Length, Row, Settings, Subscription, Text,
 };
 use std::time::{Duration, Instant};
 
@@ -23,7 +23,6 @@ pub fn main() {
 struct GameOfLife {
     grid: Grid,
     controls: Controls,
-    statistics: Statistics,
     is_playing: bool,
     queued_ticks: usize,
     speed: usize,
@@ -34,7 +33,8 @@ struct GameOfLife {
 enum Message {
     Grid(grid::Message),
     Tick(Instant),
-    Toggle,
+    TogglePlayback,
+    ToggleGrid(bool),
     Next,
     Clear,
     SpeedChanged(f32),
@@ -62,9 +62,7 @@ impl Application for GameOfLife {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Grid(message) => {
-                if let Some(tick_duration) = self.grid.update(message) {
-                    self.statistics.tick_duration = tick_duration;
-                }
+                self.grid.update(message);
             }
             Message::Tick(_) | Message::Next => {
                 self.queued_ticks = (self.queued_ticks + 1).min(self.speed);
@@ -74,14 +72,16 @@ impl Application for GameOfLife {
                         self.speed = speed;
                     }
 
-                    self.statistics.last_queued_ticks = self.queued_ticks;
                     self.queued_ticks = 0;
 
                     return Command::perform(task, Message::Grid);
                 }
             }
-            Message::Toggle => {
+            Message::TogglePlayback => {
                 self.is_playing = !self.is_playing;
+            }
+            Message::ToggleGrid(show_grid_lines) => {
+                self.grid.toggle_lines(show_grid_lines);
             }
             Message::Clear => {
                 self.grid.clear();
@@ -110,9 +110,8 @@ impl Application for GameOfLife {
     fn view(&mut self) -> Element<Message> {
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let controls = self.controls.view(
-            &self.grid,
-            &self.statistics,
             self.is_playing,
+            self.grid.are_lines_visible(),
             selected_speed,
         );
 
@@ -130,8 +129,11 @@ impl Application for GameOfLife {
 
 mod grid {
     use iced::{
-        canvas::{self, Cache, Canvas, Cursor, Event, Frame, Geometry, Path},
-        mouse, Color, Element, Length, Point, Rectangle, Size, Vector,
+        canvas::{
+            self, Cache, Canvas, Cursor, Event, Frame, Geometry, Path, Text,
+        },
+        mouse, Color, Element, HorizontalAlignment, Length, Point, Rectangle,
+        Size, Vector, VerticalAlignment,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -145,6 +147,9 @@ mod grid {
         grid_cache: Cache,
         translation: Vector,
         scaling: f32,
+        show_lines: bool,
+        last_tick_duration: Duration,
+        last_queued_ticks: usize,
         version: usize,
     }
 
@@ -172,6 +177,9 @@ mod grid {
                 grid_cache: Cache::default(),
                 translation: Vector::default(),
                 scaling: 1.0,
+                show_lines: true,
+                last_tick_duration: Duration::default(),
+                last_queued_ticks: 0,
                 version: 0,
             }
         }
@@ -181,16 +189,14 @@ mod grid {
         const MIN_SCALING: f32 = 0.1;
         const MAX_SCALING: f32 = 2.0;
 
-        pub fn cell_count(&self) -> usize {
-            self.state.cell_count()
-        }
-
         pub fn tick(
             &mut self,
             amount: usize,
         ) -> Option<impl Future<Output = Message>> {
             let version = self.version;
             let tick = self.state.tick(amount)?;
+
+            self.last_queued_ticks = amount;
 
             Some(async move {
                 let start = Instant::now();
@@ -205,20 +211,11 @@ mod grid {
             })
         }
 
-        pub fn clear(&mut self) {
-            self.state = State::default();
-            self.version += 1;
-
-            self.life_cache.clear();
-        }
-
-        pub fn update(&mut self, message: Message) -> Option<Duration> {
+        pub fn update(&mut self, message: Message) {
             match message {
                 Message::Populate(cell) => {
                     self.state.populate(cell);
                     self.life_cache.clear();
-
-                    None
                 }
                 Message::Ticked {
                     result: Ok(life),
@@ -228,16 +225,14 @@ mod grid {
                     self.state.update(life);
                     self.life_cache.clear();
 
-                    Some(tick_duration)
+                    self.last_tick_duration = tick_duration;
                 }
                 Message::Ticked {
                     result: Err(error), ..
                 } => {
                     dbg!(error);
-
-                    None
                 }
-                Message::Ticked { .. } => None,
+                Message::Ticked { .. } => {}
             }
         }
 
@@ -248,7 +243,22 @@ mod grid {
                 .into()
         }
 
-        pub fn visible_region(&self, size: Size) -> Region {
+        pub fn clear(&mut self) {
+            self.state = State::default();
+            self.version += 1;
+
+            self.life_cache.clear();
+        }
+
+        pub fn toggle_lines(&mut self, enabled: bool) {
+            self.show_lines = enabled;
+        }
+
+        pub fn are_lines_visible(&self) -> bool {
+            self.show_lines
+        }
+
+        fn visible_region(&self, size: Size) -> Region {
             let width = size.width / self.scaling;
             let height = size.height / self.scaling;
 
@@ -260,7 +270,7 @@ mod grid {
             }
         }
 
-        pub fn project(&self, position: Point, size: Size) -> Point {
+        fn project(&self, position: Point, size: Size) -> Point {
             let region = self.visible_region(size);
 
             Point::new(
@@ -388,33 +398,64 @@ mod grid {
                 });
             });
 
-            let hovered_cell = {
+            let overlay = {
                 let mut frame = Frame::new(bounds.size());
 
-                frame.translate(center);
-                frame.scale(self.scaling);
-                frame.translate(self.translation);
-                frame.scale(Cell::SIZE as f32);
+                let hovered_cell =
+                    cursor.position_in(&bounds).map(|position| {
+                        Cell::at(self.project(position, frame.size()))
+                    });
 
-                if let Some(cursor_position) = cursor.position_in(&bounds) {
-                    let cell =
-                        Cell::at(self.project(cursor_position, frame.size()));
+                if let Some(cell) = hovered_cell {
+                    frame.with_save(|frame| {
+                        frame.translate(center);
+                        frame.scale(self.scaling);
+                        frame.translate(self.translation);
+                        frame.scale(Cell::SIZE as f32);
 
-                    frame.fill_rectangle(
-                        Point::new(cell.j as f32, cell.i as f32),
-                        Size::UNIT,
-                        Color {
-                            a: 0.5,
-                            ..Color::BLACK
-                        },
-                    );
+                        frame.fill_rectangle(
+                            Point::new(cell.j as f32, cell.i as f32),
+                            Size::UNIT,
+                            Color {
+                                a: 0.5,
+                                ..Color::BLACK
+                            },
+                        );
+                    });
                 }
+
+                let text = Text {
+                    color: Color::WHITE,
+                    size: 14.0,
+                    position: Point::new(frame.width(), frame.height()),
+                    horizontal_alignment: HorizontalAlignment::Right,
+                    vertical_alignment: VerticalAlignment::Bottom,
+                    ..Text::default()
+                };
+
+                if let Some(cell) = hovered_cell {
+                    frame.fill_text(Text {
+                        content: format!("({}, {})", cell.i, cell.j),
+                        position: text.position - Vector::new(0.0, 16.0),
+                        ..text
+                    });
+                }
+
+                frame.fill_text(Text {
+                    content: format!(
+                        "{} cells @ {:?} ({})",
+                        self.state.cell_count(),
+                        self.last_tick_duration,
+                        self.last_queued_ticks
+                    ),
+                    ..text
+                });
 
                 frame.into_geometry()
             };
 
-            if self.scaling < 0.2 {
-                vec![life, hovered_cell]
+            if self.scaling < 0.2 || !self.show_lines {
+                vec![life, overlay]
             } else {
                 let grid = self.grid_cache.draw(bounds.size(), |frame| {
                     frame.translate(center);
@@ -449,7 +490,7 @@ mod grid {
                     }
                 });
 
-                vec![life, grid, hovered_cell]
+                vec![life, grid, overlay]
             }
         }
 
@@ -677,9 +718,8 @@ struct Controls {
 impl Controls {
     fn view<'a>(
         &'a mut self,
-        grid: &Grid,
-        statistics: &'a Statistics,
         is_playing: bool,
+        is_grid_enabled: bool,
         speed: usize,
     ) -> Element<'a, Message> {
         let playback_controls = Row::new()
@@ -689,7 +729,7 @@ impl Controls {
                     &mut self.toggle_button,
                     Text::new(if is_playing { "Pause" } else { "Play" }),
                 )
-                .on_press(Message::Toggle)
+                .on_press(Message::TogglePlayback)
                 .style(style::Button),
             )
             .push(
@@ -719,35 +759,16 @@ impl Controls {
             .align_items(Align::Center)
             .push(playback_controls)
             .push(speed_controls)
-            .push(statistics.view(grid))
+            .push(
+                Checkbox::new(is_grid_enabled, "Grid", Message::ToggleGrid)
+                    .size(16)
+                    .spacing(5)
+                    .text_size(16),
+            )
             .push(
                 Button::new(&mut self.clear_button, Text::new("Clear"))
                     .on_press(Message::Clear)
                     .style(style::Clear),
-            )
-            .into()
-    }
-}
-
-#[derive(Default)]
-struct Statistics {
-    tick_duration: Duration,
-    last_queued_ticks: usize,
-}
-
-impl Statistics {
-    fn view(&self, grid: &Grid) -> Element<Message> {
-        Column::new()
-            .width(Length::Units(150))
-            .align_items(Align::Center)
-            .spacing(2)
-            .push(Text::new(format!("{} cells", grid.cell_count())).size(14))
-            .push(
-                Text::new(format!(
-                    "{:?} ({})",
-                    self.tick_duration, self.last_queued_ticks
-                ))
-                .size(14),
             )
             .into()
     }
