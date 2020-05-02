@@ -19,16 +19,12 @@ pub fn main() {
 #[derive(Default)]
 struct GameOfLife {
     grid: Grid,
+    controls: Controls,
+    statistics: Statistics,
     is_playing: bool,
+    queued_ticks: usize,
     speed: usize,
     next_speed: Option<usize>,
-    toggle_button: button::State,
-    next_button: button::State,
-    clear_button: button::State,
-    speed_slider: slider::State,
-    tick_duration: Duration,
-    queued_ticks: usize,
-    last_ticks: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -64,21 +60,21 @@ impl Application for GameOfLife {
         match message {
             Message::Grid(message) => {
                 if let Some(tick_duration) = self.grid.update(message) {
-                    self.tick_duration = tick_duration;
+                    self.statistics.tick_duration = tick_duration;
                 }
             }
             Message::Tick(_) | Message::Next => {
-                if let Some(task) = self.grid.tick(self.queued_ticks + 1) {
-                    self.last_ticks = self.queued_ticks;
-                    self.queued_ticks = 0;
+                self.queued_ticks = (self.queued_ticks + 1).min(self.speed);
 
+                if let Some(task) = self.grid.tick(self.queued_ticks) {
                     if let Some(speed) = self.next_speed.take() {
                         self.speed = speed;
                     }
 
+                    self.statistics.last_queued_ticks = self.queued_ticks;
+                    self.queued_ticks = 0;
+
                     return Command::perform(task, Message::Grid);
-                } else {
-                    self.queued_ticks = (self.queued_ticks + 1).min(self.speed);
                 }
             }
             Message::Toggle => {
@@ -109,65 +105,13 @@ impl Application for GameOfLife {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let playback_controls = Row::new()
-            .spacing(10)
-            .push(
-                Button::new(
-                    &mut self.toggle_button,
-                    Text::new(if self.is_playing { "Pause" } else { "Play" }),
-                )
-                .on_press(Message::Toggle)
-                .style(style::Button),
-            )
-            .push(
-                Button::new(&mut self.next_button, Text::new("Next"))
-                    .on_press(Message::Next)
-                    .style(style::Button),
-            );
-
         let selected_speed = self.next_speed.unwrap_or(self.speed);
-        let speed_controls = Row::new()
-            .width(Length::Fill)
-            .align_items(Align::Center)
-            .spacing(10)
-            .push(
-                Slider::new(
-                    &mut self.speed_slider,
-                    1.0..=1000.0,
-                    selected_speed as f32,
-                    Message::SpeedChanged,
-                )
-                .style(style::Slider),
-            )
-            .push(Text::new(format!("x{}", selected_speed)).size(16));
-
-        let stats = Column::new()
-            .width(Length::Units(150))
-            .align_items(Align::Center)
-            .spacing(2)
-            .push(
-                Text::new(format!("{} cells", self.grid.cell_count())).size(14),
-            )
-            .push(
-                Text::new(format!(
-                    "{:?} ({})",
-                    self.tick_duration, self.last_ticks
-                ))
-                .size(14),
-            );
-
-        let controls = Row::new()
-            .padding(10)
-            .spacing(20)
-            .align_items(Align::Center)
-            .push(playback_controls)
-            .push(speed_controls)
-            .push(stats)
-            .push(
-                Button::new(&mut self.clear_button, Text::new("Clear"))
-                    .on_press(Message::Clear)
-                    .style(style::Clear),
-            );
+        let controls = self.controls.view(
+            &self.grid,
+            &self.statistics,
+            self.is_playing,
+            selected_speed,
+        );
 
         let content = Column::new()
             .push(self.grid.view().map(Message::Grid))
@@ -664,5 +608,92 @@ mod grid {
         None,
         Drawing,
         Panning { translation: Vector, start: Point },
+    }
+}
+
+#[derive(Default)]
+struct Controls {
+    toggle_button: button::State,
+    next_button: button::State,
+    clear_button: button::State,
+    speed_slider: slider::State,
+}
+
+impl Controls {
+    fn view<'a>(
+        &'a mut self,
+        grid: &Grid,
+        statistics: &'a Statistics,
+        is_playing: bool,
+        speed: usize,
+    ) -> Element<'a, Message> {
+        let playback_controls = Row::new()
+            .spacing(10)
+            .push(
+                Button::new(
+                    &mut self.toggle_button,
+                    Text::new(if is_playing { "Pause" } else { "Play" }),
+                )
+                .on_press(Message::Toggle)
+                .style(style::Button),
+            )
+            .push(
+                Button::new(&mut self.next_button, Text::new("Next"))
+                    .on_press(Message::Next)
+                    .style(style::Button),
+            );
+
+        let speed_controls = Row::new()
+            .width(Length::Fill)
+            .align_items(Align::Center)
+            .spacing(10)
+            .push(
+                Slider::new(
+                    &mut self.speed_slider,
+                    1.0..=1000.0,
+                    speed as f32,
+                    Message::SpeedChanged,
+                )
+                .style(style::Slider),
+            )
+            .push(Text::new(format!("x{}", speed)).size(16));
+
+        Row::new()
+            .padding(10)
+            .spacing(20)
+            .align_items(Align::Center)
+            .push(playback_controls)
+            .push(speed_controls)
+            .push(statistics.view(grid))
+            .push(
+                Button::new(&mut self.clear_button, Text::new("Clear"))
+                    .on_press(Message::Clear)
+                    .style(style::Clear),
+            )
+            .into()
+    }
+}
+
+#[derive(Default)]
+struct Statistics {
+    tick_duration: Duration,
+    last_queued_ticks: usize,
+}
+
+impl Statistics {
+    fn view(&self, grid: &Grid) -> Element<Message> {
+        Column::new()
+            .width(Length::Units(150))
+            .align_items(Align::Center)
+            .spacing(2)
+            .push(Text::new(format!("{} cells", grid.cell_count())).size(14))
+            .push(
+                Text::new(format!(
+                    "{:?} ({})",
+                    self.tick_duration, self.last_queued_ticks
+                ))
+                .size(14),
+            )
+            .into()
     }
 }
