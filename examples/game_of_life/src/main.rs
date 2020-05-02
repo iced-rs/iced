@@ -19,13 +19,24 @@ pub fn main() {
 #[derive(Default)]
 struct GameOfLife {
     grid: Grid,
-    is_playing: bool,
+    state: State,
     speed: u64,
     next_speed: Option<u64>,
     toggle_button: button::State,
     next_button: button::State,
     clear_button: button::State,
     speed_slider: slider::State,
+}
+
+enum State {
+    Paused,
+    Playing { last_tick: Instant },
+}
+
+impl Default for State {
+    fn default() -> State {
+        State::Paused
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -62,37 +73,61 @@ impl Application for GameOfLife {
             Message::Grid(message) => {
                 self.grid.update(message);
             }
-            Message::Tick(_) | Message::Next => {
-                self.grid.tick();
-
-                if let Some(speed) = self.next_speed.take() {
-                    self.speed = speed;
+            Message::Tick(_) | Message::Next => match &mut self.state {
+                State::Paused => {
+                    if let Some(task) = self.grid.tick(1) {
+                        return Command::perform(task, Message::Grid);
+                    }
                 }
-            }
+                State::Playing { last_tick } => {
+                    let seconds_elapsed =
+                        last_tick.elapsed().as_millis() as f32 / 1000.0;
+
+                    let needed_ticks =
+                        (self.speed as f32 * seconds_elapsed).ceil() as usize;
+
+                    if let Some(task) = self.grid.tick(needed_ticks) {
+                        *last_tick = Instant::now();
+
+                        if let Some(speed) = self.next_speed.take() {
+                            self.speed = speed;
+                        }
+
+                        return Command::perform(task, Message::Grid);
+                    }
+                }
+            },
             Message::Toggle => {
-                self.is_playing = !self.is_playing;
+                self.state = match self.state {
+                    State::Paused => State::Playing {
+                        last_tick: Instant::now(),
+                    },
+                    State::Playing { .. } => State::Paused,
+                };
             }
             Message::Clear => {
-                self.grid = Grid::default();
+                self.grid.clear();
             }
-            Message::SpeedChanged(speed) => {
-                if self.is_playing {
-                    self.next_speed = Some(speed.round() as u64);
-                } else {
+            Message::SpeedChanged(speed) => match self.state {
+                State::Paused => {
                     self.speed = speed.round() as u64;
                 }
-            }
+                State::Playing { .. } => {
+                    self.next_speed = Some(speed.round() as u64);
+                }
+            },
         }
 
         Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        if self.is_playing {
-            time::every(Duration::from_millis(1000 / self.speed))
-                .map(Message::Tick)
-        } else {
-            Subscription::none()
+        match self.state {
+            State::Paused => Subscription::none(),
+            State::Playing { .. } => {
+                time::every(Duration::from_millis(1000 / self.speed))
+                    .map(Message::Tick)
+            }
         }
     }
 
@@ -102,7 +137,11 @@ impl Application for GameOfLife {
             .push(
                 Button::new(
                     &mut self.toggle_button,
-                    Text::new(if self.is_playing { "Pause" } else { "Play" }),
+                    Text::new(if let State::Paused = self.state {
+                        "Play"
+                    } else {
+                        "Pause"
+                    }),
                 )
                 .on_press(Message::Toggle)
                 .style(style::Button),
@@ -110,11 +149,6 @@ impl Application for GameOfLife {
             .push(
                 Button::new(&mut self.next_button, Text::new("Next"))
                     .on_press(Message::Next)
-                    .style(style::Button),
-            )
-            .push(
-                Button::new(&mut self.clear_button, Text::new("Clear"))
-                    .on_press(Message::Clear)
                     .style(style::Button),
             );
 
@@ -138,10 +172,14 @@ impl Application for GameOfLife {
             .padding(10)
             .spacing(20)
             .push(playback_controls)
-            .push(speed_controls);
+            .push(speed_controls)
+            .push(
+                Button::new(&mut self.clear_button, Text::new("Clear"))
+                    .on_press(Message::Clear)
+                    .style(style::Button),
+            );
 
         let content = Column::new()
-            .spacing(10)
             .align_items(Align::Center)
             .push(self.grid.view().map(Message::Grid))
             .push(controls);
@@ -160,28 +198,40 @@ mod grid {
         mouse, Color, Element, Length, Point, Rectangle, Size, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
+    use std::future::Future;
 
     pub struct Grid {
-        life: Life,
+        state: State,
         interaction: Interaction,
         cache: Cache,
         translation: Vector,
         scaling: f32,
+        version: usize,
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone)]
     pub enum Message {
         Populate(Cell),
+        Ticked {
+            result: Result<Life, TickError>,
+            version: usize,
+        },
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum TickError {
+        JoinFailed,
     }
 
     impl Default for Grid {
         fn default() -> Self {
             Self {
-                life: Life::default(),
+                state: State::default(),
                 interaction: Interaction::None,
                 cache: Cache::default(),
                 translation: Vector::default(),
                 scaling: 1.0,
+                version: 0,
             }
         }
     }
@@ -190,17 +240,44 @@ mod grid {
         const MIN_SCALING: f32 = 0.1;
         const MAX_SCALING: f32 = 2.0;
 
-        pub fn tick(&mut self) {
-            self.life.tick();
-            self.cache.clear()
+        pub fn tick(
+            &mut self,
+            amount: usize,
+        ) -> Option<impl Future<Output = Message>> {
+            use iced::futures::FutureExt;
+
+            let version = self.version;
+            let tick = self.state.tick(amount)?;
+
+            Some(tick.map(move |result| Message::Ticked { result, version }))
+        }
+
+        pub fn clear(&mut self) {
+            self.state = State::default();
+            self.version += 1;
+
+            self.cache.clear();
         }
 
         pub fn update(&mut self, message: Message) {
             match message {
                 Message::Populate(cell) => {
-                    self.life.populate(cell);
+                    self.state.populate(cell);
                     self.cache.clear()
                 }
+                Message::Ticked {
+                    result: Ok(life),
+                    version,
+                } if version == self.version => {
+                    self.state.update(life);
+                    self.cache.clear()
+                }
+                Message::Ticked {
+                    result: Err(error), ..
+                } => {
+                    dbg!(error);
+                }
+                Message::Ticked { .. } => {}
             }
         }
 
@@ -211,11 +288,11 @@ mod grid {
                 .into()
         }
 
-        pub fn visible_region(&self, size: Size) -> Rectangle {
+        pub fn visible_region(&self, size: Size) -> Region {
             let width = size.width / self.scaling;
             let height = size.height / self.scaling;
 
-            Rectangle {
+            Region {
                 x: -self.translation.x - width / 2.0,
                 y: -self.translation.y - height / 2.0,
                 width,
@@ -247,7 +324,7 @@ mod grid {
             let cursor_position = cursor.position_in(&bounds)?;
             let cell = Cell::at(self.project(cursor_position, bounds.size()));
 
-            let populate = if self.life.contains(&cell) {
+            let populate = if self.state.contains(&cell) {
                 None
             } else {
                 Some(Message::Populate(cell))
@@ -339,7 +416,7 @@ mod grid {
 
                     let region = self.visible_region(frame.size());
 
-                    for cell in self.life.within(region) {
+                    for cell in region.view(self.state.cells()) {
                         frame.fill_rectangle(
                             Point::new(cell.j as f32, cell.i as f32),
                             Size::UNIT,
@@ -394,6 +471,63 @@ mod grid {
     }
 
     #[derive(Default)]
+    struct State {
+        life: Life,
+        births: FxHashSet<Cell>,
+        is_ticking: bool,
+    }
+
+    impl State {
+        fn contains(&self, cell: &Cell) -> bool {
+            self.life.contains(cell) || self.births.contains(cell)
+        }
+
+        fn cells(&self) -> impl Iterator<Item = &Cell> {
+            self.life.iter().chain(self.births.iter())
+        }
+
+        fn populate(&mut self, cell: Cell) {
+            if self.is_ticking {
+                self.births.insert(cell);
+            } else {
+                self.life.populate(cell);
+            }
+        }
+
+        fn update(&mut self, mut life: Life) {
+            self.births.drain().for_each(|cell| life.populate(cell));
+
+            self.life = life;
+            self.is_ticking = false;
+        }
+
+        fn tick(
+            &mut self,
+            amount: usize,
+        ) -> Option<impl Future<Output = Result<Life, TickError>>> {
+            if self.is_ticking {
+                return None;
+            }
+
+            self.is_ticking = true;
+
+            let mut life = self.life.clone();
+
+            Some(async move {
+                tokio::task::spawn_blocking(move || {
+                    for _ in 0..amount {
+                        life.tick();
+                    }
+
+                    life
+                })
+                .await
+                .map_err(|_| TickError::JoinFailed)
+            })
+        }
+    }
+
+    #[derive(Clone, Default)]
     pub struct Life {
         cells: FxHashSet<Cell>,
     }
@@ -433,21 +567,16 @@ mod grid {
             self.cells.insert(cell);
         }
 
-        fn within(&self, region: Rectangle) -> impl Iterator<Item = &Cell> {
-            let first_row = (region.y / Cell::SIZE as f32).floor() as isize;
-            let first_column = (region.x / Cell::SIZE as f32).floor() as isize;
+        pub fn iter(&self) -> impl Iterator<Item = &Cell> {
+            self.cells.iter()
+        }
+    }
 
-            let visible_rows =
-                (region.height / Cell::SIZE as f32).ceil() as isize;
-            let visible_columns =
-                (region.width / Cell::SIZE as f32).ceil() as isize;
-
-            let rows = first_row..=first_row + visible_rows;
-            let columns = first_column..=first_column + visible_columns;
-
-            self.cells.iter().filter(move |cell| {
-                rows.contains(&cell.i) && columns.contains(&cell.j)
-            })
+    impl std::fmt::Debug for Life {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("Life")
+                .field("cells", &self.cells.len())
+                .finish()
         }
     }
 
@@ -481,6 +610,35 @@ mod grid {
 
         fn neighbors(cell: Cell) -> impl Iterator<Item = Cell> {
             Cell::cluster(cell).filter(move |candidate| *candidate != cell)
+        }
+    }
+
+    pub struct Region {
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    }
+
+    impl Region {
+        fn view<'a>(
+            &self,
+            cells: impl Iterator<Item = &'a Cell>,
+        ) -> impl Iterator<Item = &'a Cell> {
+            let first_row = (self.y / Cell::SIZE as f32).floor() as isize;
+            let first_column = (self.x / Cell::SIZE as f32).floor() as isize;
+
+            let visible_rows =
+                (self.height / Cell::SIZE as f32).ceil() as isize;
+            let visible_columns =
+                (self.width / Cell::SIZE as f32).ceil() as isize;
+
+            let rows = first_row..=first_row + visible_rows;
+            let columns = first_column..=first_column + visible_columns;
+
+            cells.filter(move |cell| {
+                rows.contains(&cell.i) && columns.contains(&cell.j)
+            })
         }
     }
 
