@@ -19,26 +19,16 @@ pub fn main() {
 #[derive(Default)]
 struct GameOfLife {
     grid: Grid,
-    state: State,
-    speed: u64,
-    next_speed: Option<u64>,
+    is_playing: bool,
+    speed: usize,
+    next_speed: Option<usize>,
     toggle_button: button::State,
     next_button: button::State,
     clear_button: button::State,
     speed_slider: slider::State,
     tick_duration: Duration,
-    tick_amount: usize,
-}
-
-enum State {
-    Paused,
-    Playing { last_tick: Instant },
-}
-
-impl Default for State {
-    fn default() -> State {
-        State::Paused
-    }
+    queued_ticks: usize,
+    last_ticks: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -73,68 +63,48 @@ impl Application for GameOfLife {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Grid(message) => {
-                if let Some((tick_duration, tick_amount)) =
-                    self.grid.update(message)
-                {
+                if let Some(tick_duration) = self.grid.update(message) {
                     self.tick_duration = tick_duration;
-                    self.tick_amount = tick_amount;
                 }
             }
-            Message::Tick(_) | Message::Next => match &mut self.state {
-                State::Paused => {
-                    if let Some(task) = self.grid.tick(1) {
-                        return Command::perform(task, Message::Grid);
+            Message::Tick(_) | Message::Next => {
+                if let Some(task) = self.grid.tick(self.queued_ticks + 1) {
+                    self.last_ticks = self.queued_ticks;
+                    self.queued_ticks = 0;
+
+                    if let Some(speed) = self.next_speed.take() {
+                        self.speed = speed;
                     }
+
+                    return Command::perform(task, Message::Grid);
+                } else {
+                    self.queued_ticks = (self.queued_ticks + 1).min(self.speed);
                 }
-                State::Playing { last_tick } => {
-                    let seconds_elapsed =
-                        last_tick.elapsed().as_millis() as f32 / 1000.0;
-
-                    let needed_ticks =
-                        (self.speed as f32 * seconds_elapsed).ceil() as usize;
-
-                    if let Some(task) = self.grid.tick(needed_ticks.max(1)) {
-                        *last_tick = Instant::now();
-
-                        if let Some(speed) = self.next_speed.take() {
-                            self.speed = speed;
-                        }
-
-                        return Command::perform(task, Message::Grid);
-                    }
-                }
-            },
+            }
             Message::Toggle => {
-                self.state = match self.state {
-                    State::Paused => State::Playing {
-                        last_tick: Instant::now(),
-                    },
-                    State::Playing { .. } => State::Paused,
-                };
+                self.is_playing = !self.is_playing;
             }
             Message::Clear => {
                 self.grid.clear();
             }
-            Message::SpeedChanged(speed) => match self.state {
-                State::Paused => {
-                    self.speed = speed.round() as u64;
+            Message::SpeedChanged(speed) => {
+                if self.is_playing {
+                    self.next_speed = Some(speed.round() as usize);
+                } else {
+                    self.speed = speed.round() as usize;
                 }
-                State::Playing { .. } => {
-                    self.next_speed = Some(speed.round() as u64);
-                }
-            },
+            }
         }
 
         Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        match self.state {
-            State::Paused => Subscription::none(),
-            State::Playing { .. } => {
-                time::every(Duration::from_millis(1000 / self.speed))
-                    .map(Message::Tick)
-            }
+        if self.is_playing {
+            time::every(Duration::from_millis(1000 / self.speed as u64))
+                .map(Message::Tick)
+        } else {
+            Subscription::none()
         }
     }
 
@@ -144,11 +114,7 @@ impl Application for GameOfLife {
             .push(
                 Button::new(
                     &mut self.toggle_button,
-                    Text::new(if let State::Paused = self.state {
-                        "Play"
-                    } else {
-                        "Pause"
-                    }),
+                    Text::new(if self.is_playing { "Pause" } else { "Play" }),
                 )
                 .on_press(Message::Toggle)
                 .style(style::Button),
@@ -185,7 +151,7 @@ impl Application for GameOfLife {
             .push(
                 Text::new(format!(
                     "{:?} ({})",
-                    self.tick_duration, self.tick_amount
+                    self.tick_duration, self.last_ticks
                 ))
                 .size(14),
             );
@@ -239,7 +205,6 @@ mod grid {
         Ticked {
             result: Result<Life, TickError>,
             tick_duration: Duration,
-            tick_amount: usize,
             version: usize,
         },
     }
@@ -286,7 +251,6 @@ mod grid {
                     result,
                     version,
                     tick_duration,
-                    tick_amount: amount,
                 }
             })
         }
@@ -298,10 +262,7 @@ mod grid {
             self.cache.clear();
         }
 
-        pub fn update(
-            &mut self,
-            message: Message,
-        ) -> Option<(Duration, usize)> {
+        pub fn update(&mut self, message: Message) -> Option<Duration> {
             match message {
                 Message::Populate(cell) => {
                     self.state.populate(cell);
@@ -313,12 +274,11 @@ mod grid {
                     result: Ok(life),
                     version,
                     tick_duration,
-                    tick_amount,
                 } if version == self.version => {
                     self.state.update(life);
                     self.cache.clear();
 
-                    Some((tick_duration, tick_amount))
+                    Some(tick_duration)
                 }
                 Message::Ticked {
                     result: Err(error), ..
