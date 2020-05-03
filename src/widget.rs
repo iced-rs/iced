@@ -76,16 +76,17 @@ mod platform {
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
-        pub use iced_winit::image::{Handle, Image};
+        pub use crate::runtime::image::{Handle, Image};
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
     pub mod svg {
         //! Display vector graphics in your user interface.
-        pub use iced_winit::svg::{Handle, Svg};
+        pub use crate::runtime::svg::{Handle, Svg};
     }
 
-    pub use iced_winit::Space;
+    use crate::runtime;
+    pub use runtime::Space;
 
     #[doc(no_inline)]
     pub use {
@@ -103,13 +104,13 @@ mod platform {
     ///
     /// This is an alias of an `iced_native` column with a default `Renderer`.
     pub type Column<'a, Message> =
-        iced_winit::Column<'a, Message, iced_wgpu::Renderer>;
+        runtime::Column<'a, Message, iced_wgpu::Renderer>;
 
     /// A container that distributes its contents horizontally.
     ///
     /// This is an alias of an `iced_native` row with a default `Renderer`.
     pub type Row<'a, Message> =
-        iced_winit::Row<'a, Message, iced_wgpu::Renderer>;
+        runtime::Row<'a, Message, iced_wgpu::Renderer>;
 }
 
 #[cfg(target_arch = "wasm32")]

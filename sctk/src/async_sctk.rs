@@ -167,7 +167,9 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
                 }
             }
             queue.display().flush().unwrap();
+            log::trace!("wait");
             let _ = std::pin::Pin::new(&mut streams).peek().await;
+            log::trace!("next");
         }
         drop(streams);
         drop(seat_handler);

@@ -1,5 +1,10 @@
 use crate::{window, Command, Element, Executor, Settings, Subscription};
 
+#[cfg(feature = "iced_shm")]
+use iced_shm as iced_renderer_backend;
+#[cfg(feature = "iced_wgpu")]
+use iced_wgpu as iced_renderer_backend;
+
 /// An interactive cross-platform application.
 ///
 /// This trait is the main entrypoint of Iced. Once implemented, you can run
@@ -187,34 +192,22 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
-        #[cfg(feature = "iced_shm")]
+        #[cfg(not(target_arch = "wasm32"))]
         {
-            let shm_settings = iced_shm::Settings {
+            let iced_renderer_backend_settings = iced_renderer_backend::Settings {
                 default_font: settings.default_font,
-                //..iced_shm::Settings::default()
-            };
-
-            <Instance<Self> as crate::runtime::Application>::run(
-                settings.into(),
-                shm_settings,
-            );
-        }
-
-        #[cfg(all(feature = "iced_winit", feature = "iced_wgpu"))]
-        {
-            let wgpu_settings = iced_wgpu::Settings {
-                default_font: settings.default_font,
+                #[cfg(feature = "iced_wgpu")]
                 antialiasing: if settings.antialiasing {
                     Some(iced_wgpu::settings::Antialiasing::MSAAx4)
                 } else {
                     None
                 },
-                ..iced_wgpu::Settings::default()
+                ..iced_renderer_backend::Settings::default()
             };
 
-            <Instance<Self> as iced_winit::Application>::run(
+            <Instance<Self> as crate::runtime::Application>::run(
                 settings.into(),
-                wgpu_settings,
+                iced_renderer_backend_settings,
             );
         }
 
@@ -225,12 +218,11 @@ pub trait Application: Sized {
 
 struct Instance<A: Application>(A);
 
-#[cfg(feature = "iced_shm")]
 impl<A> crate::runtime::Application for Instance<A>
 where
     A: Application,
 {
-    type Backend = iced_shm::window::Backend;
+    type Backend = iced_renderer_backend::window::Backend;
     type Executor = A::Executor;
     type Flags = A::Flags;
     type Message = A::Message;
@@ -249,46 +241,6 @@ where
         match self.0.mode() {
             window::Mode::Windowed => crate::runtime::Mode::Windowed,
             window::Mode::Fullscreen => crate::runtime::Mode::Fullscreen,
-        }
-    }
-
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
-    }
-
-    fn subscription(&self) -> Subscription<Self::Message> {
-        self.0.subscription()
-    }
-
-    fn view(&mut self) -> Element<'_, Self::Message> {
-        self.0.view()
-    }
-}
-
-#[cfg(all(feature = "iced_winit", feature = "iced_wgpu"))]
-impl<A> iced_winit::Application for Instance<A>
-where
-    A: Application,
-{
-    type Backend = iced_wgpu::window::Backend;
-    type Executor = A::Executor;
-    type Flags = A::Flags;
-    type Message = A::Message;
-
-    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
-        let (app, command) = A::new(flags);
-
-        (Instance(app), command)
-    }
-
-    fn title(&self) -> String {
-        self.0.title()
-    }
-
-    fn mode(&self) -> iced_winit::Mode {
-        match self.0.mode() {
-            window::Mode::Windowed => iced_winit::Mode::Windowed,
-            window::Mode::Fullscreen => iced_winit::Mode::Fullscreen,
         }
     }
 

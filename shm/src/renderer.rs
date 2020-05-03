@@ -65,8 +65,6 @@ impl Renderer {
         scale_factor: f64,
         overlay: &[T],
     ) -> MouseCursor {
-        log::debug!("Drawing");
-
         let (width, height) = target.viewport.dimensions();
         let scale_factor = scale_factor as f32;
         let transformation = target.viewport.transformation();
