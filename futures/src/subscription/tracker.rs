@@ -28,7 +28,7 @@ where
     /// Creates a new empty [`Tracker`].
     ///
     /// [`Tracker`]: struct.Tracker.html
-    pub fn new() -> Self {
+    #[allow(clippy::new_without_default)] pub fn new() -> Self {
         Self {
             subscriptions: HashMap::new(),
             _hasher: PhantomData,

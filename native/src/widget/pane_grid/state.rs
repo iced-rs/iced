@@ -44,6 +44,7 @@ pub enum Focus {
     Dragging,
 }
 
+#[allow(clippy::len_without_is_empty)]
 impl<T> State<T> {
     /// Creates a new [`State`], initializing the first pane with the provided
     /// state.

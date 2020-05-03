@@ -14,7 +14,7 @@ impl Null {
     /// Creates a new [`Null`] renderer.
     ///
     /// [`Null`]: struct.Null.html
-    pub fn new() -> Null {
+    #[allow(clippy::new_without_default)] pub fn new() -> Null {
         Null
     }
 }

@@ -20,6 +20,7 @@
 //!
 //! [`Widget`]: trait.Widget.html
 //! [renderer]: ../renderer/index.html
+#![allow(clippy::single_match,clippy::new_without_default,clippy::too_many_arguments)]
 pub mod button;
 pub mod checkbox;
 pub mod column;

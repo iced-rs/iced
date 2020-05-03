@@ -31,6 +31,7 @@ impl progress_bar::Renderer for Renderer {
 
         (
             if active_progress_width > 0.0 {
+                #[allow(clippy::blacklisted_name)]
                 let bar = Primitive::Quad {
                     bounds: Rectangle {
                         width: active_progress_width,

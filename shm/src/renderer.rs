@@ -45,7 +45,7 @@ impl Renderer {
     /// Creates a new [`Renderer`].
     ///
     /// [`Renderer`]: struct.Renderer.html
-    pub fn new(device: &(), _settings: Settings) -> Self {
+    pub fn new(device: &mut (), _settings: Settings) -> Self {
         Self {
             quad_pipeline: quad::Pipeline::new(device),
             text_pipeline: text::Pipeline::new(None),
@@ -329,8 +329,7 @@ impl iced_native::Renderer for Renderer {
         element: &iced_native::Element<'a, Message, Self>,
         limits: &iced_native::layout::Limits,
     ) -> iced_native::layout::Node {
-        let node = element.layout(self, limits);
-        node
+        element.layout(self, limits)
     }
 }
 

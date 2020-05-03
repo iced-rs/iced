@@ -74,6 +74,7 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
     struct Async<T>(T);
     struct AsRawFd<T>(T);
     impl<T:nix::AsRawPollFd> std::os::unix::io::AsRawFd for AsRawFd<T> { fn as_raw_fd(&self) -> std::os::unix::io::RawFd { self.0.as_raw_poll_fd() /*->smol::Reactor*/ } }
+    #[allow(clippy::new_ret_no_self)]
     impl<T:nix::AsRawPollFd> Async<T> { fn new(io: T) -> Result<smol::Async<AsRawFd<T>>, std::io::Error> { smol::Async::new(AsRawFd(io)) } }
     impl nix::AsRawPollFd for &smithay_client_toolkit::reexports::client::EventQueue { fn as_raw_poll_fd(&self) -> nix::RawPollFd { self.display().get_connection_fd() } }
 
@@ -117,7 +118,7 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
             unfold(poll_queue, async move |q| { // Apply message callbacks (&mut state)
                 Some((Item::<A::Message>::Apply(q.with(
                     |q/*:&smithay_client_toolkit::reexports::client::EventQueue*/|
-                        q.0.prepare_read().ok_or(std::io::Error::new(std::io::ErrorKind::Interrupted, "Dispatch all events before reading again"))?.read_events()
+                        q.0.prepare_read().ok_or_else(||std::io::Error::new(std::io::ErrorKind::Interrupted, "Dispatch all events before reading again"))?.read_events()
                     ).await
                 ), q))
             }).boxed_local()
@@ -128,7 +129,7 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
             let mut events = Vec::new(); // Buffered event handling present the opportunity to reduce some redundant work (e.g resizes/motions+)
             while /*~poll_next*/ std::pin::Pin::new(&mut streams).peek().now_or_never().is_some() {
                 let item = streams.next().now_or_never().unwrap();
-                let item = item.ok_or(std::io::Error::new(std::io::ErrorKind::UnexpectedEof,""))?;
+                let item = item.ok_or_else(||std::io::Error::new(std::io::ErrorKind::UnexpectedEof,""))?;
                 match item {
                         Item::Push(message) => messages.push(message),
                         Item::Apply(_) => {
@@ -144,15 +145,15 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
                 use crate::input::{*, keyboard::{Event::Input, KeyCode, ModifiersState}};
                 if let Event::Keyboard(Input{state: ButtonState::Pressed, modifiers, key_code, ..}) = e {
                     match (modifiers, key_code) {
-                        (ModifiersState { logo: true, .. }, KeyCode::Q) => Err(std::io::Error::new(std::io::ErrorKind::Other,"User force quit with Logo+Q"))?,
-                        #[cfg(feature = "debug")] (_, KeyCode::F12) => debug.toggle(),
+                        (ModifiersState { logo: true, .. }, KeyCode::Q) => return Err(std::io::Error::new(std::io::ErrorKind::Other,"User force quit with Logo+Q")),
+                        /*#[cfg(feature = "trace")]*/ (_, KeyCode::F12) => trace.toggle(),
                         _ => (),
                     }
                 }
             }
             //events.iter().cloned().for_each(|event| runtime.broadcast(event));
 
-            if state.window.update_size() || messages.len() > 0 || events.len() > 0 {
+            if state.window.update_size() || !messages.is_empty() || !events.is_empty() {
                 let cursor = state.window.update(&mut application, messages, events, &mut trace); // Update state after gathering all pending events or/and on pending messages
                 if state.window.cursor != cursor {
                     state.window.cursor = cursor;

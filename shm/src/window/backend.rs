@@ -26,12 +26,7 @@ impl iced_native::window::Backend for Backend {
         (Backend {}, renderer)
     }
 
-    fn create_surface<W: iced_native::window::HasRawWindowHandle>(
-        &mut self,
-        _window: &W,
-    ) -> Self::Surface {
-        ()
-    }
+    fn create_surface<W: iced_native::window::HasRawWindowHandle>(&mut self, _window: &W) -> Self::Surface {}
 
     fn create_swap_chain(
         &mut self,
@@ -52,7 +47,7 @@ impl iced_native::window::Backend for Backend {
     ) -> MouseCursor {
         let (frame, viewport) = swap_chain.next_frame().expect("Next frame");
         // TODO: Clear white
-        let mouse_cursor = renderer.draw(
+        renderer.draw(
             Target {
                 texture: &frame,
                 viewport,
@@ -60,7 +55,6 @@ impl iced_native::window::Backend for Backend {
             output,
             scale_factor,
             overlay,
-        );
-        mouse_cursor
+        )
     }
 }

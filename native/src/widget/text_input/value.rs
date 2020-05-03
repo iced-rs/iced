@@ -9,6 +9,7 @@ pub struct Value {
     graphemes: Vec<String>,
 }
 
+#[allow(clippy::len_without_is_empty)]
 impl Value {
     /// Creates a new [`Value`] from a string slice.
     ///
@@ -60,8 +61,7 @@ impl Value {
         let next_string = &self.graphemes[index..].concat();
 
         UnicodeSegmentation::split_word_bound_indices(&next_string as &str)
-            .filter(|(_, word)| !word.trim_start().is_empty())
-            .next()
+            .find(|(_, word)| !word.trim_start().is_empty())
             .map(|(i, next_word)| {
                 index
                     + UnicodeSegmentation::graphemes(next_word, true).count()
@@ -71,7 +71,7 @@ impl Value {
                     )
                     .count()
             })
-            .unwrap_or(self.len())
+            .unwrap_or_else(|| self.len())
     }
 
     /// Returns a new [`Value`] containing the graphemes until the given
@@ -87,6 +87,7 @@ impl Value {
     /// Converts the [`Value`] into a `String`.
     ///
     /// [`Value`]: struct.Value.html
+    #[allow(clippy::inherent_to_string)]
     pub fn to_string(&self) -> String {
         self.graphemes.concat()
     }

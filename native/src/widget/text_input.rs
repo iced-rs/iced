@@ -188,7 +188,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let padding = self.padding as f32;
-        let text_size = self.size.unwrap_or(renderer.default_size());
+        let text_size = self.size.unwrap_or_else(|| renderer.default_size());
 
         let limits = limits
             .pad(padding)
@@ -441,7 +441,7 @@ where
                                 None => {
                                     let content: String = clipboard
                                         .content()
-                                        .unwrap_or(String::new())
+                                        .unwrap_or_default()
                                         .chars()
                                         .filter(|c| !c.is_control())
                                         .collect();
@@ -503,7 +503,7 @@ where
                 text_bounds,
                 cursor_position,
                 self.font,
-                self.size.unwrap_or(renderer.default_size()),
+                self.size.unwrap_or_else(|| renderer.default_size()),
                 &self.placeholder,
                 &self.value.secure(),
                 &self.state,
@@ -515,7 +515,7 @@ where
                 text_bounds,
                 cursor_position,
                 self.font,
-                self.size.unwrap_or(renderer.default_size()),
+                self.size.unwrap_or_else(|| renderer.default_size()),
                 &self.placeholder,
                 &self.value,
                 &self.state,
@@ -613,7 +613,7 @@ pub trait Renderer: crate::Renderer + Sized {
         state: &State,
         x: f32,
     ) -> usize {
-        let size = size.unwrap_or(self.default_size());
+        let size = size.unwrap_or_else(|| self.default_size());
 
         let offset = self.offset(text_bounds, font, size, &value, &state);
 

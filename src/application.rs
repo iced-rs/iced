@@ -57,6 +57,7 @@ use crate::{window, Command, Element, Executor, Settings, Subscription};
 /// ```no_run
 /// use iced::{executor, Application, Command, Element, Settings, Text};
 ///
+#[allow(clippy::needless_doctest_main)]
 /// pub fn main() {
 ///     Hello::run(Settings::default())
 /// }
@@ -190,7 +191,7 @@ pub trait Application: Sized {
         {
             let shm_settings = iced_shm::Settings {
                 default_font: settings.default_font,
-                ..iced_shm::Settings::default()
+                //..iced_shm::Settings::default()
             };
 
             <Instance<Self> as crate::runtime::Application>::run(

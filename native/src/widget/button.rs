@@ -261,7 +261,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// Draws a [`Button`].
     ///
     /// [`Button`]: struct.Button.html
-    fn draw<Message>(
+    #[allow(clippy::too_many_arguments)] fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
         bounds: Rectangle,

@@ -17,30 +17,34 @@ impl Keyboard {
             Enter { .. } => None,
             Leave { .. } => { *repeat = None; None } // will drop the timer on its next event (Weak::upgrade=None)
             Key{ key, state, .. } => {
-                if state == KeyState::Pressed {
-                    if let Some(repeat) = repeat { // Update existing repeat cell
-                        repeat.set(key);
-                        // Note: This keeps the same timer on key repeat change. No delay! Nice!
-                    } else { // New repeat timer (registers in the reactor on first poll)
-                        //assert!(!is_repeat);
-                        let repeat = Rc::new(Cell::new(key));
-                        use futures::stream;
-                        streams.push(
-                            stream::unfold(Instant::now()+Duration::from_millis(300), {
-                                let repeat = Rc::downgrade(&repeat);
-                                move |last| {
-                                    let next = last+Duration::from_millis(100);
-                                    smol::Timer::at(next).map({
-                                        let repeat = repeat.clone();
-                                        move |_| { repeat.upgrade().map(|x| (Item::KeyRepeat(x.get()), next) ) } // Option<Key> (None stops the stream, autodrops from streams)
-                                    })
-                                }
-                            }).boxed_local()
-                        );
-                        self.repeat = Some(repeat);
+                match state {
+                    KeyState::Pressed => {
+                        if let Some(repeat) = repeat { // Update existing repeat cell
+                            repeat.set(key);
+                            // Note: This keeps the same timer on key repeat change. No delay! Nice!
+                        } else { // New repeat timer (registers in the reactor on first poll)
+                            //assert!(!is_repeat);
+                            let repeat = Rc::new(Cell::new(key));
+                            use futures::stream;
+                            streams.push(
+                                stream::unfold(Instant::now()+Duration::from_millis(300), {
+                                    let repeat = Rc::downgrade(&repeat);
+                                    move |last| {
+                                        let next = last+Duration::from_millis(100);
+                                        smol::Timer::at(next).map({
+                                            let repeat = repeat.clone();
+                                            move |_| { repeat.upgrade().map(|x| (Item::KeyRepeat(x.get()), next) ) } // Option<Key> (None stops the stream, autodrops from streams)
+                                        })
+                                    }
+                                }).boxed_local()
+                            );
+                            self.repeat = Some(repeat);
+                        }
                     }
-                } else {
-                    if repeat.as_ref().filter(|r| { r.get()==key }).is_some() { *repeat = None }
+                    KeyState::Released => {
+                        if repeat.as_ref().filter(|r| r.get()==key ).is_some() { *repeat = None }
+                    }
+                    _ => unreachable!(),
                 }
                 Some(self.key(key, state == KeyState::Pressed))
             }

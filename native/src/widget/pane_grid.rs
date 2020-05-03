@@ -539,18 +539,14 @@ where
             }) => {
                 if let Some(on_key_press) = &self.on_key_press {
                     // TODO: Discard when event is captured
-                    if state == ButtonState::Pressed {
-                        if let Some(_) = self.state.active_pane() {
-                            if modifiers.matches(self.modifier_keys) {
-                                if let Some(message) =
-                                    on_key_press(KeyPressEvent {
-                                        key_code,
-                                        modifiers,
-                                    })
-                                {
-                                    messages.push(message);
-                                }
-                            }
+                    if state == ButtonState::Pressed && self.state.active_pane().is_some() && modifiers.matches(self.modifier_keys) {
+                        if let Some(message) =
+                            on_key_press(KeyPressEvent {
+                                key_code,
+                                modifiers,
+                            })
+                        {
+                            messages.push(message);
                         }
                     }
                 }

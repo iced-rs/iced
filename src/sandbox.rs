@@ -60,6 +60,7 @@ use crate::{executor, Application, Command, Element, Settings, Subscription};
 /// says "Hello, world!":
 ///
 /// ```no_run
+#[allow(clippy::needless_doctest_main)]
 /// use iced::{Element, Sandbox, Settings, Text};
 ///
 /// pub fn main() {

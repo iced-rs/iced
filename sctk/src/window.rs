@@ -101,7 +101,7 @@ impl<B:Backend> Window<B> {
         application: &mut A, messages: Vec<A::Message>, events: Vec<Event>, trace: &mut Trace) -> &'static str {
 
         let _ = trace.scope(Layout);
-        let mut user_interface = UserInterface::build(application.view(), self.size.into(), self.cache.take().unwrap_or(Cache::new()), &mut self.renderer);
+        let mut user_interface = UserInterface::build(application.view(), self.size.into(), self.cache.take().unwrap_or_default(), &mut self.renderer);
 
         let messages = {
             // Deferred on_event(event, &mut messages) so user_interface mut borrows (application, renderer, debug)
@@ -117,7 +117,7 @@ impl<B:Backend> Window<B> {
         };
 
         let user_interface = {
-            if messages.len() > 0 {
+            if !messages.is_empty() {
                 let cache = user_interface.into_cache();
                 // drop('user_interface &application)
                 // yield messages;
