@@ -435,16 +435,19 @@ mod grid {
 
                 if let Some(cell) = hovered_cell {
                     frame.fill_text(Text {
-                        content: format!("({}, {})", cell.i, cell.j),
+                        content: format!("({}, {})", cell.j, cell.i),
                         position: text.position - Vector::new(0.0, 16.0),
                         ..text
                     });
                 }
 
+                let cell_count = self.state.cell_count();
+
                 frame.fill_text(Text {
                     content: format!(
-                        "{} cells @ {:?} ({})",
-                        self.state.cell_count(),
+                        "{} cell{} @ {:?} ({})",
+                        cell_count,
+                        if cell_count == 1 { "" } else { "s" },
                         self.last_tick_duration,
                         self.last_queued_ticks
                     ),
