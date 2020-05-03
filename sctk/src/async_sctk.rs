@@ -1,11 +1,12 @@
-use futures::{FutureExt, stream::{LocalBoxStream, SelectAll, Peekable, unfold, StreamExt}};
+use futures::{FutureExt, stream::{LocalBoxStream, SelectAll, unfold, StreamExt}};
 use iced_native::{window::Backend, Event, trace::{Trace, Component::Setup}};
 use super::{window::{self, Window}, Application};
-use smithay_client_toolkit::{default_environment, init_default_environment, seat};
+use smithay_client_toolkit::{default_environment, init_default_environment, environment::SimpleGlobal, seat,
+                                            reexports::protocols::wlr::unstable::layer_shell::v1::client::zwlr_layer_shell_v1:: ZwlrLayerShellV1 as LayerShell};
 
 // Application state update
 pub(crate) struct Update<'u, 'q, Item> {
-    pub streams: &'u mut Peekable<SelectAll<LocalBoxStream<'q, Item>>>,
+    pub streams: &'u mut SelectAll<LocalBoxStream<'q, Item>>,
     pub events: &'u mut Vec<Event>,
 }
 
@@ -40,7 +41,10 @@ unsafe fn restore_erased_lifetime<'d,'u,'q,'s,A:Application>(data: &mut Dispatch
     std::mem::transmute::<&mut DispatchData::<'static,'static,'static,'static,A>, &mut DispatchData::<'d,'u,'q,'s,A>>(data)
 }
 
-default_environment!(Env, desktop);
+default_environment!(Env, desktop,
+    fields = [ layer_shell: SimpleGlobal<LayerShell> ],
+    singles = [ LayerShell => layer_shell ]
+);
 
 //pub async fn application<A:Application>(settings: Settings<A::Flags>, backend: <A::Backend as Backend>::Settings) -> Result<(),std::io::Error> {
 pub fn application<A:Application+'static>(arguments: A::Flags, window: window::Settings, backend: <A::Backend as Backend>::Settings)
@@ -64,7 +68,7 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
     };*/
     let (mut application, _init_command) = A::new(arguments);
 
-    let (env, _, queue) = init_default_environment!(Env, desktop).unwrap();
+    let (env, _, queue) = init_default_environment!(Env, desktop, fields = [layer_shell: SimpleGlobal::new()]).unwrap();
 
     mod nix {
         pub type RawPollFd = std::os::unix::io::RawFd;
@@ -89,8 +93,8 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
                     {
                         let mut pointer = crate::pointer::Pointer::default(); // Track focus and reconstruct scroll events
                         move/*pointer*/ |event, themed_pointer, mut data| {
-                            let DispatchData::<A>{update: Update{events, ..}, state:State{window: Window{window, cursor, .. }, ..}} = data.get().unwrap();
-                            pointer.handle(event, themed_pointer, events, window, cursor);
+                            let DispatchData::<A>{update: Update{events, ..}, state:State{window: Window{/*window,*/ cursor, .. }, ..}} = data.get().unwrap();
+                            pointer.handle(event, themed_pointer, events, /*window,*/ cursor);
                         }
                     }
                 ));
@@ -98,7 +102,7 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
             if seat_data.has_keyboard {
                 seat.get_keyboard().quick_assign(|_, event, mut data| {
                     let DispatchData::<A>{update:Update{streams,events}, state} = data.get().unwrap();
-                    events.extend( state.keyboard.map(streams.get_mut(), event).into_iter() );
+                    events.extend( state.keyboard.map(streams, event).into_iter() );
                 });
             }
         })
@@ -133,7 +137,7 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
                 match item {
                         Item::Push(message) => messages.push(message),
                         Item::Apply(_) => {
-                            let mut update = Update{streams: &mut streams, events: &mut events};
+                            let mut update = Update{streams: streams.get_mut(), events: &mut events};
                             let _ = queue.dispatch_pending(/*Any: 'static*/unsafe{&mut erase_lifetime(DispatchData::<A>{update: &mut update, state: &mut state})}, |_,_,_| ())?;
                         },
                         Item::KeyRepeat(key) => events.push( state.keyboard.key(key, true) ),

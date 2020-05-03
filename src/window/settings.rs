@@ -9,6 +9,9 @@ pub struct Settings {
 
     /// Whether the window should have a border, a title bar, etc. or not.
     pub decorations: bool,
+
+    /// Whether the surface should be a layer-shell overlay (unsupported by winit)
+    pub overlay: bool,
 }
 
 impl Default for Settings {
@@ -17,6 +20,7 @@ impl Default for Settings {
             size: (1024, 768),
             resizable: true,
             decorations: true,
+            overlay: false,
         }
     }
 }

@@ -1,9 +1,4 @@
-use smithay_client_toolkit::{
-    reexports::client::protocol::{wl_pointer::{self, ButtonState}, wl_surface::WlSurface},
-    seat::pointer::ThemedPointer,
-    window
-};
-type SCTKWindow = window::Window<window::ConceptFrame>;
+use smithay_client_toolkit::{reexports::client::protocol::{wl_pointer::{self, ButtonState}, wl_surface::WlSurface}, seat::pointer::ThemedPointer};
 use {crate::{Event::Mouse, input::{self, mouse}}, super::conversion};
 
 // Track focus and reconstruct scroll events
@@ -14,11 +9,11 @@ use {crate::{Event::Mouse, input::{self, mouse}}, super::conversion};
 }
 
 impl Pointer {
-    pub fn handle(&mut self, event : wl_pointer::Event, pointer: ThemedPointer, events: &mut Vec<crate::Event>, window: &SCTKWindow, current_cursor: &'static str) {
+    pub fn handle(&mut self, event : wl_pointer::Event, pointer: ThemedPointer, events: &mut Vec<crate::Event>, /*surface: &WlSurface,*/ current_cursor: &'static str) {
         let Self{focus, axis_buffer, axis_discrete_buffer} = self;
         use wl_pointer::Event::*;
         match event {
-            Enter { surface, surface_x:x,surface_y:y, .. } if surface == *window.surface() => {
+            Enter { surface, surface_x:x,surface_y:y, .. } /*if surface == *window.surface()*/ => {
                 *focus = Some(surface);
                 pointer.set_cursor(current_cursor, None).expect("Unknown cursor");
                 events.push(Mouse(mouse::Event::CursorEntered));

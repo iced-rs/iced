@@ -1,8 +1,6 @@
 use smithay_client_toolkit::{environment::Environment, window as sctk, reexports::client::protocol::wl_surface::WlSurface};
 use iced_native::{UserInterface, Cache, window::Backend, Event, trace::{Trace, Component::{Layout, Draw, Render}}};
-use super::{async_sctk::{DispatchData, Update, State, Env}, application::{Application, Mode}};
-
-type Cursor = &'static str;
+use super::{async_sctk::{DispatchData, Update, Item, State, Env}, application::{Application, Mode}};
 
 ///
 #[derive(Debug)]
@@ -19,9 +17,9 @@ pub struct Settings {
 impl Default for Settings { fn default() -> Self { Self{ size: [0,0], resizable: true, decorations: true, overlay: false } } }
 
 pub(crate) struct Window<B:Backend> {
-    pub window: sctk::Window<sctk::ConceptFrame>, // Refresh window
-    pub size: [u32; 2], pub scale_factor: u32, // Configure window
-    pub cursor: Cursor, // pointer::Enter window
+    pub window: Option<sctk::Window<sctk::ConceptFrame>>,
+    pub size: [u32; 2], pub scale_factor: u32,
+    pub cursor: &'static str,
 
     title: String,
     mode: Mode,
@@ -40,29 +38,65 @@ impl<B:Backend> Window<B> {
             }
         );
 
-        let window = env.create_window::<sctk::ConceptFrame, _>(surface, (settings.size[0], settings.size[1]),
-            move |event, mut data| {
-                let DispatchData::<A>{update: Update{streams, events, .. }, state: State{window, ..}} = data.get().unwrap();
-                use sctk::Event::*;
-                match event {
-                    Configure { new_size: None, .. } => (),
-                    Configure { new_size: Some(new_size), .. } => {
-                        window.size = [new_size.0, new_size.1];
-                        events.push(Event::Window(iced_native::window::Event::Resized {width: new_size.0, height: new_size.1}));
-                    }
-                    Close => {
-                        use futures::stream::{StreamExt, iter};
-                        streams.get_mut().push(iter(std::iter::once(super::Item::Quit)).boxed_local())
-                    }
-                    Refresh => window.window.refresh(),
-                }
-            }
-        ).unwrap();
-
-        window.set_resizable(settings.resizable);
-        window.set_decorate(if settings.decorations { sctk::Decorations::FollowServer } else { sctk::Decorations::None });
+        use futures::stream::{LocalBoxStream, SelectAll};
+        fn quit<M:'static>(streams: &mut SelectAll<LocalBoxStream<'_, Item<M>>>) {
+            use futures::stream::{StreamExt, iter};
+            streams.push(iter(std::iter::once(super::Item::Quit)).boxed_local())
+        }
 
         let size = settings.size;
+        let window = if settings.overlay {
+            use smithay_client_toolkit::{
+                reexports::protocols::wlr::unstable::layer_shell::v1::client::{
+                    zwlr_layer_shell_v1::{self as layer_shell, ZwlrLayerShellV1 as LayerShell},
+                    zwlr_layer_surface_v1 as layer_surface
+                },
+            };
+            let layer_shell = env.require_global::<LayerShell>();
+            let layer_surface = layer_shell.get_layer_surface(&surface, None, layer_shell::Layer::Overlay, "iced_sctk".to_string());
+            //layer_surface.set_keyboard_interactivity(1);
+
+            surface.commit();
+            layer_surface.quick_assign({let surface = surface.clone(); move /*surface*/ |layer_surface, event, mut data| {
+                let DispatchData::<A>{update: Update{streams, events, ..}, ..} = data.get().unwrap();
+                use layer_surface::Event::*;
+                match event {
+                    Configure{serial, width, height} => {
+                        if !(width > 0 && height > 0) {
+                            layer_surface.set_size(size[0], size[1]);
+                            layer_surface.ack_configure(serial);
+                            surface.commit();
+                            return;
+                        }
+                        layer_surface.ack_configure(serial);
+                        events.push(Event::Window(iced_native::window::Event::Resized {width, height}));
+                    }
+                    Closed => quit(streams),
+                    _ => unimplemented!(),
+                }
+            }});
+            None
+        } else {
+            let window = env.create_window::<sctk::ConceptFrame, _>(surface.clone(), (settings.size[0], settings.size[1]),
+                move |event, mut data| {
+                    let DispatchData::<A>{update: Update{streams, events, .. }, state: State{window, ..}} = data.get().unwrap();
+                    use sctk::Event::*;
+                    match event {
+                        Configure { new_size: None, .. } => (),
+                        Configure { new_size: Some(new_size), .. } => {
+                            window.size = [new_size.0, new_size.1];
+                            events.push(Event::Window(iced_native::window::Event::Resized {width: new_size.0, height: new_size.1}));
+                        }
+                        Close => quit(streams),
+                        Refresh => window.window.as_mut().unwrap().refresh(),
+                    }
+                }
+            ).unwrap();
+            window.set_resizable(settings.resizable);
+            window.set_decorate(if settings.decorations { sctk::Decorations::FollowServer } else { sctk::Decorations::None });
+            Some(window)
+        };
+
         let (mut backend, renderer) = B::new(backend);
 
         struct Surface<'t>(&'t WlSurface);
@@ -70,7 +104,7 @@ impl<B:Backend> Window<B> {
         unsafe impl HasRawWindowHandle for Surface<'_> {
             fn raw_window_handle(&self) -> RawWindowHandle { RawWindowHandle::Wayland(WaylandHandle { /*TODO*/ ..WaylandHandle::empty() })  }
         }
-        let surface = backend.create_surface(&Surface(window.surface()));
+        let surface = backend.create_surface(&Surface(&surface));
         let swap_chain = backend.create_swap_chain(&surface, size[0], size[1]);
 
         Self {
@@ -129,16 +163,16 @@ impl<B:Backend> Window<B> {
                 }
                 runtime.track(self.application.subscription());*/
 
-                // fixme
-                if self.title != application.title() {
-                    self.title = application.title();
-                    self.window.set_title(self.title.clone());
+                if let Some(window) = &self.window {
+                    if self.title != application.title() {
+                        self.title = application.title();
+                        window.set_title(self.title.clone());
+                    }
+                    if self.mode != application.mode() {
+                        self.mode = application.mode();
+                        if let super::application::Mode::Fullscreen = self.mode { window.set_fullscreen(None) } else { window.unset_fullscreen() }
+                    }
                 }
-                if self.mode != application.mode() {
-                    self.mode = application.mode();
-                    if let super::application::Mode::Fullscreen = self.mode { self.window.set_fullscreen(None) } else { self.window.unset_fullscreen() }
-                }
-
                 UserInterface::build(application.view(), self.size.into(), cache, &mut self.renderer)
             } else {
                 user_interface
