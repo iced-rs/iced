@@ -6,8 +6,8 @@ on top of a `Canvas` widget and other controls.
 The __[`main`]__ file contains the relevant code of the example.
 
 <div align="center">
-  <a href="https://gfycat.com/regalspiritedjaguarundi">
-    <img src="https://thumbs.gfycat.com/RegalSpiritedJaguarundi-size_restricted.gif">
+  <a href="https://gfycat.com/briefaccurateaardvark">
+    <img src="https://thumbs.gfycat.com/BriefAccurateAardvark-size_restricted.gif">
   </a>
 </div>
 
