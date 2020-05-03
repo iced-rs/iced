@@ -32,43 +32,27 @@ pub mod window_ext {
 
 // impl Application
 
-// iced_futures::Runtime::Sender: Clone
-mod sink_clone;
-
-// Futures-based event loop
-use futures::{stream::{LocalBoxStream, Peekable, SelectAll}};
-
-// Shared across the application between user message channel, display interface events, keyboard repeat timer
-enum Item<Message> {
-    Push(Message),
-    Apply(std::io::Result<()>),
-    KeyRepeat(crate::keyboard::Event<'static>),
-    Close,
+/// iced_winit/Settings
+#[derive(Debug)]
+pub struct Settings<Flags> {
+    /// Data needed to initialize an [`Application`].
+    pub flags: Flags,
+    /// Window settings
+    pub window: window::Settings,
 }
 
-// Application state update
-struct Update<'u, 'q, Item> {
-    streams: &'u mut Peekable<SelectAll<LocalBoxStream<'q, Item>>>,
-    events: &'u mut Vec<Event>,
-}
+///
+pub mod window;
 
-// Track modifiers and key repetition
-mod keyboard;
-pub use keyboard::Keyboard;
-// Track focus and reconstruct scroll events
-mod pointer;
-//
-mod window;
-pub use window::{Window, Mode};
+// Implements an Application trait wrapped by iced
+mod application;
+pub use application::{Application, Mode}; // required by iced
 
 // Async SCTK application
 mod async_sctk;
-// Implements an Application trait wrapped by iced
-mod application;
+use async_sctk::{Item, Streams};
 
-// iced_winit/settings
-pub struct Settings<Flags> {
-    pub flags: Flags,
-    pub window: window::Settings,
-}
-pub use application::Application;
+// Track modifiers and key repetition
+mod keyboard;
+// Track focus and reconstruct scroll events
+mod pointer;

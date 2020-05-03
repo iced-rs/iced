@@ -11,6 +11,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+clipboard = []
 debug = []
 
 [dependencies]
@@ -20,8 +21,10 @@ pin-utils = "^0.1"
 futures = "^0.3"
 futures-util = "^0.3"
 #async-std = { version = "1.5", features = ["unstable"] }
-smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"], path="../../client-toolkit" } #-calloop #120
 #smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"] } #-calloop #120
+smithay-client-toolkit = { git = 'https://github.com/smithay/client-toolkit.git', default-features=false, features=["frames"] } #-calloop #120
+#smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"], path="../../client-toolkit" } #-calloop #120
+
 smol = ''
 raw-window-handle = "0.3"
 #window_clipboard = "0.1"
@@ -30,3 +33,9 @@ iced_native = { version = "0.2", path = "../native" }
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"
+
+# Useless here only a reminder for dependencies to copy this in their Cargo.toml ... :(
+[patch.crates-io]
+wayland-client = { path = "../../wayland-rs/wayland-client" } # EventQueue::dispatch_pending(&self, ..)
+[patch.'https://github.com/smithay/client-toolkit.git']
+smithay-client-toolkit = { path = "../../client-toolkit" } # #[derive(PartialEq)] seat::keyboard::Event

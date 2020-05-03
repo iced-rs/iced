@@ -1,60 +1,67 @@
 use std::{rc::Rc, cell::Cell, time::{Instant, Duration}};
 use futures::{future::FutureExt, stream::StreamExt};
-pub use smithay_client_toolkit::seat::keyboard::{Event, KeyState};
-use {super::{Update,Item}, crate::{input::{ButtonState, keyboard::{self, ModifiersState}}}, super::conversion};
+pub use smithay_client_toolkit::reexports::client::protocol::wl_keyboard::{self, KeyState};
+use {super::{Streams,Item}, crate::{Event, input::{ButtonState, keyboard::{self, ModifiersState}}}, super::conversion};
 
-// Track modifiers and key repetition
-#[derive(Default)] pub struct Keyboard {
+/// Track modifiers and key repetition
+#[derive(Default)] pub(crate) struct Keyboard {
     modifiers : ModifiersState,
-    repeat : Option<Rc<Cell<Event<'static>>>>,
+    repeat : Option<Rc<Cell<u32>>>,
 }
 
 impl Keyboard {
-    pub fn handle<W>(&mut self, Update{streams, events, ..}: &mut Update<W>, event: &Event) {
+    pub(crate) fn map<M>(&mut self, streams: &mut Streams<M>, event: wl_keyboard::Event) -> Option<Event> {
         let Self{modifiers, repeat} = self;
+        use wl_keyboard::Event::*;
         match event {
-            Event::Enter { .. } => (),
-            Event::Leave { .. } => *repeat = None, // will drop the timer on its next event (Weak::upgrade=None)
-            key @ Event::Key{ state, utf8, .. } => {
+            Enter { .. } => None,
+            Leave { .. } => { *repeat = None; None } // will drop the timer on its next event (Weak::upgrade=None)
+            Key{ key, state, .. } => {
                 if state == KeyState::Pressed {
-                    if let Some(repeat) = repeat { // Update existing repeat cell (also triggered by the actual repetition => noop)
-                        repeat.set(event);
+                    if let Some(repeat) = repeat { // Update existing repeat cell
+                        repeat.set(key);
                         // Note: This keeps the same timer on key repeat change. No delay! Nice!
                     } else { // New repeat timer (registers in the reactor on first poll)
                         //assert!(!is_repeat);
-                        let repeat = Rc::new(Cell::new(event));
+                        let repeat = Rc::new(Cell::new(key));
                         use futures::stream;
-                        streams.get_mut().push(
+                        streams.push(
                             stream::unfold(Instant::now()+Duration::from_millis(300), {
                                 let repeat = Rc::downgrade(&repeat);
-                                |last| {
+                                move |last| {
                                     let next = last+Duration::from_millis(100);
-                                    smol::Timer::at(next).map(move |_| { repeat.upgrade().map(|x| (Item::Key(x.clone().into_inner()), next) ) }) // Option<Key> (None stops the stream, autodrops from streams)
+                                    smol::Timer::at(next).map({
+                                        let repeat = repeat.clone();
+                                        move |_| { repeat.upgrade().map(|x| (Item::KeyRepeat(x.get()), next) ) } // Option<Key> (None stops the stream, autodrops from streams)
+                                    })
                                 }
-                            })
+                            }).boxed_local()
                         );
-                        repeat = Some(Cell::new(event));
+                        self.repeat = Some(repeat);
                     }
                 } else {
-                    if repeat.filter(|r| r.get()==event).is_some() { repeat = None }
+                    if repeat.as_ref().filter(|r| { r.get()==key }).is_some() { *repeat = None }
                 }
-                events.push(Event::Keyboard(keyboard::Event::Input{
-                    key_code: conversion::key(key),
-                    state: if state == KeyState::Pressed { ButtonState::Pressed } else { ButtonState::Released },
-                    modifiers,
-                }));
-                if let Some(ref txt) = utf8 {
-                    for char in txt.chars() {
-                        events.push(Event::Keyboard(keyboard::Event::CharacterReceived(char)));
-                    }
-                }
+                Some(self.key(key, state == KeyState::Pressed))
             }
-            Event::Modifiers {
-                modifiers: new_modifiers,
-            } => {
-                *modifiers = conversion::modifiers(new_modifiers);
-                    if let Some(repeat) = repeat { repeat.update(|r| r.modifiers = modifiers )} // Optional logic
+            Modifiers {mods_depressed, mods_latched, mods_locked, group: locked_group, ..} => {
+                *modifiers = conversion::modifiers(mods_depressed, mods_latched, mods_locked, locked_group);
+                //if let Some(repeat) = repeat { repeat.update(|r| r.modifiers = modifiers )} // Optional logic
+                None
             }
+            _ => unreachable!(),
         }
+    }
+    pub fn key(&self, key: u32, state: bool) -> Event {
+        Event::Keyboard(keyboard::Event::Input{
+            key_code: conversion::key(key),
+            state: if state { ButtonState::Pressed } else { ButtonState::Released },
+            modifiers: self.modifiers,
+        })
+        /*if let Some(ref txt) = utf8 {
+            for char in txt.chars() {
+                events.push(Event::Keyboard(keyboard::Event::CharacterReceived(char)));
+            }
+        }*/
     }
 }

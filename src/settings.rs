@@ -54,11 +54,11 @@ impl<Flags> Settings<Flags> {
 impl<Flags> From<Settings<Flags>> for iced_sctk::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_sctk::Settings<Flags> {
         iced_sctk::Settings {
-            window: iced_sctk::settings::Window {
-                size: settings.window.size,
+            window: iced_sctk::window::Settings {
+                size: [settings.window.size.0, settings.window.size.1],
                 resizable: settings.window.resizable,
                 decorations: settings.window.decorations,
-                platform_specific: Default::default(),
+                overlay: false, //settings.window.overlay,
             },
             flags: settings.flags,
         }

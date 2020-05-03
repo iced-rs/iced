@@ -57,7 +57,13 @@ use enum_iterator::IntoEnumIterator;
 pub enum Component {
 /// Until first request
     Setup,
-    //Event, Update, View, Layout, Draw, Render,
+    //Update, View,
+/// Update user interface
+    Layout,
+/// Collect primitives
+    Draw,
+/// Rasterize
+    Render,
     ///
     _Length
 }

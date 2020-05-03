@@ -22,8 +22,9 @@ pub struct With<Si, Item, U, Fut, F> {
 
 impl<Si:Clone, Item, U, Fut, F:Clone> Clone for With<Si, Item, U, Fut, F> {
     fn clone(&self) -> Self {
-        let &Self{sink, f, state, _phantom} = self;
-        Self{sink: sink.clone(), f: f.clone(), state: None, _phantom}
+        let Self{sink, f, state, _phantom} = self;
+        assert!(state.is_none());
+        Self{sink: sink.clone(), f: f.clone(), state: None, _phantom: *_phantom}
     }
 }
 

@@ -50,6 +50,12 @@ impl From<[u16; 2]> for Size {
     }
 }
 
+impl From<[u32; 2]> for Size {
+    fn from([width, height]: [u32; 2]) -> Self {
+        Size::new(width as f32, height as f32)
+    }
+}
+
 impl From<Size> for [f32; 2] {
     fn from(Size { width, height }: Size) -> Self {
         [width, height]

@@ -1,82 +1,112 @@
-use smithay_client_toolkit::{
-    reexports::client::protocol::wl_surface::WlSurface,
-    seat::pointer::ThemedPointer,
-    window::{Window as SCTKWindow, ConceptFrame, Decorations}
-};
-use iced_native::{Trace, UserInterface, Cache, window::Backend, Renderer, Event};
+use smithay_client_toolkit::{environment::Environment, window as sctk, reexports::client::protocol::wl_surface::WlSurface};
+use iced_native::{UserInterface, Cache, window::Backend, Event, trace::{Trace, Component::{Layout, Draw, Render}}};
+use super::{async_sctk::{DispatchData, Update, State, Env}, application::{Application, Mode}};
 
 type Cursor = &'static str;
 
-pub enum Mode { Windowed, Fullscreen }
-
+///
+#[derive(Debug)]
 pub struct Settings {
-    pub size: (u32, u32),
+    ///
+    pub size: [u32; 2],
+    ///
     pub resizable: bool,
+    ///
     pub decorations: bool,
+    ///
     pub overlay: bool,
 }
-impl Default for Settings { fn default() -> Self { Self{ resizable: true, decorations: true, ..Default::default() } } }
+impl Default for Settings { fn default() -> Self { Self{ size: [0,0], resizable: true, decorations: true, overlay: false } } }
 
-pub struct Window<B:Backend> {
-    pub window: SCTKWindow<ConceptFrame>, // Refresh window
-    pub size: (u32, u32), pub scale_factor: u32, // Configure window
-    pub current_cursor: Cursor, // pointer::Enter window
-    pub pointer: Option<ThemedPointer>, // Window::render() { set_pointer }
+pub(crate) struct Window<B:Backend> {
+    pub window: sctk::Window<sctk::ConceptFrame>, // Refresh window
+    pub size: [u32; 2], pub scale_factor: u32, // Configure window
+    pub cursor: Cursor, // pointer::Enter window
 
     title: String,
     mode: Mode,
     pub backend : B, renderer : B::Renderer, pub surface: B::Surface, pub swap_chain: B::SwapChain,
-    pub buffer_size: (u32, u32), pub buffer_scale_factor: u32, // fixme: should be in swap_chain
+    pub buffer_size: [u32; 2], pub buffer_scale_factor: u32, // fixme: should be in swap_chain
     cache: Option<Cache>
 }
 
 impl<B:Backend> Window<B> {
-    pub fn new(window: SCTKWindow<ConceptFrame>, settings: self::Settings, backend: B::Settings) -> Self {
-        window.set_resizable(settings.resizable);
-        window.set_decorate(
-            if settings.decorations { Decorations::FollowServer }
-            else { Decorations::None }
+    pub fn new<A:Application+'static>(env: Environment<Env>, settings: self::Settings, backend: B::Settings) -> Self {
+        let surface = env.create_surface_with_scale_callback(
+            |scale, surface, mut data| {
+                let DispatchData::<A>{state:State{window, ..}, ..} = data.get().unwrap();
+                surface.set_buffer_scale(scale);
+                window.scale_factor = scale as u32;
+            }
         );
 
-        let size = settings.size;
-        let (mut backend, mut renderer) = B::new(backend);
+        let window = env.create_window::<sctk::ConceptFrame, _>(surface, (settings.size[0], settings.size[1]),
+            move |event, mut data| {
+                let DispatchData::<A>{update: Update{streams, events, .. }, state: State{window, ..}} = data.get().unwrap();
+                use sctk::Event::*;
+                match event {
+                    Configure { new_size: None, .. } => (),
+                    Configure { new_size: Some(new_size), .. } => {
+                        window.size = [new_size.0, new_size.1];
+                        events.push(Event::Window(iced_native::window::Event::Resized {width: new_size.0, height: new_size.1}));
+                    }
+                    Close => {
+                        use futures::stream::{StreamExt, iter};
+                        streams.get_mut().push(iter(std::iter::once(super::Item::Quit)).boxed_local())
+                    }
+                    Refresh => window.window.refresh(),
+                }
+            }
+        ).unwrap();
 
-        struct Surface(WlSurface);
+        window.set_resizable(settings.resizable);
+        window.set_decorate(if settings.decorations { sctk::Decorations::FollowServer } else { sctk::Decorations::None });
+
+        let size = settings.size;
+        let (mut backend, renderer) = B::new(backend);
+
+        struct Surface<'t>(&'t WlSurface);
         use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, unix::WaylandHandle};
-        unsafe impl HasRawWindowHandle for Surface {
-            fn raw_window_handle(&self) -> RawWindowHandle { WaylandHandle { ..WaylandHandle::empty() }  }
+        unsafe impl HasRawWindowHandle for Surface<'_> {
+            fn raw_window_handle(&self) -> RawWindowHandle { RawWindowHandle::Wayland(WaylandHandle { /*TODO*/ ..WaylandHandle::empty() })  }
         }
         let surface = backend.create_surface(&Surface(window.surface()));
-        let mut swap_chain = backend.create_swap_chain(&surface, size.0, size.1);
+        let swap_chain = backend.create_swap_chain(&surface, size[0], size[1]);
 
         Self {
             window,
             size, scale_factor: 1,
-            current_cursor: "left_ptr",
+            cursor: "left_ptr",
+            title: Default::default(),
+            mode: super::application::Mode::Windowed,
             backend, renderer, surface, swap_chain,
+            buffer_size: [0,0], buffer_scale_factor: 0,
             cache: None,
         }
     }
-    pub fn update</*Executor, Receiver,*/ Message>(&mut self, //runtime: &Runtime<Executor, Receiver, Message>, // fixme: trait Runtime
-                                                                                                                        messages: Vec<Message>, events: Vec<Event>) {
-        if
-            !if self.buffer_size != self.size || self.buffer_scale_factor != self.scale_factor {
-                //(self.buffer_size, self.buffer_scale_factor) = (self.size, self.scale_factor);
-                self.buffer_size = self.size; self.buffer_scale_factor = self.scale_factor;
-                self.swap_chain = self.backend.create_swap_chain(&self.surface,
-                    self.buffer_size.0 * self.buffer_scale_factor,
-                    self.buffer_size.1 * self.buffer_scale_factor);
-                true
-            } else { false }
-            && events.len().is_empty() && messages.len().is_empty() { return }
+    // After coalescing any size settings
+    pub fn update_size(&mut self) -> bool {
+        if self.buffer_size != self.size || self.buffer_scale_factor != self.scale_factor {
+            //(self.buffer_size, self.buffer_scale_factor) = (self.size, self.scale_factor);
+            self.buffer_size = self.size; self.buffer_scale_factor = self.scale_factor;
+            self.swap_chain = self.backend.create_swap_chain(&self.surface,
+                self.buffer_size[0] * self.buffer_scale_factor,
+                self.buffer_size[1] * self.buffer_scale_factor);
+            true
+        } else {
+            false
+        }
+    }
+    pub fn update<A:crate::Application<Backend=B>>(&mut self, //runtime: &Runtime<Executor, Receiver, Message>, // fixme: trait Runtime
+        application: &mut A, messages: Vec<A::Message>, events: Vec<Event>, trace: &mut Trace) -> &'static str {
 
-        //debug.profile(Layout);
-        let mut user_interface = UserInterface::build(self.application.view(), self.size.into(), self.cache.unwrap_or(Cache::new()), self.renderer);
+        let _ = trace.scope(Layout);
+        let mut user_interface = UserInterface::build(application.view(), self.size.into(), self.cache.take().unwrap_or(Cache::new()), &mut self.renderer);
 
         let messages = {
             // Deferred on_event(event, &mut messages) so user_interface mut borrows (application, renderer, debug)
             let mut sync_messages = user_interface.update(
-                events.drain(..),
+                events,
                 None, /*clipboard
                         .as_ref()
                         .map(|c| c as &dyn iced_native::Clipboard),*/
@@ -100,36 +130,26 @@ impl<B:Backend> Window<B> {
                 runtime.track(self.application.subscription());*/
 
                 // fixme
-                if self.title != self.application.title() {
-                    self.title = self.application.title();
+                if self.title != application.title() {
+                    self.title = application.title();
                     self.window.set_title(self.title.clone());
                 }
-                if self.mode != self.application.mode() {
-                    self.mode = self.application.mode();
-                    if let Mode::Fullscreen = self.mode { self.window.set_fullscreen(None) } else { self.window.unset_fullscreen() }
+                if self.mode != application.mode() {
+                    self.mode = application.mode();
+                    if let super::application::Mode::Fullscreen = self.mode { self.window.set_fullscreen(None) } else { self.window.unset_fullscreen() }
                 }
 
-                UserInterface::build(self.application.view(), self.size.into(), cache.unwrap_or(Cache::new()), self.renderer);
+                UserInterface::build(application.view(), self.size.into(), cache, &mut self.renderer)
             } else {
                 user_interface
             }
         };
 
-        //debug.profile(Draw);
+        let _ = trace.scope(Draw);
         let renderer_output = user_interface.draw(&mut self.renderer);
         self.cache = Some(user_interface.into_cache());
-        renderer_output
-    }
-    pub fn render(&mut self, renderer_output: <B::Renderer as Renderer>::Output, trace: &Trace) {
-        //debug.profile(Render);
-
-        let cursor = self.backend.draw(&mut self.renderer, &mut self.swap_chain, &renderer_output, self.scale_factor as f64, &trace.overlay());
-
-        if self.cursor != cursor {
-            self.cursor = cursor;
-            for pointer in self.pointer.iter_mut() {
-                pointer.set_cursor(crate::conversion::cursor(cursor), None).expect("Unknown cursor");
-            }
-        }
+        let _ = trace.scope(Render);
+        let cursor = self.backend.draw(&mut self.renderer, &mut self.swap_chain, &renderer_output, self.scale_factor as f64, &trace.lines());
+        crate::conversion::cursor(cursor)
     }
 }

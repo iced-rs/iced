@@ -177,7 +177,7 @@ pub trait Application: Sized {
         let mut resized = false;
 
         #[cfg(feature="clipboard")]
-        let clipboard = Clipboard::new(&window);
+        let clipboard = crate::Clipboard::new(&window);
         let (mut backend, mut renderer) = Self::Backend::new(backend_settings);
 
         let surface = backend.create_surface(&window);

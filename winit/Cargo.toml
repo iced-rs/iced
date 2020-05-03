@@ -12,6 +12,7 @@ categories = ["gui"]
 
 [features]
 debug = []
+clipboard = ['window_clipboard']
 
 [dependencies]
 winit = "0.22"
