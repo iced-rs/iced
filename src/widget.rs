@@ -25,21 +25,24 @@ mod platform {
 
     #[cfg(feature = "canvas")]
     #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
-    pub use iced_wgpu::widget::canvas;
+    pub use iced_shm::widget::canvas;
 
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
-        pub use iced_sctk::image::{Handle, Image};
+        #[cfg(feature = "image")]
+        pub use iced_shm::image::{Handle, Image};
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
     pub mod svg {
         //! Display vector graphics in your user interface.
-        pub use iced_sctk::svg::{Handle, Svg};
+        #[cfg(feature = "svg")]
+        pub use iced_shm::svg::{Handle, Svg};
     }
 
-    pub use iced_sctk::{Space, Text};
+    use crate::runtime;
+    pub use runtime::Space;
 
     #[doc(no_inline)]
     pub use text_input::TextInput;
@@ -51,13 +54,12 @@ mod platform {
     /// A container that distributes its contents vertically.
     ///
     /// This is an alias of an `iced_native` column with a default `Renderer`.
-    pub type Column<'a, Message> =
-        iced_sctk::Column<'a, Message, iced_shm::Renderer>;
+    pub type Column<'a, Message> = runtime::Column<'a, Message, iced_shm::Renderer>;
 
     /// A container that distributes its contents horizontally.
     ///
     /// This is an alias of an `iced_native` row with a default `Renderer`.
-    pub type Row<'a, Message> = iced_sctk::Row<'a, Message, iced_shm::Renderer>;
+    pub type Row<'a, Message> = runtime::Row<'a, Message, iced_shm::Renderer>;
 }
 
 #[cfg(feature = "iced_wgpu")]

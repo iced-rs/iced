@@ -186,14 +186,14 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
-        #[cfg(all(feature = "iced_sctk", feature = "iced_shm"))]
+        #[cfg(feature = "iced_shm")]
         {
             let shm_settings = iced_shm::Settings {
                 default_font: settings.default_font,
                 ..iced_shm::Settings::default()
             };
 
-            <Instance<Self> as iced_sctk::Application>::run(
+            <Instance<Self> as crate::runtime::Application>::run(
                 settings.into(),
                 shm_settings,
             );
@@ -224,8 +224,8 @@ pub trait Application: Sized {
 
 struct Instance<A: Application>(A);
 
-#[cfg(all(feature = "iced_sctk", feature = "iced_shm"))]
-impl<A> iced_sctk::Application for Instance<A>
+#[cfg(feature = "iced_shm")]
+impl<A> crate::runtime::Application for Instance<A>
 where
     A: Application,
 {
@@ -244,10 +244,10 @@ where
         self.0.title()
     }
 
-    fn mode(&self) -> iced_sctk::Mode {
+    fn mode(&self) -> crate::runtime::Mode {
         match self.0.mode() {
-            window::Mode::Windowed => iced_sctk::Mode::Windowed,
-            window::Mode::Fullscreen => iced_sctk::Mode::Fullscreen,
+            window::Mode::Windowed => crate::runtime::Mode::Windowed,
+            window::Mode::Fullscreen => crate::runtime::Mode::Fullscreen,
         }
     }
 

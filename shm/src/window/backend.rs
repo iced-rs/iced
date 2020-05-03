@@ -6,14 +6,14 @@ use iced_native::MouseCursor;
 #[derive(Debug)]
 pub struct Backend {}
 
-impl iced_sctk::window_ext::NoHasRawWindowHandleBackend for Backend {
+/*impl iced_sctk::window_ext::NoHasRawWindowHandleBackend for Backend {
     /// Creates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: #associatedtype.Surface
     fn create_surface<W>(&mut self, _window: &W) -> Self::Surface {
         ()
     }
-}
+}*/
 
 impl iced_native::window::Backend for Backend {
     type Settings = Settings;

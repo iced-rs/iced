@@ -12,12 +12,14 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+# Enables the clipboard
+clipboard = ["iced_winit/clipboard", "iced_sctk/clipboard"]
 # Enables the `Image` widget
-image = ["iced_wgpu/image"]
+image = ["iced_wgpu/image", "iced_shm/image"]
 # Enables the `Svg` widget
-svg = ["iced_wgpu/svg"]
+svg = ["iced_wgpu/svg", "iced_shm/svg"]
 # Enables the `Canvas` widget
-canvas = ["iced_wgpu/canvas"]
+canvas = ["iced_wgpu/canvas", "iced_shm/canvas"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -25,11 +27,12 @@ tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
 async-std = ["iced_futures/async-std"]
 # Alias to auto use each default backend (winit<->wgpu, sctk<->shm)
-shm = ["iced_shm","iced_sctk"]
 wgpu = ["iced_wgpu","iced_winit"]
-winit = ["iced_winit","iced_wgpu"]
+winit = ["iced_winit","iced_shm"]
+#shm = ["iced_shm","iced_sctk"]
+shm = ["iced_shm","iced_winit"]
 sctk = ["iced_sctk", "iced_shm"]
-#default = ["wgpu"]
+default = ["shm"]
 
 [badges]
 maintenance = { status = "actively-developed" }

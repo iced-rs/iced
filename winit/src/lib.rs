@@ -29,6 +29,7 @@ pub mod conversion;
 pub mod settings;
 
 mod application;
+#[cfg(feature="clipboard")]
 mod clipboard;
 mod mode;
 mod proxy;
@@ -44,6 +45,7 @@ mod debug;
 mod debug;
 
 pub use application::Application;
+#[cfg(feature="clipboard")]
 pub use clipboard::Clipboard;
 pub use mode::Mode;
 pub use settings::Settings;

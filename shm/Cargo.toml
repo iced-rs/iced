@@ -15,7 +15,7 @@ canvas = ["lyon"]
 glam = "0.8"
 font-kit = { version = "0.4", optional=true }
 log = "0.4"
-iced_sctk = { version = "^0.0", path = "../sctk" } # NoHasRawWindowHandleBackend
+#iced_sctk = { version = "^0.0", path = "../sctk" } # NoHasRawWindowHandleBackend
 framework = { version = "^0.0", path = "../../framework" }
 #framework = { version = "^0.0", git = "https://github.com/Matthias-Fauconneau/framework" }
 

@@ -85,7 +85,7 @@ impl Pipeline {
             widget::Widget,
         };
         let style = vec![Attribute::<Style> {
-            range: TextRange::new(TextSize::zero(), TextSize::of(&text)),
+            range: TextRange::up_to(TextSize::of(text)),
             attribute: Style {
                 color: Color {
                     b: 1.,

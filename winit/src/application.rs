@@ -1,5 +1,5 @@
 use crate::{
-    conversion, size::Size, window, Cache, Clipboard, Command, Debug, Element,
+    conversion, size::Size, window, Cache, Command, Debug, Element,
     Executor, Mode, MouseCursor, Proxy, Runtime, Settings, Subscription,
     UserInterface,
 };
@@ -176,6 +176,7 @@ pub trait Application: Sized {
         let mut size = Size::new(window.inner_size(), window.scale_factor());
         let mut resized = false;
 
+        #[cfg(feature="clipboard")]
         let clipboard = Clipboard::new(&window);
         let (mut backend, mut renderer) = Self::Backend::new(backend_settings);
 
@@ -238,9 +239,8 @@ pub trait Application: Sized {
 
                 let mut messages = user_interface.update(
                     events.drain(..),
-                    clipboard
-                        .as_ref()
-                        .map(|c| c as &dyn iced_native::Clipboard),
+                    #[cfg(feature="clipboard")] clipboard.as_ref().map(|c| c as &dyn iced_native::Clipboard),
+                    #[cfg(not(feature="clipboard"))] None,
                     &renderer,
                 );
                 messages.extend(external_messages.drain(..));

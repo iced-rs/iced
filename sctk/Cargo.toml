@@ -21,6 +21,7 @@ futures = "^0.3"
 futures-util = "^0.3"
 #async-std = { version = "1.5", features = ["unstable"] }
 smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"], path="../../client-toolkit" } #-calloop #120
+#smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"] } #-calloop #120
 smol = ''
 raw-window-handle = "0.3"
 #window_clipboard = "0.1"
