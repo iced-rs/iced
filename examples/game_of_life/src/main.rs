@@ -156,6 +156,7 @@ mod grid {
     #[derive(Debug, Clone)]
     pub enum Message {
         Populate(Cell),
+        Unpopulate(Cell),
         Ticked {
             result: Result<Life, TickError>,
             tick_duration: Duration,
@@ -215,6 +216,10 @@ mod grid {
             match message {
                 Message::Populate(cell) => {
                     self.state.populate(cell);
+                    self.life_cache.clear();
+                }
+                Message::Unpopulate(cell) => {
+                    self.state.unpopulate(&cell);
                     self.life_cache.clear();
                 }
                 Message::Ticked {
@@ -293,20 +298,25 @@ mod grid {
 
             let cursor_position = cursor.position_in(&bounds)?;
             let cell = Cell::at(self.project(cursor_position, bounds.size()));
+            let is_populated = self.state.contains(&cell);
 
-            let populate = if self.state.contains(&cell) {
-                None
+            let (populate, unpopulate) = if is_populated {
+                (None, Some(Message::Unpopulate(cell)))
             } else {
-                Some(Message::Populate(cell))
+                (Some(Message::Populate(cell)), None)
             };
 
             match event {
                 Event::Mouse(mouse_event) => match mouse_event {
                     mouse::Event::ButtonPressed(button) => match button {
                         mouse::Button::Left => {
-                            self.interaction = Interaction::Drawing;
+                            self.interaction = if is_populated {
+                                Interaction::Erasing
+                            } else {
+                                Interaction::Drawing
+                            };
 
-                            populate
+                            populate.or(unpopulate)
                         }
                         mouse::Button::Right => {
                             self.interaction = Interaction::Panning {
@@ -321,6 +331,7 @@ mod grid {
                     mouse::Event::CursorMoved { .. } => {
                         match self.interaction {
                             Interaction::Drawing => populate,
+                            Interaction::Erasing => unpopulate,
                             Interaction::Panning { translation, start } => {
                                 self.translation = translation
                                     + (cursor_position - start)
@@ -504,6 +515,7 @@ mod grid {
         ) -> mouse::Interaction {
             match self.interaction {
                 Interaction::Drawing => mouse::Interaction::Crosshair,
+                Interaction::Erasing => mouse::Interaction::Crosshair,
                 Interaction::Panning { .. } => mouse::Interaction::Grabbing,
                 Interaction::None if cursor.is_over(&bounds) => {
                     mouse::Interaction::Crosshair
@@ -538,6 +550,14 @@ mod grid {
                 self.births.insert(cell);
             } else {
                 self.life.populate(cell);
+            }
+        }
+
+        fn unpopulate(&mut self, cell: &Cell) {
+            if self.is_ticking {
+                let _ = self.births.remove(cell);
+            } else {
+                self.life.unpopulate(cell);
             }
         }
 
@@ -590,6 +610,10 @@ mod grid {
 
         fn populate(&mut self, cell: Cell) {
             self.cells.insert(cell);
+        }
+
+        fn unpopulate(&mut self, cell: &Cell) {
+            let _ = self.cells.remove(cell);
         }
 
         fn tick(&mut self) {
@@ -706,6 +730,7 @@ mod grid {
     enum Interaction {
         None,
         Drawing,
+        Erasing,
         Panning { translation: Vector, start: Point },
     }
 }
