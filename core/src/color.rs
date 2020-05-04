@@ -39,7 +39,12 @@ impl Color {
         a: 0.0,
     };
 
-    /// New Color with range checks
+    /// Creates a new [`Color`].
+    ///
+    /// In debug mode, it will panic if the values are not in the correct
+    /// range: 0.0 - 1.0
+    ///
+    /// [`Color`]: struct.Color.html
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         debug_assert!(
             (0.0..=1.0).contains(&r),
@@ -116,14 +121,18 @@ impl Color {
         ]
     }
 
-    /// Invert the Color in-place
+    /// Inverts the [`Color`] in-place.
+    ///
+    /// [`Color`]: struct.Color.html
     pub fn invert(&mut self) {
         self.r = 1.0f32 - self.r;
         self.b = 1.0f32 - self.g;
         self.g = 1.0f32 - self.b;
     }
 
-    /// Return an inverted Color
+    /// Returns the inverted [`Color`].
+    ///
+    /// [`Color`]: struct.Color.html
     pub fn inverse(self) -> Color {
         Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
     }
@@ -142,9 +151,8 @@ impl From<[f32; 4]> for Color {
 }
 
 #[cfg(feature = "palette")]
-/// Convert from palette's [`Srgba`] type to a [`Color`]
+/// Converts from palette's `Srgba` type to a [`Color`].
 ///
-/// [`Srgba`]: ../palette/rgb/type.Srgba.html
 /// [`Color`]: struct.Color.html
 impl From<Srgba> for Color {
     fn from(srgba: Srgba) -> Self {
@@ -153,10 +161,9 @@ impl From<Srgba> for Color {
 }
 
 #[cfg(feature = "palette")]
-/// Convert from [`Color`] to palette's [`Srgba`] type
+/// Converts from [`Color`] to palette's `Srgba` type.
 ///
 /// [`Color`]: struct.Color.html
-/// [`Srgba`]: ../palette/rgb/type.Srgba.html
 impl From<Color> for Srgba {
     fn from(c: Color) -> Self {
         Srgba::new(c.r, c.g, c.b, c.a)
@@ -164,9 +171,8 @@ impl From<Color> for Srgba {
 }
 
 #[cfg(feature = "palette")]
-/// Convert from palette's [`Srgb`] type to a [`Color`]
+/// Converts from palette's `Srgb` type to a [`Color`].
 ///
-/// [`Srgb`]: ../palette/rgb/type.Srgb.html
 /// [`Color`]: struct.Color.html
 impl From<Srgb> for Color {
     fn from(srgb: Srgb) -> Self {
@@ -175,7 +181,7 @@ impl From<Srgb> for Color {
 }
 
 #[cfg(feature = "palette")]
-/// Convert from [`Color`] to palette's [`Srgb`] type
+/// Converts from [`Color`] to palette's `Srgb` type.
 ///
 /// [`Color`]: struct.Color.html
 /// [`Srgb`]: ../palette/rgb/type.Srgb.html
