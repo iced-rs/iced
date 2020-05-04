@@ -289,7 +289,7 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
             .push(
                 Text::new(color.to_string())
                     .width(Length::Units(185))
-                    .size(16),
+                    .size(14),
             )
             .into()
     }
