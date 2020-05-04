@@ -22,11 +22,12 @@ version = "0.3"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.tokio]
 version = "0.2"
 optional = true
-features = ["rt-core", "rt-threaded"]
+features = ["rt-core", "rt-threaded", "time", "stream"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.async-std]
 version = "1.0"
 optional = true
+features = ["unstable"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"

@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{svg, Layout, MouseCursor};
+use iced_native::{mouse, svg, Layout};
 
 impl svg::Renderer for Renderer {
     fn dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
@@ -16,7 +16,7 @@ impl svg::Renderer for Renderer {
                 handle,
                 bounds: layout.bounds(),
             },
-            MouseCursor::OutOfBounds,
+            mouse::Interaction::default(),
         )
     }
 }

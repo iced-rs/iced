@@ -1,5 +1,5 @@
 use crate::{
-    input::keyboard,
+    keyboard,
     pane_grid::{node::Node, Axis, Direction, Pane, Split},
     Hasher, Point, Rectangle, Size,
 };

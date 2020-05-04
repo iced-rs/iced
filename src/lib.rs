@@ -184,10 +184,18 @@ mod element;
 mod sandbox;
 
 pub mod executor;
-pub use crate::runtime::input::keyboard::{self, KeyCode, ModifiersState};
+pub mod keyboard;
+pub mod mouse;
 pub mod settings;
 pub mod widget;
 pub mod window;
+
+#[cfg(all(
+    any(feature = "tokio", feature = "async-std"),
+    not(target_arch = "wasm32")
+))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "tokio", feature = "async-std"))))]
+pub mod time;
 
 #[doc(no_inline)]
 pub use widget::*;
@@ -209,5 +217,5 @@ use iced_web as runtime;
 
 pub use runtime::{
     futures, Align, Background, Color, Command, Font, HorizontalAlignment,
-    Length, Point, Size, Subscription, Vector, VerticalAlignment,
+    Length, Point, Rectangle, Size, Subscription, Vector, VerticalAlignment,
 };

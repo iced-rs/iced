@@ -8,7 +8,7 @@ use iced_wgpu::{
     wgpu, window::SwapChain, Primitive, Renderer, Settings, Target,
 };
 use iced_winit::{
-    futures, winit, Cache, Clipboard, MouseCursor, Size, UserInterface,
+    futures, mouse, winit, Cache, Clipboard, Size, UserInterface,
 };
 
 use winit::{
@@ -63,7 +63,7 @@ pub fn main() {
     let mut events = Vec::new();
     let mut cache = Some(Cache::default());
     let mut renderer = Renderer::new(&mut device, Settings::default());
-    let mut output = (Primitive::None, MouseCursor::OutOfBounds);
+    let mut output = (Primitive::None, mouse::Interaction::default());
     let clipboard = Clipboard::new(&window);
 
     // Initialize scene and GUI controls
@@ -189,7 +189,7 @@ pub fn main() {
                 scene.draw(&mut encoder, &frame.view);
 
                 // And then iced on top
-                let mouse_cursor = renderer.draw(
+                let mouse_interaction = renderer.draw(
                     &mut device,
                     &mut encoder,
                     Target {
@@ -205,9 +205,11 @@ pub fn main() {
                 queue.submit(&[encoder.finish()]);
 
                 // And update the mouse cursor
-                window.set_cursor_icon(iced_winit::conversion::mouse_cursor(
-                    mouse_cursor,
-                ));
+                window.set_cursor_icon(
+                    iced_winit::conversion::mouse_interaction(
+                        mouse_interaction,
+                    ),
+                );
             }
             _ => {}
         }

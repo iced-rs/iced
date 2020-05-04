@@ -2,8 +2,7 @@
 use std::hash::Hash;
 
 use crate::{
-    input::{mouse, ButtonState},
-    layout, row, text, Align, Clipboard, Element, Event, Hasher,
+    layout, mouse, row, text, Align, Clipboard, Element, Event, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
 };
@@ -152,10 +151,7 @@ where
         _clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state: ButtonState::Pressed,
-            }) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {

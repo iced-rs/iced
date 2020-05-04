@@ -9,35 +9,38 @@
 use crate::{Defaults, Primitive, Renderer};
 
 use iced_native::{
-    layout, Element, Hasher, Layout, Length, MouseCursor, Point, Size, Widget,
+    layout, mouse, Clipboard, Element, Hasher, Layout, Length, Point, Size,
+    Vector, Widget,
 };
 use std::hash::Hash;
+use std::marker::PhantomData;
 
-pub mod layer;
 pub mod path;
 
-mod drawable;
+mod cache;
+mod cursor;
+mod event;
 mod fill;
 mod frame;
+mod geometry;
+mod program;
 mod stroke;
 mod text;
 
-pub use drawable::Drawable;
+pub use cache::Cache;
+pub use cursor::Cursor;
+pub use event::Event;
 pub use fill::Fill;
 pub use frame::Frame;
-pub use layer::Layer;
+pub use geometry::Geometry;
 pub use path::Path;
+pub use program::Program;
 pub use stroke::{LineCap, LineJoin, Stroke};
 pub use text::Text;
 
 /// A widget capable of drawing 2D graphics.
 ///
-/// A [`Canvas`] may contain multiple layers. A [`Layer`] is drawn using the
-/// painter's algorithm. In other words, layers will be drawn on top of each
-/// other in the same order they are pushed into the [`Canvas`].
-///
 /// [`Canvas`]: struct.Canvas.html
-/// [`Layer`]: layer/trait.Layer.html
 ///
 /// # Examples
 /// The repository has a couple of [examples] showcasing how to use a
@@ -45,12 +48,15 @@ pub use text::Text;
 ///
 /// - [`clock`], an application that uses the [`Canvas`] widget to draw a clock
 /// and its hands to display the current time.
+/// - [`game_of_life`], an interactive version of the Game of Life, invented by
+/// John Conway.
 /// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
 /// and showcasing how to compose different transforms.
 ///
-/// [examples]: https://github.com/hecrj/iced/tree/0.1/examples
-/// [`clock`]: https://github.com/hecrj/iced/tree/0.1/examples/clock
-/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.1/examples/solar_system
+/// [examples]: https://github.com/hecrj/iced/tree/master/examples
+/// [`clock`]: https://github.com/hecrj/iced/tree/master/examples/clock
+/// [`game_of_life`]: https://github.com/hecrj/iced/tree/master/examples/game_of_life
+/// [`solar_system`]: https://github.com/hecrj/iced/tree/master/examples/solar_system
 ///
 /// ## Drawing a simple circle
 /// If you want to get a quick overview, here's how we can draw a simple circle:
@@ -58,10 +64,10 @@ pub use text::Text;
 /// ```no_run
 /// # mod iced {
 /// #     pub use iced_wgpu::canvas;
-/// #     pub use iced_native::Color;
+/// #     pub use iced_native::{Color, Rectangle};
 /// # }
-/// use iced::canvas::{self, layer, Canvas, Drawable, Fill, Frame, Path};
-/// use iced::Color;
+/// use iced::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
+/// use iced::{Color, Rectangle};
 ///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
@@ -69,43 +75,46 @@ pub use text::Text;
 ///     radius: f32,
 /// }
 ///
-/// // Then, we implement the `Drawable` trait
-/// impl Drawable for Circle {
-///     fn draw(&self, frame: &mut Frame) {
+/// // Then, we implement the `Program` trait
+/// impl Program<()> for Circle {
+///     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
+///         // We prepare a new `Frame`
+///         let mut frame = Frame::new(bounds.size());
+///
 ///         // We create a `Path` representing a simple circle
-///         let circle = Path::new(|p| p.circle(frame.center(), self.radius));
+///         let circle = Path::circle(frame.center(), self.radius);
 ///
 ///         // And fill it with some color
 ///         frame.fill(&circle, Fill::Color(Color::BLACK));
+///
+///         // Finally, we produce the geometry
+///         vec![frame.into_geometry()]
 ///     }
 /// }
 ///
-/// // We can use a `Cache` to avoid unnecessary re-tessellation
-/// let cache: layer::Cache<Circle> = layer::Cache::new();
-///
-/// // Finally, we simply provide the data to our `Cache` and push the resulting
-/// // layer into a `Canvas`
-/// let canvas = Canvas::new()
-///     .push(cache.with(&Circle { radius: 50.0 }));
+/// // Finally, we simply use our `Circle` to create the `Canvas`!
+/// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<'a> {
+pub struct Canvas<Message, P: Program<Message>> {
     width: Length,
     height: Length,
-    layers: Vec<Box<dyn Layer + 'a>>,
+    program: P,
+    phantom: PhantomData<Message>,
 }
 
-impl<'a> Canvas<'a> {
+impl<Message, P: Program<Message>> Canvas<Message, P> {
     const DEFAULT_SIZE: u16 = 100;
 
-    /// Creates a new [`Canvas`] with no layers.
+    /// Creates a new [`Canvas`].
     ///
     /// [`Canvas`]: struct.Canvas.html
-    pub fn new() -> Self {
+    pub fn new(program: P) -> Self {
         Canvas {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
-            layers: Vec::new(),
+            program,
+            phantom: PhantomData,
         }
     }
 
@@ -124,20 +133,11 @@ impl<'a> Canvas<'a> {
         self.height = height;
         self
     }
-
-    /// Adds a [`Layer`] to the [`Canvas`].
-    ///
-    /// It will be drawn on top of previous layers.
-    ///
-    /// [`Layer`]: layer/trait.Layer.html
-    /// [`Canvas`]: struct.Canvas.html
-    pub fn push(mut self, layer: impl Layer + 'a) -> Self {
-        self.layers.push(Box::new(layer));
-        self
-    }
 }
 
-impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
+impl<Message, P: Program<Message>> Widget<Message, Renderer>
+    for Canvas<Message, P>
+{
     fn width(&self) -> Length {
         self.width
     }
@@ -157,45 +157,77 @@ impl<'a, Message> Widget<Message, Renderer> for Canvas<'a> {
         layout::Node::new(size)
     }
 
+    fn on_event(
+        &mut self,
+        event: iced_native::Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+        _renderer: &Renderer,
+        _clipboard: Option<&dyn Clipboard>,
+    ) {
+        let bounds = layout.bounds();
+
+        let canvas_event = match event {
+            iced_native::Event::Mouse(mouse_event) => {
+                Some(Event::Mouse(mouse_event))
+            }
+            _ => None,
+        };
+
+        let cursor = Cursor::from_window_position(cursor_position);
+
+        if let Some(canvas_event) = canvas_event {
+            if let Some(message) =
+                self.program.update(canvas_event, bounds, cursor)
+            {
+                messages.push(message);
+            }
+        }
+    }
+
     fn draw(
         &self,
         _renderer: &mut Renderer,
         _defaults: &Defaults,
         layout: Layout<'_>,
-        _cursor_position: Point,
-    ) -> (Primitive, MouseCursor) {
+        cursor_position: Point,
+    ) -> (Primitive, mouse::Interaction) {
         let bounds = layout.bounds();
-        let origin = Point::new(bounds.x, bounds.y);
-        let size = Size::new(bounds.width, bounds.height);
+        let translation = Vector::new(bounds.x, bounds.y);
+        let cursor = Cursor::from_window_position(cursor_position);
 
         (
-            Primitive::Group {
-                primitives: self
-                    .layers
-                    .iter()
-                    .map(|layer| Primitive::Cached {
-                        origin,
-                        cache: layer.draw(size),
-                    })
-                    .collect(),
+            Primitive::Translate {
+                translation,
+                content: Box::new(Primitive::Group {
+                    primitives: self
+                        .program
+                        .draw(bounds, cursor)
+                        .into_iter()
+                        .map(Geometry::into_primitive)
+                        .collect(),
+                }),
             },
-            MouseCursor::Idle,
+            self.program.mouse_interaction(bounds, cursor),
         )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Canvas<'static>>().hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
         self.width.hash(state);
         self.height.hash(state);
     }
 }
 
-impl<'a, Message> From<Canvas<'a>> for Element<'a, Message, Renderer>
+impl<'a, Message, P: Program<Message> + 'a> From<Canvas<Message, P>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'static,
 {
-    fn from(canvas: Canvas<'a>) -> Element<'a, Message, Renderer> {
+    fn from(canvas: Canvas<Message, P>) -> Element<'a, Message, Renderer> {
         Element::new(canvas)
     }
 }

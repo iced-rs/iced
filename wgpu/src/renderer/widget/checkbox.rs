@@ -1,6 +1,6 @@
 use crate::{checkbox::StyleSheet, Primitive, Renderer};
 use iced_native::{
-    checkbox, HorizontalAlignment, MouseCursor, Rectangle, VerticalAlignment,
+    checkbox, mouse, HorizontalAlignment, Rectangle, VerticalAlignment,
 };
 
 impl checkbox::Renderer for Renderer {
@@ -54,9 +54,9 @@ impl checkbox::Renderer for Renderer {
                 },
             },
             if is_mouse_over {
-                MouseCursor::Pointer
+                mouse::Interaction::Pointer
             } else {
-                MouseCursor::OutOfBounds
+                mouse::Interaction::default()
             },
         )
     }

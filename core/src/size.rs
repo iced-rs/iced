@@ -15,6 +15,11 @@ impl Size {
     /// [`Size`]: struct.Size.html
     pub const ZERO: Size = Size::new(0., 0.);
 
+    /// A [`Size`] with a width and height of 1 unit.
+    ///
+    /// [`Size`]: struct.Size.html
+    pub const UNIT: Size = Size::new(1., 1.);
+
     /// A [`Size`] with infinite width and height.
     ///
     /// [`Size`]: struct.Size.html

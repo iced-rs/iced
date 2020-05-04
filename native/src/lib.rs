@@ -39,8 +39,9 @@
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
-pub mod input;
+pub mod keyboard;
 pub mod layout;
+pub mod mouse;
 pub mod renderer;
 pub mod subscription;
 pub mod widget;
@@ -51,7 +52,6 @@ mod clipboard;
 mod element;
 mod event;
 mod hasher;
-mod mouse_cursor;
 mod runtime;
 mod user_interface;
 
@@ -81,7 +81,6 @@ pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
-pub use mouse_cursor::MouseCursor;
 pub use renderer::Renderer;
 pub use runtime::Runtime;
 pub use subscription::Subscription;

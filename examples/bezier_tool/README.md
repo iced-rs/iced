@@ -1,6 +1,6 @@
 ## Bézier tool
 
-A Paint-like tool for drawing Bézier curves using [`lyon`].
+A Paint-like tool for drawing Bézier curves using the `Canvas` widget.
 
 The __[`main`]__ file contains all the code of the example.
 
@@ -16,4 +16,3 @@ cargo run --package bezier_tool
 ```
 
 [`main`]: src/main.rs
-[`lyon`]: https://github.com/nical/lyon

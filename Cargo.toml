@@ -33,6 +33,8 @@ shm = ["iced_shm"]#,"iced_sctk"]
 #shm = ["iced_shm","iced_winit"]
 sctk = ["iced_sctk"]#,"iced_shm"]
 default = ["shm"]
+# Enables advanced color conversion via `palette`
+palette = ["iced_core/palette"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -50,10 +52,12 @@ members = [
     "winit",
     "examples/bezier_tool",
     "examples/clock",
+    "examples/color_palette",
     "examples/counter",
     "examples/custom_widget",
     "examples/download_progress",
     "examples/events",
+    "examples/game_of_life",
     "examples/geometry",
     "examples/integration",
     "examples/pane_grid",
@@ -68,6 +72,7 @@ members = [
 ]
 
 [dependencies]
+iced_core = { version = "0.2", path = "core" }
 iced_futures = { version = "0.1", path = "futures" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

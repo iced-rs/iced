@@ -5,8 +5,7 @@
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
 use crate::{
-    input::{mouse, ButtonState},
-    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length, Point,
     Rectangle, Size, Widget,
 };
 
@@ -164,25 +163,23 @@ where
         };
 
         match event {
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state,
-            }) => match state {
-                ButtonState::Pressed => {
+            Event::Mouse(mouse_event) => match mouse_event {
+                mouse::Event::ButtonPressed(mouse::Button::Left) => {
                     if layout.bounds().contains(cursor_position) {
                         change();
                         self.state.is_dragging = true;
                     }
                 }
-                ButtonState::Released => {
+                mouse::Event::ButtonReleased(mouse::Button::Left) => {
                     self.state.is_dragging = false;
                 }
-            },
-            Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                if self.state.is_dragging {
-                    change();
+                mouse::Event::CursorMoved { .. } => {
+                    if self.state.is_dragging {
+                        change();
+                    }
                 }
-            }
+                _ => {}
+            },
             _ => {}
         }
     }

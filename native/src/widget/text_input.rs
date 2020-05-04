@@ -15,13 +15,10 @@ pub use value::Value;
 use editor::Editor;
 
 use crate::{
-    input::{
-        keyboard,
-        mouse::{self, click},
-        ButtonState,
-    },
-    layout, Clipboard, Element, Event, Font, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    keyboard, layout,
+    mouse::{self, click},
+    Clipboard, Element, Event, Font, Hasher, Layout, Length, Point, Rectangle,
+    Size, Widget,
 };
 
 use std::u32;
@@ -212,10 +209,7 @@ where
         clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state: ButtonState::Pressed,
-            }) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
 
                 if is_clicked {
@@ -280,10 +274,7 @@ where
                 self.state.is_dragging = is_clicked;
                 self.state.is_focused = is_clicked;
             }
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state: ButtonState::Released,
-            }) => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 self.state.is_dragging = false;
             }
             Event::Mouse(mouse::Event::CursorMoved { x, .. }) => {
@@ -327,9 +318,8 @@ where
                 let message = (self.on_change)(editor.contents());
                 messages.push(message);
             }
-            Event::Keyboard(keyboard::Event::Input {
+            Event::Keyboard(keyboard::Event::KeyPressed {
                 key_code,
-                state: ButtonState::Pressed,
                 modifiers,
             }) if self.state.is_focused => match key_code {
                 keyboard::KeyCode::Enter => {
@@ -473,10 +463,8 @@ where
                 }
                 _ => {}
             },
-            Event::Keyboard(keyboard::Event::Input {
-                key_code,
-                state: ButtonState::Released,
-                ..
+            Event::Keyboard(keyboard::Event::KeyReleased {
+                key_code, ..
             }) => match key_code {
                 keyboard::KeyCode::V => {
                     self.state.is_pasting = None;
@@ -749,7 +737,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
 }
 
 mod platform {
-    use crate::input::keyboard;
+    use crate::keyboard;
 
     pub fn is_jump_modifier_pressed(
         modifiers: keyboard::ModifiersState,

@@ -50,6 +50,27 @@ We have not yet implemented a `LocalStorage` version of the auto-save feature. T
 
 [TodoMVC]: http://todomvc.com/
 
+## [Game of Life](game_of_life)
+An interactive version of the [Game of Life], invented by [John Horton Conway].
+
+It runs a simulation in a background thread while allowing interaction with a `Canvas` that displays an infinite grid with zooming, panning, and drawing support.
+
+The relevant code is located in the __[`main`](game_of_life/src/main.rs)__ file.
+
+<div align="center">
+  <a href="https://gfycat.com/briefaccurateaardvark">
+    <img src="https://thumbs.gfycat.com/BriefAccurateAardvark-size_restricted.gif">
+  </a>
+</div>
+
+You can run it with `cargo run`:
+```
+cargo run --package game_of_life
+```
+
+[Game of Life]: https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
+[John Horton Conway]: https://en.wikipedia.org/wiki/John_Horton_Conway
+
 ## [Styling](styling)
 An example showcasing custom styling with a light and dark theme.
 
@@ -69,8 +90,9 @@ cargo run --package styling
 ## Extras
 A bunch of simpler examples exist:
 
-- [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bézier curves using [`lyon`].
+- [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bézier curves using the `Canvas` widget.
 - [`clock`](clock), an application that uses the `Canvas` widget to draw a clock and its hands to display the current time.
+- [`color_palette`](color_palette), a color palette generator based on a user-defined root color.
 - [`counter`](counter), the classic counter example explained in the [`README`](../README.md).
 - [`custom_widget`](custom_widget), a demonstration of how to build a custom widget that draws a circle.
 - [`download_progress`](download_progress), a basic application that asynchronously downloads a dummy file of 100 MB and tracks the download progress.

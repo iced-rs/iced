@@ -1,9 +1,7 @@
 //! Navigate an endless amount of content with a scrollbar.
 use crate::{
-    column,
-    input::{mouse, ButtonState},
-    layout, Align, Clipboard, Column, Element, Event, Hasher, Layout, Length,
-    Point, Rectangle, Size, Widget,
+    column, layout, mouse, Align, Clipboard, Column, Element, Event, Hasher,
+    Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -188,10 +186,9 @@ where
 
         if self.state.is_scroller_grabbed() {
             match event {
-                Event::Mouse(mouse::Event::Input {
-                    button: mouse::Button::Left,
-                    state: ButtonState::Released,
-                }) => {
+                Event::Mouse(mouse::Event::ButtonReleased(
+                    mouse::Button::Left,
+                )) => {
                     self.state.scroller_grabbed_at = None;
                 }
                 Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -212,10 +209,9 @@ where
             }
         } else if is_mouse_over_scrollbar {
             match event {
-                Event::Mouse(mouse::Event::Input {
-                    button: mouse::Button::Left,
-                    state: ButtonState::Pressed,
-                }) => {
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Left,
+                )) => {
                     if let Some(scrollbar) = scrollbar {
                         if let Some(scroller_grabbed_at) =
                             scrollbar.grab_scroller(cursor_position)
