@@ -24,6 +24,8 @@ debug = ["iced_winit/debug"]
 tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
 async-std = ["iced_futures/async-std"]
+# Enables advanced color conversion via `palette`
+palette = ["iced_core/palette"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -39,6 +41,7 @@ members = [
     "winit",
     "examples/bezier_tool",
     "examples/clock",
+    "examples/color_palette",
     "examples/counter",
     "examples/custom_widget",
     "examples/download_progress",
@@ -58,6 +61,7 @@ members = [
 ]
 
 [dependencies]
+iced_core = { version = "0.2", path = "core" }
 iced_futures = { version = "0.1", path = "futures" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
