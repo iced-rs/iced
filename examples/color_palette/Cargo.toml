@@ -1,0 +1,10 @@
+[package]
+name = "color_palette"
+version = "0.1.0"
+authors = ["Clark Moody <clark@clarkmoody.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = ["canvas", "palette"] }
+palette = "0.5.0"
