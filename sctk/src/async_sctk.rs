@@ -87,6 +87,7 @@ pub fn application<A:Application+'static>
         use seat::pointer::{ThemeManager, ThemeSpec};
         let theme_manager = ThemeManager::init(ThemeSpec::System, env.require_global(), env.require_global());
         env.listen_for_seats(move |seat, seat_data, mut data| {
+            log::trace!("seat");
             let DispatchData::<A>{state:State{pointer, .. }, ..} = unsafe{restore_erased_lifetime(data.get().unwrap())};
             if seat_data.has_pointer {
                 assert!(pointer.is_none());

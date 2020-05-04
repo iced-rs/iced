@@ -17,7 +17,10 @@ raw-window-handle = ''
 glam = "0.8"
 font-kit = { version = "0.4", optional=true }
 log = "0.4"
-smithay-client-toolkit = { git = 'https://github.com/smithay/client-toolkit.git', default-features=false, features=["frames"] } #-calloop #120
+smithay-client-toolkit = { git = 'https://github.com/smithay/client-toolkit.git', default-features=false } #Same as iced_sctk
+#smithay-client-toolkit = { version = "^0.9", default-features=false, path="../../client-toolkit" }
+# fixme: depend on a separate crate with only ShmBackend ~iced_native + Environment<E:GlobalHandler<WlShm>> (shared with sctk)
+
 framework = { version = "^0.0", path = "../../framework" }
 #framework = { version = "^0.0", git = "https://github.com/Matthias-Fauconneau/framework" }
 #iced_sctk = { version = "^0.0", path = "../sctk" } # NoHasRawWindowHandleBackend

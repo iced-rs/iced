@@ -19,6 +19,11 @@ pub trait Backend = iced_shm::window::ShmBackend;
 #[cfg(not(feature="wayland-client/use_system_lib"))]
 pub trait Backend = iced_shm::window::ShmBackend<Surface=smithay_client_toolkit::reexports::client::protocol::wl_surface::WlSurface>;
 
+#[cfg(feature="smithay-client-toolkit/frames")]
+type Frame = sctk::ConceptFrame;
+#[cfg(not(feature="smithay-client-toolkit/frames"))] mod frame;
+#[cfg(not(feature="smithay-client-toolkit/frames"))] pub use frame::NoFrame as Frame;
+
 // smithay-client-toolkit -> iced_native (~iced_winit/conversion)
 pub mod conversion;
 

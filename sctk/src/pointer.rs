@@ -19,7 +19,8 @@ impl Pointer {
                 events.push(Mouse(mouse::Event::CursorEntered));
                 events.push(Mouse(mouse::Event::CursorMoved{x: x as f32, y: y as f32}));
             }
-            Leave { .. } => {
+            Leave { surface, .. } => {
+                assert!(focus.as_ref().unwrap() == &surface);
                 *focus = None;
                 events.push(Mouse(mouse::Event::CursorLeft));
             }

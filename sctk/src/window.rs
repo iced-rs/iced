@@ -1,6 +1,6 @@
 use smithay_client_toolkit::{environment::Environment, window as sctk, reexports::client::protocol::wl_surface::WlSurface};
 use iced_native::{UserInterface, Cache, Event, trace::{Trace, Component::{Layout, Draw, Render}}};
-use super::{Backend, async_sctk::{DispatchData, Update, Item, State, Env}, application::{Application, Mode}};
+use super::{Frame, Backend, async_sctk::{DispatchData, Update, Item, State, Env}, application::{Application, Mode}};
 
 ///
 #[derive(Debug)]
@@ -17,7 +17,7 @@ pub struct Settings {
 impl Default for Settings { fn default() -> Self { Self{ size: [0,0], resizable: true, decorations: true, overlay: false } } }
 
 pub(crate) struct Window<B:Backend<Surface=WlSurface>> {
-    pub window: Option<sctk::Window<sctk::ConceptFrame>>,
+    pub window: Option<sctk::Window<Frame>>,
     pub size: [u32; 2], pub scale_factor: u32,
     pub cursor: &'static str,
 
@@ -32,6 +32,7 @@ impl<B:Backend> Window<B> {
     pub fn new<A:Application+'static>(env: Environment<Env>, settings: self::Settings, backend: B::Settings) -> Self {
         let surface = env.create_surface_with_scale_callback(
             |scale, surface, mut data| {
+                log::trace!("scale");
                 let DispatchData::<A>{state:State{window, ..}, ..} = data.get().unwrap();
                 surface.set_buffer_scale(scale);
                 window.scale_factor = scale as u32;
@@ -58,6 +59,7 @@ impl<B:Backend> Window<B> {
 
             surface.commit();
             layer_surface.quick_assign({let surface = surface.clone(); move /*surface*/ |layer_surface, event, mut data| {
+                log::trace!("layer_surface");
                 let DispatchData::<A>{update: Update{streams, events, ..}, ..} = data.get().unwrap();
                 use layer_surface::Event::*;
                 match event {
@@ -78,20 +80,22 @@ impl<B:Backend> Window<B> {
             }});
             None
         } else {
-            let window = env.create_window::<sctk::ConceptFrame, _>(surface.clone(), (settings.size[0], settings.size[1]),
+            let window = env.create_window::<Frame, _>(surface.clone(), (settings.size[0], settings.size[1]),
                 move |event, mut data| {
+                    log::trace!("window");
                     let DispatchData::<A>{update: Update{streams, events, .. }, state: State{window, ..}} = data.get().unwrap();
                     use sctk::Event::*;
                     match event {
-                        Configure { new_size: None, .. } => (),
-                        Configure { new_size: Some(new_size), .. } => {
+                        Configure { new_size, .. } => {
+                            let new_size = new_size.unwrap_or((size[0],size[1]));
                             log::trace!("window::Configure {}x{}", new_size.0, new_size.1);
                             window.size = [new_size.0, new_size.1];
                             events.push(Event::Window(iced_native::window::Event::Resized {width: new_size.0, height: new_size.1}));
                         }
                         Close => quit(streams),
-                        Refresh => window.window.as_mut().unwrap().refresh(),
+                        Refresh => {}, //window.window.as_mut().unwrap().refresh(), # already borrowed: BorrowMutError @ concept_frame.rs:531
                     }
+                    log::trace!("<window");
                 }
             ).unwrap();
             window.set_resizable(settings.resizable);

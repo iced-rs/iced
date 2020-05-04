@@ -43,6 +43,7 @@ impl /*iced_native::window::*/super::ShmBackend for Backend {
     ) -> SwapChain {
         let stride = width*4;
         self.pool.resize((height*stride) as usize).unwrap();
+        log::trace!("Pool size: {}x{}", width, height);
         SwapChain::new(surface.clone(), width, height)
     }
 
@@ -56,9 +57,11 @@ impl /*iced_native::window::*/super::ShmBackend for Backend {
     ) -> MouseCursor {
         let (surface, viewport) = swap_chain.next_frame().expect("Next frame");
         use framework::widget::{Target,WHITE};
-        let mut frame = Target::from_bytes(self.pool.mmap(), viewport.dimensions().into());
+        log::trace!("Viewport: {:?}", viewport);
+        let size : framework::size2 = viewport.dimensions().into();
+        let stride = size.x*4;
+        let mut frame = Target::from_bytes(&mut self.pool.mmap()[..(size.y*stride) as usize], size); // Pool never shrinks
         frame.set(|_| WHITE);
-        let size = frame.size;
         let cursor = renderer.draw(
             crate::Target {
                 texture: &mut frame,

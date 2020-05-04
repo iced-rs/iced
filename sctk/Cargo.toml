@@ -11,8 +11,9 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-clipboard = []
-debug = []
+#clipboard = []
+#debug = []
+#smithay-client-toolkit/frames
 
 [dependencies]
 #framework = { path = "../../framework" }
@@ -21,15 +22,15 @@ pin-utils = "^0.1"
 futures = "^0.3"
 futures-util = "^0.3"
 #async-std = { version = "1.5", features = ["unstable"] }
-#smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"] } #-calloop #120
-smithay-client-toolkit = { git = 'https://github.com/smithay/client-toolkit.git', default-features=false, features=["frames"] } #-calloop #120
-#smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"], path="../../client-toolkit" } #-calloop #120
+#smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"] } #-calloop
+smithay-client-toolkit = { git = 'https://github.com/smithay/client-toolkit.git', default-features=false, features=["frames"] } #120:map_keyboard
+#smithay-client-toolkit = { version = "^0.9", default-features=false, path="../../client-toolkit" }
 smol = ''
 raw-window-handle = "0.3"
 #window_clipboard = "0.1"
 log = "0.4"
 iced_native = { version = "0.2", path = "../native" }
-iced_shm = { version='', path = '../shm' } # ShmBackend need sctk env
+iced_shm = { version='', path = '../shm' } # ShmBackend need sctk env (fixme: depend on a separate crate with only ShmBackend ~iced_native)
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"
