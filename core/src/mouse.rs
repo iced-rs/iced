@@ -1,9 +1,8 @@
-//! Build mouse events.
+//! Reuse basic mouse types.
 mod button;
 mod event;
-
-pub mod click;
+mod interaction;
 
 pub use button::Button;
-pub use click::Click;
 pub use event::{Event, ScrollDelta};
+pub use interaction::Interaction;

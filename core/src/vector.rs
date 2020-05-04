@@ -43,6 +43,17 @@ where
     }
 }
 
+impl<T> std::ops::Mul<T> for Vector<T>
+where
+    T: std::ops::Mul<Output = T> + Copy,
+{
+    type Output = Self;
+
+    fn mul(self, scale: T) -> Self {
+        Self::new(self.x * scale, self.y * scale)
+    }
+}
+
 impl<T> Default for Vector<T>
 where
     T: Default,

@@ -1,14 +1,14 @@
 //! Draw meshes of triangles.
 use crate::{settings, Transformation};
-use iced_native::{Point, Rectangle};
+use iced_native::{Rectangle, Vector};
 use std::mem;
 use zerocopy::AsBytes;
 
 mod msaa;
 
 const UNIFORM_BUFFER_SIZE: usize = 100;
-const VERTEX_BUFFER_SIZE: usize = 100_000;
-const INDEX_BUFFER_SIZE: usize = 100_000;
+const VERTEX_BUFFER_SIZE: usize = 10_000;
+const INDEX_BUFFER_SIZE: usize = 10_000;
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {
@@ -201,15 +201,15 @@ impl Pipeline {
         target_width: u32,
         target_height: u32,
         transformation: Transformation,
-        meshes: &[(Point, &Mesh2D)],
-        bounds: Rectangle<u32>,
+        scale_factor: f32,
+        meshes: &[(Vector, Rectangle<u32>, &Mesh2D)],
     ) {
         // This looks a bit crazy, but we are just counting how many vertices
         // and indices we will need to handle.
         // TODO: Improve readability
         let (total_vertices, total_indices) = meshes
             .iter()
-            .map(|(_, mesh)| (mesh.vertices.len(), mesh.indices.len()))
+            .map(|(_, _, mesh)| (mesh.vertices.len(), mesh.indices.len()))
             .fold((0, 0), |(total_v, total_i), (v, i)| {
                 (total_v + v, total_i + i)
             });
@@ -230,12 +230,10 @@ impl Pipeline {
         let mut last_index = 0;
 
         // We upload everything upfront
-        for (origin, mesh) in meshes {
-            let transform = Uniforms {
-                transform: (transformation
-                    * Transformation::translate(origin.x, origin.y))
-                .into(),
-            };
+        for (origin, _, mesh) in meshes {
+            let transform = (transformation
+                * Transformation::translate(origin.x, origin.y))
+            .into();
 
             let vertex_buffer = device.create_buffer_with_data(
                 mesh.vertices.as_bytes(),
@@ -318,16 +316,19 @@ impl Pipeline {
                 });
 
             render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_scissor_rect(
-                bounds.x,
-                bounds.y,
-                bounds.width,
-                bounds.height,
-            );
 
             for (i, (vertex_offset, index_offset, indices)) in
                 offsets.into_iter().enumerate()
             {
+                let bounds = meshes[i].1 * scale_factor;
+
+                render_pass.set_scissor_rect(
+                    bounds.x,
+                    bounds.y,
+                    bounds.width,
+                    bounds.height,
+                );
+
                 render_pass.set_bind_group(
                     0,
                     &self.constants,
@@ -361,12 +362,28 @@ impl Pipeline {
 #[derive(Debug, Clone, Copy, AsBytes)]
 struct Uniforms {
     transform: [f32; 16],
+    // We need to align this to 256 bytes to please `wgpu`...
+    // TODO: Be smarter and stop wasting memory!
+    _padding_a: [f32; 32],
+    _padding_b: [f32; 16],
 }
 
 impl Default for Uniforms {
     fn default() -> Self {
         Self {
             transform: *Transformation::identity().as_ref(),
+            _padding_a: [0.0; 32],
+            _padding_b: [0.0; 16],
+        }
+    }
+}
+
+impl From<Transformation> for Uniforms {
+    fn from(transformation: Transformation) -> Uniforms {
+        Self {
+            transform: transformation.into(),
+            _padding_a: [0.0; 32],
+            _padding_b: [0.0; 16],
         }
     }
 }

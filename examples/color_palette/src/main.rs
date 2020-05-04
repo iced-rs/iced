@@ -1,9 +1,10 @@
+use iced::canvas::{self, Cursor, Frame, Geometry, Path};
 use iced::{
-    canvas, slider, Align, Canvas, Color, Column, Element, HorizontalAlignment,
-    Length, Point, Row, Sandbox, Settings, Size, Slider, Text, Vector,
+    slider, Align, Canvas, Color, Column, Element, HorizontalAlignment, Length,
+    Point, Rectangle, Row, Sandbox, Settings, Size, Slider, Text, Vector,
     VerticalAlignment,
 };
-use palette::{self, Limited};
+use palette::{self, Hsl, Limited, Srgb};
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
@@ -23,7 +24,6 @@ pub struct ColorPalette {
     hwb: ColorPicker<palette::Hwb>,
     lab: ColorPicker<palette::Lab>,
     lch: ColorPicker<palette::Lch>,
-    canvas_layer: canvas::layer::Cache<Theme>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -58,7 +58,6 @@ impl Sandbox for ColorPalette {
         };
 
         self.theme = Theme::new(srgb.clamp());
-        self.canvas_layer.clear();
     }
 
     fn view(&mut self) -> Element<Message> {
@@ -80,12 +79,7 @@ impl Sandbox for ColorPalette {
             .push(self.hwb.view(hwb).map(Message::HwbColorChanged))
             .push(self.lab.view(lab).map(Message::LabColorChanged))
             .push(self.lch.view(lch).map(Message::LchColorChanged))
-            .push(
-                Canvas::new()
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .push(self.canvas_layer.with(&self.theme)),
-            )
+            .push(self.theme.view())
             .into()
     }
 }
@@ -95,11 +89,12 @@ pub struct Theme {
     lower: Vec<Color>,
     base: Color,
     higher: Vec<Color>,
+    canvas_cache: canvas::Cache,
 }
 
 impl Theme {
     pub fn new(base: impl Into<Color>) -> Theme {
-        use palette::{Hsl, Hue, Shade, Srgb};
+        use palette::{Hue, Shade};
 
         let base = base.into();
 
@@ -130,6 +125,7 @@ impl Theme {
                 .iter()
                 .map(|&color| Srgb::from(color).clamp().into())
                 .collect(),
+            canvas_cache: canvas::Cache::default(),
         }
     }
 
@@ -143,13 +139,15 @@ impl Theme {
             .chain(std::iter::once(&self.base))
             .chain(self.higher.iter())
     }
-}
 
-impl canvas::Drawable for Theme {
-    fn draw(&self, frame: &mut canvas::Frame) {
-        use canvas::Path;
-        use palette::{Hsl, Srgb};
+    pub fn view(&mut self) -> Element<Message> {
+        Canvas::new(self)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
 
+    fn draw(&self, frame: &mut Frame) {
         let pad = 20.0;
 
         let box_size = Size {
@@ -176,8 +174,7 @@ impl canvas::Drawable for Theme {
                 x: (i as f32) * box_size.width,
                 y: 0.0,
             };
-            let rect = Path::rectangle(anchor, box_size);
-            frame.fill(&rect, color);
+            frame.fill_rectangle(anchor, box_size, color);
 
             // We show a little indicator for the base color
             if color == self.base {
@@ -225,8 +222,7 @@ impl canvas::Drawable for Theme {
                 y: box_size.height + 2.0 * pad,
             };
 
-            let rect = Path::rectangle(anchor, box_size);
-            frame.fill(&rect, color);
+            frame.fill_rectangle(anchor, box_size, color);
 
             frame.fill_text(canvas::Text {
                 content: color_hex_string(&color),
@@ -237,6 +233,16 @@ impl canvas::Drawable for Theme {
                 ..text
             });
         }
+    }
+}
+
+impl canvas::Program<Message> for Theme {
+    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+        let theme = self.canvas_cache.draw(bounds.size(), |frame| {
+            self.draw(frame);
+        });
+
+        vec![theme]
     }
 }
 

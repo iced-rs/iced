@@ -7,8 +7,7 @@ use crate::{
 use crate::image::{self, Image};
 
 use iced_native::{
-    layout, Background, Color, Layout, MouseCursor, Point, Rectangle, Vector,
-    Widget,
+    layout, mouse, Background, Color, Layout, Point, Rectangle, Vector, Widget,
 };
 
 mod widget;
@@ -29,7 +28,7 @@ pub struct Renderer {
 struct Layer<'a> {
     bounds: Rectangle<u32>,
     quads: Vec<Quad>,
-    meshes: Vec<(Point, &'a triangle::Mesh2D)>,
+    meshes: Vec<(Vector, Rectangle<u32>, &'a triangle::Mesh2D)>,
     text: Vec<wgpu_glyph::Section<'a>>,
 
     #[cfg(any(feature = "image", feature = "svg"))]
@@ -47,6 +46,12 @@ impl<'a> Layer<'a> {
             #[cfg(any(feature = "image", feature = "svg"))]
             images: Vec::new(),
         }
+    }
+
+    pub fn intersection(&self, rectangle: Rectangle) -> Option<Rectangle<u32>> {
+        let layer_bounds: Rectangle<f32> = self.bounds.into();
+
+        layer_bounds.intersection(&rectangle).map(Into::into)
     }
 }
 
@@ -88,10 +93,10 @@ impl Renderer {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: Target<'_>,
-        (primitive, mouse_cursor): &(Primitive, MouseCursor),
+        (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
         scale_factor: f64,
         overlay: &[T],
-    ) -> MouseCursor {
+    ) -> mouse::Interaction {
         log::debug!("Drawing");
 
         let (width, height) = target.viewport.dimensions();
@@ -126,7 +131,7 @@ impl Renderer {
         #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.trim_cache();
 
-        *mouse_cursor
+        *mouse_interaction
     }
 
     fn draw_primitive<'a>(
@@ -214,10 +219,20 @@ impl Renderer {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Mesh2D { origin, buffers } => {
+            Primitive::Mesh2D { size, buffers } => {
                 let layer = layers.last_mut().unwrap();
 
-                layer.meshes.push((*origin + translation, buffers));
+                // Only draw visible content
+                if let Some(clip_bounds) = layer.intersection(Rectangle::new(
+                    Point::new(translation.x, translation.y),
+                    *size,
+                )) {
+                    layer.meshes.push((
+                        translation,
+                        clip_bounds.into(),
+                        buffers,
+                    ));
+                }
             }
             Primitive::Clip {
                 bounds,
@@ -226,16 +241,10 @@ impl Renderer {
             } => {
                 let layer = layers.last_mut().unwrap();
 
-                let layer_bounds: Rectangle<f32> = layer.bounds.into();
-
-                let clip = Rectangle {
-                    x: bounds.x + translation.x,
-                    y: bounds.y + translation.y,
-                    ..*bounds
-                };
-
                 // Only draw visible content
-                if let Some(clip_bounds) = layer_bounds.intersection(&clip) {
+                if let Some(clip_bounds) =
+                    layer.intersection(*bounds + translation)
+                {
                     let clip_layer = Layer::new(clip_bounds.into());
                     let new_layer = Layer::new(layer.bounds);
 
@@ -249,13 +258,19 @@ impl Renderer {
                     layers.push(new_layer);
                 }
             }
-
-            Primitive::Cached { origin, cache } => {
+            Primitive::Translate {
+                translation: new_translation,
+                content,
+            } => {
                 self.draw_primitive(
-                    translation + Vector::new(origin.x, origin.y),
-                    &cache,
+                    translation + *new_translation,
+                    &content,
                     layers,
                 );
+            }
+
+            Primitive::Cached { cache } => {
+                self.draw_primitive(translation, &cache, layers);
             }
 
             #[cfg(feature = "image")]
@@ -362,8 +377,8 @@ impl Renderer {
                 target_width,
                 target_height,
                 scaled,
+                scale_factor,
                 &layer.meshes,
-                bounds,
             );
         }
 
@@ -437,7 +452,7 @@ impl Renderer {
 }
 
 impl iced_native::Renderer for Renderer {
-    type Output = (Primitive, MouseCursor);
+    type Output = (Primitive, mouse::Interaction);
     type Defaults = Defaults;
 
     fn layout<'a, Message>(

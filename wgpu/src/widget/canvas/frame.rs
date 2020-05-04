@@ -1,7 +1,7 @@
 use iced_native::{Point, Rectangle, Size, Vector};
 
 use crate::{
-    canvas::{Fill, Path, Stroke, Text},
+    canvas::{Fill, Geometry, Path, Stroke, Text},
     triangle, Primitive,
 };
 
@@ -10,8 +10,7 @@ use crate::{
 /// [`Canvas`]: struct.Canvas.html
 #[derive(Debug)]
 pub struct Frame {
-    width: f32,
-    height: f32,
+    size: Size,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
     primitives: Vec<Primitive>,
     transforms: Transforms,
@@ -36,10 +35,9 @@ impl Frame {
     /// top-left corner of its bounds.
     ///
     /// [`Frame`]: struct.Frame.html
-    pub fn new(width: f32, height: f32) -> Frame {
+    pub fn new(size: Size) -> Frame {
         Frame {
-            width,
-            height,
+            size,
             buffers: lyon::tessellation::VertexBuffers::new(),
             primitives: Vec::new(),
             transforms: Transforms {
@@ -57,7 +55,7 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn width(&self) -> f32 {
-        self.width
+        self.size.width
     }
 
     /// Returns the width of the [`Frame`].
@@ -65,7 +63,7 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn height(&self) -> f32 {
-        self.height
+        self.size.height
     }
 
     /// Returns the dimensions of the [`Frame`].
@@ -73,7 +71,7 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn size(&self) -> Size {
-        Size::new(self.width, self.height)
+        self.size
     }
 
     /// Returns the coordinate of the center of the [`Frame`].
@@ -81,7 +79,7 @@ impl Frame {
     /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn center(&self) -> Point {
-        Point::new(self.width / 2.0, self.height / 2.0)
+        Point::new(self.size.width / 2.0, self.size.height / 2.0)
     }
 
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
@@ -120,6 +118,43 @@ impl Frame {
         };
 
         let _ = result.expect("Tessellate path");
+    }
+
+    /// Draws an axis-aligned rectangle given its top-left corner coordinate and
+    /// its `Size` on the [`Frame`] by filling it with the provided style.
+    ///
+    /// [`Frame`]: struct.Frame.html
+    pub fn fill_rectangle(
+        &mut self,
+        top_left: Point,
+        size: Size,
+        fill: impl Into<Fill>,
+    ) {
+        use lyon::tessellation::{BuffersBuilder, FillOptions};
+
+        let mut buffers = BuffersBuilder::new(
+            &mut self.buffers,
+            FillVertex(match fill.into() {
+                Fill::Color(color) => color.into_linear(),
+            }),
+        );
+
+        let top_left =
+            self.transforms.current.raw.transform_point(
+                lyon::math::Point::new(top_left.x, top_left.y),
+            );
+
+        let size =
+            self.transforms.current.raw.transform_vector(
+                lyon::math::Vector::new(size.width, size.height),
+            );
+
+        let _ = lyon::tessellation::basic_shapes::fill_rectangle(
+            &lyon::math::Rect::new(top_left, size.into()),
+            &FillOptions::default(),
+            &mut buffers,
+        )
+        .expect("Fill rectangle");
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
@@ -262,13 +297,14 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Produces the primitive representing everything drawn on the [`Frame`].
+    /// Produces the [`Geometry`] representing everything drawn on the [`Frame`].
     ///
     /// [`Frame`]: struct.Frame.html
-    pub fn into_primitive(mut self) -> Primitive {
+    /// [`Geometry`]: struct.Geometry.html
+    pub fn into_geometry(mut self) -> Geometry {
         if !self.buffers.indices.is_empty() {
             self.primitives.push(Primitive::Mesh2D {
-                origin: Point::ORIGIN,
+                size: self.size,
                 buffers: triangle::Mesh2D {
                     vertices: self.buffers.vertices,
                     indices: self.buffers.indices,
@@ -276,13 +312,27 @@ impl Frame {
             });
         }
 
-        Primitive::Group {
+        Geometry::from_primitive(Primitive::Group {
             primitives: self.primitives,
-        }
+        })
     }
 }
 
 struct FillVertex([f32; 4]);
+
+impl lyon::tessellation::BasicVertexConstructor<triangle::Vertex2D>
+    for FillVertex
+{
+    fn new_vertex(
+        &mut self,
+        position: lyon::math::Point,
+    ) -> triangle::Vertex2D {
+        triangle::Vertex2D {
+            position: [position.x, position.y],
+            color: self.0,
+        }
+    }
+}
 
 impl lyon::tessellation::FillVertexConstructor<triangle::Vertex2D>
     for FillVertex

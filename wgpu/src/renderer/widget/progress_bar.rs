@@ -1,5 +1,5 @@
 use crate::{progress_bar::StyleSheet, Primitive, Renderer};
-use iced_native::{progress_bar, Color, MouseCursor, Rectangle};
+use iced_native::{mouse, progress_bar, Color, Rectangle};
 
 impl progress_bar::Renderer for Renderer {
     type Style = Box<dyn StyleSheet>;
@@ -48,7 +48,7 @@ impl progress_bar::Renderer for Renderer {
             } else {
                 background
             },
-            MouseCursor::OutOfBounds,
+            mouse::Interaction::default(),
         )
     }
 }

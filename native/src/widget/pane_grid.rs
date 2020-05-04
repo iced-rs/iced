@@ -22,9 +22,8 @@ pub use split::Split;
 pub use state::{Focus, State};
 
 use crate::{
-    input::{keyboard, mouse, ButtonState},
-    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point, Size,
-    Widget,
+    keyboard, layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length,
+    Point, Size, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -405,11 +404,8 @@ where
         clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state,
-            }) => match state {
-                ButtonState::Pressed => {
+            Event::Mouse(mouse_event) => match mouse_event {
+                mouse::Event::ButtonPressed(mouse::Button::Left) => {
                     let mut clicked_region =
                         self.elements.iter().zip(layout.children()).filter(
                             |(_, layout)| {
@@ -438,7 +434,7 @@ where
                         self.state.unfocus();
                     }
                 }
-                ButtonState::Released => {
+                mouse::Event::ButtonReleased(mouse::Button::Left) => {
                     if let Some(pane) = self.state.picked_pane() {
                         self.state.focus(&pane);
 
@@ -465,97 +461,110 @@ where
                         }
                     }
                 }
-            },
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Right,
-                state: ButtonState::Pressed,
-            }) if self.on_resize.is_some()
-                && self.state.picked_pane().is_none()
-                && self.pressed_modifiers.matches(self.modifier_keys) =>
-            {
-                let bounds = layout.bounds();
+                mouse::Event::ButtonPressed(mouse::Button::Right)
+                    if self.on_resize.is_some()
+                        && self.state.picked_pane().is_none()
+                        && self
+                            .pressed_modifiers
+                            .matches(self.modifier_keys) =>
+                {
+                    let bounds = layout.bounds();
 
-                if bounds.contains(cursor_position) {
-                    let relative_cursor = Point::new(
-                        cursor_position.x - bounds.x,
-                        cursor_position.y - bounds.y,
-                    );
+                    if bounds.contains(cursor_position) {
+                        let relative_cursor = Point::new(
+                            cursor_position.x - bounds.x,
+                            cursor_position.y - bounds.y,
+                        );
 
-                    let splits = self.state.splits(
-                        f32::from(self.spacing),
-                        Size::new(bounds.width, bounds.height),
-                    );
+                        let splits = self.state.splits(
+                            f32::from(self.spacing),
+                            Size::new(bounds.width, bounds.height),
+                        );
 
-                    let mut sorted_splits: Vec<_> = splits
-                        .iter()
-                        .filter(|(_, (axis, rectangle, _))| match axis {
-                            Axis::Horizontal => {
-                                relative_cursor.x > rectangle.x
-                                    && relative_cursor.x
-                                        < rectangle.x + rectangle.width
-                            }
-                            Axis::Vertical => {
-                                relative_cursor.y > rectangle.y
-                                    && relative_cursor.y
-                                        < rectangle.y + rectangle.height
-                            }
-                        })
-                        .collect();
-
-                    sorted_splits.sort_by_key(
-                        |(_, (axis, rectangle, ratio))| {
-                            let distance = match axis {
-                                Axis::Horizontal => (relative_cursor.y
-                                    - (rectangle.y + rectangle.height * ratio))
-                                    .abs(),
-                                Axis::Vertical => (relative_cursor.x
-                                    - (rectangle.x + rectangle.width * ratio))
-                                    .abs(),
-                            };
-
-                            distance.round() as u32
-                        },
-                    );
-
-                    if let Some((split, (axis, _, _))) = sorted_splits.first() {
-                        self.state.pick_split(split, *axis);
-                        self.trigger_resize(layout, cursor_position, messages);
-                    }
-                }
-            }
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Right,
-                state: ButtonState::Released,
-            }) if self.state.picked_split().is_some() => {
-                self.state.drop_split();
-            }
-            Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                self.trigger_resize(layout, cursor_position, messages);
-            }
-            Event::Keyboard(keyboard::Event::Input {
-                modifiers,
-                key_code,
-                state,
-            }) => {
-                if let Some(on_key_press) = &self.on_key_press {
-                    // TODO: Discard when event is captured
-                    if state == ButtonState::Pressed {
-                        if let Some(_) = self.state.active_pane() {
-                            if modifiers.matches(self.modifier_keys) {
-                                if let Some(message) =
-                                    on_key_press(KeyPressEvent {
-                                        key_code,
-                                        modifiers,
-                                    })
-                                {
-                                    messages.push(message);
+                        let mut sorted_splits: Vec<_> = splits
+                            .iter()
+                            .filter(|(_, (axis, rectangle, _))| match axis {
+                                Axis::Horizontal => {
+                                    relative_cursor.x > rectangle.x
+                                        && relative_cursor.x
+                                            < rectangle.x + rectangle.width
                                 }
-                            }
+                                Axis::Vertical => {
+                                    relative_cursor.y > rectangle.y
+                                        && relative_cursor.y
+                                            < rectangle.y + rectangle.height
+                                }
+                            })
+                            .collect();
+
+                        sorted_splits.sort_by_key(
+                            |(_, (axis, rectangle, ratio))| {
+                                let distance = match axis {
+                                    Axis::Horizontal => (relative_cursor.y
+                                        - (rectangle.y
+                                            + rectangle.height * ratio))
+                                        .abs(),
+                                    Axis::Vertical => (relative_cursor.x
+                                        - (rectangle.x
+                                            + rectangle.width * ratio))
+                                        .abs(),
+                                };
+
+                                distance.round() as u32
+                            },
+                        );
+
+                        if let Some((split, (axis, _, _))) =
+                            sorted_splits.first()
+                        {
+                            self.state.pick_split(split, *axis);
+                            self.trigger_resize(
+                                layout,
+                                cursor_position,
+                                messages,
+                            );
                         }
                     }
                 }
+                mouse::Event::ButtonPressed(mouse::Button::Right)
+                    if self.state.picked_split().is_some() =>
+                {
+                    self.state.drop_split();
+                }
+                mouse::Event::CursorMoved { .. } => {
+                    self.trigger_resize(layout, cursor_position, messages);
+                }
+                _ => {}
+            },
+            Event::Keyboard(keyboard_event) => {
+                match keyboard_event {
+                    keyboard::Event::KeyPressed {
+                        modifiers,
+                        key_code,
+                    } => {
+                        if let Some(on_key_press) = &self.on_key_press {
+                            // TODO: Discard when event is captured
+                            if let Some(_) = self.state.active_pane() {
+                                if modifiers.matches(self.modifier_keys) {
+                                    if let Some(message) =
+                                        on_key_press(KeyPressEvent {
+                                            key_code,
+                                            modifiers,
+                                        })
+                                    {
+                                        messages.push(message);
+                                    }
+                                }
+                            }
+                        }
 
-                *self.pressed_modifiers = modifiers;
+                        *self.pressed_modifiers = modifiers;
+                    }
+                    keyboard::Event::KeyReleased { modifiers, .. } => {
+                        *self.pressed_modifiers = modifiers;
+                    }
+                    _ => {}
+                }
             }
             _ => {}
         }

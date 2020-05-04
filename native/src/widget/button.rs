@@ -5,8 +5,7 @@
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
 use crate::{
-    input::{mouse, ButtonState},
-    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length, Point,
     Rectangle, Widget,
 };
 use std::hash::Hash;
@@ -185,28 +184,24 @@ where
         _clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
-            Event::Mouse(mouse::Event::Input {
-                button: mouse::Button::Left,
-                state,
-            }) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                if self.on_press.is_some() {
+                    let bounds = layout.bounds();
+
+                    self.state.is_pressed = bounds.contains(cursor_position);
+                }
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let Some(on_press) = self.on_press.clone() {
                     let bounds = layout.bounds();
 
-                    match state {
-                        ButtonState::Pressed => {
-                            self.state.is_pressed =
-                                bounds.contains(cursor_position);
-                        }
-                        ButtonState::Released => {
-                            let is_clicked = self.state.is_pressed
-                                && bounds.contains(cursor_position);
+                    let is_clicked = self.state.is_pressed
+                        && bounds.contains(cursor_position);
 
-                            self.state.is_pressed = false;
+                    self.state.is_pressed = false;
 
-                            if is_clicked {
-                                messages.push(on_press);
-                            }
-                        }
+                    if is_clicked {
+                        messages.push(on_press);
                     }
                 }
             }

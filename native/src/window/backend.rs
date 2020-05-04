@@ -1,4 +1,4 @@
-use crate::MouseCursor;
+use crate::mouse;
 
 use raw_window_handle::HasRawWindowHandle;
 
@@ -51,5 +51,5 @@ pub trait Backend: Sized {
         output: &<Self::Renderer as crate::Renderer>::Output,
         scale_factor: f64,
         overlay: &[T],
-    ) -> MouseCursor;
+    ) -> mouse::Interaction;
 }

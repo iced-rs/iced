@@ -46,6 +46,7 @@ members = [
     "examples/custom_widget",
     "examples/download_progress",
     "examples/events",
+    "examples/game_of_life",
     "examples/geometry",
     "examples/integration",
     "examples/pane_grid",

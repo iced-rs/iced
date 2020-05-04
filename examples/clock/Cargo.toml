@@ -5,11 +5,6 @@ authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 publish = false
 
-[features]
-canvas = []
-
 [dependencies]
-iced = { path = "../..", features = ["canvas", "async-std", "debug"] }
-iced_native = { path = "../../native" }
+iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
 chrono = "0.4"
-async-std = { version = "1.0", features = ["unstable"] }

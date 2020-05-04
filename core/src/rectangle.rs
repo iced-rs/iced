@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{Point, Size, Vector};
 
 /// A rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -17,6 +17,35 @@ pub struct Rectangle<T = f32> {
 }
 
 impl Rectangle<f32> {
+    /// Creates a new [`Rectangle`] with its top-left corner in the given
+    /// [`Point`] and with the provided [`Size`].
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    /// [`Point`]: struct.Point.html
+    /// [`Size`]: struct.Size.html
+    pub fn new(top_left: Point, size: Size) -> Self {
+        Self {
+            x: top_left.x,
+            y: top_left.y,
+            width: size.width,
+            height: size.height,
+        }
+    }
+
+    /// Creates a new [`Rectangle`] with its top-left corner at the origin
+    /// and with the provided [`Size`].
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    /// [`Size`]: struct.Size.html
+    pub fn with_size(size: Size) -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            width: size.width,
+            height: size.height,
+        }
+    }
+
     /// Returns the [`Point`] at the center of the [`Rectangle`].
     ///
     /// [`Point`]: struct.Point.html
@@ -41,6 +70,21 @@ impl Rectangle<f32> {
     /// [`Rectangle`]: struct.Rectangle.html
     pub fn center_y(&self) -> f32 {
         self.y + self.height / 2.0
+    }
+
+    /// Returns the position of the top left corner of the [`Rectangle`].
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn position(&self) -> Point {
+        Point::new(self.x, self.y)
+    }
+
+    /// Returns the [`Size`] of the [`Rectangle`].
+    ///
+    /// [`Size`]: struct.Size.html
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn size(&self) -> Size {
+        Size::new(self.width, self.height)
     }
 
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
@@ -112,8 +156,23 @@ impl From<Rectangle<f32>> for Rectangle<u32> {
         Rectangle {
             x: rectangle.x as u32,
             y: rectangle.y as u32,
-            width: rectangle.width.ceil() as u32,
-            height: rectangle.height.ceil() as u32,
+            width: (rectangle.width + 0.5).round() as u32,
+            height: (rectangle.height + 0.5).round() as u32,
+        }
+    }
+}
+
+impl<T> std::ops::Add<Vector<T>> for Rectangle<T>
+where
+    T: std::ops::Add<Output = T>,
+{
+    type Output = Rectangle<T>;
+
+    fn add(self, translation: Vector<T>) -> Self {
+        Rectangle {
+            x: self.x + translation.x,
+            y: self.y + translation.y,
+            ..self
         }
     }
 }

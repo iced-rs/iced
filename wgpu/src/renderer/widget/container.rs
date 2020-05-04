@@ -21,7 +21,7 @@ impl iced_native::container::Renderer for Renderer {
             },
         };
 
-        let (content, mouse_cursor) =
+        let (content, mouse_interaction) =
             content.draw(self, &defaults, content_layout, cursor_position);
 
         if style.background.is_some() || style.border_width > 0 {
@@ -39,10 +39,10 @@ impl iced_native::container::Renderer for Renderer {
                 Primitive::Group {
                     primitives: vec![quad, content],
                 },
-                mouse_cursor,
+                mouse_interaction,
             )
         } else {
-            (content, mouse_cursor)
+            (content, mouse_interaction)
         }
     }
 }

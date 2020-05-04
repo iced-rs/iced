@@ -1,7 +1,7 @@
 use crate::Vector;
 
 /// A 2D point.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Point {
     /// The X coordinate.
     pub x: f32,
@@ -65,5 +65,13 @@ impl std::ops::Sub<Vector> for Point {
             x: self.x - vector.x,
             y: self.y - vector.y,
         }
+    }
+}
+
+impl std::ops::Sub<Point> for Point {
+    type Output = Vector;
+
+    fn sub(self, point: Point) -> Vector {
+        Vector::new(self.x - point.x, self.y - point.y)
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
-    conversion, size::Size, window, Cache, Clipboard, Command, Debug, Element,
-    Executor, Mode, MouseCursor, Proxy, Runtime, Settings, Subscription,
+    conversion, mouse, size::Size, window, Cache, Clipboard, Command, Debug,
+    Element, Executor, Mode, Proxy, Runtime, Settings, Subscription,
     UserInterface,
 };
 
@@ -205,7 +205,7 @@ pub trait Application: Sized {
 
         let mut cache = Some(user_interface.into_cache());
         let mut events = Vec::new();
-        let mut mouse_cursor = MouseCursor::OutOfBounds;
+        let mut mouse_interaction = mouse::Interaction::default();
         let mut modifiers = winit::event::ModifiersState::default();
         debug.startup_finished();
 
@@ -328,7 +328,7 @@ pub trait Application: Sized {
                     resized = false;
                 }
 
-                let new_mouse_cursor = backend.draw(
+                let new_mouse_interaction = backend.draw(
                     &mut renderer,
                     &mut swap_chain,
                     &primitive,
@@ -338,12 +338,12 @@ pub trait Application: Sized {
 
                 debug.render_finished();
 
-                if new_mouse_cursor != mouse_cursor {
-                    window.set_cursor_icon(conversion::mouse_cursor(
-                        new_mouse_cursor,
+                if new_mouse_interaction != mouse_interaction {
+                    window.set_cursor_icon(conversion::mouse_interaction(
+                        new_mouse_interaction,
                     ));
 
-                    mouse_cursor = new_mouse_cursor;
+                    mouse_interaction = new_mouse_interaction;
                 }
 
                 // TODO: Handle animations!

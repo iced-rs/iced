@@ -1,7 +1,8 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
+    mouse,
     pane_grid::{self, Axis, Pane},
-    Element, Layout, MouseCursor, Point, Rectangle, Vector,
+    Element, Layout, Point, Rectangle, Vector,
 };
 
 impl pane_grid::Renderer for Renderer {
@@ -22,7 +23,7 @@ impl pane_grid::Renderer for Renderer {
             cursor_position
         };
 
-        let mut mouse_cursor = MouseCursor::OutOfBounds;
+        let mut mouse_interaction = mouse::Interaction::default();
         let mut dragged_pane = None;
 
         let mut panes: Vec<_> = content
@@ -30,11 +31,11 @@ impl pane_grid::Renderer for Renderer {
             .zip(layout.children())
             .enumerate()
             .map(|(i, ((id, pane), layout))| {
-                let (primitive, new_mouse_cursor) =
+                let (primitive, new_mouse_interaction) =
                     pane.draw(self, defaults, layout, pane_cursor_position);
 
-                if new_mouse_cursor > mouse_cursor {
-                    mouse_cursor = new_mouse_cursor;
+                if new_mouse_interaction > mouse_interaction {
+                    mouse_interaction = new_mouse_interaction;
                 }
 
                 if Some(*id) == dragging {
@@ -59,12 +60,12 @@ impl pane_grid::Renderer for Renderer {
                     height: bounds.height + 0.5,
                 },
                 offset: Vector::new(0, 0),
-                content: Box::new(Primitive::Cached {
-                    origin: Point::new(
+                content: Box::new(Primitive::Translate {
+                    translation: Vector::new(
                         cursor_position.x - bounds.x - bounds.width / 2.0,
                         cursor_position.y - bounds.y - bounds.height / 2.0,
                     ),
-                    cache: std::sync::Arc::new(pane),
+                    content: Box::new(pane),
                 }),
             };
 
@@ -78,14 +79,14 @@ impl pane_grid::Renderer for Renderer {
         (
             Primitive::Group { primitives },
             if dragging.is_some() {
-                MouseCursor::Grabbing
+                mouse::Interaction::Grabbing
             } else if let Some(axis) = resizing {
                 match axis {
-                    Axis::Horizontal => MouseCursor::ResizingVertically,
-                    Axis::Vertical => MouseCursor::ResizingHorizontally,
+                    Axis::Horizontal => mouse::Interaction::ResizingVertically,
+                    Axis::Vertical => mouse::Interaction::ResizingHorizontally,
                 }
             } else {
-                mouse_cursor
+                mouse_interaction
             },
         )
     }

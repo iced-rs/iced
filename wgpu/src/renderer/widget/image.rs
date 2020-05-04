@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{image, Layout, MouseCursor};
+use iced_native::{image, mouse, Layout};
 
 impl image::Renderer for Renderer {
     fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
@@ -16,7 +16,7 @@ impl image::Renderer for Renderer {
                 handle,
                 bounds: layout.bounds(),
             },
-            MouseCursor::OutOfBounds,
+            mouse::Interaction::default(),
         )
     }
 }

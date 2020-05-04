@@ -1,7 +1,4 @@
-use crate::{
-    input::{keyboard, mouse},
-    window,
-};
+use crate::{keyboard, mouse, window};
 
 /// A user interface event.
 ///

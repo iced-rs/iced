@@ -1,6 +1,6 @@
 use crate::{button::StyleSheet, defaults, Defaults, Primitive, Renderer};
 use iced_native::{
-    Background, Color, Element, Layout, MouseCursor, Point, Rectangle, Vector,
+    mouse, Background, Color, Element, Layout, Point, Rectangle, Vector,
 };
 
 impl iced_native::button::Renderer for Renderer {
@@ -84,9 +84,9 @@ impl iced_native::button::Renderer for Renderer {
                 content
             },
             if is_mouse_over {
-                MouseCursor::Pointer
+                mouse::Interaction::Pointer
             } else {
-                MouseCursor::OutOfBounds
+                mouse::Interaction::default()
             },
         )
     }
