@@ -1,7 +1,6 @@
 use smithay_client_toolkit::{environment::Environment, window as sctk, reexports::client::protocol::wl_surface::WlSurface};
 use iced_native::{UserInterface, Cache, Event, trace::{Trace, Component::{Layout, Draw, Render}}};
-use super::{async_sctk::{DispatchData, Update, Item, State, Env}, application::{Application, Mode}};
-use iced_shm::window::ShmBackend as Backend;
+use super::{Backend, async_sctk::{DispatchData, Update, Item, State, Env}, application::{Application, Mode}};
 
 ///
 #[derive(Debug)]
@@ -17,7 +16,7 @@ pub struct Settings {
 }
 impl Default for Settings { fn default() -> Self { Self{ size: [0,0], resizable: true, decorations: true, overlay: false } } }
 
-pub(crate) struct Window<B:Backend> {
+pub(crate) struct Window<B:Backend<Surface=WlSurface>> {
     pub window: Option<sctk::Window<sctk::ConceptFrame>>,
     pub size: [u32; 2], pub scale_factor: u32,
     pub cursor: &'static str,
@@ -63,6 +62,7 @@ impl<B:Backend> Window<B> {
                 use layer_surface::Event::*;
                 match event {
                     Configure{serial, width, height} => {
+                        log::trace!("layer_surface::Configure {}x{}", width, height);
                         if !(width > 0 && height > 0) {
                             layer_surface.set_size(size[0], size[1]);
                             layer_surface.ack_configure(serial);
@@ -85,6 +85,7 @@ impl<B:Backend> Window<B> {
                     match event {
                         Configure { new_size: None, .. } => (),
                         Configure { new_size: Some(new_size), .. } => {
+                            log::trace!("window::Configure {}x{}", new_size.0, new_size.1);
                             window.size = [new_size.0, new_size.1];
                             events.push(Event::Window(iced_native::window::Event::Resized {width: new_size.0, height: new_size.1}));
                         }
@@ -100,17 +101,19 @@ impl<B:Backend> Window<B> {
 
         let (mut backend, renderer) = B::new(&env, backend);
 
-        struct Surface<'t>(&'t WlSurface);
-        use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, unix::WaylandHandle};
-        unsafe impl HasRawWindowHandle for Surface<'_> {
-            fn raw_window_handle(&self) -> RawWindowHandle { RawWindowHandle::Wayland(WaylandHandle { /*TODO*/ ..WaylandHandle::empty() })  }
-        }
-        let surface = backend.create_surface(&Surface(&surface));
+        #[cfg(feature="wayland-client/use_system_lib")] let surface = {
+            struct Surface<'t>(&'t WlSurface);
+            use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, unix::WaylandHandle};
+            unsafe impl HasRawWindowHandle for Surface<'_> {
+                fn raw_window_handle(&self) -> RawWindowHandle { RawWindowHandle::Wayland(WaylandHandle { /*TODO*/ ..WaylandHandle::empty() })  }
+            }
+            backend.create_surface(&Surface(&surface))
+        };
         let swap_chain = backend.create_swap_chain(&surface, size[0], size[1]);
 
         Self {
             window,
-            size, scale_factor: 1,
+            size: [0,0], scale_factor: 1, // Wait for Configure
             cursor: "left_ptr",
             title: Default::default(),
             mode: super::application::Mode::Windowed,
@@ -132,8 +135,8 @@ impl<B:Backend> Window<B> {
             false
         }
     }
-    pub fn update<A:crate::Application<Backend=B>>(&mut self, //runtime: &Runtime<Executor, Receiver, Message>, // fixme: trait Runtime
-        application: &mut A, messages: Vec<A::Message>, events: Vec<Event>, trace: &mut Trace) -> &'static str {
+    pub fn update<A:crate::Application<Backend=B>>(&mut self, //runtime: &Runtime<Executor, Receiver, Message>,//trait
+        application: &mut A, messages: Vec<A::Message>, events: Vec<Event>, trace: &mut Trace) -> &'static str where B:Backend<Surface=WlSurface> {
 
         let _ = trace.scope(Layout);
         let mut user_interface = UserInterface::build(application.view(), self.size.into(), self.cache.take().unwrap_or_default(), &mut self.renderer);

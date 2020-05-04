@@ -13,6 +13,7 @@ canvas = ["lyon"]
 
 [dependencies]
 derive_more = ''
+raw-window-handle = ''
 glam = "0.8"
 font-kit = { version = "0.4", optional=true }
 log = "0.4"

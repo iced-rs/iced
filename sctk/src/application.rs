@@ -1,5 +1,4 @@
 use {iced_native::{Executor, Command, Element, Subscription}, super::{Settings, async_sctk}};
-use iced_shm::window::ShmBackend as Backend;
 
 /// The mode of a window-based application.
 #[derive(PartialEq, Debug)] pub enum Mode {
@@ -9,10 +8,11 @@ use iced_shm::window::ShmBackend as Backend;
     Fullscreen
 }
 
+use iced_shm::window::ShmBackend as Backend; // use super::Backend;
 /// An SCTK Application (compatible with winit backend except Backend->ShmBackend) (FIXME: share high level interface specification)
 pub trait Application: Sized {
     /// The graphics backend either software rendering to shared memory (iced_shm) or WGPU (iced_wgpu)
-    type Backend: Backend;
+    type Backend: Backend<Surface=smithay_client_toolkit::reexports::client::protocol::wl_surface::WlSurface>; //Backend;
     /// Run commands and subscriptions
     type Executor: Executor;
     /// User-specific application messages

@@ -1,7 +1,7 @@
 //! A windowing shell for Iced, on top of `smithay-client-toolkit`.
 //! `iced_sctk` offers some convenient abstractions on top of `iced_native`
 //! It exposes an optional renderer-agnostic `Application` trait to be implemented and run.
-#![feature(async_closure)]
+#![feature(async_closure,trait_alias)]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
@@ -12,6 +12,12 @@
 // Re-exports directly used iced_native definitions
 #[doc(no_inline)]
 pub use iced_native::*;
+
+/// The graphics backend either software rendering to shared memory (iced_shm) or WGPU (iced_wgpu)
+#[cfg(feature="wayland-client/use_system_lib")]
+pub trait Backend = iced_shm::window::ShmBackend;
+#[cfg(not(feature="wayland-client/use_system_lib"))]
+pub trait Backend = iced_shm::window::ShmBackend<Surface=smithay_client_toolkit::reexports::client::protocol::wl_surface::WlSurface>;
 
 // smithay-client-toolkit -> iced_native (~iced_winit/conversion)
 pub mod conversion;

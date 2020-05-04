@@ -13,11 +13,11 @@
 //! - TODO: Images and SVG, loaded from memory or the file system.
 //!
 //! [`framework`]: https://github.com/Matthias-Fauconneau/framework
-#![feature(type_ascription)]
+#![feature(type_ascription,associated_type_defaults)]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod defaults;

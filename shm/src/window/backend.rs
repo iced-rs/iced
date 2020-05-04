@@ -1,7 +1,6 @@
-use smithay_client_toolkit::shm;
 use crate::{window::SwapChain, Renderer, Settings};
 use iced_native::MouseCursor;
-
+use smithay_client_toolkit::shm;
 #[derive(derive_more::Deref, derive_more::DerefMut)] struct MemPool(shm::MemPool);
 impl std::fmt::Debug for MemPool { fn fmt(&self, _: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> { unimplemented!() } }
 
@@ -12,32 +11,12 @@ pub struct Backend {
 }
 
 use smithay_client_toolkit::{environment::{Environment, GlobalHandler}, reexports::client::protocol::wl_shm::WlShm};
+use smithay_client_toolkit::reexports::client::{protocol::wl_surface::WlSurface};
 
-/// iced_native::window::Backend with 'new' env argument to pass &' Environment<:GlobalHandler<WlShm>>
-pub trait ShmBackend: Sized {
-    ///
-    type Settings;
-    ///
-    type Renderer: iced_native::Renderer;
-    ///
-    type Surface;
-    ///
-    type SwapChain;
-    ///
-    fn new<E:GlobalHandler<WlShm>>(env: &Environment<E>, settings: Self::Settings) -> (Self, Self::Renderer);
-    ///
-    fn create_surface<W: iced_native::window::HasRawWindowHandle>(&mut self, window: &W) -> Self::Surface;
-    ///
-    fn create_swap_chain(&mut self, surface: &Self::Surface, width: u32, height: u32) -> Self::SwapChain;
-    ///
-    fn draw(&mut self, renderer: &mut Self::Renderer, swap_chain: &mut Self::SwapChain, output: &<Self::Renderer as iced_native::Renderer>::Output,
-                                            scale_factor: f64, overlay: &[impl AsRef<str>]) -> MouseCursor;
-}
-
-impl /*iced_native::window::*/ShmBackend for Backend {
+impl /*iced_native::window::*/super::ShmBackend for Backend {
     type Settings = Settings;
     type Renderer = Renderer;
-    type Surface = ();//RawWindowHandle;
+    type Surface = WlSurface;
     type SwapChain = SwapChain;
 
     fn new<E:GlobalHandler<WlShm>>(env: &Environment<E>, arguments: Settings) -> (Backend, Renderer) {
@@ -45,7 +24,16 @@ impl /*iced_native::window::*/ShmBackend for Backend {
         (Backend {pool: MemPool(env.create_simple_pool(|_|{}).unwrap())}, renderer)
     }
 
-    fn create_surface<W: iced_native::window::HasRawWindowHandle>(&mut self, _: &W) -> Self::Surface { /*window.raw_window_handle()*/ }
+    #[cfg(feature="wayland-client/use_system_lib")]
+    fn create_surface<W: iced_native::window::HasRawWindowHandle>(&mut self, window: &W) -> Self::Surface {
+        use raw_window_handle::{RawWindowHandle::Wayland, unix::WaylandHandle};
+        if let Wayland(WaylandHandle{surface, ..}) = window.raw_window_handle() {
+            use smithay_client_toolkit::reexports::client::{Proxy, sys::client::wl_proxy};
+            #[allow(unsafe_code)] unsafe{Proxy::from_c_ptr(surface as *mut wl_proxy)}.into()
+        } else {
+            unreachable!()
+        }
+    }
 
     fn create_swap_chain(
         &mut self,
@@ -55,7 +43,7 @@ impl /*iced_native::window::*/ShmBackend for Backend {
     ) -> SwapChain {
         let stride = width*4;
         self.pool.resize((height*stride) as usize).unwrap();
-        SwapChain::new(surface, width, height)
+        SwapChain::new(surface.clone(), width, height)
     }
 
     fn draw(
@@ -66,11 +54,12 @@ impl /*iced_native::window::*/ShmBackend for Backend {
         scale_factor: f64,
         overlay: &[impl AsRef<str>],
     ) -> MouseCursor {
-        let (_frame, viewport) = swap_chain.next_frame().expect("Next frame");
+        let (surface, viewport) = swap_chain.next_frame().expect("Next frame");
         use framework::widget::{Target,WHITE};
         let mut frame = Target::from_bytes(self.pool.mmap(), viewport.dimensions().into());
         frame.set(|_| WHITE);
-        renderer.draw(
+        let size = frame.size;
+        let cursor = renderer.draw(
             crate::Target {
                 texture: &mut frame,
                 viewport,
@@ -78,6 +67,13 @@ impl /*iced_native::window::*/ShmBackend for Backend {
             output,
             scale_factor,
             overlay,
-        )
+        );
+        let stride = size.x*4;
+        let buffer = self.pool.buffer(0, size.x as i32, size.y as i32, stride as i32, shm::Format::Argb8888);
+        surface.attach(Some(&buffer), 0, 0);
+        surface.damage_buffer(0, 0, size.x as i32, size.y as i32);
+        surface.commit();
+        log::trace!("Frame {:?}", size);
+        cursor
     }
 }

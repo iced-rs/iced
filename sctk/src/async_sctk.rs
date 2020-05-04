@@ -1,9 +1,7 @@
 use futures::{FutureExt, stream::{LocalBoxStream, SelectAll, unfold, StreamExt}};
 use iced_native::{Event, trace::{Trace, Component::Setup}};
-use super::{window::{self, Window}, Application};
-use smithay_client_toolkit::{default_environment, init_default_environment, environment::SimpleGlobal, seat,
-                                            reexports::protocols::wlr::unstable::layer_shell::v1::client::zwlr_layer_shell_v1:: ZwlrLayerShellV1 as LayerShell};
-use iced_shm::window::ShmBackend as Backend;
+use super::{Backend, window::{self, Window}, Application};
+use smithay_client_toolkit::{default_environment, init_default_environment, environment::SimpleGlobal, seat};
 
 // Application state update
 pub(crate) struct Update<'u, 'q, Item> {
@@ -42,13 +40,15 @@ unsafe fn restore_erased_lifetime<'d,'u,'q,'s,A:Application>(data: &mut Dispatch
     std::mem::transmute::<&mut DispatchData::<'static,'static,'static,'static,A>, &mut DispatchData::<'d,'u,'q,'s,A>>(data)
 }
 
+use smithay_client_toolkit::reexports::protocols::wlr::unstable::layer_shell::v1::client::zwlr_layer_shell_v1:: ZwlrLayerShellV1 as LayerShell;
 default_environment!(Env, desktop,
     fields = [ layer_shell: SimpleGlobal<LayerShell> ],
     singles = [ LayerShell => layer_shell ]
 );
 
 //pub async fn application<A:Application>(settings: Settings<A::Flags>, backend: <A::Backend as Backend>::Settings) -> Result<(),std::io::Error> {
-pub fn application<A:Application+'static>(arguments: A::Flags, window: window::Settings, backend: <A::Backend as Backend>::Settings)
+pub fn application<A:Application+'static>
+(arguments: A::Flags, window: window::Settings, backend: <A::Backend as iced_shm::window::ShmBackend>::Settings)
 -> Result<impl core::future::Future<Output=Result<(),std::io::Error>>,std::io::Error> {
     let mut trace = Trace::new();
     let _ = trace.scope(Setup);
@@ -139,7 +139,9 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
                         Item::Push(message) => messages.push(message),
                         Item::Apply(_) => {
                             let mut update = Update{streams: streams.get_mut(), events: &mut events};
-                            let _ = queue.dispatch_pending(/*Any: 'static*/unsafe{&mut erase_lifetime(DispatchData::<A>{update: &mut update, state: &mut state})}, |_,_,_| ())?;
+                            let _ = queue.dispatch_pending(/*Any: 'static*/unsafe{&mut erase_lifetime(DispatchData::<A>{update: &mut update, state: &mut state})}, |_,_,_| {
+                                unreachable!();
+                            })?;
                         },
                         Item::KeyRepeat(key) => events.push( state.keyboard.key(key, true) ),
                         Item::Quit => break 'run,
@@ -158,7 +160,7 @@ pub fn application<A:Application+'static>(arguments: A::Flags, window: window::S
             }
             //events.iter().cloned().for_each(|event| runtime.broadcast(event));
 
-            if state.window.update_size() || !messages.is_empty() || !events.is_empty() {
+            if (state.window.update_size() || !messages.is_empty() || !events.is_empty()) && state.window.size != [0,0] {
                 let cursor = state.window.update(&mut application, messages, events, &mut trace); // Update state after gathering all pending events or/and on pending messages
                 if state.window.cursor != cursor {
                     state.window.cursor = cursor;
