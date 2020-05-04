@@ -14,6 +14,8 @@ impl Keyboard {
         let Self{modifiers, repeat} = self;
         use wl_keyboard::Event::*;
         match event {
+            Keymap { .. } => None, // todo
+            RepeatInfo { .. } => None, // todo
             Enter { .. } => None,
             Leave { .. } => { *repeat = None; None } // will drop the timer on its next event (Weak::upgrade=None)
             Key{ key, state, .. } => {
@@ -53,7 +55,7 @@ impl Keyboard {
                 //if let Some(repeat) = repeat { repeat.update(|r| r.modifiers = modifiers )} // Optional logic
                 None
             }
-            _ => unreachable!(),
+            _ => panic!("Keyboard"),
         }
     }
     pub fn key(&self, key: u32, state: bool) -> Event {

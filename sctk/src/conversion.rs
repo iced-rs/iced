@@ -8,12 +8,12 @@ use iced_native::MouseCursor;
 pub fn cursor(cursor: MouseCursor) -> &'static str {
     use MouseCursor::*;
     match cursor {
-        OutOfBounds | Idle => "left_ptr",
-        Pointer => "hand",
+        OutOfBounds | Idle => "default",
+        Text => "text",
+        Pointer => "pointer",
         Working => "progress",
         Grab => "grab",
         Grabbing => "grabbing",
-        Text => "text",
         ResizingHorizontally => "h_double_arrow",
         ResizingVertically => "v_double_arrow",
     }
@@ -48,6 +48,7 @@ pub fn key(key : u32) -> KeyCode {
     use {smithay_client_toolkit::seat::keyboard::keysyms::*, KeyCode::*};
     #[allow(non_upper_case_globals)]
     match key {
+        1 => Escape, // rawkey
         // letters
         XKB_KEY_A | XKB_KEY_a => A,
         XKB_KEY_B | XKB_KEY_b => B,
@@ -165,6 +166,6 @@ pub fn key(key : u32) -> KeyCode {
         XKB_KEY_XF86Copy => Copy,
         XKB_KEY_XF86Paste => Paste,
         XKB_KEY_XF86Cut => Cut,
-        _ => panic!("Unknown keysym"),
+        _ => panic!("Unknown keysym: {}", key),
     }
 }

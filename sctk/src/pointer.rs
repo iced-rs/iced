@@ -9,13 +9,14 @@ use {crate::{Event::Mouse, input::{self, mouse}}, super::conversion};
 }
 
 impl Pointer {
-    pub fn handle(&mut self, event : wl_pointer::Event, pointer: ThemedPointer, events: &mut Vec<crate::Event>, /*surface: &WlSurface,*/ current_cursor: &'static str) {
+    pub fn handle(&mut self, event : wl_pointer::Event, pointer: ThemedPointer, events: &mut Vec<crate::Event>, /*surface: &WlSurface,*/ cursor: &'static str) {
         let Self{focus, axis_buffer, axis_discrete_buffer} = self;
         use wl_pointer::Event::*;
         match event {
             Enter { surface, surface_x:x,surface_y:y, .. } /*if surface == *window.surface()*/ => {
                 *focus = Some(surface);
-                pointer.set_cursor(current_cursor, None).expect("Unknown cursor");
+                //log::trace!("cursor: {}", cursor);
+                let _ = (&pointer, cursor); //pointer.set_cursor(cursor, None).expect("Unknown cursor"); // wayland-cursor-0.26.4/src/lib.rs:124
                 events.push(Mouse(mouse::Event::CursorEntered));
                 events.push(Mouse(mouse::Event::CursorMoved{x: x as f32, y: y as f32}));
             }
@@ -46,7 +47,7 @@ impl Pointer {
                 let delta =
                     if let Some((x,y)) = axis_buffer.take() { mouse::ScrollDelta::Pixels{x:x as f32, y:y as f32} }
                     else if let Some((x,y)) = axis_discrete_buffer.take() { mouse::ScrollDelta::Lines{x:x as f32, y:y as f32} }
-                    else { debug_assert!(false); mouse::ScrollDelta::Pixels{x:0.,y:0.} };
+                    else { /*Enter*/ mouse::ScrollDelta::Pixels{x:0.,y:0.} };
                 events.push(Mouse(mouse::Event::WheelScrolled{delta}));
             }
             AxisSource { .. } => (),
@@ -62,7 +63,7 @@ impl Pointer {
                 }
                 *axis_discrete_buffer = Some((x, y));
             }
-            _ => panic!("Out of focus"),
+            _ => { /*log::trace!("Out of focus")*/ },
         }
     }
 }

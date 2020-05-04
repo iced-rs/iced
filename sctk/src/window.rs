@@ -29,10 +29,9 @@ pub(crate) struct Window<B:Backend<Surface=WlSurface>> {
 }
 
 impl<B:Backend> Window<B> {
-    pub fn new<A:Application+'static>(env: Environment<Env>, settings: self::Settings, backend: B::Settings) -> Self {
+    pub fn new<A:Application+'static>(env: &Environment<Env>, settings: self::Settings, backend: B::Settings) -> Self {
         let surface = env.create_surface_with_scale_callback(
             |scale, surface, mut data| {
-                log::trace!("scale");
                 let DispatchData::<A>{state:State{window, ..}, ..} = data.get().unwrap();
                 surface.set_buffer_scale(scale);
                 window.scale_factor = scale as u32;
@@ -59,7 +58,6 @@ impl<B:Backend> Window<B> {
 
             surface.commit();
             layer_surface.quick_assign({let surface = surface.clone(); move /*surface*/ |layer_surface, event, mut data| {
-                log::trace!("layer_surface");
                 let DispatchData::<A>{update: Update{streams, events, ..}, ..} = data.get().unwrap();
                 use layer_surface::Event::*;
                 match event {
@@ -82,7 +80,6 @@ impl<B:Backend> Window<B> {
         } else {
             let window = env.create_window::<Frame, _>(surface.clone(), (settings.size[0], settings.size[1]),
                 move |event, mut data| {
-                    log::trace!("window");
                     let DispatchData::<A>{update: Update{streams, events, .. }, state: State{window, ..}} = data.get().unwrap();
                     use sctk::Event::*;
                     match event {
@@ -93,9 +90,8 @@ impl<B:Backend> Window<B> {
                             events.push(Event::Window(iced_native::window::Event::Resized {width: new_size.0, height: new_size.1}));
                         }
                         Close => quit(streams),
-                        Refresh => {}, //window.window.as_mut().unwrap().refresh(), # already borrowed: BorrowMutError @ concept_frame.rs:531
+                        Refresh => window.window.as_mut().unwrap().refresh(), // already borrowed: BorrowMutError @ concept_frame.rs:531
                     }
-                    log::trace!("<window");
                 }
             ).unwrap();
             window.set_resizable(settings.resizable);
@@ -118,7 +114,7 @@ impl<B:Backend> Window<B> {
         Self {
             window,
             size: [0,0], scale_factor: 1, // Wait for Configure
-            cursor: "left_ptr",
+            cursor: "default",
             title: Default::default(),
             mode: super::application::Mode::Windowed,
             backend, renderer, surface, swap_chain,

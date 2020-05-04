@@ -56,8 +56,7 @@ impl /*iced_native::window::*/super::ShmBackend for Backend {
         overlay: &[impl AsRef<str>],
     ) -> MouseCursor {
         let (surface, viewport) = swap_chain.next_frame().expect("Next frame");
-        use framework::widget::{Target,WHITE};
-        log::trace!("Viewport: {:?}", viewport);
+        use framework::widget::{Target, WHITE};
         let size : framework::size2 = viewport.dimensions().into();
         let stride = size.x*4;
         let mut frame = Target::from_bytes(&mut self.pool.mmap()[..(size.y*stride) as usize], size); // Pool never shrinks

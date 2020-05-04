@@ -83,42 +83,45 @@ pub fn application<A:Application+'static>
     impl<T:nix::AsRawPollFd> Async<T> { fn new(io: T) -> Result<smol::Async<AsRawFd<T>>, std::io::Error> { smol::Async::new(AsRawFd(io)) } }
     impl nix::AsRawPollFd for &smithay_client_toolkit::reexports::client::EventQueue { fn as_raw_poll_fd(&self) -> nix::RawPollFd { self.display().get_connection_fd() } }
 
-    let seat_handler = { // for a simple setup
-        use seat::pointer::{ThemeManager, ThemeSpec};
-        let theme_manager = ThemeManager::init(ThemeSpec::System, env.require_global(), env.require_global());
-        env.listen_for_seats(move |seat, seat_data, mut data| {
-            log::trace!("seat");
-            let DispatchData::<A>{state:State{pointer, .. }, ..} = unsafe{restore_erased_lifetime(data.get().unwrap())};
-            if seat_data.has_pointer {
-                assert!(pointer.is_none());
-                *pointer = Some(theme_manager.theme_pointer_with_impl(&seat,
-                    {
-                        let mut pointer = crate::pointer::Pointer::default(); // Track focus and reconstruct scroll events
-                        move/*pointer*/ |event, themed_pointer, mut data| {
-                            let DispatchData::<A>{update: Update{events, ..}, state:State{window: Window{/*window,*/ cursor, .. }, ..}} = data.get().unwrap();
-                            pointer.handle(event, themed_pointer, events, /*window,*/ cursor);
-                        }
+    use seat::{SeatData, clone_seat_data, pointer::{ThemeManager, ThemeSpec}};
+    let theme_manager = ThemeManager::init(ThemeSpec::System, env.require_global(), env.require_global());
+    let seat_handler = move |seat, seat_data:&SeatData, pointer:&mut Option<ThemedPointer>| {
+        log::trace!("seat");
+        if seat_data.has_pointer {
+            assert!(pointer.is_none());
+            *pointer = Some(theme_manager.theme_pointer_with_impl(&seat,
+                {
+                    let mut pointer = crate::pointer::Pointer::default(); // Track focus and reconstruct scroll events
+                    move/*pointer*/ |event, themed_pointer, mut data| {
+                        let DispatchData::<A>{update: Update{events, ..}, state:State{window: Window{/*window,*/ cursor, .. }, ..}} = data.get().unwrap();
+                        pointer.handle(event, themed_pointer, events, /*window,*/ cursor);
                     }
-                ));
-            }
-            if seat_data.has_keyboard {
-                seat.get_keyboard().quick_assign(|_, event, mut data| {
-                    let DispatchData::<A>{update:Update{streams,events}, state} = data.get().unwrap();
-                    events.extend( state.keyboard.map(streams, event).into_iter() );
-                });
-            }
-        })
+                }
+            ));
+        }
+        if seat_data.has_keyboard {
+            seat.get_keyboard().quick_assign(|_, event, mut data| {
+                let DispatchData::<A>{update:Update{streams,events}, state} = data.get().unwrap();
+                events.extend( state.keyboard.map(streams, event).into_iter() );
+            });
+        }
     };
 
     let mut state = State::<A::Backend> {
         pointer: None,
         keyboard: Default::default(),
-        window: Window::new::<A>(env, window, backend),
+        window: Window::new::<A>(&env, window, backend),
     };
+    for seat in env.get_all_seats() { let seat_data = clone_seat_data(&seat).unwrap(); seat_handler(seat, &seat_data, &mut state.pointer); }
+    let seat_listener = env.listen_for_seats(move |seat, seat_data, mut data| {
+        let DispatchData::<A>{state:State{pointer, .. }, ..} = unsafe{restore_erased_lifetime(data.get().unwrap())};
+        seat_handler(seat, seat_data, pointer)
+    });
 
     Ok(async move /*queue*/ {
         let poll_queue = Async::new(&queue)?;  // Registers in the reactor
         let mut streams = SelectAll::new().peekable();
+
         //streams.push(receiver);
         streams.get_mut().push(
             unfold(poll_queue, async move |q| { // Apply message callbacks (&mut state)
@@ -141,7 +144,7 @@ pub fn application<A:Application+'static>
                         Item::Apply(_) => {
                             let mut update = Update{streams: streams.get_mut(), events: &mut events};
                             let _ = queue.dispatch_pending(/*Any: 'static*/unsafe{&mut erase_lifetime(DispatchData::<A>{update: &mut update, state: &mut state})}, |_,_,_| {
-                                unreachable!();
+                                panic!("orphan");
                             })?;
                         },
                         Item::KeyRepeat(key) => events.push( state.keyboard.key(key, true) ),
@@ -155,6 +158,7 @@ pub fn application<A:Application+'static>
                     match (modifiers, key_code) {
                         (ModifiersState { logo: true, .. }, KeyCode::Q) => return Err(std::io::Error::new(std::io::ErrorKind::Other,"User force quit with Logo+Q")),
                         /*#[cfg(feature = "trace")]*/ (_, KeyCode::F12) => trace.toggle(),
+                        (_, KeyCode::Escape) => return Err(std::io::Error::new(std::io::ErrorKind::Other,"User force quit with Escape")),
                         _ => (),
                     }
                 }
@@ -166,17 +170,16 @@ pub fn application<A:Application+'static>
                 if state.window.cursor != cursor {
                     state.window.cursor = cursor;
                     for pointer in state.pointer.iter_mut() {
-                        pointer.set_cursor(state.window.cursor, None).expect("Unknown cursor");
+                        let _ = &pointer; //pointer.set_cursor(state.window.cursor, None).expect("Unknown cursor"); // wayland-cursor-0.26.4/src/lib.rs:124
                     }
                 }
             }
             queue.display().flush().unwrap();
-            log::trace!("wait");
             let _ = std::pin::Pin::new(&mut streams).peek().await;
             log::trace!("next");
         }
         drop(streams);
-        drop(seat_handler);
+        drop(seat_listener);
         drop(queue);
         Ok(())
     })
