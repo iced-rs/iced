@@ -24,12 +24,12 @@ futures-util = "^0.3"
 #smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"] } #-calloop #120
 smithay-client-toolkit = { git = 'https://github.com/smithay/client-toolkit.git', default-features=false, features=["frames"] } #-calloop #120
 #smithay-client-toolkit = { version = "^0.9", default-features=false, features=["frames"], path="../../client-toolkit" } #-calloop #120
-
 smol = ''
 raw-window-handle = "0.3"
 #window_clipboard = "0.1"
 log = "0.4"
 iced_native = { version = "0.2", path = "../native" }
+iced_shm = { version='', path = '../shm' } # ShmBackend need sctk env
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"

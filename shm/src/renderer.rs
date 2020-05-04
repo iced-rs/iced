@@ -257,7 +257,7 @@ impl Renderer {
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer,
-        target: &(),
+        target: &mut framework::widget::Target,
         _target_width: u32,
         _target_height: u32,
     ) {

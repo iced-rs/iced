@@ -17,7 +17,7 @@ impl Pipeline {
         _transformation: Transformation,
         _scale: f32,
         _bounds: Rectangle<u32>,
-        _target: &(),
+        _target: &framework::widget::Target,
     ) {
     }
 }

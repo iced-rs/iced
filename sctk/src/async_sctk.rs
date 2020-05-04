@@ -1,8 +1,9 @@
 use futures::{FutureExt, stream::{LocalBoxStream, SelectAll, unfold, StreamExt}};
-use iced_native::{window::Backend, Event, trace::{Trace, Component::Setup}};
+use iced_native::{Event, trace::{Trace, Component::Setup}};
 use super::{window::{self, Window}, Application};
 use smithay_client_toolkit::{default_environment, init_default_environment, environment::SimpleGlobal, seat,
                                             reexports::protocols::wlr::unstable::layer_shell::v1::client::zwlr_layer_shell_v1:: ZwlrLayerShellV1 as LayerShell};
+use iced_shm::window::ShmBackend as Backend;
 
 // Application state update
 pub(crate) struct Update<'u, 'q, Item> {

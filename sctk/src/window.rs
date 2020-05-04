@@ -1,6 +1,7 @@
 use smithay_client_toolkit::{environment::Environment, window as sctk, reexports::client::protocol::wl_surface::WlSurface};
-use iced_native::{UserInterface, Cache, window::Backend, Event, trace::{Trace, Component::{Layout, Draw, Render}}};
+use iced_native::{UserInterface, Cache, Event, trace::{Trace, Component::{Layout, Draw, Render}}};
 use super::{async_sctk::{DispatchData, Update, Item, State, Env}, application::{Application, Mode}};
+use iced_shm::window::ShmBackend as Backend;
 
 ///
 #[derive(Debug)]
@@ -97,7 +98,7 @@ impl<B:Backend> Window<B> {
             Some(window)
         };
 
-        let (mut backend, renderer) = B::new(backend);
+        let (mut backend, renderer) = B::new(&env, backend);
 
         struct Surface<'t>(&'t WlSurface);
         use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, unix::WaylandHandle};

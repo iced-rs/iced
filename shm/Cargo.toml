@@ -12,12 +12,14 @@ svg = ["resvg"]
 canvas = ["lyon"]
 
 [dependencies]
+derive_more = ''
 glam = "0.8"
 font-kit = { version = "0.4", optional=true }
 log = "0.4"
-#iced_sctk = { version = "^0.0", path = "../sctk" } # NoHasRawWindowHandleBackend
+smithay-client-toolkit = { git = 'https://github.com/smithay/client-toolkit.git', default-features=false, features=["frames"] } #-calloop #120
 framework = { version = "^0.0", path = "../../framework" }
 #framework = { version = "^0.0", git = "https://github.com/Matthias-Fauconneau/framework" }
+#iced_sctk = { version = "^0.0", path = "../sctk" } # NoHasRawWindowHandleBackend
 
 [dependencies.iced_native]
 version = "0.2"

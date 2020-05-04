@@ -64,7 +64,7 @@ impl Pipeline {
 
     pub fn draw_queued(
         &mut self,
-        _target: &(),
+        _target: &framework::widget::Target,
         _transformation: Transformation,
         _bounds: Rectangle,
     ) {
@@ -100,9 +100,7 @@ impl Pipeline {
         (<Text as Widget>::size(
             &mut Text::new(text, &style),
             ((bounds.into(): [f32; 2]).into(): size2f).into(),
-        )
-        .into(): size2f)
-            .into()
+        ).into(): size2f).into()
     }
 
     pub fn space_width(&self, size: f32) -> f32 {
