@@ -1,6 +1,7 @@
 use iced::{
-    canvas, slider, Align, Canvas, Color, Column, Element, Length, Row,
-    Sandbox, Settings, Slider, Text, Vector,
+    canvas, slider, Align, Canvas, Color, Column, Element, HorizontalAlignment,
+    Length, Point, Row, Sandbox, Settings, Size, Slider, Text, Vector,
+    VerticalAlignment,
 };
 use palette::{self, Limited};
 use std::marker::PhantomData;
@@ -147,8 +148,6 @@ impl Theme {
 impl canvas::Drawable for Theme {
     fn draw(&self, frame: &mut canvas::Frame) {
         use canvas::Path;
-        use iced::{HorizontalAlignment, VerticalAlignment};
-        use iced_native::{Point, Size};
         use palette::{Hsl, Srgb};
 
         let pad = 20.0;
