@@ -21,6 +21,9 @@ glam = "0.8"
 font-kit = "0.6"
 log = "0.4"
 guillotiere = "0.5"
+# Pin `gfx-memory` until https://github.com/gfx-rs/wgpu-rs/issues/261 is
+# resolved
+gfx-memory = "=0.1.1"
 
 [dependencies.iced_native]
 version = "0.2"
