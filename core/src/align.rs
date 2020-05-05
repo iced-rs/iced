@@ -24,6 +24,8 @@ pub enum HorizontalAlignment {
     Right,
 }
 
+impl Default for HorizontalAlignment { fn default() -> Self { Self::Center } }
+
 /// The vertical alignment of some resource.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VerticalAlignment {
@@ -36,3 +38,5 @@ pub enum VerticalAlignment {
     /// Align bottom
     Bottom,
 }
+
+impl Default for VerticalAlignment { fn default() -> Self { Self::Center } }

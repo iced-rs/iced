@@ -1,5 +1,8 @@
 use iced_native::{Color, Font, HorizontalAlignment, VerticalAlignment};
+
 type Rectangle = iced_native::Rectangle<u32>;
+
+#[derive(Default)]
 pub struct Section<'t> {
     pub content: &'t str,
     pub bounds: Rectangle,
@@ -9,6 +12,18 @@ pub struct Section<'t> {
     pub horizontal_alignment: HorizontalAlignment,
     pub vertical_alignment: VerticalAlignment,
 }
+
+/*impl Default for Section<'_> { pub fn default() -> Self {
+    Self{
+        content: Default::default(),
+        bounds: Default::default(),
+        color: Default::default(),
+        size: Default::default(),
+        font: Default::default(),
+        horizontal_alignment: HorizontalAlignment,
+        vertical_alignment: VerticalAlignment,
+    }
+}*/
 
 #[cfg(feature = "fontkit")]
 mod font;

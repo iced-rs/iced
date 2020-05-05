@@ -1,5 +1,5 @@
 use crate::{
-    quad, text, Defaults, Primitive, Quad, Settings, Target, Transformation,
+    quad, text::{self, Section}, Defaults, Primitive, Quad, Settings, Target, Transformation,
 };
 
 #[cfg(any(feature = "image", feature = "svg"))]
@@ -22,7 +22,7 @@ pub struct Renderer {
 struct Layer<'t> {
     bounds: Rectangle<u32>,
     quads: Vec<Quad>,
-    text: Vec<text::Section<'t>>,
+    text: Vec<Section<'t>>,
 
     #[cfg(any(feature = "image", feature = "svg"))]
     images: Vec<Image>,
@@ -234,22 +234,18 @@ impl Renderer {
         }
     }
 
-    fn draw_overlay<T: AsRef<str>>(
+    fn draw_overlay<'t>(
         &mut self,
-        _lines: &[T],
-        _layers: &mut Vec<Layer>,
+        lines: &'t [impl AsRef<str>],
+        layers: &mut Vec<Layer<'t>>,
     ) {
-        /*let mut overlay = Layer::new(layers.bounds);
-
-        for (i, line) in lines.iter().enumerate() {
-            overlay.text.push(Section {
-                text: line.as_ref(),
-                color: [0.9, 0.9, 0.9, 1.0],
-                ..Default::default()
-            });
-        }
-
-        layers.push(overlay);*/
+        let mut overlay = Layer::new(layers.last().unwrap().bounds);
+        overlay.text = lines.iter().map(|line| Section {
+            content: line.as_ref(),
+            color: [0.9, 0.9, 0.9, 1.0].into(),
+            ..Default::default()
+        }).collect();
+        layers.push(overlay);
     }
 
     fn flush(
@@ -294,7 +290,7 @@ impl Renderer {
         if !layer.text.is_empty() {
             for text in layer.text.iter() {
                 // Target physical coordinates directly to avoid blurry text
-                let text = text::Section {
+                let text = Section {
                     /*screen_position: (
                         (text.screen_position.0 * scale_factor),
                         (text.screen_position.1 * scale_factor),

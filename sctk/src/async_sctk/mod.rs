@@ -78,7 +78,7 @@ pub fn application<A:Application+'static>
     };*/
     let (mut application, _init_command) = A::new(arguments);
 
-    let (env, _, queue) = init_default_environment!(Env, desktop, fields = [layer_shell: SimpleGlobal::new()]).unwrap();
+    let (env, _, mut queue) = init_default_environment!(Env, desktop, fields = [layer_shell: SimpleGlobal::new()]).unwrap();
 
     mod nix {
         pub type RawPollFd = std::os::unix::io::RawFd;
@@ -90,7 +90,7 @@ pub fn application<A:Application+'static>
     impl<T:nix::AsRawPollFd> std::os::unix::io::AsRawFd for AsRawFd<T> { fn as_raw_fd(&self) -> std::os::unix::io::RawFd { self.0.as_raw_poll_fd() /*->smol::Reactor*/ } }
     #[allow(clippy::new_ret_no_self)]
     impl<T:nix::AsRawPollFd> Async<T> { fn new(io: T) -> Result<smol::Async<AsRawFd<T>>, std::io::Error> { smol::Async::new(AsRawFd(io)) } }
-    impl nix::AsRawPollFd for &smithay_client_toolkit::reexports::client::EventQueue { fn as_raw_poll_fd(&self) -> nix::RawPollFd { self.display().get_connection_fd() } }
+    impl nix::AsRawPollFd for smithay_client_toolkit::reexports::client::EventQueue { fn as_raw_poll_fd(&self) -> nix::RawPollFd { self.display().get_connection_fd() } }
 
     use seat::{SeatData, clone_seat_data, pointer::{ThemeManager, ThemeSpec}};
     let theme_manager = ThemeManager::init(ThemeSpec::System, env.require_global(), env.require_global());
@@ -128,7 +128,7 @@ pub fn application<A:Application+'static>
     });
 
     Ok(async move /*queue*/ {
-        let poll_queue = Async::new(&queue)?;  // Registers in the reactor
+        let poll_queue = Async::new(queue.display().create_event_queue())?;  // Registers in the reactor
         let mut streams = SelectAll::new().peekable();
 
         //streams.push(receiver);
