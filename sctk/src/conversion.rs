@@ -3,23 +3,24 @@
 //! [`smithay-client-toolkit`]: https://github.com/smithay/client-toolkit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 
-use iced_native::MouseCursor;
+use iced_native::mouse::Interaction;
 /// Converts an `iced_native::MouseCursor` to a `cursor-spec` cursor icon.
-pub fn cursor(cursor: MouseCursor) -> &'static str {
-    use MouseCursor::*;
-    match cursor {
-        OutOfBounds | Idle => "default",
-        Text => "text",
+pub fn cursor(interaction: Interaction) -> &'static str {
+    use Interaction::*;
+    match interaction {
+        Idle => "default",
         Pointer => "pointer",
-        Working => "progress",
         Grab => "grab",
+        Text => "text",
+        Crosshair => "crosshair",
+        Working => "progress",
         Grabbing => "grabbing",
         ResizingHorizontally => "h_double_arrow",
         ResizingVertically => "v_double_arrow",
     }
 }
 
-use iced_native::input::mouse::Button;
+use iced_native::mouse::Button;
 /// Converts from `input-event-codes` to an `iced_native` mouse button.
 pub fn button(button: u32) -> Button {
     match button {
@@ -30,7 +31,7 @@ pub fn button(button: u32) -> Button {
     }
 }
 
-use iced_native::input::keyboard::ModifiersState;
+use iced_native::keyboard::ModifiersState;
 /// xkb modifiers
 pub fn modifiers(mods_depressed: u32, mods_latched: u32, mods_locked: u32, locked_group: u32) -> ModifiersState {
     assert_eq!([mods_depressed, mods_latched, mods_locked, locked_group], [0,0,0,0]);
@@ -42,7 +43,7 @@ pub fn modifiers(mods_depressed: u32, mods_latched: u32, mods_locked: u32, locke
     }
 }
 
-use iced_native::input::keyboard::KeyCode;
+use iced_native::keyboard::KeyCode;
 /// Converts an `xkb` keysym to an `iced_native` key code.
 pub fn key(key : u32) -> KeyCode {
     use {smithay_client_toolkit::seat::keyboard::keysyms::*, KeyCode::*};

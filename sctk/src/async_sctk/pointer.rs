@@ -1,5 +1,5 @@
 use smithay_client_toolkit::{reexports::client::protocol::{wl_pointer::{self, ButtonState}, wl_surface::WlSurface}, seat::pointer::ThemedPointer};
-use {crate::{Event::Mouse, input::{self, mouse}}, super::conversion};
+use {iced_native::{Event::Mouse, mouse}, crate::conversion};
 
 // Track focus and reconstruct scroll events
 #[derive(Default)] pub struct Pointer {
@@ -9,7 +9,7 @@ use {crate::{Event::Mouse, input::{self, mouse}}, super::conversion};
 }
 
 impl Pointer {
-    pub fn handle(&mut self, event : wl_pointer::Event, pointer: ThemedPointer, events: &mut Vec<crate::Event>, /*surface: &WlSurface,*/ cursor: &'static str) {
+    pub fn handle(&mut self, event : wl_pointer::Event, pointer: ThemedPointer, events: &mut Vec<iced_native::Event>, /*surface: &WlSurface,*/ cursor: &'static str) {
         let Self{focus, axis_buffer, axis_discrete_buffer} = self;
         use wl_pointer::Event::*;
         match event {
@@ -29,8 +29,9 @@ impl Pointer {
                 events.push(Mouse(mouse::Event::CursorMoved{x: x as f32, y: y as f32}));
             }
             Button { button, state, .. } if focus.is_some() => {
-                let state = if let ButtonState::Pressed = state { input::ButtonState::Pressed } else { input::ButtonState::Released };
-                events.push(Mouse(mouse::Event::Input{button: conversion::button(button), state}));
+                events.push(Mouse(if let ButtonState::Pressed = state { mouse::Event::ButtonPressed(conversion::button(button)) }
+                                                                                                else { mouse::Event::ButtonReleased(conversion::button(button)) } ));
+
             }
             Axis { axis, value, .. } if focus.is_some() => {
                 let (mut x, mut y) = axis_buffer.unwrap_or((0.0, 0.0));

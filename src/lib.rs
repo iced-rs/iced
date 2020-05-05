@@ -179,6 +179,12 @@
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+
+#[cfg(feature = "iced_shm")]
+use iced_shm as renderer;
+#[cfg(feature = "iced_wgpu")]
+use iced_wgpu as renderer;
+
 mod application;
 mod element;
 mod sandbox;

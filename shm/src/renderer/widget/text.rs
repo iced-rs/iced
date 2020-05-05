@@ -1,6 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    text, Color, Font, HorizontalAlignment, MouseCursor, Rectangle, Size,
+    text, Color, Font, HorizontalAlignment, mouse::Interaction, Rectangle, Size,
     VerticalAlignment,
 };
 
@@ -55,7 +55,7 @@ impl text::Renderer for Renderer {
                 horizontal_alignment,
                 vertical_alignment,
             },
-            MouseCursor::OutOfBounds,
+            Interaction::Idle,
         )
     }
 }

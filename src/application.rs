@@ -1,9 +1,4 @@
-use crate::{window, Command, Element, Executor, Settings, Subscription};
-
-#[cfg(feature = "iced_shm")]
-use iced_shm as iced_renderer_backend;
-#[cfg(feature = "iced_wgpu")]
-use iced_wgpu as iced_renderer_backend;
+use crate::{renderer, window, Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -194,20 +189,20 @@ pub trait Application: Sized {
     {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let iced_renderer_backend_settings = iced_renderer_backend::Settings {
+            let renderer_settings = renderer::Settings {
                 default_font: settings.default_font,
                 #[cfg(feature = "iced_wgpu")]
                 antialiasing: if settings.antialiasing {
-                    Some(iced_wgpu::settings::Antialiasing::MSAAx4)
+                    Some(renderer::settings::Antialiasing::MSAAx4)
                 } else {
                     None
                 },
-                ..iced_renderer_backend::Settings::default()
+                ..renderer::Settings::default()
             };
 
             <Instance<Self> as crate::runtime::Application>::run(
                 settings.into(),
-                iced_renderer_backend_settings,
+                renderer_settings,
             );
         }
 
@@ -218,11 +213,12 @@ pub trait Application: Sized {
 
 struct Instance<A: Application>(A);
 
+#[cfg(not(target_arch = "wasm32"))]
 impl<A> crate::runtime::Application for Instance<A>
 where
     A: Application,
 {
-    type Backend = iced_renderer_backend::window::Backend;
+    type Backend = renderer::window::Backend;
     type Executor = A::Executor;
     type Flags = A::Flags;
     type Message = A::Message;

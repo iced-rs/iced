@@ -1,6 +1,6 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
-    scrollable, Background, Color, MouseCursor, Rectangle, Vector,
+    scrollable, Background, Color, mouse::Interaction, Rectangle, Vector,
 };
 
 const SCROLLBAR_WIDTH: u16 = 10;
@@ -118,7 +118,7 @@ impl scrollable::Renderer for Renderer {
                 content
             },
             if is_mouse_over_scrollbar || state.is_scroller_grabbed() {
-                MouseCursor::Idle
+                Interaction::Idle
             } else {
                 mouse_cursor
             },

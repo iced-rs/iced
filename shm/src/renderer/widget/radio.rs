@@ -1,5 +1,5 @@
 use crate::{radio::StyleSheet, Primitive, Renderer};
-use iced_native::{radio, Background, Color, MouseCursor, Rectangle};
+use iced_native::{radio, Background, Color, mouse::Interaction, Rectangle};
 
 const SIZE: f32 = 28.0;
 const DOT_SIZE: f32 = SIZE / 2.0;
@@ -55,9 +55,9 @@ impl radio::Renderer for Renderer {
                 },
             },
             if is_mouse_over {
-                MouseCursor::Pointer
+                Interaction::Pointer
             } else {
-                MouseCursor::OutOfBounds
+                Interaction::Idle
             },
         )
     }

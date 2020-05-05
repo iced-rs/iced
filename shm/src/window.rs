@@ -1,6 +1,6 @@
 //! Display rendering results on windows.
 use smithay_client_toolkit::{environment::{Environment, GlobalHandler}, reexports::client::protocol::wl_shm::WlShm};
-use iced_native::MouseCursor;
+use iced_native::mouse::Interaction;
 
 /// iced_native::window::Backend:
 /// 'new' env argument to pass &' Environment<:GlobalHandler<WlShm>>
@@ -23,7 +23,7 @@ pub trait ShmBackend: Sized {
     fn create_swap_chain(&mut self, surface: &Self::Surface, width: u32, height: u32) -> Self::SwapChain;
     ///
     fn draw(&mut self, renderer: &mut Self::Renderer, swap_chain: &mut Self::SwapChain, output: &<Self::Renderer as iced_native::Renderer>::Output,
-                                            scale_factor: f64, overlay: &[impl AsRef<str>]) -> MouseCursor;
+                                            scale_factor: f64, overlay: &[impl AsRef<str>]) -> Interaction;
 }
 
 mod backend;

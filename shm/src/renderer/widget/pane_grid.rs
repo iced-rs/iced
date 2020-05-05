@@ -1,7 +1,7 @@
 use crate::{Primitive, Renderer};
 use iced_native::{
     pane_grid::{self, Axis, Pane},
-    Element, Layout, MouseCursor, Point, Rectangle, Vector,
+    Element, Layout, mouse::Interaction, Point, Rectangle, Vector,
 };
 
 impl pane_grid::Renderer for Renderer {
@@ -22,7 +22,7 @@ impl pane_grid::Renderer for Renderer {
             cursor_position
         };
 
-        let mut mouse_cursor = MouseCursor::OutOfBounds;
+        let mut mouse_cursor = Interaction::Idle;
         let mut dragged_pane = None;
 
         let mut panes: Vec<_> = content
@@ -78,11 +78,11 @@ impl pane_grid::Renderer for Renderer {
         (
             Primitive::Group { primitives },
             if dragging.is_some() {
-                MouseCursor::Grabbing
+                Interaction::Grabbing
             } else if let Some(axis) = resizing {
                 match axis {
-                    Axis::Horizontal => MouseCursor::ResizingVertically,
-                    Axis::Vertical => MouseCursor::ResizingHorizontally,
+                    Axis::Horizontal => Interaction::ResizingVertically,
+                    Axis::Vertical => Interaction::ResizingHorizontally,
                 }
             } else {
                 mouse_cursor

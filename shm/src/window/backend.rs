@@ -1,5 +1,5 @@
 use crate::{window::SwapChain, Renderer, Settings};
-use iced_native::MouseCursor;
+use iced_native::mouse::Interaction;
 use smithay_client_toolkit::shm;
 #[derive(derive_more::Deref, derive_more::DerefMut)] struct MemPool(shm::MemPool);
 impl std::fmt::Debug for MemPool { fn fmt(&self, _: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> { unimplemented!() } }
@@ -54,7 +54,7 @@ impl /*iced_native::window::*/super::ShmBackend for Backend {
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         scale_factor: f64,
         overlay: &[impl AsRef<str>],
-    ) -> MouseCursor {
+    ) -> Interaction{
         let (surface, viewport) = swap_chain.next_frame().expect("Next frame");
         use framework::widget::{Target, WHITE};
         let size : framework::size2 = viewport.dimensions().into();

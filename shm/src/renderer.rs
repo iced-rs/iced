@@ -6,7 +6,7 @@ use crate::{
 use crate::image::{self, Image};
 
 use iced_native::{
-    layout, Background, Color, Layout, MouseCursor, Point, Rectangle, Vector,
+    layout, Background, Color, Layout, mouse::Interaction, Point, Rectangle, Vector,
     Widget,
 };
 
@@ -61,10 +61,10 @@ impl Renderer {
     pub fn draw<T: AsRef<str>>(
         &mut self,
         target: Target<'_>,
-        (primitive, mouse_cursor): &(Primitive, MouseCursor),
+        (primitive, mouse_cursor): &(Primitive, Interaction),
         scale_factor: f64,
         overlay: &[T],
-    ) -> MouseCursor {
+    ) -> Interaction{
         let (width, height) = target.viewport.dimensions();
         let scale_factor = scale_factor as f32;
         let transformation = target.viewport.transformation();
@@ -319,7 +319,7 @@ impl Renderer {
 }
 
 impl iced_native::Renderer for Renderer {
-    type Output = (Primitive, MouseCursor);
+    type Output = (Primitive, Interaction);
     type Defaults = Defaults;
 
     fn layout<'a, Message>(

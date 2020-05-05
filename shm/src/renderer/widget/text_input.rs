@@ -2,7 +2,7 @@ use crate::{text_input::StyleSheet, Primitive, Renderer};
 
 use iced_native::{
     text_input::{self, cursor},
-    Background, Color, Font, HorizontalAlignment, MouseCursor, Point,
+    Background, Color, Font, HorizontalAlignment, mouse::Interaction, Point,
     Rectangle, Size, Vector, VerticalAlignment,
 };
 use std::f32;
@@ -232,9 +232,9 @@ impl text_input::Renderer for Renderer {
                 primitives: vec![input, contents],
             },
             if is_mouse_over {
-                MouseCursor::Text
+                Interaction::Text
             } else {
-                MouseCursor::OutOfBounds
+                Interaction::Idle
             },
         )
     }

@@ -1,6 +1,6 @@
 use smithay_client_toolkit::{environment::Environment, window as sctk, reexports::client::protocol::wl_surface::WlSurface};
 use iced_native::{UserInterface, Cache, Event, trace::{Trace, Component::{Layout, Draw, Render}}};
-use super::{Frame, Backend, async_sctk::{DispatchData, Update, Item, State, Env}, application::{Application, Mode}};
+use {crate::application::{Backend, Application, Mode}, super::{Frame, DispatchData, Update, Item, State, Env}};
 
 ///
 #[derive(Debug)]
@@ -116,7 +116,7 @@ impl<B:Backend> Window<B> {
             size: [0,0], scale_factor: 1, // Wait for Configure
             cursor: "default",
             title: Default::default(),
-            mode: super::application::Mode::Windowed,
+            mode: Mode::Windowed,
             backend, renderer, surface, swap_chain,
             buffer_size: [0,0], buffer_scale_factor: 0,
             cache: None,
@@ -135,7 +135,7 @@ impl<B:Backend> Window<B> {
             false
         }
     }
-    pub fn update<A:crate::Application<Backend=B>>(&mut self, //runtime: &Runtime<Executor, Receiver, Message>,//trait
+    pub fn update<A:Application<Backend=B>>(&mut self, //runtime: &Runtime<Executor, Receiver, Message>,//trait
         application: &mut A, messages: Vec<A::Message>, events: Vec<Event>, trace: &mut Trace) -> &'static str where B:Backend<Surface=WlSurface> {
 
         let _ = trace.scope(Layout);
@@ -174,7 +174,7 @@ impl<B:Backend> Window<B> {
                     }
                     if self.mode != application.mode() {
                         self.mode = application.mode();
-                        if let super::application::Mode::Fullscreen = self.mode { window.set_fullscreen(None) } else { window.unset_fullscreen() }
+                        if let Mode::Fullscreen = self.mode { window.set_fullscreen(None) } else { window.unset_fullscreen() }
                     }
                 }
                 UserInterface::build(application.view(), self.size.into(), cache, &mut self.renderer)

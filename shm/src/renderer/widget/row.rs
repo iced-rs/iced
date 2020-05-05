@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{row, Element, Layout, MouseCursor, Point};
+use iced_native::{row, Element, Layout, mouse::Interaction, Point};
 
 impl row::Renderer for Renderer {
     fn draw<Message>(
@@ -9,7 +9,7 @@ impl row::Renderer for Renderer {
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
-        let mut mouse_cursor = MouseCursor::OutOfBounds;
+        let mut mouse_cursor = Interaction::Idle;
 
         (
             Primitive::Group {

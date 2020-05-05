@@ -1,7 +1,6 @@
-use std::{rc::Rc, cell::Cell, time::{Instant, Duration}};
-use futures::{future::FutureExt, stream::StreamExt};
-pub use smithay_client_toolkit::reexports::client::protocol::wl_keyboard::{self, KeyState};
-use {super::{Streams,Item}, crate::{Event, input::{ButtonState, keyboard::{self, ModifiersState}}}, super::conversion};
+use {std::{rc::Rc, cell::Cell, time::{Instant, Duration}}, futures::{future::FutureExt, stream::StreamExt}};
+use smithay_client_toolkit::reexports::client::protocol::wl_keyboard::{self, KeyState};
+use {iced_native::{Event, keyboard::{self, ModifiersState}}, crate::conversion, super::{Streams,Item}};
 
 /// Track modifiers and key repetition
 #[derive(Default)] pub(crate) struct Keyboard {
@@ -48,7 +47,8 @@ impl Keyboard {
                     }
                     _ => unreachable!(),
                 }
-                Some(self.key(key, state == KeyState::Pressed))
+                Some(if state == KeyState::Pressed { Event::Keyboard(keyboard::Event::KeyPressed{key_code: conversion::key(key), modifiers: self.modifiers}) }
+                                                                   else { Event::Keyboard(keyboard::Event::KeyReleased{key_code: conversion::key(key), modifiers: self.modifiers}) })
             }
             Modifiers {mods_depressed, mods_latched, mods_locked, group: locked_group, ..} => {
                 *modifiers = conversion::modifiers(mods_depressed, mods_latched, mods_locked, locked_group);
@@ -58,10 +58,9 @@ impl Keyboard {
             _ => panic!("Keyboard"),
         }
     }
-    pub fn key(&self, key: u32, state: bool) -> Event {
-        Event::Keyboard(keyboard::Event::Input{
+    pub fn key(&self, key: u32) -> Event {
+        Event::Keyboard(keyboard::Event::KeyPressed{
             key_code: conversion::key(key),
-            state: if state { ButtonState::Pressed } else { ButtonState::Released },
             modifiers: self.modifiers,
         })
         /*if let Some(ref txt) = utf8 {

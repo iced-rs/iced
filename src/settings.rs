@@ -50,32 +50,22 @@ impl<Flags> Settings<Flags> {
     }
 }
 
-#[cfg(feature = "iced_sctk")]
-impl<Flags> From<Settings<Flags>> for iced_sctk::Settings<Flags> {
-    fn from(settings: Settings<Flags>) -> iced_sctk::Settings<Flags> {
-        iced_sctk::Settings {
-            window: iced_sctk::window::Settings {
-                size: [settings.window.size.0, settings.window.size.1],
-                resizable: settings.window.resizable,
-                decorations: settings.window.decorations,
-                overlay: false, //settings.window.overlay,
-            },
-            flags: settings.flags,
-        }
-    }
-}
-
-#[cfg(feature = "iced_winit")]
-impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
-    fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
-        iced_winit::Settings {
-            window: iced_winit::settings::Window {
-                size: settings.window.size,
-                resizable: settings.window.resizable,
-                decorations: settings.window.decorations,
-                platform_specific: Default::default(),
-            },
-            flags: settings.flags,
-        }
+impl<Flags> From<Settings<Flags>> for crate::runtime::Settings<Flags> {
+    fn from(settings: Settings<Flags>) -> crate::runtime::Settings<Flags> {
+        #[cfg(feature = "iced_winit")]
+        let window = crate::runtime::settings::Window {
+            size: settings.window.size,
+            resizable: settings.window.resizable,
+            decorations: settings.window.decorations,
+            platform_specific: Default::default(),
+        };
+        #[cfg(feature = "iced_sctk")]
+        let window = crate::runtime::WindowSettings {
+            size: [settings.window.size.0, settings.window.size.1],
+            resizable: settings.window.resizable,
+            decorations: settings.window.decorations,
+            overlay: false, //settings.window.overlay,
+        };
+        crate::runtime::Settings {window, flags: settings.flags}
     }
 }

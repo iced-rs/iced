@@ -1,7 +1,16 @@
 use futures::{FutureExt, stream::{LocalBoxStream, SelectAll, unfold, StreamExt}};
-use iced_native::{Event, trace::{Trace, Component::Setup}};
-use super::{Backend, window::{self, Window}, Application};
 use smithay_client_toolkit::{default_environment, init_default_environment, environment::SimpleGlobal, seat};
+use iced_native::{Event, trace::{Trace, Component::Setup}};
+use super::application::{Backend, Application};
+
+cfg_if::cfg_if! { if #[cfg(feature="smithay-client-toolkit/frames")] { type Frame = sctk::ConceptFrame; } else { mod frame; pub use frame::NoFrame as Frame; } }
+
+///
+mod window; pub use window::Settings; use window::Window;
+// Track modifiers and key repetition
+mod keyboard; use keyboard::Keyboard;
+// Track focus and reconstruct scroll events
+mod pointer; use pointer::Pointer;
 
 // Application state update
 pub(crate) struct Update<'u, 'q, Item> {
@@ -22,7 +31,7 @@ pub(crate) type Streams<'q, M> = SelectAll<LocalBoxStream<'q, Item<M>>>;
 use seat::pointer::ThemedPointer;
 pub(crate) struct State<B:Backend> {
     pointer: Option<ThemedPointer>,
-    keyboard: super::keyboard::Keyboard,
+    keyboard: Keyboard,
     pub window: Window<B>,
 }
 
@@ -91,7 +100,7 @@ pub fn application<A:Application+'static>
             assert!(pointer.is_none());
             *pointer = Some(theme_manager.theme_pointer_with_impl(&seat,
                 {
-                    let mut pointer = crate::pointer::Pointer::default(); // Track focus and reconstruct scroll events
+                    let mut pointer = Pointer::default(); // Track focus and reconstruct scroll events
                     move/*pointer*/ |event, themed_pointer, mut data| {
                         let DispatchData::<A>{update: Update{events, ..}, state:State{window: Window{/*window,*/ cursor, .. }, ..}} = data.get().unwrap();
                         pointer.handle(event, themed_pointer, events, /*window,*/ cursor);
@@ -147,14 +156,14 @@ pub fn application<A:Application+'static>
                                 panic!("orphan");
                             })?;
                         },
-                        Item::KeyRepeat(key) => events.push( state.keyboard.key(key, true) ),
+                        Item::KeyRepeat(key) => events.push( state.keyboard.key(key) ),
                         Item::Quit => break 'run,
                 };
             }
 
             for e in events.iter() {
-                use crate::input::{*, keyboard::{Event::Input, KeyCode, ModifiersState}};
-                if let Event::Keyboard(Input{state: ButtonState::Pressed, modifiers, key_code, ..}) = e {
+                use iced_native::{Event::Keyboard, keyboard::{Event::KeyPressed, KeyCode, ModifiersState}};
+                if let Keyboard(KeyPressed{key_code, modifiers}) = e {
                     match (modifiers, key_code) {
                         (ModifiersState { logo: true, .. }, KeyCode::Q) => return Err(std::io::Error::new(std::io::ErrorKind::Other,"User force quit with Logo+Q")),
                         /*#[cfg(feature = "trace")]*/ (_, KeyCode::F12) => trace.toggle(),
