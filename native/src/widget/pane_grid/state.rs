@@ -21,7 +21,7 @@ use std::collections::HashMap;
 /// [`Pane`]: struct.Pane.html
 /// [`Split`]: struct.Split.html
 /// [`State`]: struct.State.html
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct State<T> {
     pub(super) panes: HashMap<Pane, T>,
     pub(super) internal: Internal,
@@ -248,7 +248,7 @@ impl<T> State<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Internal {
     layout: Node,
     last_id: usize,
