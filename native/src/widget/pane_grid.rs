@@ -526,7 +526,7 @@ where
                         }
                     }
                 }
-                mouse::Event::ButtonPressed(mouse::Button::Right)
+                mouse::Event::ButtonReleased(mouse::Button::Right)
                     if self.state.picked_split().is_some() =>
                 {
                     self.state.drop_split();
