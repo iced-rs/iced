@@ -102,6 +102,13 @@ impl<T> State<T> {
         self.panes.iter_mut()
     }
 
+    /// Returns the layout tree stored in the [`State`].
+    ///
+    /// [`State`]: struct.State.html
+    pub fn layout(&self) -> &Node {
+        &self.internal.layout
+    }
+
     /// Returns the active [`Pane`] of the [`State`], if there is one.
     ///
     /// A [`Pane`] is active if it is focused and is __not__ being dragged.

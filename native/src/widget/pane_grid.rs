@@ -17,6 +17,7 @@ mod state;
 
 pub use axis::Axis;
 pub use direction::Direction;
+pub use node::Node;
 pub use pane::Pane;
 pub use split::Split;
 pub use state::{Focus, State};
