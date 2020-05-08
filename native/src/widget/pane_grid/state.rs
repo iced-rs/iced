@@ -82,6 +82,14 @@ impl<T> State<T> {
     /// Returns the internal state of the given [`Pane`], if it exists.
     ///
     /// [`Pane`]: struct.Pane.html
+    pub fn get(&self, pane: &Pane) -> Option<&T> {
+        self.panes.get(pane)
+    }
+
+    /// Returns the internal state of the given [`Pane`] with mutability, if it
+    /// exists.
+    ///
+    /// [`Pane`]: struct.Pane.html
     pub fn get_mut(&mut self, pane: &Pane) -> Option<&mut T> {
         self.panes.get_mut(pane)
     }
