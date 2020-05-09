@@ -191,7 +191,12 @@ impl<T> State<T> {
     ///
     /// [`Pane`]: struct.Pane.html
     /// [`Axis`]: enum.Axis.html
-    pub fn split(&mut self, axis: Axis, pane: &Pane, state: T) -> Option<Pane> {
+    pub fn split(
+        &mut self,
+        axis: Axis,
+        pane: &Pane,
+        state: T,
+    ) -> Option<(Pane, Split)> {
         let node = self.internal.layout.find(pane)?;
 
         let new_pane = {
@@ -211,7 +216,7 @@ impl<T> State<T> {
         let _ = self.panes.insert(new_pane, state);
         self.focus(&new_pane);
 
-        Some(new_pane)
+        Some((new_pane, new_split))
     }
 
     /// Swaps the position of the provided panes in the [`State`].
