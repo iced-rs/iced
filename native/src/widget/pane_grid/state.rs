@@ -1,6 +1,6 @@
 use crate::{
     keyboard,
-    pane_grid::{node::Node, Axis, Direction, Pane, Split},
+    pane_grid::{Axis, Content, Direction, Node, Pane, Split},
     Hasher, Point, Rectangle, Size,
 };
 
@@ -53,23 +53,24 @@ impl<T> State<T> {
     /// [`State`]: struct.State.html
     /// [`Pane`]: struct.Pane.html
     pub fn new(first_pane_state: T) -> (Self, Pane) {
-        let first_pane = Pane(0);
+        (Self::with_content(Content::Pane(first_pane_state)), Pane(0))
+    }
 
+    pub fn with_content(content: impl Into<Content<T>>) -> Self {
         let mut panes = HashMap::new();
-        let _ = panes.insert(first_pane, first_pane_state);
 
-        (
-            State {
-                panes,
-                internal: Internal {
-                    layout: Node::Pane(first_pane),
-                    last_id: 0,
-                    action: Action::Idle { focus: None },
-                },
-                modifiers: keyboard::ModifiersState::default(),
+        let (layout, last_id) =
+            Self::distribute_content(&mut panes, content.into(), 0);
+
+        State {
+            panes,
+            internal: Internal {
+                layout,
+                last_id,
+                action: Action::Idle { focus: None },
             },
-            first_pane,
-        )
+            modifiers: keyboard::ModifiersState::default(),
+        }
     }
 
     /// Returns the total amount of panes in the [`State`].
@@ -110,7 +111,7 @@ impl<T> State<T> {
         self.panes.iter_mut()
     }
 
-    /// Returns the layout tree stored in the [`State`].
+    /// Returns the layout of the [`State`].
     ///
     /// [`State`]: struct.State.html
     pub fn layout(&self) -> &Node {
@@ -264,6 +265,36 @@ impl<T> State<T> {
             self.panes.remove(pane)
         } else {
             None
+        }
+    }
+
+    fn distribute_content(
+        panes: &mut HashMap<Pane, T>,
+        content: Content<T>,
+        next_id: usize,
+    ) -> (Node, usize) {
+        match content {
+            Content::Split { axis, ratio, a, b } => {
+                let (a, next_id) = Self::distribute_content(panes, *a, next_id);
+                let (b, next_id) = Self::distribute_content(panes, *b, next_id);
+
+                (
+                    Node::Split {
+                        id: Split(next_id),
+                        axis,
+                        ratio,
+                        a: Box::new(a),
+                        b: Box::new(b),
+                    },
+                    next_id + 1,
+                )
+            }
+            Content::Pane(state) => {
+                let id = Pane(next_id);
+                let _ = panes.insert(id, state);
+
+                (Node::Pane(id), next_id + 1)
+            }
         }
     }
 }
