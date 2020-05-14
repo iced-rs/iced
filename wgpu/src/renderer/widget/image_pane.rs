@@ -1,5 +1,5 @@
 use crate::{Primitive, Renderer};
-use iced_native::{image, image_pane, MouseCursor, Rectangle, Vector};
+use iced_native::{image, image_pane, mouse, Rectangle, Vector};
 
 impl image_pane::Renderer for Renderer {
     fn draw(
@@ -24,14 +24,14 @@ impl image_pane::Renderer for Renderer {
             },
             {
                 if state.is_cursor_clicked() {
-                    MouseCursor::Grabbing
+                    mouse::Interaction::Grabbing
                 } else if is_mouse_over
                     && (image_bounds.width > bounds.width
                         || image_bounds.height > bounds.height)
                 {
-                    MouseCursor::Grab
+                    mouse::Interaction::Grab
                 } else {
-                    MouseCursor::Idle
+                    mouse::Interaction::Idle
                 }
             },
         )

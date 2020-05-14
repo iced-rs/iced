@@ -1,9 +1,7 @@
 //! Zoom and pan on an image.
 use crate::{
-    image,
-    input::{self, mouse},
-    layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    image, layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length,
+    Point, Rectangle, Size, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -154,21 +152,8 @@ where
             match event {
                 Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
                     match delta {
-                        mouse::ScrollDelta::Lines { y, .. } => {
-                            // TODO: Configurable step and limits
-                            if y > 0.0 {
-                                self.state.scale = Some(
-                                    (self.state.scale.unwrap_or(1.0) + 0.25)
-                                        .min(10.0),
-                                );
-                            } else {
-                                self.state.scale = Some(
-                                    (self.state.scale.unwrap_or(1.0) - 0.25)
-                                        .max(0.25),
-                                );
-                            }
-                        }
-                        mouse::ScrollDelta::Pixels { y, .. } => {
+                        mouse::ScrollDelta::Lines { y, .. }
+                        | mouse::ScrollDelta::Pixels { y, .. } => {
                             // TODO: Configurable step and limits
                             if y > 0.0 {
                                 self.state.scale = Some(
@@ -184,22 +169,17 @@ where
                         }
                     }
                 }
-                Event::Mouse(mouse::Event::Input { button, state }) => {
+                Event::Mouse(mouse::Event::ButtonPressed(button)) => {
                     if button == mouse::Button::Left {
-                        match state {
-                            input::ButtonState::Pressed => {
-                                self.state.starting_cursor_pos = Some((
-                                    cursor_position.x,
-                                    cursor_position.y,
-                                ));
+                        self.state.starting_cursor_pos =
+                            Some((cursor_position.x, cursor_position.y));
 
-                                self.state.starting_offset =
-                                    self.state.current_offset;
-                            }
-                            input::ButtonState::Released => {
-                                self.state.starting_cursor_pos = None
-                            }
-                        }
+                        self.state.starting_offset = self.state.current_offset;
+                    }
+                }
+                Event::Mouse(mouse::Event::ButtonReleased(button)) => {
+                    if button == mouse::Button::Left {
+                        self.state.starting_cursor_pos = None
                     }
                 }
                 Event::Mouse(mouse::Event::CursorMoved { x, y }) => {
@@ -209,12 +189,9 @@ where
                 }
                 _ => {}
             }
-        } else if let Event::Mouse(mouse::Event::Input { button, state }) =
-            event
+        } else if let Event::Mouse(mouse::Event::ButtonReleased(button)) = event
         {
-            if button == mouse::Button::Left
-                && state == input::ButtonState::Released
-            {
+            if button == mouse::Button::Left {
                 self.state.starting_cursor_pos = None;
             }
         }
