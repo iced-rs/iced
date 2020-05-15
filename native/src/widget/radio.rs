@@ -34,14 +34,20 @@ use std::hash::Hash;
 ///
 /// ![Radio buttons drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Radio<Message, Renderer: self::Renderer> {
+pub struct Radio<Message, Renderer: self::Renderer + text::Renderer> {
     is_selected: bool,
     on_click: Message,
     label: String,
+    width: Length,
+    size: u16,
+    spacing: u16,
+    text_size: u16,
     style: Renderer::Style,
 }
 
-impl<Message, Renderer: self::Renderer> Radio<Message, Renderer> {
+impl<Message, Renderer: self::Renderer + text::Renderer>
+    Radio<Message, Renderer>
+{
     /// Creates a new [`Radio`] button.
     ///
     /// It expects:
@@ -66,8 +72,44 @@ impl<Message, Renderer: self::Renderer> Radio<Message, Renderer> {
             is_selected: Some(value) == selected,
             on_click: f(value),
             label: label.into(),
+            width: Length::Shrink,
+            size: <Renderer as self::Renderer>::DEFAULT_SIZE,
+            spacing: Renderer::DEFAULT_SPACING, //15
+            text_size: <Renderer as text::Renderer>::DEFAULT_SIZE,
             style: Renderer::Style::default(),
         }
+    }
+
+    /// Sets the size of the [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn size(mut self, size: u16) -> Self {
+        self.size = size;
+        self
+    }
+
+    /// Sets the width of the [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Sets the spacing between the [`Radio`] button and the text.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn spacing(mut self, spacing: u16) -> Self {
+        self.spacing = spacing;
+        self
+    }
+
+    /// Sets the text size of the [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn text_size(mut self, text_size: u16) -> Self {
+        self.text_size = text_size;
+        self
     }
 
     /// Sets the style of the [`Radio`] button.
@@ -85,7 +127,7 @@ where
     Message: Clone,
 {
     fn width(&self) -> Length {
-        Length::Fill
+        self.width
     }
 
     fn height(&self) -> Length {
@@ -97,18 +139,20 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = self::Renderer::default_size(renderer);
-
         Row::<(), Renderer>::new()
-            .width(Length::Fill)
-            .spacing(15)
+            .width(self.width)
+            .spacing(self.spacing)
             .align_items(Align::Center)
             .push(
                 Row::new()
-                    .width(Length::Units(size as u16))
-                    .height(Length::Units(size as u16)),
+                    .width(Length::Units(self.size))
+                    .height(Length::Units(self.size)),
             )
-            .push(Text::new(&self.label))
+            .push(
+                Text::new(&self.label)
+                    .width(self.width)
+                    .size(self.text_size),
+            )
             .layout(renderer, limits)
     }
 
@@ -150,7 +194,7 @@ where
             defaults,
             label_layout.bounds(),
             &self.label,
-            <Renderer as text::Renderer>::DEFAULT_SIZE,
+            self.text_size,
             Default::default(),
             None,
             HorizontalAlignment::Left,
@@ -188,10 +232,15 @@ pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
 
-    /// Returns the default size of a [`Radio`] button.
+    /// The default size of a [`Radio`] button.
     ///
     /// [`Radio`]: struct.Radio.html
-    fn default_size(&self) -> u32;
+    const DEFAULT_SIZE: u16;
+
+    /// The default spacing of a [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    const DEFAULT_SPACING: u16;
 
     /// Draws a [`Radio`] button.
     ///
