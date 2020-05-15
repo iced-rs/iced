@@ -28,7 +28,7 @@ impl iced_native::window::Backend for Backend {
                     },
                     compatible_surface: None,
                 },
-                wgpu::BackendBit::all(),
+                wgpu::BackendBit::PRIMARY,
             )
             .await
             .expect("Request adapter");
