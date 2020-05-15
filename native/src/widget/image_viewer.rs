@@ -8,7 +8,7 @@ use std::{f32, hash::Hash, u32};
 
 /// A widget that can display an image with the ability to zoom in/out and pan.
 #[allow(missing_debug_implementations)]
-pub struct ImagePane<'a> {
+pub struct ImageViewer<'a> {
     state: &'a mut State,
     padding: u16,
     width: Length,
@@ -18,14 +18,14 @@ pub struct ImagePane<'a> {
     handle: image::Handle,
 }
 
-impl<'a> ImagePane<'a> {
-    /// Creates a new [`ImagePane`] with the given [`State`] and [`Handle`].
+impl<'a> ImageViewer<'a> {
+    /// Creates a new [`ImageViewer`] with the given [`State`] and [`Handle`].
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     /// [`State`]: struct.State.html
     /// [`Handle`]: ../image/struct.Handle.html
     pub fn new(state: &'a mut State, handle: image::Handle) -> Self {
-        ImagePane {
+        ImageViewer {
             state,
             padding: 0,
             width: Length::Shrink,
@@ -36,48 +36,48 @@ impl<'a> ImagePane<'a> {
         }
     }
 
-    /// Sets the padding of the [`ImagePane`].
+    /// Sets the padding of the [`ImageViewer`].
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     pub fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self
     }
 
-    /// Sets the width of the [`ImagePane`].
+    /// Sets the width of the [`ImageViewer`].
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
-    /// Sets the height of the [`ImagePane`].
+    /// Sets the height of the [`ImageViewer`].
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
-    /// Sets the max width of the [`ImagePane`].
+    /// Sets the max width of the [`ImageViewer`].
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
 
-    /// Sets the max height of the [`ImagePane`].
+    /// Sets the max height of the [`ImageViewer`].
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for ImagePane<'a>
+impl<'a, Message, Renderer> Widget<Message, Renderer> for ImageViewer<'a>
 where
     Renderer: self::Renderer + image::Renderer,
 {
@@ -263,9 +263,9 @@ where
     }
 }
 
-/// The local state of an [`ImagePane`].
+/// The local state of an [`ImageViewer`].
 ///
-/// [`ImagePane`]: struct.ImagePane.html
+/// [`ImageViewer`]: struct.ImageViewer.html
 #[derive(Debug, Clone, Copy, Default)]
 pub struct State {
     scale: Option<f32>,
@@ -275,7 +275,7 @@ pub struct State {
 }
 
 impl State {
-    /// Creates a new [`State`] with the scrollbar located at the top.
+    /// Creates a new [`State`].
     ///
     /// [`State`]: struct.State.html
     pub fn new() -> Self {
@@ -283,9 +283,9 @@ impl State {
     }
 
     /// Apply a panning offset to the current [`State`], given the bounds of
-    /// the [`ImagePane`] and its image.
+    /// the [`ImageViewer`] and its image.
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     /// [`State`]: struct.State.html
     fn pan(
         &mut self,
@@ -311,9 +311,9 @@ impl State {
     }
 
     /// Returns the current clipping offset of the [`State`], given the bounds
-    /// of the [`ImagePane`] and its contents.
+    /// of the [`ImageViewer`] and its contents.
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     /// [`State`]: struct.State.html
     fn offset(&self, bounds: Rectangle, image_bounds: Rectangle) -> (u32, u32) {
         let hidden_width = ((image_bounds.width - bounds.width) as f32)
@@ -331,34 +331,34 @@ impl State {
     }
 
     /// Returns if the left mouse button is still held down since clicking inside
-    /// the [`ImagePane`].
+    /// the [`ImageViewer`].
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     /// [`State`]: struct.State.html
     pub fn is_cursor_clicked(&self) -> bool {
         self.starting_cursor_pos.is_some()
     }
 }
 
-/// The renderer of an [`ImagePane`].
+/// The renderer of an [`ImageViewer`].
 ///
 /// Your [renderer] will need to implement this trait before being
-/// able to use a [`ImagePane`] in your user interface.
+/// able to use a [`ImageViewer`] in your user interface.
 ///
-/// [`ImagePane`]: struct.ImagePane.html
+/// [`ImageViewer`]: struct.ImageViewer.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
-    /// Draws the [`ImagePane`].
+    /// Draws the [`ImageViewer`].
     ///
     /// It receives:
-    /// - the [`State`] of the [`ImagePane`]
-    /// - the bounds of the [`ImagePane`] widget
-    /// - the bounds of the scaled [`ImagePane`] image
+    /// - the [`State`] of the [`ImageViewer`]
+    /// - the bounds of the [`ImageViewer`] widget
+    /// - the bounds of the scaled [`ImageViewer`] image
     /// - the clipping x,y offset
     /// - the [`Handle`] to the underlying image
-    /// - whether the mouse is over the [`ImagePane`] or not
+    /// - whether the mouse is over the [`ImageViewer`] or not
     ///
-    /// [`ImagePane`]: struct.ImagePane.html
+    /// [`ImageViewer`]: struct.ImageViewer.html
     /// [`State`]: struct.State.html
     /// [`Handle`]: ../image/struct.Handle.html
     fn draw(
@@ -372,13 +372,13 @@ pub trait Renderer: crate::Renderer + Sized {
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<ImagePane<'a>>
+impl<'a, Message, Renderer> From<ImageViewer<'a>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'a + self::Renderer + image::Renderer,
     Message: 'a,
 {
-    fn from(image_pane: ImagePane<'a>) -> Element<'a, Message, Renderer> {
-        Element::new(image_pane)
+    fn from(viewer: ImageViewer<'a>) -> Element<'a, Message, Renderer> {
+        Element::new(viewer)
     }
 }
