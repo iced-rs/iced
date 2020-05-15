@@ -161,9 +161,8 @@ impl button::Renderer for Null {
 impl radio::Renderer for Null {
     type Style = ();
 
-    fn default_size(&self) -> u32 {
-        20
-    }
+    const DEFAULT_SIZE: u16 = 20;
+    const DEFAULT_SPACING: u16 = 15;
 
     fn draw(
         &mut self,
