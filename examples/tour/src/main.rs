@@ -26,7 +26,7 @@ pub struct Tour {
 }
 
 impl Application for Tour {
-    type Backend = window::Backend;
+    type Compositor = window::Compositor;
     type Executor = executor::Null;
     type Message = Message;
     type Flags = ();

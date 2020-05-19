@@ -2,8 +2,8 @@ use crate::mouse;
 
 use raw_window_handle::HasRawWindowHandle;
 
-/// A graphics backend that can render to windows.
-pub trait Backend: Sized {
+/// A graphics compositor that can draw to windows.
+pub trait Compositor: Sized {
     /// The settings of the backend.
     type Settings: Default + Clone;
 

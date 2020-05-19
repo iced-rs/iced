@@ -19,7 +19,7 @@ pub trait Application: Sized {
     /// The graphics backend to use to draw the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    type Backend: window::Backend;
+    type Compositor: window::Compositor;
 
     /// The [`Executor`] that will run commands and subscriptions.
     ///
@@ -91,7 +91,11 @@ pub trait Application: Sized {
     /// [`Application`]: trait.Application.html
     fn view(
         &mut self,
-    ) -> Element<'_, Self::Message, <Self::Backend as window::Backend>::Renderer>;
+    ) -> Element<
+        '_,
+        Self::Message,
+        <Self::Compositor as window::Compositor>::Renderer,
+    >;
 
     /// Returns the current [`Application`] mode.
     ///
@@ -116,11 +120,11 @@ pub trait Application: Sized {
     /// [`Settings`]: struct.Settings.html
     fn run(
         settings: Settings<Self::Flags>,
-        backend_settings: <Self::Backend as window::Backend>::Settings,
+        backend_settings: <Self::Compositor as window::Compositor>::Settings,
     ) where
         Self: 'static,
     {
-        use window::Backend as _;
+        use window::Compositor as _;
         use winit::{
             event::{self, WindowEvent},
             event_loop::{ControlFlow, EventLoop},
@@ -181,15 +185,15 @@ pub trait Application: Sized {
         let mut resized = false;
 
         let clipboard = Clipboard::new(&window);
-        let mut backend = Self::Backend::new(backend_settings.clone());
+        let mut compositor = Self::Compositor::new(backend_settings.clone());
 
-        let surface = backend.create_surface(&window);
-        let mut renderer = backend.create_renderer(backend_settings);
+        let surface = compositor.create_surface(&window);
+        let mut renderer = compositor.create_renderer(backend_settings);
 
         let mut swap_chain = {
             let physical_size = size.physical();
 
-            backend.create_swap_chain(
+            compositor.create_swap_chain(
                 &surface,
                 physical_size.width,
                 physical_size.height,
@@ -324,7 +328,7 @@ pub trait Application: Sized {
                 if resized {
                     let physical_size = size.physical();
 
-                    swap_chain = backend.create_swap_chain(
+                    swap_chain = compositor.create_swap_chain(
                         &surface,
                         physical_size.width,
                         physical_size.height,
@@ -333,7 +337,7 @@ pub trait Application: Sized {
                     resized = false;
                 }
 
-                let new_mouse_interaction = backend.draw(
+                let new_mouse_interaction = compositor.draw(
                     &mut renderer,
                     &mut swap_chain,
                     &primitive,
@@ -414,10 +418,14 @@ pub trait Application: Sized {
 fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
-    renderer: &mut <A::Backend as window::Backend>::Renderer,
+    renderer: &mut <A::Compositor as window::Compositor>::Renderer,
     size: winit::dpi::LogicalSize<f64>,
     debug: &mut Debug,
-) -> UserInterface<'a, A::Message, <A::Backend as window::Backend>::Renderer> {
+) -> UserInterface<
+    'a,
+    A::Message,
+    <A::Compositor as window::Compositor>::Renderer,
+> {
     debug.view_started();
     let view = application.view();
     debug.view_finished();

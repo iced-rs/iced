@@ -1,6 +1,6 @@
 //! Build window-based GUI applications.
-mod backend;
+mod compositor;
 mod event;
 
-pub use backend::Backend;
+pub use compositor::Compositor;
 pub use event::Event;

@@ -216,7 +216,7 @@ impl<A> iced_winit::Application for Instance<A>
 where
     A: Application,
 {
-    type Backend = iced_wgpu::window::Backend;
+    type Compositor = iced_wgpu::window::Compositor;
     type Executor = A::Executor;
     type Flags = A::Flags;
     type Message = A::Message;

@@ -1,4 +1,4 @@
 //! Display rendering results on windows.
-mod backend;
+mod compositor;
 
-pub use backend::Backend;
+pub use compositor::Compositor;

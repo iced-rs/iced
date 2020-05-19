@@ -6,20 +6,20 @@ use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `glow`.
 #[allow(missing_debug_implementations)]
-pub struct Backend {
+pub struct Compositor {
     connection: surfman::Connection,
     device: surfman::Device,
     gl_context: surfman::Context,
     gl: Option<glow::Context>,
 }
 
-impl iced_native::window::Backend for Backend {
+impl iced_native::window::Compositor for Compositor {
     type Settings = Settings;
     type Renderer = Renderer;
     type Surface = ();
     type SwapChain = Viewport;
 
-    fn new(settings: Self::Settings) -> Backend {
+    fn new(_settings: Self::Settings) -> Self {
         let connection = surfman::Connection::new().expect("Create connection");
 
         let adapter = connection
@@ -40,7 +40,7 @@ impl iced_native::window::Backend for Backend {
             .create_context(&context_descriptor)
             .expect("Create context");
 
-        Backend {
+        Self {
             connection,
             device,
             gl_context,
@@ -179,7 +179,7 @@ impl iced_native::window::Backend for Backend {
     }
 }
 
-impl Drop for Backend {
+impl Drop for Compositor {
     fn drop(&mut self) {
         self.device
             .destroy_context(&mut self.gl_context)

@@ -5,19 +5,19 @@ use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `wgpu`.
 #[derive(Debug)]
-pub struct Backend {
+pub struct Compositor {
     device: wgpu::Device,
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
 }
 
-impl iced_native::window::Backend for Backend {
+impl iced_native::window::Compositor for Compositor {
     type Settings = Settings;
     type Renderer = Renderer;
     type Surface = wgpu::Surface;
     type SwapChain = SwapChain;
 
-    fn new(settings: Self::Settings) -> Backend {
+    fn new(settings: Self::Settings) -> Self {
         let (device, queue) = futures::executor::block_on(async {
             let adapter = wgpu::Adapter::request(
                 &wgpu::RequestAdapterOptions {
@@ -43,7 +43,7 @@ impl iced_native::window::Backend for Backend {
                 .await
         });
 
-        Backend {
+        Self {
             device,
             queue,
             format: settings.format,
