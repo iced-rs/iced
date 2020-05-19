@@ -1,3 +1,4 @@
+mod antialiasing;
 mod defaults;
 mod primitive;
 mod renderer;
@@ -12,6 +13,7 @@ pub mod triangle;
 #[doc(no_inline)]
 pub use widget::*;
 
+pub use antialiasing::Antialiasing;
 pub use backend::Backend;
 pub use defaults::Defaults;
 pub use primitive::Primitive;
