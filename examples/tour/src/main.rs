@@ -1,13 +1,20 @@
-use iced::{
-    button, scrollable, slider, text_input, Button, Checkbox, Color, Column,
-    Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
-    Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput,
+use iced_glow::{
+    button, scrollable, slider, text_input, window, Button, Checkbox, Color,
+    Column, Command, Container, Element, HorizontalAlignment, Image, Length,
+    Radio, Row, Scrollable, Slider, Space, Text, TextInput,
 };
+use iced_winit::{executor, Application, Settings};
 
 pub fn main() {
     env_logger::init();
 
-    Tour::run(Settings::default())
+    Tour::run(
+        Settings::default(),
+        iced_glow::Settings {
+            default_font: None,
+            antialiasing: None,
+        },
+    )
 }
 
 pub struct Tour {
@@ -18,24 +25,30 @@ pub struct Tour {
     debug: bool,
 }
 
-impl Sandbox for Tour {
+impl Application for Tour {
+    type Backend = window::Backend;
+    type Executor = executor::Null;
     type Message = Message;
+    type Flags = ();
 
-    fn new() -> Tour {
-        Tour {
-            steps: Steps::new(),
-            scroll: scrollable::State::new(),
-            back_button: button::State::new(),
-            next_button: button::State::new(),
-            debug: false,
-        }
+    fn new(_flags: ()) -> (Tour, Command<Message>) {
+        (
+            Tour {
+                steps: Steps::new(),
+                scroll: scrollable::State::new(),
+                back_button: button::State::new(),
+                next_button: button::State::new(),
+                debug: false,
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
         format!("{} - Iced", self.steps.title())
     }
 
-    fn update(&mut self, event: Message) {
+    fn update(&mut self, event: Message) -> Command<Message> {
         match event {
             Message::BackPressed => {
                 self.steps.go_back();
@@ -47,6 +60,8 @@ impl Sandbox for Tour {
                 self.steps.update(step_msg, &mut self.debug);
             }
         }
+
+        Command::none()
     }
 
     fn view(&mut self) -> Element<Message> {
@@ -678,17 +693,18 @@ impl<'a> Step {
 
 fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
     Container::new(
+        Text::new("Not supported yet!")
         // This should go away once we unify resource loading on native
         // platforms
-        if cfg!(target_arch = "wasm32") {
-            Image::new("images/ferris.png")
-        } else {
-            Image::new(format!(
-                "{}/images/ferris.png",
-                env!("CARGO_MANIFEST_DIR")
-            ))
-        }
-        .width(Length::Units(width)),
+        //if cfg!(target_arch = "wasm32") {
+        //    Image::new("images/ferris.png")
+        //} else {
+        //    Image::new(format!(
+        //        "{}/images/ferris.png",
+        //        env!("CARGO_MANIFEST_DIR")
+        //    ))
+        //}
+        //.width(Length::Units(width)),
     )
     .width(Length::Fill)
     .center_x()
@@ -749,7 +765,7 @@ pub enum Layout {
 }
 
 mod style {
-    use iced::{button, Background, Color, Vector};
+    use iced_glow::{button, Background, Color, Vector};
 
     pub enum Button {
         Primary,

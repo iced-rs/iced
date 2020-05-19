@@ -17,8 +17,8 @@ impl iced_native::window::Backend for Backend {
     type Surface = wgpu::Surface;
     type SwapChain = SwapChain;
 
-    fn new(settings: Self::Settings) -> (Backend, Renderer) {
-        let (mut device, queue) = futures::executor::block_on(async {
+    fn new(settings: Self::Settings) -> Backend {
+        let (device, queue) = futures::executor::block_on(async {
             let adapter = wgpu::Adapter::request(
                 &wgpu::RequestAdapterOptions {
                     power_preference: if settings.antialiasing.is_none() {
@@ -43,16 +43,15 @@ impl iced_native::window::Backend for Backend {
                 .await
         });
 
-        let renderer = Renderer::new(&mut device, settings);
+        Backend {
+            device,
+            queue,
+            format: settings.format,
+        }
+    }
 
-        (
-            Backend {
-                device,
-                queue,
-                format: settings.format,
-            },
-            renderer,
-        )
+    fn create_renderer(&mut self, settings: Settings) -> Renderer {
+        Renderer::new(&mut self.device, settings)
     }
 
     fn create_surface<W: HasRawWindowHandle>(

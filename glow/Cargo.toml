@@ -1,0 +1,34 @@
+[package]
+name = "iced_glow"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+description = "A glow renderer for iced"
+license = "MIT AND OFL-1.1"
+repository = "https://github.com/hecrj/iced"
+
+[dependencies]
+raw-window-handle = "0.3"
+euclid = "0.20"
+glow = "0.4"
+bytemuck = "1.2"
+glam = "0.8"
+font-kit = "0.6"
+log = "0.4"
+glyph_brush = "0.6"
+
+[dependencies.iced_native]
+version = "0.2"
+path = "../native"
+
+[dependencies.iced_style]
+version = "0.1"
+path = "../style"
+
+[dependencies.surfman]
+path = "../../surfman/surfman"
+default-features = false
+features = ["sm-raw-window-handle", "sm-x11"]
+
+[dependencies.glow_glyph]
+path = "../../glow_glyph"

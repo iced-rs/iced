@@ -5,7 +5,7 @@ use raw_window_handle::HasRawWindowHandle;
 /// A graphics backend that can render to windows.
 pub trait Backend: Sized {
     /// The settings of the backend.
-    type Settings: Default;
+    type Settings: Default + Clone;
 
     /// The iced renderer of the backend.
     type Renderer: crate::Renderer;
@@ -16,10 +16,10 @@ pub trait Backend: Sized {
     /// The swap chain of the backend.
     type SwapChain;
 
-    /// Creates a new [`Backend`] and an associated iced renderer.
+    /// Creates a new [`Backend`].
     ///
     /// [`Backend`]: trait.Backend.html
-    fn new(settings: Self::Settings) -> (Self, Self::Renderer);
+    fn new(settings: Self::Settings) -> Self;
 
     /// Crates a new [`Surface`] for the given window.
     ///
@@ -28,6 +28,11 @@ pub trait Backend: Sized {
         &mut self,
         window: &W,
     ) -> Self::Surface;
+
+    /// Crates a new [`Renderer`].
+    ///
+    /// [`Renderer`]: #associatedtype.Renderer
+    fn create_renderer(&mut self, settings: Self::Settings) -> Self::Renderer;
 
     /// Crates a new [`SwapChain`] for the given [`Surface`].
     ///

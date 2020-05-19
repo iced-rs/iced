@@ -78,7 +78,11 @@ pub trait Application: Sized {
     /// [`update`](#tymethod.update).
     ///
     /// A `Subscription` will be kept alive as long as you keep returning it!
-    fn subscription(&self) -> Subscription<Self::Message>;
+    ///
+    /// By default, it returns an empty subscription.
+    fn subscription(&self) -> Subscription<Self::Message> {
+        Subscription::none()
+    }
 
     /// Returns the widgets to display in the [`Application`].
     ///
@@ -177,9 +181,10 @@ pub trait Application: Sized {
         let mut resized = false;
 
         let clipboard = Clipboard::new(&window);
-        let (mut backend, mut renderer) = Self::Backend::new(backend_settings);
+        let mut backend = Self::Backend::new(backend_settings.clone());
 
         let surface = backend.create_surface(&window);
+        let mut renderer = backend.create_renderer(backend_settings);
 
         let mut swap_chain = {
             let physical_size = size.physical();

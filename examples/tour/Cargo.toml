@@ -6,5 +6,6 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["image", "debug"] }
+iced_winit = { path = "../../winit", features = ["debug"] }
+iced_glow = { path = "../../glow" }
 env_logger = "0.7"
