@@ -1,16 +1,19 @@
 use crate::{Backend, Primitive, Renderer};
+use iced_native::column;
 use iced_native::mouse;
-use iced_native::row;
 use iced_native::{Element, Layout, Point};
 
-impl<B> row::Renderer for Renderer<B>
+pub type Column<'a, Message, Backend> =
+    iced_native::Column<'a, Message, Renderer<Backend>>;
+
+impl<B> column::Renderer for Renderer<B>
 where
     B: Backend,
 {
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        children: &[Element<'_, Message, Self>],
+        content: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output {
@@ -18,7 +21,7 @@ where
 
         (
             Primitive::Group {
-                primitives: children
+                primitives: content
                     .iter()
                     .zip(layout.children())
                     .map(|(child, layout)| {

@@ -1,9 +1,12 @@
 use crate::{Backend, Primitive, Renderer};
-use iced_native::column;
 use iced_native::mouse;
+use iced_native::row;
 use iced_native::{Element, Layout, Point};
 
-impl<B> column::Renderer for Renderer<B>
+pub type Row<'a, Message, Backend> =
+    iced_native::Row<'a, Message, Renderer<Backend>>;
+
+impl<B> row::Renderer for Renderer<B>
 where
     B: Backend,
 {

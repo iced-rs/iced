@@ -17,6 +17,11 @@ pub mod scrollable;
 pub mod slider;
 pub mod text_input;
 
+mod column;
+mod image;
+mod row;
+mod space;
+mod svg;
 mod text;
 
 #[doc(no_inline)]
@@ -38,6 +43,11 @@ pub use slider::Slider;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
+pub use column::Column;
+pub use image::Image;
+pub use row::Row;
+pub use space::Space;
+pub use svg::Svg;
 pub use text::Text;
 
 #[cfg(feature = "canvas")]

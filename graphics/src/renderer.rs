@@ -1,5 +1,3 @@
-mod widget;
-
 use crate::{Backend, Defaults, Primitive};
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;

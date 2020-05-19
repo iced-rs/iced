@@ -2,6 +2,8 @@ use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::{mouse, svg, Layout};
 
+pub use iced_native::Svg;
+
 impl<B> svg::Renderer for Renderer<B>
 where
     B: Backend + backend::Svg,
