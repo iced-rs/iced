@@ -36,15 +36,13 @@ mod backend;
 mod quad;
 mod target;
 mod text;
-mod viewport;
 
-pub use iced_graphics::{Defaults, Primitive};
+pub use iced_graphics::{Defaults, Primitive, Viewport};
 pub use wgpu;
 
 pub use backend::Backend;
 pub use settings::Settings;
 pub use target::Target;
-pub use viewport::Viewport;
 
 #[doc(no_inline)]
 pub use widget::*;

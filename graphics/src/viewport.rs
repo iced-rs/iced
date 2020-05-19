@@ -18,12 +18,16 @@ impl Viewport {
         }
     }
 
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
     /// Returns the dimensions of the [`Viewport`].
     pub fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
     }
 
-    pub(crate) fn transformation(&self) -> Transformation {
+    pub fn transformation(&self) -> Transformation {
         self.transformation
     }
 }

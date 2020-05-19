@@ -8,14 +8,12 @@ mod backend;
 mod quad;
 mod text;
 mod triangle;
-mod viewport;
 
 pub mod settings;
 pub mod widget;
 pub mod window;
 
 pub use settings::Settings;
-pub use viewport::Viewport;
 
 pub(crate) use backend::Backend;
 pub(crate) use iced_graphics::Transformation;
@@ -26,9 +24,10 @@ pub type Renderer = iced_graphics::Renderer<Backend>;
 #[doc(no_inline)]
 pub use widget::*;
 
+pub type Element<'a, Message> = iced_native::Element<'a, Message, Renderer>;
+
+pub use iced_graphics::Viewport;
 pub use iced_native::{
     Background, Color, Command, HorizontalAlignment, Length, Vector,
     VerticalAlignment,
 };
-
-pub type Element<'a, Message> = iced_native::Element<'a, Message, Renderer>;
