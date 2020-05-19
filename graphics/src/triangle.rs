@@ -5,6 +5,7 @@
 pub struct Mesh2D {
     /// The vertices of the mesh
     pub vertices: Vec<Vertex2D>,
+
     /// The list of vertex indices that defines the triangles of the mesh.
     ///
     /// Therefore, this list should always have a length that is a multiple of

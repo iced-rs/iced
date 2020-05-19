@@ -82,13 +82,13 @@ pub enum Primitive {
     ///
     /// It can be used to render many kinds of geometry freely.
     Mesh2D {
+        /// The vertex and index buffers of the mesh
+        buffers: triangle::Mesh2D,
+
         /// The size of the drawable region of the mesh.
         ///
         /// Any geometry that falls out of this region will be clipped.
         size: Size,
-
-        /// The vertex and index buffers of the mesh
-        buffers: triangle::Mesh2D,
     },
     /// A cached primitive.
     ///

@@ -1,15 +1,16 @@
 use crate::quad;
 use crate::text;
 use crate::triangle;
-use crate::{Quad, Settings, Target, Transformation};
+use crate::{Settings, Target, Transformation};
 use iced_graphics::backend;
 use iced_graphics::font;
+use iced_graphics::layer::Layer;
 use iced_graphics::Primitive;
 use iced_native::mouse;
-use iced_native::{Background, Font, Point, Rectangle, Size, Vector};
+use iced_native::{Font, HorizontalAlignment, Size, VerticalAlignment};
 
 #[cfg(any(feature = "image", feature = "svg"))]
-use crate::image::{self, Image};
+use crate::image;
 
 /// A [`wgpu`] renderer.
 ///
@@ -22,36 +23,6 @@ pub struct Backend {
 
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
-}
-
-struct Layer<'a> {
-    bounds: Rectangle<u32>,
-    quads: Vec<Quad>,
-    meshes: Vec<(Vector, Rectangle<u32>, &'a triangle::Mesh2D)>,
-    text: Vec<wgpu_glyph::Section<'a>>,
-
-    #[cfg(any(feature = "image", feature = "svg"))]
-    images: Vec<Image>,
-}
-
-impl<'a> Layer<'a> {
-    pub fn new(bounds: Rectangle<u32>) -> Self {
-        Self {
-            bounds,
-            quads: Vec::new(),
-            text: Vec::new(),
-            meshes: Vec::new(),
-
-            #[cfg(any(feature = "image", feature = "svg"))]
-            images: Vec::new(),
-        }
-    }
-
-    pub fn intersection(&self, rectangle: Rectangle) -> Option<Rectangle<u32>> {
-        let layer_bounds: Rectangle<f32> = self.bounds.into();
-
-        layer_bounds.intersection(&rectangle).map(Into::into)
-    }
 }
 
 impl Backend {
@@ -94,7 +65,7 @@ impl Backend {
         target: Target<'_>,
         (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
         scale_factor: f64,
-        overlay: &[T],
+        overlay_text: &[T],
     ) -> mouse::Interaction {
         log::debug!("Drawing");
 
@@ -102,17 +73,8 @@ impl Backend {
         let scale_factor = scale_factor as f32;
         let transformation = target.viewport.transformation();
 
-        let mut layers = Vec::new();
-
-        layers.push(Layer::new(Rectangle {
-            x: 0,
-            y: 0,
-            width,
-            height,
-        }));
-
-        self.draw_primitive(Vector::new(0.0, 0.0), primitive, &mut layers);
-        self.draw_overlay(overlay, &mut layers);
+        let mut layers = Layer::generate(primitive, &target.viewport);
+        layers.push(Layer::overlay(overlay_text, &target.viewport));
 
         for layer in layers {
             self.flush(
@@ -131,213 +93,6 @@ impl Backend {
         self.image_pipeline.trim_cache();
 
         *mouse_interaction
-    }
-
-    fn draw_primitive<'a>(
-        &mut self,
-        translation: Vector,
-        primitive: &'a Primitive,
-        layers: &mut Vec<Layer<'a>>,
-    ) {
-        match primitive {
-            Primitive::None => {}
-            Primitive::Group { primitives } => {
-                // TODO: Inspect a bit and regroup (?)
-                for primitive in primitives {
-                    self.draw_primitive(translation, primitive, layers)
-                }
-            }
-            Primitive::Text {
-                content,
-                bounds,
-                size,
-                color,
-                font,
-                horizontal_alignment,
-                vertical_alignment,
-            } => {
-                let layer = layers.last_mut().unwrap();
-
-                layer.text.push(wgpu_glyph::Section {
-                    text: &content,
-                    screen_position: (
-                        bounds.x + translation.x,
-                        bounds.y + translation.y,
-                    ),
-                    bounds: (bounds.width, bounds.height),
-                    scale: wgpu_glyph::Scale { x: *size, y: *size },
-                    color: color.into_linear(),
-                    font_id: self.text_pipeline.find_font(*font),
-                    layout: wgpu_glyph::Layout::default()
-                        .h_align(match horizontal_alignment {
-                            iced_native::HorizontalAlignment::Left => {
-                                wgpu_glyph::HorizontalAlign::Left
-                            }
-                            iced_native::HorizontalAlignment::Center => {
-                                wgpu_glyph::HorizontalAlign::Center
-                            }
-                            iced_native::HorizontalAlignment::Right => {
-                                wgpu_glyph::HorizontalAlign::Right
-                            }
-                        })
-                        .v_align(match vertical_alignment {
-                            iced_native::VerticalAlignment::Top => {
-                                wgpu_glyph::VerticalAlign::Top
-                            }
-                            iced_native::VerticalAlignment::Center => {
-                                wgpu_glyph::VerticalAlign::Center
-                            }
-                            iced_native::VerticalAlignment::Bottom => {
-                                wgpu_glyph::VerticalAlign::Bottom
-                            }
-                        }),
-                    ..Default::default()
-                })
-            }
-            Primitive::Quad {
-                bounds,
-                background,
-                border_radius,
-                border_width,
-                border_color,
-            } => {
-                let layer = layers.last_mut().unwrap();
-
-                // TODO: Move some of these computations to the GPU (?)
-                layer.quads.push(Quad {
-                    position: [
-                        bounds.x + translation.x,
-                        bounds.y + translation.y,
-                    ],
-                    scale: [bounds.width, bounds.height],
-                    color: match background {
-                        Background::Color(color) => color.into_linear(),
-                    },
-                    border_radius: *border_radius as f32,
-                    border_width: *border_width as f32,
-                    border_color: border_color.into_linear(),
-                });
-            }
-            Primitive::Mesh2D { size, buffers } => {
-                let layer = layers.last_mut().unwrap();
-
-                // Only draw visible content
-                if let Some(clip_bounds) = layer.intersection(Rectangle::new(
-                    Point::new(translation.x, translation.y),
-                    *size,
-                )) {
-                    layer.meshes.push((
-                        translation,
-                        clip_bounds.into(),
-                        buffers,
-                    ));
-                }
-            }
-            Primitive::Clip {
-                bounds,
-                offset,
-                content,
-            } => {
-                let layer = layers.last_mut().unwrap();
-
-                // Only draw visible content
-                if let Some(clip_bounds) =
-                    layer.intersection(*bounds + translation)
-                {
-                    let clip_layer = Layer::new(clip_bounds.into());
-                    let new_layer = Layer::new(layer.bounds);
-
-                    layers.push(clip_layer);
-                    self.draw_primitive(
-                        translation
-                            - Vector::new(offset.x as f32, offset.y as f32),
-                        content,
-                        layers,
-                    );
-                    layers.push(new_layer);
-                }
-            }
-            Primitive::Translate {
-                translation: new_translation,
-                content,
-            } => {
-                self.draw_primitive(
-                    translation + *new_translation,
-                    &content,
-                    layers,
-                );
-            }
-
-            Primitive::Cached { cache } => {
-                self.draw_primitive(translation, &cache, layers);
-            }
-
-            #[cfg(feature = "image")]
-            Primitive::Image { handle, bounds } => {
-                let layer = layers.last_mut().unwrap();
-
-                layer.images.push(Image {
-                    handle: image::Handle::Raster(handle.clone()),
-                    position: [
-                        bounds.x + translation.x,
-                        bounds.y + translation.y,
-                    ],
-                    size: [bounds.width, bounds.height],
-                });
-            }
-            #[cfg(not(feature = "image"))]
-            Primitive::Image { .. } => {}
-
-            #[cfg(feature = "svg")]
-            Primitive::Svg { handle, bounds } => {
-                let layer = layers.last_mut().unwrap();
-
-                layer.images.push(Image {
-                    handle: image::Handle::Vector(handle.clone()),
-                    position: [
-                        bounds.x + translation.x,
-                        bounds.y + translation.y,
-                    ],
-                    size: [bounds.width, bounds.height],
-                });
-            }
-            #[cfg(not(feature = "svg"))]
-            Primitive::Svg { .. } => {}
-        }
-    }
-
-    fn draw_overlay<'a, T: AsRef<str>>(
-        &mut self,
-        lines: &'a [T],
-        layers: &mut Vec<Layer<'a>>,
-    ) {
-        let first = layers.first().unwrap();
-        let mut overlay = Layer::new(first.bounds);
-
-        let font_id = self.text_pipeline.overlay_font();
-        let scale = wgpu_glyph::Scale { x: 20.0, y: 20.0 };
-
-        for (i, line) in lines.iter().enumerate() {
-            overlay.text.push(wgpu_glyph::Section {
-                text: line.as_ref(),
-                screen_position: (11.0, 11.0 + 25.0 * i as f32),
-                color: [0.9, 0.9, 0.9, 1.0],
-                scale,
-                font_id,
-                ..wgpu_glyph::Section::default()
-            });
-
-            overlay.text.push(wgpu_glyph::Section {
-                text: line.as_ref(),
-                screen_position: (10.0, 10.0 + 25.0 * i as f32),
-                color: [0.0, 0.0, 0.0, 1.0],
-                scale,
-                font_id,
-                ..wgpu_glyph::Section::default()
-            });
-        }
-
-        layers.push(overlay);
     }
 
     fn flush(
@@ -403,13 +158,14 @@ impl Backend {
             for text in layer.text.iter() {
                 // Target physical coordinates directly to avoid blurry text
                 let text = wgpu_glyph::Section {
+                    text: text.content,
                     // TODO: We `round` here to avoid rerasterizing text when
                     // its position changes slightly. This can make text feel a
                     // bit "jumpy". We may be able to do better once we improve
                     // our text rendering/caching pipeline.
                     screen_position: (
-                        (text.screen_position.0 * scale_factor).round(),
-                        (text.screen_position.1 * scale_factor).round(),
+                        (text.bounds.x * scale_factor).round(),
+                        (text.bounds.y * scale_factor).round(),
                     ),
                     // TODO: Fix precision issues with some scale factors.
                     //
@@ -421,14 +177,39 @@ impl Backend {
                     // scaling when rendering. This would ensure that both
                     // measuring and rendering follow the same layout rules.
                     bounds: (
-                        (text.bounds.0 * scale_factor).ceil(),
-                        (text.bounds.1 * scale_factor).ceil(),
+                        (text.bounds.width * scale_factor).ceil(),
+                        (text.bounds.height * scale_factor).ceil(),
                     ),
                     scale: wgpu_glyph::Scale {
-                        x: text.scale.x * scale_factor,
-                        y: text.scale.y * scale_factor,
+                        x: text.size * scale_factor,
+                        y: text.size * scale_factor,
                     },
-                    ..*text
+                    color: text.color,
+                    font_id: self.text_pipeline.find_font(text.font),
+                    layout: wgpu_glyph::Layout::default()
+                        .h_align(match text.horizontal_alignment {
+                            HorizontalAlignment::Left => {
+                                wgpu_glyph::HorizontalAlign::Left
+                            }
+                            HorizontalAlignment::Center => {
+                                wgpu_glyph::HorizontalAlign::Center
+                            }
+                            HorizontalAlignment::Right => {
+                                wgpu_glyph::HorizontalAlign::Right
+                            }
+                        })
+                        .v_align(match text.vertical_alignment {
+                            VerticalAlignment::Top => {
+                                wgpu_glyph::VerticalAlign::Top
+                            }
+                            VerticalAlignment::Center => {
+                                wgpu_glyph::VerticalAlign::Center
+                            }
+                            VerticalAlignment::Bottom => {
+                                wgpu_glyph::VerticalAlign::Bottom
+                            }
+                        }),
+                    ..Default::default()
                 };
 
                 self.text_pipeline.queue(text);

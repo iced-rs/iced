@@ -4,7 +4,7 @@ use iced_native::image;
 use iced_native::mouse;
 use iced_native::Layout;
 
-pub use iced_native::Image;
+pub use iced_native::image::{Handle, Image};
 
 impl<B> image::Renderer for Renderer<B>
 where

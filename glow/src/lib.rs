@@ -17,7 +17,6 @@ pub use settings::Settings;
 
 pub(crate) use backend::Backend;
 pub(crate) use iced_graphics::Transformation;
-pub(crate) use quad::Quad;
 
 pub type Renderer = iced_graphics::Renderer<Backend>;
 

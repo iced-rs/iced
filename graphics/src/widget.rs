@@ -10,18 +10,18 @@
 pub mod button;
 pub mod checkbox;
 pub mod container;
+pub mod image;
 pub mod pane_grid;
 pub mod progress_bar;
 pub mod radio;
 pub mod scrollable;
 pub mod slider;
+pub mod svg;
 pub mod text_input;
 
 mod column;
-mod image;
 mod row;
 mod space;
-mod svg;
 mod text;
 
 #[doc(no_inline)]

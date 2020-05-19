@@ -1,6 +1,9 @@
 use crate::{Transformation, Viewport};
 use glow::HasContext;
+use iced_graphics::layer;
 use iced_native::Rectangle;
+
+const MAX_INSTANCES: usize = 100_000;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -37,7 +40,7 @@ impl Pipeline {
         }
 
         let (vertex_array, instances) =
-            unsafe { create_instance_buffer(gl, Quad::MAX) };
+            unsafe { create_instance_buffer(gl, MAX_INSTANCES) };
 
         Pipeline {
             program,
@@ -52,7 +55,7 @@ impl Pipeline {
         &mut self,
         gl: &glow::Context,
         viewport: &Viewport,
-        instances: &[Quad],
+        instances: &[layer::Quad],
         transformation: Transformation,
         scale: f32,
         bounds: Rectangle<u32>,
@@ -97,7 +100,7 @@ impl Pipeline {
         let total = instances.len();
 
         while i < total {
-            let end = (i + Quad::MAX).min(total);
+            let end = (i + MAX_INSTANCES).min(total);
             let amount = end - i;
 
             unsafe {
@@ -115,7 +118,7 @@ impl Pipeline {
                 );
             }
 
-            i += Quad::MAX;
+            i += MAX_INSTANCES;
         }
 
         unsafe {
@@ -124,24 +127,6 @@ impl Pipeline {
             gl.disable(glow::SCISSOR_TEST);
         }
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-#[repr(C)]
-pub struct Quad {
-    pub position: [f32; 2],
-    pub scale: [f32; 2],
-    pub color: [f32; 4],
-    pub border_color: [f32; 4],
-    pub border_radius: f32,
-    pub border_width: f32,
-}
-
-unsafe impl bytemuck::Zeroable for Quad {}
-unsafe impl bytemuck::Pod for Quad {}
-
-impl Quad {
-    const MAX: usize = 100_000;
 }
 
 unsafe fn create_program(
@@ -196,11 +181,11 @@ unsafe fn create_instance_buffer(
     gl.bind_buffer(glow::ARRAY_BUFFER, Some(buffer));
     gl.buffer_data_size(
         glow::ARRAY_BUFFER,
-        (size * std::mem::size_of::<Quad>()) as i32,
+        (size * std::mem::size_of::<layer::Quad>()) as i32,
         glow::DYNAMIC_DRAW,
     );
 
-    let stride = std::mem::size_of::<Quad>() as i32;
+    let stride = std::mem::size_of::<layer::Quad>() as i32;
 
     gl.enable_vertex_attrib_array(0);
     gl.vertex_attrib_pointer_f32(0, 2, glow::FLOAT, false, stride, 0);

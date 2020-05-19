@@ -1,7 +1,6 @@
 //! Draw meshes of triangles.
 use crate::{settings, Transformation};
-use iced_native::{Rectangle, Vector};
-use std::mem;
+use iced_graphics::layer;
 
 pub use iced_graphics::triangle::Mesh2D;
 
@@ -27,7 +26,7 @@ impl Pipeline {
         target_height: u32,
         transformation: Transformation,
         scale_factor: f32,
-        meshes: &[(Vector, Rectangle<u32>, &Mesh2D)],
+        meshes: &[layer::Mesh<'_>],
     ) {
     }
 }

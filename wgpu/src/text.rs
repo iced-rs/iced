@@ -57,10 +57,6 @@ impl Pipeline {
         }
     }
 
-    pub fn overlay_font(&self) -> wgpu_glyph::FontId {
-        wgpu_glyph::FontId(0)
-    }
-
     pub fn queue(&mut self, section: wgpu_glyph::Section<'_>) {
         self.draw_brush.borrow_mut().queue(section);
     }

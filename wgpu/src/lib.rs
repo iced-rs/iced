@@ -48,7 +48,6 @@ pub use target::Target;
 pub use widget::*;
 
 pub(crate) use iced_graphics::Transformation;
-pub(crate) use quad::Quad;
 
 pub type Renderer = iced_graphics::Renderer<Backend>;
 
