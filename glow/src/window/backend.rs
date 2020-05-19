@@ -53,7 +53,7 @@ impl iced_native::window::Backend for Backend {
             .make_context_current(&self.gl_context)
             .expect("Make context current");
 
-        Renderer::new(self.gl.as_ref().unwrap(), settings)
+        Renderer::new(crate::Backend::new(self.gl.as_ref().unwrap(), settings))
     }
 
     fn create_surface<W: HasRawWindowHandle>(
@@ -151,8 +151,13 @@ impl iced_native::window::Backend for Backend {
             gl.clear(glow::COLOR_BUFFER_BIT);
         }
 
-        let mouse =
-            renderer.draw(gl, swap_chain, output, scale_factor, overlay);
+        let mouse = renderer.backend_mut().draw(
+            gl,
+            swap_chain,
+            output,
+            scale_factor,
+            overlay,
+        );
 
         {
             let mut surface = self

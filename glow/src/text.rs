@@ -130,7 +130,7 @@ impl Pipeline {
             .advance_width
     }
 
-    pub fn clear_measurement_cache(&mut self) {
+    pub fn trim_measurement_cache(&mut self) {
         // TODO: We should probably use a `GlyphCalculator` for this. However,
         // it uses a lifetimed `GlyphCalculatorGuard` with side-effects on drop.
         // This makes stuff quite inconvenient. A manual method for trimming the

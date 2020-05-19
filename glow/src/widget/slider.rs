@@ -6,8 +6,8 @@
 //! [`State`]: struct.State.html
 use crate::Renderer;
 
+pub use iced_graphics::slider::{Handle, HandleShape, Style, StyleSheet};
 pub use iced_native::slider::State;
-pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.

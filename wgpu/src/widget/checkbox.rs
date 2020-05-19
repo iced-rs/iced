@@ -1,7 +1,7 @@
 //! Show toggle controls using checkboxes.
 use crate::Renderer;
 
-pub use iced_style::checkbox::{Style, StyleSheet};
+pub use iced_graphics::checkbox::{Style, StyleSheet};
 
 /// A box that can be checked.
 ///

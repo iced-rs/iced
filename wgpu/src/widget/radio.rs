@@ -1,7 +1,7 @@
 //! Create choices using radio buttons.
 use crate::Renderer;
 
-pub use iced_style::radio::{Style, StyleSheet};
+pub use iced_graphics::radio::{Style, StyleSheet};
 
 /// A circular button representing a choice.
 ///

@@ -21,9 +21,9 @@ glyph_brush = "0.6"
 version = "0.2"
 path = "../native"
 
-[dependencies.iced_style]
+[dependencies.iced_graphics]
 version = "0.1"
-path = "../style"
+path = "../graphics"
 
 [dependencies.surfman]
 path = "../../surfman/surfman"

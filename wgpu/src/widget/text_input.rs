@@ -6,8 +6,8 @@
 //! [`State`]: struct.State.html
 use crate::Renderer;
 
+pub use iced_graphics::text_input::{Style, StyleSheet};
 pub use iced_native::text_input::State;
-pub use iced_style::text_input::{Style, StyleSheet};
 
 /// A field that can be filled with text.
 ///

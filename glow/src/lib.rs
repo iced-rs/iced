@@ -4,10 +4,8 @@
 //#![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 
-mod defaults;
-mod primitive;
+mod backend;
 mod quad;
-mod renderer;
 mod text;
 mod transformation;
 mod triangle;
@@ -17,14 +15,14 @@ pub mod settings;
 pub mod widget;
 pub mod window;
 
-pub use defaults::Defaults;
-pub use primitive::Primitive;
-pub use renderer::Renderer;
 pub use settings::Settings;
 pub use viewport::Viewport;
 
+pub(crate) use backend::Backend;
 pub(crate) use quad::Quad;
 pub(crate) use transformation::Transformation;
+
+pub type Renderer = iced_graphics::Renderer<Backend>;
 
 #[doc(no_inline)]
 pub use widget::*;

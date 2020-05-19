@@ -6,7 +6,7 @@
 //! [`State`]: struct.State.html
 use crate::Renderer;
 
-pub use iced_style::progress_bar::{Style, StyleSheet};
+pub use iced_graphics::progress_bar::{Style, StyleSheet};
 
 /// A bar that displays progress.
 ///

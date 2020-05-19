@@ -9,12 +9,13 @@ repository = "https://github.com/hecrj/iced"
 
 [features]
 svg = ["resvg"]
-canvas = ["lyon"]
+canvas = ["iced_graphics/canvas"]
 
 [dependencies]
 wgpu = "0.5"
 wgpu_glyph = "0.8"
 zerocopy = "0.3"
+bytemuck = "1.2"
 glyph_brush = "0.6"
 raw-window-handle = "0.3"
 glam = "0.8"
@@ -29,9 +30,9 @@ gfx-memory = "=0.1.1"
 version = "0.2"
 path = "../native"
 
-[dependencies.iced_style]
+[dependencies.iced_graphics]
 version = "0.1"
-path = "../style"
+path = "../graphics"
 
 [dependencies.image]
 version = "0.23"
@@ -40,10 +41,6 @@ optional = true
 [dependencies.resvg]
 version = "0.9"
 features = ["raqote-backend"]
-optional = true
-
-[dependencies.lyon]
-version = "0.15"
 optional = true
 
 [package.metadata.docs.rs]

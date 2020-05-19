@@ -51,7 +51,7 @@ impl iced_native::window::Backend for Backend {
     }
 
     fn create_renderer(&mut self, settings: Settings) -> Renderer {
-        Renderer::new(&mut self.device, settings)
+        Renderer::new(crate::Backend::new(&mut self.device, settings))
     }
 
     fn create_surface<W: HasRawWindowHandle>(
@@ -100,7 +100,7 @@ impl iced_native::window::Backend for Backend {
             depth_stencil_attachment: None,
         });
 
-        let mouse_interaction = renderer.draw(
+        let mouse_interaction = renderer.backend_mut().draw(
             &mut self.device,
             &mut encoder,
             Target {

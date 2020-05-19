@@ -20,32 +20,29 @@
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
 //! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-pub mod defaults;
 pub mod settings;
 pub mod triangle;
 pub mod widget;
 pub mod window;
 
-mod primitive;
+mod backend;
 mod quad;
-mod renderer;
 mod target;
 mod text;
 mod transformation;
 mod viewport;
 
+pub use iced_graphics::{Defaults, Primitive};
 pub use wgpu;
 
-pub use defaults::Defaults;
-pub use primitive::Primitive;
-pub use renderer::Renderer;
+pub use backend::Backend;
 pub use settings::Settings;
 pub use target::Target;
 pub use viewport::Viewport;
@@ -55,6 +52,8 @@ pub use widget::*;
 
 pub(crate) use quad::Quad;
 pub(crate) use transformation::Transformation;
+
+pub type Renderer = iced_graphics::Renderer<Backend>;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;

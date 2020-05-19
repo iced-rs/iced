@@ -4,6 +4,8 @@ use iced_native::{Rectangle, Vector};
 use std::mem;
 use zerocopy::AsBytes;
 
+pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
+
 mod msaa;
 
 const UNIFORM_BUFFER_SIZE: usize = 100;
@@ -236,7 +238,7 @@ impl Pipeline {
             .into();
 
             let vertex_buffer = device.create_buffer_with_data(
-                mesh.vertices.as_bytes(),
+                bytemuck::cast_slice(&mesh.vertices),
                 wgpu::BufferUsage::COPY_SRC,
             );
 
@@ -386,27 +388,4 @@ impl From<Transformation> for Uniforms {
             _padding_b: [0.0; 16],
         }
     }
-}
-
-/// A two-dimensional vertex with some color in __linear__ RGBA.
-#[repr(C)]
-#[derive(Copy, Clone, Debug, AsBytes)]
-pub struct Vertex2D {
-    /// The vertex position
-    pub position: [f32; 2],
-    /// The vertex color in __linear__ RGBA.
-    pub color: [f32; 4],
-}
-
-/// A set of [`Vertex2D`] and indices representing a list of triangles.
-///
-/// [`Vertex2D`]: struct.Vertex2D.html
-#[derive(Clone, Debug)]
-pub struct Mesh2D {
-    /// The vertices of the mesh
-    pub vertices: Vec<Vertex2D>,
-    /// The list of vertex indices that defines the triangles of the mesh.
-    ///
-    /// Therefore, this list should always have a length that is a multiple of 3.
-    pub indices: Vec<u32>,
 }

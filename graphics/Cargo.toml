@@ -1,0 +1,23 @@
+[package]
+name = "iced_graphics"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+
+[features]
+canvas = ["lyon"]
+
+[dependencies]
+bytemuck = "1.2"
+
+[dependencies.iced_native]
+version = "0.2"
+path = "../native"
+
+[dependencies.iced_style]
+version = "0.1"
+path = "../style"
+
+[dependencies.lyon]
+version = "0.15"
+optional = true

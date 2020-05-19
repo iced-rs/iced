@@ -1,7 +1,7 @@
 //! Decorate content and apply alignment.
 use crate::Renderer;
 
-pub use iced_style::container::{Style, StyleSheet};
+pub use iced_graphics::container::{Style, StyleSheet};
 
 /// An element decorating some content.
 ///

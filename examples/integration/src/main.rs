@@ -5,7 +5,7 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::{
-    wgpu, window::SwapChain, Primitive, Renderer, Settings, Target,
+    wgpu, window::SwapChain, Backend, Primitive, Renderer, Settings, Target,
 };
 use iced_winit::{
     futures, mouse, winit, Cache, Clipboard, Size, UserInterface,
@@ -62,7 +62,8 @@ pub fn main() {
     // Initialize iced
     let mut events = Vec::new();
     let mut cache = Some(Cache::default());
-    let mut renderer = Renderer::new(&mut device, Settings::default());
+    let mut renderer =
+        Renderer::new(Backend::new(&mut device, Settings::default()));
     let mut output = (Primitive::None, mouse::Interaction::default());
     let clipboard = Clipboard::new(&window);
 
@@ -189,7 +190,7 @@ pub fn main() {
                 scene.draw(&mut encoder, &frame.view);
 
                 // And then iced on top
-                let mouse_interaction = renderer.draw(
+                let mouse_interaction = renderer.backend_mut().draw(
                     &mut device,
                     &mut encoder,
                     Target {
