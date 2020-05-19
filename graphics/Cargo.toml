@@ -7,6 +7,8 @@ edition = "2018"
 [features]
 canvas = ["lyon"]
 font-source = ["font-kit"]
+font-fallback = []
+font-icons = []
 
 [dependencies]
 bytemuck = "1.2"

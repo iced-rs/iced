@@ -2,15 +2,6 @@ use crate::Transformation;
 use iced_graphics::font;
 use std::{cell::RefCell, collections::HashMap};
 
-pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
-    name: "iced_wgpu icons",
-    bytes: include_bytes!("text/icons.ttf"),
-};
-
-pub const CHECKMARK_ICON: char = '\u{F00C}';
-
-const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
-
 #[derive(Debug)]
 pub struct Pipeline {
     draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
@@ -32,7 +23,7 @@ impl Pipeline {
             default_font.map(|slice| slice.to_vec()).unwrap_or_else(|| {
                 font_source
                     .load(&[font::Family::SansSerif, font::Family::Serif])
-                    .unwrap_or_else(|_| FALLBACK_FONT.to_vec())
+                    .unwrap_or_else(|_| font::FALLBACK.to_vec())
             });
 
         let load_glyph_brush = |font: Vec<u8>| {
@@ -51,7 +42,7 @@ impl Pipeline {
             .unwrap_or_else(|_: wgpu_glyph::rusttype::Error| {
                 log::warn!("System font failed to load. Falling back to embedded font...");
 
-                load_glyph_brush(FALLBACK_FONT.to_vec()).expect("Load fallback font")
+                load_glyph_brush(font::FALLBACK.to_vec()).expect("Load fallback font")
             });
 
         let draw_brush = brush_builder

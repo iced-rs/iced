@@ -3,6 +3,7 @@ use crate::text;
 use crate::triangle;
 use crate::{Quad, Settings, Transformation, Viewport};
 use iced_graphics::backend;
+use iced_graphics::font;
 use iced_graphics::Primitive;
 use iced_native::mouse;
 use iced_native::{Background, Font, Point, Rectangle, Size, Vector};
@@ -404,8 +405,8 @@ impl iced_graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    const ICON_FONT: Font = text::BUILTIN_ICONS;
-    const CHECKMARK_ICON: char = text::CHECKMARK_ICON;
+    const ICON_FONT: Font = font::ICONS;
+    const CHECKMARK_ICON: char = font::CHECKMARK_ICON;
 
     fn measure(
         &self,

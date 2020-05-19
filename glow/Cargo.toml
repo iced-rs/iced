@@ -23,7 +23,7 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.1"
 path = "../graphics"
-features = ["font-source"]
+features = ["font-source", "font-fallback", "font-icons"]
 
 [dependencies.surfman]
 path = "../../surfman/surfman"
