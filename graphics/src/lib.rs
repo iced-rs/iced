@@ -6,6 +6,7 @@ mod viewport;
 mod widget;
 
 pub mod backend;
+pub mod font;
 pub mod triangle;
 
 #[doc(no_inline)]

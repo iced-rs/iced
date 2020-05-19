@@ -19,7 +19,6 @@ bytemuck = "1.2"
 glyph_brush = "0.6"
 raw-window-handle = "0.3"
 glam = "0.8"
-font-kit = "0.6"
 log = "0.4"
 guillotiere = "0.5"
 # Pin `gfx-memory` until https://github.com/gfx-rs/wgpu-rs/issues/261 is
@@ -33,6 +32,7 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.1"
 path = "../graphics"
+features = ["font-source"]
 
 [dependencies.image]
 version = "0.23"

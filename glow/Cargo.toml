@@ -13,7 +13,6 @@ euclid = "0.20"
 glow = "0.4"
 bytemuck = "1.2"
 glam = "0.8"
-font-kit = "0.6"
 log = "0.4"
 glyph_brush = "0.6"
 
@@ -24,6 +23,7 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.1"
 path = "../graphics"
+features = ["font-source"]
 
 [dependencies.surfman]
 path = "../../surfman/surfman"

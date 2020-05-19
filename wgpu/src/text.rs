@@ -1,7 +1,5 @@
-mod font;
-
 use crate::Transformation;
-
+use iced_graphics::font;
 use std::{cell::RefCell, collections::HashMap};
 
 pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {

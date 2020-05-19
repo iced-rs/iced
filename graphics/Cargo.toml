@@ -6,6 +6,7 @@ edition = "2018"
 
 [features]
 canvas = ["lyon"]
+font-source = ["font-kit"]
 
 [dependencies]
 bytemuck = "1.2"
@@ -21,4 +22,8 @@ path = "../style"
 
 [dependencies.lyon]
 version = "0.15"
+optional = true
+
+[dependencies.font-kit]
+version = "0.6"
 optional = true
