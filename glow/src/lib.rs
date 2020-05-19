@@ -7,7 +7,6 @@
 mod backend;
 mod quad;
 mod text;
-mod transformation;
 mod triangle;
 mod viewport;
 
@@ -19,8 +18,8 @@ pub use settings::Settings;
 pub use viewport::Viewport;
 
 pub(crate) use backend::Backend;
+pub(crate) use iced_graphics::Transformation;
 pub(crate) use quad::Quad;
-pub(crate) use transformation::Transformation;
 
 pub type Renderer = iced_graphics::Renderer<Backend>;
 

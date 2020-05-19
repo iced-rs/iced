@@ -9,6 +9,7 @@ canvas = ["lyon"]
 
 [dependencies]
 bytemuck = "1.2"
+glam = "0.8"
 
 [dependencies.iced_native]
 version = "0.2"

@@ -36,7 +36,6 @@ mod backend;
 mod quad;
 mod target;
 mod text;
-mod transformation;
 mod viewport;
 
 pub use iced_graphics::{Defaults, Primitive};
@@ -50,8 +49,8 @@ pub use viewport::Viewport;
 #[doc(no_inline)]
 pub use widget::*;
 
+pub(crate) use iced_graphics::Transformation;
 pub(crate) use quad::Quad;
-pub(crate) use transformation::Transformation;
 
 pub type Renderer = iced_graphics::Renderer<Backend>;
 
