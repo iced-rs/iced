@@ -1,6 +1,7 @@
 #version 450
 
-layout(origin_upper_left) in vec4 gl_FragCoord;
+layout(location = 2) uniform float u_Screen_Height;
+
 layout(location = 0) in vec4 v_Color;
 layout(location = 1) in vec4 v_BorderColor;
 layout(location = 2) in vec2 v_Pos;
@@ -31,12 +32,14 @@ float distance(in vec2 frag_coord, in vec2 position, in vec2 size, float radius)
 void main() {
     vec4 mixed_color;
 
+    vec2 fragCoord = vec2(gl_FragCoord.x, u_Screen_Height - gl_FragCoord.y);
+
     // TODO: Remove branching (?)
     if(v_BorderWidth > 0) {
         float internal_border = max(v_BorderRadius - v_BorderWidth, 0);
 
         float internal_distance = distance(
-            gl_FragCoord.xy,
+            fragCoord,
             v_Pos + vec2(v_BorderWidth),
             v_Scale - vec2(v_BorderWidth * 2.0),
             internal_border
@@ -54,7 +57,7 @@ void main() {
     }
 
     float d = distance(
-        gl_FragCoord.xy,
+        fragCoord,
         v_Pos,
         v_Scale,
         v_BorderRadius

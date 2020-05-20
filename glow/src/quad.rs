@@ -12,6 +12,7 @@ pub struct Pipeline {
     instances: <glow::Context as HasContext>::Buffer,
     current_transform: Transformation,
     current_scale: f32,
+    current_target_height: u32,
 }
 
 impl Pipeline {
@@ -35,6 +36,7 @@ impl Pipeline {
                 &Transformation::identity().into(),
             );
             gl.uniform_1_f32(Some(1), 1.0);
+            gl.uniform_1_f32(Some(2), 0.0);
 
             gl.use_program(None);
         }
@@ -48,6 +50,7 @@ impl Pipeline {
             instances,
             current_transform: Transformation::identity(),
             current_scale: 1.0,
+            current_target_height: 0,
         }
     }
 
@@ -92,6 +95,14 @@ impl Pipeline {
             }
 
             self.current_scale = scale;
+        }
+
+        if target_height != self.current_target_height {
+            unsafe {
+                gl.uniform_1_f32(Some(2), target_height as f32);
+            }
+
+            self.current_target_height = target_height;
         }
 
         let mut i = 0;
