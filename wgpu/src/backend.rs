@@ -1,11 +1,11 @@
 use crate::quad;
 use crate::text;
 use crate::triangle;
-use crate::{Settings, Target, Transformation};
+use crate::{Settings, Transformation};
 use iced_graphics::backend;
 use iced_graphics::font;
 use iced_graphics::layer::Layer;
-use iced_graphics::Primitive;
+use iced_graphics::{Primitive, Viewport};
 use iced_native::mouse;
 use iced_native::{Font, HorizontalAlignment, Size, VerticalAlignment};
 
@@ -62,19 +62,19 @@ impl Backend {
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        target: Target<'_>,
+        frame: &wgpu::TextureView,
+        viewport: &Viewport,
         (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
-        scale_factor: f64,
         overlay_text: &[T],
     ) -> mouse::Interaction {
         log::debug!("Drawing");
 
-        let (width, height) = target.viewport.dimensions();
-        let scale_factor = scale_factor as f32;
-        let transformation = target.viewport.transformation();
+        let target_size = viewport.physical_size();
+        let scale_factor = viewport.scale_factor() as f32;
+        let transformation = viewport.projection();
 
-        let mut layers = Layer::generate(primitive, &target.viewport);
-        layers.push(Layer::overlay(overlay_text, &target.viewport));
+        let mut layers = Layer::generate(primitive, viewport);
+        layers.push(Layer::overlay(overlay_text, viewport));
 
         for layer in layers {
             self.flush(
@@ -83,9 +83,9 @@ impl Backend {
                 transformation,
                 &layer,
                 encoder,
-                target.texture,
-                width,
-                height,
+                &frame,
+                target_size.width,
+                target_size.height,
             );
         }
 
@@ -106,7 +106,7 @@ impl Backend {
         target_width: u32,
         target_height: u32,
     ) {
-        let bounds = layer.bounds * scale_factor;
+        let bounds = (layer.bounds * scale_factor).round();
 
         if !layer.quads.is_empty() {
             self.quad_pipeline.draw(

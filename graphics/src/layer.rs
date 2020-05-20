@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub struct Layer<'a> {
-    pub bounds: Rectangle<u32>,
+    pub bounds: Rectangle,
     pub quads: Vec<Quad>,
     pub meshes: Vec<Mesh<'a>>,
     pub text: Vec<Text<'a>>,
@@ -15,7 +15,7 @@ pub struct Layer<'a> {
 }
 
 impl<'a> Layer<'a> {
-    pub fn new(bounds: Rectangle<u32>) -> Self {
+    pub fn new(bounds: Rectangle) -> Self {
         Self {
             bounds,
             quads: Vec::new(),
@@ -26,14 +26,8 @@ impl<'a> Layer<'a> {
     }
 
     pub fn overlay(lines: &'a [impl AsRef<str>], viewport: &Viewport) -> Self {
-        let (width, height) = viewport.dimensions();
-
-        let mut overlay = Layer::new(Rectangle {
-            x: 0,
-            y: 0,
-            width,
-            height,
-        });
+        let mut overlay =
+            Layer::new(Rectangle::with_size(viewport.logical_size()));
 
         for (i, line) in lines.iter().enumerate() {
             let text = Text {
@@ -61,28 +55,14 @@ impl<'a> Layer<'a> {
         overlay
     }
 
-    pub(crate) fn intersection(
-        &self,
-        rectangle: Rectangle,
-    ) -> Option<Rectangle<u32>> {
-        let layer_bounds: Rectangle<f32> = self.bounds.into();
-
-        layer_bounds.intersection(&rectangle).map(Into::into)
-    }
-
     pub fn generate(
         primitive: &'a Primitive,
         viewport: &Viewport,
     ) -> Vec<Self> {
-        let mut layers = Vec::new();
-        let (width, height) = viewport.dimensions();
+        let first_layer =
+            Layer::new(Rectangle::with_size(viewport.logical_size()));
 
-        layers.push(Layer::new(Rectangle {
-            x: 0,
-            y: 0,
-            width,
-            height,
-        }));
+        let mut layers = vec![first_layer];
 
         Self::process_primitive(&mut layers, Vector::new(0.0, 0.0), primitive);
 
@@ -156,11 +136,11 @@ impl<'a> Layer<'a> {
                 );
 
                 // Only draw visible content
-                if let Some(clip_bounds) = layer.intersection(bounds) {
+                if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
                     layer.meshes.push(Mesh {
                         origin: Point::new(translation.x, translation.y),
                         buffers,
-                        clip_bounds: clip_bounds.into(),
+                        clip_bounds,
                     });
                 }
             }
@@ -170,12 +150,13 @@ impl<'a> Layer<'a> {
                 content,
             } => {
                 let layer = layers.last_mut().unwrap();
+                let translated_bounds = *bounds + translation;
 
                 // Only draw visible content
                 if let Some(clip_bounds) =
-                    layer.intersection(*bounds + translation)
+                    layer.bounds.intersection(&translated_bounds)
                 {
-                    let clip_layer = Layer::new(clip_bounds.into());
+                    let clip_layer = Layer::new(clip_bounds);
                     let new_layer = Layer::new(layer.bounds);
 
                     layers.push(clip_layer);
@@ -236,7 +217,7 @@ pub struct Quad {
 pub struct Mesh<'a> {
     pub origin: Point,
     pub buffers: &'a triangle::Mesh2D,
-    pub clip_bounds: Rectangle<u32>,
+    pub clip_bounds: Rectangle<f32>,
 }
 
 #[derive(Debug, Clone, Copy)]

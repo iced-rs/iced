@@ -1,5 +1,6 @@
-use crate::{window::SwapChain, Renderer, Settings, Target};
+use crate::{Renderer, Settings};
 
+use iced_graphics::Viewport;
 use iced_native::{futures, mouse};
 use raw_window_handle::HasRawWindowHandle;
 
@@ -11,11 +12,11 @@ pub struct Compositor {
     format: wgpu::TextureFormat,
 }
 
-impl iced_native::window::Compositor for Compositor {
+impl iced_graphics::window::Compositor for Compositor {
     type Settings = Settings;
     type Renderer = Renderer;
     type Surface = wgpu::Surface;
-    type SwapChain = SwapChain;
+    type SwapChain = wgpu::SwapChain;
 
     fn new(settings: Self::Settings) -> Self {
         let (device, queue) = futures::executor::block_on(async {
@@ -66,19 +67,28 @@ impl iced_native::window::Compositor for Compositor {
         surface: &Self::Surface,
         width: u32,
         height: u32,
-    ) -> SwapChain {
-        SwapChain::new(&self.device, surface, self.format, width, height)
+    ) -> Self::SwapChain {
+        self.device.create_swap_chain(
+            surface,
+            &wgpu::SwapChainDescriptor {
+                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                format: self.format,
+                width,
+                height,
+                present_mode: wgpu::PresentMode::Mailbox,
+            },
+        )
     }
 
     fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        swap_chain: &mut SwapChain,
+        swap_chain: &mut Self::SwapChain,
+        viewport: &Viewport,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
-        scale_factor: f64,
         overlay: &[T],
     ) -> mouse::Interaction {
-        let (frame, viewport) = swap_chain.next_frame().expect("Next frame");
+        let frame = swap_chain.get_next_texture().expect("Next frame");
 
         let mut encoder = self.device.create_command_encoder(
             &wgpu::CommandEncoderDescriptor { label: None },
@@ -103,12 +113,9 @@ impl iced_native::window::Compositor for Compositor {
         let mouse_interaction = renderer.backend_mut().draw(
             &mut self.device,
             &mut encoder,
-            Target {
-                texture: &frame.view,
-                viewport,
-            },
+            &frame.view,
+            viewport,
             output,
-            scale_factor,
             overlay,
         );
 

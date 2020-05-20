@@ -1,4 +1,4 @@
-use crate::{Transformation, Viewport};
+use crate::Transformation;
 use glow::HasContext;
 use iced_graphics::layer;
 use iced_native::Rectangle;
@@ -54,7 +54,7 @@ impl Pipeline {
     pub fn draw(
         &mut self,
         gl: &glow::Context,
-        viewport: &Viewport,
+        target_height: u32,
         instances: &[layer::Quad],
         transformation: Transformation,
         scale: f32,
@@ -64,9 +64,7 @@ impl Pipeline {
             gl.enable(glow::SCISSOR_TEST);
             gl.scissor(
                 bounds.x as i32,
-                (viewport.height()
-                    - (bounds.y + bounds.height).min(viewport.height()))
-                    as i32,
+                (target_height - (bounds.y + bounds.height)) as i32,
                 bounds.width as i32,
                 bounds.height as i32,
             );

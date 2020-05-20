@@ -10,6 +10,7 @@ pub mod backend;
 pub mod font;
 pub mod layer;
 pub mod triangle;
+pub mod window;
 
 #[doc(no_inline)]
 pub use widget::*;

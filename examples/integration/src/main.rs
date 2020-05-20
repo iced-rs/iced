@@ -4,9 +4,7 @@ mod scene;
 use controls::Controls;
 use scene::Scene;
 
-use iced_wgpu::{
-    wgpu, window::SwapChain, Backend, Primitive, Renderer, Settings, Target,
-};
+use iced_wgpu::{wgpu, Backend, Primitive, Renderer, Settings, Viewport};
 use iced_winit::{
     futures, mouse, winit, Cache, Clipboard, Size, UserInterface,
 };
@@ -22,8 +20,12 @@ pub fn main() {
     // Initialize winit
     let event_loop = EventLoop::new();
     let window = winit::window::Window::new(&event_loop).unwrap();
-    let mut logical_size =
-        window.inner_size().to_logical(window.scale_factor());
+
+    let physical_size = window.inner_size();
+    let mut viewport = Viewport::with_physical_size(
+        Size::new(physical_size.width, physical_size.height),
+        window.scale_factor(),
+    );
     let mut modifiers = ModifiersState::default();
 
     // Initialize WGPU
@@ -55,7 +57,16 @@ pub fn main() {
     let mut swap_chain = {
         let size = window.inner_size();
 
-        SwapChain::new(&device, &surface, format, size.width, size.height)
+        device.create_swap_chain(
+            &surface,
+            &wgpu::SwapChainDescriptor {
+                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                format: format,
+                width: size.width,
+                height: size.height,
+                present_mode: wgpu::PresentMode::Mailbox,
+            },
+        )
     };
     let mut resized = false;
 
@@ -83,8 +94,11 @@ pub fn main() {
                         modifiers = new_modifiers;
                     }
                     WindowEvent::Resized(new_size) => {
-                        logical_size =
-                            new_size.to_logical(window.scale_factor());
+                        viewport = Viewport::with_physical_size(
+                            Size::new(new_size.width, new_size.height),
+                            window.scale_factor(),
+                        );
+
                         resized = true;
                     }
                     WindowEvent::CloseRequested => {
@@ -117,7 +131,7 @@ pub fn main() {
                 // First, we build our user interface.
                 let mut user_interface = UserInterface::build(
                     controls.view(&scene),
-                    Size::new(logical_size.width, logical_size.height),
+                    viewport.logical_size(),
                     cache.take().unwrap(),
                     &mut renderer,
                 );
@@ -151,7 +165,7 @@ pub fn main() {
                     // user interface.
                     UserInterface::build(
                         controls.view(&scene),
-                        Size::new(logical_size.width, logical_size.height),
+                        viewport.logical_size(),
                         cache.take().unwrap(),
                         &mut renderer,
                     )
@@ -170,17 +184,19 @@ pub fn main() {
                 if resized {
                     let size = window.inner_size();
 
-                    swap_chain = SwapChain::new(
-                        &device,
+                    swap_chain = device.create_swap_chain(
                         &surface,
-                        format,
-                        size.width,
-                        size.height,
+                        &wgpu::SwapChainDescriptor {
+                            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                            format: format,
+                            width: size.width,
+                            height: size.height,
+                            present_mode: wgpu::PresentMode::Mailbox,
+                        },
                     );
                 }
 
-                let (frame, viewport) =
-                    swap_chain.next_frame().expect("Next frame");
+                let frame = swap_chain.get_next_texture().expect("Next frame");
 
                 let mut encoder = device.create_command_encoder(
                     &wgpu::CommandEncoderDescriptor { label: None },
@@ -193,12 +209,9 @@ pub fn main() {
                 let mouse_interaction = renderer.backend_mut().draw(
                     &mut device,
                     &mut encoder,
-                    Target {
-                        texture: &frame.view,
-                        viewport,
-                    },
+                    &frame.view,
+                    &viewport,
                     &output,
-                    window.scale_factor(),
                     &["Some debug information!"],
                 );
 

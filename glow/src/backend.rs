@@ -47,12 +47,10 @@ impl Backend {
         gl: &glow::Context,
         viewport: &Viewport,
         (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
-        scale_factor: f64,
         overlay_text: &[T],
     ) -> mouse::Interaction {
-        let (width, height) = viewport.dimensions();
-        let scale_factor = scale_factor as f32;
-        let transformation = viewport.transformation();
+        let viewport_size = viewport.physical_size();
+        let projection = viewport.projection();
 
         let mut layers = Layer::generate(primitive, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
@@ -60,12 +58,11 @@ impl Backend {
         for layer in layers {
             self.flush(
                 gl,
-                viewport,
-                scale_factor,
-                transformation,
+                viewport.scale_factor() as f32,
+                projection,
                 &layer,
-                width,
-                height,
+                viewport_size.width,
+                viewport_size.height,
             );
         }
 
@@ -75,19 +72,18 @@ impl Backend {
     fn flush(
         &mut self,
         gl: &glow::Context,
-        viewport: &Viewport,
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
         target_width: u32,
         target_height: u32,
     ) {
-        let bounds = layer.bounds * scale_factor;
+        let bounds = (layer.bounds * scale_factor).round();
 
         if !layer.quads.is_empty() {
             self.quad_pipeline.draw(
                 gl,
-                viewport,
+                target_height,
                 &layer.quads,
                 transformation,
                 scale_factor,
@@ -175,8 +171,7 @@ impl Backend {
                 transformation,
                 glow_glyph::Region {
                     x: bounds.x,
-                    y: viewport.height()
-                        - (bounds.y + bounds.height).min(viewport.height()),
+                    y: target_height - (bounds.y + bounds.height),
                     width: bounds.width,
                     height: bounds.height,
                 },

@@ -13,11 +13,11 @@ pub struct Compositor {
     gl: Option<glow::Context>,
 }
 
-impl iced_native::window::Compositor for Compositor {
+impl iced_graphics::window::Compositor for Compositor {
     type Settings = Settings;
     type Renderer = Renderer;
     type Surface = ();
-    type SwapChain = Viewport;
+    type SwapChain = ();
 
     fn new(_settings: Self::Settings) -> Self {
         let connection = surfman::Connection::new().expect("Create connection");
@@ -133,16 +133,14 @@ impl iced_native::window::Compositor for Compositor {
             gl.enable(glow::BLEND);
             gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
         }
-
-        Viewport::new(width, height)
     }
 
     fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
         swap_chain: &mut Self::SwapChain,
+        viewport: &Viewport,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
-        scale_factor: f64,
         overlay: &[T],
     ) -> mouse::Interaction {
         let gl = self.gl.as_ref().unwrap();
@@ -151,13 +149,7 @@ impl iced_native::window::Compositor for Compositor {
             gl.clear(glow::COLOR_BUFFER_BIT);
         }
 
-        let mouse = renderer.backend_mut().draw(
-            gl,
-            swap_chain,
-            output,
-            scale_factor,
-            overlay,
-        );
+        let mouse = renderer.backend_mut().draw(gl, viewport, output, overlay);
 
         {
             let mut surface = self

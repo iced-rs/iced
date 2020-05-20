@@ -1,5 +1,5 @@
-use crate::mouse;
-
+use crate::Viewport;
+use iced_native::mouse;
 use raw_window_handle::HasRawWindowHandle;
 
 /// A graphics compositor that can draw to windows.
@@ -8,7 +8,7 @@ pub trait Compositor: Sized {
     type Settings: Default + Clone;
 
     /// The iced renderer of the backend.
-    type Renderer: crate::Renderer;
+    type Renderer: iced_native::Renderer;
 
     /// The surface of the backend.
     type Surface;
@@ -53,8 +53,8 @@ pub trait Compositor: Sized {
         &mut self,
         renderer: &mut Self::Renderer,
         swap_chain: &mut Self::SwapChain,
-        output: &<Self::Renderer as crate::Renderer>::Output,
-        scale_factor: f64,
+        viewport: &Viewport,
+        output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction;
 }

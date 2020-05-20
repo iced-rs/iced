@@ -1,8 +1,9 @@
 use crate::{
-    conversion, mouse, size::Size, window, Cache, Clipboard, Command, Debug,
-    Element, Executor, Mode, Proxy, Runtime, Settings, Subscription,
-    UserInterface,
+    conversion, mouse, Cache, Clipboard, Command, Debug, Element, Executor,
+    Mode, Proxy, Runtime, Settings, Size, Subscription, UserInterface,
 };
+use iced_graphics::window;
+use iced_graphics::Viewport;
 
 /// An interactive, native cross-platform application.
 ///
@@ -124,7 +125,7 @@ pub trait Application: Sized {
     ) where
         Self: 'static,
     {
-        use window::Compositor as _;
+        use iced_graphics::window::Compositor as _;
         use winit::{
             event::{self, WindowEvent},
             event_loop::{ControlFlow, EventLoop},
@@ -181,7 +182,11 @@ pub trait Application: Sized {
             window_builder.build(&event_loop).expect("Open window")
         };
 
-        let mut size = Size::new(window.inner_size(), window.scale_factor());
+        let physical_size = window.inner_size();
+        let mut viewport = Viewport::with_physical_size(
+            Size::new(physical_size.width, physical_size.height),
+            window.scale_factor(),
+        );
         let mut resized = false;
 
         let clipboard = Clipboard::new(&window);
@@ -190,21 +195,17 @@ pub trait Application: Sized {
         let surface = compositor.create_surface(&window);
         let mut renderer = compositor.create_renderer(backend_settings);
 
-        let mut swap_chain = {
-            let physical_size = size.physical();
-
-            compositor.create_swap_chain(
-                &surface,
-                physical_size.width,
-                physical_size.height,
-            )
-        };
+        let mut swap_chain = compositor.create_swap_chain(
+            &surface,
+            physical_size.width,
+            physical_size.height,
+        );
 
         let user_interface = build_user_interface(
             &mut application,
             Cache::default(),
             &mut renderer,
-            size.logical(),
+            viewport.logical_size(),
             &mut debug,
         );
 
@@ -226,16 +227,11 @@ pub trait Application: Sized {
                     return;
                 }
 
-                // TODO: We should be able to keep a user interface alive
-                // between events once we remove state references.
-                //
-                // This will allow us to rebuild it only when a message is
-                // handled.
                 let mut user_interface = build_user_interface(
                     &mut application,
                     cache.take().unwrap(),
                     &mut renderer,
-                    size.logical(),
+                    viewport.logical_size(),
                     &mut debug,
                 );
 
@@ -306,7 +302,7 @@ pub trait Application: Sized {
                         &mut application,
                         temp_cache,
                         &mut renderer,
-                        size.logical(),
+                        viewport.logical_size(),
                         &mut debug,
                     );
 
@@ -326,7 +322,7 @@ pub trait Application: Sized {
                 debug.render_started();
 
                 if resized {
-                    let physical_size = size.physical();
+                    let physical_size = viewport.physical_size();
 
                     swap_chain = compositor.create_swap_chain(
                         &surface,
@@ -340,8 +336,8 @@ pub trait Application: Sized {
                 let new_mouse_interaction = compositor.draw(
                     &mut renderer,
                     &mut swap_chain,
+                    &viewport,
                     &primitive,
-                    size.scale_factor(),
                     &debug.overlay(),
                 );
 
@@ -364,7 +360,12 @@ pub trait Application: Sized {
             } => {
                 match window_event {
                     WindowEvent::Resized(new_size) => {
-                        size = Size::new(new_size, window.scale_factor());
+                        let size = Size::new(new_size.width, new_size.height);
+
+                        viewport = Viewport::with_physical_size(
+                            size,
+                            window.scale_factor(),
+                        );
                         resized = true;
                     }
                     WindowEvent::CloseRequested => {
@@ -402,7 +403,7 @@ pub trait Application: Sized {
 
                 if let Some(event) = conversion::window_event(
                     &window_event,
-                    size.scale_factor(),
+                    viewport.scale_factor(),
                     modifiers,
                 ) {
                     events.push(event);
@@ -419,7 +420,7 @@ fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
     renderer: &mut <A::Compositor as window::Compositor>::Renderer,
-    size: winit::dpi::LogicalSize<f64>,
+    size: Size,
     debug: &mut Debug,
 ) -> UserInterface<
     'a,
@@ -431,15 +432,7 @@ fn build_user_interface<'a, A: Application>(
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface = UserInterface::build(
-        view,
-        iced_native::Size::new(
-            size.width.round() as f32,
-            size.height.round() as f32,
-        ),
-        cache,
-        renderer,
-    );
+    let user_interface = UserInterface::build(view, size, cache, renderer);
     debug.layout_finished();
 
     user_interface

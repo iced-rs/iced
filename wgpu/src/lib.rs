@@ -34,7 +34,6 @@ pub mod window;
 
 mod backend;
 mod quad;
-mod target;
 mod text;
 
 pub use iced_graphics::{Defaults, Primitive, Viewport};
@@ -42,7 +41,6 @@ pub use wgpu;
 
 pub use backend::Backend;
 pub use settings::Settings;
-pub use target::Target;
 
 #[doc(no_inline)]
 pub use widget::*;
