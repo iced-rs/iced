@@ -6,6 +6,7 @@ use crate::{
     Vector, VerticalAlignment, Viewport,
 };
 
+#[derive(Debug, Clone)]
 pub struct Layer<'a> {
     pub bounds: Rectangle,
     pub quads: Vec<Quad>,

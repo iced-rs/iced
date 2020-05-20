@@ -1,0 +1,30 @@
+[package]
+name = "iced_glutin"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+description = "A glutin runtime for Iced"
+license = "MIT"
+repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced_glutin"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
+
+[features]
+debug = ["iced_winit/debug"]
+
+[dependencies]
+glutin = "0.24"
+
+[dependencies.iced_native]
+version = "0.2"
+path = "../native"
+
+[dependencies.iced_winit]
+version = "0.1"
+path = "../winit"
+
+[dependencies.iced_graphics]
+version = "0.1"
+path = "../graphics"
+features = ["opengl"]

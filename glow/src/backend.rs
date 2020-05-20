@@ -36,12 +36,6 @@ impl Backend {
         }
     }
 
-    /// Draws the provided primitives in the given [`Target`].
-    ///
-    /// The text provided as overlay will be renderer on top of the primitives.
-    /// This is useful for rendering debug information.
-    ///
-    /// [`Target`]: struct.Target.html
     pub fn draw<T: AsRef<str>>(
         &mut self,
         gl: &glow::Context,
@@ -50,6 +44,7 @@ impl Backend {
         overlay_text: &[T],
     ) -> mouse::Interaction {
         let viewport_size = viewport.physical_size();
+        let scale_factor = viewport.scale_factor() as f32;
         let projection = viewport.projection();
 
         let mut layers = Layer::generate(primitive, viewport);
@@ -58,7 +53,7 @@ impl Backend {
         for layer in layers {
             self.flush(
                 gl,
-                viewport.scale_factor() as f32,
+                scale_factor,
                 projection,
                 &layer,
                 viewport_size.width,
@@ -78,7 +73,8 @@ impl Backend {
         target_width: u32,
         target_height: u32,
     ) {
-        let bounds = (layer.bounds * scale_factor).round();
+        let mut bounds = (layer.bounds * scale_factor).round();
+        bounds.height = bounds.height.min(target_height);
 
         if !layer.quads.is_empty() {
             self.quad_pipeline.draw(
@@ -202,5 +198,22 @@ impl backend::Text for Backend {
 
     fn space_width(&self, size: f32) -> f32 {
         self.text_pipeline.space_width(size)
+    }
+}
+
+#[cfg(feature = "image")]
+impl backend::Image for Backend {
+    fn dimensions(&self, _handle: &iced_native::image::Handle) -> (u32, u32) {
+        (50, 50)
+    }
+}
+
+#[cfg(feature = "svg")]
+impl backend::Svg for Backend {
+    fn viewport_dimensions(
+        &self,
+        _handle: &iced_native::svg::Handle,
+    ) -> (u32, u32) {
+        (50, 50)
     }
 }

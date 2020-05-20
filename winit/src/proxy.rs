@@ -5,6 +5,7 @@ use iced_native::futures::{
 };
 use std::pin::Pin;
 
+#[derive(Debug)]
 pub struct Proxy<Message: 'static> {
     raw: winit::event_loop::EventLoopProxy<Message>,
 }

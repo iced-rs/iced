@@ -51,10 +51,10 @@ impl<Flags> Settings<Flags> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
-    fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
-        iced_winit::Settings {
-            window: iced_winit::settings::Window {
+impl<Flags> From<Settings<Flags>> for iced_glutin::Settings<Flags> {
+    fn from(settings: Settings<Flags>) -> iced_glutin::Settings<Flags> {
+        iced_glutin::Settings {
+            window: iced_glutin::settings::Window {
                 size: settings.window.size,
                 resizable: settings.window.resizable,
                 decorations: settings.window.decorations,

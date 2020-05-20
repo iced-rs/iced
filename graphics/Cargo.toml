@@ -9,6 +9,7 @@ canvas = ["lyon"]
 font-source = ["font-kit"]
 font-fallback = []
 font-icons = []
+opengl = []
 
 [dependencies]
 bytemuck = "1.2"

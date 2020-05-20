@@ -38,7 +38,16 @@ pub use slider::Slider;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-pub use iced_native::{Image, Space, Text};
+#[cfg(feature = "canvas")]
+#[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
+pub mod canvas;
+
+#[cfg(feature = "canvas")]
+#[doc(no_inline)]
+pub use canvas::Canvas;
+
+pub use iced_native::{Image, Space};
 
 pub type Column<'a, Message> = iced_native::Column<'a, Message, Renderer>;
 pub type Row<'a, Message> = iced_native::Row<'a, Message, Renderer>;
+pub type Text = iced_native::Text<Renderer>;

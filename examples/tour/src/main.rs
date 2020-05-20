@@ -1,20 +1,14 @@
-use iced_glow::{
-    button, scrollable, slider, text_input, window, Button, Checkbox, Color,
-    Column, Command, Container, Element, HorizontalAlignment, Image, Length,
-    Radio, Row, Scrollable, Slider, Space, Text, TextInput,
+use iced::{
+    button, executor, scrollable, slider, text_input, Application, Button,
+    Checkbox, Color, Column, Command, Container, Element, HorizontalAlignment,
+    Image, Length, Radio, Row, Scrollable, Settings, Slider, Space, Text,
+    TextInput,
 };
-use iced_winit::{executor, Application, Settings};
 
 pub fn main() {
     env_logger::init();
 
-    Tour::run(
-        Settings::default(),
-        iced_glow::Settings {
-            default_font: None,
-            antialiasing: None,
-        },
-    )
+    Tour::run(Settings::default())
 }
 
 pub struct Tour {
@@ -26,7 +20,6 @@ pub struct Tour {
 }
 
 impl Application for Tour {
-    type Compositor = window::Compositor;
     type Executor = executor::Null;
     type Message = Message;
     type Flags = ();
@@ -693,18 +686,17 @@ impl<'a> Step {
 
 fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
     Container::new(
-        Text::new("Not supported yet!")
         // This should go away once we unify resource loading on native
         // platforms
-        //if cfg!(target_arch = "wasm32") {
-        //    Image::new("images/ferris.png")
-        //} else {
-        //    Image::new(format!(
-        //        "{}/images/ferris.png",
-        //        env!("CARGO_MANIFEST_DIR")
-        //    ))
-        //}
-        //.width(Length::Units(width)),
+        if cfg!(target_arch = "wasm32") {
+            Image::new("images/ferris.png")
+        } else {
+            Image::new(format!(
+                "{}/images/ferris.png",
+                env!("CARGO_MANIFEST_DIR")
+            ))
+        }
+        .width(Length::Units(width)),
     )
     .width(Length::Fill)
     .center_x()
@@ -765,7 +757,7 @@ pub enum Layout {
 }
 
 mod style {
-    use iced_glow::{button, Background, Color, Vector};
+    use iced::{button, Background, Color, Vector};
 
     pub enum Button {
         Primary,

@@ -1,9 +1,11 @@
 use crate::{
-    conversion, mouse, Cache, Clipboard, Command, Debug, Element, Executor,
-    Mode, Proxy, Runtime, Settings, Size, Subscription, UserInterface,
+    mouse, Cache, Command, Element, Executor, Runtime, Size, Subscription,
+    UserInterface,
 };
 use iced_graphics::window;
 use iced_graphics::Viewport;
+use iced_winit::conversion;
+use iced_winit::{Clipboard, Debug, Mode, Proxy, Settings};
 
 /// An interactive, native cross-platform application.
 ///
@@ -20,7 +22,7 @@ pub trait Application: Sized {
     /// The graphics backend to use to draw the [`Application`].
     ///
     /// [`Application`]: trait.Application.html
-    type Compositor: window::Compositor;
+    type Compositor: window::GLCompositor;
 
     /// The [`Executor`] that will run commands and subscriptions.
     ///
@@ -95,7 +97,7 @@ pub trait Application: Sized {
     ) -> Element<
         '_,
         Self::Message,
-        <Self::Compositor as window::Compositor>::Renderer,
+        <Self::Compositor as window::GLCompositor>::Renderer,
     >;
 
     /// Returns the current [`Application`] mode.
@@ -121,15 +123,16 @@ pub trait Application: Sized {
     /// [`Settings`]: struct.Settings.html
     fn run(
         settings: Settings<Self::Flags>,
-        backend_settings: <Self::Compositor as window::Compositor>::Settings,
+        backend_settings: <Self::Compositor as window::GLCompositor>::Settings,
     ) where
         Self: 'static,
     {
-        use iced_graphics::window::Compositor as _;
-        use winit::{
+        use glutin::{
             event::{self, WindowEvent},
             event_loop::{ControlFlow, EventLoop},
+            ContextBuilder,
         };
+        use iced_graphics::window::GLCompositor as _;
 
         let mut debug = Debug::new();
 
@@ -154,30 +157,39 @@ pub trait Application: Sized {
         let mut title = application.title();
         let mut mode = application.mode();
 
-        let window = settings
-            .window
-            .into_builder(&title, mode, event_loop.primary_monitor())
-            .build(&event_loop)
-            .expect("Open window");
+        let context = {
+            let window_builder = settings.window.into_builder(
+                &title,
+                mode,
+                event_loop.primary_monitor(),
+            );
 
-        let physical_size = window.inner_size();
+            let context = ContextBuilder::new()
+                .with_vsync(true)
+                .build_windowed(window_builder, &event_loop)
+                .expect("Open window");
+
+            #[allow(unsafe_code)]
+            unsafe {
+                context.make_current().expect("Make OpenGL context current")
+            }
+        };
+
+        let physical_size = context.window().inner_size();
         let mut viewport = Viewport::with_physical_size(
             Size::new(physical_size.width, physical_size.height),
-            window.scale_factor(),
+            context.window().scale_factor(),
         );
         let mut resized = false;
 
-        let clipboard = Clipboard::new(&window);
-        let mut compositor = Self::Compositor::new(backend_settings.clone());
+        let clipboard = Clipboard::new(&context.window());
 
-        let surface = compositor.create_surface(&window);
-        let mut renderer = compositor.create_renderer(backend_settings);
-
-        let mut swap_chain = compositor.create_swap_chain(
-            &surface,
-            physical_size.width,
-            physical_size.height,
-        );
+        #[allow(unsafe_code)]
+        let (mut compositor, mut renderer) = unsafe {
+            Self::Compositor::new(backend_settings, |address| {
+                context.get_proc_address(address)
+            })
+        };
 
         let user_interface = build_user_interface(
             &mut application,
@@ -194,10 +206,10 @@ pub trait Application: Sized {
         let mut cache = Some(user_interface.into_cache());
         let mut events = Vec::new();
         let mut mouse_interaction = mouse::Interaction::default();
-        let mut modifiers = winit::event::ModifiersState::default();
+        let mut modifiers = glutin::event::ModifiersState::default();
         debug.startup_finished();
 
-        window.request_redraw();
+        context.window().request_redraw();
 
         event_loop.run(move |event, _, control_flow| match event {
             event::Event::MainEventsCleared => {
@@ -241,8 +253,6 @@ pub trait Application: Sized {
                     let temp_cache = user_interface.into_cache();
 
                     for message in messages {
-                        log::debug!("Updating");
-
                         debug.log_message(&message);
 
                         debug.update_started();
@@ -259,7 +269,7 @@ pub trait Application: Sized {
                     let new_title = application.title();
 
                     if title != new_title {
-                        window.set_title(&new_title);
+                        context.window().set_title(&new_title);
 
                         title = new_title;
                     }
@@ -268,10 +278,12 @@ pub trait Application: Sized {
                     let new_mode = application.mode();
 
                     if mode != new_mode {
-                        window.set_fullscreen(conversion::fullscreen(
-                            window.current_monitor(),
-                            new_mode,
-                        ));
+                        context.window().set_fullscreen(
+                            conversion::fullscreen(
+                                context.window().current_monitor(),
+                                new_mode,
+                            ),
+                        );
 
                         mode = new_mode;
                     }
@@ -291,7 +303,7 @@ pub trait Application: Sized {
                     cache = Some(user_interface.into_cache());
                 }
 
-                window.request_redraw();
+                context.window().request_redraw();
             }
             event::Event::UserEvent(message) => {
                 external_messages.push(message);
@@ -302,29 +314,29 @@ pub trait Application: Sized {
                 if resized {
                     let physical_size = viewport.physical_size();
 
-                    swap_chain = compositor.create_swap_chain(
-                        &surface,
-                        physical_size.width,
-                        physical_size.height,
-                    );
+                    context.resize(glutin::dpi::PhysicalSize {
+                        width: physical_size.width,
+                        height: physical_size.height,
+                    });
+                    compositor.resize_viewport(physical_size);
 
                     resized = false;
                 }
 
                 let new_mouse_interaction = compositor.draw(
                     &mut renderer,
-                    &mut swap_chain,
                     &viewport,
                     &primitive,
                     &debug.overlay(),
                 );
 
+                context.swap_buffers().expect("Swap buffers");
                 debug.render_finished();
 
                 if new_mouse_interaction != mouse_interaction {
-                    window.set_cursor_icon(conversion::mouse_interaction(
-                        new_mouse_interaction,
-                    ));
+                    context.window().set_cursor_icon(
+                        conversion::mouse_interaction(new_mouse_interaction),
+                    );
 
                     mouse_interaction = new_mouse_interaction;
                 }
@@ -342,7 +354,7 @@ pub trait Application: Sized {
 
                         viewport = Viewport::with_physical_size(
                             size,
-                            window.scale_factor(),
+                            context.window().scale_factor(),
                         );
                         resized = true;
                     }
@@ -355,10 +367,10 @@ pub trait Application: Sized {
                     #[cfg(target_os = "macos")]
                     WindowEvent::KeyboardInput {
                         input:
-                            winit::event::KeyboardInput {
+                            glutin::event::KeyboardInput {
                                 virtual_keycode:
-                                    Some(winit::event::VirtualKeyCode::Q),
-                                state: winit::event::ElementState::Pressed,
+                                    Some(glutin::event::VirtualKeyCode::Q),
+                                state: glutin::event::ElementState::Pressed,
                                 ..
                             },
                         ..
@@ -368,10 +380,10 @@ pub trait Application: Sized {
                     #[cfg(feature = "debug")]
                     WindowEvent::KeyboardInput {
                         input:
-                            winit::event::KeyboardInput {
+                            glutin::event::KeyboardInput {
                                 virtual_keycode:
-                                    Some(winit::event::VirtualKeyCode::F12),
-                                state: winit::event::ElementState::Pressed,
+                                    Some(glutin::event::VirtualKeyCode::F12),
+                                state: glutin::event::ElementState::Pressed,
                                 ..
                             },
                         ..
@@ -397,13 +409,13 @@ pub trait Application: Sized {
 fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
-    renderer: &mut <A::Compositor as window::Compositor>::Renderer,
+    renderer: &mut <A::Compositor as window::GLCompositor>::Renderer,
     size: Size,
     debug: &mut Debug,
 ) -> UserInterface<
     'a,
     A::Message,
-    <A::Compositor as window::Compositor>::Renderer,
+    <A::Compositor as window::GLCompositor>::Renderer,
 > {
     debug.view_started();
     let view = application.view();

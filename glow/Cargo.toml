@@ -7,8 +7,12 @@ description = "A glow renderer for iced"
 license = "MIT AND OFL-1.1"
 repository = "https://github.com/hecrj/iced"
 
+[features]
+canvas = ["iced_graphics/canvas"]
+image = []
+svg = []
+
 [dependencies]
-raw-window-handle = "0.3"
 euclid = "0.20"
 glow = "0.4"
 bytemuck = "1.2"
@@ -23,12 +27,7 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.1"
 path = "../graphics"
-features = ["font-source", "font-fallback", "font-icons"]
-
-[dependencies.surfman]
-path = "../../surfman/surfman"
-default-features = false
-features = ["sm-raw-window-handle", "sm-x11"]
+features = ["font-source", "font-fallback", "font-icons", "opengl"]
 
 [dependencies.glow_glyph]
 path = "../../glow_glyph"

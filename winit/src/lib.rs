@@ -15,7 +15,7 @@
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`Application`]: trait.Application.html
 //! [`conversion`]: conversion
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
@@ -44,8 +44,7 @@ mod debug;
 
 pub use application::Application;
 pub use clipboard::Clipboard;
+pub use debug::Debug;
 pub use mode::Mode;
+pub use proxy::Proxy;
 pub use settings::Settings;
-
-use debug::Debug;
-use proxy::Proxy;

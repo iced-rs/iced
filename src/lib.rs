@@ -207,7 +207,7 @@ pub use sandbox::Sandbox;
 pub use settings::Settings;
 
 #[cfg(not(target_arch = "wasm32"))]
-use iced_winit as runtime;
+use iced_glutin as runtime;
 
 #[cfg(target_arch = "wasm32")]
 use iced_web as runtime;

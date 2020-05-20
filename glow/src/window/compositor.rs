@@ -1,180 +1,64 @@
-use crate::{Renderer, Settings, Viewport};
+use crate::{Backend, Renderer, Settings, Viewport};
 
+use core::ffi::c_void;
 use glow::HasContext;
+use iced_graphics::Size;
 use iced_native::mouse;
-use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `glow`.
 #[allow(missing_debug_implementations)]
 pub struct Compositor {
-    connection: surfman::Connection,
-    device: surfman::Device,
-    gl_context: surfman::Context,
-    gl: Option<glow::Context>,
+    gl: glow::Context,
 }
 
-impl iced_graphics::window::Compositor for Compositor {
+impl iced_graphics::window::GLCompositor for Compositor {
     type Settings = Settings;
     type Renderer = Renderer;
-    type Surface = ();
-    type SwapChain = ();
 
-    fn new(_settings: Self::Settings) -> Self {
-        let connection = surfman::Connection::new().expect("Create connection");
+    unsafe fn new(
+        settings: Self::Settings,
+        loader_function: impl FnMut(&str) -> *const c_void,
+    ) -> (Self, Self::Renderer) {
+        let gl = glow::Context::from_loader_function(loader_function);
 
-        let adapter = connection
-            .create_hardware_adapter()
-            .expect("Create adapter");
+        gl.clear_color(1.0, 1.0, 1.0, 1.0);
 
-        let mut device =
-            connection.create_device(&adapter).expect("Create device");
+        // Enable auto-conversion from/to sRGB
+        gl.enable(glow::FRAMEBUFFER_SRGB);
 
-        let context_descriptor = device
-            .create_context_descriptor(&surfman::ContextAttributes {
-                version: surfman::GLVersion::new(3, 0),
-                flags: surfman::ContextAttributeFlags::empty(),
-            })
-            .expect("Create context descriptor");
+        // Enable alpha blending
+        gl.enable(glow::BLEND);
+        gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 
-        let gl_context = device
-            .create_context(&context_descriptor)
-            .expect("Create context");
+        let renderer = Renderer::new(Backend::new(&gl, settings));
 
-        Self {
-            connection,
-            device,
-            gl_context,
-            gl: None,
-        }
+        (Self { gl }, renderer)
     }
 
-    fn create_renderer(&mut self, settings: Settings) -> Renderer {
-        self.device
-            .make_context_current(&self.gl_context)
-            .expect("Make context current");
-
-        Renderer::new(crate::Backend::new(self.gl.as_ref().unwrap(), settings))
-    }
-
-    fn create_surface<W: HasRawWindowHandle>(
-        &mut self,
-        window: &W,
-    ) -> Self::Surface {
-        let native_widget = self
-            .connection
-            .create_native_widget_from_rwh(window.raw_window_handle())
-            .expect("Create widget");
-
-        let surface = self
-            .device
-            .create_surface(
-                &self.gl_context,
-                surfman::SurfaceAccess::GPUOnly,
-                surfman::SurfaceType::Widget { native_widget },
-            )
-            .expect("Create surface");
-
-        let surfman::SurfaceInfo { .. } = self.device.surface_info(&surface);
-
-        self.device
-            .bind_surface_to_context(&mut self.gl_context, surface)
-            .expect("Bind surface to context");
-
-        self.device
-            .make_context_current(&self.gl_context)
-            .expect("Make context current");
-
-        self.gl = Some(glow::Context::from_loader_function(|s| {
-            self.device.get_proc_address(&self.gl_context, s)
-        }));
-
-        //let mut framebuffer =
-        //    skia_safe::gpu::gl::FramebufferInfo::from_fboid(framebuffer_object);
-
-        //framebuffer.format = gl::RGBA8;
-
-        //framebuffer
-    }
-
-    fn create_swap_chain(
-        &mut self,
-        _surface: &Self::Surface,
-        width: u32,
-        height: u32,
-    ) -> Self::SwapChain {
-        let mut surface = self
-            .device
-            .unbind_surface_from_context(&mut self.gl_context)
-            .expect("Unbind surface")
-            .expect("Active surface");
-
-        self.device
-            .resize_surface(
-                &self.gl_context,
-                &mut surface,
-                euclid::Size2D::new(width as i32, height as i32),
-            )
-            .expect("Resize surface");
-
-        self.device
-            .bind_surface_to_context(&mut self.gl_context, surface)
-            .expect("Bind surface to context");
-
-        let gl = self.gl.as_ref().unwrap();
-
+    fn resize_viewport(&mut self, physical_size: Size<u32>) {
         unsafe {
-            gl.viewport(0, 0, width as i32, height as i32);
-            gl.clear_color(1.0, 1.0, 1.0, 1.0);
-
-            // Enable auto-conversion from/to sRGB
-            gl.enable(glow::FRAMEBUFFER_SRGB);
-
-            // Enable alpha blending
-            gl.enable(glow::BLEND);
-            gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
+            self.gl.viewport(
+                0,
+                0,
+                physical_size.width as i32,
+                physical_size.height as i32,
+            );
         }
     }
 
     fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        swap_chain: &mut Self::SwapChain,
         viewport: &Viewport,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction {
-        let gl = self.gl.as_ref().unwrap();
+        let gl = &self.gl;
 
         unsafe {
             gl.clear(glow::COLOR_BUFFER_BIT);
         }
 
-        let mouse = renderer.backend_mut().draw(gl, viewport, output, overlay);
-
-        {
-            let mut surface = self
-                .device
-                .unbind_surface_from_context(&mut self.gl_context)
-                .expect("Unbind surface")
-                .expect("Active surface");
-
-            self.device
-                .present_surface(&self.gl_context, &mut surface)
-                .expect("Present surface");
-
-            self.device
-                .bind_surface_to_context(&mut self.gl_context, surface)
-                .expect("Bind surface to context");
-        }
-
-        mouse
-    }
-}
-
-impl Drop for Compositor {
-    fn drop(&mut self) {
-        self.device
-            .destroy_context(&mut self.gl_context)
-            .expect("Destroy context");
+        renderer.backend_mut().draw(gl, viewport, output, overlay)
     }
 }
