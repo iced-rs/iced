@@ -7,6 +7,9 @@ description = "A renderer-agnostic library for native GUIs"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
 
+[features]
+debug = []
+
 [dependencies]
 twox-hash = "1.5"
 unicode-segmentation = "1.6"

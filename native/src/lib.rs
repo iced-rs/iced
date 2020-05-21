@@ -34,7 +34,7 @@
 //! [`window::Backend`]: window/trait.Backend.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
@@ -42,6 +42,7 @@
 pub mod keyboard;
 pub mod layout;
 pub mod mouse;
+pub mod program;
 pub mod renderer;
 pub mod subscription;
 pub mod widget;
@@ -54,6 +55,15 @@ mod hasher;
 mod runtime;
 mod user_interface;
 
+// We disable debug capabilities on release builds unless the `debug` feature
+// is explicitly enabled.
+#[cfg(feature = "debug")]
+#[path = "debug/basic.rs"]
+mod debug;
+#[cfg(not(feature = "debug"))]
+#[path = "debug/null.rs"]
+mod debug;
+
 pub use iced_core::{
     Align, Background, Color, Font, HorizontalAlignment, Length, Point,
     Rectangle, Size, Vector, VerticalAlignment,
@@ -64,10 +74,12 @@ pub use iced_futures::{executor, futures, Command};
 pub use executor::Executor;
 
 pub use clipboard::Clipboard;
+pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
+pub use program::Program;
 pub use renderer::Renderer;
 pub use runtime::Runtime;
 pub use subscription::Subscription;

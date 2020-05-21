@@ -5,7 +5,7 @@ use raw_window_handle::HasRawWindowHandle;
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
     /// The settings of the backend.
-    type Settings: Default + Clone;
+    type Settings: Default;
 
     /// The iced renderer of the backend.
     type Renderer: iced_native::Renderer;
@@ -19,7 +19,7 @@ pub trait Compositor: Sized {
     /// Creates a new [`Backend`].
     ///
     /// [`Backend`]: trait.Backend.html
-    fn new(settings: Self::Settings) -> Self;
+    fn new(settings: Self::Settings) -> (Self, Self::Renderer);
 
     /// Crates a new [`Surface`] for the given window.
     ///
@@ -28,11 +28,6 @@ pub trait Compositor: Sized {
         &mut self,
         window: &W,
     ) -> Self::Surface;
-
-    /// Crates a new [`Renderer`].
-    ///
-    /// [`Renderer`]: #associatedtype.Renderer
-    fn create_renderer(&mut self, settings: Self::Settings) -> Self::Renderer;
 
     /// Crates a new [`SwapChain`] for the given [`Surface`].
     ///

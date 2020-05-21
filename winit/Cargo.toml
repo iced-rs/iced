@@ -11,7 +11,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-debug = []
+debug = ["iced_native/debug"]
 
 [dependencies]
 winit = "0.22"

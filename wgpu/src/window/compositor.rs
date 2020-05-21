@@ -18,8 +18,8 @@ impl iced_graphics::window::Compositor for Compositor {
     type Surface = wgpu::Surface;
     type SwapChain = wgpu::SwapChain;
 
-    fn new(settings: Self::Settings) -> Self {
-        let (device, queue) = futures::executor::block_on(async {
+    fn new(settings: Self::Settings) -> (Self, Renderer) {
+        let (mut device, queue) = futures::executor::block_on(async {
             let adapter = wgpu::Adapter::request(
                 &wgpu::RequestAdapterOptions {
                     power_preference: if settings.antialiasing.is_none() {
@@ -44,15 +44,17 @@ impl iced_graphics::window::Compositor for Compositor {
                 .await
         });
 
-        Self {
-            device,
-            queue,
-            format: settings.format,
-        }
-    }
+        let renderer =
+            Renderer::new(crate::Backend::new(&mut device, settings));
 
-    fn create_renderer(&mut self, settings: Settings) -> Renderer {
-        Renderer::new(crate::Backend::new(&mut self.device, settings))
+        (
+            Self {
+                device,
+                queue,
+                format: settings.format,
+            },
+            renderer,
+        )
     }
 
     fn create_surface<W: HasRawWindowHandle>(

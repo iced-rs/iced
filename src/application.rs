@@ -198,10 +198,11 @@ pub trait Application: Sized {
                 ..iced_glow::Settings::default()
             };
 
-            <Instance<Self> as iced_glutin::Application>::run(
-                settings.into(),
-                glow_settings,
-            );
+            iced_glutin::application::run::<
+                Instance<Self>,
+                Self::Executor,
+                iced_glow::window::Compositor,
+            >(settings.into(), glow_settings);
         }
 
         #[cfg(target_arch = "wasm32")]
@@ -212,14 +213,28 @@ pub trait Application: Sized {
 struct Instance<A: Application>(A);
 
 #[cfg(not(target_arch = "wasm32"))]
+impl<A> iced_glutin::Program for Instance<A>
+where
+    A: Application,
+{
+    type Renderer = iced_glow::Renderer;
+    type Message = A::Message;
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        self.0.update(message)
+    }
+
+    fn view(&mut self) -> Element<'_, Self::Message> {
+        self.0.view()
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 impl<A> iced_glutin::Application for Instance<A>
 where
     A: Application,
 {
-    type Compositor = iced_glow::window::Compositor;
-    type Executor = A::Executor;
     type Flags = A::Flags;
-    type Message = A::Message;
 
     fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
         let (app, command) = A::new(flags);
@@ -238,16 +253,8 @@ where
         }
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
-    }
-
     fn subscription(&self) -> Subscription<Self::Message> {
         self.0.subscription()
-    }
-
-    fn view(&mut self) -> Element<'_, Self::Message> {
-        self.0.view()
     }
 }
 

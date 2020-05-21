@@ -7,7 +7,7 @@
 #[doc(no_inline)]
 pub use iced_native::*;
 
-mod application;
+pub mod application;
 
 pub use application::Application;
 
