@@ -36,9 +36,13 @@ impl Pipeline {
 
         let (brush_builder, measure_brush) = load_glyph_brush(default_font)
             .unwrap_or_else(|_: glow_glyph::rusttype::Error| {
-                log::warn!("System font failed to load. Falling back to embedded font...");
+                log::warn!(
+                    "System font failed to load. \
+                    Falling back to embedded font..."
+                );
 
-                load_glyph_brush(font::FALLBACK.to_vec()).expect("Load fallback font")
+                load_glyph_brush(font::FALLBACK.to_vec())
+                    .expect("Load fallback font")
             });
 
         let draw_brush =
@@ -50,10 +54,6 @@ impl Pipeline {
 
             measure_brush: RefCell::new(measure_brush),
         }
-    }
-
-    pub fn overlay_font(&self) -> glow_glyph::FontId {
-        glow_glyph::FontId(0)
     }
 
     pub fn queue(&mut self, section: glow_glyph::Section<'_>) {
