@@ -2,7 +2,6 @@ use iced_wgpu::wgpu;
 use iced_winit::Color;
 
 pub struct Scene {
-    pub background_color: Color,
     pipeline: wgpu::RenderPipeline,
     bind_group: wgpu::BindGroup,
 }
@@ -12,7 +11,6 @@ impl Scene {
         let (pipeline, bind_group) = build_pipeline(device);
 
         Scene {
-            background_color: Color::BLACK,
             pipeline,
             bind_group,
         }
@@ -22,6 +20,7 @@ impl Scene {
         &self,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
+        background_color: Color,
     ) {
         let mut rpass =
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -32,8 +31,7 @@ impl Scene {
                         load_op: wgpu::LoadOp::Clear,
                         store_op: wgpu::StoreOp::Store,
                         clear_color: {
-                            let [r, g, b, a] =
-                                self.background_color.into_linear();
+                            let [r, g, b, a] = background_color.into_linear();
 
                             wgpu::Color {
                                 r: r as f64,

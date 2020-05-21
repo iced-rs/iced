@@ -4,10 +4,8 @@ mod scene;
 use controls::Controls;
 use scene::Scene;
 
-use iced_wgpu::{wgpu, Backend, Primitive, Renderer, Settings, Viewport};
-use iced_winit::{
-    futures, mouse, winit, Cache, Clipboard, Size, UserInterface,
-};
+use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
+use iced_winit::{futures, program, winit, Debug, Size};
 
 use winit::{
     event::{Event, ModifiersState, WindowEvent},
@@ -28,8 +26,7 @@ pub fn main() {
     );
     let mut modifiers = ModifiersState::default();
 
-    // Initialize WGPU
-
+    // Initialize wgpu
     let surface = wgpu::Surface::create(&window);
     let (mut device, queue) = futures::executor::block_on(async {
         let adapter = wgpu::Adapter::request(
@@ -70,17 +67,21 @@ pub fn main() {
     };
     let mut resized = false;
 
+    // Initialize scene and GUI controls
+    let scene = Scene::new(&mut device);
+    let controls = Controls::new();
+
     // Initialize iced
-    let mut events = Vec::new();
-    let mut cache = Some(Cache::default());
+    let mut debug = Debug::new();
     let mut renderer =
         Renderer::new(Backend::new(&mut device, Settings::default()));
-    let mut output = (Primitive::None, mouse::Interaction::default());
-    let clipboard = Clipboard::new(&window);
 
-    // Initialize scene and GUI controls
-    let mut scene = Scene::new(&device);
-    let mut controls = Controls::new();
+    let mut state = program::State::new(
+        controls,
+        viewport.logical_size(),
+        &mut renderer,
+        &mut debug,
+    );
 
     // Run event loop
     event_loop.run(move |event, _, control_flow| {
@@ -114,68 +115,17 @@ pub fn main() {
                     window.scale_factor(),
                     modifiers,
                 ) {
-                    events.push(event);
+                    state.queue_event(event);
                 }
             }
             Event::MainEventsCleared => {
-                // If no relevant events happened, we can simply skip this
-                if events.is_empty() {
-                    return;
-                }
-
-                // We need to:
-                // 1. Process events of our user interface.
-                // 2. Update state as a result of any interaction.
-                // 3. Generate a new output for our renderer.
-
-                // First, we build our user interface.
-                let mut user_interface = UserInterface::build(
-                    controls.view(&scene),
+                // We update iced
+                let _ = state.update(
+                    None,
                     viewport.logical_size(),
-                    cache.take().unwrap(),
                     &mut renderer,
+                    &mut debug,
                 );
-
-                // Then, we process the events, obtaining messages in return.
-                let messages = user_interface.update(
-                    events.drain(..),
-                    clipboard.as_ref().map(|c| c as _),
-                    &renderer,
-                );
-
-                let user_interface = if messages.is_empty() {
-                    // If there are no messages, no interactions we care about have
-                    // happened. We can simply leave our user interface as it is.
-                    user_interface
-                } else {
-                    // If there are messages, we need to update our state
-                    // accordingly and rebuild our user interface.
-                    // We can only do this if we drop our user interface first
-                    // by turning it into its cache.
-                    cache = Some(user_interface.into_cache());
-
-                    // In this example, `Controls` is the only part that cares
-                    // about messages, so updating our state is pretty
-                    // straightforward.
-                    for message in messages {
-                        controls.update(message, &mut scene);
-                    }
-
-                    // Once the state has been changed, we rebuild our updated
-                    // user interface.
-                    UserInterface::build(
-                        controls.view(&scene),
-                        viewport.logical_size(),
-                        cache.take().unwrap(),
-                        &mut renderer,
-                    )
-                };
-
-                // Finally, we just need to draw a new output for our renderer,
-                output = user_interface.draw(&mut renderer);
-
-                // update our cache,
-                cache = Some(user_interface.into_cache());
 
                 // and request a redraw
                 window.request_redraw();
@@ -203,7 +153,13 @@ pub fn main() {
                 );
 
                 // We draw the scene first
-                scene.draw(&mut encoder, &frame.view);
+                let program = state.program();
+
+                scene.draw(
+                    &mut encoder,
+                    &frame.view,
+                    program.background_color(),
+                );
 
                 // And then iced on top
                 let mouse_interaction = renderer.backend_mut().draw(
@@ -211,8 +167,8 @@ pub fn main() {
                     &mut encoder,
                     &frame.view,
                     &viewport,
-                    &output,
-                    &["Some debug information!"],
+                    state.primitive(),
+                    &debug.overlay(),
                 );
 
                 // Then we submit the work
