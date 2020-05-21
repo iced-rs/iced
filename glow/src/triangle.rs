@@ -41,11 +41,8 @@ impl Pipeline {
         unsafe {
             gl.use_program(Some(program));
 
-            gl.uniform_matrix_4_f32_slice(
-                Some(0),
-                false,
-                &Transformation::identity().into(),
-            );
+            let transform: [f32; 16] = Transformation::identity().into();
+            gl.uniform_matrix_4_f32_slice(Some(&0), false, &transform);
 
             gl.use_program(None);
         }
@@ -177,11 +174,8 @@ impl Pipeline {
 
             unsafe {
                 if self.current_transform != transform {
-                    gl.uniform_matrix_4_f32_slice(
-                        Some(0),
-                        false,
-                        &transform.into(),
-                    );
+                    let matrix: [f32; 16] = transform.into();
+                    gl.uniform_matrix_4_f32_slice(Some(&0), false, &matrix);
 
                     self.current_transform = transform;
                 }

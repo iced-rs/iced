@@ -31,13 +31,11 @@ impl Pipeline {
         unsafe {
             gl.use_program(Some(program));
 
-            gl.uniform_matrix_4_f32_slice(
-                Some(0),
-                false,
-                &Transformation::identity().into(),
-            );
-            gl.uniform_1_f32(Some(1), 1.0);
-            gl.uniform_1_f32(Some(2), 0.0);
+            let matrix: [f32; 16] = Transformation::identity().into();
+            gl.uniform_matrix_4_f32_slice(Some(&0), false, &matrix);
+
+            gl.uniform_1_f32(Some(&1), 1.0);
+            gl.uniform_1_f32(Some(&2), 0.0);
 
             gl.use_program(None);
         }
@@ -80,11 +78,8 @@ impl Pipeline {
 
         if transformation != self.current_transform {
             unsafe {
-                gl.uniform_matrix_4_f32_slice(
-                    Some(0),
-                    false,
-                    &transformation.into(),
-                );
+                let matrix: [f32; 16] = transformation.into();
+                gl.uniform_matrix_4_f32_slice(Some(&0), false, &matrix);
 
                 self.current_transform = transformation;
             }
@@ -92,7 +87,7 @@ impl Pipeline {
 
         if scale != self.current_scale {
             unsafe {
-                gl.uniform_1_f32(Some(1), scale);
+                gl.uniform_1_f32(Some(&1), scale);
             }
 
             self.current_scale = scale;
@@ -100,7 +95,7 @@ impl Pipeline {
 
         if target_height != self.current_target_height {
             unsafe {
-                gl.uniform_1_f32(Some(2), target_height as f32);
+                gl.uniform_1_f32(Some(&2), target_height as f32);
             }
 
             self.current_target_height = target_height;

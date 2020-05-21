@@ -14,11 +14,14 @@ svg = []
 
 [dependencies]
 euclid = "0.20"
-glow = "0.4"
 bytemuck = "1.2"
 glam = "0.8"
 log = "0.4"
 glyph_brush = "0.6"
+
+[dependencies.glow]
+git = "https://github.com/grovesNL/glow"
+rev = "722a850e972a69c3012fcb3687758eacbdac2823"
 
 [dependencies.iced_native]
 version = "0.2"
