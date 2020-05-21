@@ -5,6 +5,7 @@
 #![forbid(rust_2018_idioms)]
 
 mod backend;
+mod program;
 mod quad;
 mod text;
 mod triangle;
