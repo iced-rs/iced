@@ -26,8 +26,7 @@ impl Backend {
     pub fn new(gl: &glow::Context, settings: Settings) -> Self {
         let text_pipeline = text::Pipeline::new(gl, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(gl);
-        let triangle_pipeline =
-            triangle::Pipeline::new(gl, settings.antialiasing);
+        let triangle_pipeline = triangle::Pipeline::new(gl);
 
         Self {
             quad_pipeline,
@@ -56,7 +55,6 @@ impl Backend {
                 scale_factor,
                 projection,
                 &layer,
-                viewport_size.width,
                 viewport_size.height,
             );
         }
@@ -70,7 +68,6 @@ impl Backend {
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
-        target_width: u32,
         target_height: u32,
     ) {
         let mut bounds = (layer.bounds * scale_factor).round();
@@ -93,7 +90,6 @@ impl Backend {
 
             self.triangle_pipeline.draw(
                 gl,
-                target_width,
                 target_height,
                 scaled,
                 scale_factor,

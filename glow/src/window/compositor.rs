@@ -2,7 +2,7 @@ use crate::{Backend, Renderer, Settings, Viewport};
 
 use core::ffi::c_void;
 use glow::HasContext;
-use iced_graphics::Size;
+use iced_graphics::{Antialiasing, Size};
 use iced_native::mouse;
 
 /// A window graphics backend for iced powered by `glow`.
@@ -30,9 +30,19 @@ impl iced_graphics::window::GLCompositor for Compositor {
         gl.enable(glow::BLEND);
         gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 
+        // Disable multisampling by default
+        gl.disable(glow::MULTISAMPLE);
+
         let renderer = Renderer::new(Backend::new(&gl, settings));
 
         (Self { gl }, renderer)
+    }
+
+    fn sample_count(settings: &Settings) -> u32 {
+        settings
+            .antialiasing
+            .map(Antialiasing::sample_count)
+            .unwrap_or(0)
     }
 
     fn resize_viewport(&mut self, physical_size: Size<u32>) {

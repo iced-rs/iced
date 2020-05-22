@@ -1,10 +1,8 @@
 //! Draw meshes of triangles.
 use crate::program;
-use crate::settings;
 use crate::Transformation;
 use glow::HasContext;
 use iced_graphics::layer;
-use iced_graphics::Size;
 use std::marker::PhantomData;
 
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
@@ -20,14 +18,10 @@ pub(crate) struct Pipeline {
     indices: Buffer<u32>,
     transform_location: <glow::Context as HasContext>::UniformLocation,
     current_transform: Transformation,
-    antialias: Antialias,
 }
 
 impl Pipeline {
-    pub fn new(
-        gl: &glow::Context,
-        antialiasing: Option<settings::Antialiasing>,
-    ) -> Pipeline {
+    pub fn new(gl: &glow::Context) -> Pipeline {
         let program = unsafe {
             program::create(
                 gl,
@@ -109,20 +103,19 @@ impl Pipeline {
             indices,
             transform_location,
             current_transform: Transformation::identity(),
-            antialias: Antialias::new(antialiasing),
         }
     }
 
     pub fn draw(
         &mut self,
         gl: &glow::Context,
-        target_width: u32,
         target_height: u32,
         transformation: Transformation,
         scale_factor: f32,
         meshes: &[layer::Mesh<'_>],
     ) {
         unsafe {
+            gl.enable(glow::MULTISAMPLE);
             gl.enable(glow::SCISSOR_TEST);
             gl.use_program(Some(self.program));
             gl.bind_vertex_array(Some(self.vertex_array));
@@ -170,67 +163,59 @@ impl Pipeline {
             }
         }
 
-        let Self {
-            antialias,
-            current_transform,
-            transform_location,
-            ..
-        } = self;
+        // Then we draw each mesh using offsets
+        let mut last_vertex = 0;
+        let mut last_index = 0;
 
-        // Then we draw each mesh using offsets with antialiasing
-        antialias.perform(gl, Size::new(target_width, target_height), |gl| {
-            let mut last_vertex = 0;
-            let mut last_index = 0;
+        for layer::Mesh {
+            buffers,
+            origin,
+            clip_bounds,
+        } in meshes
+        {
+            let transform =
+                transformation * Transformation::translate(origin.x, origin.y);
 
-            for layer::Mesh {
-                buffers,
-                origin,
-                clip_bounds,
-            } in meshes
-            {
-                let transform = transformation
-                    * Transformation::translate(origin.x, origin.y);
+            let clip_bounds = (*clip_bounds * scale_factor).round();
 
-                let clip_bounds = (*clip_bounds * scale_factor).round();
-
-                unsafe {
-                    if *current_transform != transform {
-                        let matrix: [f32; 16] = transform.into();
-                        gl.uniform_matrix_4_f32_slice(
-                            Some(transform_location),
-                            false,
-                            &matrix,
-                        );
-
-                        *current_transform = transform;
-                    }
-
-                    gl.scissor(
-                        clip_bounds.x as i32,
-                        (target_height - (clip_bounds.y + clip_bounds.height))
-                            as i32,
-                        clip_bounds.width as i32,
-                        clip_bounds.height as i32,
+            unsafe {
+                if self.current_transform != transform {
+                    let matrix: [f32; 16] = transform.into();
+                    gl.uniform_matrix_4_f32_slice(
+                        Some(&self.transform_location),
+                        false,
+                        &matrix,
                     );
 
-                    gl.draw_elements_base_vertex(
-                        glow::TRIANGLES,
-                        buffers.indices.len() as i32,
-                        glow::UNSIGNED_INT,
-                        (last_index * std::mem::size_of::<u32>()) as i32,
-                        last_vertex as i32,
-                    );
-
-                    last_vertex += buffers.vertices.len();
-                    last_index += buffers.indices.len();
+                    self.current_transform = transform;
                 }
+
+                gl.scissor(
+                    clip_bounds.x as i32,
+                    (target_height - (clip_bounds.y + clip_bounds.height))
+                        as i32,
+                    clip_bounds.width as i32,
+                    clip_bounds.height as i32,
+                );
+
+                gl.draw_elements_base_vertex(
+                    glow::TRIANGLES,
+                    buffers.indices.len() as i32,
+                    glow::UNSIGNED_INT,
+                    (last_index * std::mem::size_of::<u32>()) as i32,
+                    last_vertex as i32,
+                );
+
+                last_vertex += buffers.vertices.len();
+                last_index += buffers.indices.len();
             }
-        });
+        }
 
         unsafe {
             gl.bind_vertex_array(None);
             gl.use_program(None);
             gl.disable(glow::SCISSOR_TEST);
+            gl.disable(glow::MULTISAMPLE);
         }
     }
 }
@@ -302,149 +287,6 @@ impl<T> Buffer<T> {
             );
 
             self.size = size;
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Antialias {
-    renderbuffer: Option<Renderbuffer>,
-    sample_count: u32,
-}
-
-impl Antialias {
-    fn new(antialiasing: Option<settings::Antialiasing>) -> Self {
-        Antialias {
-            renderbuffer: None,
-            sample_count: antialiasing
-                .map(settings::Antialiasing::sample_count)
-                .unwrap_or(1),
-        }
-    }
-
-    fn perform(
-        &mut self,
-        gl: &glow::Context,
-        size: Size<u32>,
-        f: impl FnOnce(&glow::Context),
-    ) {
-        if self.sample_count == 1 {
-            return f(gl);
-        }
-
-        let target = glow::DRAW_FRAMEBUFFER;
-
-        let renderbuffer = if let Some(renderbuffer) = self.renderbuffer.take()
-        {
-            if size == renderbuffer.size {
-                renderbuffer
-            } else {
-                renderbuffer.destroy(gl);
-
-                Renderbuffer::new(gl, target, self.sample_count, size)
-            }
-        } else {
-            Renderbuffer::new(gl, target, self.sample_count, size)
-        };
-
-        renderbuffer.bind(gl, target);
-
-        unsafe {
-            gl.clear_color(0.0, 0.0, 0.0, 0.0);
-            gl.clear(glow::COLOR_BUFFER_BIT);
-        }
-
-        f(gl);
-
-        unsafe {
-            gl.bind_framebuffer(target, None);
-            gl.clear_color(1.0, 1.0, 1.0, 1.0);
-        }
-
-        renderbuffer.blit(gl);
-
-        self.renderbuffer = Some(renderbuffer);
-    }
-}
-
-#[derive(Debug)]
-pub struct Renderbuffer {
-    raw: <glow::Context as HasContext>::Renderbuffer,
-    framebuffer: <glow::Context as HasContext>::Framebuffer,
-    size: Size<u32>,
-}
-
-impl Renderbuffer {
-    fn new(
-        gl: &glow::Context,
-        target: u32,
-        sample_count: u32,
-        size: Size<u32>,
-    ) -> Self {
-        let framebuffer = unsafe {
-            gl.create_framebuffer().expect("Create MSAA framebuffer")
-        };
-
-        let raw = unsafe {
-            gl.create_renderbuffer().expect("Create MSAA renderbuffer")
-        };
-
-        unsafe {
-            gl.bind_renderbuffer(glow::RENDERBUFFER, Some(raw));
-            gl.renderbuffer_storage_multisample(
-                glow::RENDERBUFFER,
-                sample_count as i32,
-                glow::SRGB8_ALPHA8,
-                size.width as i32,
-                size.height as i32,
-            );
-
-            gl.bind_framebuffer(target, Some(framebuffer));
-            gl.framebuffer_renderbuffer(
-                target,
-                glow::COLOR_ATTACHMENT0,
-                glow::RENDERBUFFER,
-                Some(raw),
-            );
-            gl.bind_framebuffer(target, None);
-        }
-
-        Self {
-            raw,
-            framebuffer,
-            size,
-        }
-    }
-
-    fn bind(&self, gl: &glow::Context, target: u32) {
-        unsafe {
-            gl.bind_framebuffer(target, Some(self.framebuffer));
-        }
-    }
-
-    fn blit(&self, gl: &glow::Context) {
-        unsafe {
-            self.bind(gl, glow::READ_FRAMEBUFFER);
-
-            gl.blit_framebuffer(
-                0,
-                0,
-                self.size.width as i32,
-                self.size.height as i32,
-                0,
-                0,
-                self.size.width as i32,
-                self.size.height as i32,
-                glow::COLOR_BUFFER_BIT,
-                glow::NEAREST,
-            );
-        }
-    }
-
-    fn destroy(self, gl: &glow::Context) {
-        unsafe {
-            gl.delete_renderbuffer(self.raw);
-            gl.delete_framebuffer(self.framebuffer);
         }
     }
 }

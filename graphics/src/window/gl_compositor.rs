@@ -12,6 +12,8 @@ pub trait GLCompositor: Sized {
         loader_function: impl FnMut(&str) -> *const c_void,
     ) -> (Self, Self::Renderer);
 
+    fn sample_count(settings: &Self::Settings) -> u32;
+
     fn resize_viewport(&mut self, physical_size: Size<u32>);
 
     fn draw<T: AsRef<str>>(

@@ -170,9 +170,9 @@ impl Pipeline {
                         ],
                     }],
                 },
-                sample_count: antialiasing
-                    .map(|a| a.sample_count())
-                    .unwrap_or(1),
+                sample_count: u32::from(
+                    antialiasing.map(|a| a.sample_count()).unwrap_or(1),
+                ),
                 sample_mask: !0,
                 alpha_to_coverage_enabled: false,
             });
