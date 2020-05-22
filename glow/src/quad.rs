@@ -11,6 +11,9 @@ pub struct Pipeline {
     program: <glow::Context as HasContext>::Program,
     vertex_array: <glow::Context as HasContext>::VertexArray,
     instances: <glow::Context as HasContext>::Buffer,
+    transform_location: <glow::Context as HasContext>::UniformLocation,
+    scale_location: <glow::Context as HasContext>::UniformLocation,
+    screen_height_location: <glow::Context as HasContext>::UniformLocation,
     current_transform: Transformation,
     current_scale: f32,
     current_target_height: u32,
@@ -28,14 +31,30 @@ impl Pipeline {
             )
         };
 
+        let transform_location =
+            unsafe { gl.get_uniform_location(program, "u_Transform") }
+                .expect("Get transform location");
+
+        let scale_location =
+            unsafe { gl.get_uniform_location(program, "u_Scale") }
+                .expect("Get scale location");
+
+        let screen_height_location =
+            unsafe { gl.get_uniform_location(program, "u_ScreenHeight") }
+                .expect("Get target height location");
+
         unsafe {
             gl.use_program(Some(program));
 
             let matrix: [f32; 16] = Transformation::identity().into();
-            gl.uniform_matrix_4_f32_slice(Some(&0), false, &matrix);
+            gl.uniform_matrix_4_f32_slice(
+                Some(&transform_location),
+                false,
+                &matrix,
+            );
 
-            gl.uniform_1_f32(Some(&1), 1.0);
-            gl.uniform_1_f32(Some(&2), 0.0);
+            gl.uniform_1_f32(Some(&scale_location), 1.0);
+            gl.uniform_1_f32(Some(&screen_height_location), 0.0);
 
             gl.use_program(None);
         }
@@ -47,6 +66,9 @@ impl Pipeline {
             program,
             vertex_array,
             instances,
+            transform_location,
+            scale_location,
+            screen_height_location,
             current_transform: Transformation::identity(),
             current_scale: 1.0,
             current_target_height: 0,
@@ -79,7 +101,11 @@ impl Pipeline {
         if transformation != self.current_transform {
             unsafe {
                 let matrix: [f32; 16] = transformation.into();
-                gl.uniform_matrix_4_f32_slice(Some(&0), false, &matrix);
+                gl.uniform_matrix_4_f32_slice(
+                    Some(&self.transform_location),
+                    false,
+                    &matrix,
+                );
 
                 self.current_transform = transformation;
             }
@@ -87,7 +113,7 @@ impl Pipeline {
 
         if scale != self.current_scale {
             unsafe {
-                gl.uniform_1_f32(Some(&1), scale);
+                gl.uniform_1_f32(Some(&self.scale_location), scale);
             }
 
             self.current_scale = scale;
@@ -95,7 +121,10 @@ impl Pipeline {
 
         if target_height != self.current_target_height {
             unsafe {
-                gl.uniform_1_f32(Some(&2), target_height as f32);
+                gl.uniform_1_f32(
+                    Some(&self.screen_height_location),
+                    target_height as f32,
+                );
             }
 
             self.current_target_height = target_height;

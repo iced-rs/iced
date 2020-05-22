@@ -34,4 +34,4 @@ features = ["font-source", "font-fallback", "font-icons", "opengl"]
 
 [dependencies.glow_glyph]
 git = "https://github.com/hecrj/glow_glyph"
-rev = "f027ffa49962d78ac85e282c635e848bef785ee9"
+rev = "8ec7982d9e0ce828769d4ba7abe73b0b0ec22db6"

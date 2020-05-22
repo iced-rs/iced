@@ -18,6 +18,7 @@ pub(crate) struct Pipeline {
     vertex_array: <glow::Context as HasContext>::VertexArray,
     vertices: Buffer<Vertex2D>,
     indices: Buffer<u32>,
+    transform_location: <glow::Context as HasContext>::UniformLocation,
     current_transform: Transformation,
     antialias: Antialias,
 }
@@ -40,11 +41,19 @@ impl Pipeline {
             )
         };
 
+        let transform_location =
+            unsafe { gl.get_uniform_location(program, "u_Transform") }
+                .expect("Get transform location");
+
         unsafe {
             gl.use_program(Some(program));
 
             let transform: [f32; 16] = Transformation::identity().into();
-            gl.uniform_matrix_4_f32_slice(Some(&0), false, &transform);
+            gl.uniform_matrix_4_f32_slice(
+                Some(&transform_location),
+                false,
+                &transform,
+            );
 
             gl.use_program(None);
         }
@@ -98,6 +107,7 @@ impl Pipeline {
             vertex_array,
             vertices,
             indices,
+            transform_location,
             current_transform: Transformation::identity(),
             antialias: Antialias::new(antialiasing),
         }
@@ -163,6 +173,7 @@ impl Pipeline {
         let Self {
             antialias,
             current_transform,
+            transform_location,
             ..
         } = self;
 
@@ -185,7 +196,11 @@ impl Pipeline {
                 unsafe {
                     if *current_transform != transform {
                         let matrix: [f32; 16] = transform.into();
-                        gl.uniform_matrix_4_f32_slice(Some(&0), false, &matrix);
+                        gl.uniform_matrix_4_f32_slice(
+                            Some(transform_location),
+                            false,
+                            &matrix,
+                        );
 
                         *current_transform = transform;
                     }
