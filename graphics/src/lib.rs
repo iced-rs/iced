@@ -9,6 +9,7 @@
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
+mod overlay;
 mod primitive;
 mod renderer;
 mod transformation;

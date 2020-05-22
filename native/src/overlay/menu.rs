@@ -1,7 +1,7 @@
 use crate::{
-    container, layout, mouse, scrollable, Clipboard, Container, Element, Event,
-    Hasher, Layer, Layout, Length, Point, Rectangle, Scrollable, Size, Vector,
-    Widget,
+    container, layout, mouse, overlay, scrollable, Clipboard, Container,
+    Element, Event, Hasher, Layout, Length, Point, Rectangle, Scrollable, Size,
+    Vector, Widget,
 };
 use std::borrow::Cow;
 
@@ -68,7 +68,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Layer<Message, Renderer>
+impl<'a, Message, Renderer> overlay::Content<Message, Renderer>
     for Menu<'a, Message, Renderer>
 where
     Renderer: self::Renderer,

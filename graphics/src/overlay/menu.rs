@@ -1,11 +1,11 @@
 use crate::backend::Backend;
 use crate::{Primitive, Renderer};
 use iced_native::{
-    layer, mouse, Background, Color, Font, HorizontalAlignment, Point,
+    mouse, overlay, Background, Color, Font, HorizontalAlignment, Point,
     Rectangle, VerticalAlignment,
 };
 
-impl<B> layer::menu::Renderer for Renderer<B>
+impl<B> overlay::menu::Renderer for Renderer<B>
 where
     B: Backend,
 {

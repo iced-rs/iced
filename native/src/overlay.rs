@@ -1,12 +1,17 @@
-use crate::{
-    layout, Clipboard, Event, Hasher, Layer, Layout, Point, Size, Vector,
-};
+mod content;
+
+pub mod menu;
+
+pub use content::Content;
+pub use menu::Menu;
+
+use crate::{layout, Clipboard, Event, Hasher, Layout, Point, Size, Vector};
 use std::rc::Rc;
 
 #[allow(missing_debug_implementations)]
 pub struct Overlay<'a, Message, Renderer> {
     position: Point,
-    layer: Box<dyn Layer<Message, Renderer> + 'a>,
+    content: Box<dyn Content<Message, Renderer> + 'a>,
 }
 
 impl<'a, Message, Renderer> Overlay<'a, Message, Renderer>
@@ -15,9 +20,9 @@ where
 {
     pub fn new(
         position: Point,
-        layer: Box<dyn Layer<Message, Renderer> + 'a>,
+        content: Box<dyn Content<Message, Renderer> + 'a>,
     ) -> Self {
-        Self { position, layer }
+        Self { position, content }
     }
 
     pub fn translate(mut self, translation: Vector) -> Self {
@@ -33,12 +38,12 @@ where
     {
         Overlay {
             position: self.position,
-            layer: Box::new(Map::new(self.layer, f)),
+            content: Box::new(Map::new(self.content, f)),
         }
     }
 
     pub fn layout(&self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.layer.layout(renderer, bounds, self.position)
+        self.content.layout(renderer, bounds, self.position)
     }
 
     pub fn draw(
@@ -48,11 +53,12 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        self.layer.draw(renderer, defaults, layout, cursor_position)
+        self.content
+            .draw(renderer, defaults, layout, cursor_position)
     }
 
     pub fn hash_layout(&self, state: &mut Hasher) {
-        self.layer.hash_layout(state, self.position);
+        self.content.hash_layout(state, self.position);
     }
 
     pub fn on_event(
@@ -64,7 +70,7 @@ where
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
     ) {
-        self.layer.on_event(
+        self.content.on_event(
             event,
             layout,
             cursor_position,
@@ -76,20 +82,20 @@ where
 }
 
 struct Map<'a, A, B, Renderer> {
-    layer: Box<dyn Layer<A, Renderer> + 'a>,
+    content: Box<dyn Content<A, Renderer> + 'a>,
     mapper: Rc<dyn Fn(A) -> B>,
 }
 
 impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     pub fn new(
-        layer: Box<dyn Layer<A, Renderer> + 'a>,
+        content: Box<dyn Content<A, Renderer> + 'a>,
         mapper: Rc<dyn Fn(A) -> B + 'static>,
     ) -> Map<'a, A, B, Renderer> {
-        Map { layer, mapper }
+        Map { content, mapper }
     }
 }
 
-impl<'a, A, B, Renderer> Layer<B, Renderer> for Map<'a, A, B, Renderer>
+impl<'a, A, B, Renderer> Content<B, Renderer> for Map<'a, A, B, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -99,7 +105,7 @@ where
         bounds: Size,
         position: Point,
     ) -> layout::Node {
-        self.layer.layout(renderer, bounds, position)
+        self.content.layout(renderer, bounds, position)
     }
 
     fn on_event(
@@ -113,7 +119,7 @@ where
     ) {
         let mut original_messages = Vec::new();
 
-        self.layer.on_event(
+        self.content.on_event(
             event,
             layout,
             cursor_position,
@@ -134,10 +140,11 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        self.layer.draw(renderer, defaults, layout, cursor_position)
+        self.content
+            .draw(renderer, defaults, layout, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher, position: Point) {
-        self.layer.hash_layout(state, position);
+        self.content.hash_layout(state, position);
     }
 }

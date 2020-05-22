@@ -1,11 +1,6 @@
-pub mod menu;
-
-#[doc(no_inline)]
-pub use menu::Menu;
-
 use crate::{layout, Clipboard, Event, Hasher, Layout, Point, Size};
 
-pub trait Layer<Message, Renderer>
+pub trait Content<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {

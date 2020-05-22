@@ -1,7 +1,8 @@
 use crate::{
-    layer::{self, menu},
-    layout, mouse, scrollable, text, Clipboard, Element, Event, Hasher, Layout,
-    Length, Overlay, Point, Rectangle, Size, Widget,
+    layout, mouse,
+    overlay::menu::{self, Menu},
+    scrollable, text, Clipboard, Element, Event, Hasher, Layout, Length,
+    Overlay, Point, Rectangle, Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -214,7 +215,7 @@ where
 
                 Some(Overlay::new(
                     layout.position(),
-                    Box::new(layer::Menu::new(
+                    Box::new(Menu::new(
                         menu,
                         self.options.clone(),
                         on_selected,

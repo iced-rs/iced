@@ -1,6 +1,4 @@
 //! Organize rendering primitives into a flattened list of layers.
-mod menu;
-
 use crate::image;
 use crate::svg;
 use crate::triangle;

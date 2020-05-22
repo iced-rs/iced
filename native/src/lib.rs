@@ -36,9 +36,9 @@
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 pub mod keyboard;
-pub mod layer;
 pub mod layout;
 pub mod mouse;
+pub mod overlay;
 pub mod program;
 pub mod renderer;
 pub mod subscription;
@@ -49,7 +49,6 @@ mod clipboard;
 mod element;
 mod event;
 mod hasher;
-mod overlay;
 mod runtime;
 mod user_interface;
 
@@ -76,7 +75,6 @@ pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
-pub use layer::Layer;
 pub use layout::Layout;
 pub use overlay::Overlay;
 pub use program::Program;
