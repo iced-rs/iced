@@ -13,15 +13,13 @@ image = []
 svg = []
 
 [dependencies]
+glow = "0.4"
+glow_glyph = "0.1"
 euclid = "0.20"
 bytemuck = "1.2"
 glam = "0.8"
 log = "0.4"
 glyph_brush = "0.6"
-
-[dependencies.glow]
-git = "https://github.com/grovesNL/glow"
-rev = "722a850e972a69c3012fcb3687758eacbdac2823"
 
 [dependencies.iced_native]
 version = "0.2"
@@ -31,7 +29,3 @@ path = "../native"
 version = "0.1"
 path = "../graphics"
 features = ["font-source", "font-fallback", "font-icons", "opengl"]
-
-[dependencies.glow_glyph]
-git = "https://github.com/hecrj/glow_glyph"
-rev = "8ec7982d9e0ce828769d4ba7abe73b0b0ec22db6"
