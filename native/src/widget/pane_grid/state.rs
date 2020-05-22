@@ -56,6 +56,10 @@ impl<T> State<T> {
         (Self::with_content(Content::Pane(first_pane_state)), Pane(0))
     }
 
+    /// Creates a new [`State`] with the given [`Content`].
+    ///
+    /// [`State`]: struct.State.html
+    /// [`Content`]: enum.Content.html
     pub fn with_content(content: impl Into<Content<T>>) -> Self {
         let mut panes = HashMap::new();
 

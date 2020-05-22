@@ -5,19 +5,49 @@ use crate::{
 
 use std::collections::HashMap;
 
+/// A layout node of a [`PaneGrid`].
+///
+/// [`PaneGrid`]: struct.PaneGrid.html
 #[derive(Debug, Clone)]
 pub enum Node {
+    /// The region of this [`Node`] is split into two.
+    ///
+    /// [`Node`]: enum.Node.html
     Split {
+        /// The [`Split`] of this [`Node`].
+        ///
+        /// [`Split`]: struct.Split.html
+        /// [`Node`]: enum.Node.html
         id: Split,
+
+        /// The direction of the split.
         axis: Axis,
+
+        /// The ratio of the split in [0.0, 1.0].
         ratio: f32,
+
+        /// The left/top [`Node`] of the split.
+        ///
+        /// [`Node`]: enum.Node.html
         a: Box<Node>,
+
+        /// The right/bottom [`Node`] of the split.
+        ///
+        /// [`Node`]: enum.Node.html
         b: Box<Node>,
     },
+    /// The region of this [`Node`] is taken by a [`Pane`].
+    ///
+    /// [`Pane`]: struct.Pane.html
     Pane(Pane),
 }
 
 impl Node {
+    /// Returns the rectangular region for each [`Pane`] in the [`Node`] given
+    /// the spacing between panes and the total available space.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    /// [`Node`]: enum.Node.html
     pub fn regions(
         &self,
         spacing: f32,
@@ -39,6 +69,12 @@ impl Node {
         regions
     }
 
+    /// Returns the axis, rectangular region, and ratio for each [`Split`] in
+    /// the [`Node`] given the spacing between panes and the total available
+    /// space.
+    ///
+    /// [`Split`]: struct.Split.html
+    /// [`Node`]: enum.Node.html
     pub fn splits(
         &self,
         spacing: f32,
