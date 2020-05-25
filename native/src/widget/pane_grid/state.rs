@@ -1,6 +1,6 @@
 use crate::{
     keyboard,
-    pane_grid::{node::Node, Axis, Direction, Pane, Split},
+    pane_grid::{Axis, Content, Direction, Node, Pane, Split},
     Hasher, Point, Rectangle, Size,
 };
 
@@ -21,7 +21,7 @@ use std::collections::HashMap;
 /// [`Pane`]: struct.Pane.html
 /// [`Split`]: struct.Split.html
 /// [`State`]: struct.State.html
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct State<T> {
     pub(super) panes: HashMap<Pane, T>,
     pub(super) internal: Internal,
@@ -53,23 +53,28 @@ impl<T> State<T> {
     /// [`State`]: struct.State.html
     /// [`Pane`]: struct.Pane.html
     pub fn new(first_pane_state: T) -> (Self, Pane) {
-        let first_pane = Pane(0);
+        (Self::with_content(Content::Pane(first_pane_state)), Pane(0))
+    }
 
+    /// Creates a new [`State`] with the given [`Content`].
+    ///
+    /// [`State`]: struct.State.html
+    /// [`Content`]: enum.Content.html
+    pub fn with_content(content: impl Into<Content<T>>) -> Self {
         let mut panes = HashMap::new();
-        let _ = panes.insert(first_pane, first_pane_state);
 
-        (
-            State {
-                panes,
-                internal: Internal {
-                    layout: Node::Pane(first_pane),
-                    last_id: 0,
-                    action: Action::Idle { focus: None },
-                },
-                modifiers: keyboard::ModifiersState::default(),
+        let (layout, last_id) =
+            Self::distribute_content(&mut panes, content.into(), 0);
+
+        State {
+            panes,
+            internal: Internal {
+                layout,
+                last_id,
+                action: Action::Idle { focus: None },
             },
-            first_pane,
-        )
+            modifiers: keyboard::ModifiersState::default(),
+        }
     }
 
     /// Returns the total amount of panes in the [`State`].
@@ -80,6 +85,14 @@ impl<T> State<T> {
     }
 
     /// Returns the internal state of the given [`Pane`], if it exists.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    pub fn get(&self, pane: &Pane) -> Option<&T> {
+        self.panes.get(pane)
+    }
+
+    /// Returns the internal state of the given [`Pane`] with mutability, if it
+    /// exists.
     ///
     /// [`Pane`]: struct.Pane.html
     pub fn get_mut(&mut self, pane: &Pane) -> Option<&mut T> {
@@ -100,6 +113,13 @@ impl<T> State<T> {
     /// [`State`]: struct.State.html
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Pane, &mut T)> {
         self.panes.iter_mut()
+    }
+
+    /// Returns the layout of the [`State`].
+    ///
+    /// [`State`]: struct.State.html
+    pub fn layout(&self) -> &Node {
+        &self.internal.layout
     }
 
     /// Returns the active [`Pane`] of the [`State`], if there is one.
@@ -176,7 +196,12 @@ impl<T> State<T> {
     ///
     /// [`Pane`]: struct.Pane.html
     /// [`Axis`]: enum.Axis.html
-    pub fn split(&mut self, axis: Axis, pane: &Pane, state: T) -> Option<Pane> {
+    pub fn split(
+        &mut self,
+        axis: Axis,
+        pane: &Pane,
+        state: T,
+    ) -> Option<(Pane, Split)> {
         let node = self.internal.layout.find(pane)?;
 
         let new_pane = {
@@ -196,7 +221,7 @@ impl<T> State<T> {
         let _ = self.panes.insert(new_pane, state);
         self.focus(&new_pane);
 
-        Some(new_pane)
+        Some((new_pane, new_split))
     }
 
     /// Swaps the position of the provided panes in the [`State`].
@@ -246,9 +271,39 @@ impl<T> State<T> {
             None
         }
     }
+
+    fn distribute_content(
+        panes: &mut HashMap<Pane, T>,
+        content: Content<T>,
+        next_id: usize,
+    ) -> (Node, usize) {
+        match content {
+            Content::Split { axis, ratio, a, b } => {
+                let (a, next_id) = Self::distribute_content(panes, *a, next_id);
+                let (b, next_id) = Self::distribute_content(panes, *b, next_id);
+
+                (
+                    Node::Split {
+                        id: Split(next_id),
+                        axis,
+                        ratio,
+                        a: Box::new(a),
+                        b: Box::new(b),
+                    },
+                    next_id + 1,
+                )
+            }
+            Content::Pane(state) => {
+                let id = Pane(next_id);
+                let _ = panes.insert(id, state);
+
+                (Node::Pane(id), next_id + 1)
+            }
+        }
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Internal {
     layout: Node,
     last_id: usize,

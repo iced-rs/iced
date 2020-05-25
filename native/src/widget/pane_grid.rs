@@ -9,6 +9,7 @@
 //! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
 //! [`PaneGrid`]: struct.PaneGrid.html
 mod axis;
+mod content;
 mod direction;
 mod node;
 mod pane;
@@ -16,7 +17,9 @@ mod split;
 mod state;
 
 pub use axis::Axis;
+pub use content::Content;
 pub use direction::Direction;
+pub use node::Node;
 pub use pane::Pane;
 pub use split::Split;
 pub use state::{Focus, State};
