@@ -7,7 +7,8 @@ use crate::{
 use crate::image::{self, Image};
 
 use iced_native::{
-    layout, mouse, Background, Color, Layout, Point, Rectangle, Vector, Widget,
+    layout, mouse, Background, Color, Font, HorizontalAlignment, Layout, Point,
+    Rectangle, Size, Vector, VerticalAlignment, Widget,
 };
 
 mod widget;
@@ -29,10 +30,21 @@ struct Layer<'a> {
     bounds: Rectangle<u32>,
     quads: Vec<Quad>,
     meshes: Vec<(Vector, Rectangle<u32>, &'a triangle::Mesh2D)>,
-    text: Vec<wgpu_glyph::Section<'a>>,
+    text: Vec<Text<'a>>,
 
     #[cfg(any(feature = "image", feature = "svg"))]
     images: Vec<Image>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Text<'a> {
+    pub content: &'a str,
+    pub bounds: Rectangle,
+    pub color: [f32; 4],
+    pub size: f32,
+    pub font: Font,
+    pub horizontal_alignment: HorizontalAlignment,
+    pub vertical_alignment: VerticalAlignment,
 }
 
 impl<'a> Layer<'a> {
@@ -159,41 +171,15 @@ impl Renderer {
             } => {
                 let layer = layers.last_mut().unwrap();
 
-                layer.text.push(wgpu_glyph::Section {
-                    text: &content,
-                    screen_position: (
-                        bounds.x + translation.x,
-                        bounds.y + translation.y,
-                    ),
-                    bounds: (bounds.width, bounds.height),
-                    scale: wgpu_glyph::Scale { x: *size, y: *size },
+                layer.text.push(Text {
+                    content,
+                    bounds: *bounds + translation,
+                    size: *size,
                     color: color.into_linear(),
-                    font_id: self.text_pipeline.find_font(*font),
-                    layout: wgpu_glyph::Layout::default()
-                        .h_align(match horizontal_alignment {
-                            iced_native::HorizontalAlignment::Left => {
-                                wgpu_glyph::HorizontalAlign::Left
-                            }
-                            iced_native::HorizontalAlignment::Center => {
-                                wgpu_glyph::HorizontalAlign::Center
-                            }
-                            iced_native::HorizontalAlignment::Right => {
-                                wgpu_glyph::HorizontalAlign::Right
-                            }
-                        })
-                        .v_align(match vertical_alignment {
-                            iced_native::VerticalAlignment::Top => {
-                                wgpu_glyph::VerticalAlign::Top
-                            }
-                            iced_native::VerticalAlignment::Center => {
-                                wgpu_glyph::VerticalAlign::Center
-                            }
-                            iced_native::VerticalAlignment::Bottom => {
-                                wgpu_glyph::VerticalAlign::Bottom
-                            }
-                        }),
-                    ..Default::default()
-                })
+                    font: *font,
+                    horizontal_alignment: *horizontal_alignment,
+                    vertical_alignment: *vertical_alignment,
+                });
             }
             Primitive::Quad {
                 bounds,
@@ -315,26 +301,26 @@ impl Renderer {
         let first = layers.first().unwrap();
         let mut overlay = Layer::new(first.bounds);
 
-        let font_id = self.text_pipeline.overlay_font();
-        let scale = wgpu_glyph::Scale { x: 20.0, y: 20.0 };
-
         for (i, line) in lines.iter().enumerate() {
-            overlay.text.push(wgpu_glyph::Section {
-                text: line.as_ref(),
-                screen_position: (11.0, 11.0 + 25.0 * i as f32),
+            let text = Text {
+                content: line.as_ref(),
+                bounds: Rectangle::new(
+                    Point::new(11.0, 11.0 + 25.0 * i as f32),
+                    Size::INFINITY,
+                ),
                 color: [0.9, 0.9, 0.9, 1.0],
-                scale,
-                font_id,
-                ..wgpu_glyph::Section::default()
-            });
+                size: 20.0,
+                font: Font::Default,
+                horizontal_alignment: HorizontalAlignment::Left,
+                vertical_alignment: VerticalAlignment::Top,
+            };
 
-            overlay.text.push(wgpu_glyph::Section {
-                text: line.as_ref(),
-                screen_position: (10.0, 10.0 + 25.0 * i as f32),
+            overlay.text.push(text);
+
+            overlay.text.push(Text {
+                bounds: text.bounds + Vector::new(-1.0, -1.0),
                 color: [0.0, 0.0, 0.0, 1.0],
-                scale,
-                font_id,
-                ..wgpu_glyph::Section::default()
+                ..text
             });
         }
 
@@ -409,8 +395,8 @@ impl Renderer {
                     // bit "jumpy". We may be able to do better once we improve
                     // our text rendering/caching pipeline.
                     screen_position: (
-                        (text.screen_position.0 * scale_factor).round(),
-                        (text.screen_position.1 * scale_factor).round(),
+                        (text.bounds.x * scale_factor).round(),
+                        (text.bounds.y * scale_factor).round(),
                     ),
                     // TODO: Fix precision issues with some scale factors.
                     //
@@ -422,14 +408,45 @@ impl Renderer {
                     // scaling when rendering. This would ensure that both
                     // measuring and rendering follow the same layout rules.
                     bounds: (
-                        (text.bounds.0 * scale_factor).ceil(),
-                        (text.bounds.1 * scale_factor).ceil(),
+                        (text.bounds.width * scale_factor).ceil(),
+                        (text.bounds.height * scale_factor).ceil(),
                     ),
-                    scale: wgpu_glyph::Scale {
-                        x: text.scale.x * scale_factor,
-                        y: text.scale.y * scale_factor,
-                    },
-                    ..*text
+                    text: vec![wgpu_glyph::Text {
+                        text: text.content,
+                        scale: wgpu_glyph::ab_glyph::PxScale {
+                            x: text.size * scale_factor,
+                            y: text.size * scale_factor,
+                        },
+                        font_id: self.text_pipeline.find_font(text.font),
+                        extra: wgpu_glyph::Extra {
+                            color: text.color,
+                            z: 0.0,
+                        },
+                    }],
+                    layout: wgpu_glyph::Layout::default()
+                        .h_align(match text.horizontal_alignment {
+                            HorizontalAlignment::Left => {
+                                wgpu_glyph::HorizontalAlign::Left
+                            }
+                            HorizontalAlignment::Center => {
+                                wgpu_glyph::HorizontalAlign::Center
+                            }
+                            HorizontalAlignment::Right => {
+                                wgpu_glyph::HorizontalAlign::Right
+                            }
+                        })
+                        .v_align(match text.vertical_alignment {
+                            VerticalAlignment::Top => {
+                                wgpu_glyph::VerticalAlign::Top
+                            }
+                            VerticalAlignment::Center => {
+                                wgpu_glyph::VerticalAlign::Center
+                            }
+                            VerticalAlignment::Bottom => {
+                                wgpu_glyph::VerticalAlign::Bottom
+                            }
+                        }),
+                    ..Default::default()
                 };
 
                 self.text_pipeline.queue(text);

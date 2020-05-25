@@ -17,19 +17,12 @@ impl text_input::Renderer for Renderer {
     }
 
     fn measure_value(&self, value: &str, size: u16, font: Font) -> f32 {
-        let (mut width, _) = self.text_pipeline.measure(
+        let (width, _) = self.text_pipeline.measure(
             value,
             f32::from(size),
             font,
             Size::INFINITY,
         );
-
-        let spaces_around = value.len() - value.trim().len();
-
-        if spaces_around > 0 {
-            let space_width = self.text_pipeline.space_width(size as f32);
-            width += spaces_around as f32 * space_width;
-        }
 
         width
     }

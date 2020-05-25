@@ -3,6 +3,7 @@ mod font;
 use crate::Transformation;
 
 use std::{cell::RefCell, collections::HashMap};
+use wgpu_glyph::ab_glyph;
 
 pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
     name: "iced_wgpu icons",
@@ -15,10 +16,10 @@ const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
 
 #[derive(Debug)]
 pub struct Pipeline {
-    draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
+    draw_brush: RefCell<wgpu_glyph::GlyphBrush<()>>,
     draw_font_map: RefCell<HashMap<String, wgpu_glyph::FontId>>,
 
-    measure_brush: RefCell<glyph_brush::GlyphBrush<'static, ()>>,
+    measure_brush: RefCell<glyph_brush::GlyphBrush<()>>,
 }
 
 impl Pipeline {
@@ -37,28 +38,25 @@ impl Pipeline {
                     .unwrap_or_else(|_| FALLBACK_FONT.to_vec())
             });
 
-        let load_glyph_brush = |font: Vec<u8>| {
-            let builder =
-                wgpu_glyph::GlyphBrushBuilder::using_fonts_bytes(vec![
-                    font.clone()
-                ])?;
+        let font = ab_glyph::FontArc::try_from_vec(default_font)
+            .unwrap_or_else(|_| {
+                log::warn!(
+                    "System font failed to load. Falling back to \
+                    embedded font..."
+                );
 
-            Ok((
-                builder,
-                glyph_brush::GlyphBrushBuilder::using_font_bytes(font).build(),
-            ))
-        };
-
-        let (brush_builder, measure_brush) = load_glyph_brush(default_font)
-            .unwrap_or_else(|_: wgpu_glyph::rusttype::Error| {
-                log::warn!("System font failed to load. Falling back to embedded font...");
-
-                load_glyph_brush(FALLBACK_FONT.to_vec()).expect("Load fallback font")
+                ab_glyph::FontArc::try_from_slice(FALLBACK_FONT)
+                    .expect("Load fallback font")
             });
 
-        let draw_brush = brush_builder
-            .initial_cache_size((2048, 2048))
-            .build(device, format);
+        let draw_brush =
+            wgpu_glyph::GlyphBrushBuilder::using_font(font.clone())
+                .initial_cache_size((2048, 2048))
+                .draw_cache_multithread(false) // TODO: Expose as a configuration flag
+                .build(device, format);
+
+        let measure_brush =
+            glyph_brush::GlyphBrushBuilder::using_font(font).build();
 
         Pipeline {
             draw_brush: RefCell::new(draw_brush),
@@ -66,10 +64,6 @@ impl Pipeline {
 
             measure_brush: RefCell::new(measure_brush),
         }
-    }
-
-    pub fn overlay_font(&self) -> wgpu_glyph::FontId {
-        wgpu_glyph::FontId(0)
     }
 
     pub fn queue(&mut self, section: wgpu_glyph::Section<'_>) {
@@ -108,10 +102,13 @@ impl Pipeline {
         let wgpu_glyph::FontId(font_id) = self.find_font(font);
 
         let section = wgpu_glyph::Section {
-            text: content,
-            scale: wgpu_glyph::Scale { x: size, y: size },
             bounds: (bounds.width, bounds.height),
-            font_id: wgpu_glyph::FontId(font_id),
+            text: vec![wgpu_glyph::Text {
+                text: content,
+                scale: size.into(),
+                font_id: wgpu_glyph::FontId(font_id),
+                extra: wgpu_glyph::Extra::default(),
+            }],
             ..Default::default()
         };
 
@@ -122,20 +119,6 @@ impl Pipeline {
         } else {
             (0.0, 0.0)
         }
-    }
-
-    pub fn space_width(&self, size: f32) -> f32 {
-        use wgpu_glyph::GlyphCruncher;
-
-        let glyph_brush = self.measure_brush.borrow();
-
-        // TODO: Select appropriate font
-        let font = &glyph_brush.fonts()[0];
-
-        font.glyph(' ')
-            .scaled(wgpu_glyph::Scale { x: size, y: size })
-            .h_metrics()
-            .advance_width
     }
 
     pub fn clear_measurement_cache(&mut self) {
@@ -170,11 +153,12 @@ impl Pipeline {
                     return *font_id;
                 }
 
-                // TODO: Find a way to share font data
-                let _ = self.measure_brush.borrow_mut().add_font_bytes(bytes);
+                let font = ab_glyph::FontArc::try_from_slice(bytes)
+                    .expect("Load font");
 
-                let font_id =
-                    self.draw_brush.borrow_mut().add_font_bytes(bytes);
+                let _ = self.measure_brush.borrow_mut().add_font(font.clone());
+
+                let font_id = self.draw_brush.borrow_mut().add_font(font);
 
                 let _ = self
                     .draw_font_map
