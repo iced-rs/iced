@@ -14,37 +14,39 @@ impl Axis {
         &self,
         rectangle: &Rectangle,
         ratio: f32,
-        halved_spacing: f32,
+        spacing: f32,
     ) -> (Rectangle, Rectangle) {
         match self {
             Axis::Horizontal => {
-                let height_top = (rectangle.height * ratio).round();
-                let height_bottom = rectangle.height - height_top;
+                let height_top =
+                    (rectangle.height * ratio - spacing / 2.0).round();
+                let height_bottom = rectangle.height - height_top - spacing;
 
                 (
                     Rectangle {
-                        height: height_top - halved_spacing,
+                        height: height_top,
                         ..*rectangle
                     },
                     Rectangle {
-                        y: rectangle.y + height_top + halved_spacing,
-                        height: height_bottom - halved_spacing,
+                        y: rectangle.y + height_top + spacing,
+                        height: height_bottom,
                         ..*rectangle
                     },
                 )
             }
             Axis::Vertical => {
-                let width_left = (rectangle.width * ratio).round();
-                let width_right = rectangle.width - width_left;
+                let width_left =
+                    (rectangle.width * ratio - spacing / 2.0).round();
+                let width_right = rectangle.width - width_left - spacing;
 
                 (
                     Rectangle {
-                        width: width_left - halved_spacing,
+                        width: width_left,
                         ..*rectangle
                     },
                     Rectangle {
-                        x: rectangle.x + width_left + halved_spacing,
-                        width: width_right - halved_spacing,
+                        x: rectangle.x + width_left + spacing,
+                        width: width_right,
                         ..*rectangle
                     },
                 )
