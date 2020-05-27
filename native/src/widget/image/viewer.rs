@@ -1,7 +1,7 @@
 //! Zoom and pan on an image.
 use crate::{
     image, layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length,
-    Point, Rectangle, Size, Widget,
+    Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -15,6 +15,9 @@ pub struct Viewer<'a> {
     height: Length,
     max_width: u32,
     max_height: u32,
+    min_scale: f32,
+    max_scale: f32,
+    scale_pct: f32,
     handle: image::Handle,
 }
 
@@ -32,6 +35,9 @@ impl<'a> Viewer<'a> {
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
+            min_scale: 0.25,
+            max_scale: 10.0,
+            scale_pct: 0.10,
             handle,
         }
     }
@@ -74,6 +80,100 @@ impl<'a> Viewer<'a> {
     pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
         self
+    }
+
+    /// Sets the max scale applied to the image of the [`Viewer`].
+    ///
+    /// Default is `10.0`
+    ///
+    /// [`Viewer`]: struct.Viewer.html
+    pub fn max_scale(mut self, max_scale: f32) -> Self {
+        self.max_scale = max_scale;
+        self
+    }
+
+    /// Sets the min scale applied to the image of the [`Viewer`].
+    ///
+    /// Default is `0.25`
+    ///
+    /// [`Viewer`]: struct.Viewer.html
+    pub fn min_scale(mut self, min_scale: f32) -> Self {
+        self.min_scale = min_scale;
+        self
+    }
+
+    /// Sets the percentage the image of the [`Viewer`] will be scaled by
+    /// when zoomed in / out.
+    ///
+    /// Default is `0.10`
+    ///
+    /// [`Viewer`]: struct.Viewer.html
+    pub fn scale_pct(mut self, scale_pct: f32) -> Self {
+        self.scale_pct = scale_pct;
+        self
+    }
+
+    /// Returns the bounds of the underlying image, given the bounds of
+    /// the [`Viewer`]. Scaling will be applied and original aspect ratio
+    /// will be respected.
+    ///
+    /// [`Viewer`]: struct.Viewer.html
+    fn image_bounds<Renderer>(
+        &self,
+        renderer: &Renderer,
+        bounds: Rectangle,
+    ) -> Rectangle
+    where
+        Renderer: self::Renderer + image::Renderer,
+    {
+        let (width, height) = renderer.dimensions(&self.handle);
+
+        let dimensions = {
+            let dimensions = (width as f32, height as f32);
+
+            let width_ratio = bounds.width / dimensions.0;
+            let height_ratio = bounds.height / dimensions.1;
+
+            let ratio = width_ratio.min(height_ratio);
+
+            let scale = self.state.scale.unwrap_or(1.0);
+
+            if ratio < 1.0 {
+                (dimensions.0 * ratio * scale, dimensions.1 * ratio * scale)
+            } else {
+                (dimensions.0 * scale, dimensions.1 * scale)
+            }
+        };
+
+        Rectangle {
+            x: bounds.x,
+            y: bounds.y,
+            width: dimensions.0,
+            height: dimensions.1,
+        }
+    }
+
+    /// Cursor position relative to the [`Viewer`] bounds.
+    ///
+    /// [`Viewer`]: struct.Viewer.html
+    fn relative_cursor_position(
+        &self,
+        mut absolute_position: Point,
+        bounds: Rectangle,
+    ) -> Point {
+        absolute_position.x -= bounds.x;
+        absolute_position.y -= bounds.y;
+        absolute_position
+    }
+
+    /// Center point relative to the [`Viewer`] bounds.
+    ///
+    /// [`Viewer`]: struct.Viewer.html
+    fn relative_center(&self, bounds: Rectangle) -> Point {
+        let mut center = bounds.center();
+        center.x -= bounds.x;
+        center.y -= bounds.y;
+        center
     }
 }
 
@@ -120,50 +220,59 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
 
-        let image_bounds = {
-            let (width, height) = renderer.dimensions(&self.handle);
-
-            let dimensions = if let Some(scale) = self.state.scale {
-                (width as f32 * scale, height as f32 * scale)
-            } else {
-                let dimensions = (width as f32, height as f32);
-
-                let width_scale = bounds.width / dimensions.0;
-                let height_scale = bounds.height / dimensions.1;
-
-                let scale = width_scale.min(height_scale);
-
-                if scale < 1.0 {
-                    (dimensions.0 * scale, dimensions.1 * scale)
-                } else {
-                    (dimensions.0, dimensions.1)
-                }
-            };
-
-            Rectangle {
-                x: bounds.x,
-                y: bounds.y,
-                width: dimensions.0,
-                height: dimensions.1,
-            }
-        };
-
         if is_mouse_over {
             match event {
                 Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
                     match delta {
                         mouse::ScrollDelta::Lines { y, .. }
                         | mouse::ScrollDelta::Pixels { y, .. } => {
-                            // TODO: Configurable step and limits
-                            if y > 0.0 {
+                            let previous_scale =
+                                self.state.scale.unwrap_or(1.0);
+
+                            if y < 0.0 && previous_scale > self.min_scale
+                                || y > 0.0 && previous_scale < self.max_scale
+                            {
                                 self.state.scale = Some(
-                                    (self.state.scale.unwrap_or(1.0) + 0.25)
-                                        .min(10.0),
+                                    (if y > 0.0 {
+                                        self.state.scale.unwrap_or(1.0)
+                                            * (1.0 + self.scale_pct)
+                                    } else {
+                                        self.state.scale.unwrap_or(1.0)
+                                            / (1.0 + self.scale_pct)
+                                    })
+                                    .max(self.min_scale)
+                                    .min(self.max_scale),
                                 );
-                            } else {
-                                self.state.scale = Some(
-                                    (self.state.scale.unwrap_or(1.0) - 0.25)
-                                        .max(0.25),
+
+                                let image_bounds =
+                                    self.image_bounds(renderer, bounds);
+
+                                let factor = self.state.scale.unwrap()
+                                    / previous_scale
+                                    - 1.0;
+
+                                let cursor_to_center =
+                                    self.relative_cursor_position(
+                                        cursor_position,
+                                        bounds,
+                                    ) - self.relative_center(bounds);
+
+                                let adjustment = cursor_to_center * factor
+                                    + self.state.current_offset * factor;
+
+                                self.state.current_offset = Vector::new(
+                                    if image_bounds.width > bounds.width {
+                                        self.state.current_offset.x
+                                            + adjustment.x
+                                    } else {
+                                        0.0
+                                    },
+                                    if image_bounds.height > bounds.height {
+                                        self.state.current_offset.y
+                                            + adjustment.y
+                                    } else {
+                                        0.0
+                                    },
                                 );
                             }
                         }
@@ -171,8 +280,7 @@ where
                 }
                 Event::Mouse(mouse::Event::ButtonPressed(button)) => {
                     if button == mouse::Button::Left {
-                        self.state.starting_cursor_pos =
-                            Some((cursor_position.x, cursor_position.y));
+                        self.state.starting_cursor_pos = Some(cursor_position);
 
                         self.state.starting_offset = self.state.current_offset;
                     }
@@ -184,6 +292,8 @@ where
                 }
                 Event::Mouse(mouse::Event::CursorMoved { x, y }) => {
                     if self.state.is_cursor_clicked() {
+                        let image_bounds = self.image_bounds(renderer, bounds);
+
                         self.state.pan(x, y, bounds, image_bounds);
                     }
                 }
@@ -206,35 +316,16 @@ where
     ) -> Renderer::Output {
         let bounds = layout.bounds();
 
-        let image_bounds = {
-            let (width, height) = renderer.dimensions(&self.handle);
+        let image_bounds = self.image_bounds(renderer, bounds);
 
-            let dimensions = if let Some(scale) = self.state.scale {
-                (width as f32 * scale, height as f32 * scale)
-            } else {
-                let dimensions = (width as f32, height as f32);
+        let translation = {
+            let image_top_left = Vector::new(
+                bounds.width / 2.0 - image_bounds.width / 2.0,
+                bounds.height / 2.0 - image_bounds.height / 2.0,
+            );
 
-                let width_scale = bounds.width / dimensions.0;
-                let height_scale = bounds.height / dimensions.1;
-
-                let scale = width_scale.min(height_scale);
-
-                if scale < 1.0 {
-                    (dimensions.0 * scale, dimensions.1 * scale)
-                } else {
-                    (dimensions.0, dimensions.1)
-                }
-            };
-
-            Rectangle {
-                x: bounds.x,
-                y: bounds.y,
-                width: dimensions.0,
-                height: dimensions.1,
-            }
+            image_top_left - self.state.offset(bounds, image_bounds)
         };
-
-        let offset = self.state.offset(bounds, image_bounds);
 
         let is_mouse_over = bounds.contains(cursor_position);
 
@@ -243,7 +334,7 @@ where
             &self.state,
             bounds,
             image_bounds,
-            offset,
+            translation,
             self.handle.clone(),
             is_mouse_over,
         )
@@ -269,9 +360,9 @@ where
 #[derive(Debug, Clone, Copy, Default)]
 pub struct State {
     scale: Option<f32>,
-    starting_offset: (f32, f32),
-    current_offset: (f32, f32),
-    starting_cursor_pos: Option<(f32, f32)>,
+    starting_offset: Vector,
+    current_offset: Vector,
+    starting_cursor_pos: Option<Point>,
 }
 
 impl State {
@@ -294,39 +385,53 @@ impl State {
         bounds: Rectangle,
         image_bounds: Rectangle,
     ) {
-        let delta_x = x - self.starting_cursor_pos.unwrap().0;
-        let delta_y = y - self.starting_cursor_pos.unwrap().1;
+        let hidden_width = ((image_bounds.width - bounds.width) as f32 / 2.0)
+            .max(0.0)
+            .round();
+        let hidden_height = ((image_bounds.height - bounds.height) as f32
+            / 2.0)
+            .max(0.0)
+            .round();
+
+        let delta_x = x - self.starting_cursor_pos.unwrap().x;
+        let delta_y = y - self.starting_cursor_pos.unwrap().y;
 
         if bounds.width < image_bounds.width {
-            self.current_offset.0 = (self.starting_offset.0 - delta_x)
-                .max(0.0)
-                .min((image_bounds.width - bounds.width) as f32);
+            self.current_offset.x = (self.starting_offset.x - delta_x)
+                .min(hidden_width)
+                .max(-1.0 * hidden_width);
         }
 
         if bounds.height < image_bounds.height {
-            self.current_offset.1 = (self.starting_offset.1 - delta_y)
-                .max(0.0)
-                .min((image_bounds.height - bounds.height) as f32);
+            self.current_offset.y = (self.starting_offset.y - delta_y)
+                .min(hidden_height)
+                .max(-1.0 * hidden_height);
         }
     }
 
-    /// Returns the current clipping offset of the [`State`], given the bounds
-    /// of the [`Viewer`] and its contents.
+    /// Returns the current offset of the [`State`], given the bounds
+    /// of the [`Viewer`] and its image.
     ///
     /// [`Viewer`]: struct.Viewer.html
     /// [`State`]: struct.State.html
-    fn offset(&self, bounds: Rectangle, image_bounds: Rectangle) -> (u32, u32) {
-        let hidden_width = ((image_bounds.width - bounds.width) as f32)
+    fn offset(&self, bounds: Rectangle, image_bounds: Rectangle) -> Vector {
+        let hidden_width = ((image_bounds.width - bounds.width) as f32 / 2.0)
             .max(0.0)
-            .round() as u32;
-
-        let hidden_height = ((image_bounds.height - bounds.height) as f32)
+            .round();
+        let hidden_height = ((image_bounds.height - bounds.height) as f32
+            / 2.0)
             .max(0.0)
-            .round() as u32;
+            .round();
 
-        (
-            (self.current_offset.0).min(hidden_width as f32) as u32,
-            (self.current_offset.1).min(hidden_height as f32) as u32,
+        Vector::new(
+            self.current_offset
+                .x
+                .min(hidden_width)
+                .max(-1.0 * hidden_width),
+            self.current_offset
+                .y
+                .min(hidden_height)
+                .max(-1.0 * hidden_height),
         )
     }
 
@@ -354,7 +459,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// - the [`State`] of the [`Viewer`]
     /// - the bounds of the [`Viewer`] widget
     /// - the bounds of the scaled [`Viewer`] image
-    /// - the clipping x,y offset
+    /// - the translation of the clipped image
     /// - the [`Handle`] to the underlying image
     /// - whether the mouse is over the [`Viewer`] or not
     ///
@@ -366,7 +471,7 @@ pub trait Renderer: crate::Renderer + Sized {
         state: &State,
         bounds: Rectangle,
         image_bounds: Rectangle,
-        offset: (u32, u32),
+        translation: Vector,
         handle: image::Handle,
         is_mouse_over: bool,
     ) -> Self::Output;

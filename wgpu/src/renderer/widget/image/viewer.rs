@@ -7,7 +7,7 @@ impl image::viewer::Renderer for Renderer {
         state: &image::State,
         bounds: Rectangle,
         image_bounds: Rectangle,
-        offset: (u32, u32),
+        translation: Vector,
         handle: image::Handle,
         is_mouse_over: bool,
     ) -> Self::Output {
@@ -15,11 +15,14 @@ impl image::viewer::Renderer for Renderer {
             {
                 Primitive::Clip {
                     bounds,
-                    offset: Vector::new(offset.0, offset.1),
-                    content: Box::new(Primitive::Image {
-                        handle,
-                        bounds: image_bounds,
+                    content: Box::new(Primitive::Translate {
+                        translation,
+                        content: Box::new(Primitive::Image {
+                            handle,
+                            bounds: image_bounds,
+                        }),
                     }),
+                    offset: Vector::new(0, 0),
                 }
             },
             {
