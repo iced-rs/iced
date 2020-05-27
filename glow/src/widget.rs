@@ -48,6 +48,11 @@ pub use canvas::Canvas;
 
 pub use iced_native::{Image, Space};
 
+/// A container that distributes its contents vertically.
 pub type Column<'a, Message> = iced_native::Column<'a, Message, Renderer>;
+
+/// A container that distributes its contents horizontally.
 pub type Row<'a, Message> = iced_native::Row<'a, Message, Renderer>;
+
+/// A paragraph of text.
 pub type Text = iced_native::Text<Renderer>;

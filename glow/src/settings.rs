@@ -1,6 +1,4 @@
-//! Configure a [`Renderer`].
-//!
-//! [`Renderer`]: struct.Renderer.html
+//! Configure a renderer.
 pub use iced_graphics::Antialiasing;
 
 /// The settings of a [`Renderer`].

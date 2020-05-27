@@ -31,3 +31,7 @@ optional = true
 [dependencies.font-kit]
 version = "0.6"
 optional = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
