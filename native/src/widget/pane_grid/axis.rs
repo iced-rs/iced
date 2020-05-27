@@ -59,85 +59,156 @@ impl Axis {
 mod tests {
     use super::*;
 
-    #[test]
-    fn split_horizontal() {
-        let a = Axis::Horizontal;
-        // rectangle height, spacing, top height, bottom y, bottom height
-        let cases = vec![
-            // Even height, even spacing
-            (10.0, 2.0, 4.0, 6.0, 4.0),
-            // Odd height, even spacing
-            (9.0, 2.0, 4.0, 6.0, 3.0),
-            // Even height, odd spacing
-            (10.0, 1.0, 5.0, 6.0, 4.0),
-            // Odd height, odd spacing
-            (9.0, 1.0, 4.0, 5.0, 4.0),
-        ];
-        for case in cases {
-            let (h0, spacing, h1_top, y_bottom, h1_bottom) = case;
-            let r = Rectangle {
-                x: 0.0,
-                y: 0.0,
-                width: 10.0,
-                height: h0,
-            };
-            let (top, bottom) = a.split(&r, 0.5, spacing);
-            assert_eq!(
-                top,
-                Rectangle {
-                    height: h1_top,
-                    ..r
-                }
-            );
-            assert_eq!(
-                bottom,
-                Rectangle {
-                    y: y_bottom,
-                    height: h1_bottom,
-                    ..r
-                }
-            );
-        }
+    enum Case {
+        Horizontal {
+            overall_height: f32,
+            spacing: f32,
+            top_height: f32,
+            bottom_y: f32,
+            bottom_height: f32,
+        },
+        Vertical {
+            overall_width: f32,
+            spacing: f32,
+            left_width: f32,
+            right_x: f32,
+            right_width: f32,
+        },
     }
 
     #[test]
-    fn split_vertical() {
-        let a = Axis::Vertical;
-        // rectangle width, spacing, left width, right x, right width
+    fn split() {
         let cases = vec![
+            // Even height, even spacing
+            Case::Horizontal {
+                overall_height: 10.0,
+                spacing: 2.0,
+                top_height: 4.0,
+                bottom_y: 6.0,
+                bottom_height: 4.0,
+            },
+            // Odd height, even spacing
+            Case::Horizontal {
+                overall_height: 9.0,
+                spacing: 2.0,
+                top_height: 4.0,
+                bottom_y: 6.0,
+                bottom_height: 3.0,
+            },
+            // Even height, odd spacing
+            Case::Horizontal {
+                overall_height: 10.0,
+                spacing: 1.0,
+                top_height: 5.0,
+                bottom_y: 6.0,
+                bottom_height: 4.0,
+            },
+            // Odd height, odd spacing
+            Case::Horizontal {
+                overall_height: 9.0,
+                spacing: 1.0,
+                top_height: 4.0,
+                bottom_y: 5.0,
+                bottom_height: 4.0,
+            },
             // Even width, even spacing
-            (10.0, 2.0, 4.0, 6.0, 4.0),
+            Case::Vertical {
+                overall_width: 10.0,
+                spacing: 2.0,
+                left_width: 4.0,
+                right_x: 6.0,
+                right_width: 4.0,
+            },
             // Odd width, even spacing
-            (9.0, 2.0, 4.0, 6.0, 3.0),
+            Case::Vertical {
+                overall_width: 9.0,
+                spacing: 2.0,
+                left_width: 4.0,
+                right_x: 6.0,
+                right_width: 3.0,
+            },
             // Even width, odd spacing
-            (10.0, 1.0, 5.0, 6.0, 4.0),
+            Case::Vertical {
+                overall_width: 10.0,
+                spacing: 1.0,
+                left_width: 5.0,
+                right_x: 6.0,
+                right_width: 4.0,
+            },
             // Odd width, odd spacing
-            (9.0, 1.0, 4.0, 5.0, 4.0),
+            Case::Vertical {
+                overall_width: 9.0,
+                spacing: 1.0,
+                left_width: 4.0,
+                right_x: 5.0,
+                right_width: 4.0,
+            },
         ];
         for case in cases {
-            let (w0, spacing, w1_left, x_right, w1_right) = case;
-            let r = Rectangle {
-                x: 0.0,
-                y: 0.0,
-                width: w0,
-                height: 10.0,
-            };
-            let (left, right) = a.split(&r, 0.5, spacing);
-            assert_eq!(
-                left,
-                Rectangle {
-                    width: w1_left,
-                    ..r
+            match case {
+                Case::Horizontal {
+                    overall_height,
+                    spacing,
+                    top_height,
+                    bottom_y,
+                    bottom_height,
+                } => {
+                    let a = Axis::Horizontal;
+                    let r = Rectangle {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 10.0,
+                        height: overall_height,
+                    };
+                    let (top, bottom) = a.split(&r, 0.5, spacing);
+                    assert_eq!(
+                        top,
+                        Rectangle {
+                            height: top_height,
+                            ..r
+                        }
+                    );
+                    assert_eq!(
+                        bottom,
+                        Rectangle {
+                            y: bottom_y,
+                            height: bottom_height,
+                            ..r
+                        }
+                    );
                 }
-            );
-            assert_eq!(
-                right,
-                Rectangle {
-                    x: x_right,
-                    width: w1_right,
-                    ..r
+                Case::Vertical {
+                    overall_width,
+                    spacing,
+                    left_width,
+                    right_x,
+                    right_width,
+                } => {
+                    let a = Axis::Vertical;
+                    let r = Rectangle {
+                        x: 0.0,
+                        y: 0.0,
+                        width: overall_width,
+                        height: 10.0,
+                    };
+                    let (left, right) = a.split(&r, 0.5, spacing);
+                    assert_eq!(
+                        left,
+                        Rectangle {
+                            width: left_width,
+                            ..r
+                        }
+                    );
+                    assert_eq!(
+                        right,
+                        Rectangle {
+                            x: right_x,
+                            width: right_width,
+                            ..r
+                        }
+                    );
                 }
-            );
+            }
         }
     }
 }
