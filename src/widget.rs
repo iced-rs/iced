@@ -30,7 +30,9 @@ mod platform {
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
-        pub use iced_winit::image::{Handle, Image, State, Viewer};
+        pub use iced_winit::image::{Handle, Image, Viewer};
+
+        pub use iced_winit::image::viewer;
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]

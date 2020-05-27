@@ -1,10 +1,13 @@
 use crate::{Primitive, Renderer};
-use iced_native::{image, mouse, Rectangle, Vector};
+use iced_native::{
+    image::{self, viewer},
+    mouse, Rectangle, Vector,
+};
 
-impl image::viewer::Renderer for Renderer {
+impl viewer::Renderer for Renderer {
     fn draw(
         &mut self,
-        state: &image::State,
+        state: &viewer::State,
         bounds: Rectangle,
         image_bounds: Rectangle,
         translation: Vector,
