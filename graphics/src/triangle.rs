@@ -1,3 +1,5 @@
+//! Draw geometry using meshes of triangles.
+
 /// A set of [`Vertex2D`] and indices representing a list of triangles.
 ///
 /// [`Vertex2D`]: struct.Vertex2D.html
@@ -23,5 +25,8 @@ pub struct Vertex2D {
     pub color: [f32; 4],
 }
 
+#[allow(unsafe_code)]
 unsafe impl bytemuck::Zeroable for Vertex2D {}
+
+#[allow(unsafe_code)]
 unsafe impl bytemuck::Pod for Vertex2D {}

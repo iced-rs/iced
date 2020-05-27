@@ -1,3 +1,13 @@
+//! A bunch of backend-agnostic types that can be leveraged to build a renderer
+//! for [`iced`].
+//!
+//! [`iced`]: https://github.com/hecrj/iced
+#![deny(missing_docs)]
+#![deny(missing_debug_implementations)]
+#![deny(unused_results)]
+#![deny(unsafe_code)]
+#![forbid(rust_2018_idioms)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
 mod defaults;
 mod primitive;

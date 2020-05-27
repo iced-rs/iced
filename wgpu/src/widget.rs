@@ -19,8 +19,6 @@ pub mod scrollable;
 pub mod slider;
 pub mod text_input;
 
-mod text;
-
 #[doc(no_inline)]
 pub use button::Button;
 #[doc(no_inline)]
@@ -40,8 +38,6 @@ pub use slider::Slider;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-pub use text::Text;
-
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 pub mod canvas;
@@ -52,5 +48,11 @@ pub use canvas::Canvas;
 
 pub use iced_native::Space;
 
+/// A container that distributes its contents vertically.
 pub type Column<'a, Message> = iced_native::Column<'a, Message, Renderer>;
+
+/// A container that distributes its contents horizontally.
 pub type Row<'a, Message> = iced_native::Row<'a, Message, Renderer>;
+
+/// A paragraph of text.
+pub type Text = iced_native::Text<Renderer>;

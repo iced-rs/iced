@@ -1,3 +1,4 @@
+//! Display images in your user interface.
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::image;

@@ -3,6 +3,7 @@ use iced_native::column;
 use iced_native::mouse;
 use iced_native::{Element, Layout, Point};
 
+/// A container that distributes its contents vertically.
 pub type Column<'a, Message, Backend> =
     iced_native::Column<'a, Message, Renderer<Backend>>;
 

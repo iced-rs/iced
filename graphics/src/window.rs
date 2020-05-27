@@ -1,3 +1,4 @@
+//! Draw graphics to window surfaces.
 mod compositor;
 
 #[cfg(feature = "opengl")]

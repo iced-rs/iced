@@ -1,3 +1,4 @@
+//! Display vector graphics in your application.
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::{mouse, svg, Layout};

@@ -3,19 +3,33 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::{Background, Color, Element, Point, Widget};
 
-pub struct Renderer<B> {
+/// A backend-agnostic renderer that supports all the built-in widgets.
+#[derive(Debug)]
+pub struct Renderer<B: Backend> {
     backend: B,
 }
 
-impl<B> Renderer<B> {
+impl<B: Backend> Renderer<B> {
+    /// Creates a new [`Renderer`] from the given [`Backend`].
+    ///
+    /// [`Renderer`]: struct.Renderer.html
+    /// [`Backend`]: backend/trait.Backend.html
     pub fn new(backend: B) -> Self {
         Self { backend }
     }
 
+    /// Returns a reference to the [`Backend`] of the [`Renderer`].
+    ///
+    /// [`Renderer`]: struct.Renderer.html
+    /// [`Backend`]: backend/trait.Backend.html
     pub fn backend(&self) -> &B {
         &self.backend
     }
 
+    /// Returns a mutable reference to the [`Backend`] of the [`Renderer`].
+    ///
+    /// [`Renderer`]: struct.Renderer.html
+    /// [`Backend`]: backend/trait.Backend.html
     pub fn backend_mut(&mut self) -> &mut B {
         &mut self.backend
     }

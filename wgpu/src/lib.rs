@@ -20,7 +20,7 @@
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
 //! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
@@ -47,7 +47,11 @@ pub use widget::*;
 
 pub(crate) use iced_graphics::Transformation;
 
-pub type Renderer = iced_graphics::Renderer<Backend>;
-
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;
+
+/// A [`wgpu`] graphics renderer for [`iced`].
+///
+/// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+/// [`iced`]: https://github.com/hecrj/iced
+pub type Renderer = iced_graphics::Renderer<Backend>;

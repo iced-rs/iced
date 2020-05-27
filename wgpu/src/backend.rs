@@ -12,9 +12,10 @@ use iced_native::{Font, HorizontalAlignment, Size, VerticalAlignment};
 #[cfg(any(feature = "image", feature = "svg"))]
 use crate::image;
 
-/// A [`wgpu`] renderer.
+/// A [`wgpu`] graphics backend for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+/// [`iced`]: https://github.com/hecrj/iced
 #[derive(Debug)]
 pub struct Backend {
     quad_pipeline: quad::Pipeline,

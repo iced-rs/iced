@@ -3,6 +3,7 @@ use iced_native::mouse;
 use iced_native::row;
 use iced_native::{Element, Layout, Point};
 
+/// A container that distributes its contents horizontally.
 pub type Row<'a, Message, Backend> =
     iced_native::Row<'a, Message, Renderer<Backend>>;
 
