@@ -1,3 +1,4 @@
+#[cfg(feature = "system_font")]
 mod font;
 
 use crate::Transformation;
@@ -27,15 +28,21 @@ impl Pipeline {
         format: wgpu::TextureFormat,
         default_font: Option<&[u8]>,
     ) -> Self {
-        // TODO: Font customization
-        let font_source = font::Source::new();
+        let default_font = default_font.map(|slice| slice.to_vec());
 
-        let default_font =
-            default_font.map(|slice| slice.to_vec()).unwrap_or_else(|| {
+        // TODO: Font customization
+        #[cfg(feature = "system_font")]
+        let default_font = {
+            let font_source = font::Source::new();
+            default_font.or_else(|| {
                 font_source
                     .load(&[font::Family::SansSerif, font::Family::Serif])
-                    .unwrap_or_else(|_| FALLBACK_FONT.to_vec())
-            });
+                    .ok()
+            })
+        };
+
+        let default_font =
+            default_font.unwrap_or_else(|| FALLBACK_FONT.to_vec());
 
         let load_glyph_brush = |font: Vec<u8>| {
             let builder =

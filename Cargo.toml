@@ -16,6 +16,8 @@ categories = ["gui"]
 image = ["iced_wgpu/image"]
 # Enables the `Svg` widget
 svg = ["iced_wgpu/svg"]
+# Enables system fonts on native platforms.
+system_font = ["iced_wgpu/system_font"]
 # Enables the `Canvas` widget
 canvas = ["iced_wgpu/canvas"]
 # Enables a debug view in native platforms (press F12)

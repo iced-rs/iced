@@ -10,6 +10,7 @@ repository = "https://github.com/hecrj/iced"
 [features]
 svg = ["resvg"]
 canvas = ["lyon"]
+system_font = ["font-kit"]
 
 [dependencies]
 wgpu = "0.5"
@@ -18,7 +19,7 @@ zerocopy = "0.3"
 glyph_brush = "0.6"
 raw-window-handle = "0.3"
 glam = "0.8"
-font-kit = "0.6"
+font-kit = { version = "0.6", optional = true }
 log = "0.4"
 guillotiere = "0.5"
 # Pin `gfx-memory` until https://github.com/gfx-rs/wgpu-rs/issues/261 is
