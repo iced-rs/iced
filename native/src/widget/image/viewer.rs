@@ -6,7 +6,7 @@ use crate::{
 
 use std::{f32, hash::Hash, u32};
 
-/// A widget that can display an image with the ability to zoom in/out and pan.
+/// A frame that displays an image with the ability to zoom in/out and pan.
 #[allow(missing_debug_implementations)]
 pub struct Viewer<'a> {
     state: &'a mut State,
