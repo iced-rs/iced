@@ -188,21 +188,21 @@ pub trait Application: Sized {
     {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let glow_settings = iced_glow::Settings {
+            let renderer_settings = crate::renderer::Settings {
                 default_font: settings.default_font,
                 antialiasing: if settings.antialiasing {
-                    Some(iced_glow::settings::Antialiasing::MSAAx4)
+                    Some(crate::renderer::settings::Antialiasing::MSAAx4)
                 } else {
                     None
                 },
-                ..iced_glow::Settings::default()
+                ..crate::renderer::Settings::default()
             };
 
-            iced_glutin::application::run::<
+            crate::runtime::application::run::<
                 Instance<Self>,
                 Self::Executor,
-                iced_glow::window::Compositor,
-            >(settings.into(), glow_settings);
+                crate::renderer::window::Compositor,
+            >(settings.into(), renderer_settings);
         }
 
         #[cfg(target_arch = "wasm32")]
@@ -213,11 +213,11 @@ pub trait Application: Sized {
 struct Instance<A: Application>(A);
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<A> iced_glutin::Program for Instance<A>
+impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
 {
-    type Renderer = iced_glow::Renderer;
+    type Renderer = crate::renderer::Renderer;
     type Message = A::Message;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
@@ -230,7 +230,7 @@ where
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<A> iced_glutin::Application for Instance<A>
+impl<A> crate::runtime::Application for Instance<A>
 where
     A: Application,
 {
@@ -246,10 +246,10 @@ where
         self.0.title()
     }
 
-    fn mode(&self) -> iced_glutin::Mode {
+    fn mode(&self) -> iced_winit::Mode {
         match self.0.mode() {
-            window::Mode::Windowed => iced_glutin::Mode::Windowed,
-            window::Mode::Fullscreen => iced_glutin::Mode::Fullscreen,
+            window::Mode::Windowed => iced_winit::Mode::Windowed,
+            window::Mode::Fullscreen => iced_winit::Mode::Fullscreen,
         }
     }
 

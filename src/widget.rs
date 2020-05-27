@@ -18,25 +18,28 @@
 //! [`text_input::State`]: text_input/struct.State.html
 #[cfg(not(target_arch = "wasm32"))]
 mod platform {
-    pub use iced_glow::widget::{
+    pub use crate::renderer::widget::{
         button, checkbox, container, pane_grid, progress_bar, radio,
         scrollable, slider, text_input, Column, Row, Space, Text,
     };
 
-    #[cfg(feature = "canvas")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
-    pub use iced_glow::widget::canvas;
+    #[cfg(any(feature = "canvas", feature = "glow_canvas"))]
+    #[cfg_attr(
+        docsrs,
+        doc(cfg(any(feature = "canvas", feature = "glow_canvas")))
+    )]
+    pub use crate::renderer::widget::canvas;
 
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
-        pub use iced_glutin::image::{Handle, Image};
+        pub use crate::runtime::image::{Handle, Image};
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
     pub mod svg {
         //! Display vector graphics in your user interface.
-        pub use iced_glutin::svg::{Handle, Svg};
+        pub use crate::runtime::svg::{Handle, Svg};
     }
 
     #[doc(no_inline)]

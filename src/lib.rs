@@ -197,6 +197,29 @@ pub mod window;
 #[cfg_attr(docsrs, doc(cfg(any(feature = "tokio", feature = "async-std"))))]
 pub mod time;
 
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    not(feature = "glow"),
+    feature = "wgpu"
+))]
+use iced_winit as runtime;
+
+#[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
+use iced_glutin as runtime;
+
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    not(feature = "glow"),
+    feature = "wgpu"
+))]
+use iced_wgpu as renderer;
+
+#[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
+use iced_glow as renderer;
+
+#[cfg(target_arch = "wasm32")]
+use iced_web as runtime;
+
 #[doc(no_inline)]
 pub use widget::*;
 
@@ -205,12 +228,6 @@ pub use element::Element;
 pub use executor::Executor;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
-
-#[cfg(not(target_arch = "wasm32"))]
-use iced_glutin as runtime;
-
-#[cfg(target_arch = "wasm32")]
-use iced_web as runtime;
 
 pub use runtime::{
     futures, Align, Background, Color, Command, Font, HorizontalAlignment,

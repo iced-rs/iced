@@ -9,6 +9,7 @@ repository = "https://github.com/hecrj/iced"
 
 [features]
 canvas = ["iced_graphics/canvas"]
+# Not supported yet!
 image = []
 svg = []
 

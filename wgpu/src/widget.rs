@@ -7,6 +7,8 @@
 //! ```
 //! use iced_wgpu::{button, Button};
 //! ```
+use crate::Renderer;
+
 pub mod button;
 pub mod checkbox;
 pub mod container;
@@ -47,3 +49,8 @@ pub mod canvas;
 #[cfg(feature = "canvas")]
 #[doc(no_inline)]
 pub use canvas::Canvas;
+
+pub use iced_native::Space;
+
+pub type Column<'a, Message> = iced_native::Column<'a, Message, Renderer>;
+pub type Row<'a, Message> = iced_native::Row<'a, Message, Renderer>;

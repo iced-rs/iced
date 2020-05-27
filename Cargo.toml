@@ -12,14 +12,21 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+default = ["wgpu"]
+# Enables the `iced_wgpu` renderer
+wgpu = ["iced_wgpu"]
 # Enables the `Image` widget
-image = ["iced_glow/image"]
+image = ["iced_wgpu/image"]
 # Enables the `Svg` widget
-svg = ["iced_glow/svg"]
+svg = ["iced_wgpu/svg"]
 # Enables the `Canvas` widget
-canvas = ["iced_glow/canvas"]
+canvas = ["iced_wgpu/canvas"]
+# Enables the `iced_glow` renderer. Overrides `iced_wgpu`
+glow = ["iced_glow", "iced_glutin"]
+# Enables the `Canvas` widget for `iced_glow`
+glow_canvas = ["iced_glow/canvas"]
 # Enables a debug view in native platforms (press F12)
-debug = ["iced_glutin/debug"]
+debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
@@ -68,8 +75,10 @@ iced_core = { version = "0.2", path = "core" }
 iced_futures = { version = "0.1", path = "futures" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iced_glutin = { version = "0.1", path = "glutin" }
-iced_glow = { version = "0.1", path = "glow" }
+iced_winit = { version = "0.1", path = "winit" }
+iced_glutin = { version = "0.1", path = "glutin", optional = true }
+iced_wgpu = { version = "0.2", path = "wgpu", optional = true }
+iced_glow = { version = "0.1", path = "glow", optional = true}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced_web = { version = "0.2", path = "web" }
