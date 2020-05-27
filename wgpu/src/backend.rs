@@ -250,10 +250,6 @@ impl backend::Text for Backend {
     ) -> (f32, f32) {
         self.text_pipeline.measure(contents, size, font, bounds)
     }
-
-    fn space_width(&self, size: f32) -> f32 {
-        self.text_pipeline.space_width(size)
-    }
 }
 
 #[cfg(feature = "image")]

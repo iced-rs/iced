@@ -17,8 +17,6 @@ pub trait Text {
         font: Font,
         bounds: Size,
     ) -> (f32, f32);
-
-    fn space_width(&self, size: f32) -> f32;
 }
 
 pub trait Image {

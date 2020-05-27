@@ -6,7 +6,6 @@ use std::{cell::RefCell, collections::HashMap};
 pub struct Pipeline {
     draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
     draw_font_map: RefCell<HashMap<String, wgpu_glyph::FontId>>,
-
     measure_brush: RefCell<glyph_brush::GlyphBrush<'static, ()>>,
 }
 
@@ -52,7 +51,6 @@ impl Pipeline {
         Pipeline {
             draw_brush: RefCell::new(draw_brush),
             draw_font_map: RefCell::new(HashMap::new()),
-
             measure_brush: RefCell::new(measure_brush),
         }
     }
@@ -107,20 +105,6 @@ impl Pipeline {
         } else {
             (0.0, 0.0)
         }
-    }
-
-    pub fn space_width(&self, size: f32) -> f32 {
-        use wgpu_glyph::GlyphCruncher;
-
-        let glyph_brush = self.measure_brush.borrow();
-
-        // TODO: Select appropriate font
-        let font = &glyph_brush.fonts()[0];
-
-        font.glyph(' ')
-            .scaled(wgpu_glyph::Scale { x: size, y: size })
-            .h_metrics()
-            .advance_width
     }
 
     pub fn trim_measurement_cache(&mut self) {

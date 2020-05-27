@@ -15,12 +15,12 @@ svg = []
 
 [dependencies]
 glow = "0.4"
-glow_glyph = "0.1"
+glow_glyph = "0.2"
+glyph_brush = "0.7"
 euclid = "0.20"
 bytemuck = "1.2"
 glam = "0.8"
 log = "0.4"
-glyph_brush = "0.6"
 
 [dependencies.iced_native]
 version = "0.2"
