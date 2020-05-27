@@ -1,4 +1,7 @@
 //! Display images in your user interface.
+pub mod viewer;
+pub use viewer::{State, Viewer};
+
 use crate::{layout, Element, Hasher, Layout, Length, Point, Size, Widget};
 
 use std::{

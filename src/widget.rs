@@ -30,8 +30,7 @@ mod platform {
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
-        pub use iced_winit::image::{Handle, Image};
-        pub use iced_winit::image_viewer::{ImageViewer, State};
+        pub use iced_winit::image::{Handle, Image, State, Viewer};
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
@@ -44,16 +43,9 @@ mod platform {
 
     #[doc(no_inline)]
     pub use {
-        button::Button,
-        checkbox::Checkbox,
-        container::Container,
-        image::{Image, ImageViewer},
-        pane_grid::PaneGrid,
-        progress_bar::ProgressBar,
-        radio::Radio,
-        scrollable::Scrollable,
-        slider::Slider,
-        svg::Svg,
+        button::Button, checkbox::Checkbox, container::Container, image::Image,
+        pane_grid::PaneGrid, progress_bar::ProgressBar, radio::Radio,
+        scrollable::Scrollable, slider::Slider, svg::Svg,
         text_input::TextInput,
     };
 

@@ -25,7 +25,6 @@ pub mod checkbox;
 pub mod column;
 pub mod container;
 pub mod image;
-pub mod image_viewer;
 pub mod pane_grid;
 pub mod progress_bar;
 pub mod radio;
@@ -47,8 +46,6 @@ pub use column::Column;
 pub use container::Container;
 #[doc(no_inline)]
 pub use image::Image;
-#[doc(no_inline)]
-pub use image_viewer::ImageViewer;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]

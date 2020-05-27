@@ -1,3 +1,5 @@
+mod viewer;
+
 use crate::{Primitive, Renderer};
 use iced_native::{image, mouse, Layout};
 

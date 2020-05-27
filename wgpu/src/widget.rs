@@ -47,11 +47,3 @@ pub mod canvas;
 #[cfg(feature = "canvas")]
 #[doc(no_inline)]
 pub use canvas::Canvas;
-
-#[cfg(feature = "image")]
-#[doc(no_inline)]
-pub mod image_viewer;
-
-#[cfg(feature = "image")]
-#[doc(no_inline)]
-pub use image_viewer::ImageViewer;
