@@ -9,14 +9,11 @@
 //! - Event handling for all the built-in widgets
 //! - A renderer-agnostic API
 //!
-//! To achieve this, it introduces a bunch of reusable interfaces:
+//! To achieve this, it introduces a couple of reusable interfaces:
 //!
 //! - A [`Widget`] trait, which is used to implement new widgets: from layout
 //!   requirements to event and drawing logic.
 //! - A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
-//! - A [`window::Backend`] trait, leveraging [`raw-window-handle`], which can be
-//!   implemented by graphical renderers that target _windows_. Window-based
-//!   shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
 //!
 //! # Usage
 //! The strategy to use this crate depends on your particular use case. If you
@@ -31,7 +28,6 @@
 //! [`druid`]: https://github.com/xi-editor/druid
 //! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
 //! [`Widget`]: widget/trait.Widget.html
-//! [`window::Backend`]: window/trait.Backend.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
 #![deny(missing_docs)]
