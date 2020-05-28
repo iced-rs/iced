@@ -30,3 +30,7 @@ path = "../native"
 version = "0.1"
 path = "../graphics"
 features = ["font-source", "font-fallback", "font-icons", "opengl"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true

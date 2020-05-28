@@ -6,6 +6,7 @@
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(rust_2018_idioms)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod backend;
 mod program;
