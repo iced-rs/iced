@@ -764,7 +764,7 @@ mod style {
                     Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
                 })),
                 border_radius: 12,
-                shadow_offset: Vector::new(0.0, 1.0),
+                shadow_offset: Vector::new(1.0, 1.0),
                 text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
                 ..button::Style::default()
             }
@@ -773,7 +773,7 @@ mod style {
         fn hovered(&self) -> button::Style {
             button::Style {
                 text_color: Color::WHITE,
-                shadow_offset: Vector::new(0.0, 2.0),
+                shadow_offset: Vector::new(1.0, 2.0),
                 ..self.active()
             }
         }
