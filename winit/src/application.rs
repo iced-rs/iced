@@ -18,6 +18,8 @@ use iced_native::program::{self, Program};
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
+///
+/// [`Application`]: trait.Application.html
 pub trait Application: Program {
     /// The data needed to initialize your [`Application`].
     ///
@@ -36,7 +38,7 @@ pub trait Application: Program {
     ///
     /// [`Application`]: trait.Application.html
     /// [`run`]: #method.run.html
-    /// [`Settings`]: struct.Settings.html
+    /// [`Settings`]: ../settings/struct.Settings.html
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
     /// Returns the current title of the [`Application`].

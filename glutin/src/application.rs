@@ -1,12 +1,18 @@
+//! Create interactive, native cross-platform applications.
 use crate::{mouse, Executor, Runtime, Size};
 use iced_graphics::window;
 use iced_graphics::Viewport;
 use iced_winit::application;
 use iced_winit::conversion;
-use iced_winit::{program, Clipboard, Debug, Proxy, Settings};
+use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
 pub use iced_winit::Application;
+pub use iced_winit::{program, Program};
 
+/// Runs an [`Application`] with an executor, compositor, and the provided
+/// settings.
+///
+/// [`Application`]: trait.Application.html
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     compositor_settings: C::Settings,

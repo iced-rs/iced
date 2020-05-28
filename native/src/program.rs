@@ -5,7 +5,7 @@ mod state;
 
 pub use state::State;
 
-/// An interactive, native cross-platform program.
+/// The core of a user interface application following The Elm Architecture.
 pub trait Program: Sized {
     /// The graphics backend to use to draw the [`Program`].
     ///
