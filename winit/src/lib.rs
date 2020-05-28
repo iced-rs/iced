@@ -15,7 +15,7 @@
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`Application`]: trait.Application.html
 //! [`conversion`]: conversion
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]

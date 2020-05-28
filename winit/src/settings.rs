@@ -44,6 +44,7 @@ pub struct Window {
 }
 
 impl Window {
+    /// Converts the window settings into a `WindowBuilder` from `winit`.
     pub fn into_builder(
         self,
         title: &str,

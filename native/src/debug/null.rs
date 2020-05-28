@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 #[derive(Debug)]
 pub struct Debug;
 

@@ -5,6 +5,7 @@ use iced_native::futures::{
 };
 use std::pin::Pin;
 
+/// An event loop proxy that implements `Sink`.
 #[derive(Debug)]
 pub struct Proxy<Message: 'static> {
     raw: winit::event_loop::EventLoopProxy<Message>,
@@ -19,6 +20,9 @@ impl<Message: 'static> Clone for Proxy<Message> {
 }
 
 impl<Message: 'static> Proxy<Message> {
+    /// Creates a new [`Proxy`] from an `EventLoopProxy`.
+    ///
+    /// [`Proxy`]: struct.Proxy.html
     pub fn new(raw: winit::event_loop::EventLoopProxy<Message>) -> Self {
         Self { raw }
     }
