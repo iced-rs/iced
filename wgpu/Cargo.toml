@@ -13,7 +13,7 @@ canvas = ["lyon"]
 
 [dependencies]
 wgpu = "0.5"
-wgpu_glyph = { git = "https://github.com/hecrj/wgpu_glyph.git", branch = "feature/update-glyph-brush" }
+wgpu_glyph = "0.9"
 zerocopy = "0.3"
 glyph_brush = "0.7"
 raw-window-handle = "0.3"
