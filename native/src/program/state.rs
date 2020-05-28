@@ -3,6 +3,10 @@ use crate::{
     UserInterface,
 };
 
+/// The execution state of a [`Program`]. It leverages caching, event
+/// processing, and rendering primitive storage.
+///
+/// [`Program`]: trait.Program.html
 #[allow(missing_debug_implementations)]
 pub struct State<P>
 where
@@ -19,6 +23,11 @@ impl<P> State<P>
 where
     P: Program + 'static,
 {
+    /// Creates a new [`State`] with the provided [`Program`], initializing its
+    /// primitive with the given logical bounds and renderer.
+    ///
+    /// [`State`]: struct.State.html
+    /// [`Program`]: trait.Program.html
     pub fn new(
         mut program: P,
         bounds: Size,
@@ -48,22 +57,44 @@ where
         }
     }
 
+    /// Returns a reference to the [`Program`] of the [`State`].
+    ///
+    /// [`Program`]: trait.Program.html
+    /// [`State`]: struct.State.html
     pub fn program(&self) -> &P {
         &self.program
     }
 
+    /// Returns a reference to the current rendering primitive of the [`State`].
+    ///
+    /// [`State`]: struct.State.html
     pub fn primitive(&self) -> &<P::Renderer as Renderer>::Output {
         &self.primitive
     }
 
+    /// Queues an event in the [`State`] for processing during an [`update`].
+    ///
+    /// [`State`]: struct.State.html
+    /// [`update`]: #method.update
     pub fn queue_event(&mut self, event: Event) {
         self.queued_events.push(event);
     }
 
+    /// Queues a message in the [`State`] for processing during an [`update`].
+    ///
+    /// [`State`]: struct.State.html
+    /// [`update`]: #method.update
     pub fn queue_message(&mut self, message: P::Message) {
         self.queued_messages.push(message);
     }
 
+    /// Processes all the queued events and messages, rebuilding and redrawing
+    /// the widgets of the linked [`Program`] if necessary.
+    ///
+    /// Returns the [`Command`] obtained from [`Program`] after updating it,
+    /// only if an update was necessary.
+    ///
+    /// [`Program`]: trait.Program.html
     pub fn update(
         &mut self,
         clipboard: Option<&dyn Clipboard>,

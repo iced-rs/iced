@@ -14,7 +14,7 @@ pub trait Program: Sized {
 
     /// The type of __messages__ your [`Program`] will produce.
     ///
-    /// [`Application`]: trait.Program.html
+    /// [`Program`]: trait.Program.html
     type Message: std::fmt::Debug + Send;
 
     /// Handles a __message__ and updates the state of the [`Program`].
@@ -34,6 +34,6 @@ pub trait Program: Sized {
     ///
     /// These widgets can produce __messages__ based on user interaction.
     ///
-    /// [`Program`]: trait.Application.html
+    /// [`Program`]: trait.Program.html
     fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer>;
 }

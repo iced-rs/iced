@@ -1,5 +1,7 @@
+#![allow(missing_docs)]
 use std::{collections::VecDeque, time};
 
+/// A bunch of time measurements for debugging purposes.
 #[derive(Debug)]
 pub struct Debug {
     is_enabled: bool,
@@ -30,6 +32,9 @@ pub struct Debug {
 }
 
 impl Debug {
+    /// Creates a new [`Debug`].
+    ///
+    /// [`Debug`]: struct.Debug.html
     pub fn new() -> Self {
         let now = time::Instant::now();
 
