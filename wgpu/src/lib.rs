@@ -27,34 +27,31 @@
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-pub mod defaults;
 pub mod settings;
 pub mod triangle;
 pub mod widget;
 pub mod window;
 
-mod primitive;
+mod backend;
 mod quad;
-mod renderer;
-mod target;
 mod text;
-mod transformation;
-mod viewport;
 
+pub use iced_graphics::{Defaults, Primitive, Viewport};
 pub use wgpu;
 
-pub use defaults::Defaults;
-pub use primitive::Primitive;
-pub use renderer::Renderer;
+pub use backend::Backend;
 pub use settings::Settings;
-pub use target::Target;
-pub use viewport::Viewport;
 
 #[doc(no_inline)]
 pub use widget::*;
 
-pub(crate) use quad::Quad;
-pub(crate) use transformation::Transformation;
+pub(crate) use iced_graphics::Transformation;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;
+
+/// A [`wgpu`] graphics renderer for [`iced`].
+///
+/// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+/// [`iced`]: https://github.com/hecrj/iced
+pub type Renderer = iced_graphics::Renderer<Backend>;

@@ -2,11 +2,20 @@ use std::f32;
 
 /// An amount of space in 2 dimensions.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Size {
+pub struct Size<T = f32> {
     /// The width.
-    pub width: f32,
+    pub width: T,
     /// The height.
-    pub height: f32,
+    pub height: T,
+}
+
+impl<T> Size<T> {
+    /// Creates a new  [`Size`] with the given width and height.
+    ///
+    /// [`Size`]: struct.Size.html
+    pub const fn new(width: T, height: T) -> Self {
+        Size { width, height }
+    }
 }
 
 impl Size {
@@ -24,13 +33,6 @@ impl Size {
     ///
     /// [`Size`]: struct.Size.html
     pub const INFINITY: Size = Size::new(f32::INFINITY, f32::INFINITY);
-
-    /// Creates a new  [`Size`] with the given width and height.
-    ///
-    /// [`Size`]: struct.Size.html
-    pub const fn new(width: f32, height: f32) -> Self {
-        Size { width, height }
-    }
 
     /// Increments the [`Size`] to account for the given padding.
     ///

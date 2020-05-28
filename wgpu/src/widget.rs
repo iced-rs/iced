@@ -7,6 +7,8 @@
 //! ```
 //! use iced_wgpu::{button, Button};
 //! ```
+use crate::Renderer;
+
 pub mod button;
 pub mod checkbox;
 pub mod container;
@@ -16,8 +18,6 @@ pub mod radio;
 pub mod scrollable;
 pub mod slider;
 pub mod text_input;
-
-mod text;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -38,8 +38,6 @@ pub use slider::Slider;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-pub use text::Text;
-
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 pub mod canvas;
@@ -47,3 +45,14 @@ pub mod canvas;
 #[cfg(feature = "canvas")]
 #[doc(no_inline)]
 pub use canvas::Canvas;
+
+pub use iced_native::Space;
+
+/// A container that distributes its contents vertically.
+pub type Column<'a, Message> = iced_native::Column<'a, Message, Renderer>;
+
+/// A container that distributes its contents horizontally.
+pub type Row<'a, Message> = iced_native::Row<'a, Message, Renderer>;
+
+/// A paragraph of text.
+pub type Text = iced_native::Text<Renderer>;

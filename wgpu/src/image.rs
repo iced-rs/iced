@@ -9,6 +9,7 @@ mod vector;
 use crate::Transformation;
 use atlas::Atlas;
 
+use iced_graphics::layer;
 use iced_native::Rectangle;
 use std::cell::RefCell;
 use std::mem;
@@ -282,7 +283,7 @@ impl Pipeline {
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        images: &[Image],
+        images: &[layer::Image],
         transformation: Transformation,
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
@@ -297,31 +298,48 @@ impl Pipeline {
         let mut vector_cache = self.vector_cache.borrow_mut();
 
         for image in images {
-            match &image.handle {
+            match &image {
                 #[cfg(feature = "image")]
-                Handle::Raster(handle) => {
+                layer::Image::Raster { handle, bounds } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         handle,
                         device,
                         encoder,
                         &mut self.texture_atlas,
                     ) {
-                        add_instances(image, atlas_entry, instances);
+                        add_instances(
+                            [bounds.x, bounds.y],
+                            [bounds.width, bounds.height],
+                            atlas_entry,
+                            instances,
+                        );
                     }
                 }
+                #[cfg(not(feature = "image"))]
+                layer::Image::Raster { .. } => {}
+
                 #[cfg(feature = "svg")]
-                Handle::Vector(handle) => {
+                layer::Image::Vector { handle, bounds } => {
+                    let size = [bounds.width, bounds.height];
+
                     if let Some(atlas_entry) = vector_cache.upload(
                         handle,
-                        image.size,
+                        size,
                         _scale,
                         device,
                         encoder,
                         &mut self.texture_atlas,
                     ) {
-                        add_instances(image, atlas_entry, instances);
+                        add_instances(
+                            [bounds.x, bounds.y],
+                            size,
+                            atlas_entry,
+                            instances,
+                        );
                     }
                 }
+                #[cfg(not(feature = "svg"))]
+                layer::Image::Vector { .. } => {}
             }
         }
 
@@ -437,20 +455,6 @@ impl Pipeline {
     }
 }
 
-pub struct Image {
-    pub handle: Handle,
-    pub position: [f32; 2],
-    pub size: [f32; 2],
-}
-
-pub enum Handle {
-    #[cfg(feature = "image")]
-    Raster(image::Handle),
-
-    #[cfg(feature = "svg")]
-    Vector(svg::Handle),
-}
-
 #[repr(C)]
 #[derive(Clone, Copy, AsBytes)]
 pub struct Vertex {
@@ -495,22 +499,23 @@ struct Uniforms {
 }
 
 fn add_instances(
-    image: &Image,
+    image_position: [f32; 2],
+    image_size: [f32; 2],
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
     match entry {
         atlas::Entry::Contiguous(allocation) => {
-            add_instance(image.position, image.size, allocation, instances);
+            add_instance(image_position, image_size, allocation, instances);
         }
         atlas::Entry::Fragmented { fragments, size } => {
-            let scaling_x = image.size[0] / size.0 as f32;
-            let scaling_y = image.size[1] / size.1 as f32;
+            let scaling_x = image_size[0] / size.0 as f32;
+            let scaling_y = image_size[1] / size.1 as f32;
 
             for fragment in fragments {
                 let allocation = &fragment.allocation;
 
-                let [x, y] = image.position;
+                let [x, y] = image_position;
                 let (fragment_x, fragment_y) = fragment.position;
                 let (fragment_width, fragment_height) = allocation.size();
 

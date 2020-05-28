@@ -102,7 +102,9 @@ where
             hasher.finish()
         };
 
-        let layout = if hash == cache.hash && bounds == cache.bounds {
+        let layout_is_cached = hash == cache.hash && bounds == cache.bounds;
+
+        let layout = if layout_is_cached {
             cache.layout
         } else {
             renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds))

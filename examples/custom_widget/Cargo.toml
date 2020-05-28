@@ -8,4 +8,4 @@ publish = false
 [dependencies]
 iced = { path = "../.." }
 iced_native = { path = "../../native" }
-iced_wgpu = { path = "../../wgpu" }
+iced_graphics = { path = "../../graphics" }

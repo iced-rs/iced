@@ -125,17 +125,29 @@ impl Rectangle<f32> {
             None
         }
     }
+
+    /// Rounds the [`Rectangle`] to __unsigned__ integer coordinates.
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn round(self) -> Rectangle<u32> {
+        Rectangle {
+            x: self.x as u32,
+            y: self.y as u32,
+            width: (self.width + 0.5).round() as u32,
+            height: (self.height + 0.5).round() as u32,
+        }
+    }
 }
 
-impl std::ops::Mul<f32> for Rectangle<u32> {
+impl std::ops::Mul<f32> for Rectangle<f32> {
     type Output = Self;
 
     fn mul(self, scale: f32) -> Self {
         Self {
-            x: (self.x as f32 * scale).round() as u32,
-            y: (self.y as f32 * scale).round() as u32,
-            width: (self.width as f32 * scale).round() as u32,
-            height: (self.height as f32 * scale).round() as u32,
+            x: self.x as f32 * scale,
+            y: self.y as f32 * scale,
+            width: self.width * scale,
+            height: self.height * scale,
         }
     }
 }
@@ -147,17 +159,6 @@ impl From<Rectangle<u32>> for Rectangle<f32> {
             y: rectangle.y as f32,
             width: rectangle.width as f32,
             height: rectangle.height as f32,
-        }
-    }
-}
-
-impl From<Rectangle<f32>> for Rectangle<u32> {
-    fn from(rectangle: Rectangle<f32>) -> Rectangle<u32> {
-        Rectangle {
-            x: rectangle.x as u32,
-            y: rectangle.y as u32,
-            width: (rectangle.width + 0.5).round() as u32,
-            height: (rectangle.height + 0.5).round() as u32,
         }
     }
 }

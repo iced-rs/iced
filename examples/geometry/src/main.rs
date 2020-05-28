@@ -10,13 +10,13 @@ mod rainbow {
     // Of course, you can choose to make the implementation renderer-agnostic,
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
+    use iced_graphics::{
+        triangle::{Mesh2D, Vertex2D},
+        Backend, Defaults, Primitive, Renderer,
+    };
     use iced_native::{
         layout, mouse, Element, Hasher, Layout, Length, Point, Size, Vector,
         Widget,
-    };
-    use iced_wgpu::{
-        triangle::{Mesh2D, Vertex2D},
-        Defaults, Primitive, Renderer,
     };
 
     pub struct Rainbow;
@@ -27,7 +27,10 @@ mod rainbow {
         }
     }
 
-    impl<Message> Widget<Message, Renderer> for Rainbow {
+    impl<Message, B> Widget<Message, Renderer<B>> for Rainbow
+    where
+        B: Backend,
+    {
         fn width(&self) -> Length {
             Length::Fill
         }
@@ -38,7 +41,7 @@ mod rainbow {
 
         fn layout(
             &self,
-            _renderer: &Renderer,
+            _renderer: &Renderer<B>,
             limits: &layout::Limits,
         ) -> layout::Node {
             let size = limits.width(Length::Fill).resolve(Size::ZERO);
@@ -50,7 +53,7 @@ mod rainbow {
 
         fn draw(
             &self,
-            _renderer: &mut Renderer,
+            _renderer: &mut Renderer<B>,
             _defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
@@ -146,8 +149,11 @@ mod rainbow {
         }
     }
 
-    impl<'a, Message> Into<Element<'a, Message, Renderer>> for Rainbow {
-        fn into(self) -> Element<'a, Message, Renderer> {
+    impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for Rainbow
+    where
+        B: Backend,
+    {
+        fn into(self) -> Element<'a, Message, Renderer<B>> {
             Element::new(self)
         }
     }

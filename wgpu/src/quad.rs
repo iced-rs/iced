@@ -1,4 +1,5 @@
 use crate::Transformation;
+use iced_graphics::layer;
 use iced_native::Rectangle;
 
 use std::mem;
@@ -107,7 +108,7 @@ impl Pipeline {
                             }],
                         },
                         wgpu::VertexBufferDescriptor {
-                            stride: mem::size_of::<Quad>() as u64,
+                            stride: mem::size_of::<layer::Quad>() as u64,
                             step_mode: wgpu::InputStepMode::Instance,
                             attributes: &[
                                 wgpu::VertexAttributeDescriptor {
@@ -161,7 +162,7 @@ impl Pipeline {
 
         let instances = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            size: mem::size_of::<Quad>() as u64 * Quad::MAX as u64,
+            size: mem::size_of::<layer::Quad>() as u64 * MAX_INSTANCES as u64,
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -179,7 +180,7 @@ impl Pipeline {
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        instances: &[Quad],
+        instances: &[layer::Quad],
         transformation: Transformation,
         scale: f32,
         bounds: Rectangle<u32>,
@@ -204,11 +205,11 @@ impl Pipeline {
         let total = instances.len();
 
         while i < total {
-            let end = (i + Quad::MAX).min(total);
+            let end = (i + MAX_INSTANCES).min(total);
             let amount = end - i;
 
             let instance_buffer = device.create_buffer_with_data(
-                &instances[i..end].as_bytes(),
+                bytemuck::cast_slice(&instances[i..end]),
                 wgpu::BufferUsage::COPY_SRC,
             );
 
@@ -217,7 +218,7 @@ impl Pipeline {
                 0,
                 &self.instances,
                 0,
-                (mem::size_of::<Quad>() * amount) as u64,
+                (mem::size_of::<layer::Quad>() * amount) as u64,
             );
 
             {
@@ -260,7 +261,7 @@ impl Pipeline {
                 );
             }
 
-            i += Quad::MAX;
+            i += MAX_INSTANCES;
         }
     }
 }
@@ -288,20 +289,7 @@ const QUAD_VERTS: [Vertex; 4] = [
     },
 ];
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, AsBytes)]
-pub struct Quad {
-    pub position: [f32; 2],
-    pub scale: [f32; 2],
-    pub color: [f32; 4],
-    pub border_color: [f32; 4],
-    pub border_radius: f32,
-    pub border_width: f32,
-}
-
-impl Quad {
-    const MAX: usize = 100_000;
-}
+const MAX_INSTANCES: usize = 100_000;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, AsBytes)]

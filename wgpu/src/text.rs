@@ -1,23 +1,11 @@
-mod font;
-
 use crate::Transformation;
-
+use iced_graphics::font;
 use std::{cell::RefCell, collections::HashMap};
-
-pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
-    name: "iced_wgpu icons",
-    bytes: include_bytes!("text/icons.ttf"),
-};
-
-pub const CHECKMARK_ICON: char = '\u{F00C}';
-
-const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
 
 #[derive(Debug)]
 pub struct Pipeline {
     draw_brush: RefCell<wgpu_glyph::GlyphBrush<'static, ()>>,
     draw_font_map: RefCell<HashMap<String, wgpu_glyph::FontId>>,
-
     measure_brush: RefCell<glyph_brush::GlyphBrush<'static, ()>>,
 }
 
@@ -34,7 +22,7 @@ impl Pipeline {
             default_font.map(|slice| slice.to_vec()).unwrap_or_else(|| {
                 font_source
                     .load(&[font::Family::SansSerif, font::Family::Serif])
-                    .unwrap_or_else(|_| FALLBACK_FONT.to_vec())
+                    .unwrap_or_else(|_| font::FALLBACK.to_vec())
             });
 
         let load_glyph_brush = |font: Vec<u8>| {
@@ -53,7 +41,7 @@ impl Pipeline {
             .unwrap_or_else(|_: wgpu_glyph::rusttype::Error| {
                 log::warn!("System font failed to load. Falling back to embedded font...");
 
-                load_glyph_brush(FALLBACK_FONT.to_vec()).expect("Load fallback font")
+                load_glyph_brush(font::FALLBACK.to_vec()).expect("Load fallback font")
             });
 
         let draw_brush = brush_builder
@@ -63,13 +51,8 @@ impl Pipeline {
         Pipeline {
             draw_brush: RefCell::new(draw_brush),
             draw_font_map: RefCell::new(HashMap::new()),
-
             measure_brush: RefCell::new(measure_brush),
         }
-    }
-
-    pub fn overlay_font(&self) -> wgpu_glyph::FontId {
-        wgpu_glyph::FontId(0)
     }
 
     pub fn queue(&mut self, section: wgpu_glyph::Section<'_>) {
@@ -124,21 +107,7 @@ impl Pipeline {
         }
     }
 
-    pub fn space_width(&self, size: f32) -> f32 {
-        use wgpu_glyph::GlyphCruncher;
-
-        let glyph_brush = self.measure_brush.borrow();
-
-        // TODO: Select appropriate font
-        let font = &glyph_brush.fonts()[0];
-
-        font.glyph(' ')
-            .scaled(wgpu_glyph::Scale { x: size, y: size })
-            .h_metrics()
-            .advance_width
-    }
-
-    pub fn clear_measurement_cache(&mut self) {
+    pub fn trim_measurement_cache(&mut self) {
         // TODO: We should probably use a `GlyphCalculator` for this. However,
         // it uses a lifetimed `GlyphCalculatorGuard` with side-effects on drop.
         // This makes stuff quite inconvenient. A manual method for trimming the

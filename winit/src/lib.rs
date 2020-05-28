@@ -25,28 +25,18 @@
 pub use iced_native::*;
 pub use winit;
 
+pub mod application;
 pub mod conversion;
 pub mod settings;
 
-mod application;
 mod clipboard;
 mod mode;
 mod proxy;
-mod size;
-
-// We disable debug capabilities on release builds unless the `debug` feature
-// is explicitly enabled.
-#[cfg(feature = "debug")]
-#[path = "debug/basic.rs"]
-mod debug;
-#[cfg(not(feature = "debug"))]
-#[path = "debug/null.rs"]
-mod debug;
 
 pub use application::Application;
 pub use clipboard::Clipboard;
 pub use mode::Mode;
+pub use proxy::Proxy;
 pub use settings::Settings;
 
-use debug::Debug;
-use proxy::Proxy;
+pub use iced_graphics::Viewport;
