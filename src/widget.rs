@@ -61,6 +61,7 @@ mod platform {
 }
 #[cfg(target_os = "ios")]
 mod platform {
+    pub use iced_ios::widget::*;
 }
 
 pub use platform::*;
