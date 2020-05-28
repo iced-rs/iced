@@ -56,7 +56,7 @@ impl Node {
         let mut regions = HashMap::new();
 
         self.compute_regions(
-            spacing / 2.0,
+            spacing,
             &Rectangle {
                 x: 0.0,
                 y: 0.0,
@@ -83,7 +83,7 @@ impl Node {
         let mut splits = HashMap::new();
 
         self.compute_splits(
-            spacing / 2.0,
+            spacing,
             &Rectangle {
                 x: 0.0,
                 y: 0.0,
@@ -185,7 +185,7 @@ impl Node {
 
     fn compute_regions(
         &self,
-        halved_spacing: f32,
+        spacing: f32,
         current: &Rectangle,
         regions: &mut HashMap<Pane, Rectangle>,
     ) {
@@ -193,11 +193,10 @@ impl Node {
             Node::Split {
                 axis, ratio, a, b, ..
             } => {
-                let (region_a, region_b) =
-                    axis.split(current, *ratio, halved_spacing);
+                let (region_a, region_b) = axis.split(current, *ratio, spacing);
 
-                a.compute_regions(halved_spacing, &region_a, regions);
-                b.compute_regions(halved_spacing, &region_b, regions);
+                a.compute_regions(spacing, &region_a, regions);
+                b.compute_regions(spacing, &region_b, regions);
             }
             Node::Pane(pane) => {
                 let _ = regions.insert(*pane, *current);
@@ -207,7 +206,7 @@ impl Node {
 
     fn compute_splits(
         &self,
-        halved_spacing: f32,
+        spacing: f32,
         current: &Rectangle,
         splits: &mut HashMap<Split, (Axis, Rectangle, f32)>,
     ) {
@@ -219,13 +218,12 @@ impl Node {
                 b,
                 id,
             } => {
-                let (region_a, region_b) =
-                    axis.split(current, *ratio, halved_spacing);
+                let (region_a, region_b) = axis.split(current, *ratio, spacing);
 
                 let _ = splits.insert(*id, (*axis, *current, *ratio));
 
-                a.compute_splits(halved_spacing, &region_a, splits);
-                b.compute_splits(halved_spacing, &region_b, splits);
+                a.compute_splits(spacing, &region_a, splits);
+                b.compute_splits(spacing, &region_b, splits);
             }
             Node::Pane(_) => {}
         }
