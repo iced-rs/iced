@@ -17,8 +17,8 @@ use editor::Editor;
 use crate::{
     keyboard, layout,
     mouse::{self, click},
-    Clipboard, Element, Event, Font, Hasher, Layout, Length, Point, Rectangle,
-    Size, Widget,
+    Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
+    Widget,
 };
 
 use std::u32;
@@ -53,7 +53,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     placeholder: String,
     value: Value,
     is_secure: bool,
-    font: Font,
+    font: Renderer::Font,
     width: Length,
     max_width: u32,
     padding: u16,
@@ -88,7 +88,7 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
-            font: Font::Default,
+            font: Default::default(),
             width: Length::Fill,
             max_width: u32::MAX,
             padding: 0,
@@ -111,7 +111,7 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
     ///
     /// [`Text`]: struct.Text.html
     /// [`Font`]: ../../struct.Font.html
-    pub fn font(mut self, font: Font) -> Self {
+    pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
     }
@@ -532,6 +532,11 @@ where
 /// [`TextInput`]: struct.TextInput.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer + Sized {
+    /// The font type used for [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    type Font: Default + Copy;
+
     /// The style supported by this renderer.
     type Style: Default;
 
@@ -543,7 +548,7 @@ pub trait Renderer: crate::Renderer + Sized {
     /// Returns the width of the value of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
-    fn measure_value(&self, value: &str, size: u16, font: Font) -> f32;
+    fn measure_value(&self, value: &str, size: u16, font: Self::Font) -> f32;
 
     /// Returns the current horizontal offset of the value of the
     /// [`TextInput`].
@@ -556,7 +561,7 @@ pub trait Renderer: crate::Renderer + Sized {
     fn offset(
         &self,
         text_bounds: Rectangle,
-        font: Font,
+        font: Self::Font,
         size: u16,
         value: &Value,
         state: &State,
@@ -580,7 +585,7 @@ pub trait Renderer: crate::Renderer + Sized {
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
-        font: Font,
+        font: Self::Font,
         size: u16,
         placeholder: &str,
         value: &Value,
@@ -595,7 +600,7 @@ pub trait Renderer: crate::Renderer + Sized {
     fn find_cursor_position(
         &self,
         text_bounds: Rectangle,
-        font: Font,
+        font: Self::Font,
         size: Option<u16>,
         value: &Value,
         state: &State,
@@ -684,7 +689,7 @@ impl State {
 fn find_cursor_position<Renderer: self::Renderer>(
     renderer: &Renderer,
     value: &Value,
-    font: Font,
+    font: Renderer::Font,
     size: u16,
     target: f32,
     start: usize,

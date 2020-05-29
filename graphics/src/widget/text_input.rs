@@ -27,6 +27,7 @@ impl<B> text_input::Renderer for Renderer<B>
 where
     B: Backend + backend::Text,
 {
+    type Font = Font;
     type Style = Box<dyn StyleSheet>;
 
     fn default_size(&self) -> u16 {
