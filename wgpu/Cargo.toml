@@ -13,10 +13,10 @@ canvas = ["iced_graphics/canvas"]
 
 [dependencies]
 wgpu = "0.5"
-wgpu_glyph = "0.8"
+wgpu_glyph = "0.9"
+glyph_brush = "0.7"
 zerocopy = "0.3"
 bytemuck = "1.2"
-glyph_brush = "0.6"
 raw-window-handle = "0.3"
 glam = "0.8"
 log = "0.4"
