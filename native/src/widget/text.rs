@@ -19,7 +19,7 @@ use std::hash::Hash;
 /// ```
 ///
 /// ![Text drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Text<Renderer: self::Renderer> {
     content: String,
     size: Option<u16>,
@@ -237,5 +237,20 @@ where
 {
     fn from(text: Text<Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(text)
+    }
+}
+
+impl<Renderer: self::Renderer> Clone for Text<Renderer> {
+    fn clone(&self) -> Self {
+        Self {
+            content: self.content.clone(),
+            size: self.size,
+            color: self.color,
+            font: self.font,
+            width: self.width,
+            height: self.height,
+            horizontal_alignment: self.horizontal_alignment,
+            vertical_alignment: self.vertical_alignment,
+        }
     }
 }
