@@ -199,28 +199,19 @@ pub mod time;
 
 #[cfg(all(
     not(target_arch = "wasm32"),
-    not(target_arch = "ios"),
+    not(target_os = "ios"),
     not(feature = "glow"),
     feature = "wgpu"
 ))]
 use iced_winit as runtime;
 
-#[cfg(all(
-        not(target_arch = "wasm32"),
-        not(target_arch = "ios"),
-        feature = "glow")
-    )]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios"), feature = "glow"))]
 use iced_glutin as runtime;
 
-#[cfg(all(
-    not(target_arch = "wasm32"),
-    not(target_arch = "ios"),
-    not(feature = "glow"),
-    feature = "wgpu"
-))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios"), not(feature = "glow"), feature = "wgpu"))]
 use iced_wgpu as renderer;
 
-#[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios"), feature = "glow"))]
 use iced_glow as renderer;
 
 #[cfg(target_arch = "wasm32")]
