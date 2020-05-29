@@ -1,4 +1,4 @@
-use crate::{Renderer, Settings};
+use crate::{Backend, Renderer, Settings};
 
 use iced_graphics::Viewport;
 use iced_native::{futures, mouse};
@@ -7,9 +7,55 @@ use raw_window_handle::HasRawWindowHandle;
 /// A window graphics backend for iced powered by `wgpu`.
 #[derive(Debug)]
 pub struct Compositor {
+    settings: Settings,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    format: wgpu::TextureFormat,
+}
+
+impl Compositor {
+    /// Requests a new [`Compositor`] with the given [`Settings`].
+    ///
+    /// Returns `None` if no compatible graphics adapter could be found.
+    ///
+    /// [`Compositor`]: struct.Compositor.html
+    /// [`Settings`]: struct.Settings.html
+    pub async fn request(settings: Settings) -> Option<Self> {
+        let adapter = wgpu::Adapter::request(
+            &wgpu::RequestAdapterOptions {
+                power_preference: if settings.antialiasing.is_none() {
+                    wgpu::PowerPreference::Default
+                } else {
+                    wgpu::PowerPreference::HighPerformance
+                },
+                compatible_surface: None,
+            },
+            wgpu::BackendBit::PRIMARY,
+        )
+        .await?;
+
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                extensions: wgpu::Extensions {
+                    anisotropic_filtering: false,
+                },
+                limits: wgpu::Limits { max_bind_groups: 2 },
+            })
+            .await;
+
+        Some(Compositor {
+            settings,
+            device,
+            queue,
+        })
+    }
+
+    /// Creates a new rendering [`Backend`] for this [`Compositor`].
+    ///
+    /// [`Compositor`]: struct.Compositor.html
+    /// [`Backend`]: struct.Backend.html
+    pub fn create_backend(&self) -> Backend {
+        Backend::new(&self.device, self.settings)
+    }
 }
 
 impl iced_graphics::window::Compositor for Compositor {
@@ -19,42 +65,12 @@ impl iced_graphics::window::Compositor for Compositor {
     type SwapChain = wgpu::SwapChain;
 
     fn new(settings: Self::Settings) -> (Self, Renderer) {
-        let (mut device, queue) = futures::executor::block_on(async {
-            let adapter = wgpu::Adapter::request(
-                &wgpu::RequestAdapterOptions {
-                    power_preference: if settings.antialiasing.is_none() {
-                        wgpu::PowerPreference::Default
-                    } else {
-                        wgpu::PowerPreference::HighPerformance
-                    },
-                    compatible_surface: None,
-                },
-                wgpu::BackendBit::PRIMARY,
-            )
-            .await
-            .expect("Request adapter");
+        let compositor = futures::executor::block_on(Self::request(settings))
+            .expect("Could not find a suitable graphics adapter");
 
-            adapter
-                .request_device(&wgpu::DeviceDescriptor {
-                    extensions: wgpu::Extensions {
-                        anisotropic_filtering: false,
-                    },
-                    limits: wgpu::Limits { max_bind_groups: 2 },
-                })
-                .await
-        });
+        let backend = compositor.create_backend();
 
-        let renderer =
-            Renderer::new(crate::Backend::new(&mut device, settings));
-
-        (
-            Self {
-                device,
-                queue,
-                format: settings.format,
-            },
-            renderer,
-        )
+        (compositor, Renderer::new(backend))
     }
 
     fn create_surface<W: HasRawWindowHandle>(
@@ -74,7 +90,7 @@ impl iced_graphics::window::Compositor for Compositor {
             surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: self.format,
+                format: self.settings.format,
                 width,
                 height,
                 present_mode: wgpu::PresentMode::Mailbox,

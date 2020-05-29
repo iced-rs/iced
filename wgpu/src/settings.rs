@@ -1,5 +1,5 @@
 //! Configure a renderer.
-pub use iced_graphics::Antialiasing;
+pub use crate::Antialiasing;
 
 /// The settings of a [`Renderer`].
 ///
