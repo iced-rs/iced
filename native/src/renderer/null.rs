@@ -103,6 +103,7 @@ impl scrollable::Renderer for Null {
 }
 
 impl text_input::Renderer for Null {
+    type Font = Font;
     type Style = ();
 
     fn default_size(&self) -> u16 {
