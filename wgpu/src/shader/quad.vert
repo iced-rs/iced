@@ -21,14 +21,14 @@ layout(location = 4) out float o_BorderRadius;
 layout(location = 5) out float o_BorderWidth;
 
 void main() {
-    vec2 p_Pos = floor(i_Pos * u_Scale);
-    vec2 p_Scale = floor(i_Scale  * u_Scale);
+    vec2 p_Pos = i_Pos * u_Scale;
+    vec2 p_Scale = i_Scale  * u_Scale;
 
     mat4 i_Transform = mat4(
-        vec4(p_Scale.x, 0.0, 0.0, 0.0),
-        vec4(0.0, p_Scale.y, 0.0, 0.0),
+        vec4(p_Scale.x + 1.0, 0.0, 0.0, 0.0),
+        vec4(0.0, p_Scale.y + 1.0, 0.0, 0.0),
         vec4(0.0, 0.0, 1.0, 0.0),
-        vec4(p_Pos, 0.0, 1.0)
+        vec4(p_Pos - vec2(0.5, 0.5), 0.0, 1.0)
     );
 
     o_Color = i_Color;
@@ -36,7 +36,7 @@ void main() {
     o_Pos = p_Pos;
     o_Scale = p_Scale;
     o_BorderRadius = i_BorderRadius * u_Scale;
-    o_BorderWidth = floor(i_BorderWidth * u_Scale);
+    o_BorderWidth = i_BorderWidth * u_Scale;
 
     gl_Position = u_Transform * i_Transform * vec4(v_Pos, 0.0, 1.0);
 }
