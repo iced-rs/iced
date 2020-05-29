@@ -1,0 +1,359 @@
+//! Organize rendering primitives into a flattened list of layers.
+use crate::image;
+use crate::svg;
+use crate::triangle;
+use crate::{
+    Background, Font, HorizontalAlignment, Point, Primitive, Rectangle, Size,
+    Vector, VerticalAlignment, Viewport,
+};
+
+/// A group of primitives that should be clipped together.
+#[derive(Debug, Clone)]
+pub struct Layer<'a> {
+    /// The clipping bounds of the [`Layer`].
+    ///
+    /// [`Layer`]: struct.Layer.html
+    pub bounds: Rectangle,
+
+    /// The quads of the [`Layer`].
+    ///
+    /// [`Layer`]: struct.Layer.html
+    pub quads: Vec<Quad>,
+
+    /// The triangle meshes of the [`Layer`].
+    ///
+    /// [`Layer`]: struct.Layer.html
+    pub meshes: Vec<Mesh<'a>>,
+
+    /// The text of the [`Layer`].
+    ///
+    /// [`Layer`]: struct.Layer.html
+    pub text: Vec<Text<'a>>,
+
+    /// The images of the [`Layer`].
+    ///
+    /// [`Layer`]: struct.Layer.html
+    pub images: Vec<Image>,
+}
+
+impl<'a> Layer<'a> {
+    /// Creates a new [`Layer`] with the given clipping bounds.
+    ///
+    /// [`Layer`]: struct.Layer.html
+    pub fn new(bounds: Rectangle) -> Self {
+        Self {
+            bounds,
+            quads: Vec::new(),
+            meshes: Vec::new(),
+            text: Vec::new(),
+            images: Vec::new(),
+        }
+    }
+
+    /// Creates a new [`Layer`] for the provided overlay text.
+    ///
+    /// This can be useful for displaying debug information.
+    ///
+    /// [`Layer`]: struct.Layer.html
+    pub fn overlay(lines: &'a [impl AsRef<str>], viewport: &Viewport) -> Self {
+        let mut overlay =
+            Layer::new(Rectangle::with_size(viewport.logical_size()));
+
+        for (i, line) in lines.iter().enumerate() {
+            let text = Text {
+                content: line.as_ref(),
+                bounds: Rectangle::new(
+                    Point::new(11.0, 11.0 + 25.0 * i as f32),
+                    Size::INFINITY,
+                ),
+                color: [0.9, 0.9, 0.9, 1.0],
+                size: 20.0,
+                font: Font::Default,
+                horizontal_alignment: HorizontalAlignment::Left,
+                vertical_alignment: VerticalAlignment::Top,
+            };
+
+            overlay.text.push(text);
+
+            overlay.text.push(Text {
+                bounds: text.bounds + Vector::new(-1.0, -1.0),
+                color: [0.0, 0.0, 0.0, 1.0],
+                ..text
+            });
+        }
+
+        overlay
+    }
+
+    /// Distributes the given [`Primitive`] and generates a list of layers based
+    /// on its contents.
+    ///
+    /// [`Primitive`]: ../enum.Primitive.html
+    pub fn generate(
+        primitive: &'a Primitive,
+        viewport: &Viewport,
+    ) -> Vec<Self> {
+        let first_layer =
+            Layer::new(Rectangle::with_size(viewport.logical_size()));
+
+        let mut layers = vec![first_layer];
+
+        Self::process_primitive(&mut layers, Vector::new(0.0, 0.0), primitive);
+
+        layers
+    }
+
+    fn process_primitive(
+        layers: &mut Vec<Self>,
+        translation: Vector,
+        primitive: &'a Primitive,
+    ) {
+        match primitive {
+            Primitive::None => {}
+            Primitive::Group { primitives } => {
+                // TODO: Inspect a bit and regroup (?)
+                for primitive in primitives {
+                    Self::process_primitive(layers, translation, primitive)
+                }
+            }
+            Primitive::Text {
+                content,
+                bounds,
+                size,
+                color,
+                font,
+                horizontal_alignment,
+                vertical_alignment,
+            } => {
+                let layer = layers.last_mut().unwrap();
+
+                layer.text.push(Text {
+                    content,
+                    bounds: *bounds + translation,
+                    size: *size,
+                    color: color.into_linear(),
+                    font: *font,
+                    horizontal_alignment: *horizontal_alignment,
+                    vertical_alignment: *vertical_alignment,
+                });
+            }
+            Primitive::Quad {
+                bounds,
+                background,
+                border_radius,
+                border_width,
+                border_color,
+            } => {
+                let layer = layers.last_mut().unwrap();
+
+                // TODO: Move some of these computations to the GPU (?)
+                layer.quads.push(Quad {
+                    position: [
+                        bounds.x + translation.x,
+                        bounds.y + translation.y,
+                    ],
+                    size: [bounds.width, bounds.height],
+                    color: match background {
+                        Background::Color(color) => color.into_linear(),
+                    },
+                    border_radius: *border_radius as f32,
+                    border_width: *border_width as f32,
+                    border_color: border_color.into_linear(),
+                });
+            }
+            Primitive::Mesh2D { buffers, size } => {
+                let layer = layers.last_mut().unwrap();
+
+                let bounds = Rectangle::new(
+                    Point::new(translation.x, translation.y),
+                    *size,
+                );
+
+                // Only draw visible content
+                if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
+                    layer.meshes.push(Mesh {
+                        origin: Point::new(translation.x, translation.y),
+                        buffers,
+                        clip_bounds,
+                    });
+                }
+            }
+            Primitive::Clip {
+                bounds,
+                offset,
+                content,
+            } => {
+                let layer = layers.last_mut().unwrap();
+                let translated_bounds = *bounds + translation;
+
+                // Only draw visible content
+                if let Some(clip_bounds) =
+                    layer.bounds.intersection(&translated_bounds)
+                {
+                    let clip_layer = Layer::new(clip_bounds);
+                    let new_layer = Layer::new(layer.bounds);
+
+                    layers.push(clip_layer);
+                    Self::process_primitive(
+                        layers,
+                        translation
+                            - Vector::new(offset.x as f32, offset.y as f32),
+                        content,
+                    );
+                    layers.push(new_layer);
+                }
+            }
+            Primitive::Translate {
+                translation: new_translation,
+                content,
+            } => {
+                Self::process_primitive(
+                    layers,
+                    translation + *new_translation,
+                    &content,
+                );
+            }
+            Primitive::Cached { cache } => {
+                Self::process_primitive(layers, translation, &cache);
+            }
+            Primitive::Image { handle, bounds } => {
+                let layer = layers.last_mut().unwrap();
+
+                layer.images.push(Image::Raster {
+                    handle: handle.clone(),
+                    bounds: *bounds + translation,
+                });
+            }
+            Primitive::Svg { handle, bounds } => {
+                let layer = layers.last_mut().unwrap();
+
+                layer.images.push(Image::Vector {
+                    handle: handle.clone(),
+                    bounds: *bounds + translation,
+                });
+            }
+        }
+    }
+}
+
+/// A colored rectangle with a border.
+///
+/// This type can be directly uploaded to GPU memory.
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct Quad {
+    /// The position of the [`Quad`].
+    ///
+    /// [`Quad`]: struct.Quad.html
+    pub position: [f32; 2],
+
+    /// The size of the [`Quad`].
+    ///
+    /// [`Quad`]: struct.Quad.html
+    pub size: [f32; 2],
+
+    /// The color of the [`Quad`], in __linear RGB__.
+    ///
+    /// [`Quad`]: struct.Quad.html
+    pub color: [f32; 4],
+
+    /// The border color of the [`Quad`], in __linear RGB__.
+    ///
+    /// [`Quad`]: struct.Quad.html
+    pub border_color: [f32; 4],
+
+    /// The border radius of the [`Quad`].
+    ///
+    /// [`Quad`]: struct.Quad.html
+    pub border_radius: f32,
+
+    /// The border width of the [`Quad`].
+    ///
+    /// [`Quad`]: struct.Quad.html
+    pub border_width: f32,
+}
+
+/// A mesh of triangles.
+#[derive(Debug, Clone, Copy)]
+pub struct Mesh<'a> {
+    /// The origin of the vertices of the [`Mesh`].
+    ///
+    /// [`Mesh`]: struct.Mesh.html
+    pub origin: Point,
+
+    /// The vertex and index buffers of the [`Mesh`].
+    ///
+    /// [`Mesh`]: struct.Mesh.html
+    pub buffers: &'a triangle::Mesh2D,
+
+    /// The clipping bounds of the [`Mesh`].
+    ///
+    /// [`Mesh`]: struct.Mesh.html
+    pub clip_bounds: Rectangle<f32>,
+}
+
+/// A paragraph of text.
+#[derive(Debug, Clone, Copy)]
+pub struct Text<'a> {
+    /// The content of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    pub content: &'a str,
+
+    /// The layout bounds of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    pub bounds: Rectangle,
+
+    /// The color of the [`Text`], in __linear RGB_.
+    ///
+    /// [`Text`]: struct.Text.html
+    pub color: [f32; 4],
+
+    /// The size of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    pub size: f32,
+
+    /// The font of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    pub font: Font,
+
+    /// The horizontal alignment of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    pub horizontal_alignment: HorizontalAlignment,
+
+    /// The vertical alignment of the [`Text`].
+    ///
+    /// [`Text`]: struct.Text.html
+    pub vertical_alignment: VerticalAlignment,
+}
+
+/// A raster or vector image.
+#[derive(Debug, Clone)]
+pub enum Image {
+    /// A raster image.
+    Raster {
+        /// The handle of a raster image.
+        handle: image::Handle,
+
+        /// The bounds of the image.
+        bounds: Rectangle,
+    },
+    /// A vector image.
+    Vector {
+        /// The handle of a vector image.
+        handle: svg::Handle,
+
+        /// The bounds of the image.
+        bounds: Rectangle,
+    },
+}
+
+#[allow(unsafe_code)]
+unsafe impl bytemuck::Zeroable for Quad {}
+
+#[allow(unsafe_code)]
+unsafe impl bytemuck::Pod for Quad {}

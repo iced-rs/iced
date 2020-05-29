@@ -9,11 +9,11 @@ mod circle {
     // Of course, you can choose to make the implementation renderer-agnostic,
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
+    use iced_graphics::{Backend, Defaults, Primitive, Renderer};
     use iced_native::{
         layout, mouse, Background, Color, Element, Hasher, Layout, Length,
         Point, Size, Widget,
     };
-    use iced_wgpu::{Defaults, Primitive, Renderer};
 
     pub struct Circle {
         radius: u16,
@@ -25,7 +25,10 @@ mod circle {
         }
     }
 
-    impl<Message> Widget<Message, Renderer> for Circle {
+    impl<Message, B> Widget<Message, Renderer<B>> for Circle
+    where
+        B: Backend,
+    {
         fn width(&self) -> Length {
             Length::Shrink
         }
@@ -36,7 +39,7 @@ mod circle {
 
         fn layout(
             &self,
-            _renderer: &Renderer,
+            _renderer: &Renderer<B>,
             _limits: &layout::Limits,
         ) -> layout::Node {
             layout::Node::new(Size::new(
@@ -53,7 +56,7 @@ mod circle {
 
         fn draw(
             &self,
-            _renderer: &mut Renderer,
+            _renderer: &mut Renderer<B>,
             _defaults: &Defaults,
             layout: Layout<'_>,
             _cursor_position: Point,
@@ -71,8 +74,11 @@ mod circle {
         }
     }
 
-    impl<'a, Message> Into<Element<'a, Message, Renderer>> for Circle {
-        fn into(self) -> Element<'a, Message, Renderer> {
+    impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for Circle
+    where
+        B: Backend,
+    {
+        fn into(self) -> Element<'a, Message, Renderer<B>> {
             Element::new(self)
         }
     }

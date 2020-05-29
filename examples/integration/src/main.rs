@@ -4,12 +4,8 @@ mod scene;
 use controls::Controls;
 use scene::Scene;
 
-use iced_wgpu::{
-    wgpu, window::SwapChain, Primitive, Renderer, Settings, Target,
-};
-use iced_winit::{
-    futures, mouse, winit, Cache, Clipboard, Size, UserInterface,
-};
+use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
+use iced_winit::{futures, program, winit, Debug, Size};
 
 use winit::{
     event::{Event, ModifiersState, WindowEvent},
@@ -22,12 +18,15 @@ pub fn main() {
     // Initialize winit
     let event_loop = EventLoop::new();
     let window = winit::window::Window::new(&event_loop).unwrap();
-    let mut logical_size =
-        window.inner_size().to_logical(window.scale_factor());
+
+    let physical_size = window.inner_size();
+    let mut viewport = Viewport::with_physical_size(
+        Size::new(physical_size.width, physical_size.height),
+        window.scale_factor(),
+    );
     let mut modifiers = ModifiersState::default();
 
-    // Initialize WGPU
-
+    // Initialize wgpu
     let surface = wgpu::Surface::create(&window);
     let (mut device, queue) = futures::executor::block_on(async {
         let adapter = wgpu::Adapter::request(
@@ -55,20 +54,34 @@ pub fn main() {
     let mut swap_chain = {
         let size = window.inner_size();
 
-        SwapChain::new(&device, &surface, format, size.width, size.height)
+        device.create_swap_chain(
+            &surface,
+            &wgpu::SwapChainDescriptor {
+                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                format: format,
+                width: size.width,
+                height: size.height,
+                present_mode: wgpu::PresentMode::Mailbox,
+            },
+        )
     };
     let mut resized = false;
 
-    // Initialize iced
-    let mut events = Vec::new();
-    let mut cache = Some(Cache::default());
-    let mut renderer = Renderer::new(&mut device, Settings::default());
-    let mut output = (Primitive::None, mouse::Interaction::default());
-    let clipboard = Clipboard::new(&window);
-
     // Initialize scene and GUI controls
-    let mut scene = Scene::new(&device);
-    let mut controls = Controls::new();
+    let scene = Scene::new(&mut device);
+    let controls = Controls::new();
+
+    // Initialize iced
+    let mut debug = Debug::new();
+    let mut renderer =
+        Renderer::new(Backend::new(&mut device, Settings::default()));
+
+    let mut state = program::State::new(
+        controls,
+        viewport.logical_size(),
+        &mut renderer,
+        &mut debug,
+    );
 
     // Run event loop
     event_loop.run(move |event, _, control_flow| {
@@ -82,8 +95,11 @@ pub fn main() {
                         modifiers = new_modifiers;
                     }
                     WindowEvent::Resized(new_size) => {
-                        logical_size =
-                            new_size.to_logical(window.scale_factor());
+                        viewport = Viewport::with_physical_size(
+                            Size::new(new_size.width, new_size.height),
+                            window.scale_factor(),
+                        );
+
                         resized = true;
                     }
                     WindowEvent::CloseRequested => {
@@ -99,68 +115,17 @@ pub fn main() {
                     window.scale_factor(),
                     modifiers,
                 ) {
-                    events.push(event);
+                    state.queue_event(event);
                 }
             }
             Event::MainEventsCleared => {
-                // If no relevant events happened, we can simply skip this
-                if events.is_empty() {
-                    return;
-                }
-
-                // We need to:
-                // 1. Process events of our user interface.
-                // 2. Update state as a result of any interaction.
-                // 3. Generate a new output for our renderer.
-
-                // First, we build our user interface.
-                let mut user_interface = UserInterface::build(
-                    controls.view(&scene),
-                    Size::new(logical_size.width, logical_size.height),
-                    cache.take().unwrap(),
+                // We update iced
+                let _ = state.update(
+                    None,
+                    viewport.logical_size(),
                     &mut renderer,
+                    &mut debug,
                 );
-
-                // Then, we process the events, obtaining messages in return.
-                let messages = user_interface.update(
-                    events.drain(..),
-                    clipboard.as_ref().map(|c| c as _),
-                    &renderer,
-                );
-
-                let user_interface = if messages.is_empty() {
-                    // If there are no messages, no interactions we care about have
-                    // happened. We can simply leave our user interface as it is.
-                    user_interface
-                } else {
-                    // If there are messages, we need to update our state
-                    // accordingly and rebuild our user interface.
-                    // We can only do this if we drop our user interface first
-                    // by turning it into its cache.
-                    cache = Some(user_interface.into_cache());
-
-                    // In this example, `Controls` is the only part that cares
-                    // about messages, so updating our state is pretty
-                    // straightforward.
-                    for message in messages {
-                        controls.update(message, &mut scene);
-                    }
-
-                    // Once the state has been changed, we rebuild our updated
-                    // user interface.
-                    UserInterface::build(
-                        controls.view(&scene),
-                        Size::new(logical_size.width, logical_size.height),
-                        cache.take().unwrap(),
-                        &mut renderer,
-                    )
-                };
-
-                // Finally, we just need to draw a new output for our renderer,
-                output = user_interface.draw(&mut renderer);
-
-                // update our cache,
-                cache = Some(user_interface.into_cache());
 
                 // and request a redraw
                 window.request_redraw();
@@ -169,36 +134,41 @@ pub fn main() {
                 if resized {
                     let size = window.inner_size();
 
-                    swap_chain = SwapChain::new(
-                        &device,
+                    swap_chain = device.create_swap_chain(
                         &surface,
-                        format,
-                        size.width,
-                        size.height,
+                        &wgpu::SwapChainDescriptor {
+                            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                            format: format,
+                            width: size.width,
+                            height: size.height,
+                            present_mode: wgpu::PresentMode::Mailbox,
+                        },
                     );
                 }
 
-                let (frame, viewport) =
-                    swap_chain.next_frame().expect("Next frame");
+                let frame = swap_chain.get_next_texture().expect("Next frame");
 
                 let mut encoder = device.create_command_encoder(
                     &wgpu::CommandEncoderDescriptor { label: None },
                 );
 
                 // We draw the scene first
-                scene.draw(&mut encoder, &frame.view);
+                let program = state.program();
+
+                scene.draw(
+                    &mut encoder,
+                    &frame.view,
+                    program.background_color(),
+                );
 
                 // And then iced on top
-                let mouse_interaction = renderer.draw(
+                let mouse_interaction = renderer.backend_mut().draw(
                     &mut device,
                     &mut encoder,
-                    Target {
-                        texture: &frame.view,
-                        viewport,
-                    },
-                    &output,
-                    window.scale_factor(),
-                    &["Some debug information!"],
+                    &frame.view,
+                    &viewport,
+                    state.primitive(),
+                    &debug.overlay(),
                 );
 
                 // Then we submit the work

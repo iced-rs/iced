@@ -11,7 +11,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-debug = []
+debug = ["iced_native/debug"]
 
 [dependencies]
 winit = "0.22"
@@ -21,6 +21,10 @@ log = "0.4"
 [dependencies.iced_native]
 version = "0.2"
 path = "../native"
+
+[dependencies.iced_graphics]
+version = "0.1"
+path = "../graphics"
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"

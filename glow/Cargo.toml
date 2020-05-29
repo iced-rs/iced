@@ -1,0 +1,36 @@
+[package]
+name = "iced_glow"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+description = "A glow renderer for iced"
+license = "MIT AND OFL-1.1"
+repository = "https://github.com/hecrj/iced"
+
+[features]
+canvas = ["iced_graphics/canvas"]
+# Not supported yet!
+image = []
+svg = []
+
+[dependencies]
+glow = "0.4"
+glow_glyph = "0.2"
+glyph_brush = "0.7"
+euclid = "0.20"
+bytemuck = "1.2"
+glam = "0.8"
+log = "0.4"
+
+[dependencies.iced_native]
+version = "0.2"
+path = "../native"
+
+[dependencies.iced_graphics]
+version = "0.1"
+path = "../graphics"
+features = ["font-source", "font-fallback", "font-icons", "opengl"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true

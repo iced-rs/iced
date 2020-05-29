@@ -1,0 +1,37 @@
+[package]
+name = "iced_graphics"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+
+[features]
+canvas = ["lyon"]
+font-source = ["font-kit"]
+font-fallback = []
+font-icons = []
+opengl = []
+
+[dependencies]
+bytemuck = "1.2"
+glam = "0.8"
+raw-window-handle = "0.3"
+
+[dependencies.iced_native]
+version = "0.2"
+path = "../native"
+
+[dependencies.iced_style]
+version = "0.1"
+path = "../style"
+
+[dependencies.lyon]
+version = "0.15"
+optional = true
+
+[dependencies.font-kit]
+version = "0.6"
+optional = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true

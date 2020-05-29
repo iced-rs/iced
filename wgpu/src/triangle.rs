@@ -1,8 +1,10 @@
 //! Draw meshes of triangles.
 use crate::{settings, Transformation};
-use iced_native::{Rectangle, Vector};
+use iced_graphics::layer;
 use std::mem;
 use zerocopy::AsBytes;
+
+pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
 mod msaa;
 
@@ -168,9 +170,9 @@ impl Pipeline {
                         ],
                     }],
                 },
-                sample_count: antialiasing
-                    .map(|a| a.sample_count())
-                    .unwrap_or(1),
+                sample_count: u32::from(
+                    antialiasing.map(|a| a.sample_count()).unwrap_or(1),
+                ),
                 sample_mask: !0,
                 alpha_to_coverage_enabled: false,
             });
@@ -202,14 +204,16 @@ impl Pipeline {
         target_height: u32,
         transformation: Transformation,
         scale_factor: f32,
-        meshes: &[(Vector, Rectangle<u32>, &Mesh2D)],
+        meshes: &[layer::Mesh<'_>],
     ) {
         // This looks a bit crazy, but we are just counting how many vertices
         // and indices we will need to handle.
         // TODO: Improve readability
         let (total_vertices, total_indices) = meshes
             .iter()
-            .map(|(_, _, mesh)| (mesh.vertices.len(), mesh.indices.len()))
+            .map(|layer::Mesh { buffers, .. }| {
+                (buffers.vertices.len(), buffers.indices.len())
+            })
             .fold((0, 0), |(total_v, total_i), (v, i)| {
                 (total_v + v, total_i + i)
             });
@@ -230,18 +234,18 @@ impl Pipeline {
         let mut last_index = 0;
 
         // We upload everything upfront
-        for (origin, _, mesh) in meshes {
+        for mesh in meshes {
             let transform = (transformation
-                * Transformation::translate(origin.x, origin.y))
+                * Transformation::translate(mesh.origin.x, mesh.origin.y))
             .into();
 
             let vertex_buffer = device.create_buffer_with_data(
-                mesh.vertices.as_bytes(),
+                bytemuck::cast_slice(&mesh.buffers.vertices),
                 wgpu::BufferUsage::COPY_SRC,
             );
 
             let index_buffer = device.create_buffer_with_data(
-                mesh.indices.as_bytes(),
+                mesh.buffers.indices.as_bytes(),
                 wgpu::BufferUsage::COPY_SRC,
             );
 
@@ -250,7 +254,8 @@ impl Pipeline {
                 0,
                 &self.vertex_buffer.raw,
                 (std::mem::size_of::<Vertex2D>() * last_vertex) as u64,
-                (std::mem::size_of::<Vertex2D>() * mesh.vertices.len()) as u64,
+                (std::mem::size_of::<Vertex2D>() * mesh.buffers.vertices.len())
+                    as u64,
             );
 
             encoder.copy_buffer_to_buffer(
@@ -258,18 +263,19 @@ impl Pipeline {
                 0,
                 &self.index_buffer.raw,
                 (std::mem::size_of::<u32>() * last_index) as u64,
-                (std::mem::size_of::<u32>() * mesh.indices.len()) as u64,
+                (std::mem::size_of::<u32>() * mesh.buffers.indices.len())
+                    as u64,
             );
 
             uniforms.push(transform);
             offsets.push((
                 last_vertex as u64,
                 last_index as u64,
-                mesh.indices.len(),
+                mesh.buffers.indices.len(),
             ));
 
-            last_vertex += mesh.vertices.len();
-            last_index += mesh.indices.len();
+            last_vertex += mesh.buffers.vertices.len();
+            last_index += mesh.buffers.indices.len();
         }
 
         let uniforms_buffer = device.create_buffer_with_data(
@@ -320,13 +326,14 @@ impl Pipeline {
             for (i, (vertex_offset, index_offset, indices)) in
                 offsets.into_iter().enumerate()
             {
-                let bounds = meshes[i].1 * scale_factor;
+                let clip_bounds =
+                    (meshes[i].clip_bounds * scale_factor).round();
 
                 render_pass.set_scissor_rect(
-                    bounds.x,
-                    bounds.y,
-                    bounds.width,
-                    bounds.height,
+                    clip_bounds.x,
+                    clip_bounds.y,
+                    clip_bounds.width,
+                    clip_bounds.height,
                 );
 
                 render_pass.set_bind_group(
@@ -386,27 +393,4 @@ impl From<Transformation> for Uniforms {
             _padding_b: [0.0; 16],
         }
     }
-}
-
-/// A two-dimensional vertex with some color in __linear__ RGBA.
-#[repr(C)]
-#[derive(Copy, Clone, Debug, AsBytes)]
-pub struct Vertex2D {
-    /// The vertex position
-    pub position: [f32; 2],
-    /// The vertex color in __linear__ RGBA.
-    pub color: [f32; 4],
-}
-
-/// A set of [`Vertex2D`] and indices representing a list of triangles.
-///
-/// [`Vertex2D`]: struct.Vertex2D.html
-#[derive(Clone, Debug)]
-pub struct Mesh2D {
-    /// The vertices of the mesh
-    pub vertices: Vec<Vertex2D>,
-    /// The list of vertex indices that defines the triangles of the mesh.
-    ///
-    /// Therefore, this list should always have a length that is a multiple of 3.
-    pub indices: Vec<u32>,
 }

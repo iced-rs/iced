@@ -9,14 +9,11 @@
 //! - Event handling for all the built-in widgets
 //! - A renderer-agnostic API
 //!
-//! To achieve this, it introduces a bunch of reusable interfaces:
+//! To achieve this, it introduces a couple of reusable interfaces:
 //!
 //! - A [`Widget`] trait, which is used to implement new widgets: from layout
 //!   requirements to event and drawing logic.
 //! - A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
-//! - A [`window::Backend`] trait, leveraging [`raw-window-handle`], which can be
-//!   implemented by graphical renderers that target _windows_. Window-based
-//!   shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
 //!
 //! # Usage
 //! The strategy to use this crate depends on your particular use case. If you
@@ -31,7 +28,6 @@
 //! [`druid`]: https://github.com/xi-editor/druid
 //! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
 //! [`Widget`]: widget/trait.Widget.html
-//! [`window::Backend`]: window/trait.Backend.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
 #![deny(missing_docs)]
@@ -42,6 +38,7 @@
 pub mod keyboard;
 pub mod layout;
 pub mod mouse;
+pub mod program;
 pub mod renderer;
 pub mod subscription;
 pub mod widget;
@@ -54,6 +51,15 @@ mod hasher;
 mod runtime;
 mod user_interface;
 
+// We disable debug capabilities on release builds unless the `debug` feature
+// is explicitly enabled.
+#[cfg(feature = "debug")]
+#[path = "debug/basic.rs"]
+mod debug;
+#[cfg(not(feature = "debug"))]
+#[path = "debug/null.rs"]
+mod debug;
+
 pub use iced_core::{
     Align, Background, Color, Font, HorizontalAlignment, Length, Point,
     Rectangle, Size, Vector, VerticalAlignment,
@@ -64,10 +70,12 @@ pub use iced_futures::{executor, futures, Command};
 pub use executor::Executor;
 
 pub use clipboard::Clipboard;
+pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
+pub use program::Program;
 pub use renderer::Renderer;
 pub use runtime::Runtime;
 pub use subscription::Subscription;

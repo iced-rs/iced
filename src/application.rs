@@ -188,20 +188,21 @@ pub trait Application: Sized {
     {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let wgpu_settings = iced_wgpu::Settings {
+            let renderer_settings = crate::renderer::Settings {
                 default_font: settings.default_font,
                 antialiasing: if settings.antialiasing {
-                    Some(iced_wgpu::settings::Antialiasing::MSAAx4)
+                    Some(crate::renderer::settings::Antialiasing::MSAAx4)
                 } else {
                     None
                 },
-                ..iced_wgpu::Settings::default()
+                ..crate::renderer::Settings::default()
             };
 
-            <Instance<Self> as iced_winit::Application>::run(
-                settings.into(),
-                wgpu_settings,
-            );
+            crate::runtime::application::run::<
+                Instance<Self>,
+                Self::Executor,
+                crate::renderer::window::Compositor,
+            >(settings.into(), renderer_settings);
         }
 
         #[cfg(target_arch = "wasm32")]
@@ -212,14 +213,28 @@ pub trait Application: Sized {
 struct Instance<A: Application>(A);
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<A> iced_winit::Application for Instance<A>
+impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
 {
-    type Backend = iced_wgpu::window::Backend;
-    type Executor = A::Executor;
-    type Flags = A::Flags;
+    type Renderer = crate::renderer::Renderer;
     type Message = A::Message;
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        self.0.update(message)
+    }
+
+    fn view(&mut self) -> Element<'_, Self::Message> {
+        self.0.view()
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<A> crate::runtime::Application for Instance<A>
+where
+    A: Application,
+{
+    type Flags = A::Flags;
 
     fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
         let (app, command) = A::new(flags);
@@ -238,16 +253,8 @@ where
         }
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
-    }
-
     fn subscription(&self) -> Subscription<Self::Message> {
         self.0.subscription()
-    }
-
-    fn view(&mut self) -> Element<'_, Self::Message> {
-        self.0.view()
     }
 }
 

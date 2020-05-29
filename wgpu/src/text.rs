@@ -1,24 +1,12 @@
-mod font;
-
 use crate::Transformation;
-
+use iced_graphics::font;
 use std::{cell::RefCell, collections::HashMap};
 use wgpu_glyph::ab_glyph;
-
-pub const BUILTIN_ICONS: iced_native::Font = iced_native::Font::External {
-    name: "iced_wgpu icons",
-    bytes: include_bytes!("text/icons.ttf"),
-};
-
-pub const CHECKMARK_ICON: char = '\u{F00C}';
-
-const FALLBACK_FONT: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
 
 #[derive(Debug)]
 pub struct Pipeline {
     draw_brush: RefCell<wgpu_glyph::GlyphBrush<()>>,
     draw_font_map: RefCell<HashMap<String, wgpu_glyph::FontId>>,
-
     measure_brush: RefCell<glyph_brush::GlyphBrush<()>>,
 }
 
@@ -35,7 +23,7 @@ impl Pipeline {
             default_font.map(|slice| slice.to_vec()).unwrap_or_else(|| {
                 font_source
                     .load(&[font::Family::SansSerif, font::Family::Serif])
-                    .unwrap_or_else(|_| FALLBACK_FONT.to_vec())
+                    .unwrap_or_else(|_| font::FALLBACK.to_vec())
             });
 
         let font = ab_glyph::FontArc::try_from_vec(default_font)
@@ -45,7 +33,7 @@ impl Pipeline {
                     embedded font..."
                 );
 
-                ab_glyph::FontArc::try_from_slice(FALLBACK_FONT)
+                ab_glyph::FontArc::try_from_slice(font::FALLBACK)
                     .expect("Load fallback font")
             });
 
@@ -61,7 +49,6 @@ impl Pipeline {
         Pipeline {
             draw_brush: RefCell::new(draw_brush),
             draw_font_map: RefCell::new(HashMap::new()),
-
             measure_brush: RefCell::new(measure_brush),
         }
     }
@@ -121,7 +108,7 @@ impl Pipeline {
         }
     }
 
-    pub fn clear_measurement_cache(&mut self) {
+    pub fn trim_measurement_cache(&mut self) {
         // TODO: We should probably use a `GlyphCalculator` for this. However,
         // it uses a lifetimed `GlyphCalculatorGuard` with side-effects on drop.
         // This makes stuff quite inconvenient. A manual method for trimming the
