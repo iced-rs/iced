@@ -232,7 +232,7 @@ where
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))]
 impl<A> crate::runtime::Application for Instance<A>
 where
     A: Application,

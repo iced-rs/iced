@@ -1,4 +1,4 @@
-use crate::{Runtime, Command, Element, Executor, Proxy, Subscription};
+use crate::{Runtime, Command, Element, Executor, Proxy, Subscription, Event as IphoneEvent};
 use winit::{
     event::{self, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
@@ -100,7 +100,7 @@ pub trait Application: Sized {
         Self: 'static + Sized,
     {
 
-        let event_loop = EventLoop::with_user_event();
+        let event_loop : EventLoop<IphoneEvent> = EventLoop::with_user_event();
         let mut runtime = {
             let executor = Self::Executor::new().expect("Create executor");
 
@@ -142,7 +142,7 @@ pub trait Application: Sized {
         //let root_view: UIView = UIView(window.ui_view() as id);
         //add_views(root_view);
 
-        event_loop.run(move |event: winit::event::Event<()>, _, control_flow| match event {
+        event_loop.run(move |event: winit::event::Event<IphoneEvent>, _, control_flow| match event {
             event::Event::MainEventsCleared => {
                 window.request_redraw();
             }

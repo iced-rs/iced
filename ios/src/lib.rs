@@ -4,6 +4,8 @@ pub use iced_futures::{executor, futures, Command};
 pub use executor::Executor;
 mod application;
 pub mod widget;
+pub mod keyboard;
+pub mod mouse;
 pub use widget::{
     Element, Widget,
 };
