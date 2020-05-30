@@ -23,7 +23,7 @@ pub struct Backend {
 impl Backend {
     /// Creates a new [`Backend`].
     ///
-    /// [`Backend`]: struct.Renderer.html
+    /// [`Backend`]: struct.Backend.html
     pub fn new(gl: &glow::Context, settings: Settings) -> Self {
         let text_pipeline = text::Pipeline::new(gl, settings.default_font);
         let quad_pipeline = quad::Pipeline::new(gl);
