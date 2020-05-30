@@ -16,15 +16,20 @@ impl Pipeline {
         format: wgpu::TextureFormat,
         default_font: Option<&[u8]>,
     ) -> Self {
+        let default_font = default_font.map(|slice| slice.to_vec());
+
         // TODO: Font customization
-        let font_source = font::Source::new();
+        #[cfg(feature = "default_system_font")]
+        let default_font = {
+            default_font.or_else(|| {
+                font::Source::new()
+                    .load(&[font::Family::SansSerif, font::Family::Serif])
+                    .ok()
+            })
+        };
 
         let default_font =
-            default_font.map(|slice| slice.to_vec()).unwrap_or_else(|| {
-                font_source
-                    .load(&[font::Family::SansSerif, font::Family::Serif])
-                    .unwrap_or_else(|_| font::FALLBACK.to_vec())
-            });
+            default_font.unwrap_or_else(|| font::FALLBACK.to_vec());
 
         let font = ab_glyph::FontArc::try_from_vec(default_font)
             .unwrap_or_else(|_| {

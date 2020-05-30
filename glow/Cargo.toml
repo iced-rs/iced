@@ -9,6 +9,7 @@ repository = "https://github.com/hecrj/iced"
 
 [features]
 canvas = ["iced_graphics/canvas"]
+default_system_font = ["iced_graphics/font-source"]
 # Not supported yet!
 image = []
 svg = []
@@ -29,7 +30,7 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.1"
 path = "../graphics"
-features = ["font-source", "font-fallback", "font-icons", "opengl"]
+features = ["font-fallback", "font-icons", "opengl"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
