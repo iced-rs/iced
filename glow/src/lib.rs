@@ -18,9 +18,9 @@ pub mod settings;
 pub mod widget;
 pub mod window;
 
+pub use backend::Backend;
 pub use settings::Settings;
 
-pub(crate) use backend::Backend;
 pub(crate) use iced_graphics::Transformation;
 
 #[doc(no_inline)]
