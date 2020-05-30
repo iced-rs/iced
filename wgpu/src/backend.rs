@@ -27,9 +27,9 @@ pub struct Backend {
 }
 
 impl Backend {
-    /// Creates a new [`Renderer`].
+    /// Creates a new [`Backend`].
     ///
-    /// [`Renderer`]: struct.Renderer.html
+    /// [`Backend`]: struct.Backend.html
     pub fn new(device: &wgpu::Device, settings: Settings) -> Self {
         let text_pipeline =
             text::Pipeline::new(device, settings.format, settings.default_font);
@@ -53,12 +53,10 @@ impl Backend {
         }
     }
 
-    /// Draws the provided primitives in the given [`Target`].
+    /// Draws the provided primitives in the given `TextureView`.
     ///
-    /// The text provided as overlay will be renderer on top of the primitives.
+    /// The text provided as overlay will be rendered on top of the primitives.
     /// This is useful for rendering debug information.
-    ///
-    /// [`Target`]: struct.Target.html
     pub fn draw<T: AsRef<str>>(
         &mut self,
         device: &wgpu::Device,
