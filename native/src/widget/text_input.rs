@@ -17,8 +17,8 @@ use editor::Editor;
 use crate::{
     keyboard, layout,
     mouse::{self, click},
-    Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
-    Widget,
+    Clipboard, Element, Event, Hasher, HorizontalAlignment, Layout, Length,
+    Point, Rectangle, Size, Widget,
 };
 
 use std::u32;
@@ -58,6 +58,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     max_width: u32,
     padding: u16,
     size: Option<u16>,
+    horizontal_alignment: HorizontalAlignment,
     on_change: Box<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
     style: Renderer::Style,
@@ -93,6 +94,7 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
             max_width: u32::MAX,
             padding: 0,
             size: None,
+            horizontal_alignment: HorizontalAlignment::Left,
             on_change: Box::new(on_change),
             on_submit: None,
             style: Renderer::Style::default(),
@@ -144,6 +146,20 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
     /// [`TextInput`]: struct.TextInput.html
     pub fn size(mut self, size: u16) -> Self {
         self.size = Some(size);
+        self
+    }
+
+    /// Sets the [`HorizontalAlignment`] of the [`Text`] and
+    /// placeholder text inside the [`TextInput`]
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    /// [`Text`]: struct.Text.html
+    /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
+    pub fn horizontal_alignment(
+        mut self,
+        alignment: HorizontalAlignment,
+    ) -> Self {
+        self.horizontal_alignment = alignment;
         self
     }
 
@@ -494,6 +510,7 @@ where
                 self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
                 &self.value.secure(),
+                self.horizontal_alignment,
                 &self.state,
                 &self.style,
             )
@@ -506,6 +523,7 @@ where
                 self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
                 &self.value,
+                self.horizontal_alignment,
                 &self.state,
                 &self.style,
             )
@@ -589,6 +607,7 @@ pub trait Renderer: crate::Renderer + Sized {
         size: u16,
         placeholder: &str,
         value: &Value,
+        horizontal_alignment: HorizontalAlignment,
         state: &State,
         style: &Self::Style,
     ) -> Self::Output;
