@@ -210,7 +210,9 @@ pub trait Application: Sized {
     }
 }
 
-struct Instance<A: Application>(A);
+/// Backend specific instance newtype.
+#[allow(missing_debug_implementations)]
+pub struct Instance<A: Application>(pub A);
 
 #[cfg(not(target_arch = "wasm32"))]
 impl<A> iced_winit::Program for Instance<A>
