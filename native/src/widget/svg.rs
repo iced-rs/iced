@@ -119,7 +119,7 @@ where
 /// An [`Svg`] handle.
 ///
 /// [`Svg`]: struct.Svg.html
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Handle {
     id: u64,
     data: Arc<Data>,
@@ -179,7 +179,7 @@ impl Hash for Handle {
 /// The data of an [`Svg`].
 ///
 /// [`Svg`]: struct.Svg.html
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, PartialEq)]
 pub enum Data {
     /// File data
     Path(PathBuf),
