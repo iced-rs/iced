@@ -10,6 +10,7 @@ repository = "https://github.com/hecrj/iced"
 [features]
 svg = ["resvg"]
 canvas = ["iced_graphics/canvas"]
+default_system_font = ["iced_graphics/font-source"]
 
 [dependencies]
 wgpu = "0.5"
@@ -32,7 +33,7 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.1"
 path = "../graphics"
-features = ["font-source", "font-fallback", "font-icons"]
+features = ["font-fallback", "font-icons"]
 
 [dependencies.image]
 version = "0.23"
