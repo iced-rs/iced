@@ -126,6 +126,27 @@ impl Rectangle<f32> {
         }
     }
 
+    /// Computes the union with the given [`Rectangle`].
+    ///
+    /// [`Rectangle`]: struct.Rectangle.html
+    pub fn union(&self, other: &Rectangle<f32>) -> Rectangle<f32> {
+        let x = self.x.min(other.x);
+        let y = self.y.min(other.y);
+
+        let lower_right_x = (self.x + self.width).max(other.x + other.width);
+        let lower_right_y = (self.y + self.height).max(other.y + other.height);
+
+        let width = lower_right_x - x;
+        let height = lower_right_y - y;
+
+        Rectangle {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
     ///
     /// [`Rectangle`]: struct.Rectangle.html
