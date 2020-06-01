@@ -40,6 +40,7 @@ pub struct Slider<'a, Message, Renderer: self::Renderer> {
     range: RangeInclusive<f32>,
     value: f32,
     on_change: Box<dyn Fn(f32) -> Message>,
+    on_finish: Option<Box<dyn Fn(f32) -> Message>>,
     width: Length,
     style: Renderer::Style,
 }
@@ -71,9 +72,22 @@ impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
             value: value.max(*range.start()).min(*range.end()),
             range,
             on_change: Box::new(on_change),
+            on_finish: None,
             width: Length::Fill,
             style: Renderer::Style::default(),
         }
+    }
+
+    /// Sets the finish callback of the [`Slider`].
+    /// This is called when the mouse is released from the slider.
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn on_finish<F>(mut self, on_finish: F) -> Self
+    where
+        F: 'static + Fn(f32) -> Message,
+    {
+        self.on_finish = Some(Box::new(on_finish));
+        self
     }
 
     /// Sets the width of the [`Slider`].
@@ -146,36 +160,34 @@ where
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
-        let mut change = || {
-            let bounds = layout.bounds();
-
-            if cursor_position.x <= bounds.x {
-                messages.push((self.on_change)(*self.range.start()));
-            } else if cursor_position.x >= bounds.x + bounds.width {
-                messages.push((self.on_change)(*self.range.end()));
-            } else {
-                let percent = (cursor_position.x - bounds.x) / bounds.width;
-                let value = (self.range.end() - self.range.start()) * percent
-                    + self.range.start();
-
-                messages.push((self.on_change)(value));
-            }
+        let bounds = layout.bounds();
+    
+        let value = if cursor_position.x <= bounds.x {
+            *self.range.start()
+        } else if cursor_position.x >= bounds.x + bounds.width {
+            *self.range.end()
+        } else {
+            let percent = (cursor_position.x - bounds.x) / bounds.width;
+            (self.range.end() - self.range.start()) * percent + self.range.start()
         };
-
+    
         match event {
             Event::Mouse(mouse_event) => match mouse_event {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
                     if layout.bounds().contains(cursor_position) {
-                        change();
+                        messages.push((self.on_change)(value));
                         self.state.is_dragging = true;
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
+                    if let Some(on_finish) = &self.on_finish {
+                        messages.push((on_finish)(value));
+                    }
                     self.state.is_dragging = false;
                 }
                 mouse::Event::CursorMoved { .. } => {
                     if self.state.is_dragging {
-                        change();
+                        messages.push((self.on_change)(value));
                     }
                 }
                 _ => {}
