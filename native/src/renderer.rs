@@ -31,11 +31,11 @@ use crate::{layout, Element, Rectangle};
 /// updated between two frames.
 pub trait Damage {
     /// Calculates damage between two frames
-    fn damage(&self, other: &Self) -> Option<Rectangle>;
+    fn damage(&self, other: &Self) -> Option<Vec<Rectangle>>;
 }
 
 impl Damage for () {
-    fn damage(&self, _other: &Self) -> Option<Rectangle> {
+    fn damage(&self, _other: &Self) -> Option<Vec<Rectangle>> {
         None
     }
 }
@@ -44,7 +44,7 @@ impl<T, U> Damage for (T, U)
 where
     T: Damage,
 {
-    fn damage(&self, other: &Self) -> Option<Rectangle> {
+    fn damage(&self, other: &Self) -> Option<Vec<Rectangle>> {
         self.0.damage(&other.0)
     }
 }

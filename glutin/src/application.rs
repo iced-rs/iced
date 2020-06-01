@@ -2,6 +2,7 @@
 use crate::{mouse, Executor, Runtime, Size};
 use iced_graphics::window;
 use iced_graphics::Viewport;
+use iced_native::Damage;
 use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
@@ -97,13 +98,18 @@ pub fn run<A, E, C>(
     );
     debug.startup_finished();
 
+    let mut damage = <<A as iced_native::program::Program>::Renderer
+        as iced_native::Renderer>::Output::default().damage(&state.primitive());
+
+    let mut first = true;
+
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::MainEventsCleared => {
             if state.is_queue_empty() {
                 return;
             }
 
-            let command = runtime.enter(|| {
+            let (command, new_damage) = runtime.enter(|| {
                 state.update(
                     viewport.logical_size(),
                     conversion::cursor_position(
@@ -115,6 +121,17 @@ pub fn run<A, E, C>(
                     &mut debug,
                 )
             });
+
+            eprintln!("{:?}", new_damage);
+            if !first {
+                damage = None;
+                if let Some(dmg) = new_damage {
+                    if dmg.len() > 0 {
+                        damage = Some(dmg);
+                    }
+                }
+            }
+            first = false;
 
             // If the application was updated
             if let Some(command) = command {
@@ -187,39 +204,59 @@ pub fn run<A, E, C>(
             state.queue_message(message);
         }
         event::Event::RedrawRequested(_) => {
-            debug.render_started();
-
-            if resized {
+            if let Some(damage) = damage.take() {
+                debug.render_started();
                 let physical_size = viewport.physical_size();
 
-                context.resize(glutin::dpi::PhysicalSize::new(
-                    physical_size.width,
-                    physical_size.height,
-                ));
+                if resized {
+                    context.resize(glutin::dpi::PhysicalSize::new(
+                        physical_size.width,
+                        physical_size.height,
+                    ));
 
-                compositor.resize_viewport(physical_size);
+                    compositor.resize_viewport(physical_size);
 
-                resized = false;
-            }
+                    resized = false;
+                }
 
-            let new_mouse_interaction = compositor.draw(
-                &mut renderer,
-                &viewport,
-                background_color,
-                state.primitive(),
-                &debug.overlay(),
-            );
-
-            context.swap_buffers().expect("Swap buffers");
-
-            debug.render_finished();
-
-            if new_mouse_interaction != mouse_interaction {
-                context.window().set_cursor_icon(
-                    conversion::mouse_interaction(new_mouse_interaction),
+                let new_mouse_interaction = compositor.draw(
+                    &mut renderer,
+                    &viewport,
+                    background_color,
+                    state.primitive(),
+                    &debug.overlay(),
                 );
 
-                mouse_interaction = new_mouse_interaction;
+                if context.swap_buffers_with_damage_supported() {
+                    let scale = viewport.scale_factor() as f32;
+                    let rects = damage
+                        .iter()
+                        .map(|dmg| (*dmg * scale).snap())
+                        .map(|dmg| glutin::Rect {
+                            x: dmg.x,
+                            y: physical_size
+                                .height
+                                .saturating_sub(dmg.y + dmg.height),
+                            width: dmg.width.min(physical_size.width),
+                            height: dmg.height.min(physical_size.height),
+                        })
+                        .collect::<Vec<_>>();
+                    context
+                        .swap_buffers_with_damage(&rects[..])
+                        .expect("Swap buffers with damage");
+                } else {
+                    context.swap_buffers().expect("Swap buffers");
+                }
+
+                debug.render_finished();
+
+                if new_mouse_interaction != mouse_interaction {
+                    context.window().set_cursor_icon(
+                        conversion::mouse_interaction(new_mouse_interaction),
+                    );
+
+                    mouse_interaction = new_mouse_interaction;
+                }
             }
 
             // TODO: Handle animations!

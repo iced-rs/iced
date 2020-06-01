@@ -184,7 +184,7 @@ pub fn run<A, E, C>(
                 return;
             }
 
-            let command = runtime.enter(|| {
+            let (command, _damage) = runtime.enter(|| {
                 state.update(
                     viewport.logical_size(),
                     conversion::cursor_position(
