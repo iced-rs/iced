@@ -161,16 +161,17 @@ where
         _clipboard: Option<&dyn Clipboard>,
     ) {
         let bounds = layout.bounds();
-    
+
         let value = if cursor_position.x <= bounds.x {
             *self.range.start()
         } else if cursor_position.x >= bounds.x + bounds.width {
             *self.range.end()
         } else {
             let percent = (cursor_position.x - bounds.x) / bounds.width;
-            (self.range.end() - self.range.start()) * percent + self.range.start()
+            (self.range.end() - self.range.start()) * percent
+                + self.range.start()
         };
-    
+
         match event {
             Event::Mouse(mouse_event) => match mouse_event {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
