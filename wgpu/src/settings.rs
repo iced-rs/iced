@@ -1,11 +1,10 @@
 //! Configure a renderer.
 pub use crate::Antialiasing;
-pub use iced_native::Color;
 
 /// The settings of a [`Renderer`].
 ///
 /// [`Renderer`]: ../struct.Renderer.html
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Settings {
     /// The output format of the [`Renderer`].
     ///
@@ -19,9 +18,6 @@ pub struct Settings {
 
     /// The antialiasing strategy that will be used for triangle primitives.
     pub antialiasing: Option<Antialiasing>,
-
-    /// The color that will be used to clear the window surface.
-    pub background_color: Color,
 }
 
 impl Default for Settings {
@@ -30,7 +26,6 @@ impl Default for Settings {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
             default_font: None,
             antialiasing: None,
-            background_color: Color::WHITE,
         }
     }
 }

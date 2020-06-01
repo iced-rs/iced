@@ -21,12 +21,7 @@ impl iced_graphics::window::GLCompositor for Compositor {
     ) -> (Self, Self::Renderer) {
         let gl = glow::Context::from_loader_function(loader_function);
 
-        gl.clear_color(
-            settings.background_color.r,
-            settings.background_color.g,
-            settings.background_color.b,
-            settings.background_color.a,
-        );
+        gl.clear_color(1.0, 1.0, 1.0, 1.0);
 
         // Enable auto-conversion from/to sRGB
         gl.enable(glow::FRAMEBUFFER_SRGB);

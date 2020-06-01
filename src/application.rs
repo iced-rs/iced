@@ -195,7 +195,6 @@ pub trait Application: Sized {
                 } else {
                     None
                 },
-                background_color: settings.background_color,
                 ..crate::renderer::Settings::default()
             };
 

@@ -1,8 +1,8 @@
 //! Configure your application.
-use crate::{window, Color};
+use crate::window;
 
 /// The settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Settings<Flags> {
     /// The window settings.
     ///
@@ -32,29 +32,6 @@ pub struct Settings<Flags> {
     ///
     /// [`Canvas`]: ../widget/canvas/struct.Canvas.html
     pub antialiasing: bool,
-
-    /// The background color of the window.
-    ///
-    /// On supported backends, this makes it possible to have
-    /// (semi-)transparent windows.
-    ///
-    /// By default, it is white.
-    pub background_color: Color,
-}
-
-impl<Flags> Default for Settings<Flags>
-where
-    Flags: Default,
-{
-    fn default() -> Self {
-        Self {
-            flags: Default::default(),
-            antialiasing: Default::default(),
-            default_font: Default::default(),
-            window: Default::default(),
-            background_color: Color::WHITE,
-        }
-    }
 }
 
 impl<Flags> Settings<Flags> {
@@ -69,7 +46,6 @@ impl<Flags> Settings<Flags> {
             antialiasing: Default::default(),
             default_font: Default::default(),
             window: Default::default(),
-            background_color: Color::WHITE,
         }
     }
 }
