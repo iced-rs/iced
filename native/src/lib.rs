@@ -78,7 +78,7 @@ pub use hasher::Hasher;
 pub use layout::Layout;
 pub use overlay::Overlay;
 pub use program::Program;
-pub use renderer::Renderer;
+pub use renderer::{Damage, Renderer};
 pub use runtime::Runtime;
 pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};

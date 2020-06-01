@@ -27,6 +27,28 @@ pub use null::Null;
 
 use crate::{layout, Element, Rectangle};
 
+/// An output of rendering that can determine the pixel region that would be
+/// updated between two frames.
+pub trait Damage {
+    /// Calculates damage between two frames
+    fn damage(&self, other: &Self) -> Option<Rectangle>;
+}
+
+impl Damage for () {
+    fn damage(&self, _other: &Self) -> Option<Rectangle> {
+        None
+    }
+}
+
+impl<T, U> Damage for (T, U)
+where
+    T: Damage,
+{
+    fn damage(&self, other: &Self) -> Option<Rectangle> {
+        self.0.damage(&other.0)
+    }
+}
+
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
 pub trait Renderer: Sized {
@@ -36,7 +58,7 @@ pub trait Renderer: Sized {
     /// likely be a tree of visual primitives.
     ///
     /// [`Renderer`]: trait.Renderer.html
-    type Output;
+    type Output: Damage + Default;
 
     /// The default styling attributes of the [`Renderer`].
     ///

@@ -1,6 +1,6 @@
 use iced_native::{
-    image, svg, Background, Color, Font, HorizontalAlignment, Rectangle, Size,
-    Vector, VerticalAlignment,
+    image, svg, Background, Color, Damage, Font, HorizontalAlignment,
+    Rectangle, Size, Vector, VerticalAlignment,
 };
 
 use crate::triangle;
@@ -103,5 +103,80 @@ pub enum Primitive {
 impl Default for Primitive {
     fn default() -> Primitive {
         Primitive::None
+    }
+}
+
+impl Primitive {
+    fn bounds(&self) -> Option<Rectangle> {
+        match self {
+            Primitive::Quad { bounds, .. }
+            | Primitive::Image { bounds, .. }
+            | Primitive::Svg { bounds, .. }
+            | Primitive::Clip { bounds, .. } => Some(bounds.clone()),
+            Primitive::Text {
+                bounds,
+                vertical_alignment,
+                horizontal_alignment,
+                ..
+            } => Some(Rectangle {
+                x: match horizontal_alignment {
+                    HorizontalAlignment::Left => bounds.x,
+                    HorizontalAlignment::Center => {
+                        bounds.x - bounds.width / 2.0
+                    }
+                    HorizontalAlignment::Right => bounds.x - bounds.width,
+                },
+                y: match vertical_alignment {
+                    VerticalAlignment::Top => bounds.y,
+                    VerticalAlignment::Center => bounds.y - bounds.height / 2.0,
+                    VerticalAlignment::Bottom => bounds.y - bounds.height,
+                },
+                ..*bounds
+            }),
+            Primitive::Group { primitives } => {
+                let mut iter = primitives.iter().flat_map(|a| a.bounds());
+                let first = iter.next()?;
+                Some(iter.fold(first, |a, b| a.union(&b)))
+            }
+            _ => None,
+        }
+    }
+}
+
+impl Damage for Primitive {
+    fn damage(&self, other: &Primitive) -> Option<Vec<Rectangle>> {
+        if let (
+            Primitive::Cached { cache: lcache },
+            Primitive::Cached { cache: rcache },
+        ) = (self, other)
+        {
+            return lcache.as_ref().damage(rcache.as_ref());
+        }
+        if let (
+            Primitive::Group { primitives: lprims },
+            Primitive::Group { primitives: rprims },
+        ) = (self, other)
+        {
+            if lprims.len() == rprims.len() {
+                return Some(
+                    lprims
+                        .iter()
+                        .zip(rprims.iter())
+                        .flat_map(|(lp, rp)| lp.damage(rp))
+                        .flatten()
+                        .collect(),
+                );
+            }
+        }
+        if self != other {
+            match (self.bounds(), other.bounds()) {
+                (Some(lb), Some(rb)) if lb != rb => Some(vec![lb, rb]),
+                (Some(lb), _) => Some(vec![lb]),
+                (_, Some(rb)) => Some(vec![rb]),
+                _ => None,
+            }
+        } else {
+            None
+        }
     }
 }

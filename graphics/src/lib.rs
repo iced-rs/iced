@@ -36,6 +36,6 @@ pub use transformation::Transformation;
 pub use viewport::Viewport;
 
 pub use iced_native::{
-    Background, Color, Font, HorizontalAlignment, Point, Rectangle, Size,
+    Background, Damage, Color, Font, HorizontalAlignment, Point, Rectangle, Size,
     Vector, VerticalAlignment,
 };
