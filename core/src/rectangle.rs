@@ -133,8 +133,8 @@ impl Rectangle<f32> {
         Rectangle {
             x: self.x as u32,
             y: self.y as u32,
-            width: (self.width + 0.5).round() as u32,
-            height: (self.height + 0.5).round() as u32,
+            width: self.width.round() as u32,
+            height: self.height.round() as u32,
         }
     }
 }
