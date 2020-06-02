@@ -326,8 +326,7 @@ impl Pipeline {
             for (i, (vertex_offset, index_offset, indices)) in
                 offsets.into_iter().enumerate()
             {
-                let clip_bounds =
-                    (meshes[i].clip_bounds * scale_factor).round();
+                let clip_bounds = (meshes[i].clip_bounds * scale_factor).snap();
 
                 render_pass.set_scissor_rect(
                     clip_bounds.x,

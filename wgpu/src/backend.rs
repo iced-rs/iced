@@ -105,7 +105,7 @@ impl Backend {
         target_width: u32,
         target_height: u32,
     ) {
-        let bounds = (layer.bounds * scale_factor).round();
+        let bounds = (layer.bounds * scale_factor).snap();
 
         if !layer.quads.is_empty() {
             self.quad_pipeline.draw(

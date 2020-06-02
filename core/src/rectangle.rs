@@ -126,15 +126,15 @@ impl Rectangle<f32> {
         }
     }
 
-    /// Rounds the [`Rectangle`] to __unsigned__ integer coordinates.
+    /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
     ///
     /// [`Rectangle`]: struct.Rectangle.html
-    pub fn round(self) -> Rectangle<u32> {
+    pub fn snap(self) -> Rectangle<u32> {
         Rectangle {
             x: self.x as u32,
             y: self.y as u32,
-            width: (self.width + 0.5).round() as u32,
-            height: (self.height + 0.5).round() as u32,
+            width: self.width.ceil() as u32,
+            height: self.height.ceil() as u32,
         }
     }
 }

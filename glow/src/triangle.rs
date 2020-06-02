@@ -176,7 +176,7 @@ impl Pipeline {
             let transform =
                 transformation * Transformation::translate(origin.x, origin.y);
 
-            let clip_bounds = (*clip_bounds * scale_factor).round();
+            let clip_bounds = (*clip_bounds * scale_factor).snap();
 
             unsafe {
                 if self.current_transform != transform {
