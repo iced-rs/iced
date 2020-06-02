@@ -30,11 +30,13 @@ pub mod conversion;
 pub mod settings;
 
 mod clipboard;
+mod context;
 mod mode;
 mod proxy;
 
 pub use application::Application;
 pub use clipboard::Clipboard;
+pub use context::Context;
 pub use mode::Mode;
 pub use proxy::Proxy;
 pub use settings::Settings;

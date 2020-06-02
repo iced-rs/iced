@@ -1,11 +1,10 @@
 //! Create interactive, native cross-platform applications.
 use crate::{
-    conversion, mouse, Clipboard, Command, Debug, Executor, Mode, Proxy,
-    Runtime, Settings, Size, Subscription,
+    Command, Context, Debug, Executor, Mode, Settings, Size, Subscription,
 };
 use iced_graphics::window;
 use iced_graphics::Viewport;
-use iced_native::program::{self, Program};
+use iced_native::program::Program;
 
 /// An interactive, native cross-platform application.
 ///
@@ -87,178 +86,22 @@ pub fn run<A, E, C>(
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
 {
-    use winit::{
-        event,
-        event_loop::{ControlFlow, EventLoop},
-    };
+    use winit::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
 
-    let mut debug = Debug::new();
-    debug.startup_started();
-
-    let event_loop = EventLoop::with_user_event();
-    let mut runtime = {
-        let executor = E::new().expect("Create executor");
-        let proxy = Proxy::new(event_loop.create_proxy());
-
-        Runtime::new(executor, proxy)
-    };
-
-    let flags = settings.flags;
-    let (application, init_command) = runtime.enter(|| A::new(flags));
-    runtime.spawn(init_command);
-
-    let subscription = application.subscription();
-    runtime.track(subscription);
-
-    let mut title = application.title();
-    let mut mode = application.mode();
-
-    let window = settings
-        .window
-        .into_builder(&title, mode, event_loop.primary_monitor())
-        .build(&event_loop)
-        .expect("Open window");
-
-    let clipboard = Clipboard::new(&window);
-    let mut mouse_interaction = mouse::Interaction::default();
-    let mut modifiers = winit::event::ModifiersState::default();
-
-    let physical_size = window.inner_size();
-    let mut viewport = Viewport::with_physical_size(
-        Size::new(physical_size.width, physical_size.height),
-        window.scale_factor(),
-    );
-    let mut resized = false;
-
-    let (mut compositor, mut renderer) = C::new(compositor_settings);
-
-    let surface = compositor.create_surface(&window);
-
-    let mut swap_chain = compositor.create_swap_chain(
-        &surface,
-        physical_size.width,
-        physical_size.height,
+    let mut event_loop = EventLoop::with_user_event();
+    let mut context = Context::<A, E, C, A::Message, C::SwapChain>::new(
+        &mut event_loop,
+        settings,
+        compositor_settings,
     );
 
-    let mut state = program::State::new(
-        application,
-        viewport.logical_size(),
-        &mut renderer,
-        &mut debug,
-    );
-    debug.startup_finished();
-
-    event_loop.run(move |event, _, control_flow| match event {
-        event::Event::MainEventsCleared => {
-            let command = runtime.enter(|| {
-                state.update(
-                    clipboard.as_ref().map(|c| c as _),
-                    viewport.logical_size(),
-                    &mut renderer,
-                    &mut debug,
-                )
-            });
-
-            // If the application was updated
-            if let Some(command) = command {
-                runtime.spawn(command);
-
-                let program = state.program();
-
-                // Update subscriptions
-                let subscription = program.subscription();
-                runtime.track(subscription);
-
-                // Update window title
-                let new_title = program.title();
-
-                if title != new_title {
-                    window.set_title(&new_title);
-
-                    title = new_title;
-                }
-
-                // Update window mode
-                let new_mode = program.mode();
-
-                if mode != new_mode {
-                    window.set_fullscreen(conversion::fullscreen(
-                        window.current_monitor(),
-                        new_mode,
-                    ));
-
-                    mode = new_mode;
-                }
-            }
-
-            window.request_redraw();
-        }
-        event::Event::UserEvent(message) => {
-            state.queue_message(message);
-        }
-        event::Event::RedrawRequested(_) => {
-            debug.render_started();
-
-            if resized {
-                let physical_size = viewport.physical_size();
-
-                swap_chain = compositor.create_swap_chain(
-                    &surface,
-                    physical_size.width,
-                    physical_size.height,
-                );
-
-                resized = false;
-            }
-
-            let new_mouse_interaction = compositor.draw(
-                &mut renderer,
-                &mut swap_chain,
-                &viewport,
-                state.primitive(),
-                &debug.overlay(),
-            );
-
-            debug.render_finished();
-
-            if new_mouse_interaction != mouse_interaction {
-                window.set_cursor_icon(conversion::mouse_interaction(
-                    new_mouse_interaction,
-                ));
-
-                mouse_interaction = new_mouse_interaction;
-            }
-
-            // TODO: Handle animations!
-            // Maybe we can use `ControlFlow::WaitUntil` for this.
-        }
-        event::Event::WindowEvent {
-            event: window_event,
-            ..
-        } => {
-            handle_window_event(
-                &window_event,
-                &window,
-                control_flow,
-                &mut modifiers,
-                &mut viewport,
-                &mut resized,
-                &mut debug,
-            );
-
-            if let Some(event) = conversion::window_event(
-                &window_event,
-                viewport.scale_factor(),
-                modifiers,
-            ) {
-                state.queue_event(event.clone());
-                runtime.broadcast(event);
-            }
-        }
-        _ => {
-            *control_flow = ControlFlow::Wait;
-        }
-    })
+    event_loop.run(
+        move |event: winit::event::Event<'_, A::Message>,
+              _: &EventLoopWindowTarget<A::Message>,
+              control_flow: &mut ControlFlow| {
+            context.handle_winit_event(event, control_flow)
+        },
+    )
 }
 
 /// Handles a `WindowEvent` and mutates the provided control flow, keyboard
