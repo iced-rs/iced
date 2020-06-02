@@ -144,7 +144,7 @@ pub fn main() {
                             present_mode: wgpu::PresentMode::Mailbox,
                         },
                     );
-                    
+
                     resized = false;
                 }
 
