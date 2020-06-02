@@ -29,7 +29,7 @@ mod text;
 pub use cache::Cache;
 pub use cursor::Cursor;
 pub use event::Event;
-pub use fill::Fill;
+pub use fill::{Fill, FillRule};
 pub use frame::Frame;
 pub use geometry::Geometry;
 pub use path::Path;
@@ -84,7 +84,7 @@ pub use text::Text;
 ///         let circle = Path::circle(frame.center(), self.radius);
 ///
 ///         // And fill it with some color
-///         frame.fill(&circle, Fill::Color(Color::BLACK));
+///         frame.fill(&circle, Color::BLACK);
 ///
 ///         // Finally, we produce the geometry
 ///         vec![frame.into_geometry()]

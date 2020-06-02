@@ -92,29 +92,22 @@ impl Frame {
             BuffersBuilder, FillOptions, FillTessellator,
         };
 
+        let Fill { color, rule } = fill.into();
+
         let mut buffers = BuffersBuilder::new(
             &mut self.buffers,
-            FillVertex(match fill.into() {
-                Fill::Color(color) => color.into_linear(),
-            }),
+            FillVertex(color.into_linear()),
         );
 
         let mut tessellator = FillTessellator::new();
+        let options = FillOptions::default().with_fill_rule(rule.into());
 
         let result = if self.transforms.current.is_identity {
-            tessellator.tessellate_path(
-                path.raw(),
-                &FillOptions::default(),
-                &mut buffers,
-            )
+            tessellator.tessellate_path(path.raw(), &options, &mut buffers)
         } else {
             let path = path.transformed(&self.transforms.current.raw);
 
-            tessellator.tessellate_path(
-                path.raw(),
-                &FillOptions::default(),
-                &mut buffers,
-            )
+            tessellator.tessellate_path(path.raw(), &options, &mut buffers)
         };
 
         let _ = result.expect("Tessellate path");
@@ -132,11 +125,11 @@ impl Frame {
     ) {
         use lyon::tessellation::{BuffersBuilder, FillOptions};
 
+        let Fill { color, rule } = fill.into();
+
         let mut buffers = BuffersBuilder::new(
             &mut self.buffers,
-            FillVertex(match fill.into() {
-                Fill::Color(color) => color.into_linear(),
-            }),
+            FillVertex(color.into_linear()),
         );
 
         let top_left =
@@ -151,7 +144,7 @@ impl Frame {
 
         let _ = lyon::tessellation::basic_shapes::fill_rectangle(
             &lyon::math::Rect::new(top_left, size.into()),
-            &FillOptions::default(),
+            &FillOptions::default().with_fill_rule(rule.into()),
             &mut buffers,
         )
         .expect("Fill rectangle");
