@@ -14,10 +14,14 @@ pub use iced_native::*;
 
 pub mod application;
 
+mod context;
+
 pub use iced_winit::settings;
 pub use iced_winit::Mode;
 
 #[doc(no_inline)]
 pub use application::Application;
+#[doc(no_inline)]
+pub use context::Context;
 #[doc(no_inline)]
 pub use settings::Settings;
