@@ -144,6 +144,8 @@ pub fn main() {
                             present_mode: wgpu::PresentMode::Mailbox,
                         },
                     );
+
+                    resized = false;
                 }
 
                 let frame = swap_chain.get_next_texture().expect("Next frame");
