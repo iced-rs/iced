@@ -288,9 +288,15 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
             .spacing(10)
             .align_items(Align::Center)
             .push(Text::new(C::LABEL).width(Length::Units(50)))
-            .push(Slider::new(s1, cr1, c1, move |v| C::new(v, c2, c3)))
-            .push(Slider::new(s2, cr2, c2, move |v| C::new(c1, v, c3)))
-            .push(Slider::new(s3, cr3, c3, move |v| C::new(c1, c2, v)))
+            .push(
+                Slider::new(s1, cr1, c1, move |v| C::new(v, c2, c3)).step(0.01),
+            )
+            .push(
+                Slider::new(s2, cr2, c2, move |v| C::new(c1, v, c3)).step(0.01),
+            )
+            .push(
+                Slider::new(s3, cr3, c3, move |v| C::new(c1, c2, v)).step(0.01),
+            )
             .push(
                 Text::new(color.to_string())
                     .width(Length::Units(185))

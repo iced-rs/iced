@@ -500,15 +500,24 @@ impl<'a> Step {
             .push(
                 Row::new()
                     .spacing(10)
-                    .push(Slider::new(red, 0.0..=1.0, color.r, move |r| {
-                        StepMessage::TextColorChanged(Color { r, ..color })
-                    }))
-                    .push(Slider::new(green, 0.0..=1.0, color.g, move |g| {
-                        StepMessage::TextColorChanged(Color { g, ..color })
-                    }))
-                    .push(Slider::new(blue, 0.0..=1.0, color.b, move |b| {
-                        StepMessage::TextColorChanged(Color { b, ..color })
-                    })),
+                    .push(
+                        Slider::new(red, 0.0..=1.0, color.r, move |r| {
+                            StepMessage::TextColorChanged(Color { r, ..color })
+                        })
+                        .step(0.01),
+                    )
+                    .push(
+                        Slider::new(green, 0.0..=1.0, color.g, move |g| {
+                            StepMessage::TextColorChanged(Color { g, ..color })
+                        })
+                        .step(0.01),
+                    )
+                    .push(
+                        Slider::new(blue, 0.0..=1.0, color.b, move |b| {
+                            StepMessage::TextColorChanged(Color { b, ..color })
+                        })
+                        .step(0.01),
+                    ),
             );
 
         Self::container("Text")

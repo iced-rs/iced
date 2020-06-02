@@ -16,6 +16,8 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// A [`Slider`] will try to fill the horizontal space of its container.
 ///
+/// The step size defaults to 1.0.
+///
 /// [`Slider`]: struct.Slider.html
 ///
 /// # Example
@@ -38,6 +40,7 @@ use std::{hash::Hash, ops::RangeInclusive};
 pub struct Slider<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     range: RangeInclusive<f32>,
+    step: f32,
     value: f32,
     on_change: Box<dyn Fn(f32) -> Message>,
     on_release: Option<Message>,
@@ -71,6 +74,7 @@ impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
             state,
             value: value.max(*range.start()).min(*range.end()),
             range,
+            step: 1.0,
             on_change: Box::new(on_change),
             on_release: None,
             width: Length::Fill,
@@ -104,6 +108,14 @@ impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
     /// [`Slider`]: struct.Slider.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
+        self
+    }
+
+    /// Sets the step size of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn step(mut self, step: f32) -> Self {
+        self.step = step;
         self
     }
 }
@@ -164,16 +176,16 @@ where
     ) {
         let mut change = || {
             let bounds = layout.bounds();
-
             if cursor_position.x <= bounds.x {
                 messages.push((self.on_change)(*self.range.start()));
             } else if cursor_position.x >= bounds.x + bounds.width {
                 messages.push((self.on_change)(*self.range.end()));
             } else {
                 let percent = (cursor_position.x - bounds.x) / bounds.width;
-                let value = (self.range.end() - self.range.start()) * percent
-                    + self.range.start();
-
+                let steps = (percent * (self.range.end() - self.range.start())
+                    / self.step)
+                    .round();
+                let value = steps * self.step + self.range.start();
                 messages.push((self.on_change)(value));
             }
         };
