@@ -174,6 +174,93 @@ pub trait Application: Sized {
         window::Mode::Windowed
     }
 
+    /// Initializes the application [`Context`].
+    ///
+    /// Use this method if you are managing the event loop. If you want `iced` to
+    /// manage the event loop, use the [`run`] method.
+    ///
+    /// # Parameters
+    ///
+    /// * `event_loop`: The event loop that will run the application.
+    ///
+    /// [`Application`]: trait.Application.html
+    /// [`Context`]: runtime/struct.Context.html
+    /// [`run`]: #method.run
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        not(feature = "glow"),
+        feature = "wgpu"
+    ))]
+    fn initialize(
+        event_loop: &mut crate::runtime::winit::event_loop::EventLoop<
+            Self::Message,
+        >,
+        settings: Settings<Self::Flags>,
+    ) -> crate::runtime::Context<
+        Instance<Self>,
+        Self::Executor,
+        crate::renderer::window::Compositor,
+        Self::Message,
+        crate::renderer::wgpu::SwapChain,
+    > {
+        let renderer_settings = crate::renderer::Settings {
+            default_font: settings.default_font,
+            antialiasing: if settings.antialiasing {
+                Some(crate::renderer::settings::Antialiasing::MSAAx4)
+            } else {
+                None
+            },
+            ..crate::renderer::Settings::default()
+        };
+
+        crate::runtime::Context::new(
+            event_loop,
+            settings.into(),
+            renderer_settings,
+        )
+    }
+
+    /// Initializes the application [`Context`].
+    ///
+    /// Use this method if you are managing the event loop. If you want `iced` to
+    /// manage the event loop, use the [`run`] method.
+    ///
+    /// # Parameters
+    ///
+    /// * `event_loop`: The event loop that will run the application.
+    ///
+    /// [`Application`]: trait.Application.html
+    /// [`Context`]: runtime/struct.Context.html
+    /// [`run`]: #method.run
+    #[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
+    fn initialize(
+        event_loop: &mut crate::runtime::glutin::event_loop::EventLoop<
+            Self::Message,
+        >,
+        settings: Settings<Self::Flags>,
+    ) -> crate::runtime::Context<
+        Instance<Self>,
+        Self::Executor,
+        crate::renderer::window::Compositor,
+        Self::Message,
+    > {
+        let renderer_settings = crate::renderer::Settings {
+            default_font: settings.default_font,
+            antialiasing: if settings.antialiasing {
+                Some(crate::renderer::settings::Antialiasing::MSAAx4)
+            } else {
+                None
+            },
+            ..crate::renderer::Settings::default()
+        };
+
+        crate::runtime::Context::new(
+            event_loop,
+            settings.into(),
+            renderer_settings,
+        )
+    }
+
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
