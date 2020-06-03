@@ -253,6 +253,7 @@ where
                                     &value,
                                     &self.state,
                                     target,
+                                    self.horizontal_alignment,
                                 );
 
                                 self.state.cursor.move_to(position);
@@ -271,6 +272,7 @@ where
                                     &self.value,
                                     &self.state,
                                     target,
+                                    self.horizontal_alignment,
                                 );
 
                                 self.state.cursor.select_range(
@@ -312,6 +314,7 @@ where
                             &value,
                             &self.state,
                             target,
+                            self.horizontal_alignment,
                         );
 
                         self.state.cursor.select_range(
@@ -583,6 +586,7 @@ pub trait Renderer: crate::Renderer + Sized {
         size: u16,
         value: &Value,
         state: &State,
+        horizontal_alignment: HorizontalAlignment,
     ) -> f32;
 
     /// Draws a [`TextInput`].
@@ -624,10 +628,18 @@ pub trait Renderer: crate::Renderer + Sized {
         value: &Value,
         state: &State,
         x: f32,
+        horizontal_alignment: HorizontalAlignment,
     ) -> usize {
         let size = size.unwrap_or(self.default_size());
 
-        let offset = self.offset(text_bounds, font, size, &value, &state);
+        let offset = self.offset(
+            text_bounds,
+            font,
+            size,
+            &value,
+            &state,
+            horizontal_alignment,
+        );
 
         find_cursor_position(
             self,

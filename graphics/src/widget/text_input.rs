@@ -51,6 +51,7 @@ where
         size: u16,
         value: &text_input::Value,
         state: &text_input::State,
+        horizontal_alignment: HorizontalAlignment,
     ) -> f32 {
         if state.is_focused() {
             let cursor = state.cursor();
@@ -60,13 +61,14 @@ where
                 cursor::State::Selection { end, .. } => end,
             };
 
-            let (_, offset) = measure_cursor_and_scroll_offset(
+            let (_, offset, _) = measure_cursor_and_scroll_offset(
                 self,
                 text_bounds,
                 value,
                 size,
                 focus_position,
                 font,
+                horizontal_alignment,
             );
 
             offset
@@ -148,7 +150,7 @@ where
 
             let (cursor_primitive, offset) = match cursor.state(value) {
                 cursor::State::Index(position) => {
-                    let (text_value_width, offset) =
+                    let (text_value_width, offset, text_width_after_cursor) =
                         measure_cursor_and_scroll_offset(
                             self,
                             text_bounds,
@@ -156,6 +158,7 @@ where
                             size,
                             position,
                             font,
+                            horizontal_alignment,
                         );
 
                     let cursor_bounds = Rectangle {
@@ -166,9 +169,11 @@ where
                             HorizontalAlignment::Center => {
                                 text_bounds.center_x()
                                     + (text_value_width / 2.0)
+                                    - (text_width_after_cursor / 2.0)
                             }
                             HorizontalAlignment::Right => {
                                 text_bounds.x + text_bounds.width
+                                    - text_width_after_cursor
                             }
                         },
                         width: f32::INFINITY,
@@ -211,7 +216,7 @@ where
                         ..text_bounds
                     };
 
-                    let (left_position, left_offset) =
+                    let (left_position, left_offset, _) =
                         measure_cursor_and_scroll_offset(
                             self,
                             selection_bounds,
@@ -219,9 +224,10 @@ where
                             size,
                             left,
                             font,
+                            horizontal_alignment,
                         );
 
-                    let (right_position, right_offset) =
+                    let (right_position, right_offset, _) =
                         measure_cursor_and_scroll_offset(
                             self,
                             selection_bounds,
@@ -229,6 +235,7 @@ where
                             size,
                             right,
                             font,
+                            horizontal_alignment,
                         );
 
                     let width = right_position - left_position;
@@ -306,7 +313,8 @@ fn measure_cursor_and_scroll_offset<B>(
     size: u16,
     cursor_index: usize,
     font: Font,
-) -> (f32, f32)
+    horizontal_alignment: HorizontalAlignment,
+) -> (f32, f32, f32)
 where
     B: Backend + backend::Text,
 {
@@ -316,7 +324,20 @@ where
 
     let text_value_width =
         renderer.measure_value(&text_before_cursor, size, font);
-    let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
+    let text_width = renderer.measure_value(&value.to_string(), size, font);
 
-    (text_value_width, offset)
+    let offset = {
+        let offset = match horizontal_alignment {
+            HorizontalAlignment::Left => {
+                (text_value_width + 5.0) - text_bounds.width
+            }
+            HorizontalAlignment::Center => {
+                ((text_value_width + 5.0) - text_bounds.width) / 2.0
+            }
+            HorizontalAlignment::Right => 0.0,
+        };
+        offset.max(0.0)
+    };
+
+    (text_value_width, offset, text_width - text_value_width)
 }
