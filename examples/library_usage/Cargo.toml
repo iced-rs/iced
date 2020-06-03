@@ -1,0 +1,11 @@
+[package]
+name = "library_usage"
+version = "0.1.0"
+authors = ["Azriel Hoh <azriel91@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = ["tokio"] }
+iced_native = { path = "../../native" }
+winit = "0.22"

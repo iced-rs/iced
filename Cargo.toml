@@ -63,6 +63,7 @@ members = [
     "examples/game_of_life",
     "examples/geometry",
     "examples/integration",
+    "examples/library_usage",
     "examples/pane_grid",
     "examples/pokedex",
     "examples/progress_bar",
