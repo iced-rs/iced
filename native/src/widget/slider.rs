@@ -40,7 +40,7 @@ pub struct Slider<'a, Message, Renderer: self::Renderer> {
     range: RangeInclusive<f32>,
     value: f32,
     on_change: Box<dyn Fn(f32) -> Message>,
-    on_finish: Option<Box<dyn Fn(f32) -> Message>>,
+    on_release: Option<Message>,
     width: Length,
     style: Renderer::Style,
 }
@@ -72,21 +72,22 @@ impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
             value: value.max(*range.start()).min(*range.end()),
             range,
             on_change: Box::new(on_change),
-            on_finish: None,
+            on_release: None,
             width: Length::Fill,
             style: Renderer::Style::default(),
         }
     }
 
-    /// Sets the finish callback of the [`Slider`].
+    /// Sets the release message of the [`Slider`].
     /// This is called when the mouse is released from the slider.
     ///
+    /// Typically, the user's interaction with the slider is finished when this message is produced.
+    /// This is useful if you need to spawn a long-running task from the slider's result, where
+    /// the default on_change message could create too many events.
+    ///
     /// [`Slider`]: struct.Slider.html
-    pub fn on_finish<F>(mut self, on_finish: F) -> Self
-    where
-        F: 'static + Fn(f32) -> Message,
-    {
-        self.on_finish = Some(Box::new(on_finish));
+    pub fn on_release(mut self, on_release: Message) -> Self {
+        self.on_release = Some(on_release);
         self
     }
 
@@ -128,6 +129,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Slider<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
+    Message: Clone,
 {
     fn width(&self) -> Length {
         self.width
@@ -160,35 +162,39 @@ where
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
-        let bounds = layout.bounds();
+        let mut change = || {
+            let bounds = layout.bounds();
 
-        let value = if cursor_position.x <= bounds.x {
-            *self.range.start()
-        } else if cursor_position.x >= bounds.x + bounds.width {
-            *self.range.end()
-        } else {
-            let percent = (cursor_position.x - bounds.x) / bounds.width;
-            (self.range.end() - self.range.start()) * percent
-                + self.range.start()
+            if cursor_position.x <= bounds.x {
+                messages.push((self.on_change)(*self.range.start()));
+            } else if cursor_position.x >= bounds.x + bounds.width {
+                messages.push((self.on_change)(*self.range.end()));
+            } else {
+                let percent = (cursor_position.x - bounds.x) / bounds.width;
+                let value = (self.range.end() - self.range.start()) * percent
+                    + self.range.start();
+
+                messages.push((self.on_change)(value));
+            }
         };
 
         match event {
             Event::Mouse(mouse_event) => match mouse_event {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
                     if layout.bounds().contains(cursor_position) {
-                        messages.push((self.on_change)(value));
+                        change();
                         self.state.is_dragging = true;
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                    if let Some(on_finish) = &self.on_finish {
-                        messages.push((on_finish)(value));
+                    if let Some(on_release) = self.on_release.clone() {
+                        messages.push(on_release);
                     }
                     self.state.is_dragging = false;
                 }
                 mouse::Event::CursorMoved { .. } => {
                     if self.state.is_dragging {
-                        messages.push((self.on_change)(value));
+                        change();
                     }
                 }
                 _ => {}
@@ -265,7 +271,7 @@ impl<'a, Message, Renderer> From<Slider<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'a + self::Renderer,
-    Message: 'a,
+    Message: 'a + Clone,
 {
     fn from(
         slider: Slider<'a, Message, Renderer>,
