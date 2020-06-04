@@ -1,6 +1,6 @@
 use crate::{
     keyboard,
-    pane_grid::{Axis, Content, Direction, Node, Pane, Split},
+    pane_grid::{Axis, Configuration, Direction, Node, Pane, Split},
     Hasher, Point, Rectangle, Size,
 };
 
@@ -53,18 +53,21 @@ impl<T> State<T> {
     /// [`State`]: struct.State.html
     /// [`Pane`]: struct.Pane.html
     pub fn new(first_pane_state: T) -> (Self, Pane) {
-        (Self::with_content(Content::Pane(first_pane_state)), Pane(0))
+        (
+            Self::with_configuration(Configuration::Pane(first_pane_state)),
+            Pane(0),
+        )
     }
 
-    /// Creates a new [`State`] with the given [`Content`].
+    /// Creates a new [`State`] with the given [`Configuration`].
     ///
     /// [`State`]: struct.State.html
-    /// [`Content`]: enum.Content.html
-    pub fn with_content(content: impl Into<Content<T>>) -> Self {
+    /// [`Configuration`]: enum.Configuration.html
+    pub fn with_configuration(config: impl Into<Configuration<T>>) -> Self {
         let mut panes = HashMap::new();
 
         let (layout, last_id) =
-            Self::distribute_content(&mut panes, content.into(), 0);
+            Self::distribute_content(&mut panes, config.into(), 0);
 
         State {
             panes,
@@ -274,11 +277,11 @@ impl<T> State<T> {
 
     fn distribute_content(
         panes: &mut HashMap<Pane, T>,
-        content: Content<T>,
+        content: Configuration<T>,
         next_id: usize,
     ) -> (Node, usize) {
         match content {
-            Content::Split { axis, ratio, a, b } => {
+            Configuration::Split { axis, ratio, a, b } => {
                 let (a, next_id) = Self::distribute_content(panes, *a, next_id);
                 let (b, next_id) = Self::distribute_content(panes, *b, next_id);
 
@@ -293,7 +296,7 @@ impl<T> State<T> {
                     next_id + 1,
                 )
             }
-            Content::Pane(state) => {
+            Configuration::Pane(state) => {
                 let id = Pane(next_id);
                 let _ = panes.insert(id, state);
 

@@ -97,7 +97,7 @@ impl Sandbox for Example {
 
         let pane_grid =
             PaneGrid::new(&mut self.panes, |pane, content, focus| {
-                content.view(pane, focus, total_panes)
+                pane_grid::Content::new(content.view(pane, focus, total_panes))
             })
             .width(Length::Fill)
             .height(Length::Fill)

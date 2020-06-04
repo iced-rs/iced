@@ -9,20 +9,24 @@
 //! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
 //! [`PaneGrid`]: struct.PaneGrid.html
 mod axis;
+mod configuration;
 mod content;
 mod direction;
 mod node;
 mod pane;
 mod split;
 mod state;
+mod title_bar;
 
 pub use axis::Axis;
+pub use configuration::Configuration;
 pub use content::Content;
 pub use direction::Direction;
 pub use node::Node;
 pub use pane::Pane;
 pub use split::Split;
 pub use state::{Focus, State};
+pub use title_bar::TitleBar;
 
 use crate::{
     keyboard, layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length,
@@ -70,10 +74,10 @@ use crate::{
 ///
 /// let pane_grid =
 ///     PaneGrid::new(&mut state, |pane, state, focus| {
-///         match state {
+///         pane_grid::Content::new(match state {
 ///             PaneState::SomePane => Text::new("This is some pane"),
 ///             PaneState::AnotherKindOfPane => Text::new("This is another kind of pane"),
-///         }.into()
+///         })
 ///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(Message::PaneResized);
@@ -85,7 +89,7 @@ use crate::{
 pub struct PaneGrid<'a, Message, Renderer> {
     state: &'a mut state::Internal,
     pressed_modifiers: &'a mut keyboard::ModifiersState,
-    elements: Vec<(Pane, Element<'a, Message, Renderer>)>,
+    elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
     spacing: u16,
@@ -110,7 +114,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
             Pane,
             &'a mut T,
             Option<Focus>,
-        ) -> Element<'a, Message, Renderer>,
+        ) -> Content<'a, Message, Renderer>,
     ) -> Self {
         let elements = {
             let action = state.internal.action();
@@ -416,12 +420,15 @@ where
                             },
                         );
 
-                    if let Some(((pane, _), _)) = clicked_region.next() {
+                    if let Some(((pane, content), layout)) =
+                        clicked_region.next()
+                    {
                         match &self.on_drag {
                             Some(on_drag)
-                                if self
-                                    .pressed_modifiers
-                                    .matches(self.modifier_keys) =>
+                                if content.is_over_drag_target(
+                                    layout,
+                                    cursor_position,
+                                ) =>
                             {
                                 self.state.pick_pane(pane);
 
@@ -576,7 +583,7 @@ where
             {
                 self.elements.iter_mut().zip(layout.children()).for_each(
                     |((_, pane), layout)| {
-                        pane.widget.on_event(
+                        pane.on_event(
                             event.clone(),
                             layout,
                             cursor_position,
@@ -645,9 +652,28 @@ pub trait Renderer: crate::Renderer + Sized {
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        content: &[(Pane, Element<'_, Message, Self>)],
+        content: &[(Pane, Content<'_, Message, Self>)],
         dragging: Option<Pane>,
         resizing: Option<Axis>,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Self::Output;
+
+    /// Draws a [`Pane`].
+    ///
+    /// It receives:
+    /// - the [`TitleBar`] of the [`Pane`], if any
+    /// - the [`Content`] of the [`Pane`]
+    /// - the [`Layout`] of the [`Pane`] and its elements
+    /// - the cursor position
+    ///
+    /// [`Pane`]: struct.Pane.html
+    /// [`Layout`]: ../layout/struct.Layout.html
+    fn draw_pane<Message>(
+        &mut self,
+        defaults: &Self::Defaults,
+        title_bar: Option<&TitleBar<'_, Message, Self>>,
+        body: &Element<'_, Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Self::Output;

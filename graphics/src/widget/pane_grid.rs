@@ -14,8 +14,8 @@ use iced_native::pane_grid;
 use iced_native::{Element, Layout, Point, Rectangle, Vector};
 
 pub use iced_native::pane_grid::{
-    Axis, Direction, DragEvent, Focus, KeyPressEvent, Pane, ResizeEvent, Split,
-    State,
+    Axis, Configuration, Content, Direction, DragEvent, Focus, KeyPressEvent,
+    Pane, ResizeEvent, Split, State, TitleBar,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -34,7 +34,7 @@ where
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        content: &[(Pane, Element<'_, Message, Self>)],
+        content: &[(Pane, Content<'_, Message, Self>)],
         dragging: Option<Pane>,
         resizing: Option<Axis>,
         layout: Layout<'_>,
@@ -114,5 +114,16 @@ where
                 mouse_interaction
             },
         )
+    }
+
+    fn draw_pane<Message>(
+        &mut self,
+        defaults: &Self::Defaults,
+        _title_bar: Option<&TitleBar<'_, Message, Self>>,
+        body: &Element<'_, Message, Self>,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Self::Output {
+        body.draw(self, defaults, layout, cursor_position)
     }
 }
