@@ -230,12 +230,11 @@ where
 
                 if is_clicked {
                     let text_layout = layout.children().next().unwrap();
-                    let text_width =
-                        renderer.measure_value(
-                            &self.value.to_string(),
-                            self.size.unwrap(),
-                            self.font
-                        );
+                    let text_width = renderer.measure_value(
+                        &self.value.to_string(),
+                        self.size.unwrap(),
+                        self.font,
+                    );
                     let text_bounds = text_layout.bounds();
                     let is_clipped = text_width > text_bounds.width;
                     let updated_text_bounds = Rectangle {
@@ -245,15 +244,15 @@ where
                                 if is_clipped {
                                     text_bounds.x
                                 } else {
-                                    text_bounds.center_x()
-                                        - text_width / 2.0
+                                    text_bounds.center_x() - text_width / 2.0
                                 }
                             }
                             HorizontalAlignment::Right => {
                                 if is_clipped {
                                     text_bounds.x
                                 } else {
-                                    text_bounds.x + text_bounds.width - text_width
+                                    text_bounds.x + text_bounds.width
+                                        - text_width
                                 }
                             }
                         },
@@ -327,12 +326,11 @@ where
             Event::Mouse(mouse::Event::CursorMoved { x, .. }) => {
                 if self.state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
-                    let text_width =
-                        renderer.measure_value(
-                            &self.value.to_string(),
-                            self.size.unwrap(),
-                            self.font
-                        );
+                    let text_width = renderer.measure_value(
+                        &self.value.to_string(),
+                        self.size.unwrap(),
+                        self.font,
+                    );
                     let text_bounds = text_layout.bounds();
                     let is_clipped = text_width > text_bounds.width;
                     let updated_text_bounds = Rectangle {
@@ -342,15 +340,15 @@ where
                                 if is_clipped {
                                     text_bounds.x
                                 } else {
-                                    text_bounds.center_x()
-                                        - text_width / 2.0
+                                    text_bounds.center_x() - text_width / 2.0
                                 }
                             }
                             HorizontalAlignment::Right => {
                                 if is_clipped {
                                     text_bounds.x
                                 } else {
-                                    text_bounds.x + text_bounds.width - text_width
+                                    text_bounds.x + text_bounds.width
+                                        - text_width
                                 }
                             }
                         },

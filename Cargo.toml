@@ -68,7 +68,6 @@ members = [
     "examples/svg",
     "examples/todos",
     "examples/tour",
-    "examples/text_input_aligned",
 ]
 
 [dependencies]
