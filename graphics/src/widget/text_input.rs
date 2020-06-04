@@ -116,11 +116,25 @@ where
             font,
         );
 
+        let is_clipped = text_width > text_bounds.width;
+
         let current_text_bounds = Rectangle {
             x: match horizontal_alignment {
                 HorizontalAlignment::Left => text_bounds.x,
-                HorizontalAlignment::Center => text_bounds.center_x(),
-                HorizontalAlignment::Right => text_bounds.x + text_bounds.width,
+                HorizontalAlignment::Center => {
+                    if is_clipped {
+                        text_bounds.x
+                    } else {
+                        text_bounds.center_x()
+                    }
+                }
+                HorizontalAlignment::Right => {
+                    if is_clipped {
+                        text_bounds.x
+                    } else {
+                        text_bounds.x + text_bounds.width
+                    }
+                }
             },
             y: text_bounds.center_y(),
             width: f32::INFINITY,
@@ -141,7 +155,11 @@ where
             font,
             bounds: current_text_bounds,
             size: f32::from(size),
-            horizontal_alignment,
+            horizontal_alignment: if is_clipped {
+                HorizontalAlignment::Left
+            } else {
+                horizontal_alignment
+            },
             vertical_alignment: VerticalAlignment::Center,
         };
 
@@ -167,16 +185,23 @@ where
                                 text_bounds.x + text_value_width
                             }
                             HorizontalAlignment::Center => {
-                                text_bounds.center_x()
-                                    + (text_value_width / 2.0)
-                                    - (text_width_after_cursor / 2.0)
+                                if is_clipped {
+                                    text_bounds.x + text_value_width
+                                } else {
+                                    text_bounds.center_x()
+                                        + (text_value_width / 2.0)
+                                        - (text_width_after_cursor / 2.0)
+                                }
                             }
                             HorizontalAlignment::Right => {
-                                text_bounds.x + text_bounds.width
-                                    - text_width_after_cursor
+                                if is_clipped {
+                                    text_bounds.x + text_value_width
+                                } else {
+                                    text_bounds.x + text_bounds.width
+                                        - text_width_after_cursor
+                                }
                             }
                         },
-                        width: f32::INFINITY,
                         ..text_bounds
                     };
 
@@ -206,13 +231,20 @@ where
                         x: match horizontal_alignment {
                             HorizontalAlignment::Left => text_bounds.x,
                             HorizontalAlignment::Center => {
-                                text_bounds.center_x()
+                                if is_clipped {
+                                    text_bounds.x
+                                } else {
+                                    text_bounds.center_x()
+                                }
                             }
                             HorizontalAlignment::Right => {
-                                text_bounds.x + text_bounds.width
+                                if is_clipped {
+                                    text_bounds.x
+                                } else {
+                                    text_bounds.x + text_bounds.width
+                                }
                             }
                         },
-                        width: f32::INFINITY,
                         ..text_bounds
                     };
 
@@ -242,10 +274,18 @@ where
                     let aligned_left_position = match horizontal_alignment {
                         HorizontalAlignment::Left => left_position,
                         HorizontalAlignment::Center => {
-                            left_position - text_width / 2.0
+                            if is_clipped {
+                                left_position
+                            } else {
+                                left_position - text_width / 2.0
+                            }
                         }
                         HorizontalAlignment::Right => {
-                            left_position - text_width
+                            if is_clipped {
+                                left_position
+                            } else {
+                                left_position - text_width
+                            }
                         }
                     };
 
@@ -283,7 +323,7 @@ where
             (text_value, Vector::new(0, 0))
         };
 
-        let contents = if text_width > text_bounds.width {
+        let contents = if is_clipped {
             Primitive::Clip {
                 bounds: text_bounds,
                 offset,
@@ -325,6 +365,8 @@ where
     let text_value_width =
         renderer.measure_value(&text_before_cursor, size, font);
     let text_width = renderer.measure_value(&value.to_string(), size, font);
+    let text_width_after_cursor = text_width - text_value_width;
+    let is_clipped = text_width > text_bounds.width;
 
     let offset = {
         let offset = match horizontal_alignment {
@@ -332,12 +374,25 @@ where
                 (text_value_width + 5.0) - text_bounds.width
             }
             HorizontalAlignment::Center => {
-                ((text_value_width + 5.0) - text_bounds.width) / 2.0
+                if is_clipped {
+                    (text_value_width + 5.0) - text_bounds.width
+                } else {
+                    ((text_value_width + 5.0)
+                        - text_bounds.width
+                        - text_width_after_cursor)
+                        / 2.0
+                }
             }
-            HorizontalAlignment::Right => 0.0,
+            HorizontalAlignment::Right => {
+                if is_clipped {
+                    (text_value_width + 5.0) - text_bounds.width
+                } else {
+                    0.0
+                }
+            }
         };
         offset.max(0.0)
     };
 
-    (text_value_width, offset, text_width - text_value_width)
+    (text_value_width, offset, text_width_after_cursor)
 }
