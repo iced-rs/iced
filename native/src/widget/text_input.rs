@@ -696,8 +696,8 @@ impl State {
     /// 
     /// [`Cursor`]: struct.Cursor.html
     /// [`TextInput`]: struct.TextInput.html
-    pub fn move_cursor_to_end(&mut self) {
-        self.cursor.move_to(5000);
+    pub fn move_cursor_to_end(&mut self, value: &String) {
+        self.cursor.move_to(value.len());
     }
 }
 
