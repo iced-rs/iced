@@ -16,38 +16,37 @@ impl Scene {
         }
     }
 
-    pub fn draw(
+    pub fn clear<'a>(
         &self,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
+        target: &'a wgpu::TextureView,
+        encoder: &'a mut wgpu::CommandEncoder,
         background_color: Color,
-    ) {
-        let mut rpass =
-            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[
-                    wgpu::RenderPassColorAttachmentDescriptor {
-                        attachment: target,
-                        resolve_target: None,
-                        load_op: wgpu::LoadOp::Clear,
-                        store_op: wgpu::StoreOp::Store,
-                        clear_color: {
-                            let [r, g, b, a] = background_color.into_linear();
+    ) -> wgpu::RenderPass<'a> {
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                attachment: target,
+                resolve_target: None,
+                load_op: wgpu::LoadOp::Clear,
+                store_op: wgpu::StoreOp::Store,
+                clear_color: {
+                    let [r, g, b, a] = background_color.into_linear();
 
-                            wgpu::Color {
-                                r: r as f64,
-                                g: g as f64,
-                                b: b as f64,
-                                a: a as f64,
-                            }
-                        },
-                    },
-                ],
-                depth_stencil_attachment: None,
-            });
+                    wgpu::Color {
+                        r: r as f64,
+                        g: g as f64,
+                        b: b as f64,
+                        a: a as f64,
+                    }
+                },
+            }],
+            depth_stencil_attachment: None,
+        })
+    }
 
-        rpass.set_pipeline(&self.pipeline);
-        rpass.set_bind_group(0, &self.bind_group, &[]);
-        rpass.draw(0..3, 0..1);
+    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        render_pass.set_pipeline(&self.pipeline);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw(0..3, 0..1);
     }
 }
 
