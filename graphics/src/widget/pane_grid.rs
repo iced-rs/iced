@@ -119,11 +119,63 @@ where
     fn draw_pane<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        _title_bar: Option<&TitleBar<'_, Message, Self>>,
-        body: &Element<'_, Message, Self>,
-        layout: Layout<'_>,
+        title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
+        body: (&Element<'_, Message, Self>, Layout<'_>),
         cursor_position: Point,
     ) -> Self::Output {
-        body.draw(self, defaults, layout, cursor_position)
+        let (body, body_layout) = body;
+
+        let (body_primitive, body_interaction) =
+            body.draw(self, defaults, body_layout, cursor_position);
+
+        if let Some((title_bar, title_bar_layout)) = title_bar {
+            let (title_bar_primitive, title_bar_interaction) = title_bar.draw(
+                self,
+                defaults,
+                title_bar_layout,
+                cursor_position,
+            );
+
+            (
+                Primitive::Group {
+                    primitives: vec![title_bar_primitive, body_primitive],
+                },
+                if title_bar_interaction > body_interaction {
+                    title_bar_interaction
+                } else {
+                    body_interaction
+                },
+            )
+        } else {
+            (body_primitive, body_interaction)
+        }
+    }
+
+    fn draw_title_bar<Message>(
+        &mut self,
+        defaults: &Self::Defaults,
+        style: &<Self as iced_native::container::Renderer>::Style,
+        title: (&Element<'_, Message, Self>, Layout<'_>),
+        controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
+        cursor_position: Point,
+    ) -> Self::Output {
+        let (title, title_layout) = title;
+
+        let (title_primitive, _) =
+            title.draw(self, defaults, title_layout, cursor_position);
+
+        if let Some((controls, controls_layout)) = controls {
+            let (controls_primitive, controls_interaction) =
+                controls.draw(self, defaults, controls_layout, cursor_position);
+
+            (
+                Primitive::Group {
+                    primitives: vec![title_primitive, controls_primitive],
+                },
+                controls_interaction,
+            )
+        } else {
+            (title_primitive, mouse::Interaction::default())
+        }
     }
 }

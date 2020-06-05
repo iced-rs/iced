@@ -29,8 +29,8 @@ pub use state::{Focus, State};
 pub use title_bar::TitleBar;
 
 use crate::{
-    keyboard, layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length,
-    Point, Size, Widget,
+    container, keyboard, layout, mouse, row, Clipboard, Element, Event, Hasher,
+    Layout, Length, Point, Size, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -86,7 +86,7 @@ use crate::{
 /// [`PaneGrid`]: struct.PaneGrid.html
 /// [`State`]: struct.State.html
 #[allow(missing_debug_implementations)]
-pub struct PaneGrid<'a, Message, Renderer> {
+pub struct PaneGrid<'a, Message, Renderer: container::Renderer> {
     state: &'a mut state::Internal,
     pressed_modifiers: &'a mut keyboard::ModifiersState,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
@@ -99,7 +99,10 @@ pub struct PaneGrid<'a, Message, Renderer> {
     on_key_press: Option<Box<dyn Fn(KeyPressEvent) -> Option<Message> + 'a>>,
 }
 
-impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
+impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
+where
+    Renderer: container::Renderer,
+{
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
     /// The view function will be called to display each [`Pane`] present in the
@@ -362,7 +365,7 @@ pub struct KeyPressEvent {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: self::Renderer + container::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -604,7 +607,8 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        renderer.draw(
+        self::Renderer::draw(
+            renderer,
             defaults,
             &self.elements,
             self.state.picked_pane(),
@@ -636,7 +640,7 @@ where
 ///
 /// [`PaneGrid`]: struct.PaneGrid.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer: crate::Renderer + Sized {
+pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     /// Draws a [`PaneGrid`].
     ///
     /// It receives:
@@ -672,9 +676,17 @@ pub trait Renderer: crate::Renderer + Sized {
     fn draw_pane<Message>(
         &mut self,
         defaults: &Self::Defaults,
-        title_bar: Option<&TitleBar<'_, Message, Self>>,
-        body: &Element<'_, Message, Self>,
-        layout: Layout<'_>,
+        title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
+        body: (&Element<'_, Message, Self>, Layout<'_>),
+        cursor_position: Point,
+    ) -> Self::Output;
+
+    fn draw_title_bar<Message>(
+        &mut self,
+        defaults: &Self::Defaults,
+        style: &Self::Style,
+        title: (&Element<'_, Message, Self>, Layout<'_>),
+        controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
     ) -> Self::Output;
 }
@@ -682,7 +694,7 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + self::Renderer + row::Renderer,
     Message: 'a,
 {
     fn from(
