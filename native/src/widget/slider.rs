@@ -187,10 +187,12 @@ where
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                    if let Some(on_release) = self.on_release.clone() {
-                        messages.push(on_release);
+                    if self.state.is_dragging {
+                        if let Some(on_release) = self.on_release.clone() {
+                            messages.push(on_release);
+                        }
+                        self.state.is_dragging = false;
                     }
-                    self.state.is_dragging = false;
                 }
                 mouse::Event::CursorMoved { .. } => {
                     if self.state.is_dragging {
