@@ -685,7 +685,7 @@ impl State {
     }
 
     /// Moves the [`Cursor`] of the [`TextInput`] to the front of the input text.
-    /// 
+    ///
     /// [`Cursor`]: struct.Cursor.html
     /// [`TextInput`]: struct.TextInput.html
     pub fn move_cursor_to_front(&mut self) {
@@ -693,7 +693,7 @@ impl State {
     }
 
     /// Moves the [`Cursor`] of the [`TextInput`] to the end of the input text.
-    /// 
+    ///
     /// [`Cursor`]: struct.Cursor.html
     /// [`TextInput`]: struct.TextInput.html
     pub fn move_cursor_to_end(&mut self, value: &String) {
@@ -701,7 +701,7 @@ impl State {
     }
 
     /// Moves the [`Cursor`] of the [`TextInput`] to an arbitrary location.
-    /// 
+    ///
     /// [`Cursor`]: struct.Cursor.html
     /// [`TextInput`]: struct.TextInput.html
     pub fn move_cursor_to(&mut self, position: usize) {
