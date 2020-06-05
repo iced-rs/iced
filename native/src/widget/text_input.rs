@@ -699,6 +699,14 @@ impl State {
     pub fn move_cursor_to_end(&mut self, value: &String) {
         self.cursor.move_to(value.len());
     }
+
+    /// Moves the [`Cursor`] of the [`TextInput`] to an arbitrary location.
+    /// 
+    /// [`Cursor`]: struct.Cursor.html
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn move_cursor_to(&mut self, position: usize) {
+        self.cursor.move_to(position);
+    }
 }
 
 // TODO: Reduce allocations
