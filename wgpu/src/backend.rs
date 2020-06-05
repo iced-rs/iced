@@ -9,7 +9,7 @@ use iced_graphics::{Primitive, Viewport};
 use iced_native::mouse;
 use iced_native::{Font, HorizontalAlignment, Size, VerticalAlignment};
 
-#[cfg(any(feature = "image", feature = "svg"))]
+#[cfg(any(feature = "image_rs", feature = "svg"))]
 use crate::image;
 
 /// A [`wgpu`] graphics backend for [`iced`].
@@ -22,7 +22,7 @@ pub struct Backend {
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
 
-    #[cfg(any(feature = "image", feature = "svg"))]
+    #[cfg(any(feature = "image_rs", feature = "svg"))]
     image_pipeline: image::Pipeline,
 
     default_text_size: u16,
@@ -40,7 +40,7 @@ impl Backend {
             settings.antialiasing,
         );
 
-        #[cfg(any(feature = "image", feature = "svg"))]
+        #[cfg(any(feature = "image_rs", feature = "svg"))]
         let image_pipeline = image::Pipeline::new(device, settings.format);
 
         Self {
@@ -48,7 +48,7 @@ impl Backend {
             text_pipeline,
             triangle_pipeline,
 
-            #[cfg(any(feature = "image", feature = "svg"))]
+            #[cfg(any(feature = "image_rs", feature = "svg"))]
             image_pipeline,
 
             default_text_size: settings.default_text_size,
@@ -92,7 +92,7 @@ impl Backend {
             );
         }
 
-        #[cfg(any(feature = "image", feature = "svg"))]
+        #[cfg(any(feature = "image_rs", feature = "svg"))]
         self.image_pipeline.trim_cache();
 
         *mouse_interaction
@@ -142,7 +142,7 @@ impl Backend {
             );
         }
 
-        #[cfg(any(feature = "image", feature = "svg"))]
+        #[cfg(any(feature = "image_rs", feature = "svg"))]
         {
             if !layer.images.is_empty() {
                 let scaled = transformation
@@ -270,7 +270,7 @@ impl backend::Text for Backend {
     }
 }
 
-#[cfg(feature = "image")]
+#[cfg(feature = "image_rs")]
 impl backend::Image for Backend {
     fn dimensions(&self, handle: &iced_native::image::Handle) -> (u32, u32) {
         self.image_pipeline.dimensions(handle)

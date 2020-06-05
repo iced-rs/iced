@@ -34,7 +34,7 @@ mod platform {
     )]
     pub use crate::renderer::widget::qr_code;
 
-    #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "image_rs")))]
     pub mod image {
         //! Display images in your user interface.
         pub use crate::runtime::image::viewer;
