@@ -30,7 +30,7 @@ pub use title_bar::TitleBar;
 
 use crate::{
     container, keyboard, layout, mouse, row, Clipboard, Element, Event, Hasher,
-    Layout, Length, Point, Size, Widget,
+    Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -427,17 +427,18 @@ where
                         clicked_region.next()
                     {
                         match &self.on_drag {
-                            Some(on_drag)
-                                if content.is_over_drag_target(
-                                    layout,
-                                    cursor_position,
-                                ) =>
-                            {
-                                self.state.pick_pane(pane);
+                            Some(on_drag) => {
+                                if let Some(origin) =
+                                    content.drag_origin(layout, cursor_position)
+                                {
+                                    self.state.pick_pane(pane, origin);
 
-                                messages.push(on_drag(DragEvent::Picked {
-                                    pane: *pane,
-                                }));
+                                    messages.push(on_drag(DragEvent::Picked {
+                                        pane: *pane,
+                                    }));
+                                } else {
+                                    self.state.focus(pane);
+                                }
                             }
                             _ => {
                                 self.state.focus(pane);
@@ -448,7 +449,7 @@ where
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                    if let Some(pane) = self.state.picked_pane() {
+                    if let Some((pane, _)) = self.state.picked_pane() {
                         self.state.focus(&pane);
 
                         if let Some(on_drag) = &self.on_drag {
@@ -657,7 +658,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
         &mut self,
         defaults: &Self::Defaults,
         content: &[(Pane, Content<'_, Message, Self>)],
-        dragging: Option<Pane>,
+        dragging: Option<(Pane, Point)>,
         resizing: Option<Axis>,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -676,6 +677,8 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     fn draw_pane<Message>(
         &mut self,
         defaults: &Self::Defaults,
+        bounds: Rectangle,
+        style: &Self::Style,
         title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
         body: (&Element<'_, Message, Self>, Layout<'_>),
         cursor_position: Point,
@@ -684,6 +687,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     fn draw_title_bar<Message>(
         &mut self,
         defaults: &Self::Defaults,
+        bounds: Rectangle,
         style: &Self::Style,
         title: (&Element<'_, Message, Self>, Layout<'_>),
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,

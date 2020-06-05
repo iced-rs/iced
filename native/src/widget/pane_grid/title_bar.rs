@@ -1,7 +1,7 @@
 use crate::container;
 use crate::layout;
 use crate::pane_grid;
-use crate::{Element, Layout, Point, Size};
+use crate::{Clipboard, Element, Event, Layout, Point, Size};
 
 pub struct TitleBar<'a, Message, Renderer: container::Renderer> {
     title: Element<'a, Message, Renderer>,
@@ -38,6 +38,14 @@ where
         self.padding = units;
         self
     }
+
+    /// Sets the style of the [`TitleBar`].
+    ///
+    /// [`TitleBar`]: struct.TitleBar.html
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
+        self
+    }
 }
 
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
@@ -50,27 +58,60 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        show_controls: bool,
     ) -> Renderer::Output {
+        let mut children = layout.children();
+        let padded = children.next().unwrap();
+
         if let Some(controls) = &self.controls {
-            let mut children = layout.children();
+            let mut children = padded.children();
             let title_layout = children.next().unwrap();
             let controls_layout = children.next().unwrap();
 
             renderer.draw_title_bar(
                 defaults,
+                layout.bounds(),
                 &self.style,
                 (&self.title, title_layout),
-                Some((controls, controls_layout)),
+                if show_controls {
+                    Some((controls, controls_layout))
+                } else {
+                    None
+                },
                 cursor_position,
             )
         } else {
             renderer.draw_title_bar(
                 defaults,
+                layout.bounds(),
                 &self.style,
-                (&self.title, layout),
+                (&self.title, padded),
                 None,
                 cursor_position,
             )
+        }
+    }
+
+    pub fn is_over_draggable(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> bool {
+        if layout.bounds().contains(cursor_position) {
+            let mut children = layout.children();
+            let padded = children.next().unwrap();
+
+            if self.controls.is_some() {
+                let mut children = padded.children();
+                let _ = children.next().unwrap();
+                let controls_layout = children.next().unwrap();
+
+                !controls_layout.bounds().contains(cursor_position)
+            } else {
+                true
+            }
+        } else {
+            false
         }
     }
 
@@ -82,38 +123,66 @@ where
         let padding = f32::from(self.padding);
         let limits = limits.pad(padding);
 
-        let mut node = if let Some(controls) = &self.controls {
+        let node = if let Some(controls) = &self.controls {
             let max_size = limits.max();
 
-            let title_layout = self
-                .title
+            let mut controls_layout = controls
                 .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
 
-            let title_size = title_layout.size();
+            let controls_size = controls_layout.size();
+            let space_before_controls = max_size.width - controls_size.width;
 
-            let mut controls_layout = controls.layout(
+            let mut title_layout = self.title.layout(
                 renderer,
                 &layout::Limits::new(
                     Size::ZERO,
-                    Size::new(
-                        max_size.width - title_size.width,
-                        max_size.height,
-                    ),
+                    Size::new(space_before_controls, max_size.height),
                 ),
             );
 
-            controls_layout.move_to(Point::new(title_size.width, 0.0));
+            title_layout.move_to(Point::new(padding, padding));
+            controls_layout
+                .move_to(Point::new(space_before_controls + padding, padding));
+
+            let title_size = title_layout.size();
+            let height = title_size.height.max(controls_size.height);
 
             layout::Node::with_children(
-                max_size,
+                Size::new(max_size.width, height),
                 vec![title_layout, controls_layout],
             )
         } else {
             self.title.layout(renderer, &limits)
         };
 
-        node.move_to(Point::new(padding, padding));
+        layout::Node::with_children(node.size().pad(padding), vec![node])
+    }
 
-        node
+    pub(crate) fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+        renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
+    ) {
+        if let Some(controls) = &mut self.controls {
+            let mut children = layout.children();
+            let padded = children.next().unwrap();
+
+            let mut children = padded.children();
+            let _ = children.next();
+            let controls_layout = children.next().unwrap();
+
+            controls.on_event(
+                event,
+                controls_layout,
+                cursor_position,
+                messages,
+                renderer,
+                clipboard,
+            );
+        }
     }
 }

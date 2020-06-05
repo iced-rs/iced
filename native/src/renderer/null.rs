@@ -1,7 +1,7 @@
 use crate::{
-    button, checkbox, column, progress_bar, radio, row, scrollable, slider,
-    text, text_input, Color, Element, Font, HorizontalAlignment, Layout, Point,
-    Rectangle, Renderer, Size, VerticalAlignment,
+    button, checkbox, column, container, progress_bar, radio, row, scrollable,
+    slider, text, text_input, Color, Element, Font, HorizontalAlignment,
+    Layout, Point, Rectangle, Renderer, Size, VerticalAlignment,
 };
 
 /// A renderer that does nothing.
@@ -223,6 +223,21 @@ impl progress_bar::Renderer for Null {
         _range: std::ops::RangeInclusive<f32>,
         _value: f32,
         _style: &Self::Style,
+    ) {
+    }
+}
+
+impl container::Renderer for Null {
+    type Style = ();
+
+    fn draw<Message>(
+        &mut self,
+        _defaults: &Self::Defaults,
+        _bounds: Rectangle,
+        _cursor_position: Point,
+        _style: &Self::Style,
+        _content: &Element<'_, Message, Self>,
+        _content_layout: Layout<'_>,
     ) {
     }
 }

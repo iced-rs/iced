@@ -313,13 +313,14 @@ pub struct Internal {
     action: Action,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Action {
     Idle {
         focus: Option<Pane>,
     },
     Dragging {
         pane: Pane,
+        origin: Point,
     },
     Resizing {
         split: Split,
@@ -334,7 +335,7 @@ impl Action {
             Action::Idle { focus } | Action::Resizing { focus, .. } => {
                 focus.map(|pane| (pane, Focus::Idle))
             }
-            Action::Dragging { pane } => Some((*pane, Focus::Dragging)),
+            Action::Dragging { pane, .. } => Some((*pane, Focus::Dragging)),
         }
     }
 }
@@ -351,9 +352,9 @@ impl Internal {
         }
     }
 
-    pub fn picked_pane(&self) -> Option<Pane> {
+    pub fn picked_pane(&self) -> Option<(Pane, Point)> {
         match self.action {
-            Action::Dragging { pane } => Some(pane),
+            Action::Dragging { pane, origin } => Some((pane, origin)),
             _ => None,
         }
     }
@@ -385,8 +386,11 @@ impl Internal {
         self.action = Action::Idle { focus: Some(*pane) };
     }
 
-    pub fn pick_pane(&mut self, pane: &Pane) {
-        self.action = Action::Dragging { pane: *pane };
+    pub fn pick_pane(&mut self, pane: &Pane, origin: Point) {
+        self.action = Action::Dragging {
+            pane: *pane,
+            origin,
+        };
     }
 
     pub fn pick_split(&mut self, split: &Split, axis: Axis) {

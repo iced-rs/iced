@@ -1,7 +1,7 @@
 use crate::container;
 use crate::layout;
 use crate::pane_grid::{self, TitleBar};
-use crate::{Clipboard, Element, Event, Hasher, Layout, Point, Size};
+use crate::{Clipboard, Element, Event, Hasher, Layout, Point, Size, Vector};
 
 /// The content of a [`Pane`].
 ///
@@ -9,6 +9,7 @@ use crate::{Clipboard, Element, Event, Hasher, Layout, Point, Size};
 pub struct Content<'a, Message, Renderer: container::Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
     body: Element<'a, Message, Renderer>,
+    style: Renderer::Style,
 }
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
@@ -19,6 +20,7 @@ where
         Self {
             title_bar: None,
             body: body.into(),
+            style: Renderer::Style::default(),
         }
     }
 
@@ -27,6 +29,14 @@ where
         title_bar: TitleBar<'a, Message, Renderer>,
     ) -> Self {
         self.title_bar = Some(title_bar);
+        self
+    }
+
+    /// Sets the style of the [`TitleBar`].
+    ///
+    /// [`TitleBar`]: struct.TitleBar.html
+    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -49,6 +59,8 @@ where
 
             renderer.draw_pane(
                 defaults,
+                layout.bounds(),
+                &self.style,
                 Some((title_bar, title_bar_layout)),
                 (&self.body, body_layout),
                 cursor_position,
@@ -56,6 +68,8 @@ where
         } else {
             renderer.draw_pane(
                 defaults,
+                layout.bounds(),
+                &self.style,
                 None,
                 (&self.body, layout),
                 cursor_position,
@@ -63,12 +77,25 @@ where
         }
     }
 
-    pub(crate) fn is_over_drag_target(
+    pub fn drag_origin(
         &self,
-        _layout: Layout<'_>,
-        _cursor_position: Point,
-    ) -> bool {
-        false
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> Option<Point> {
+        if let Some(title_bar) = &self.title_bar {
+            let mut children = layout.children();
+            let title_bar_layout = children.next().unwrap();
+
+            if title_bar.is_over_draggable(title_bar_layout, cursor_position) {
+                let position = layout.position();
+
+                Some(cursor_position - Vector::new(position.x, position.y))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     pub(crate) fn layout(
@@ -115,14 +142,31 @@ where
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
     ) {
+        let body_layout = if let Some(title_bar) = &mut self.title_bar {
+            let mut children = layout.children();
+
+            title_bar.on_event(
+                event.clone(),
+                children.next().unwrap(),
+                cursor_position,
+                messages,
+                renderer,
+                clipboard,
+            );
+
+            children.next().unwrap()
+        } else {
+            layout
+        };
+
         self.body.on_event(
             event,
-            layout,
+            body_layout,
             cursor_position,
             messages,
             renderer,
             clipboard,
-        )
+        );
     }
 
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {
