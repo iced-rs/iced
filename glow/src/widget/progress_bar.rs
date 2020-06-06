@@ -1,9 +1,4 @@
-//! Allow your users to perform actions by pressing a button.
-//!
-//! A [`Button`] has some local [`State`].
-//!
-//! [`Button`]: type.Button.html
-//! [`State`]: struct.State.html
+//! Display progress to your uses with a bar
 use crate::Renderer;
 
 pub use iced_graphics::progress_bar::{Style, StyleSheet};
