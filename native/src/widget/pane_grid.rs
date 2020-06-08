@@ -91,7 +91,7 @@ pub struct PaneGrid<'a, Message, Renderer> {
     spacing: u16,
     modifier_keys: keyboard::ModifiersState,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
-    on_resize: Option<Box<dyn Fn(ResizeEvent) -> Message + 'a>>,
+    on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
     on_key_press: Option<Box<dyn Fn(KeyPressEvent) -> Option<Message> + 'a>>,
 }
 
@@ -208,12 +208,15 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     /// Enables the resize interactions of the [`PaneGrid`], which will
     /// use the provided function to produce messages.
     ///
+    /// The `leeway` describes the amount of space around a split that can be
+    /// used to grab it.
+    ///
     /// [`PaneGrid`]: struct.PaneGrid.html
-    pub fn on_resize<F>(mut self, f: F) -> Self
+    pub fn on_resize<F>(mut self, leeway: u16, f: F) -> Self
     where
         F: 'a + Fn(ResizeEvent) -> Message,
     {
-        self.on_resize = Some(Box::new(f));
+        self.on_resize = Some((leeway, Box::new(f)));
         self
     }
 
@@ -277,7 +280,7 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
         cursor_position: Point,
         messages: &mut Vec<Message>,
     ) {
-        if let Some(on_resize) = &self.on_resize {
+        if let Some((_, on_resize)) = &self.on_resize {
             if let Some((split, _)) = self.state.picked_split() {
                 let bounds = layout.bounds();
 
@@ -440,7 +443,7 @@ where
 
                     if bounds.contains(cursor_position) {
                         match self.on_resize {
-                            Some(_) => {
+                            Some((leeway, _)) => {
                                 let relative_cursor = Point::new(
                                     cursor_position.x - bounds.x,
                                     cursor_position.y - bounds.y,
@@ -453,7 +456,7 @@ where
 
                                 let clicked_split = hovered_split(
                                     splits.iter(),
-                                    f32::from(self.spacing),
+                                    f32::from(self.spacing + leeway),
                                     relative_cursor,
                                 );
 
@@ -573,18 +576,23 @@ where
             .state
             .picked_split()
             .or_else(|| match self.on_resize {
-                Some(_) => {
+                Some((leeway, _)) => {
                     let bounds = layout.bounds();
-                    let spacing = f32::from(self.spacing);
 
                     let relative_cursor = Point::new(
                         cursor_position.x - bounds.x,
                         cursor_position.y - bounds.y,
                     );
 
-                    let splits = self.state.splits(spacing, bounds.size());
+                    let splits = self
+                        .state
+                        .splits(f32::from(self.spacing), bounds.size());
 
-                    hovered_split(splits.iter(), spacing, relative_cursor)
+                    hovered_split(
+                        splits.iter(),
+                        f32::from(self.spacing + leeway),
+                        relative_cursor,
+                    )
                 }
                 None => None,
             })

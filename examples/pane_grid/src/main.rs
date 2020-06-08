@@ -103,7 +103,7 @@ impl Sandbox for Example {
             .height(Length::Fill)
             .spacing(10)
             .on_drag(Message::Dragged)
-            .on_resize(Message::Resized)
+            .on_resize(10, Message::Resized)
             .on_key_press(handle_hotkey);
 
         Container::new(pane_grid)
