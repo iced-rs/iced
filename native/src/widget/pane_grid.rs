@@ -80,7 +80,7 @@ use crate::{
 ///         })
 ///     })
 ///     .on_drag(Message::PaneDragged)
-///     .on_resize(Message::PaneResized);
+///     .on_resize(10, Message::PaneResized);
 /// ```
 ///
 /// [`PaneGrid`]: struct.PaneGrid.html
