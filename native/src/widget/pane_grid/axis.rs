@@ -53,6 +53,30 @@ impl Axis {
             }
         }
     }
+
+    pub(super) fn split_line_bounds(
+        &self,
+        rectangle: Rectangle,
+        ratio: f32,
+        spacing: f32,
+    ) -> Rectangle {
+        match self {
+            Axis::Horizontal => Rectangle {
+                x: rectangle.x,
+                y: (rectangle.y + rectangle.height * ratio - spacing / 2.0)
+                    .round(),
+                width: rectangle.width,
+                height: spacing,
+            },
+            Axis::Vertical => Rectangle {
+                x: (rectangle.x + rectangle.width * ratio - spacing / 2.0)
+                    .round(),
+                y: rectangle.y,
+                width: spacing,
+                height: rectangle.height,
+            },
+        }
+    }
 }
 
 #[cfg(test)]
