@@ -1,9 +1,9 @@
-//! Allow your users to perform actions by pressing a button.
+//! Allow your users to visually track the progress of a computation.
 //!
-//! A [`Button`] has some local [`State`].
+//! A [`ProgressBar`] has a range of possible values and a current value,
+//! as well as a length, height and style.
 //!
-//! [`Button`]: type.Button.html
-//! [`State`]: struct.State.html
+//! [`ProgressBar`]: type.ProgressBar.html
 use crate::Renderer;
 
 pub use iced_graphics::progress_bar::{Style, StyleSheet};

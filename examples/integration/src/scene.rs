@@ -3,57 +3,49 @@ use iced_winit::Color;
 
 pub struct Scene {
     pipeline: wgpu::RenderPipeline,
-    bind_group: wgpu::BindGroup,
 }
 
 impl Scene {
     pub fn new(device: &wgpu::Device) -> Scene {
-        let (pipeline, bind_group) = build_pipeline(device);
+        let pipeline = build_pipeline(device);
 
-        Scene {
-            pipeline,
-            bind_group,
-        }
+        Scene { pipeline }
     }
 
-    pub fn draw(
+    pub fn clear<'a>(
         &self,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
+        target: &'a wgpu::TextureView,
+        encoder: &'a mut wgpu::CommandEncoder,
         background_color: Color,
-    ) {
-        let mut rpass =
-            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[
-                    wgpu::RenderPassColorAttachmentDescriptor {
-                        attachment: target,
-                        resolve_target: None,
-                        load_op: wgpu::LoadOp::Clear,
-                        store_op: wgpu::StoreOp::Store,
-                        clear_color: {
-                            let [r, g, b, a] = background_color.into_linear();
+    ) -> wgpu::RenderPass<'a> {
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                attachment: target,
+                resolve_target: None,
+                load_op: wgpu::LoadOp::Clear,
+                store_op: wgpu::StoreOp::Store,
+                clear_color: {
+                    let [r, g, b, a] = background_color.into_linear();
 
-                            wgpu::Color {
-                                r: r as f64,
-                                g: g as f64,
-                                b: b as f64,
-                                a: a as f64,
-                            }
-                        },
-                    },
-                ],
-                depth_stencil_attachment: None,
-            });
+                    wgpu::Color {
+                        r: r as f64,
+                        g: g as f64,
+                        b: b as f64,
+                        a: a as f64,
+                    }
+                },
+            }],
+            depth_stencil_attachment: None,
+        })
+    }
 
-        rpass.set_pipeline(&self.pipeline);
-        rpass.set_bind_group(0, &self.bind_group, &[]);
-        rpass.draw(0..3, 0..1);
+    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        render_pass.set_pipeline(&self.pipeline);
+        render_pass.draw(0..3, 0..1);
     }
 }
 
-fn build_pipeline(
-    device: &wgpu::Device,
-) -> (wgpu::RenderPipeline, wgpu::BindGroup) {
+fn build_pipeline(device: &wgpu::Device) -> wgpu::RenderPipeline {
     let vs = include_bytes!("shader/vert.spv");
     let fs = include_bytes!("shader/frag.spv");
 
@@ -65,21 +57,9 @@ fn build_pipeline(
         &wgpu::read_spirv(std::io::Cursor::new(&fs[..])).unwrap(),
     );
 
-    let bind_group_layout =
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
-            bindings: &[],
-        });
-
-    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: None,
-        layout: &bind_group_layout,
-        bindings: &[],
-    });
-
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            bind_group_layouts: &[&bind_group_layout],
+            bind_group_layouts: &[],
         });
 
     let pipeline =
@@ -117,5 +97,5 @@ fn build_pipeline(
             alpha_to_coverage_enabled: false,
         });
 
-    (pipeline, bind_group)
+    pipeline
 }

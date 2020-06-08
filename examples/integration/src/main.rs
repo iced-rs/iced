@@ -154,14 +154,19 @@ pub fn main() {
                     &wgpu::CommandEncoderDescriptor { label: None },
                 );
 
-                // We draw the scene first
                 let program = state.program();
 
-                scene.draw(
-                    &mut encoder,
-                    &frame.view,
-                    program.background_color(),
-                );
+                {
+                    // We clear the frame
+                    let mut render_pass = scene.clear(
+                        &frame.view,
+                        &mut encoder,
+                        program.background_color(),
+                    );
+
+                    // Draw the scene
+                    scene.draw(&mut render_pass);
+                }
 
                 // And then iced on top
                 let mouse_interaction = renderer.backend_mut().draw(

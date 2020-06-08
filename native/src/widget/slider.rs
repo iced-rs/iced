@@ -40,6 +40,7 @@ pub struct Slider<'a, Message, Renderer: self::Renderer> {
     range: RangeInclusive<f32>,
     value: f32,
     on_change: Box<dyn Fn(f32) -> Message>,
+    on_release: Option<Message>,
     width: Length,
     style: Renderer::Style,
 }
@@ -71,9 +72,23 @@ impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
             value: value.max(*range.start()).min(*range.end()),
             range,
             on_change: Box::new(on_change),
+            on_release: None,
             width: Length::Fill,
             style: Renderer::Style::default(),
         }
+    }
+
+    /// Sets the release message of the [`Slider`].
+    /// This is called when the mouse is released from the slider.
+    ///
+    /// Typically, the user's interaction with the slider is finished when this message is produced.
+    /// This is useful if you need to spawn a long-running task from the slider's result, where
+    /// the default on_change message could create too many events.
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn on_release(mut self, on_release: Message) -> Self {
+        self.on_release = Some(on_release);
+        self
     }
 
     /// Sets the width of the [`Slider`].
@@ -114,6 +129,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Slider<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
+    Message: Clone,
 {
     fn width(&self) -> Length {
         self.width
@@ -171,7 +187,12 @@ where
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                    self.state.is_dragging = false;
+                    if self.state.is_dragging {
+                        if let Some(on_release) = self.on_release.clone() {
+                            messages.push(on_release);
+                        }
+                        self.state.is_dragging = false;
+                    }
                 }
                 mouse::Event::CursorMoved { .. } => {
                     if self.state.is_dragging {
@@ -252,7 +273,7 @@ impl<'a, Message, Renderer> From<Slider<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'a + self::Renderer,
-    Message: 'a,
+    Message: 'a + Clone,
 {
     fn from(
         slider: Slider<'a, Message, Renderer>,
