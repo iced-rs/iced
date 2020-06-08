@@ -9,7 +9,7 @@ pub struct Controls {
     sliders: [slider::State; 3],
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Message {
     BackgroundColorChanged(Color),
 }
