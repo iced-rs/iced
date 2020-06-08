@@ -4,7 +4,6 @@ use crate::{
     Hasher, Point, Rectangle, Size,
 };
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 
 /// The state of a [`PaneGrid`].
@@ -72,7 +71,6 @@ impl<T> State<T> {
             internal: Internal {
                 layout,
                 last_id,
-                split_cache: RefCell::new(None),
                 action: Action::Idle { focus: None },
             },
             modifiers: keyboard::ModifiersState::default(),
@@ -310,7 +308,6 @@ pub struct Internal {
     layout: Node,
     last_id: usize,
     action: Action,
-    split_cache: RefCell<Option<HashMap<Split, (Axis, f32, Rectangle)>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
