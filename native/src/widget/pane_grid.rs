@@ -211,6 +211,10 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
     /// The `leeway` describes the amount of space around a split that can be
     /// used to grab it.
     ///
+    /// The grabbable area of a split will have a length of `spacing + leeway`,
+    /// properly centered. In other words, a length of
+    /// `(spacing + leeway) / 2.0` on either side of the split line.
+    ///
     /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn on_resize<F>(mut self, leeway: u16, f: F) -> Self
     where
