@@ -88,6 +88,13 @@ where
         self.queued_messages.push(message);
     }
 
+    /// Returns whether the event queue of the [`State`] is empty or not.
+    ///
+    /// [`State`]: struct.State.html
+    pub fn is_queue_empty(&self) -> bool {
+        self.queued_events.is_empty() && self.queued_messages.is_empty()
+    }
+
     /// Processes all the queued events and messages, rebuilding and redrawing
     /// the widgets of the linked [`Program`] if necessary.
     ///
@@ -102,10 +109,6 @@ where
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
-        if self.queued_events.is_empty() && self.queued_messages.is_empty() {
-            return None;
-        }
-
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),

@@ -95,6 +95,10 @@ pub fn run<A, E, C>(
 
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::MainEventsCleared => {
+            if state.is_queue_empty() {
+                return;
+            }
+
             let command = runtime.enter(|| {
                 state.update(
                     clipboard.as_ref().map(|c| c as _),

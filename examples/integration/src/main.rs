@@ -119,16 +119,19 @@ pub fn main() {
                 }
             }
             Event::MainEventsCleared => {
-                // We update iced
-                let _ = state.update(
-                    None,
-                    viewport.logical_size(),
-                    &mut renderer,
-                    &mut debug,
-                );
+                // If there are events pending
+                if !state.is_queue_empty() {
+                    // We update iced
+                    let _ = state.update(
+                        None,
+                        viewport.logical_size(),
+                        &mut renderer,
+                        &mut debug,
+                    );
 
-                // and request a redraw
-                window.request_redraw();
+                    // and request a redraw
+                    window.request_redraw();
+                }
             }
             Event::RedrawRequested(_) => {
                 if resized {
