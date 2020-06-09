@@ -683,6 +683,30 @@ impl State {
     pub fn cursor(&self) -> Cursor {
         self.cursor
     }
+
+    /// Moves the [`Cursor`] of the [`TextInput`] to the front of the input text.
+    ///
+    /// [`Cursor`]: struct.Cursor.html
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn move_cursor_to_front(&mut self) {
+        self.cursor.move_to(0);
+    }
+
+    /// Moves the [`Cursor`] of the [`TextInput`] to the end of the input text.
+    ///
+    /// [`Cursor`]: struct.Cursor.html
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn move_cursor_to_end(&mut self) {
+        self.cursor.move_to(usize::MAX);
+    }
+
+    /// Moves the [`Cursor`] of the [`TextInput`] to an arbitrary location.
+    ///
+    /// [`Cursor`]: struct.Cursor.html
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn move_cursor_to(&mut self, position: usize) {
+        self.cursor.move_to(position);
+    }
 }
 
 // TODO: Reduce allocations
