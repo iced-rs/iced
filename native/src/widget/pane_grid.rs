@@ -29,8 +29,8 @@ pub use state::{Focus, State};
 pub use title_bar::TitleBar;
 
 use crate::{
-    container, keyboard, layout, mouse, row, Clipboard, Element, Event, Hasher,
-    Layout, Length, Point, Rectangle, Size, Widget,
+    container, keyboard, layout, mouse, row, text, Clipboard, Element, Event,
+    Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -86,7 +86,7 @@ use crate::{
 /// [`PaneGrid`]: struct.PaneGrid.html
 /// [`State`]: struct.State.html
 #[allow(missing_debug_implementations)]
-pub struct PaneGrid<'a, Message, Renderer: container::Renderer> {
+pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     state: &'a mut state::Internal,
     pressed_modifiers: &'a mut keyboard::ModifiersState,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
@@ -101,7 +101,7 @@ pub struct PaneGrid<'a, Message, Renderer: container::Renderer> {
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
-    Renderer: container::Renderer,
+    Renderer: self::Renderer,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -646,7 +646,9 @@ where
 ///
 /// [`PaneGrid`]: struct.PaneGrid.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer: crate::Renderer + container::Renderer + Sized {
+pub trait Renderer:
+    crate::Renderer + container::Renderer + text::Renderer + Sized
+{
     /// Draws a [`PaneGrid`].
     ///
     /// It receives:
@@ -694,7 +696,10 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
         defaults: &Self::Defaults,
         bounds: Rectangle,
         style: &Self::Style,
-        title: (&Element<'_, Message, Self>, Layout<'_>),
+        title: &str,
+        title_size: u16,
+        title_font: Self::Font,
+        title_bounds: Rectangle,
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
     ) -> Self::Output;

@@ -6,7 +6,7 @@ use crate::{Clipboard, Element, Event, Hasher, Layout, Point, Size, Vector};
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: struct.Pane.html
-pub struct Content<'a, Message, Renderer: container::Renderer> {
+pub struct Content<'a, Message, Renderer: pane_grid::Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
     body: Element<'a, Message, Renderer>,
     style: Renderer::Style,
@@ -14,7 +14,7 @@ pub struct Content<'a, Message, Renderer: container::Renderer> {
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
-    Renderer: container::Renderer,
+    Renderer: pane_grid::Renderer,
 {
     pub fn new(body: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Self {
@@ -43,7 +43,7 @@ where
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
-    Renderer: pane_grid::Renderer + container::Renderer,
+    Renderer: pane_grid::Renderer,
 {
     pub fn draw(
         &self,

@@ -8,10 +8,15 @@
 //!
 //! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
 //! [`PaneGrid`]: type.PaneGrid.html
-use crate::{Backend, Primitive, Renderer};
+use crate::backend::{self, Backend};
+use crate::{Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::pane_grid;
-use iced_native::{Element, Layout, Point, Rectangle, Vector};
+use iced_native::text;
+use iced_native::{
+    Element, HorizontalAlignment, Layout, Point, Rectangle, Vector,
+    VerticalAlignment,
+};
 
 pub use iced_native::pane_grid::{
     Axis, Configuration, Content, Direction, DragEvent, Focus, KeyPressEvent,
@@ -29,7 +34,7 @@ pub type PaneGrid<'a, Message, Backend> =
 
 impl<B> pane_grid::Renderer for Renderer<B>
 where
-    B: Backend,
+    B: Backend + backend::Text,
 {
     fn draw<Message>(
         &mut self,
@@ -189,17 +194,28 @@ where
         defaults: &Self::Defaults,
         bounds: Rectangle,
         style_sheet: &Self::Style,
-        title: (&Element<'_, Message, Self>, Layout<'_>),
+        title: &str,
+        title_size: u16,
+        title_font: Self::Font,
+        title_bounds: Rectangle,
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
     ) -> Self::Output {
         let style = style_sheet.style();
-        let (title, title_layout) = title;
 
         let background = crate::widget::container::background(bounds, &style);
 
-        let (title_primitive, _) =
-            title.draw(self, defaults, title_layout, cursor_position);
+        let (title_primitive, _) = text::Renderer::draw(
+            self,
+            defaults,
+            title_bounds,
+            title,
+            title_size,
+            title_font,
+            None,
+            HorizontalAlignment::Left,
+            VerticalAlignment::Top,
+        );
 
         if let Some((controls, controls_layout)) = controls {
             let (controls_primitive, controls_interaction) =
