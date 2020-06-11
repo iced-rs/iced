@@ -1,17 +1,28 @@
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::{
-    mouse, Background, Color, Font, HorizontalAlignment, Point, Rectangle,
-    VerticalAlignment,
+    mouse, Font, HorizontalAlignment, Point, Rectangle, VerticalAlignment,
 };
+use iced_style::menu;
 
-pub use iced_native::ComboBox;
+pub use iced_native::combo_box::State;
+pub use iced_style::combo_box::{Style, StyleSheet};
+
+/// A widget allowing the selection of a single value from a list of options.
+pub type ComboBox<'a, T, Message, Backend> =
+    iced_native::ComboBox<'a, T, Message, Renderer<Backend>>;
 
 impl<B> iced_native::combo_box::Renderer for Renderer<B>
 where
     B: Backend + backend::Text,
 {
+    type Style = Box<dyn StyleSheet>;
+
     const DEFAULT_PADDING: u16 = 5;
+
+    fn menu_style(style: &Box<dyn StyleSheet>) -> menu::Style {
+        style.menu()
+    }
 
     fn draw(
         &mut self,
@@ -20,31 +31,34 @@ where
         selected: Option<String>,
         text_size: u16,
         padding: u16,
+        style: &Box<dyn StyleSheet>,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
 
+        let style = if is_mouse_over {
+            style.hovered()
+        } else {
+            style.active()
+        };
+
         let background = Primitive::Quad {
             bounds,
-            background: Background::Color([0.87, 0.87, 0.87].into()),
-            border_color: if is_mouse_over {
-                Color::BLACK
-            } else {
-                [0.7, 0.7, 0.7].into()
-            },
-            border_width: 1,
-            border_radius: 0,
+            background: style.background,
+            border_color: style.border_color,
+            border_width: style.border_width,
+            border_radius: style.border_radius,
         };
 
         let arrow_down = Primitive::Text {
             content: B::ARROW_DOWN_ICON.to_string(),
             font: B::ICON_FONT,
-            size: bounds.height * 0.7,
+            size: bounds.height * style.icon_size,
             bounds: Rectangle {
                 x: bounds.x + bounds.width - f32::from(padding) * 2.0,
                 y: bounds.center_y(),
                 ..bounds
             },
-            color: Color::BLACK,
+            color: style.text_color,
             horizontal_alignment: HorizontalAlignment::Right,
             vertical_alignment: VerticalAlignment::Center,
         };
@@ -56,7 +70,7 @@ where
                         content: label,
                         size: f32::from(text_size),
                         font: Font::Default,
-                        color: Color::BLACK,
+                        color: style.text_color,
                         bounds: Rectangle {
                             x: bounds.x + f32::from(padding),
                             y: bounds.center_y(),

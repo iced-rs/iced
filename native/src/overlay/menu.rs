@@ -10,6 +10,7 @@ pub struct Menu<'a, Message, Renderer: self::Renderer> {
     is_open: &'a mut bool,
     width: u16,
     target_height: f32,
+    style: <Renderer as self::Renderer>::Style,
 }
 
 #[derive(Default)]
@@ -43,6 +44,7 @@ where
         target_height: f32,
         text_size: u16,
         padding: u16,
+        style: <Renderer as self::Renderer>::Style,
     ) -> Self
     where
         T: Clone + ToString,
@@ -55,6 +57,7 @@ where
                 on_selected,
                 text_size,
                 padding,
+                style.clone(),
             )),
         )
         .padding(1);
@@ -64,6 +67,7 @@ where
             is_open: &mut state.is_open,
             width,
             target_height,
+            style,
         }
     }
 }
@@ -156,11 +160,16 @@ where
             self.container
                 .draw(renderer, defaults, layout, cursor_position);
 
-        renderer.decorate(layout.bounds(), cursor_position, primitives)
+        renderer.decorate(
+            layout.bounds(),
+            cursor_position,
+            &self.style,
+            primitives,
+        )
     }
 }
 
-struct List<'a, T, Message>
+struct List<'a, T, Message, Renderer: self::Renderer>
 where
     [T]: ToOwned,
 {
@@ -169,9 +178,10 @@ where
     on_selected: Box<dyn Fn(T) -> Message>,
     text_size: u16,
     padding: u16,
+    style: <Renderer as self::Renderer>::Style,
 }
 
-impl<'a, T, Message> List<'a, T, Message>
+impl<'a, T, Message, Renderer: self::Renderer> List<'a, T, Message, Renderer>
 where
     [T]: ToOwned,
 {
@@ -181,6 +191,7 @@ where
         on_selected: Box<dyn Fn(T) -> Message>,
         text_size: u16,
         padding: u16,
+        style: <Renderer as self::Renderer>::Style,
     ) -> Self {
         List {
             hovered_option,
@@ -188,12 +199,13 @@ where
             on_selected,
             text_size,
             padding,
+            style,
         }
     }
 }
 
-impl<'a, T, Message, Renderer> Widget<'a, Message, Renderer>
-    for List<'a, T, Message>
+impl<'a, T, Message, Renderer: self::Renderer> Widget<'a, Message, Renderer>
+    for List<'a, T, Message, Renderer>
 where
     T: ToString + Clone,
     [T]: ToOwned,
@@ -286,15 +298,19 @@ where
             *self.hovered_option,
             self.text_size,
             self.padding,
+            &self.style,
         )
     }
 }
 
 pub trait Renderer: scrollable::Renderer + container::Renderer {
+    type Style: Default + Clone;
+
     fn decorate(
         &mut self,
         bounds: Rectangle,
         cursor_position: Point,
+        style: &<Self as Renderer>::Style,
         primitive: Self::Output,
     ) -> Self::Output;
 
@@ -306,16 +322,17 @@ pub trait Renderer: scrollable::Renderer + container::Renderer {
         hovered_option: Option<usize>,
         text_size: u16,
         padding: u16,
+        style: &<Self as Renderer>::Style,
     ) -> Self::Output;
 }
 
 impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for List<'a, T, Message>
+    for List<'a, T, Message, Renderer>
 where
     T: ToString + Clone,
     [T]: ToOwned,
     Message: 'static,
-    Renderer: self::Renderer,
+    Renderer: 'a + self::Renderer,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

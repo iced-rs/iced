@@ -6,7 +6,7 @@ use crate::{
 };
 use std::borrow::Cow;
 
-pub struct ComboBox<'a, T, Message>
+pub struct ComboBox<'a, T, Message, Renderer: self::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
 {
@@ -16,6 +16,7 @@ where
     width: Length,
     padding: u16,
     text_size: Option<u16>,
+    style: <Renderer as self::Renderer>::Style,
 }
 
 #[derive(Default)]
@@ -28,7 +29,8 @@ pub struct Internal<'a, T, Message> {
     on_selected: Box<dyn Fn(T) -> Message>,
 }
 
-impl<'a, T: 'a, Message> ComboBox<'a, T, Message>
+impl<'a, T: 'a, Message, Renderer: self::Renderer>
+    ComboBox<'a, T, Message, Renderer>
 where
     T: ToString,
     [T]: ToOwned<Owned = Vec<T>>,
@@ -48,7 +50,8 @@ where
             selected,
             width: Length::Shrink,
             text_size: None,
-            padding: 5,
+            padding: Renderer::DEFAULT_PADDING,
+            style: <Renderer as self::Renderer>::Style::default(),
         }
     }
 
@@ -72,10 +75,21 @@ where
         self.text_size = Some(size);
         self
     }
+
+    /// Sets the style of the [`ComboBox`].
+    ///
+    /// [`ComboBox`]: struct.ComboBox.html
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as self::Renderer>::Style>,
+    ) -> Self {
+        self.style = style.into();
+        self
+    }
 }
 
 impl<'a, T: 'a, Message, Renderer> Widget<'a, Message, Renderer>
-    for ComboBox<'a, T, Message>
+    for ComboBox<'a, T, Message, Renderer>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
@@ -196,6 +210,7 @@ where
             self.selected.as_ref().map(ToString::to_string),
             self.text_size.unwrap_or(renderer.default_size()),
             self.padding,
+            &self.style,
         )
     }
 
@@ -223,6 +238,7 @@ where
                         bounds.height,
                         self.text_size.unwrap_or(20),
                         self.padding,
+                        Renderer::menu_style(&self.style),
                     )),
                 ))
             } else {
@@ -235,7 +251,13 @@ where
 }
 
 pub trait Renderer: text::Renderer + menu::Renderer {
+    type Style: Default;
+
     const DEFAULT_PADDING: u16;
+
+    fn menu_style(
+        style: &<Self as Renderer>::Style,
+    ) -> <Self as menu::Renderer>::Style;
 
     fn draw(
         &mut self,
@@ -244,11 +266,12 @@ pub trait Renderer: text::Renderer + menu::Renderer {
         selected: Option<String>,
         text_size: u16,
         padding: u16,
+        style: &<Self as Renderer>::Style,
     ) -> Self::Output;
 }
 
 impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for ComboBox<'a, T, Message>
+    for ComboBox<'a, T, Message, Renderer>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,

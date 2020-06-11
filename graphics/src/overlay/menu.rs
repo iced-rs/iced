@@ -1,18 +1,23 @@
 use crate::backend::Backend;
 use crate::{Primitive, Renderer};
 use iced_native::{
-    mouse, overlay, Background, Color, Font, HorizontalAlignment, Point,
-    Rectangle, VerticalAlignment,
+    mouse, overlay, Color, Font, HorizontalAlignment, Point, Rectangle,
+    VerticalAlignment,
 };
+
+pub use iced_style::menu::Style;
 
 impl<B> overlay::menu::Renderer for Renderer<B>
 where
     B: Backend,
 {
+    type Style = Style;
+
     fn decorate(
         &mut self,
         bounds: Rectangle,
         _cursor_position: Point,
+        style: &Style,
         (primitives, mouse_cursor): Self::Output,
     ) -> Self::Output {
         (
@@ -20,11 +25,9 @@ where
                 primitives: vec![
                     Primitive::Quad {
                         bounds,
-                        background: Background::Color(
-                            [0.87, 0.87, 0.87].into(),
-                        ),
-                        border_color: [0.7, 0.7, 0.7].into(),
-                        border_width: 1,
+                        background: style.background,
+                        border_color: style.border_color,
+                        border_width: style.border_width,
                         border_radius: 0,
                     },
                     primitives,
@@ -42,6 +45,7 @@ where
         hovered_option: Option<usize>,
         text_size: u16,
         padding: u16,
+        style: &Style,
     ) -> Self::Output {
         use std::f32;
 
@@ -63,7 +67,7 @@ where
             if is_selected {
                 primitives.push(Primitive::Quad {
                     bounds,
-                    background: Background::Color([0.4, 0.4, 1.0].into()),
+                    background: style.selected_background,
                     border_color: Color::TRANSPARENT,
                     border_width: 0,
                     border_radius: 0,
@@ -81,9 +85,9 @@ where
                 size: f32::from(text_size),
                 font: Font::Default,
                 color: if is_selected {
-                    Color::WHITE
+                    style.selected_text_color
                 } else {
-                    Color::BLACK
+                    style.text_color
                 },
                 horizontal_alignment: HorizontalAlignment::Left,
                 vertical_alignment: VerticalAlignment::Center,
