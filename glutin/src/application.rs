@@ -47,6 +47,7 @@ pub fn run<A, E, C>(
 
     let mut title = application.title();
     let mut mode = application.mode();
+    let mut background_color = application.background_color();
 
     let context = {
         let builder = settings.window.into_builder(
@@ -138,6 +139,9 @@ pub fn run<A, E, C>(
 
                     mode = new_mode;
                 }
+
+                // Update background color
+                background_color = program.background_color();
             }
 
             context.window().request_redraw();
@@ -164,6 +168,7 @@ pub fn run<A, E, C>(
             let new_mouse_interaction = compositor.draw(
                 &mut renderer,
                 &viewport,
+                background_color,
                 state.primitive(),
                 &debug.overlay(),
             );

@@ -1,4 +1,6 @@
-use crate::{window, Command, Element, Executor, Settings, Subscription};
+use crate::{
+    window, Color, Command, Element, Executor, Settings, Subscription,
+};
 
 /// An interactive cross-platform application.
 ///
@@ -174,6 +176,16 @@ pub trait Application: Sized {
         window::Mode::Windowed
     }
 
+    /// Returns the background color of the [`Application`].
+    ///
+    /// By default, it returns [`Color::WHITE`].
+    ///
+    /// [`Application`]: trait.Application.html
+    /// [`Color::WHITE`]: struct.Color.html#const.WHITE
+    fn background_color(&self) -> Color {
+        Color::WHITE
+    }
+
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -255,6 +267,10 @@ where
 
     fn subscription(&self) -> Subscription<Self::Message> {
         self.0.subscription()
+    }
+
+    fn background_color(&self) -> Color {
+        self.0.background_color()
     }
 }
 
