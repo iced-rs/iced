@@ -11,7 +11,9 @@ twox-hash = "1.5"
 raw-window-handle = "0.3"
 unicode-segmentation = "1.6"
 winit = "0.22"
-uikit-sys = { path = "../../../rust-ios/uikit-sys/" }
+
+uikit-sys = { git = "https://github.com/simlay/uikit-sys" }
+#uikit-sys = { path = "../../uikit-sys/" }
 
 [dependencies.iced_core]
 version = "0.2"

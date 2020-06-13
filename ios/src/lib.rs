@@ -31,17 +31,18 @@ pub type Runtime<Executor, Receiver, Message> =
 */
 
 #[derive(PartialEq, Clone, Debug)]
-pub enum Event {
+#[allow(non_camel_case_types)]
+pub enum iOSEvent {
 }
 
 pub type Runtime<Executor, Receiver, Message> =
     iced_futures::Runtime<
     std::collections::hash_map::DefaultHasher,
-    Event, Executor, Receiver, Message>;
+    iOSEvent, Executor, Receiver, Message>;
 
 pub type Subscription<T> = iced_futures::Subscription<
     std::collections::hash_map::DefaultHasher,
-    Event,
+    iOSEvent,
     T,
 >;
 
