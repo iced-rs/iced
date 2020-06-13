@@ -36,17 +36,20 @@ use std::{ops::RangeInclusive, rc::Rc};
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, Message> {
+pub struct Slider<'a, T, Message> {
     _state: &'a mut State,
-    range: RangeInclusive<f32>,
-    step: f32,
-    value: f32,
-    on_change: Rc<Box<dyn Fn(f32) -> Message>>,
+    range: RangeInclusive<T>,
+    step: T,
+    value: T,
+    on_change: Rc<Box<dyn Fn(T) -> Message>>,
     width: Length,
     style: Box<dyn StyleSheet>,
 }
 
-impl<'a, Message> Slider<'a, Message> {
+impl<'a, T, Message> Slider<'a, T, Message>
+where
+    T: Copy + From<u8> + std::cmp::PartialOrd,
+{
     /// Creates a new [`Slider`].
     ///
     /// It expects:
@@ -61,18 +64,30 @@ impl<'a, Message> Slider<'a, Message> {
     /// [`State`]: struct.State.html
     pub fn new<F>(
         state: &'a mut State,
-        range: RangeInclusive<f32>,
-        value: f32,
+        range: RangeInclusive<T>,
+        value: T,
         on_change: F,
     ) -> Self
     where
-        F: 'static + Fn(f32) -> Message,
+        F: 'static + Fn(T) -> Message,
     {
+        let value = if value >= *range.start() {
+            value
+        } else {
+            *range.start()
+        };
+
+        let value = if value <= *range.end() {
+            value
+        } else {
+            *range.end()
+        };
+
         Slider {
             _state: state,
-            value: value.max(*range.start()).min(*range.end()),
+            value,
             range,
-            step: 1.0,
+            step: T::from(1),
             on_change: Rc::new(Box::new(on_change)),
             width: Length::Fill,
             style: Default::default(),
@@ -98,14 +113,15 @@ impl<'a, Message> Slider<'a, Message> {
     /// Sets the step size of the [`Slider`].
     ///
     /// [`Slider`]: struct.Slider.html
-    pub fn step(mut self, step: f32) -> Self {
+    pub fn step(mut self, step: T) -> Self {
         self.step = step;
         self
     }
 }
 
-impl<'a, Message> Widget<Message> for Slider<'a, Message>
+impl<'a, T, Message> Widget<Message> for Slider<'a, T, Message>
 where
+    T: 'static + Copy + Into<f64> + num_traits::FromPrimitive,
     Message: 'static,
 {
     fn node<'b>(
@@ -119,10 +135,10 @@ where
 
         let (start, end) = self.range.clone().into_inner();
 
-        let min = bumpalo::format!(in bump, "{}", start);
-        let max = bumpalo::format!(in bump, "{}", end);
-        let value = bumpalo::format!(in bump, "{}", self.value);
-        let step = bumpalo::format!(in bump, "{}", self.step);
+        let min = bumpalo::format!(in bump, "{}", start.into());
+        let max = bumpalo::format!(in bump, "{}", end.into());
+        let value = bumpalo::format!(in bump, "{}", self.value.into());
+        let step = bumpalo::format!(in bump, "{}", self.step.into());
 
         let on_change = self.on_change.clone();
         let event_bus = bus.clone();
@@ -143,19 +159,22 @@ where
                     Some(slider) => slider,
                 };
 
-                if let Ok(value) = slider.value().parse::<f32>() {
-                    event_bus.publish(on_change(value));
+                if let Ok(value) = slider.value().parse::<f64>() {
+                    if let Some(value) = T::from_f64(value) {
+                        event_bus.publish(on_change(value));
+                    }
                 }
             })
             .finish()
     }
 }
 
-impl<'a, Message> From<Slider<'a, Message>> for Element<'a, Message>
+impl<'a, T, Message> From<Slider<'a, T, Message>> for Element<'a, Message>
 where
+    T: 'static + Copy + Into<f64> + num_traits::FromPrimitive,
     Message: 'static,
 {
-    fn from(slider: Slider<'a, Message>) -> Element<'a, Message> {
+    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message> {
         Element::new(slider)
     }
 }
