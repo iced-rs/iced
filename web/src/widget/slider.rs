@@ -16,7 +16,8 @@ use std::{ops::RangeInclusive, rc::Rc};
 ///
 /// A [`Slider`] will try to fill the horizontal space of its container.
 ///
-/// The step size defaults to 1.0.
+/// The [`Slider`] range of numeric values is generic and its step size defaults
+/// to 1 unit.
 ///
 /// [`Slider`]: struct.Slider.html
 ///
