@@ -16,6 +16,8 @@ use std::{ops::RangeInclusive, rc::Rc};
 ///
 /// A [`Slider`] will try to fill the horizontal space of its container.
 ///
+/// The step size defaults to 1.0.
+///
 /// [`Slider`]: struct.Slider.html
 ///
 /// # Example
@@ -37,6 +39,7 @@ use std::{ops::RangeInclusive, rc::Rc};
 pub struct Slider<'a, Message> {
     _state: &'a mut State,
     range: RangeInclusive<f32>,
+    step: f32,
     value: f32,
     on_change: Rc<Box<dyn Fn(f32) -> Message>>,
     width: Length,
@@ -69,6 +72,7 @@ impl<'a, Message> Slider<'a, Message> {
             _state: state,
             value: value.max(*range.start()).min(*range.end()),
             range,
+            step: 1.0,
             on_change: Rc::new(Box::new(on_change)),
             width: Length::Fill,
             style: Default::default(),
@@ -88,6 +92,14 @@ impl<'a, Message> Slider<'a, Message> {
     /// [`Slider`]: struct.Slider.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style = style.into();
+        self
+    }
+
+    /// Sets the step size of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn step(mut self, step: f32) -> Self {
+        self.step = step;
         self
     }
 }
@@ -110,15 +122,15 @@ where
         let min = bumpalo::format!(in bump, "{}", start);
         let max = bumpalo::format!(in bump, "{}", end);
         let value = bumpalo::format!(in bump, "{}", self.value);
+        let step = bumpalo::format!(in bump, "{}", self.step);
 
         let on_change = self.on_change.clone();
         let event_bus = bus.clone();
 
-        // TODO: Make `step` configurable
         // TODO: Styling
         input(bump)
             .attr("type", "range")
-            .attr("step", "0.01")
+            .attr("step", step.into_bump_str())
             .attr("min", min.into_bump_str())
             .attr("max", max.into_bump_str())
             .attr("value", value.into_bump_str())
