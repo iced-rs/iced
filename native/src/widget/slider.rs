@@ -198,9 +198,9 @@ where
             } else if cursor_position.x >= bounds.x + bounds.width {
                 messages.push((self.on_change)(*self.range.end()));
             } else {
-                let step: f64 = self.step.into();
-                let start: f64 = (*self.range.start()).into();
-                let end: f64 = (*self.range.end()).into();
+                let step = self.step.into();
+                let start = (*self.range.start()).into();
+                let end = (*self.range.end()).into();
 
                 let percent = f64::from(cursor_position.x - bounds.x)
                     / f64::from(bounds.width);
