@@ -1,4 +1,4 @@
-use crate::Viewport;
+use crate::{Color, Viewport};
 use iced_native::mouse;
 use raw_window_handle::HasRawWindowHandle;
 
@@ -49,6 +49,7 @@ pub trait Compositor: Sized {
         renderer: &mut Self::Renderer,
         swap_chain: &mut Self::SwapChain,
         viewport: &Viewport,
+        background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction;

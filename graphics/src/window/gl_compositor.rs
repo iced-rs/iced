@@ -1,4 +1,4 @@
-use crate::{Size, Viewport};
+use crate::{Color, Size, Viewport};
 use iced_native::mouse;
 
 use core::ffi::c_void;
@@ -61,6 +61,7 @@ pub trait GLCompositor: Sized {
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
+        background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction;

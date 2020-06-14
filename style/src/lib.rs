@@ -2,6 +2,8 @@
 //!
 //! It contains a set of styles and stylesheets for most of the built-in
 //! widgets.
+pub use iced_core::{Background, Color};
+
 pub mod button;
 pub mod checkbox;
 pub mod container;

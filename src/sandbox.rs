@@ -1,4 +1,6 @@
-use crate::{executor, Application, Command, Element, Settings, Subscription};
+use crate::{
+    executor, Application, Color, Command, Element, Settings, Subscription,
+};
 
 /// A sandboxed [`Application`].
 ///
@@ -124,6 +126,16 @@ pub trait Sandbox {
     /// [`Sandbox`]: trait.Sandbox.html
     fn view(&mut self) -> Element<'_, Self::Message>;
 
+    /// Returns the background color of the [`Sandbox`].
+    ///
+    /// By default, it returns [`Color::WHITE`].
+    ///
+    /// [`Application`]: trait.Application.html
+    /// [`Color::WHITE`]: struct.Color.html#const.WHITE
+    fn background_color(&self) -> Color {
+        Color::WHITE
+    }
+
     /// Runs the [`Sandbox`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -168,5 +180,9 @@ where
 
     fn view(&mut self) -> Element<'_, T::Message> {
         T::view(self)
+    }
+
+    fn background_color(&self) -> Color {
+        T::background_color(self)
     }
 }
