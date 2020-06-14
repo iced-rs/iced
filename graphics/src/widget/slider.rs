@@ -16,8 +16,8 @@ pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 /// values.
 ///
 /// This is an alias of an `iced_native` slider with an `iced_wgpu::Renderer`.
-pub type Slider<'a, Message, Backend> =
-    iced_native::Slider<'a, Message, Renderer<Backend>>;
+pub type Slider<'a, T, Message, Backend> =
+    iced_native::Slider<'a, T, Message, Renderer<Backend>>;
 
 const HANDLE_HEIGHT: f32 = 22.0;
 
