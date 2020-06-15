@@ -8,9 +8,9 @@ edition = "2018"
 
 [dependencies]
 twox-hash = "1.5"
-raw-window-handle = "0.3"
-unicode-segmentation = "1.6"
-winit = "0.22"
+raw-window-handle = "^0.3"
+winit = "^0.22"
+objc = "*"
 
 uikit-sys = { git = "https://github.com/simlay/uikit-sys" }
 #uikit-sys = { path = "../../uikit-sys/" }

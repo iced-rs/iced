@@ -101,6 +101,9 @@ pub trait Application: Sized {
     {
 
         let event_loop : EventLoop<iOSEvent> = EventLoop::with_user_event();
+        unsafe {
+            PROXY = Some(event_loop.create_proxy());
+        }
         let mut runtime = {
             let executor = Self::Executor::new().expect("Create executor");
 
@@ -161,3 +164,59 @@ pub trait Application: Sized {
         })
     }
 }
+
+use objc::{
+    declare::ClassDecl,
+    runtime::{
+        Object,
+        Class,
+        Sel,
+    },
+};
+
+static mut PROXY : Option<EventLoopProxy<iOSEvent>> = None;
+#[repr(transparent)]
+struct EventHandler(pub id);
+impl EventHandler {
+    fn new(node_id: i32) -> Self
+    {
+        let obj = unsafe {
+            let obj: id = objc::msg_send![Self::class(), alloc];
+            let obj: id = objc::msg_send![obj, init];
+            (*obj).set_ivar::<i32>("node_id", node_id);
+            obj
+        };
+        Self(obj)
+    }
+    extern "C" fn event(this: &Object, _cmd: objc::runtime::Sel)
+    {
+        unsafe {
+            if let Some(ref proxy) = PROXY {
+                let node_id = *this.get_ivar::<i32>("node_id");
+                let _ = proxy.send_event(iOSEvent::Test);
+            }
+        }
+    }
+
+    fn class() -> &'static Class
+    {
+        let cls_name = "RustEventHandler";
+        match Class::get(cls_name) {
+            Some(cls) => cls,
+            None => {
+                let superclass = objc::class!(NSObject);
+                let mut decl = ClassDecl::new(cls_name, superclass).unwrap();
+                unsafe {
+                    decl.add_method(
+                        objc::sel!(sendEvent),
+                        Self::event as extern "C" fn(&Object, Sel),
+                    );
+                }
+                decl.add_ivar::<i32>("node_id");
+                decl.register()
+            }
+        }
+    }
+}
+
+

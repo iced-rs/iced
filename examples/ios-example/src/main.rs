@@ -7,6 +7,7 @@ use iced::{
     Command,
     executor,
     Element,
+    Text,
     Container,
     Checkbox,
 };
@@ -44,11 +45,15 @@ impl Application for Simple {
     }
 
     fn view(&mut self) -> Element<Message> {
+        /*
         let toggle = Checkbox::new(
             self.enabled,
             "Listen to runtime events",
             Message::Toggled,
         );
         toggle.into()
+        */
+        let text = Text::new("foobar");
+        text.into()
     }
 }

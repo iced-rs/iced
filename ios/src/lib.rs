@@ -1,3 +1,4 @@
+#[macro_use] extern crate objc;
 pub use iced_futures::{executor, futures, Command};
 
 #[doc(no_inline)]
@@ -7,7 +8,7 @@ pub mod widget;
 pub mod keyboard;
 pub mod mouse;
 pub use widget::{
-    Element, Widget,
+    Element, Widget, Text,
 };
 mod proxy;
 mod bus;
@@ -15,6 +16,7 @@ use proxy::Proxy;
 mod layout;
 pub use layout::Layout;
 pub use application::Application;
+
 /*
 //! Run commands and subscriptions.
 use crate::{Event, Hasher};
@@ -33,6 +35,7 @@ pub type Runtime<Executor, Receiver, Message> =
 #[derive(PartialEq, Clone, Debug)]
 #[allow(non_camel_case_types)]
 pub enum iOSEvent {
+    Test,
 }
 
 pub type Runtime<Executor, Receiver, Message> =

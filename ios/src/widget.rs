@@ -3,9 +3,11 @@ use crate::{
 };
 pub mod container;
 pub mod checkbox;
+pub mod text;
 
 pub use container::Container;
 pub use checkbox::Checkbox;
+pub use text::Text;
 pub trait Widget<Message> {
     fn draw(
         &self,
