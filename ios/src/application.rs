@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 use crate::{Runtime, Command, Element, Executor, Proxy, Subscription, iOSEvent};
+=======
+use crate::{Runtime, Command, Element, Executor, Proxy, Subscription, Event as IphoneEvent};
+>>>>>>> 781da4d53cd84f58dab486eff1bf4f46fdf3347c
 use winit::{
     event::{self, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
@@ -100,10 +104,14 @@ pub trait Application: Sized {
         Self: 'static + Sized,
     {
 
+<<<<<<< HEAD
         let event_loop : EventLoop<iOSEvent> = EventLoop::with_user_event();
         unsafe {
             PROXY = Some(event_loop.create_proxy());
         }
+=======
+        let event_loop : EventLoop<IphoneEvent> = EventLoop::with_user_event();
+>>>>>>> 781da4d53cd84f58dab486eff1bf4f46fdf3347c
         let mut runtime = {
             let executor = Self::Executor::new().expect("Create executor");
 
@@ -218,5 +226,4 @@ impl EventHandler {
         }
     }
 }
-
 

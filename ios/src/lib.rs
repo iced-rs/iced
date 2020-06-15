@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 #[macro_use] extern crate objc;
+=======
+>>>>>>> 781da4d53cd84f58dab486eff1bf4f46fdf3347c
 pub use iced_futures::{executor, futures, Command};
 
 #[doc(no_inline)]
@@ -16,7 +19,6 @@ use proxy::Proxy;
 mod layout;
 pub use layout::Layout;
 pub use application::Application;
-
 /*
 //! Run commands and subscriptions.
 use crate::{Event, Hasher};
@@ -46,6 +48,7 @@ pub type Runtime<Executor, Receiver, Message> =
 pub type Subscription<T> = iced_futures::Subscription<
     std::collections::hash_map::DefaultHasher,
     iOSEvent,
+    Event, Executor, Receiver, Message>;
     T,
 >;
 
