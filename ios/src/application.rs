@@ -1,14 +1,11 @@
-<<<<<<< HEAD
 use crate::{Runtime, Command, Element, Executor, Proxy, Subscription, iOSEvent};
-=======
-use crate::{Runtime, Command, Element, Executor, Proxy, Subscription, Event as IphoneEvent};
->>>>>>> 781da4d53cd84f58dab486eff1bf4f46fdf3347c
 use winit::{
     event::{self, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
     platform::ios::{EventLoopExtIOS, WindowBuilderExtIOS, WindowExtIOS},
     window::WindowBuilder,
 };
+use std::borrow::BorrowMut;
 use uikit_sys::{
     self,
     //CGRect,
@@ -103,22 +100,15 @@ pub trait Application: Sized {
     where
         Self: 'static + Sized,
     {
-
-<<<<<<< HEAD
         let event_loop : EventLoop<iOSEvent> = EventLoop::with_user_event();
-        unsafe {
-            PROXY = Some(event_loop.create_proxy());
-        }
-=======
-        let event_loop : EventLoop<IphoneEvent> = EventLoop::with_user_event();
->>>>>>> 781da4d53cd84f58dab486eff1bf4f46fdf3347c
+        EventHandler::init(event_loop.create_proxy());
         let mut runtime = {
             let executor = Self::Executor::new().expect("Create executor");
 
             Runtime::new(executor, Proxy::new(event_loop.create_proxy()))
         };
 
-        let (app, command) = runtime.enter(|| Self::new(flags));
+        let (mut app, command) = runtime.enter(|| Self::new(flags));
 
         let title = app.title();
 
@@ -144,30 +134,35 @@ pub trait Application: Sized {
 
         let root_view: UIView = UIView(window.ui_view() as id);
         unsafe {
-            let color = UIColor::alloc();
-            let background = UIColor(
-                color.initWithRed_green_blue_alpha_(0.1, 1.0, 2.0, 2.0),
-            );
+            let background = UIColor(UIColor::greenColor());
+            //let background = UIColor(UIColor::whiteColor());
             root_view.setBackgroundColor_(background.0);
         }
-        //let root_view: UIView = UIView(window.ui_view() as id);
-        //add_views(root_view);
 
-        event_loop.run(move |event: winit::event::Event<iOSEvent>, _, control_flow| match event {
-            event::Event::MainEventsCleared => {
-                window.request_redraw();
-            }
-            event::Event::UserEvent(_message) => {
-                //external_messages.push(message);
-            }
-            event::Event::RedrawRequested(_) => {}
-            event::Event::WindowEvent {
-                event: _window_event,
-                ..
-            } => {
-            }
-            _ => {
-                *control_flow = ControlFlow::Wait;
+        event_loop.run(move |event: winit::event::Event<iOSEvent>, _, control_flow| {
+            crate::ios_log(format!("NEW EVENT: {:?}", event));
+            match event {
+                event::Event::MainEventsCleared => {
+                    window.request_redraw();
+                }
+                event::Event::UserEvent(message) => {
+                    println!("GOT NEW USER EVENT: {:?}", message);
+                    //external_messages.push(message);
+                }
+                event::Event::RedrawRequested(_) => {}
+                event::Event::WindowEvent {
+                    event: _window_event,
+                    ..
+                } => {
+                }
+                event::Event::NewEvents(event::StartCause::Init) => {
+                    let root_view: UIView = UIView(window.ui_view() as id);
+                    let element = app.borrow_mut().view();
+                    element.widget.draw(root_view);
+                }
+                _ => {
+                    *control_flow = ControlFlow::Wait;
+                }
             }
         })
     }
@@ -182,10 +177,15 @@ use objc::{
     },
 };
 
-static mut PROXY : Option<EventLoopProxy<iOSEvent>> = None;
 #[repr(transparent)]
 struct EventHandler(pub id);
+static mut PROXY : Option<EventLoopProxy<iOSEvent>> = None;
 impl EventHandler {
+    fn init(proxy: EventLoopProxy<iOSEvent>) {
+        unsafe {
+            PROXY = Some(proxy);
+        }
+    }
     fn new(node_id: i32) -> Self
     {
         let obj = unsafe {

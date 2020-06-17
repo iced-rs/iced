@@ -2,13 +2,16 @@ use iced::{
     //button, scrollable, slider, text_input, Button, Checkbox, Color, Column,
     //Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
     //Sandbox, //Scrollable, Settings, Slider, Space, Text, TextInput,
-    Application,
+    Sandbox,
     Settings,
     Command,
     executor,
     Element,
     Text,
+    TextInput,
+    text_input,
     Container,
+    Color,
     Checkbox,
 };
 pub fn main() {
@@ -20,28 +23,27 @@ pub fn main() {
 #[derive(Debug, Default)]
 pub struct Simple {
     enabled: bool,
+    text_state: text_input::State,
 }
 #[derive(Debug, Clone)]
 pub enum Message {
     //EventOccurred(iced_native::Event),
     Toggled(bool),
+    TextUpdated(String),
 }
 
-impl Application for Simple {
-    type Executor = executor::Default;
+impl Sandbox for Simple {
     type Message = Message;
-    type Flags = ();
 
-    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        (Self::default(), Command::none())
+    fn new() -> Self {
+        Self::default()
     }
 
     fn title(&self) -> String {
         String::from("Events - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
-        Command::none()
+    fn update(&mut self, _message: Message) {
     }
 
     fn view(&mut self) -> Element<Message> {
@@ -52,8 +54,17 @@ impl Application for Simple {
             Message::Toggled,
         );
         toggle.into()
-        */
-        let text = Text::new("foobar");
+
+        let text = Text::new("foobar").color(Color::BLACK);
         text.into()
+        */
+
+        let text_field = TextInput::new(
+            &mut self.text_state,
+            "",
+            "",
+            |s| { Message::TextUpdated(s) }
+        );
+        text_field.into()
     }
 }

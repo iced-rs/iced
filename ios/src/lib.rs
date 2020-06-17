@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 #[macro_use] extern crate objc;
-=======
->>>>>>> 781da4d53cd84f58dab486eff1bf4f46fdf3347c
 pub use iced_futures::{executor, futures, Command};
 
 #[doc(no_inline)]
@@ -11,10 +8,9 @@ pub mod widget;
 pub mod keyboard;
 pub mod mouse;
 pub use widget::{
-    Element, Widget, Text,
+    Element, Widget, Text, TextInput
 };
 mod proxy;
-mod bus;
 use proxy::Proxy;
 mod layout;
 pub use layout::Layout;
@@ -48,7 +44,6 @@ pub type Runtime<Executor, Receiver, Message> =
 pub type Subscription<T> = iced_futures::Subscription<
     std::collections::hash_map::DefaultHasher,
     iOSEvent,
-    Event, Executor, Receiver, Message>;
     T,
 >;
 
@@ -56,3 +51,26 @@ pub use iced_core::{
     Align, Background, Color, Font, HorizontalAlignment, Length, Point,
     Rectangle, Size, Vector, VerticalAlignment,
 };
+
+pub fn ios_log(s: String) {
+    use uikit_sys::{
+        NSLog,
+        NSString,
+        NSString_NSStringExtensionMethods,
+    };
+    use std::convert::TryInto;
+    use std::ffi::CString;
+    unsafe {
+        let text = NSString(
+            NSString::alloc().initWithBytes_length_encoding_(
+                CString::new(s.as_str())
+                .expect("CString::new failed")
+                .as_ptr() as *mut std::ffi::c_void,
+                s.len().try_into().unwrap(),
+                uikit_sys::NSUTF8StringEncoding,
+            ),
+        );
+        NSLog(text.0);
+    }
+
+}

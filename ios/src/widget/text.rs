@@ -1,8 +1,12 @@
-
 use crate::{
-//    css, Bus, Color, Css,
-    Element, Font, HorizontalAlignment, Length, Color,
-    VerticalAlignment, Widget,
+    Color,
+    //    css, Bus, Color, Css,
+    Element,
+    Font,
+    HorizontalAlignment,
+    Length,
+    VerticalAlignment,
+    Widget,
 };
 
 /// A paragraph of text.
@@ -107,8 +111,53 @@ impl Text {
         self
     }
 }
+use std::convert::TryInto;
+use std::ffi::CString;
+use uikit_sys::{
+    CGPoint, CGRect, CGSize, INSObject, IUIColor, IUILabel,
+    NSString, NSString_NSStringExtensionMethods, UIColor, UILabel, UIView,
+    UIView_UIViewGeometry, UIView_UIViewHierarchy,
+};
 
 impl<'a, Message> Widget<Message> for Text {
+    fn draw(&self, parent: UIView) {
+        unsafe {
+            let label = UILabel::alloc();
+            let text = NSString(
+                NSString::alloc().initWithBytes_length_encoding_(
+                    CString::new(self.content.as_str())
+                        .expect("CString::new failed")
+                        .as_ptr() as *mut std::ffi::c_void,
+                    self.content.len().try_into().unwrap(),
+                    uikit_sys::NSUTF8StringEncoding,
+                ),
+            );
+            label.init();
+            label.setText_(text.0);
+            let rect = CGRect {
+                origin: CGPoint { x: 0.0, y: 0.0 },
+                size: CGSize {
+                    height: 20.0,
+                    width: 500.0,
+                },
+            };
+            label.setAdjustsFontSizeToFitWidth_(true);
+            label.setMinimumScaleFactor_(100.0);
+            label.setFrame_(rect);
+            if let Some(color) = self.color {
+                let background =
+                    UIColor(UIColor::alloc().initWithRed_green_blue_alpha_(
+                        color.r.into(),
+                        color.g.into(),
+                        color.b.into(),
+                        color.a.into(),
+                    ));
+                label.setTextColor_(background.0)
+            }
+            label.setFrame_(rect);
+            parent.addSubview_(label.0);
+        };
+    }
 }
 
 impl<'a, Message> From<Text> for Element<'a, Message> {

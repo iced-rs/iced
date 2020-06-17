@@ -4,14 +4,18 @@ use crate::{
 pub mod container;
 pub mod checkbox;
 pub mod text;
+pub mod text_input;
 
 pub use container::Container;
 pub use checkbox::Checkbox;
 pub use text::Text;
+pub use text_input::TextInput;
+use uikit_sys::UIView;
+
 pub trait Widget<Message> {
     fn draw(
         &self,
-        _layout: Layout<'_>,
+        _parent: UIView,
     ) {
     }
 }

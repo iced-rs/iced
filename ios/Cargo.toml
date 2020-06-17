@@ -18,6 +18,10 @@ uikit-sys = { git = "https://github.com/simlay/uikit-sys" }
 version = "0.2"
 path = "../core"
 
+[dependencies.iced_style]
+version = "0.1"
+path = "../style"
+
 [dependencies.iced_futures]
 version = "0.1"
 path = "../futures"
