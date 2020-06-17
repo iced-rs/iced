@@ -201,7 +201,7 @@ impl EventHandler {
         unsafe {
             if let Some(ref proxy) = PROXY {
                 let node_id = *this.get_ivar::<i32>("node_id");
-                let _ = proxy.send_event(iOSEvent::Test);
+                let _ = proxy.send_event(iOSEvent::TextInput);
             }
         }
     }

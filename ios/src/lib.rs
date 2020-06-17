@@ -33,7 +33,7 @@ pub type Runtime<Executor, Receiver, Message> =
 #[derive(PartialEq, Clone, Debug)]
 #[allow(non_camel_case_types)]
 pub enum iOSEvent {
-    Test,
+    TextInput,
 }
 
 pub type Runtime<Executor, Receiver, Message> =
