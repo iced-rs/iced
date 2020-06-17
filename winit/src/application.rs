@@ -1,6 +1,6 @@
 //! Create interactive, native cross-platform applications.
 use crate::{
-    conversion, mouse, Clipboard, Command, Debug, Executor, Mode, Proxy,
+    conversion, mouse, Clipboard, Color, Command, Debug, Executor, Mode, Proxy,
     Runtime, Settings, Size, Subscription,
 };
 use iced_graphics::window;
@@ -73,6 +73,17 @@ pub trait Application: Program {
     fn mode(&self) -> Mode {
         Mode::Windowed
     }
+
+    /// Returns the background [`Color`] of the [`Application`].
+    ///
+    /// By default, it returns [`Color::WHITE`].
+    ///
+    /// [`Color`]: struct.Color.html
+    /// [`Application`]: trait.Application.html
+    /// [`Color::WHITE`]: struct.Color.html#const.WHITE
+    fn background_color(&self) -> Color {
+        Color::WHITE
+    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -112,6 +123,7 @@ pub fn run<A, E, C>(
 
     let mut title = application.title();
     let mut mode = application.mode();
+    let mut background_color = application.background_color();
 
     let window = settings
         .window
@@ -193,6 +205,9 @@ pub fn run<A, E, C>(
 
                     mode = new_mode;
                 }
+
+                // Update background color
+                background_color = program.background_color();
             }
 
             window.request_redraw();
@@ -219,6 +234,7 @@ pub fn run<A, E, C>(
                 &mut renderer,
                 &mut swap_chain,
                 &viewport,
+                background_color,
                 state.primitive(),
                 &debug.overlay(),
             );
