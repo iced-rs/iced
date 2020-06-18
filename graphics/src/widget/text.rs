@@ -20,7 +20,9 @@ where
 {
     type Font = Font;
 
-    const DEFAULT_SIZE: u16 = 20;
+    fn default_size(&self) -> u16 {
+        self.backend().default_size()
+    }
 
     fn measure(
         &self,

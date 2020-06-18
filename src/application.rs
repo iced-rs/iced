@@ -202,6 +202,7 @@ pub trait Application: Sized {
         {
             let renderer_settings = crate::renderer::Settings {
                 default_font: settings.default_font,
+                default_text_size: settings.default_text_size,
                 antialiasing: if settings.antialiasing {
                     Some(crate::renderer::settings::Antialiasing::MSAAx4)
                 } else {
