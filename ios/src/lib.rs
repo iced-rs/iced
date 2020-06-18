@@ -4,12 +4,14 @@ pub use iced_futures::{executor, futures, Command};
 #[doc(no_inline)]
 pub use executor::Executor;
 mod application;
+mod event;
 pub mod widget;
 pub mod keyboard;
 pub mod mouse;
 pub use widget::{
     Element, Widget, Text, TextInput
 };
+use event::WidgetEvent;
 mod proxy;
 use proxy::Proxy;
 mod layout;
@@ -30,20 +32,14 @@ pub type Runtime<Executor, Receiver, Message> =
     iced_futures::Runtime<Hasher, Event, Executor, Receiver, Message>;
 */
 
-#[derive(PartialEq, Clone, Debug)]
-#[allow(non_camel_case_types)]
-pub enum iOSEvent {
-    TextInput,
-}
-
 pub type Runtime<Executor, Receiver, Message> =
     iced_futures::Runtime<
     std::collections::hash_map::DefaultHasher,
-    iOSEvent, Executor, Receiver, Message>;
+    WidgetEvent, Executor, Receiver, Message>;
 
 pub type Subscription<T> = iced_futures::Subscription<
     std::collections::hash_map::DefaultHasher,
-    iOSEvent,
+    WidgetEvent,
     T,
 >;
 

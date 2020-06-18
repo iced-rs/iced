@@ -1,5 +1,6 @@
 use crate::{
     Layout,
+    event::WidgetEvent,
 };
 pub mod container;
 pub mod checkbox;
@@ -34,5 +35,14 @@ impl<'a, Message> Element<'a, Message> {
             widget: Box::new(widget),
         }
     }
+    fn on_event(
+        &mut self,
+        _event: WidgetEvent,
+        _layout: Layout<'_>,
+        //_cursor_position: Point,
+        _messages: &mut Vec<Message>,
+        //_renderer: &Renderer,
+        //_clipboard: Option<&dyn Clipboard>,
+    ) {
+    }
 }
-

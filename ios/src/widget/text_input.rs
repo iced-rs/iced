@@ -5,7 +5,7 @@
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
-use crate::{Element, Length, Widget};
+use crate::{Element, Length, Widget, event::EventHandler};
 
 pub use iced_style::text_input::{Style, StyleSheet};
 
@@ -155,6 +155,7 @@ where
         use uikit_sys::{
             UITextView,
             IUITextView,
+            IUIControl,
         };
         let input_rect = CGRect {
             origin: CGPoint {
@@ -166,6 +167,7 @@ where
                 height: 200.0,
             }
         };
+        let on_change = EventHandler::new();
         unsafe {
             let input = {
                 let foo = UITextView(
@@ -175,6 +177,14 @@ where
                     ));
                 foo
             };
+            /*
+
+            input.addTarget_action_forControlEvents_(
+                on_change.id,
+                sel!(sendEvent),
+                uikit_sys::UIControlEvents_UIControlEventValueChanged,
+            );
+            */
             parent.addSubview_(input.0);
         }
         /*

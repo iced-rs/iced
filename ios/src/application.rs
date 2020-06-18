@@ -1,4 +1,4 @@
-use crate::{Runtime, Command, Element, Executor, Proxy, Subscription, iOSEvent};
+use crate::{Runtime, Command, Element, Executor, Proxy, Subscription, event::{EventHandler, WidgetEvent}};
 use winit::{
     event::{self, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopProxy},
@@ -100,7 +100,7 @@ pub trait Application: Sized {
     where
         Self: 'static + Sized,
     {
-        let event_loop : EventLoop<iOSEvent> = EventLoop::with_user_event();
+        let event_loop : EventLoop<WidgetEvent> = EventLoop::with_user_event();
         EventHandler::init(event_loop.create_proxy());
         let mut runtime = {
             let executor = Self::Executor::new().expect("Create executor");
@@ -139,7 +139,7 @@ pub trait Application: Sized {
             root_view.setBackgroundColor_(background.0);
         }
 
-        event_loop.run(move |event: winit::event::Event<iOSEvent>, _, control_flow| {
+        event_loop.run(move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
             crate::ios_log(format!("NEW EVENT: {:?}", event));
             match event {
                 event::Event::MainEventsCleared => {
@@ -167,63 +167,3 @@ pub trait Application: Sized {
         })
     }
 }
-
-use objc::{
-    declare::ClassDecl,
-    runtime::{
-        Object,
-        Class,
-        Sel,
-    },
-};
-
-#[repr(transparent)]
-struct EventHandler(pub id);
-static mut PROXY : Option<EventLoopProxy<iOSEvent>> = None;
-impl EventHandler {
-    fn init(proxy: EventLoopProxy<iOSEvent>) {
-        unsafe {
-            PROXY = Some(proxy);
-        }
-    }
-    fn new(node_id: i32) -> Self
-    {
-        let obj = unsafe {
-            let obj: id = objc::msg_send![Self::class(), alloc];
-            let obj: id = objc::msg_send![obj, init];
-            (*obj).set_ivar::<i32>("node_id", node_id);
-            obj
-        };
-        Self(obj)
-    }
-    extern "C" fn event(this: &Object, _cmd: objc::runtime::Sel)
-    {
-        unsafe {
-            if let Some(ref proxy) = PROXY {
-                let node_id = *this.get_ivar::<i32>("node_id");
-                let _ = proxy.send_event(iOSEvent::TextInput);
-            }
-        }
-    }
-
-    fn class() -> &'static Class
-    {
-        let cls_name = "RustEventHandler";
-        match Class::get(cls_name) {
-            Some(cls) => cls,
-            None => {
-                let superclass = objc::class!(NSObject);
-                let mut decl = ClassDecl::new(cls_name, superclass).unwrap();
-                unsafe {
-                    decl.add_method(
-                        objc::sel!(sendEvent),
-                        Self::event as extern "C" fn(&Object, Sel),
-                    );
-                }
-                decl.add_ivar::<i32>("node_id");
-                decl.register()
-            }
-        }
-    }
-}
-
