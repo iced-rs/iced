@@ -136,6 +136,19 @@ impl Color {
     pub fn inverse(self) -> Color {
         Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
     }
+
+    /// Mixes [`Color`] with another one, using `amount` 0.0 - 0.1
+    ///
+    /// [`Color`]: struct.Color.html
+    pub fn mix(&self, other: &Color, mut amount: f32) -> Color {
+        amount = amount.min(1.0).max(0.0);
+        Color {
+            r: self.r + (other.r - self.r) * amount,
+            g: self.g + (other.g - self.g) * amount,
+            b: self.b + (other.b - self.b) * amount,
+            a: self.a + (other.a - self.a) * amount,
+        }
+    }
 }
 
 impl From<[f32; 3]> for Color {
@@ -228,6 +241,15 @@ mod tests {
                 b: 0.3,
                 a: 1.0
             }
+        );
+
+        assert_eq!(
+            Color::from_rgb(0.5, 0.5, 0.5),
+            Color::BLACK.mix(&Color::WHITE, 0.5)
+        );
+        assert_eq!(
+            Color::from_rgb(0.75, 0.25, 0.0),
+            Color::from_rgb(1.0, 0.0, 0.0).mix(&Color::from_rgb(0.5, 0.5, 0.0), 0.5)
         );
     }
 }
