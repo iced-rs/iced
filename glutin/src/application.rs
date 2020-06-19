@@ -48,6 +48,7 @@ pub fn run<A, E, C>(
     let mut title = application.title();
     let mut mode = application.mode();
     let mut background_color = application.background_color();
+    let mut scale_factor = application.scale_factor();
 
     let context = {
         let builder = settings.window.into_builder(
@@ -75,7 +76,7 @@ pub fn run<A, E, C>(
     let physical_size = context.window().inner_size();
     let mut viewport = Viewport::with_physical_size(
         Size::new(physical_size.width, physical_size.height),
-        context.window().scale_factor(),
+        context.window().scale_factor() * scale_factor,
     );
     let mut resized = false;
 
@@ -142,6 +143,20 @@ pub fn run<A, E, C>(
 
                 // Update background color
                 background_color = program.background_color();
+
+                // Update scale factor
+                let new_scale_factor = program.scale_factor();
+
+                if scale_factor != new_scale_factor {
+                    let size = context.window().inner_size();
+
+                    viewport = Viewport::with_physical_size(
+                        Size::new(size.width, size.height),
+                        context.window().scale_factor() * new_scale_factor,
+                    );
+
+                    scale_factor = new_scale_factor;
+                }
             }
 
             context.window().request_redraw();
@@ -195,6 +210,7 @@ pub fn run<A, E, C>(
             application::handle_window_event(
                 &window_event,
                 context.window(),
+                scale_factor,
                 control_flow,
                 &mut modifiers,
                 &mut viewport,

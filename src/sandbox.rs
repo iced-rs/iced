@@ -130,10 +130,25 @@ pub trait Sandbox {
     ///
     /// By default, it returns [`Color::WHITE`].
     ///
-    /// [`Application`]: trait.Application.html
+    /// [`Sandbox`]: trait.Sandbox.html
     /// [`Color::WHITE`]: struct.Color.html#const.WHITE
     fn background_color(&self) -> Color {
         Color::WHITE
+    }
+
+    /// Returns the scale factor of the [`Sandbox`].
+    ///
+    /// It can be used to dynamically control the size of the UI at runtime
+    /// (i.e. zooming).
+    ///
+    /// For instance, a scale factor of `2.0` will make widgets twice as big,
+    /// while a scale factor of `0.5` will shrink them to half their size.
+    ///
+    /// By default, it returns `1.0`.
+    ///
+    /// [`Sandbox`]: trait.Sandbox.html
+    fn scale_factor(&self) -> f64 {
+        1.0
     }
 
     /// Runs the [`Sandbox`].
@@ -184,5 +199,9 @@ where
 
     fn background_color(&self) -> Color {
         T::background_color(self)
+    }
+
+    fn scale_factor(&self) -> f64 {
+        T::scale_factor(self)
     }
 }
