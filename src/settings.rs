@@ -2,7 +2,7 @@
 use crate::window;
 
 /// The settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Settings<Flags> {
     /// The window settings.
     ///
@@ -22,6 +22,11 @@ pub struct Settings<Flags> {
     // TODO: Add `name` for web compatibility
     pub default_font: Option<&'static [u8]>,
 
+    /// The text size that will be used by default.
+    ///
+    /// The default value is 20.
+    pub default_text_size: u16,
+
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
     ///
@@ -39,12 +44,28 @@ impl<Flags> Settings<Flags> {
     ///
     /// [`Application`]: ../trait.Application.html
     pub fn with_flags(flags: Flags) -> Self {
+        let default_settings = Settings::<()>::default();
+
         Self {
             flags,
-            // not using ..Default::default() struct update syntax since it is more permissive to
-            // allow initializing with flags without trait bound on Default
+            antialiasing: default_settings.antialiasing,
+            default_font: default_settings.default_font,
+            default_text_size: default_settings.default_text_size,
+            window: default_settings.window,
+        }
+    }
+}
+
+impl<Flags> Default for Settings<Flags>
+where
+    Flags: Default,
+{
+    fn default() -> Self {
+        Self {
+            flags: Default::default(),
             antialiasing: Default::default(),
             default_font: Default::default(),
+            default_text_size: 20,
             window: Default::default(),
         }
     }
