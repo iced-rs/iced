@@ -155,6 +155,19 @@ pub fn run<A, E, C>(
                         context.window().scale_factor() * new_scale_factor,
                     );
 
+                    // We relayout the UI with the new logical size.
+                    // The queue is empty, therefore this will never produce
+                    // a `Command`.
+                    //
+                    // TODO: Properly queue `WindowResized` and `CursorMoved`
+                    // events.
+                    let _ = state.update(
+                        clipboard.as_ref().map(|c| c as _),
+                        viewport.logical_size(),
+                        &mut renderer,
+                        &mut debug,
+                    );
+
                     scale_factor = new_scale_factor;
                 }
             }
