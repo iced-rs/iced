@@ -1,4 +1,4 @@
-use crate::{layout, mouse, Clipboard, Element, Event, Layout, Point, Size};
+use crate::{layout, Clipboard, Element, Event, Layout, Point, Size};
 
 use std::hash::Hasher;
 
@@ -23,7 +23,6 @@ pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
     layout: layout::Node,
     bounds: Size,
-    cursor_position: Point,
 }
 
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
@@ -115,7 +114,6 @@ where
             root,
             layout,
             bounds,
-            cursor_position: cache.cursor_position,
         }
     }
 
@@ -132,7 +130,7 @@ where
     /// completing [the previous example](#example):
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache, Size};
+    /// use iced_native::{UserInterface, Cache, Size, Point};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -154,6 +152,7 @@ where
     /// let mut cache = Cache::new();
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
+    /// let mut cursor_position = Point::default();
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
@@ -169,7 +168,12 @@ where
     ///     );
     ///
     ///     // Update the user interface
-    ///     let messages = user_interface.update(events.drain(..), None, &renderer);
+    ///     let messages = user_interface.update(
+    ///         events.drain(..),
+    ///         cursor_position,
+    ///         None,
+    ///         &renderer,
+    ///     );
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -182,20 +186,17 @@ where
     pub fn update(
         &mut self,
         events: impl IntoIterator<Item = Event>,
+        cursor_position: Point,
         clipboard: Option<&dyn Clipboard>,
         renderer: &Renderer,
     ) -> Vec<Message> {
         let mut messages = Vec::new();
 
         for event in events {
-            if let Event::Mouse(mouse::Event::CursorMoved { x, y }) = event {
-                self.cursor_position = Point::new(x, y);
-            }
-
             self.root.widget.on_event(
                 event,
                 Layout::new(&self.layout),
-                self.cursor_position,
+                cursor_position,
                 &mut messages,
                 renderer,
                 clipboard,
@@ -219,7 +220,7 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache, Size};
+    /// use iced_native::{UserInterface, Cache, Size, Point};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -241,6 +242,7 @@ where
     /// let mut cache = Cache::new();
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
+    /// let mut cursor_position = Point::default();
     /// let mut events = Vec::new();
     ///
     /// loop {
@@ -253,10 +255,15 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     let messages = user_interface.update(events.drain(..), None, &renderer);
+    ///     let messages = user_interface.update(
+    ///         events.drain(..),
+    ///         cursor_position,
+    ///         None,
+    ///         &renderer,
+    ///     );
     ///
     ///     // Draw the user interface
-    ///     let mouse_cursor = user_interface.draw(&mut renderer);
+    ///     let mouse_cursor = user_interface.draw(&mut renderer, cursor_position);
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -268,12 +275,16 @@ where
     ///     // Flush rendering operations...
     /// }
     /// ```
-    pub fn draw(&self, renderer: &mut Renderer) -> Renderer::Output {
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        cursor_position: Point,
+    ) -> Renderer::Output {
         self.root.widget.draw(
             renderer,
             &Renderer::Defaults::default(),
             Layout::new(&self.layout),
-            self.cursor_position,
+            cursor_position,
         )
     }
 
@@ -287,7 +298,6 @@ where
             hash: self.hash,
             layout: self.layout,
             bounds: self.bounds,
-            cursor_position: self.cursor_position,
         }
     }
 }
@@ -300,7 +310,6 @@ pub struct Cache {
     hash: u64,
     layout: layout::Node,
     bounds: Size,
-    cursor_position: Point,
 }
 
 impl Cache {
@@ -316,7 +325,6 @@ impl Cache {
             hash: 0,
             layout: layout::Node::new(Size::new(0.0, 0.0)),
             bounds: Size::ZERO,
-            cursor_position: Point::new(-1.0, -1.0),
         }
     }
 }
@@ -329,7 +337,7 @@ impl Default for Cache {
 
 impl PartialEq for Cache {
     fn eq(&self, other: &Cache) -> bool {
-        self.hash == other.hash && self.cursor_position == other.cursor_position
+        self.hash == other.hash
     }
 }
 

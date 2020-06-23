@@ -70,6 +70,7 @@ pub fn run<A, E, C>(
     };
 
     let clipboard = Clipboard::new(&context.window());
+    let mut cursor_position = glutin::dpi::PhysicalPosition::new(-1.0, -1.0);
     let mut mouse_interaction = mouse::Interaction::default();
     let mut modifiers = glutin::event::ModifiersState::default();
 
@@ -90,6 +91,7 @@ pub fn run<A, E, C>(
     let mut state = program::State::new(
         application,
         viewport.logical_size(),
+        conversion::cursor_position(cursor_position, viewport.scale_factor()),
         &mut renderer,
         &mut debug,
     );
@@ -103,8 +105,12 @@ pub fn run<A, E, C>(
 
             let command = runtime.enter(|| {
                 state.update(
-                    clipboard.as_ref().map(|c| c as _),
                     viewport.logical_size(),
+                    conversion::cursor_position(
+                        cursor_position,
+                        viewport.scale_factor(),
+                    ),
+                    clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
                     &mut debug,
                 )
@@ -159,11 +165,14 @@ pub fn run<A, E, C>(
                     // The queue is empty, therefore this will never produce
                     // a `Command`.
                     //
-                    // TODO: Properly queue `WindowResized` and `CursorMoved`
-                    // events.
+                    // TODO: Properly queue `WindowResized`
                     let _ = state.update(
-                        clipboard.as_ref().map(|c| c as _),
                         viewport.logical_size(),
+                        conversion::cursor_position(
+                            cursor_position,
+                            viewport.scale_factor(),
+                        ),
+                        clipboard.as_ref().map(|c| c as _),
                         &mut renderer,
                         &mut debug,
                     );
@@ -225,6 +234,7 @@ pub fn run<A, E, C>(
                 context.window(),
                 scale_factor,
                 control_flow,
+                &mut cursor_position,
                 &mut modifiers,
                 &mut viewport,
                 &mut resized,
