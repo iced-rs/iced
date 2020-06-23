@@ -30,7 +30,7 @@ use std::hash::Hash;
 pub struct Button<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,
-    on_press: Option<Message>,
+    on_press: Option<Box<dyn Fn() -> Message>>,
     width: Length,
     height: Length,
     min_width: u32,
@@ -108,8 +108,11 @@ where
     /// Sets the message that will be produced when the [`Button`] is pressed.
     ///
     /// [`Button`]: struct.Button.html
-    pub fn on_press(mut self, msg: Message) -> Self {
-        self.on_press = Some(msg);
+    pub fn on_press<F>(mut self, f: F) -> Self
+    where
+        F: Fn() -> Message + 'static,
+    {
+        self.on_press = Some(Box::new(f));
         self
     }
 
@@ -143,7 +146,6 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
-    Message: Clone,
 {
     fn width(&self) -> Length {
         self.width
@@ -192,7 +194,7 @@ where
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                if let Some(on_press) = self.on_press.clone() {
+                if let Some(on_press) = &self.on_press {
                     let bounds = layout.bounds();
 
                     let is_clicked = self.state.is_pressed
@@ -201,7 +203,7 @@ where
                     self.state.is_pressed = false;
 
                     if is_clicked {
-                        messages.push(on_press);
+                        messages.push((on_press)());
                     }
                 }
             }
@@ -273,7 +275,7 @@ impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'a + self::Renderer,
-    Message: 'a + Clone,
+    Message: 'a,
 {
     fn from(
         button: Button<'a, Message, Renderer>,
