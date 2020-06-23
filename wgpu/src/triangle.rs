@@ -13,6 +13,7 @@ const INDEX_BUFFER_SIZE: usize = 100_000;
 pub(crate) struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     blit: Option<msaa::Blit>,
+    constants_layout: wgpu::BindGroupLayout,
     constants: wgpu::BindGroup,
     uniforms_buffer: Buffer<Uniforms>,
     vertex_buffer: Buffer<Vertex2D>,
@@ -46,8 +47,10 @@ impl<T> Buffer<T> {
         }
     }
 
-    pub fn ensure_capacity(&mut self, device: &wgpu::Device, size: usize) {
-        if self.size < size {
+    pub fn expand(&mut self, device: &wgpu::Device, size: usize) -> bool {
+        let needs_resize = self.size < size;
+
+        if needs_resize {
             self.raw = device.create_buffer(&wgpu::BufferDescriptor {
                 size: (std::mem::size_of::<T>() * size) as u64,
                 usage: self.usage,
@@ -55,6 +58,8 @@ impl<T> Buffer<T> {
 
             self.size = size;
         }
+
+        needs_resize
     }
 }
 
@@ -64,7 +69,7 @@ impl Pipeline {
         format: wgpu::TextureFormat,
         antialiasing: Option<settings::Antialiasing>,
     ) -> Pipeline {
-        let constant_layout =
+        let constants_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 bindings: &[wgpu::BindGroupLayoutBinding {
                     binding: 0,
@@ -81,7 +86,7 @@ impl Pipeline {
 
         let constant_bind_group =
             device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &constant_layout,
+                layout: &constants_layout,
                 bindings: &[wgpu::Binding {
                     binding: 0,
                     resource: wgpu::BindingResource::Buffer {
@@ -93,7 +98,7 @@ impl Pipeline {
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                bind_group_layouts: &[&constant_layout],
+                bind_group_layouts: &[&constants_layout],
             });
 
         let vs = include_bytes!("shader/triangle.vert.spv");
@@ -171,6 +176,7 @@ impl Pipeline {
         Pipeline {
             pipeline,
             blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
+            constants_layout,
             constants: constant_bind_group,
             uniforms_buffer: constants_buffer,
             vertex_buffer: Buffer::new(
@@ -209,9 +215,24 @@ impl Pipeline {
 
         // Then we ensure the current buffers are big enough, resizing if
         // necessary
-        self.uniforms_buffer.ensure_capacity(device, meshes.len());
-        self.vertex_buffer.ensure_capacity(device, total_vertices);
-        self.index_buffer.ensure_capacity(device, total_indices);
+        let _ = self.vertex_buffer.expand(device, total_vertices);
+        let _ = self.index_buffer.expand(device, total_indices);
+
+        // If the uniforms buffer is resized, then we need to recreate its
+        // bind group.
+        if self.uniforms_buffer.expand(device, meshes.len()) {
+            self.constants =
+                device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    layout: &self.constants_layout,
+                    bindings: &[wgpu::Binding {
+                        binding: 0,
+                        resource: wgpu::BindingResource::Buffer {
+                            buffer: &self.uniforms_buffer.raw,
+                            range: 0..std::mem::size_of::<Uniforms>() as u64,
+                        },
+                    }],
+                });
+        }
 
         let mut uniforms: Vec<Uniforms> = Vec::with_capacity(meshes.len());
         let mut offsets: Vec<(
