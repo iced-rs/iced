@@ -176,7 +176,7 @@ impl Content {
             )
             .width(Length::Fill)
             .padding(8)
-            .on_press(message)
+            .on_press(move || message)
             .style(style)
         };
 

@@ -100,7 +100,7 @@ impl Application for Example {
         let control: Element<_> = match self {
             Example::Idle { button } => {
                 Button::new(button, Text::new("Start the download!"))
-                    .on_press(Message::Download)
+                    .on_press(|| Message::Download)
                     .into()
             }
             Example::Finished { button } => Column::new()
@@ -109,7 +109,7 @@ impl Application for Example {
                 .push(Text::new("Download finished!"))
                 .push(
                     Button::new(button, Text::new("Start again"))
-                        .on_press(Message::Download),
+                        .on_press(|| Message::Download),
                 )
                 .into(),
             Example::Downloading { .. } => {
@@ -122,7 +122,7 @@ impl Application for Example {
                 .push(Text::new("Something went wrong :("))
                 .push(
                     Button::new(button, Text::new("Try again"))
-                        .on_press(Message::Download),
+                        .on_press(|| Message::Download),
                 )
                 .into(),
         };

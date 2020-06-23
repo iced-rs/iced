@@ -78,7 +78,7 @@ impl Sandbox for Styling {
 
         let button = Button::new(&mut self.button, Text::new("Submit"))
             .padding(10)
-            .on_press(Message::ButtonPressed)
+            .on_press(|| Message::ButtonPressed)
             .style(self.theme);
 
         let slider = Slider::new(

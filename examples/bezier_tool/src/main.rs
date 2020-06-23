@@ -61,7 +61,7 @@ impl Sandbox for Example {
             .push(
                 Button::new(&mut self.button_state, Text::new("Clear"))
                     .padding(8)
-                    .on_press(Message::Clear),
+                    .on_press(|| Message::Clear),
             )
             .into()
     }

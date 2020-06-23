@@ -161,7 +161,7 @@ impl Application for Todos {
                 )
                 .padding(15)
                 .size(30)
-                .on_submit(Message::CreateTask);
+                .on_submit(|| Message::CreateTask);
 
                 let controls = controls.view(&tasks, *filter);
                 let filtered_tasks =
@@ -296,7 +296,7 @@ impl Task {
                     .push(checkbox)
                     .push(
                         Button::new(edit_button, edit_icon())
-                            .on_press(TaskMessage::Edit)
+                            .on_press(|| TaskMessage::Edit)
                             .padding(10)
                             .style(style::Button::Icon),
                     )
@@ -312,7 +312,7 @@ impl Task {
                     &self.description,
                     TaskMessage::DescriptionEdited,
                 )
-                .on_submit(TaskMessage::FinishEdition)
+                .on_submit(|| TaskMessage::FinishEdition)
                 .padding(10);
 
                 Row::new()
@@ -327,7 +327,7 @@ impl Task {
                                 .push(delete_icon())
                                 .push(Text::new("Delete")),
                         )
-                        .on_press(TaskMessage::Delete)
+                        .on_press(|| TaskMessage::Delete)
                         .padding(10)
                         .style(style::Button::Destructive),
                     )
@@ -361,7 +361,9 @@ impl Controls {
                     selected: filter == current_filter,
                 });
 
-            button.on_press(Message::FilterChanged(filter)).padding(8)
+            button
+                .on_press(move || Message::FilterChanged(filter))
+                .padding(8)
         };
 
         Row::new()

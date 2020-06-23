@@ -117,12 +117,12 @@ impl Application for Stopwatch {
                 State::Ticking { .. } => ("Stop", style::Button::Destructive),
             };
 
-            button(&mut self.toggle, label, color).on_press(Message::Toggle)
+            button(&mut self.toggle, label, color).on_press(|| Message::Toggle)
         };
 
         let reset_button =
             button(&mut self.reset, "Reset", style::Button::Secondary)
-                .on_press(Message::Reset);
+                .on_press(|| Message::Reset);
 
         let controls = Row::new()
             .spacing(20)
