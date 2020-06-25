@@ -75,12 +75,7 @@ where
 impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
-            window: iced_winit::settings::Window {
-                size: settings.window.size,
-                resizable: settings.window.resizable,
-                decorations: settings.window.decorations,
-                platform_specific: Default::default(),
-            },
+            window: settings.window.into(),
             flags: settings.flags,
         }
     }

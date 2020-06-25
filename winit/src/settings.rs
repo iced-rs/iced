@@ -33,6 +33,12 @@ pub struct Window {
     /// The size of the window.
     pub size: (u32, u32),
 
+    /// The minimum size of the window.
+    pub min_size: Option<(u32, u32)>,
+
+    /// The maximum size of the window.
+    pub max_size: Option<(u32, u32)>,
+
     /// Whether the window should be resizable or not.
     pub resizable: bool,
 
@@ -62,6 +68,16 @@ impl Window {
             .with_decorations(self.decorations)
             .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
 
+        if let Some((width, height)) = self.min_size {
+            window_builder = window_builder
+                .with_min_inner_size(winit::dpi::LogicalSize { width, height });
+        }
+
+        if let Some((width, height)) = self.max_size {
+            window_builder = window_builder
+                .with_max_inner_size(winit::dpi::LogicalSize { width, height });
+        }
+
         #[cfg(target_os = "windows")]
         {
             use winit::platform::windows::WindowBuilderExtWindows;
@@ -79,6 +95,8 @@ impl Default for Window {
     fn default() -> Window {
         Window {
             size: (1024, 768),
+            min_size: None,
+            max_size: None,
             resizable: true,
             decorations: true,
             platform_specific: Default::default(),
