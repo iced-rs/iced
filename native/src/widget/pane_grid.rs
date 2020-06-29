@@ -273,8 +273,6 @@ impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer> {
                     self.state.focus(pane);
                 }
             }
-        } else {
-            self.state.unfocus();
         }
     }
 
@@ -482,6 +480,8 @@ where
                                 );
                             }
                         }
+                    } else {
+                        self.state.unfocus();
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
