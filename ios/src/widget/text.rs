@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use crate::{
     Color,
     //    css, Bus, Color, Css,
@@ -7,6 +8,7 @@ use crate::{
     Length,
     VerticalAlignment,
     Widget,
+    Hasher,
 };
 
 /// A paragraph of text.
@@ -120,7 +122,17 @@ use uikit_sys::{
 };
 
 impl<'a, Message> Widget<Message> for Text {
-    fn draw(&self, parent: UIView) {
+    fn hash_layout(&self, state: &mut Hasher) {
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
+        self.content.hash(state);
+        self.size.hash(state);
+        self.width.hash(state);
+        self.height.hash(state);
+    }
+
+    fn draw(&mut self, parent: UIView) {
         unsafe {
             let label = UILabel::alloc();
             let text = NSString(

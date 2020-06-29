@@ -1,11 +1,14 @@
-use crate::{Runtime, Command, Element, Executor, Proxy, Subscription, event::{EventHandler, WidgetEvent}};
+use std::hash::Hasher;
+use crate::{Runtime, Command, Element, Executor, Subscription, event::{EventHandler, WidgetEvent}};
 use winit::{
-    event::{self, WindowEvent},
-    event_loop::{ControlFlow, EventLoop, EventLoopProxy},
-    platform::ios::{EventLoopExtIOS, WindowBuilderExtIOS, WindowExtIOS},
+    event,
+    event_loop::{ControlFlow, EventLoop},
+    platform::ios::{WindowExtIOS},
     window::WindowBuilder,
 };
-use std::borrow::BorrowMut;
+
+use std::cell::RefCell;
+use std::rc::Rc;
 use uikit_sys::{
     self,
     //CGRect,
@@ -101,14 +104,18 @@ pub trait Application: Sized {
         Self: 'static + Sized,
     {
         let event_loop : EventLoop<WidgetEvent> = EventLoop::with_user_event();
-        EventHandler::init(event_loop.create_proxy());
+        let proxy = event_loop.create_proxy();
+        EventHandler::init(proxy.clone());
+        let (sender, _receiver) = iced_futures::futures::channel::mpsc::unbounded();
+
         let mut runtime = {
             let executor = Self::Executor::new().expect("Create executor");
 
-            Runtime::new(executor, Proxy::new(event_loop.create_proxy()))
+            Runtime::new(executor, sender)
         };
 
         let (mut app, command) = runtime.enter(|| Self::new(flags));
+        runtime.spawn(command);
 
         let title = app.title();
 
@@ -130,40 +137,71 @@ pub trait Application: Sized {
             window_builder.build(&event_loop).expect("Open window")
         };
 
-        window.request_redraw();
-
         let root_view: UIView = UIView(window.ui_view() as id);
         unsafe {
             let background = UIColor(UIColor::greenColor());
             //let background = UIColor(UIColor::whiteColor());
             root_view.setBackgroundColor_(background.0);
         }
+        //let app = app.borrow_mut();
+        //let mut current_element: Rc<RefCell<&mut Element<Self::Message>>> = Rc::new(RefCell::new(&mut app.view()));
+        window.request_redraw();
+        //proxy.send_event(WidgetEvent {widget_id: 0} );
+        let mut cached_hash : u64 = 0;
+        let mut current_element: Option<Element<Self::Message>> = None;
 
         event_loop.run(move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
-            crate::ios_log(format!("NEW EVENT: {:?}", event));
+            //let new_title = application.borrow().title();
+            //debug!("NEW EVENT: {:?}", event);
+            let mut messages : Vec<Self::Message> = Vec::new();
             match event {
                 event::Event::MainEventsCleared => {
-                    window.request_redraw();
                 }
-                event::Event::UserEvent(message) => {
-                    println!("GOT NEW USER EVENT: {:?}", message);
-                    //external_messages.push(message);
+                event::Event::UserEvent(widget_event) => {
+                    info!("GOT NEW USER EVENT: {:?}", widget_event);
+
+                    /*
+                    let mut element = app.view();
+                    element.widget.on_widget_event(widget_event, &mut messages);
+
+                    let hash = {
+                        let mut hash = &mut crate::Hasher::default();
+                        element.widget.hash_layout(&mut hash);
+                        hash.finish()
+                    };
+                    if hash != cached_hash {
+                        cached_hash = hash;
+                        element.widget.draw(root_view);
+                    }
+                    */
                 }
                 event::Event::RedrawRequested(_) => {}
                 event::Event::WindowEvent {
                     event: _window_event,
                     ..
-                } => {
-                }
-                event::Event::NewEvents(event::StartCause::Init) => {
+                } => { } event::Event::NewEvents(event::StartCause::Init) => {
+                    /*
                     let root_view: UIView = UIView(window.ui_view() as id);
-                    let element = app.borrow_mut().view();
-                    element.widget.draw(root_view);
+                    app.view().widget.draw(root_view);
+                    */
                 }
                 _ => {
                     *control_flow = ControlFlow::Wait;
                 }
             }
-        })
+            for message in messages {
+
+                let (command, subscription) = runtime.enter(|| {
+                    let command = app.update(message);
+                    let subscription = app.subscription();
+
+                    (command, subscription)
+                });
+
+
+                runtime.spawn(command);
+                runtime.track(subscription);
+            }
+        });
     }
 }

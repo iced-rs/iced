@@ -24,6 +24,7 @@ impl<Message> Checkbox<Message> {
         }
     }
 }
+/*
 impl<Message> Widget<Message> for Checkbox<Message>
 where
     Message: 'static,
@@ -37,3 +38,4 @@ where
         Element::new(checkbox)
     }
 }
+*/

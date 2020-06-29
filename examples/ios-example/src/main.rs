@@ -1,3 +1,4 @@
+#[macro_use] extern crate log;
 use iced::{
     //button, scrollable, slider, text_input, Button, Checkbox, Color, Column,
     //Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
@@ -15,7 +16,13 @@ use iced::{
     Checkbox,
 };
 pub fn main() {
-    env_logger::init();
+    color_backtrace::install_with_settings(
+        color_backtrace::Settings::new().verbosity(color_backtrace::Verbosity::Full),
+    );
+    std::env::set_var("RUST_LOG", "DEBUG");
+    std::env::set_var("RUST_BACKTRACE", "full");
+    pretty_env_logger::init();
+    //env_logger::init();
 
     Simple::run(Settings::default())
 }
@@ -43,10 +50,12 @@ impl Sandbox for Simple {
         String::from("Events - Iced")
     }
 
-    fn update(&mut self, _message: Message) {
+    fn update(&mut self, message: Message) {
+        debug!("GOT NEW MESSAGE: {:?}", message);
     }
 
     fn view(&mut self) -> Element<Message> {
+        debug!("RERUNNING VIEW");
         /*
         let toggle = Checkbox::new(
             self.enabled,

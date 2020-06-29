@@ -21,4 +21,8 @@ cargo-bundle's support for bundling crate examples.
 
 [dependencies]
 iced = { path = "../..", features = ["image", "debug"] }
-env_logger = "0.7"
+log = "0.4"
+pretty_env_logger = "0.3"
+color-backtrace = { version = "0.4.2", features = ["failure-bt"] }
+
+#env_logger = "0.7"

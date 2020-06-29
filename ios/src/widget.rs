@@ -1,6 +1,7 @@
 use crate::{
-    Layout,
+    //Layout,
     event::WidgetEvent,
+    Hasher,
 };
 pub mod container;
 pub mod checkbox;
@@ -15,8 +16,19 @@ use uikit_sys::UIView;
 
 pub trait Widget<Message> {
     fn draw(
-        &self,
+        &mut self,
         _parent: UIView,
+    ) {
+    }
+    fn hash_layout(&self, state: &mut Hasher);
+    fn on_widget_event(
+        &mut self,
+        _event: WidgetEvent,
+        //_layout: Layout<'_>,
+        //_cursor_position: Point,
+        _messages: &mut Vec<Message>,
+        //_renderer: &Renderer,
+        //_clipboard: Option<&dyn Clipboard>,
     ) {
     }
 }
@@ -34,15 +46,5 @@ impl<'a, Message> Element<'a, Message> {
         Self {
             widget: Box::new(widget),
         }
-    }
-    fn on_event(
-        &mut self,
-        _event: WidgetEvent,
-        _layout: Layout<'_>,
-        //_cursor_position: Point,
-        _messages: &mut Vec<Message>,
-        //_renderer: &Renderer,
-        //_clipboard: Option<&dyn Clipboard>,
-    ) {
     }
 }

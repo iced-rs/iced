@@ -10,8 +10,9 @@ edition = "2018"
 twox-hash = "1.5"
 raw-window-handle = "^0.3"
 winit = "^0.22"
-objc = "*"
+objc = "0.2.7"
 uikit-sys = { git = "https://github.com/simlay/uikit-sys" }
+log = "0.4"
 #uikit-sys = { path = "../../uikit-sys/" }
 
 [dependencies.iced_core]

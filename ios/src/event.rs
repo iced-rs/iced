@@ -8,22 +8,21 @@ use objc::{
     },
 };
 
-use uikit_sys::{
-    id,
-};
+use uikit_sys::id;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct WidgetEvent {
-    widget_id: u64,
+    pub widget_id: u64,
 }
 
 #[derive(Debug)]
-pub struct EventHandler{
+pub struct EventHandler {
     pub id: id,
     pub widget_id: u64,
 }
-use std::sync::atomic::{AtomicU64, Ordering};
+
 static mut PROXY : Option<EventLoopProxy<WidgetEvent>> = None;
 static mut COUNTER: Option<AtomicU64> = None;
 impl EventHandler {

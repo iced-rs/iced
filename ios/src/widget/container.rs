@@ -36,6 +36,7 @@ impl<'a, Message> Container<'a, Message> {
         }
     }
 }
+/*
 impl<'a, Message> Widget<Message> for Container<'a, Message>
 where
     Message: 'static,
@@ -49,4 +50,4 @@ where
         Element::new(container)
     }
 }
-
+*/
