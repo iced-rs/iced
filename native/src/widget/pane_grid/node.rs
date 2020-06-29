@@ -48,7 +48,7 @@ impl Node {
     ///
     /// [`Pane`]: struct.Pane.html
     /// [`Node`]: enum.Node.html
-    pub fn regions(
+    pub fn pane_regions(
         &self,
         spacing: f32,
         size: Size,
@@ -75,7 +75,7 @@ impl Node {
     ///
     /// [`Split`]: struct.Split.html
     /// [`Node`]: enum.Node.html
-    pub fn splits(
+    pub fn split_regions(
         &self,
         spacing: f32,
         size: Size,
