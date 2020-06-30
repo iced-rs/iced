@@ -5,9 +5,10 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
-use iced_winit::{futures, program, winit, Debug, Size};
+use iced_winit::{conversion, futures, program, winit, Debug, Size};
 
 use winit::{
+    dpi::PhysicalPosition,
     event::{Event, ModifiersState, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
@@ -24,6 +25,7 @@ pub fn main() {
         Size::new(physical_size.width, physical_size.height),
         window.scale_factor(),
     );
+    let mut cursor_position = PhysicalPosition::new(-1.0, -1.0);
     let mut modifiers = ModifiersState::default();
 
     // Initialize wgpu
@@ -79,6 +81,7 @@ pub fn main() {
     let mut state = program::State::new(
         controls,
         viewport.logical_size(),
+        conversion::cursor_position(cursor_position, viewport.scale_factor()),
         &mut renderer,
         &mut debug,
     );
@@ -91,6 +94,9 @@ pub fn main() {
         match event {
             Event::WindowEvent { event, .. } => {
                 match event {
+                    WindowEvent::CursorMoved { position, .. } => {
+                        cursor_position = position;
+                    }
                     WindowEvent::ModifiersChanged(new_modifiers) => {
                         modifiers = new_modifiers;
                     }
@@ -105,7 +111,6 @@ pub fn main() {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                     }
-
                     _ => {}
                 }
 
@@ -123,8 +128,12 @@ pub fn main() {
                 if !state.is_queue_empty() {
                     // We update iced
                     let _ = state.update(
-                        None,
                         viewport.logical_size(),
+                        conversion::cursor_position(
+                            cursor_position,
+                            viewport.scale_factor(),
+                        ),
+                        None,
                         &mut renderer,
                         &mut debug,
                     );

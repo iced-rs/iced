@@ -4,7 +4,7 @@
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::{
     keyboard::{self, KeyCode, ModifiersState},
-    mouse, window, Event, Mode,
+    mouse, window, Event, Mode, Point,
 };
 
 /// Converts a winit window event into an iced event.
@@ -172,6 +172,16 @@ pub fn modifiers_state(
         alt: modifiers.alt(),
         logo: modifiers.logo(),
     }
+}
+
+/// Converts a physical cursor position to a logical `Point`.
+pub fn cursor_position(
+    position: winit::dpi::PhysicalPosition<f64>,
+    scale_factor: f64,
+) -> Point {
+    let logical_position = position.to_logical(scale_factor);
+
+    Point::new(logical_position.x, logical_position.y)
 }
 
 /// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.

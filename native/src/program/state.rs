@@ -1,5 +1,5 @@
 use crate::{
-    Cache, Clipboard, Command, Debug, Event, Program, Renderer, Size,
+    Cache, Clipboard, Command, Debug, Event, Point, Program, Renderer, Size,
     UserInterface,
 };
 
@@ -31,6 +31,7 @@ where
     pub fn new(
         mut program: P,
         bounds: Size,
+        cursor_position: Point,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Self {
@@ -43,7 +44,7 @@ where
         );
 
         debug.draw_started();
-        let primitive = user_interface.draw(renderer);
+        let primitive = user_interface.draw(renderer, cursor_position);
         debug.draw_finished();
 
         let cache = Some(user_interface.into_cache());
@@ -104,8 +105,9 @@ where
     /// [`Program`]: trait.Program.html
     pub fn update(
         &mut self,
-        clipboard: Option<&dyn Clipboard>,
         bounds: Size,
+        cursor_position: Point,
+        clipboard: Option<&dyn Clipboard>,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
@@ -120,6 +122,7 @@ where
         debug.event_processing_started();
         let mut messages = user_interface.update(
             self.queued_events.drain(..),
+            cursor_position,
             clipboard,
             renderer,
         );
@@ -128,7 +131,7 @@ where
 
         if messages.is_empty() {
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer);
+            self.primitive = user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -159,7 +162,7 @@ where
             );
 
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer);
+            self.primitive = user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());

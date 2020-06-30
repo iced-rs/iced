@@ -9,7 +9,6 @@
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
-mod defaults;
 mod primitive;
 mod renderer;
 mod transformation;
@@ -17,6 +16,7 @@ mod viewport;
 mod widget;
 
 pub mod backend;
+pub mod defaults;
 pub mod font;
 pub mod layer;
 pub mod triangle;

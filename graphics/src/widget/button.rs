@@ -103,7 +103,7 @@ where
             } else {
                 content
             },
-            if is_mouse_over {
+            if is_mouse_over && !is_disabled {
                 mouse::Interaction::Pointer
             } else {
                 mouse::Interaction::default()

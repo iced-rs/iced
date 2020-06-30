@@ -49,7 +49,9 @@ impl row::Renderer for Null {
 impl text::Renderer for Null {
     type Font = Font;
 
-    const DEFAULT_SIZE: u16 = 20;
+    fn default_size(&self) -> u16 {
+        20
+    }
 
     fn measure(
         &self,

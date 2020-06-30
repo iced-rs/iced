@@ -32,7 +32,7 @@ pub struct Checkbox<Message, Renderer: self::Renderer + text::Renderer> {
     width: Length,
     size: u16,
     spacing: u16,
-    text_size: u16,
+    text_size: Option<u16>,
     style: Renderer::Style,
 }
 
@@ -60,7 +60,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
             width: Length::Shrink,
             size: <Renderer as self::Renderer>::DEFAULT_SIZE,
             spacing: Renderer::DEFAULT_SPACING,
-            text_size: <Renderer as text::Renderer>::DEFAULT_SIZE,
+            text_size: None,
             style: Renderer::Style::default(),
         }
     }
@@ -93,7 +93,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     ///
     /// [`Checkbox`]: struct.Checkbox.html
     pub fn text_size(mut self, text_size: u16) -> Self {
-        self.text_size = text_size;
+        self.text_size = Some(text_size);
         self
     }
 
@@ -136,7 +136,7 @@ where
             .push(
                 Text::new(&self.label)
                     .width(self.width)
-                    .size(self.text_size),
+                    .size(self.text_size.unwrap_or(renderer.default_size())),
             )
             .layout(renderer, limits)
     }
@@ -181,7 +181,7 @@ where
             defaults,
             label_layout.bounds(),
             &self.label,
-            self.text_size,
+            self.text_size.unwrap_or(renderer.default_size()),
             Default::default(),
             None,
             HorizontalAlignment::Left,
