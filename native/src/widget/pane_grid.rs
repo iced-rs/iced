@@ -539,10 +539,8 @@ where
                                 }
                             }
                         }
-
-                        *self.pressed_modifiers = modifiers;
                     }
-                    keyboard::Event::KeyReleased { modifiers, .. } => {
+                    keyboard::Event::ModifiersChanged(modifiers) => {
                         *self.pressed_modifiers = modifiers;
                     }
                     _ => {}
