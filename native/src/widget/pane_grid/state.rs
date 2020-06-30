@@ -193,6 +193,13 @@ impl<T> State<T> {
         self.internal.focus(pane);
     }
 
+    /// Unfocuses the current focused [`Pane`].
+    ///
+    /// [`Pane`]: struct.Pane.html
+    pub fn unfocus(&mut self) {
+        self.internal.unfocus();
+    }
+
     /// Splits the given [`Pane`] into two in the given [`Axis`] and
     /// initializing the new [`Pane`] with the provided internal state.
     ///
