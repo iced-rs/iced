@@ -2,7 +2,7 @@
 use crate::window;
 
 /// The settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Settings<Flags> {
     /// The window settings.
     ///
