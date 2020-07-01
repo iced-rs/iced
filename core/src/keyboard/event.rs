@@ -28,4 +28,7 @@ pub enum Event {
 
     /// A unicode character was received.
     CharacterReceived(char),
+
+    /// The keyboard modifiers have changed.
+    ModifiersChanged(ModifiersState),
 }
