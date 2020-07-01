@@ -107,15 +107,16 @@ where
         _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
+        use dodrio::bumpalo::collections::String;
 
         let radio_label =
-            bumpalo::format!(in bump, "{}", self.label).into_bump_str();
+            String::from_str_in(&self.label, bump).into_bump_str();
 
         let event_bus = bus.clone();
         let on_click = self.on_click.clone();
 
         let (label, input) = if let Some(id) = &self.id {
-            let id = bumpalo::format!(in bump, "{}", id).into_bump_str();
+            let id = String::from_str_in(id, bump).into_bump_str();
 
             (label(bump).attr("for", id), input(bump).attr("id", id))
         } else {
@@ -123,7 +124,7 @@ where
         };
 
         let input = if let Some(name) = &self.name {
-            let name = bumpalo::format!(in bump, "{}", name).into_bump_str();
+            let name = String::from_str_in(name, bump).into_bump_str();
 
             dodrio::builder::input(bump).attr("name", name)
         } else {

@@ -94,9 +94,10 @@ where
         style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
+        use dodrio::bumpalo::collections::String;
 
         let checkbox_label =
-            bumpalo::format!(in bump, "{}", self.label).into_bump_str();
+            String::from_str_in(&self.label, bump).into_bump_str();
 
         let event_bus = bus.clone();
         let on_toggle = self.on_toggle.clone();
@@ -107,7 +108,7 @@ where
         let spacing_class = style_sheet.insert(bump, css::Rule::Spacing(5));
 
         let (label, input) = if let Some(id) = &self.id {
-            let id = bumpalo::format!(in bump, "{}", id).into_bump_str();
+            let id = String::from_str_in(id, bump).into_bump_str();
 
             (label(bump).attr("for", id), input(bump).attr("id", id))
         } else {

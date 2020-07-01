@@ -154,16 +154,20 @@ where
             },
         };
 
+        let class = {
+            use dodrio::bumpalo::collections::String;
+
+            String::from_str_in(&padding_class, bump).into_bump_str()
+        };
+
         let mut node = button(bump)
-            .attr(
-                "class",
-                bumpalo::format!(in bump, "{}", padding_class).into_bump_str(),
-            )
+            .attr("class", class)
             .attr(
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "background: {}; border-radius: {}px; width:{}; min-width: {}; color: {}",
+                    "background: {}; border-radius: {}px; width:{}; \
+                    min-width: {}; color: {}",
                     background,
                     style.border_radius,
                     css::length(self.width),
