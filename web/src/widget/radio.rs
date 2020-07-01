@@ -35,6 +35,8 @@ pub struct Radio<Message> {
     is_selected: bool,
     on_click: Message,
     label: String,
+    id: Option<String>,
+    name: Option<String>,
     style: Box<dyn StyleSheet>,
 }
 
@@ -63,6 +65,8 @@ impl<Message> Radio<Message> {
             is_selected: Some(value) == selected,
             on_click: f(value),
             label: label.into(),
+            id: None,
+            name: None,
             style: Default::default(),
         }
     }
@@ -72,6 +76,22 @@ impl<Message> Radio<Message> {
     /// [`Radio`]: struct.Radio.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style = style.into();
+        self
+    }
+
+    /// Sets the name attribute of the [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// Sets the id of the [`Radio`] button.
+    ///
+    /// [`Radio`]: struct.Radio.html
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
         self
     }
 }
@@ -88,16 +108,33 @@ where
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let radio_label = bumpalo::format!(in bump, "{}", self.label);
+        let radio_label =
+            bumpalo::format!(in bump, "{}", self.label).into_bump_str();
 
         let event_bus = bus.clone();
         let on_click = self.on_click.clone();
 
+        let (label, input) = if let Some(id) = &self.id {
+            let id = bumpalo::format!(in bump, "{}", id).into_bump_str();
+
+            (label(bump).attr("for", id), input(bump).attr("id", id))
+        } else {
+            (label(bump), input(bump))
+        };
+
+        let input = if let Some(name) = &self.name {
+            let name = bumpalo::format!(in bump, "{}", name).into_bump_str();
+
+            dodrio::builder::input(bump).attr("name", name)
+        } else {
+            input
+        };
+
         // TODO: Complete styling
-        label(bump)
+        label
             .attr("style", "display: block; font-size: 20px")
             .children(vec![
-                input(bump)
+                input
                     .attr("type", "radio")
                     .attr("style", "margin-right: 10px")
                     .bool_attr("checked", self.is_selected)
@@ -105,7 +142,7 @@ where
                         event_bus.publish(on_click.clone());
                     })
                     .finish(),
-                text(radio_label.into_bump_str()),
+                text(radio_label),
             ])
             .finish()
     }
