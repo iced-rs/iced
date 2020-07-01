@@ -28,7 +28,7 @@ pub struct Checkbox<Message> {
     is_checked: bool,
     on_toggle: Rc<dyn Fn(bool) -> Message>,
     label: String,
-    id: String,
+    id: Option<String>,
     width: Length,
     style: Box<dyn StyleSheet>,
 }
@@ -52,7 +52,7 @@ impl<Message> Checkbox<Message> {
             is_checked,
             on_toggle: Rc::new(f),
             label: label.into(),
-            id: Default::default(),
+            id: None,
             width: Length::Shrink,
             style: Default::default(),
         }
@@ -78,7 +78,7 @@ impl<Message> Checkbox<Message> {
     ///
     /// [`Checkbox`]: struct.Checkbox.html
     pub fn id(mut self, id: impl Into<String>) -> Self {
-        self.id = id.into();
+        self.id = Some(id.into());
         self
     }
 }
@@ -97,8 +97,6 @@ where
 
         let checkbox_label =
             bumpalo::format!(in bump, "{}", self.label).into_bump_str();
-        let checkbox_id =
-            bumpalo::format!(in bump, "{}", self.id).into_bump_str();
 
         let event_bus = bus.clone();
         let on_toggle = self.on_toggle.clone();
@@ -108,8 +106,15 @@ where
 
         let spacing_class = style_sheet.insert(bump, css::Rule::Spacing(5));
 
-        label(bump)
-            .attr("for", checkbox_id)
+        let (label, input) = if let Some(id) = &self.id {
+            let id = bumpalo::format!(in bump, "{}", id).into_bump_str();
+
+            (label(bump).attr("for", id), input(bump).attr("id", id))
+        } else {
+            (label(bump), input(bump))
+        };
+
+        label
             .attr(
                 "class",
                 bumpalo::format!(in bump, "{} {}", row_class, spacing_class)
@@ -122,9 +127,8 @@ where
             )
             .children(vec![
                 // TODO: Checkbox styling
-                input(bump)
+                 input
                     .attr("type", "checkbox")
-                    .attr("id", checkbox_id)
                     .bool_attr("checked", self.is_checked)
                     .on("click", move |_root, vdom, _event| {
                         let msg = on_toggle(!is_checked);

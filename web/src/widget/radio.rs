@@ -35,8 +35,8 @@ pub struct Radio<Message> {
     is_selected: bool,
     on_click: Message,
     label: String,
-    id: String,
-    name: String,
+    id: Option<String>,
+    name: Option<String>,
     style: Box<dyn StyleSheet>,
 }
 
@@ -65,8 +65,8 @@ impl<Message> Radio<Message> {
             is_selected: Some(value) == selected,
             on_click: f(value),
             label: label.into(),
-            id: Default::default(),
-            name: Default::default(),
+            id: None,
+            name: None,
             style: Default::default(),
         }
     }
@@ -83,7 +83,7 @@ impl<Message> Radio<Message> {
     ///
     /// [`Radio`]: struct.Radio.html
     pub fn name(mut self, name: impl Into<String>) -> Self {
-        self.name = name.into();
+        self.name = Some(name.into());
         self
     }
 
@@ -91,7 +91,7 @@ impl<Message> Radio<Message> {
     ///
     /// [`Radio`]: struct.Radio.html
     pub fn id(mut self, id: impl Into<String>) -> Self {
-        self.id = id.into();
+        self.id = Some(id.into());
         self
     }
 }
@@ -110,22 +110,32 @@ where
 
         let radio_label =
             bumpalo::format!(in bump, "{}", self.label).into_bump_str();
-        let radio_name =
-            bumpalo::format!(in bump, "{}", self.name).into_bump_str();
-        let radio_id = bumpalo::format!(in bump, "{}", self.id).into_bump_str();
 
         let event_bus = bus.clone();
         let on_click = self.on_click.clone();
 
+        let (label, input) = if let Some(id) = &self.id {
+            let id = bumpalo::format!(in bump, "{}", id).into_bump_str();
+
+            (label(bump).attr("for", id), input(bump).attr("id", id))
+        } else {
+            (label(bump), input(bump))
+        };
+
+        let input = if let Some(name) = &self.name {
+            let name = bumpalo::format!(in bump, "{}", name).into_bump_str();
+
+            dodrio::builder::input(bump).attr("name", name)
+        } else {
+            input
+        };
+
         // TODO: Complete styling
-        label(bump)
+        label
             .attr("style", "display: block; font-size: 20px")
-            .attr("for", radio_id)
             .children(vec![
-                input(bump)
+                input
                     .attr("type", "radio")
-                    .attr("id", radio_id)
-                    .attr("name", radio_name)
                     .attr("style", "margin-right: 10px")
                     .bool_attr("checked", self.is_selected)
                     .on("click", move |_root, _vdom, _event| {
