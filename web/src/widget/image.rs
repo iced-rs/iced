@@ -78,14 +78,19 @@ impl<Message> Widget<Message> for Image {
         _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
+        use dodrio::bumpalo::collections::String;
 
-        let src = bumpalo::format!(in bump, "{}", match self.handle.data.as_ref() {
-            Data::Path(path) => path.to_str().unwrap_or("")
-        });
-        let alt = bumpalo::format!(in bump, "{}", self.alt).into_bump_str();
+        let src = String::from_str_in(
+            match self.handle.data.as_ref() {
+                Data::Path(path) => path.to_str().unwrap_or(""),
+            },
+            bump,
+        )
+        .into_bump_str();
 
-        let mut image =
-            img(bump).attr("src", src.into_bump_str()).attr("alt", alt);
+        let alt = String::from_str_in(&self.alt, bump).into_bump_str();
+
+        let mut image = img(bump).attr("src", src).attr("alt", alt);
 
         match self.width {
             Length::Shrink => {}
