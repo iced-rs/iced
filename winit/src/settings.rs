@@ -14,7 +14,7 @@ use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
 
 /// The settings of an application.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Settings<Flags> {
     /// The [`Window`] settings
     ///
@@ -28,7 +28,7 @@ pub struct Settings<Flags> {
 }
 
 /// The window settings of an application.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Window {
     /// The size of the window.
     pub size: (u32, u32),
@@ -46,7 +46,7 @@ pub struct Window {
     pub decorations: bool,
 
     /// The window icon, which is also usually used in the taskbar
-    pub icon: Option<Icon>,
+    pub icon: Option<winit::window::Icon>,
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
@@ -69,7 +69,7 @@ impl Window {
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
-            .with_window_icon(self.icon.map(Icon::into))
+            .with_window_icon(self.icon)
             .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
 
         if let Some((width, height)) = self.min_size {
@@ -106,35 +106,5 @@ impl Default for Window {
             icon: None,
             platform_specific: Default::default(),
         }
-    }
-}
-
-/// An Icon
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Icon {
-    rgba: Vec<u8>,
-    width: u32,
-    height: u32,
-}
-
-impl Icon {
-    ///
-    pub fn new(rgba: &[u8], width: u32, height: u32) -> Self {
-        Self {
-            rgba: rgba.to_vec(),
-            width,
-            height,
-        }
-    }
-}
-
-impl Into<winit::window::Icon> for Icon {
-    fn into(self) -> winit::window::Icon {
-        winit::window::Icon::from_rgba(
-            self.rgba.to_vec(),
-            self.width,
-            self.height,
-        )
-        .unwrap()
     }
 }

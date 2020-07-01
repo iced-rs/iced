@@ -38,6 +38,5 @@ pub use clipboard::Clipboard;
 pub use mode::Mode;
 pub use proxy::Proxy;
 pub use settings::Settings;
-pub use settings::Icon;
 
 pub use iced_graphics::Viewport;
