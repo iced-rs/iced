@@ -15,8 +15,8 @@ categories = ["web-programming"]
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-dodrio = "0.1.0"
-wasm-bindgen = "0.2.51"
+dodrio = "0.2"
+wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 url = "2.0"
 num-traits = "0.2"
