@@ -1,9 +1,13 @@
+use crate::{
+    event::{EventHandler, WidgetEvent},
+    WidgetPointers,
+    Command, Element, Executor, Runtime, Subscription,
+};
 use std::hash::Hasher;
-use crate::{Runtime, Command, Element, Executor, Subscription, event::{EventHandler, WidgetEvent}};
 use winit::{
     event,
     event_loop::{ControlFlow, EventLoop},
-    platform::ios::{WindowExtIOS},
+    platform::ios::WindowExtIOS,
     window::WindowBuilder,
 };
 
@@ -103,10 +107,11 @@ pub trait Application: Sized {
     where
         Self: 'static + Sized,
     {
-        let event_loop : EventLoop<WidgetEvent> = EventLoop::with_user_event();
+        let event_loop: EventLoop<WidgetEvent> = EventLoop::with_user_event();
         let proxy = event_loop.create_proxy();
         EventHandler::init(proxy.clone());
-        let (sender, _receiver) = iced_futures::futures::channel::mpsc::unbounded();
+        let (sender, _receiver) =
+            iced_futures::futures::channel::mpsc::unbounded();
 
         let mut runtime = {
             let executor = Self::Executor::new().expect("Create executor");
@@ -143,65 +148,76 @@ pub trait Application: Sized {
             //let background = UIColor(UIColor::whiteColor());
             root_view.setBackgroundColor_(background.0);
         }
-        //let app = app.borrow_mut();
-        //let mut current_element: Rc<RefCell<&mut Element<Self::Message>>> = Rc::new(RefCell::new(&mut app.view()));
-        window.request_redraw();
         //proxy.send_event(WidgetEvent {widget_id: 0} );
-        let mut cached_hash : u64 = 0;
-        let mut current_element: Option<Element<Self::Message>> = None;
+        let mut cached_hash: u64 = 0;
+        let mut _current_element: Option<Element<Self::Message>> = None;
+        let mut widget_pointers = WidgetPointers {
+            root: 0 as id,
+            others: Vec::new(),
+            hash: cached_hash,
+        };
 
-        event_loop.run(move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
-            //let new_title = application.borrow().title();
-            //debug!("NEW EVENT: {:?}", event);
-            let mut messages : Vec<Self::Message> = Vec::new();
-            match event {
-                event::Event::MainEventsCleared => {
-                }
-                event::Event::UserEvent(widget_event) => {
-                    info!("GOT NEW USER EVENT: {:?}", widget_event);
+        event_loop.run(
+            move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
+                //let new_title = application.borrow().title();
+                //debug!("NEW EVENT: {:?}", event);
+                let mut messages: Vec<Self::Message> = Vec::new();
+                match event {
+                    event::Event::MainEventsCleared => {}
+                    event::Event::UserEvent(widget_event) => {
+                        info!("GOT NEW USER EVENT: {:?}", widget_event);
 
-                    /*
-                    let mut element = app.view();
-                    element.widget.on_widget_event(widget_event, &mut messages);
+                        let mut element = app.view();
+                        element
+                            .widget
+                            .on_widget_event(widget_event, &mut messages, &widget_pointers);
 
-                    let hash = {
-                        let mut hash = &mut crate::Hasher::default();
-                        element.widget.hash_layout(&mut hash);
-                        hash.finish()
-                    };
-                    if hash != cached_hash {
-                        cached_hash = hash;
-                        element.widget.draw(root_view);
+                        let hash = {
+                            let mut hash = &mut crate::Hasher::default();
+                            element.widget.hash_layout(&mut hash);
+                            hash.finish()
+                        };
+                        if hash != cached_hash {
+                            cached_hash = hash;
+                            widget_pointers = element.widget.draw(root_view);
+                        }
                     }
-                    */
+                    event::Event::RedrawRequested(_) => {
+                    }
+                    event::Event::WindowEvent {
+                        event: _window_event,
+                        ..
+                    } => {}
+                    event::Event::NewEvents(event::StartCause::Init) => {
+                        let root_view: UIView = UIView(window.ui_view() as id);
+                        let mut element = app.view();
+
+                        let hash = {
+                            let mut hash = &mut crate::Hasher::default();
+                            element.widget.hash_layout(&mut hash);
+                            hash.finish()
+                        };
+                        if hash != cached_hash {
+                            cached_hash = hash;
+                            widget_pointers = element.widget.draw(root_view);
+                        }
+                    }
+                    _ => {
+                        *control_flow = ControlFlow::Wait;
+                    }
                 }
-                event::Event::RedrawRequested(_) => {}
-                event::Event::WindowEvent {
-                    event: _window_event,
-                    ..
-                } => { } event::Event::NewEvents(event::StartCause::Init) => {
-                    /*
-                    let root_view: UIView = UIView(window.ui_view() as id);
-                    app.view().widget.draw(root_view);
-                    */
+                for message in messages {
+                    let (command, subscription) = runtime.enter(|| {
+                        let command = app.update(message);
+                        let subscription = app.subscription();
+
+                        (command, subscription)
+                    });
+
+                    runtime.spawn(command);
+                    runtime.track(subscription);
                 }
-                _ => {
-                    *control_flow = ControlFlow::Wait;
-                }
-            }
-            for message in messages {
-
-                let (command, subscription) = runtime.enter(|| {
-                    let command = app.update(message);
-                    let subscription = app.subscription();
-
-                    (command, subscription)
-                });
-
-
-                runtime.spawn(command);
-                runtime.track(subscription);
-            }
-        });
+            },
+        );
     }
 }

@@ -29,7 +29,7 @@ impl Default for Settings {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))]
 impl From<Settings> for iced_winit::settings::Window {
     fn from(settings: Settings) -> Self {
         Self {

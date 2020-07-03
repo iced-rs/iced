@@ -3,6 +3,10 @@ use crate::{
     event::WidgetEvent,
     Hasher,
 };
+use uikit_sys::{
+    UIView,
+    id,
+};
 pub mod container;
 pub mod checkbox;
 pub mod text;
@@ -12,13 +16,32 @@ pub use container::Container;
 pub use checkbox::Checkbox;
 pub use text::Text;
 pub use text_input::TextInput;
-use uikit_sys::UIView;
+
+pub struct WidgetPointers {
+    pub root: id,
+    pub others: Vec<id>,
+    pub hash: u64,
+}
+impl Drop for WidgetPointers {
+    fn drop(&mut self) {
+        use uikit_sys::UIView_UIViewHierarchy;
+        unsafe {
+            let root = UIView(self.root);
+            root.removeFromSuperview();
+        }
+    }
+}
 
 pub trait Widget<Message> {
     fn draw(
         &mut self,
-        _parent: UIView,
-    ) {
+        parent: UIView,
+    ) -> WidgetPointers {
+        WidgetPointers {
+            root: parent.0,
+            others: Vec::new(),
+            hash: 0,
+        }
     }
     fn hash_layout(&self, state: &mut Hasher);
     fn on_widget_event(
@@ -27,6 +50,7 @@ pub trait Widget<Message> {
         //_layout: Layout<'_>,
         //_cursor_position: Point,
         _messages: &mut Vec<Message>,
+        _widget_pointers: &WidgetPointers,
         //_renderer: &Renderer,
         //_clipboard: Option<&dyn Clipboard>,
     ) {
@@ -47,4 +71,16 @@ impl<'a, Message> Element<'a, Message> {
             widget: Box::new(widget),
         }
     }
+}
+impl<'a, Message> Widget<Message> for Element<'a, Message>
+where
+    Message: 'static,
+{
+    fn hash_layout(&self, state: &mut Hasher) {
+        use std::hash::Hash;
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+        self.widget.hash_layout(state);
+    }
+
 }

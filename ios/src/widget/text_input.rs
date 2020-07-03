@@ -5,12 +5,23 @@
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
-use crate::{Element, Length, Widget, Layout, Hasher, event::{EventHandler, WidgetEvent}};
+use crate::{Element, Length, Widget, Hasher, WidgetPointers, event::{EventHandler, WidgetEvent}};
 
 pub use iced_style::text_input::{Style, StyleSheet};
 
 use std::{rc::Rc, u32};
-use std::hash::Hash;
+
+use std::convert::TryInto;
+use uikit_sys::{
+    id, CGPoint, CGRect, CGSize,
+    NSString, NSString_NSStringExtensionMethods, UIView,
+    UIView_UIViewHierarchy,
+    UITextView,
+    IUITextView,
+    NSNotificationCenter,
+    INSNotificationCenter,
+    UITextViewTextDidChangeNotification,
+};
 
 /// A field that can be filled with text.
 ///
@@ -144,19 +155,6 @@ impl<'a, Message> TextInput<'a, Message> {
     }
 }
 
-use std::convert::TryInto;
-use std::ffi::CString;
-use uikit_sys::{
-    id, CGPoint, CGRect, CGSize, INSObject, IUIColor, IUILabel,
-    NSString, NSString_NSStringExtensionMethods, UIColor, UILabel, UIView,
-    UIView_UIViewGeometry, UIView_UIViewHierarchy,
-    UITextView,
-    IUITextView,
-    NSNotificationCenter,
-    INSNotificationCenter,
-    UITextViewTextDidChangeNotification,
-};
-
 impl<'a, Message> Widget<Message> for TextInput<'a, Message>
 where
     Message: 'static + Clone,
@@ -171,10 +169,7 @@ where
         self.padding.hash(state);
         self.size.hash(state);
     }
-    fn draw(&mut self, parent: UIView) {
-        if self.ui_textview.is_some() {
-            return;
-        }
+    fn draw(&mut self, parent: UIView) -> WidgetPointers {
         let input_rect = CGRect {
             origin: CGPoint {
                 x: 10.0,
@@ -216,6 +211,18 @@ where
 
         self.widget_id = on_change.widget_id;
         debug!("drow TEXT UIVIEW {:?}", self.ui_textview.is_some());
+        use std::hash::Hasher;
+        let hash = {
+            let mut hash = &mut crate::Hasher::default();
+            self.hash_layout(&mut hash);
+            hash.finish()
+        };
+
+        WidgetPointers {
+            root: self.ui_textview.unwrap().0,
+            others: Vec::new(),
+            hash,
+        }
 
         /*
         use uikit_sys::{
@@ -253,13 +260,26 @@ where
     */
     }
 
-    fn on_widget_event(&mut self, widget_event: WidgetEvent, messages: &mut Vec<Message>) {
+    fn on_widget_event(&mut self, widget_event: WidgetEvent, messages: &mut Vec<Message>, widget_pointers: &WidgetPointers) {
+        let ui_textview = UITextView(widget_pointers.root);
+        let value = unsafe {
+            let value = NSString(ui_textview.text());
+            let len = value.lengthOfBytesUsingEncoding_(
+                uikit_sys::NSUTF8StringEncoding,
+            );
+            let bytes = value.UTF8String() as *const u8;
+            String::from_utf8(std::slice::from_raw_parts(bytes, len.try_into().unwrap()).to_vec()).unwrap()
+        };
+        self.value = value;
 
+        messages.push((self.on_change)(self.value.clone()));
+
+        /*
         debug!("on_widget_event TEXT UIVIEW {:?}", self.ui_textview.is_some());
         if let Some(ui_textview) = self.ui_textview {
             if widget_event.widget_id == self.widget_id {
                 let value = unsafe {
-                    let value = NSString(self.ui_textview.unwrap().text());
+                    let value = NSString(ui_textview.text());
                     let len = value.lengthOfBytesUsingEncoding_(
                         uikit_sys::NSUTF8StringEncoding,
                     );
@@ -271,6 +291,7 @@ where
                 messages.push((self.on_change)(self.value.clone()));
             }
         }
+        */
     }
 }
 

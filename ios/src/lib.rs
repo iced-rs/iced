@@ -10,11 +10,11 @@ pub mod widget;
 pub mod keyboard;
 pub mod mouse;
 pub use widget::{
-    Element, Widget, Text, TextInput
+    Element, Widget, Text, TextInput, WidgetPointers,
 };
 use event::WidgetEvent;
-mod layout;
-pub use layout::Layout;
+//mod layout;
+//pub use layout::Layout;
 pub use application::Application;
 /*
 //! Run commands and subscriptions.

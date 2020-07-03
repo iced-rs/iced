@@ -1,4 +1,6 @@
-use crate::{Element, Widget, Length, Align};
+use std::hash::Hash;
+use crate::{Element, Widget, Length, Align, Hasher};
+pub use iced_style::text_input::{Style, StyleSheet};
 
 #[allow(missing_debug_implementations)]
 pub struct Container<'a, Message> {
@@ -9,7 +11,7 @@ pub struct Container<'a, Message> {
     max_height: u32,
     horizontal_alignment: Align,
     vertical_alignment: Align,
-    //style_sheet: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet>,
     content: Element<'a, Message>,
 }
 
@@ -31,16 +33,28 @@ impl<'a, Message> Container<'a, Message> {
             max_height: u32::MAX,
             horizontal_alignment: Align::Start,
             vertical_alignment: Align::Start,
-            //style_sheet: Default::default(),
+            style_sheet: Default::default(),
             content: content.into(),
         }
     }
 }
-/*
 impl<'a, Message> Widget<Message> for Container<'a, Message>
 where
     Message: 'static,
 {
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
+        self.padding.hash(state);
+        self.width.hash(state);
+        self.height.hash(state);
+        self.max_width.hash(state);
+        self.max_height.hash(state);
+
+        self.content.hash_layout(state);
+    }
 }
 impl<'a, Message> From<Container<'a, Message>> for Element<'a, Message>
 where
@@ -50,4 +64,3 @@ where
         Element::new(container)
     }
 }
-*/

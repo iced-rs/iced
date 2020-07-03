@@ -8,6 +8,7 @@ use crate::{
     Length,
     VerticalAlignment,
     Widget,
+    WidgetPointers,
     Hasher,
 };
 
@@ -122,6 +123,7 @@ use uikit_sys::{
 };
 
 impl<'a, Message> Widget<Message> for Text {
+
     fn hash_layout(&self, state: &mut Hasher) {
         struct Marker;
         std::any::TypeId::of::<Marker>().hash(state);
@@ -132,8 +134,9 @@ impl<'a, Message> Widget<Message> for Text {
         self.height.hash(state);
     }
 
-    fn draw(&mut self, parent: UIView) {
-        unsafe {
+    fn draw(&mut self, parent: UIView) -> WidgetPointers {
+
+        let label = unsafe {
             let label = UILabel::alloc();
             let text = NSString(
                 NSString::alloc().initWithBytes_length_encoding_(
@@ -168,7 +171,20 @@ impl<'a, Message> Widget<Message> for Text {
             }
             label.setFrame_(rect);
             parent.addSubview_(label.0);
+            label
         };
+        let hash = {
+            let mut hash = &mut crate::Hasher::default();
+            //self.hash_layout(&mut hash);
+            use std::hash::Hasher;
+            hash.finish()
+        };
+
+        WidgetPointers {
+            root: label.0,
+            others: Vec::new(),
+            hash,
+        }
     }
 }
 

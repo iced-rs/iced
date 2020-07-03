@@ -16,9 +16,7 @@ use iced::{
     Checkbox,
 };
 pub fn main() {
-    color_backtrace::install_with_settings(
-        color_backtrace::Settings::new().verbosity(color_backtrace::Verbosity::Full),
-    );
+    color_backtrace::install();
     std::env::set_var("RUST_LOG", "DEBUG");
     std::env::set_var("RUST_BACKTRACE", "full");
     pretty_env_logger::init();
@@ -29,7 +27,8 @@ pub fn main() {
 
 #[derive(Debug, Default)]
 pub struct Simple {
-    enabled: bool,
+    toggle: bool,
+    text: String,
     text_state: text_input::State,
 }
 #[derive(Debug, Clone)]
@@ -52,28 +51,41 @@ impl Sandbox for Simple {
 
     fn update(&mut self, message: Message) {
         debug!("GOT NEW MESSAGE: {:?}", message);
+        match message {
+            Message::TextUpdated(val) => {
+                if val.starts_with("a") {
+                    self.toggle = true;
+                }
+                self.text = val;
+            },
+            _ => {
+            },
+        }
     }
 
     fn view(&mut self) -> Element<Message> {
-        debug!("RERUNNING VIEW");
-        /*
-        let toggle = Checkbox::new(
-            self.enabled,
-            "Listen to runtime events",
-            Message::Toggled,
-        );
-        toggle.into()
+        debug!("RERUNNING VIEW : {:#?}", self);
+        if self.toggle {
+            /*
+            let toggle = Checkbox::new(
+                self.toggle,
+                "Listen to runtime events",
+                Message::Toggled,
+            );
+            toggle.into()
+            */
 
-        let text = Text::new("foobar").color(Color::BLACK);
-        text.into()
-        */
+            let text = Text::new(&self.text).color(Color::BLACK);
+            text.into()
+        } else {
 
-        let text_field = TextInput::new(
-            &mut self.text_state,
-            "",
-            "",
-            |s| { Message::TextUpdated(s) }
-        );
-        text_field.into()
+            let text_field = TextInput::new(
+                &mut self.text_state,
+                "",
+                "",
+                |s| { Message::TextUpdated(s) }
+            );
+            text_field.into()
+        }
     }
 }
