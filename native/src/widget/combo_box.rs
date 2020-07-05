@@ -10,7 +10,7 @@ pub struct ComboBox<'a, T, Message, Renderer: self::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
 {
-    internal: Option<Internal<'a, T, Message>>,
+    internal: Internal<'a, T, Message>,
     options: Cow<'a, [T]>,
     selected: Option<T>,
     width: Length,
@@ -42,10 +42,10 @@ where
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
         Self {
-            internal: Some(Internal {
+            internal: Internal {
                 menu: &mut state.menu,
                 on_selected: Box::new(on_selected),
-            }),
+            },
             options: options.into(),
             selected,
             width: Length::Shrink,
@@ -180,16 +180,14 @@ where
     ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if let Some(internal) = &mut self.internal {
-                    if layout.bounds().contains(cursor_position) {
-                        let selected = self.selected.as_ref();
+                if layout.bounds().contains(cursor_position) {
+                    let selected = self.selected.as_ref();
 
-                        internal.menu.open(
-                            self.options
-                                .iter()
-                                .position(|option| Some(option) == selected),
-                        );
-                    }
+                    self.internal.menu.open(
+                        self.options
+                            .iter()
+                            .position(|option| Some(option) == selected),
+                    );
                 }
             }
             _ => {}
@@ -217,33 +215,23 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'a, Message, Renderer>> {
-        let is_open = self
-            .internal
-            .as_ref()
-            .map(|internal| internal.menu.is_open())
-            .unwrap_or(false);
+    ) -> Option<Overlay<'_, Message, Renderer>> {
+        if self.internal.menu.is_open() {
+            let bounds = layout.bounds();
 
-        if is_open {
-            if let Some(Internal { menu, on_selected }) = self.internal.take() {
-                let bounds = layout.bounds();
-
-                Some(Overlay::new(
-                    layout.position(),
-                    Box::new(Menu::new(
-                        menu,
-                        self.options.clone(),
-                        on_selected,
-                        bounds.width.round() as u16,
-                        bounds.height,
-                        self.text_size.unwrap_or(20),
-                        self.padding,
-                        Renderer::menu_style(&self.style),
-                    )),
-                ))
-            } else {
-                None
-            }
+            Some(Overlay::new(
+                layout.position(),
+                Box::new(Menu::new(
+                    self.internal.menu,
+                    self.options.clone(),
+                    &self.internal.on_selected,
+                    bounds.width.round() as u16,
+                    bounds.height,
+                    self.text_size,
+                    self.padding,
+                    Renderer::menu_style(&self.style),
+                )),
+            ))
         } else {
             None
         }

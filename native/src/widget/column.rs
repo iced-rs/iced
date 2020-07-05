@@ -208,7 +208,7 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'a, Message, Renderer>> {
+    ) -> Option<Overlay<'_, Message, Renderer>> {
         self.children
             .iter_mut()
             .zip(layout.children())

@@ -1,4 +1,4 @@
-use crate::{layout, Clipboard, Element, Event, Layout, Overlay, Point, Size};
+use crate::{layout, Clipboard, Element, Event, Layout, Point, Size};
 
 use std::hash::Hasher;
 
@@ -19,13 +19,13 @@ use std::hash::Hasher;
 /// [`UserInterface`]: struct.UserInterface.html
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
-    base: Layer<Element<'a, Message, Renderer>>,
-    overlay: Option<Layer<Overlay<'a, Message, Renderer>>>,
+    root: Element<'a, Message, Renderer>,
+    base: Layer,
+    overlay: Option<Layer>,
     bounds: Size,
 }
 
-struct Layer<T> {
-    root: T,
+struct Layer {
     layout: layout::Node,
     hash: u64,
 }
@@ -97,9 +97,9 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let mut root = root.into();
+        let root = root.into();
 
-        let (base, overlay) = {
+        let base = {
             let hash = {
                 let hasher = &mut crate::Hasher::default();
                 root.hash_layout(hasher);
@@ -115,27 +115,13 @@ where
                 renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds))
             };
 
-            let overlay = root.overlay(Layout::new(&layout));
-
-            (Layer { root, layout, hash }, overlay)
+            Layer { layout, hash }
         };
 
-        let overlay = overlay.map(|root| {
-            let hash = {
-                let hasher = &mut crate::Hasher::default();
-                root.hash_layout(hasher);
-
-                hasher.finish()
-            };
-
-            let layout = root.layout(&renderer, bounds);
-
-            Layer { root, layout, hash }
-        });
-
         UserInterface {
+            root,
             base,
-            overlay,
+            overlay: None,
             bounds,
         }
     }
@@ -215,35 +201,49 @@ where
     ) -> Vec<Message> {
         let mut messages = Vec::new();
 
-        for event in events {
-            if let Some(overlay) = &mut self.overlay {
-                let base_cursor =
-                    if overlay.layout.bounds().contains(cursor_position) {
-                        // TODO: Encode cursor availability
-                        Point::new(-1.0, -1.0)
-                    } else {
-                        cursor_position
-                    };
+        let base_events = if let Some(mut overlay) =
+            self.root.overlay(Layout::new(&self.base.layout))
+        {
+            let layer = {
+                let new_hash = {
+                    let hasher = &mut crate::Hasher::default();
+                    overlay.hash_layout(hasher);
 
-                overlay.root.on_event(
+                    hasher.finish()
+                };
+
+                let layout = match self.overlay.take() {
+                    Some(Layer { hash, layout }) if new_hash == hash => layout,
+                    _ => overlay.layout(&renderer, self.bounds),
+                };
+
+                Layer {
+                    layout,
+                    hash: new_hash,
+                }
+            };
+
+            for event in events {
+                overlay.on_event(
                     event.clone(),
-                    Layout::new(&overlay.layout),
+                    Layout::new(&layer.layout),
                     cursor_position,
                     &mut messages,
                     renderer,
                     clipboard,
                 );
+            }
 
-                self.base.root.widget.on_event(
-                    event,
-                    Layout::new(&self.base.layout),
-                    base_cursor,
-                    &mut messages,
-                    renderer,
-                    clipboard,
-                );
-            } else {
-                self.base.root.widget.on_event(
+            self.overlay = Some(layer);
+
+            None
+        } else {
+            Some(events)
+        };
+
+        if let Some(events) = base_events {
+            for event in events {
+                self.root.widget.on_event(
                     event,
                     Layout::new(&self.base.layout),
                     cursor_position,
@@ -327,12 +327,12 @@ where
     /// }
     /// ```
     pub fn draw(
-        &self,
+        &mut self,
         renderer: &mut Renderer,
         cursor_position: Point,
     ) -> Renderer::Output {
-        if let Some(overlay) = &self.overlay {
-            let overlay_bounds = overlay.layout.bounds();
+        if let Some(layer) = &self.overlay {
+            let overlay_bounds = layer.layout.bounds();
 
             let base_cursor = if overlay_bounds.contains(cursor_position) {
                 Point::new(-1.0, -1.0)
@@ -340,27 +340,33 @@ where
                 cursor_position
             };
 
-            let base_primitives = self.base.root.widget.draw(
+            let base_primitives = self.root.widget.draw(
                 renderer,
                 &Renderer::Defaults::default(),
                 Layout::new(&self.base.layout),
                 base_cursor,
             );
 
-            let overlay_primitives = overlay.root.draw(
-                renderer,
-                &Renderer::Defaults::default(),
-                Layout::new(&overlay.layout),
-                cursor_position,
-            );
+            if let Some(overlay) =
+                self.root.overlay(Layout::new(&self.base.layout))
+            {
+                let overlay_primitives = overlay.draw(
+                    renderer,
+                    &Renderer::Defaults::default(),
+                    Layout::new(&layer.layout),
+                    cursor_position,
+                );
 
-            renderer.overlay(
-                base_primitives,
-                overlay_primitives,
-                overlay_bounds,
-            )
+                renderer.overlay(
+                    base_primitives,
+                    overlay_primitives,
+                    overlay_bounds,
+                )
+            } else {
+                base_primitives
+            }
         } else {
-            self.base.root.widget.draw(
+            self.root.widget.draw(
                 renderer,
                 &Renderer::Defaults::default(),
                 Layout::new(&self.base.layout),

@@ -319,14 +319,16 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'a, Message, Renderer>> {
-        self.content
+    ) -> Option<Overlay<'_, Message, Renderer>> {
+        let Self { content, state, .. } = self;
+
+        content
             .overlay(layout.children().next().unwrap())
             .map(|overlay| {
                 let bounds = layout.bounds();
                 let content_layout = layout.children().next().unwrap();
                 let content_bounds = content_layout.bounds();
-                let offset = self.state.offset(bounds, content_bounds);
+                let offset = state.offset(bounds, content_bounds);
 
                 overlay.translate(Vector::new(0.0, -(offset as f32)))
             })

@@ -273,10 +273,10 @@ where
         self.widget.hash_layout(state);
     }
 
-    pub fn overlay(
-        &mut self,
+    pub fn overlay<'b>(
+        &'b mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'a, Message, Renderer>> {
+    ) -> Option<Overlay<'b, Message, Renderer>> {
         self.widget.overlay(layout)
     }
 }
@@ -366,10 +366,12 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'a, B, Renderer>> {
+    ) -> Option<Overlay<'_, B, Renderer>> {
+        let mapper = self.mapper.clone();
+
         self.widget
             .overlay(layout)
-            .map(|overlay| overlay.map(self.mapper.clone()))
+            .map(move |overlay| overlay.map(mapper))
     }
 }
 
@@ -450,7 +452,7 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'a, Message, Renderer>> {
+    ) -> Option<Overlay<'_, Message, Renderer>> {
         self.element.overlay(layout)
     }
 }

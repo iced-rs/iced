@@ -179,10 +179,10 @@ where
     ) {
     }
 
-    fn overlay(
-        &mut self,
+    fn overlay<'b>(
+        &'b mut self,
         _layout: Layout<'_>,
-    ) -> Option<Overlay<'a, Message, Renderer>> {
+    ) -> Option<Overlay<'b, Message, Renderer>> {
         None
     }
 }

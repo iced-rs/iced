@@ -1,5 +1,5 @@
 use crate::{
-    container, layout, mouse, overlay, scrollable, Clipboard, Container,
+    container, layout, mouse, overlay, scrollable, text, Clipboard, Container,
     Element, Event, Hasher, Layout, Length, Point, Rectangle, Scrollable, Size,
     Vector, Widget,
 };
@@ -39,10 +39,10 @@ where
     pub fn new<T: 'a>(
         state: &'a mut State,
         options: impl Into<Cow<'a, [T]>>,
-        on_selected: Box<dyn Fn(T) -> Message>,
+        on_selected: &'a dyn Fn(T) -> Message,
         width: u16,
         target_height: f32,
-        text_size: u16,
+        text_size: Option<u16>,
         padding: u16,
         style: <Renderer as self::Renderer>::Style,
     ) -> Self
@@ -175,8 +175,8 @@ where
 {
     hovered_option: &'a mut Option<usize>,
     options: Cow<'a, [T]>,
-    on_selected: Box<dyn Fn(T) -> Message>,
-    text_size: u16,
+    on_selected: &'a dyn Fn(T) -> Message,
+    text_size: Option<u16>,
     padding: u16,
     style: <Renderer as self::Renderer>::Style,
 }
@@ -188,8 +188,8 @@ where
     pub fn new(
         hovered_option: &'a mut Option<usize>,
         options: impl Into<Cow<'a, [T]>>,
-        on_selected: Box<dyn Fn(T) -> Message>,
-        text_size: u16,
+        on_selected: &'a dyn Fn(T) -> Message,
+        text_size: Option<u16>,
         padding: u16,
         style: <Renderer as self::Renderer>::Style,
     ) -> Self {
@@ -221,17 +221,18 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer,
+        renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         use std::f32;
 
         let limits = limits.width(Length::Fill).height(Length::Shrink);
+        let text_size = self.text_size.unwrap_or(renderer.default_size());
 
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                f32::from(self.text_size + self.padding * 2)
+                f32::from(text_size + self.padding * 2)
                     * self.options.len() as f32,
             );
 
@@ -253,7 +254,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
-        _renderer: &Renderer,
+        renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
         match event {
@@ -270,11 +271,13 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 let bounds = layout.bounds();
+                let text_size =
+                    self.text_size.unwrap_or(renderer.default_size());
 
                 if bounds.contains(cursor_position) {
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(self.text_size + self.padding * 2))
+                            / f32::from(text_size + self.padding * 2))
                             as usize,
                     );
                 }
@@ -296,14 +299,16 @@ where
             cursor_position,
             &self.options,
             *self.hovered_option,
-            self.text_size,
+            self.text_size.unwrap_or(renderer.default_size()),
             self.padding,
             &self.style,
         )
     }
 }
 
-pub trait Renderer: scrollable::Renderer + container::Renderer {
+pub trait Renderer:
+    scrollable::Renderer + container::Renderer + text::Renderer
+{
     type Style: Default + Clone;
 
     fn decorate(

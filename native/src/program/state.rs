@@ -35,7 +35,7 @@ where
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Self {
-        let user_interface = build_user_interface(
+        let mut user_interface = build_user_interface(
             &mut program,
             Cache::default(),
             renderer,
@@ -153,7 +153,7 @@ where
                     command
                 }));
 
-            let user_interface = build_user_interface(
+            let mut user_interface = build_user_interface(
                 &mut self.program,
                 temp_cache,
                 renderer,
