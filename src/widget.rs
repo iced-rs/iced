@@ -50,7 +50,7 @@ mod platform {
         text_input::TextInput,
     };
 
-    #[cfg(feature = "canvas")]
+    #[cfg(any(feature = "canvas", feature = "glow_canvas"))]
     #[doc(no_inline)]
     pub use canvas::Canvas;
 }

@@ -116,7 +116,12 @@ impl<'a, Message> Widget<Message> for Text {
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
 
-        let content = bumpalo::format!(in bump, "{}", self.content);
+        let content = {
+            use dodrio::bumpalo::collections::String;
+
+            String::from_str_in(&self.content, bump)
+        };
+
         let color = self
             .color
             .map(css::color)
@@ -133,7 +138,8 @@ impl<'a, Message> Widget<Message> for Text {
 
         let style = bumpalo::format!(
             in bump,
-            "width: {}; height: {}; font-size: {}px; color: {}; text-align: {}; font-family: {}",
+            "width: {}; height: {}; font-size: {}px; color: {}; \
+            text-align: {}; font-family: {}",
             width,
             height,
             self.size.unwrap_or(20),

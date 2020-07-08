@@ -43,12 +43,36 @@ pub enum Node {
 }
 
 impl Node {
+    /// Returns an iterator over each [`Split`] in this [`Node`].
+    ///
+    /// [`Split`]: struct.Split.html
+    /// [`Node`]: enum.Node.html
+    pub fn splits(&self) -> impl Iterator<Item = &Split> {
+        let mut unvisited_nodes = vec![self];
+
+        std::iter::from_fn(move || {
+            while let Some(node) = unvisited_nodes.pop() {
+                match node {
+                    Node::Split { id, a, b, .. } => {
+                        unvisited_nodes.push(a);
+                        unvisited_nodes.push(b);
+
+                        return Some(id);
+                    }
+                    _ => {}
+                }
+            }
+
+            None
+        })
+    }
+
     /// Returns the rectangular region for each [`Pane`] in the [`Node`] given
     /// the spacing between panes and the total available space.
     ///
     /// [`Pane`]: struct.Pane.html
     /// [`Node`]: enum.Node.html
-    pub fn regions(
+    pub fn pane_regions(
         &self,
         spacing: f32,
         size: Size,
@@ -75,7 +99,7 @@ impl Node {
     ///
     /// [`Split`]: struct.Split.html
     /// [`Node`]: enum.Node.html
-    pub fn splits(
+    pub fn split_regions(
         &self,
         spacing: f32,
         size: Size,

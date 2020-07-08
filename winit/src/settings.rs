@@ -14,7 +14,7 @@ use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
 
 /// The settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Settings<Flags> {
     /// The [`Window`] settings
     ///
@@ -28,7 +28,7 @@ pub struct Settings<Flags> {
 }
 
 /// The window settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Window {
     /// The size of the window.
     pub size: (u32, u32),
@@ -44,6 +44,9 @@ pub struct Window {
 
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
+
+    /// The window icon, which is also usually used in the taskbar
+    pub icon: Option<winit::window::Icon>,
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
@@ -66,6 +69,7 @@ impl Window {
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
+            .with_window_icon(self.icon)
             .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
 
         if let Some((width, height)) = self.min_size {
@@ -99,6 +103,7 @@ impl Default for Window {
             max_size: None,
             resizable: true,
             decorations: true,
+            icon: None,
             platform_specific: Default::default(),
         }
     }

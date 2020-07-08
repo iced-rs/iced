@@ -1,5 +1,7 @@
+use crate::window::Icon;
+
 /// The window settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Settings {
     /// The initial size of the window.
     pub size: (u32, u32),
@@ -15,6 +17,9 @@ pub struct Settings {
 
     /// Whether the window should have a border, a title bar, etc. or not.
     pub decorations: bool,
+
+    /// The icon of the window.
+    pub icon: Option<Icon>,
 }
 
 impl Default for Settings {
@@ -25,6 +30,7 @@ impl Default for Settings {
             max_size: None,
             resizable: true,
             decorations: true,
+            icon: None,
         }
     }
 }
@@ -38,6 +44,7 @@ impl From<Settings> for iced_winit::settings::Window {
             max_size: settings.max_size,
             resizable: settings.resizable,
             decorations: settings.decorations,
+            icon: settings.icon.map(Icon::into),
             platform_specific: Default::default(),
         }
     }

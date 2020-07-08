@@ -92,6 +92,9 @@ pub fn window_event(
                 }
             }
         })),
+        WindowEvent::ModifiersChanged(new_modifiers) => Some(Event::Keyboard(
+            keyboard::Event::ModifiersChanged(modifiers_state(*new_modifiers)),
+        )),
         WindowEvent::HoveredFile(path) => {
             Some(Event::Window(window::Event::FileHovered(path.clone())))
         }

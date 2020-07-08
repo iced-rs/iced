@@ -27,13 +27,7 @@ impl<B> text_input::Renderer for Renderer<B>
 where
     B: Backend + backend::Text,
 {
-    type Font = Font;
     type Style = Box<dyn StyleSheet>;
-
-    fn default_size(&self) -> u16 {
-        // TODO: Make this configurable
-        20
-    }
 
     fn measure_value(&self, value: &str, size: u16, font: Font) -> f32 {
         let backend = self.backend();

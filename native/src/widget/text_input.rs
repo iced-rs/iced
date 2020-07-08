@@ -17,8 +17,8 @@ use editor::Editor;
 use crate::{
     keyboard, layout,
     mouse::{self, click},
-    Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
-    Widget,
+    text, Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle,
+    Size, Widget,
 };
 
 use std::u32;
@@ -486,7 +486,8 @@ where
         let text_bounds = layout.children().next().unwrap().bounds();
 
         if self.is_secure {
-            renderer.draw(
+            self::Renderer::draw(
+                renderer,
                 bounds,
                 text_bounds,
                 cursor_position,
@@ -498,7 +499,8 @@ where
                 &self.style,
             )
         } else {
-            renderer.draw(
+            self::Renderer::draw(
+                renderer,
                 bounds,
                 text_bounds,
                 cursor_position,
@@ -531,19 +533,9 @@ where
 ///
 /// [`TextInput`]: struct.TextInput.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer: crate::Renderer + Sized {
-    /// The font type used for [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    type Font: Default + Copy;
-
+pub trait Renderer: text::Renderer + Sized {
     /// The style supported by this renderer.
     type Style: Default;
-
-    /// Returns the default size of the text of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    fn default_size(&self) -> u16;
 
     /// Returns the width of the value of the [`TextInput`].
     ///
