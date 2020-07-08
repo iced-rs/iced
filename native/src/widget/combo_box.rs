@@ -225,6 +225,7 @@ where
                 Menu::new(&mut self.menu, &self.options, &self.on_selected)
                     .width(bounds.width.round() as u16)
                     .padding(self.padding)
+                    .font(self.font)
                     .style(Renderer::menu_style(&self.style));
 
             if let Some(text_size) = self.text_size {
