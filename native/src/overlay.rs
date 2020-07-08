@@ -32,7 +32,7 @@ where
 
     pub fn map<B>(self, f: Rc<dyn Fn(Message) -> B>) -> Overlay<'a, B, Renderer>
     where
-        Message: 'static,
+        Message: 'a,
         Renderer: 'a,
         B: 'static,
     {

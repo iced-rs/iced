@@ -3,14 +3,72 @@ use crate::{
     Element, Event, Hasher, Layout, Length, Point, Rectangle, Scrollable, Size,
     Vector, Widget,
 };
-use std::borrow::Borrow;
 
-pub struct Menu<'a, Message, Renderer: self::Renderer> {
-    container: Container<'a, Message, Renderer>,
-    is_open: &'a mut bool,
+pub struct Menu<'a, T, Message, Renderer: self::Renderer> {
+    state: &'a mut State,
+    options: &'a [T],
+    on_selected: &'a dyn Fn(T) -> Message,
     width: u16,
-    target_height: f32,
+    padding: u16,
+    text_size: Option<u16>,
     style: <Renderer as self::Renderer>::Style,
+}
+
+impl<'a, T, Message, Renderer> Menu<'a, T, Message, Renderer>
+where
+    T: ToString + Clone,
+    Message: 'a,
+    Renderer: self::Renderer + 'a,
+{
+    pub fn new(
+        state: &'a mut State,
+        options: &'a [T],
+        on_selected: &'a dyn Fn(T) -> Message,
+    ) -> Self {
+        Menu {
+            state,
+            options,
+            on_selected,
+            width: 0,
+            padding: 0,
+            text_size: None,
+            style: Default::default(),
+        }
+    }
+
+    pub fn width(mut self, width: u16) -> Self {
+        self.width = width;
+        self
+    }
+
+    pub fn padding(mut self, padding: u16) -> Self {
+        self.padding = padding;
+        self
+    }
+
+    pub fn text_size(mut self, text_size: u16) -> Self {
+        self.text_size = Some(text_size);
+        self
+    }
+
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as self::Renderer>::Style>,
+    ) -> Self {
+        self.style = style.into();
+        self
+    }
+
+    pub fn overlay(
+        self,
+        position: Point,
+        target_height: f32,
+    ) -> overlay::Overlay<'a, Message, Renderer> {
+        overlay::Overlay::new(
+            position,
+            Box::new(Overlay::new(self, target_height)),
+        )
+    }
 }
 
 #[derive(Default)]
@@ -31,29 +89,40 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer: self::Renderer> Menu<'a, Message, Renderer>
+struct Overlay<'a, Message, Renderer: self::Renderer> {
+    container: Container<'a, Message, Renderer>,
+    is_open: &'a mut bool,
+    width: u16,
+    target_height: f32,
+    style: <Renderer as self::Renderer>::Style,
+}
+
+impl<'a, Message, Renderer: self::Renderer> Overlay<'a, Message, Renderer>
 where
-    Message: 'static,
+    Message: 'a,
     Renderer: 'a,
 {
     pub fn new<T>(
-        state: &'a mut State,
-        options: &'a dyn Borrow<[T]>,
-        on_selected: &'a dyn Fn(T) -> Message,
-        width: u16,
+        menu: Menu<'a, T, Message, Renderer>,
         target_height: f32,
-        text_size: Option<u16>,
-        padding: u16,
-        style: <Renderer as self::Renderer>::Style,
     ) -> Self
     where
         T: Clone + ToString,
-        [T]: ToOwned,
     {
+        let Menu {
+            state,
+            options,
+            on_selected,
+            width,
+            padding,
+            text_size,
+            style,
+        } = menu;
+
         let container = Container::new(
             Scrollable::new(&mut state.scrollable).push(List::new(
-                &mut state.hovered_option,
                 options,
+                &mut state.hovered_option,
                 on_selected,
                 text_size,
                 padding,
@@ -65,15 +134,15 @@ where
         Self {
             container,
             is_open: &mut state.is_open,
-            width,
+            width: width,
             target_height,
-            style,
+            style: style,
         }
     }
 }
 
 impl<'a, Message, Renderer> overlay::Content<Message, Renderer>
-    for Menu<'a, Message, Renderer>
+    for Overlay<'a, Message, Renderer>
 where
     Renderer: self::Renderer,
 {
@@ -174,8 +243,8 @@ where
 }
 
 struct List<'a, T, Message, Renderer: self::Renderer> {
+    options: &'a [T],
     hovered_option: &'a mut Option<usize>,
-    options: &'a dyn Borrow<[T]>,
     on_selected: &'a dyn Fn(T) -> Message,
     text_size: Option<u16>,
     padding: u16,
@@ -184,16 +253,16 @@ struct List<'a, T, Message, Renderer: self::Renderer> {
 
 impl<'a, T, Message, Renderer: self::Renderer> List<'a, T, Message, Renderer> {
     pub fn new(
+        options: &'a [T],
         hovered_option: &'a mut Option<usize>,
-        options: &'a dyn Borrow<[T]>,
         on_selected: &'a dyn Fn(T) -> Message,
         text_size: Option<u16>,
         padding: u16,
         style: <Renderer as self::Renderer>::Style,
     ) -> Self {
         List {
-            hovered_option,
             options,
+            hovered_option,
             on_selected,
             text_size,
             padding,
@@ -230,7 +299,7 @@ where
             let intrinsic = Size::new(
                 0.0,
                 f32::from(text_size + self.padding * 2)
-                    * self.options.borrow().len() as f32,
+                    * self.options.len() as f32,
             );
 
             limits.resolve(intrinsic)
@@ -245,7 +314,7 @@ where
         struct Marker;
         std::any::TypeId::of::<Marker>().hash(state);
 
-        self.options.borrow().len().hash(state);
+        self.options.len().hash(state);
         self.text_size.hash(state);
         self.padding.hash(state);
     }
@@ -265,7 +334,7 @@ where
 
                 if bounds.contains(cursor_position) {
                     if let Some(index) = *self.hovered_option {
-                        if let Some(option) = self.options.borrow().get(index) {
+                        if let Some(option) = self.options.get(index) {
                             messages.push((self.on_selected)(option.clone()));
                         }
                     }
@@ -299,7 +368,7 @@ where
             renderer,
             layout.bounds(),
             cursor_position,
-            self.options.borrow(),
+            self.options,
             *self.hovered_option,
             self.text_size.unwrap_or(renderer.default_size()),
             self.padding,
@@ -337,8 +406,7 @@ impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
     for List<'a, T, Message, Renderer>
 where
     T: ToString + Clone,
-    [T]: ToOwned,
-    Message: 'static,
+    Message: 'a,
     Renderer: 'a + self::Renderer,
 {
     fn into(self) -> Element<'a, Message, Renderer> {

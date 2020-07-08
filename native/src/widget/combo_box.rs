@@ -10,7 +10,8 @@ pub struct ComboBox<'a, T, Message, Renderer: self::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
 {
-    internal: Internal<'a, T, Message>,
+    menu: &'a mut menu::State,
+    on_selected: Box<dyn Fn(T) -> Message>,
     options: Cow<'a, [T]>,
     selected: Option<T>,
     width: Length,
@@ -22,11 +23,6 @@ where
 #[derive(Default)]
 pub struct State {
     menu: menu::State,
-}
-
-pub struct Internal<'a, T, Message> {
-    menu: &'a mut menu::State,
-    on_selected: Box<dyn Fn(T) -> Message>,
 }
 
 impl<'a, T: 'a, Message, Renderer: self::Renderer>
@@ -42,10 +38,8 @@ where
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
         Self {
-            internal: Internal {
-                menu: &mut state.menu,
-                on_selected: Box::new(on_selected),
-            },
+            menu: &mut state.menu,
+            on_selected: Box::new(on_selected),
             options: options.into(),
             selected,
             width: Length::Shrink,
@@ -183,7 +177,7 @@ where
                 if layout.bounds().contains(cursor_position) {
                     let selected = self.selected.as_ref();
 
-                    self.internal.menu.open(
+                    self.menu.open(
                         self.options
                             .iter()
                             .position(|option| Some(option) == selected),
@@ -216,22 +210,20 @@ where
         &mut self,
         layout: Layout<'_>,
     ) -> Option<Overlay<'_, Message, Renderer>> {
-        if self.internal.menu.is_open() {
+        if self.menu.is_open() {
             let bounds = layout.bounds();
 
-            Some(Overlay::new(
-                layout.position(),
-                Box::new(Menu::new(
-                    self.internal.menu,
-                    &self.options,
-                    &self.internal.on_selected,
-                    bounds.width.round() as u16,
-                    bounds.height,
-                    self.text_size,
-                    self.padding,
-                    Renderer::menu_style(&self.style),
-                )),
-            ))
+            let mut menu =
+                Menu::new(&mut self.menu, &self.options, &self.on_selected)
+                    .width(bounds.width.round() as u16)
+                    .padding(self.padding)
+                    .style(Renderer::menu_style(&self.style));
+
+            if let Some(text_size) = self.text_size {
+                menu = menu.text_size(text_size);
+            }
+
+            Some(menu.overlay(layout.position(), bounds.height))
         } else {
             None
         }
