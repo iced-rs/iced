@@ -19,6 +19,7 @@ where
     text_size: Option<u16>,
     font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
+    is_open: bool,
 }
 
 #[derive(Default)]
@@ -38,6 +39,8 @@ where
         selected: Option<T>,
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
+        let is_open = state.menu.is_open();
+
         Self {
             menu: &mut state.menu,
             on_selected: Box::new(on_selected),
@@ -48,6 +51,7 @@ where
             padding: Renderer::DEFAULT_PADDING,
             font: Default::default(),
             style: Default::default(),
+            is_open,
         }
     }
 
@@ -179,19 +183,23 @@ where
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if layout.bounds().contains(cursor_position) {
-                    let selected = self.selected.as_ref();
+        if !self.is_open {
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(
+                    mouse::Button::Left,
+                )) => {
+                    if layout.bounds().contains(cursor_position) {
+                        let selected = self.selected.as_ref();
 
-                    self.menu.open(
-                        self.options
-                            .iter()
-                            .position(|option| Some(option) == selected),
-                    );
+                        self.menu.open(
+                            self.options
+                                .iter()
+                                .position(|option| Some(option) == selected),
+                        );
+                    }
                 }
+                _ => {}
             }
-            _ => {}
         }
     }
 
