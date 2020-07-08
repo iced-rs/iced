@@ -121,12 +121,14 @@ where
 
         debug.event_processing_started();
         let mut messages = user_interface.update(
-            self.queued_events.drain(..),
+            &self.queued_events,
             cursor_position,
             clipboard,
             renderer,
         );
         messages.extend(self.queued_messages.drain(..));
+
+        self.queued_events.clear();
         debug.event_processing_finished();
 
         if messages.is_empty() {
