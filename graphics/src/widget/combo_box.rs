@@ -29,8 +29,9 @@ where
         bounds: Rectangle,
         cursor_position: Point,
         selected: Option<String>,
-        text_size: u16,
         padding: u16,
+        text_size: u16,
+        font: Font,
         style: &Box<dyn StyleSheet>,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
@@ -69,7 +70,7 @@ where
                     let label = Primitive::Text {
                         content: label,
                         size: f32::from(text_size),
-                        font: Font::Default,
+                        font,
                         color: style.text_color,
                         bounds: Rectangle {
                             x: bounds.x + f32::from(padding),

@@ -11,6 +11,7 @@ pub struct Menu<'a, T, Message, Renderer: self::Renderer> {
     width: u16,
     padding: u16,
     text_size: Option<u16>,
+    font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
 }
 
@@ -32,6 +33,7 @@ where
             width: 0,
             padding: 0,
             text_size: None,
+            font: Default::default(),
             style: Default::default(),
         }
     }
@@ -48,6 +50,11 @@ where
 
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
+        self
+    }
+
+    pub fn font(mut self, font: Renderer::Font) -> Self {
+        self.font = font;
         self
     }
 
@@ -115,21 +122,22 @@ where
             on_selected,
             width,
             padding,
+            font,
             text_size,
             style,
         } = menu;
 
-        let container = Container::new(
-            Scrollable::new(&mut state.scrollable).push(List::new(
+        let container =
+            Container::new(Scrollable::new(&mut state.scrollable).push(List {
                 options,
-                &mut state.hovered_option,
+                hovered_option: &mut state.hovered_option,
                 on_selected,
+                font,
                 text_size,
                 padding,
-                style.clone(),
-            )),
-        )
-        .padding(1);
+                style: style.clone(),
+            }))
+            .padding(1);
 
         Self {
             container,
@@ -246,29 +254,10 @@ struct List<'a, T, Message, Renderer: self::Renderer> {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     on_selected: &'a dyn Fn(T) -> Message,
-    text_size: Option<u16>,
     padding: u16,
+    text_size: Option<u16>,
+    font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
-}
-
-impl<'a, T, Message, Renderer: self::Renderer> List<'a, T, Message, Renderer> {
-    pub fn new(
-        options: &'a [T],
-        hovered_option: &'a mut Option<usize>,
-        on_selected: &'a dyn Fn(T) -> Message,
-        text_size: Option<u16>,
-        padding: u16,
-        style: <Renderer as self::Renderer>::Style,
-    ) -> Self {
-        List {
-            options,
-            hovered_option,
-            on_selected,
-            text_size,
-            padding,
-            style,
-        }
-    }
 }
 
 impl<'a, T, Message, Renderer: self::Renderer> Widget<'a, Message, Renderer>
@@ -370,8 +359,9 @@ where
             cursor_position,
             self.options,
             *self.hovered_option,
-            self.text_size.unwrap_or(renderer.default_size()),
             self.padding,
+            self.text_size.unwrap_or(renderer.default_size()),
+            self.font,
             &self.style,
         )
     }
@@ -396,8 +386,9 @@ pub trait Renderer:
         cursor_position: Point,
         options: &[T],
         hovered_option: Option<usize>,
-        text_size: u16,
         padding: u16,
+        text_size: u16,
+        font: Self::Font,
         style: &<Self as Renderer>::Style,
     ) -> Self::Output;
 }

@@ -43,8 +43,9 @@ where
         cursor_position: Point,
         options: &[T],
         hovered_option: Option<usize>,
-        text_size: u16,
         padding: u16,
+        text_size: u16,
+        font: Font,
         style: &Style,
     ) -> Self::Output {
         use std::f32;
@@ -83,7 +84,7 @@ where
                     ..bounds
                 },
                 size: f32::from(text_size),
-                font: Font::Default,
+                font,
                 color: if is_selected {
                     style.selected_text_color
                 } else {

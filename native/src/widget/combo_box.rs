@@ -17,6 +17,7 @@ where
     width: Length,
     padding: u16,
     text_size: Option<u16>,
+    font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
 }
 
@@ -45,7 +46,8 @@ where
             width: Length::Shrink,
             text_size: None,
             padding: Renderer::DEFAULT_PADDING,
-            style: <Renderer as self::Renderer>::Style::default(),
+            font: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -67,6 +69,11 @@ where
 
     pub fn text_size(mut self, size: u16) -> Self {
         self.text_size = Some(size);
+        self
+    }
+
+    pub fn font(mut self, font: Renderer::Font) -> Self {
+        self.font = font;
         self
     }
 
@@ -200,8 +207,9 @@ where
             layout.bounds(),
             cursor_position,
             self.selected.as_ref().map(ToString::to_string),
-            self.text_size.unwrap_or(renderer.default_size()),
             self.padding,
+            self.text_size.unwrap_or(renderer.default_size()),
+            self.font,
             &self.style,
         )
     }
@@ -244,8 +252,9 @@ pub trait Renderer: text::Renderer + menu::Renderer {
         bounds: Rectangle,
         cursor_position: Point,
         selected: Option<String>,
-        text_size: u16,
         padding: u16,
+        text_size: u16,
+        font: Self::Font,
         style: &<Self as Renderer>::Style,
     ) -> Self::Output;
 }
