@@ -13,6 +13,7 @@ winit = "^0.22"
 objc = "0.2.7"
 uikit-sys = { git = "https://github.com/simlay/uikit-sys" }
 log = "0.4"
+num-traits = "0.2"
 #uikit-sys = { path = "../../uikit-sys/" }
 
 [dependencies.iced_core]

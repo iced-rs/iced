@@ -15,6 +15,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[derive(PartialEq, Clone, Debug)]
 pub struct WidgetEvent {
     pub widget_id: u64,
+    pub id: usize,
 }
 
 #[derive(Debug)]
@@ -32,7 +33,7 @@ impl EventHandler {
             PROXY = Some(proxy);
         }
     }
-    pub fn new() -> Self
+    pub fn new(objc_id: id) -> Self
     {
         let mut widget_id = 0;
         let obj = unsafe {
@@ -42,6 +43,7 @@ impl EventHandler {
             if let Some(counter) = &COUNTER {
                 widget_id = counter.fetch_add(0, Ordering::Relaxed);
                 (*obj).set_ivar::<u64>("widget_id", widget_id);
+                (*obj).set_ivar::<id>("objc_id", objc_id);
             }
             obj
         };
@@ -52,7 +54,8 @@ impl EventHandler {
         unsafe {
             if let Some(ref proxy) = PROXY {
                 let widget_id = *this.get_ivar::<u64>("widget_id");
-                let _ = proxy.send_event(WidgetEvent { widget_id } );
+                let id = *this.get_ivar::<id>("objc_id");
+                let _ = proxy.send_event(WidgetEvent { widget_id, id: id as usize} );
             }
         }
     }
@@ -72,6 +75,7 @@ impl EventHandler {
                     );
                 }
                 decl.add_ivar::<u64>("widget_id");
+                decl.add_ivar::<id>("objc_id");
                 decl.register()
             }
         }

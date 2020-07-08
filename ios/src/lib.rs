@@ -10,26 +10,12 @@ pub mod widget;
 pub mod keyboard;
 pub mod mouse;
 pub use widget::{
-    Element, Widget, Text, TextInput, WidgetPointers,
+    Element, Widget, Text, TextInput, WidgetPointers, Column,
 };
 use event::WidgetEvent;
-//mod layout;
-//pub use layout::Layout;
+mod layout;
+pub use layout::Layout;
 pub use application::Application;
-/*
-//! Run commands and subscriptions.
-use crate::{Event, Hasher};
-
-/// A native runtime with a generic executor and receiver of results.
-///
-/// It can be used by shells to easily spawn a [`Command`] or track a
-/// [`Subscription`].
-///
-/// [`Command`]: ../struct.Command.html
-/// [`Subscription`]: ../struct.Subscription.html
-pub type Runtime<Executor, Receiver, Message> =
-    iced_futures::Runtime<Hasher, Event, Executor, Receiver, Message>;
-*/
 
 pub type Hasher = std::collections::hash_map::DefaultHasher;
 pub type Runtime<Executor, Receiver, Message> =

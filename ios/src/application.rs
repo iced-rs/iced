@@ -1,6 +1,7 @@
 use crate::{
     event::{EventHandler, WidgetEvent},
     WidgetPointers,
+    widget::Widget,
     Command, Element, Executor, Runtime, Subscription,
 };
 use std::hash::Hasher;
@@ -11,8 +12,6 @@ use winit::{
     window::WindowBuilder,
 };
 
-use std::cell::RefCell;
-use std::rc::Rc;
 use uikit_sys::{
     self,
     //CGRect,
@@ -165,8 +164,6 @@ pub trait Application: Sized {
                 match event {
                     event::Event::MainEventsCleared => {}
                     event::Event::UserEvent(widget_event) => {
-                        info!("GOT NEW USER EVENT: {:?}", widget_event);
-
                         let mut element = app.view();
                         element
                             .widget
@@ -179,7 +176,7 @@ pub trait Application: Sized {
                         };
                         if hash != cached_hash {
                             cached_hash = hash;
-                            widget_pointers = element.widget.draw(root_view);
+                            widget_pointers = element.draw(root_view);
                         }
                     }
                     event::Event::RedrawRequested(_) => {
@@ -199,7 +196,7 @@ pub trait Application: Sized {
                         };
                         if hash != cached_hash {
                             cached_hash = hash;
-                            widget_pointers = element.widget.draw(root_view);
+                            widget_pointers = element.draw(root_view);
                         }
                     }
                     _ => {

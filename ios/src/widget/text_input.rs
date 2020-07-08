@@ -1,11 +1,13 @@
-
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
 //!
 //! [`TextInput`]: struct.TextInput.html
 //! [`State`]: struct.State.html
-use crate::{Element, Length, Widget, Hasher, WidgetPointers, event::{EventHandler, WidgetEvent}};
+use crate::{
+    event::{EventHandler, WidgetEvent},
+    layout, Element, Hasher, Length, Widget, WidgetPointers,
+};
 
 pub use iced_style::text_input::{Style, StyleSheet};
 
@@ -13,14 +15,10 @@ use std::{rc::Rc, u32};
 
 use std::convert::TryInto;
 use uikit_sys::{
-    id, CGPoint, CGRect, CGSize,
-    NSString, NSString_NSStringExtensionMethods, UIView,
+    id, CGPoint, CGRect, CGSize, INSNotificationCenter, INSObject, IUITextView,
+    NSNotificationCenter, NSString, NSString_NSStringExtensionMethods,
+    UITextView, UITextViewTextDidChangeNotification, UIView,
     UIView_UIViewHierarchy,
-    UITextView,
-    IUITextView,
-    NSNotificationCenter,
-    INSNotificationCenter,
-    UITextViewTextDidChangeNotification,
 };
 
 /// A field that can be filled with text.
@@ -169,27 +167,27 @@ where
         self.padding.hash(state);
         self.size.hash(state);
     }
-    fn draw(&mut self, parent: UIView) -> WidgetPointers {
-        let input_rect = CGRect {
-            origin: CGPoint {
-                x: 10.0,
-                y: 50.0
-            },
+
+    fn draw(&mut self, _parent: UIView) -> WidgetPointers {
+        let _input_rect = CGRect {
+            origin: CGPoint { x: 10.0, y: 10.0 },
             size: CGSize {
-                width: 200.0,
-                height: 200.0,
-            }
+                width: 100.0,
+                height: 100.0,
+            },
         };
-        let on_change = EventHandler::new();
-        unsafe {
+        let textview = unsafe {
             let ui_textview = {
-                let foo = UITextView(
-                    UITextView::alloc().initWithFrame_textContainer_(
-                        input_rect,
-                        0 as id,
-                    ));
+                let foo = UITextView(UITextView::alloc().init());
+                /*
+                UITextView::alloc().initWithFrame_textContainer_(
+                    input_rect,
+                    0 as id,
+                ));
+                */
                 foo
             };
+            let on_change = EventHandler::new(ui_textview.0);
             /*
             input.addTarget_action_forControlEvents_(
                 on_change.id,
@@ -198,19 +196,24 @@ where
             );
             */
             // https://developer.apple.com/documentation/foundation/nsnotificationcenter/1415360-addobserver?language=objc
-            let center = NSNotificationCenter(NSNotificationCenter::defaultCenter());
+            let center =
+                NSNotificationCenter(NSNotificationCenter::defaultCenter());
+            println!(
+                "TEXT INPUT SUBVIEW VALUE: {:?}, PARENT: {:?}",
+                ui_textview.0, _parent.0
+            );
             center.addObserver_selector_name_object_(
                 on_change.id,
                 sel!(sendEvent),
                 UITextViewTextDidChangeNotification,
-                ui_textview.0
+                ui_textview.0,
             );
-            parent.addSubview_(ui_textview.0);
-            self.ui_textview = Some(ui_textview);
-        }
+            //parent.addSubview_(ui_textview.0);
+            ui_textview
+        };
 
-        self.widget_id = on_change.widget_id;
-        debug!("drow TEXT UIVIEW {:?}", self.ui_textview.is_some());
+        //self.widget_id = on_change.widget_id;
+        debug!("draw TEXT UIVIEW {:?}", self.ui_textview.is_some());
         use std::hash::Hasher;
         let hash = {
             let mut hash = &mut crate::Hasher::default();
@@ -219,56 +222,65 @@ where
         };
 
         WidgetPointers {
-            root: self.ui_textview.unwrap().0,
+            root: textview.0,
             others: Vec::new(),
             hash,
         }
 
         /*
-        use uikit_sys::{
-            UISwitch, IUISwitch,
-            IUIControl,
-        };
-        let input_rect = CGRect {
-            origin: CGPoint {
-                x: 10.0,
-                y: 10.0
-            },
-            size: CGSize {
-                width: 200.0,
-                height: 200.0,
+            use uikit_sys::{
+                UISwitch, IUISwitch,
+                IUIControl,
+            };
+            let input_rect = CGRect {
+                origin: CGPoint {
+                    x: 10.0,
+                    y: 10.0
+                },
+                size: CGSize {
+                    width: 200.0,
+                    height: 200.0,
+                }
+            };
+            unsafe {
+                let switch = UISwitch(
+                    IUISwitch::initWithFrame_(
+                        UISwitch::alloc(),
+                        input_rect,
+                    )
+                );
+
+                /*
+                switch.addTarget_action_forControlEvents_(
+                    on_change.id,
+                    sel!(sendEvent),
+                    uikit_sys::UIControlEvents_UIControlEventValueChanged,
+                );
+                */
+
+                parent.addSubview_(switch.0);
             }
-        };
-        unsafe {
-            let switch = UISwitch(
-                IUISwitch::initWithFrame_(
-                    UISwitch::alloc(),
-                    input_rect,
-                )
-            );
-
-            /*
-            switch.addTarget_action_forControlEvents_(
-                on_change.id,
-                sel!(sendEvent),
-                uikit_sys::UIControlEvents_UIControlEventValueChanged,
-            );
-            */
-
-            parent.addSubview_(switch.0);
-        }
-    */
+        */
     }
 
-    fn on_widget_event(&mut self, widget_event: WidgetEvent, messages: &mut Vec<Message>, widget_pointers: &WidgetPointers) {
-        let ui_textview = UITextView(widget_pointers.root);
+    fn on_widget_event(
+        &mut self,
+        widget_event: WidgetEvent,
+        messages: &mut Vec<Message>,
+        widget_pointers: &WidgetPointers,
+    ) {
+        debug!("on_widget_event for text input: widget_event.id: {:x}", widget_event.id);
+        let ui_textview = UITextView(widget_event.id as id);
         let value = unsafe {
             let value = NSString(ui_textview.text());
-            let len = value.lengthOfBytesUsingEncoding_(
-                uikit_sys::NSUTF8StringEncoding,
-            );
+            let len = value
+                .lengthOfBytesUsingEncoding_(uikit_sys::NSUTF8StringEncoding);
             let bytes = value.UTF8String() as *const u8;
-            String::from_utf8(std::slice::from_raw_parts(bytes, len.try_into().unwrap()).to_vec()).unwrap()
+            String::from_utf8(
+                std::slice::from_raw_parts(bytes, len.try_into().unwrap())
+                    .to_vec(),
+            )
+            .unwrap()
         };
         self.value = value;
 
@@ -292,6 +304,18 @@ where
             }
         }
         */
+    }
+
+    fn layout(&self, limits: &layout::Limits) -> layout::Node {
+        todo!();
+    }
+
+    fn width(&self) -> Length {
+        todo!();
+    }
+
+    fn height(&self) -> Length {
+        todo!();
     }
 }
 

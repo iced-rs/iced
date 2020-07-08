@@ -9,7 +9,14 @@ use crate::{
     VerticalAlignment,
     Widget,
     WidgetPointers,
-    Hasher,
+    Hasher, layout, Size,
+};
+use std::convert::TryInto;
+use std::ffi::CString;
+use uikit_sys::{
+    CGPoint, CGRect, CGSize, INSObject, IUIColor, IUILabel,
+    NSString, NSString_NSStringExtensionMethods, UIColor, UILabel, UIView,
+    UIView_UIViewGeometry, UIView_UIViewHierarchy,
 };
 
 /// A paragraph of text.
@@ -114,13 +121,6 @@ impl Text {
         self
     }
 }
-use std::convert::TryInto;
-use std::ffi::CString;
-use uikit_sys::{
-    CGPoint, CGRect, CGSize, INSObject, IUIColor, IUILabel,
-    NSString, NSString_NSStringExtensionMethods, UIColor, UILabel, UIView,
-    UIView_UIViewGeometry, UIView_UIViewHierarchy,
-};
 
 impl<'a, Message> Widget<Message> for Text {
 
@@ -134,7 +134,7 @@ impl<'a, Message> Widget<Message> for Text {
         self.height.hash(state);
     }
 
-    fn draw(&mut self, parent: UIView) -> WidgetPointers {
+    fn draw(&mut self, _parent: UIView) -> WidgetPointers {
 
         let label = unsafe {
             let label = UILabel::alloc();
@@ -149,16 +149,18 @@ impl<'a, Message> Widget<Message> for Text {
             );
             label.init();
             label.setText_(text.0);
+            /*
             let rect = CGRect {
                 origin: CGPoint { x: 0.0, y: 0.0 },
                 size: CGSize {
-                    height: 20.0,
-                    width: 500.0,
+                    height: 0.0,
+                    width: 0.0,
                 },
             };
+            label.setFrame_(rect);
+            */
             label.setAdjustsFontSizeToFitWidth_(true);
             label.setMinimumScaleFactor_(100.0);
-            label.setFrame_(rect);
             if let Some(color) = self.color {
                 let background =
                     UIColor(UIColor::alloc().initWithRed_green_blue_alpha_(
@@ -169,8 +171,7 @@ impl<'a, Message> Widget<Message> for Text {
                     ));
                 label.setTextColor_(background.0)
             }
-            label.setFrame_(rect);
-            parent.addSubview_(label.0);
+            //parent.addSubview_(label.0);
             label
         };
         let hash = {
@@ -186,6 +187,35 @@ impl<'a, Message> Widget<Message> for Text {
             hash,
         }
     }
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
+    fn layout(
+        &self,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits.width(self.width).height(self.height);
+
+        let size = self.size.unwrap_or(0);
+
+        let bounds = limits.max();
+        todo!()
+            /*
+
+        let (width, height) =
+            renderer.measure(&self.content, size, self.font, bounds);
+
+        let size = limits.resolve(Size::new(width, height));
+
+        layout::Node::new(size)
+            */
+    }
+
 }
 
 impl<'a, Message> From<Text> for Element<'a, Message> {

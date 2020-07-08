@@ -1,6 +1,7 @@
 #[macro_use] extern crate log;
 use iced::{
-    //button, scrollable, slider, text_input, Button, Checkbox, Color, Column,
+    //button, scrollable, slider, text_input, Button, Checkbox, Color,
+    Column,
     //Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
     //Sandbox, //Scrollable, Settings, Slider, Space, Text, TextInput,
     Sandbox,
@@ -53,9 +54,6 @@ impl Sandbox for Simple {
         debug!("GOT NEW MESSAGE: {:?}", message);
         match message {
             Message::TextUpdated(val) => {
-                if val.starts_with("a") {
-                    self.toggle = true;
-                }
                 self.text = val;
             },
             _ => {
@@ -65,27 +63,23 @@ impl Sandbox for Simple {
 
     fn view(&mut self) -> Element<Message> {
         debug!("RERUNNING VIEW : {:#?}", self);
-        if self.toggle {
-            /*
-            let toggle = Checkbox::new(
-                self.toggle,
-                "Listen to runtime events",
-                Message::Toggled,
-            );
-            toggle.into()
-            */
+        let column = Column::new()
+            .push(
+                TextInput::new(
+                    &mut self.text_state,
+                    "",
+                    "",
+                    |s| { Message::TextUpdated(s) }
+                )
+            )
+            .push(
+                Text::new(&self.text).color(Color::BLACK)
+            )
+            .push(
+                Text::new(String::from("foo foo foo")).color(Color::BLACK)
+            )
+            ;
+        column.into()
 
-            let text = Text::new(&self.text).color(Color::BLACK);
-            text.into()
-        } else {
-
-            let text_field = TextInput::new(
-                &mut self.text_state,
-                "",
-                "",
-                |s| { Message::TextUpdated(s) }
-            );
-            text_field.into()
-        }
     }
 }

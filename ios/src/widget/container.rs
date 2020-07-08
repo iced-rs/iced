@@ -1,5 +1,5 @@
 use std::hash::Hash;
-use crate::{Element, Widget, Length, Align, Hasher};
+use crate::{Element, Widget, Length, Align, Hasher, layout, Point};
 pub use iced_style::text_input::{Style, StyleSheet};
 
 #[allow(missing_debug_implementations)]
@@ -54,6 +54,37 @@ where
         self.max_height.hash(state);
 
         self.content.hash_layout(state);
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
+    fn layout(
+        &self,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let padding = f32::from(self.padding);
+
+        let limits = limits
+            .loose()
+            .max_width(self.max_width)
+            .max_height(self.max_height)
+            .width(self.width)
+            .height(self.height)
+            .pad(padding);
+
+        let mut content = self.content.layout(&limits.loose());
+        let size = limits.resolve(content.size());
+
+        content.move_to(Point::new(padding, padding));
+        content.align(self.horizontal_alignment, self.vertical_alignment, size);
+
+        layout::Node::with_children(size.pad(padding), vec![content])
     }
 }
 impl<'a, Message> From<Container<'a, Message>> for Element<'a, Message>
