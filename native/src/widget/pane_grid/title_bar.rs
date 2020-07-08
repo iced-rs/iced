@@ -97,7 +97,7 @@ where
                 layout.bounds(),
                 &self.style,
                 &self.title,
-                self.title_size.unwrap_or(Renderer::DEFAULT_SIZE),
+                self.title_size.unwrap_or(renderer.default_size()),
                 Renderer::Font::default(),
                 title_bounds,
                 controls,
@@ -109,7 +109,7 @@ where
                 layout.bounds(),
                 &self.style,
                 &self.title,
-                self.title_size.unwrap_or(Renderer::DEFAULT_SIZE),
+                self.title_size.unwrap_or(renderer.default_size()),
                 Renderer::Font::default(),
                 padded.bounds(),
                 None,
@@ -150,7 +150,7 @@ where
         let limits = limits.pad(padding);
         let max_size = limits.max();
 
-        let title_size = self.title_size.unwrap_or(Renderer::DEFAULT_SIZE);
+        let title_size = self.title_size.unwrap_or(renderer.default_size());
         let title_font = Renderer::Font::default();
 
         let (title_width, title_height) = renderer.measure(
