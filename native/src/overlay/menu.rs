@@ -113,6 +113,9 @@ where
     fn hash_layout(&self, state: &mut Hasher, position: Point) {
         use std::hash::Hash;
 
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
         (position.x as u32).hash(state);
         (position.y as u32).hash(state);
     }
@@ -138,10 +141,11 @@ where
             clipboard,
         );
 
+        let option_was_selected = current_messages < messages.len();
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                if !bounds.contains(cursor_position)
-                    || current_messages < messages.len() =>
+                if !bounds.contains(cursor_position) || option_was_selected =>
             {
                 *self.is_open = false;
             }
@@ -245,7 +249,12 @@ where
     fn hash_layout(&self, state: &mut Hasher) {
         use std::hash::Hash as _;
 
-        0.hash(state);
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
+        self.options.len().hash(state);
+        self.text_size.hash(state);
+        self.padding.hash(state);
     }
 
     fn on_event(
