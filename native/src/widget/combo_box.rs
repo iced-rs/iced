@@ -223,7 +223,7 @@ where
                 layout.position(),
                 Box::new(Menu::new(
                     self.internal.menu,
-                    self.options.clone(),
+                    &self.options,
                     &self.internal.on_selected,
                     bounds.width.round() as u16,
                     bounds.height,

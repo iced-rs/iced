@@ -3,7 +3,7 @@ use crate::{
     Element, Event, Hasher, Layout, Length, Point, Rectangle, Scrollable, Size,
     Vector, Widget,
 };
-use std::borrow::Cow;
+use std::borrow::Borrow;
 
 pub struct Menu<'a, Message, Renderer: self::Renderer> {
     container: Container<'a, Message, Renderer>,
@@ -36,9 +36,9 @@ where
     Message: 'static,
     Renderer: 'a,
 {
-    pub fn new<T: 'a>(
+    pub fn new<T>(
         state: &'a mut State,
-        options: impl Into<Cow<'a, [T]>>,
+        options: &'a dyn Borrow<[T]>,
         on_selected: &'a dyn Fn(T) -> Message,
         width: u16,
         target_height: f32,
@@ -48,7 +48,7 @@ where
     ) -> Self
     where
         T: Clone + ToString,
-        [T]: ToOwned<Owned = Vec<T>>,
+        [T]: ToOwned,
     {
         let container = Container::new(
             Scrollable::new(&mut state.scrollable).push(List::new(
@@ -173,25 +173,19 @@ where
     }
 }
 
-struct List<'a, T, Message, Renderer: self::Renderer>
-where
-    [T]: ToOwned,
-{
+struct List<'a, T, Message, Renderer: self::Renderer> {
     hovered_option: &'a mut Option<usize>,
-    options: Cow<'a, [T]>,
+    options: &'a dyn Borrow<[T]>,
     on_selected: &'a dyn Fn(T) -> Message,
     text_size: Option<u16>,
     padding: u16,
     style: <Renderer as self::Renderer>::Style,
 }
 
-impl<'a, T, Message, Renderer: self::Renderer> List<'a, T, Message, Renderer>
-where
-    [T]: ToOwned,
-{
+impl<'a, T, Message, Renderer: self::Renderer> List<'a, T, Message, Renderer> {
     pub fn new(
         hovered_option: &'a mut Option<usize>,
-        options: impl Into<Cow<'a, [T]>>,
+        options: &'a dyn Borrow<[T]>,
         on_selected: &'a dyn Fn(T) -> Message,
         text_size: Option<u16>,
         padding: u16,
@@ -199,7 +193,7 @@ where
     ) -> Self {
         List {
             hovered_option,
-            options: options.into(),
+            options,
             on_selected,
             text_size,
             padding,
@@ -211,8 +205,7 @@ where
 impl<'a, T, Message, Renderer: self::Renderer> Widget<'a, Message, Renderer>
     for List<'a, T, Message, Renderer>
 where
-    T: ToString + Clone,
-    [T]: ToOwned,
+    T: Clone + ToString,
     Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
@@ -237,7 +230,7 @@ where
             let intrinsic = Size::new(
                 0.0,
                 f32::from(text_size + self.padding * 2)
-                    * self.options.len() as f32,
+                    * self.options.borrow().len() as f32,
             );
 
             limits.resolve(intrinsic)
@@ -252,7 +245,7 @@ where
         struct Marker;
         std::any::TypeId::of::<Marker>().hash(state);
 
-        self.options.len().hash(state);
+        self.options.borrow().len().hash(state);
         self.text_size.hash(state);
         self.padding.hash(state);
     }
@@ -272,7 +265,7 @@ where
 
                 if bounds.contains(cursor_position) {
                     if let Some(index) = *self.hovered_option {
-                        if let Some(option) = self.options.get(index) {
+                        if let Some(option) = self.options.borrow().get(index) {
                             messages.push((self.on_selected)(option.clone()));
                         }
                     }
@@ -306,7 +299,7 @@ where
             renderer,
             layout.bounds(),
             cursor_position,
-            &self.options,
+            self.options.borrow(),
             *self.hovered_option,
             self.text_size.unwrap_or(renderer.default_size()),
             self.padding,
