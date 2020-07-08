@@ -216,6 +216,10 @@ where
     /// The `leeway` describes the amount of space around a split that can be
     /// used to grab it.
     ///
+    /// The grabbable area of a split will have a length of `spacing + leeway`,
+    /// properly centered. In other words, a length of
+    /// `(spacing + leeway) / 2.0` on either side of the split line.
+    ///
     /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn on_resize<F>(mut self, leeway: u16, f: F) -> Self
     where
@@ -284,8 +288,6 @@ where
                     self.state.focus(pane);
                 }
             }
-        } else {
-            self.state.unfocus();
         }
     }
 
@@ -299,7 +301,7 @@ where
             if let Some((split, _)) = self.state.picked_split() {
                 let bounds = layout.bounds();
 
-                let splits = self.state.splits(
+                let splits = self.state.split_regions(
                     f32::from(self.spacing),
                     Size::new(bounds.width, bounds.height),
                 );
@@ -421,7 +423,7 @@ where
         let limits = limits.width(self.width).height(self.height);
         let size = limits.resolve(Size::ZERO);
 
-        let regions = self.state.regions(f32::from(self.spacing), size);
+        let regions = self.state.pane_regions(f32::from(self.spacing), size);
 
         let children = self
             .elements
@@ -464,7 +466,7 @@ where
                                     cursor_position.y - bounds.y,
                                 );
 
-                                let splits = self.state.splits(
+                                let splits = self.state.split_regions(
                                     f32::from(self.spacing),
                                     Size::new(bounds.width, bounds.height),
                                 );
@@ -493,6 +495,8 @@ where
                                 );
                             }
                         }
+                    } else {
+                        self.state.unfocus();
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
@@ -550,10 +554,8 @@ where
                                 }
                             }
                         }
-
-                        *self.pressed_modifiers = modifiers;
                     }
-                    keyboard::Event::KeyReleased { modifiers, .. } => {
+                    keyboard::Event::ModifiersChanged(modifiers) => {
                         *self.pressed_modifiers = modifiers;
                     }
                     _ => {}
@@ -601,7 +603,7 @@ where
 
                     let splits = self
                         .state
-                        .splits(f32::from(self.spacing), bounds.size());
+                        .split_regions(f32::from(self.spacing), bounds.size());
 
                     hovered_split(
                         splits.iter(),

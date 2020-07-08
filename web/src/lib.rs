@@ -238,28 +238,25 @@ struct Instance<A: Application> {
     bus: Bus<A::Message>,
 }
 
-impl<A> dodrio::Render for Instance<A>
+impl<'a, A> dodrio::Render<'a> for Instance<A>
 where
     A: Application,
 {
-    fn render<'a, 'bump>(
-        &'a self,
-        bump: &'bump bumpalo::Bump,
-    ) -> dodrio::Node<'bump>
-    where
-        'a: 'bump,
-    {
+    fn render(
+        &self,
+        context: &mut dodrio::RenderContext<'a>,
+    ) -> dodrio::Node<'a> {
         use dodrio::builder::*;
 
         let mut ui = self.application.borrow_mut();
         let element = ui.view();
         let mut css = Css::new();
 
-        let node = element.widget.node(bump, &self.bus, &mut css);
+        let node = element.widget.node(context.bump, &self.bus, &mut css);
 
-        div(bump)
+        div(context.bump)
             .attr("style", "width: 100%; height: 100%")
-            .children(vec![css.node(bump), node])
+            .children(vec![css.node(context.bump), node])
             .finish()
     }
 }

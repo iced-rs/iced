@@ -25,6 +25,9 @@ pub trait Text {
     /// [`ICON_FONT`]: #associatedconst.ICON_FONt
     const CHECKMARK_ICON: char;
 
+    /// Returns the default size of text.
+    fn default_size(&self) -> u16;
+
     /// Measures the text contents with the given size and font,
     /// returning the size of a laid out paragraph that fits in the provided
     /// bounds.

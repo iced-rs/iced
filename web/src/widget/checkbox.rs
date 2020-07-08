@@ -28,6 +28,7 @@ pub struct Checkbox<Message> {
     is_checked: bool,
     on_toggle: Rc<dyn Fn(bool) -> Message>,
     label: String,
+    id: Option<String>,
     width: Length,
     style: Box<dyn StyleSheet>,
 }
@@ -51,6 +52,7 @@ impl<Message> Checkbox<Message> {
             is_checked,
             on_toggle: Rc::new(f),
             label: label.into(),
+            id: None,
             width: Length::Shrink,
             style: Default::default(),
         }
@@ -71,6 +73,14 @@ impl<Message> Checkbox<Message> {
         self.style = style.into();
         self
     }
+
+    /// Sets the id of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
 }
 
 impl<Message> Widget<Message> for Checkbox<Message>
@@ -84,8 +94,10 @@ where
         style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
+        use dodrio::bumpalo::collections::String;
 
-        let checkbox_label = bumpalo::format!(in bump, "{}", self.label);
+        let checkbox_label =
+            String::from_str_in(&self.label, bump).into_bump_str();
 
         let event_bus = bus.clone();
         let on_toggle = self.on_toggle.clone();
@@ -95,7 +107,15 @@ where
 
         let spacing_class = style_sheet.insert(bump, css::Rule::Spacing(5));
 
-        label(bump)
+        let (label, input) = if let Some(id) = &self.id {
+            let id = String::from_str_in(id, bump).into_bump_str();
+
+            (label(bump).attr("for", id), input(bump).attr("id", id))
+        } else {
+            (label(bump), input(bump))
+        };
+
+        label
             .attr(
                 "class",
                 bumpalo::format!(in bump, "{} {}", row_class, spacing_class)
@@ -108,7 +128,7 @@ where
             )
             .children(vec![
                 // TODO: Checkbox styling
-                input(bump)
+                 input
                     .attr("type", "checkbox")
                     .bool_attr("checked", self.is_checked)
                     .on("click", move |_root, vdom, _event| {
@@ -118,8 +138,7 @@ where
                         vdom.schedule_render();
                     })
                     .finish(),
-                span(bump).children(vec![
-                text(checkbox_label.into_bump_str())]).finish(),
+                text(checkbox_label),
             ])
             .finish()
     }

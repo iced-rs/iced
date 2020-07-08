@@ -1,4 +1,6 @@
-use crate::{window, Command, Element, Executor, Settings, Subscription};
+use crate::{
+    window, Color, Command, Element, Executor, Settings, Subscription,
+};
 
 /// An interactive cross-platform application.
 ///
@@ -174,6 +176,31 @@ pub trait Application: Sized {
         window::Mode::Windowed
     }
 
+    /// Returns the background color of the [`Application`].
+    ///
+    /// By default, it returns [`Color::WHITE`].
+    ///
+    /// [`Application`]: trait.Application.html
+    /// [`Color::WHITE`]: struct.Color.html#const.WHITE
+    fn background_color(&self) -> Color {
+        Color::WHITE
+    }
+
+    /// Returns the scale factor of the [`Application`].
+    ///
+    /// It can be used to dynamically control the size of the UI at runtime
+    /// (i.e. zooming).
+    ///
+    /// For instance, a scale factor of `2.0` will make widgets twice as big,
+    /// while a scale factor of `0.5` will shrink them to half their size.
+    ///
+    /// By default, it returns `1.0`.
+    ///
+    /// [`Application`]: trait.Application.html
+    fn scale_factor(&self) -> f64 {
+        1.0
+    }
+
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -190,6 +217,7 @@ pub trait Application: Sized {
         {
             let renderer_settings = crate::renderer::Settings {
                 default_font: settings.default_font,
+                default_text_size: settings.default_text_size,
                 antialiasing: if settings.antialiasing {
                     Some(crate::renderer::settings::Antialiasing::MSAAx4)
                 } else {
@@ -255,6 +283,14 @@ where
 
     fn subscription(&self) -> Subscription<Self::Message> {
         self.0.subscription()
+    }
+
+    fn background_color(&self) -> Color {
+        self.0.background_color()
+    }
+
+    fn scale_factor(&self) -> f64 {
+        self.0.scale_factor()
     }
 }
 

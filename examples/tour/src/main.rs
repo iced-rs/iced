@@ -190,7 +190,7 @@ enum Step {
     Welcome,
     Slider {
         state: slider::State,
-        value: u16,
+        value: u8,
     },
     RowsAndColumns {
         layout: Layout,
@@ -222,13 +222,13 @@ enum Step {
 
 #[derive(Debug, Clone)]
 pub enum StepMessage {
-    SliderChanged(f32),
+    SliderChanged(u8),
     LayoutChanged(Layout),
-    SpacingChanged(f32),
-    TextSizeChanged(f32),
+    SpacingChanged(u16),
+    TextSizeChanged(u16),
     TextColorChanged(Color),
     LanguageSelected(Language),
-    ImageWidthChanged(f32),
+    ImageWidthChanged(u16),
     InputChanged(String),
     ToggleSecureInput(bool),
     DebugToggled(bool),
@@ -249,12 +249,12 @@ impl<'a> Step {
             }
             StepMessage::SliderChanged(new_value) => {
                 if let Step::Slider { value, .. } = self {
-                    *value = new_value.round() as u16;
+                    *value = new_value;
                 }
             }
             StepMessage::TextSizeChanged(new_size) => {
                 if let Step::Text { size, .. } = self {
-                    *size = new_size.round() as u16;
+                    *size = new_size;
                 }
             }
             StepMessage::TextColorChanged(new_color) => {
@@ -269,12 +269,12 @@ impl<'a> Step {
             }
             StepMessage::SpacingChanged(new_spacing) => {
                 if let Step::RowsAndColumns { spacing, .. } = self {
-                    *spacing = new_spacing.round() as u16;
+                    *spacing = new_spacing;
                 }
             }
             StepMessage::ImageWidthChanged(new_width) => {
                 if let Step::Image { width, .. } = self {
-                    *width = new_width.round() as u16;
+                    *width = new_width;
                 }
             }
             StepMessage::InputChanged(new_value) => {
@@ -384,7 +384,7 @@ impl<'a> Step {
 
     fn slider(
         state: &'a mut slider::State,
-        value: u16,
+        value: u8,
     ) -> Column<'a, StepMessage> {
         Self::container("Slider")
             .push(Text::new(
@@ -397,8 +397,8 @@ impl<'a> Step {
             ))
             .push(Slider::new(
                 state,
-                0.0..=100.0,
-                value as f32,
+                0..=100,
+                value,
                 StepMessage::SliderChanged,
             ))
             .push(
@@ -444,8 +444,8 @@ impl<'a> Step {
             .spacing(10)
             .push(Slider::new(
                 spacing_slider,
-                0.0..=80.0,
-                spacing as f32,
+                0..=80,
+                spacing,
                 StepMessage::SpacingChanged,
             ))
             .push(
@@ -486,30 +486,25 @@ impl<'a> Step {
             )
             .push(Slider::new(
                 size_slider,
-                10.0..=70.0,
-                size as f32,
+                10..=70,
+                size,
                 StepMessage::TextSizeChanged,
             ));
 
         let [red, green, blue] = color_sliders;
+
+        let color_sliders = Row::new()
+            .spacing(10)
+            .push(color_slider(red, color.r, move |r| Color { r, ..color }))
+            .push(color_slider(green, color.g, move |g| Color { g, ..color }))
+            .push(color_slider(blue, color.b, move |b| Color { b, ..color }));
+
         let color_section = Column::new()
             .padding(20)
             .spacing(20)
             .push(Text::new("And its color:"))
             .push(Text::new(&format!("{:?}", color)).color(color))
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .push(Slider::new(red, 0.0..=1.0, color.r, move |r| {
-                        StepMessage::TextColorChanged(Color { r, ..color })
-                    }))
-                    .push(Slider::new(green, 0.0..=1.0, color.g, move |g| {
-                        StepMessage::TextColorChanged(Color { g, ..color })
-                    }))
-                    .push(Slider::new(blue, 0.0..=1.0, color.b, move |b| {
-                        StepMessage::TextColorChanged(Color { b, ..color })
-                    })),
-            );
+            .push(color_sliders);
 
         Self::container("Text")
             .push(Text::new(
@@ -559,8 +554,8 @@ impl<'a> Step {
             .push(ferris(width))
             .push(Slider::new(
                 slider,
-                100.0..=500.0,
-                width as f32,
+                100..=500,
+                width,
                 StepMessage::ImageWidthChanged,
             ))
             .push(
@@ -704,6 +699,17 @@ fn button<'a, Message>(
     )
     .padding(12)
     .min_width(100)
+}
+
+fn color_slider(
+    state: &mut slider::State,
+    component: f32,
+    update: impl Fn(f32) -> Color + 'static,
+) -> Slider<f64, StepMessage> {
+    Slider::new(state, 0.0..=1.0, f64::from(component), move |c| {
+        StepMessage::TextColorChanged(update(c as f32))
+    })
+    .step(0.01)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

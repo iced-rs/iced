@@ -84,7 +84,7 @@ impl Builder {
             radii: math::Vector::new(arc.radii.x, arc.radii.y),
             x_rotation: math::Angle::radians(arc.rotation),
             start_angle: math::Angle::radians(arc.start_angle),
-            sweep_angle: math::Angle::radians(arc.end_angle),
+            sweep_angle: math::Angle::radians(arc.end_angle - arc.start_angle),
         };
 
         let _ = self.raw.move_to(arc.sample(0.0));

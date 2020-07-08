@@ -1,4 +1,4 @@
-use crate::{Backend, Renderer, Settings};
+use crate::{Backend, Color, Renderer, Settings};
 
 use iced_graphics::Viewport;
 use iced_native::{futures, mouse};
@@ -103,6 +103,7 @@ impl iced_graphics::window::Compositor for Compositor {
         renderer: &mut Self::Renderer,
         swap_chain: &mut Self::SwapChain,
         viewport: &Viewport,
+        background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction {
@@ -118,11 +119,15 @@ impl iced_graphics::window::Compositor for Compositor {
                 resolve_target: None,
                 load_op: wgpu::LoadOp::Clear,
                 store_op: wgpu::StoreOp::Store,
-                clear_color: wgpu::Color {
-                    r: 1.0,
-                    g: 1.0,
-                    b: 1.0,
-                    a: 1.0,
+                clear_color: {
+                    let [r, g, b, a] = background_color.into_linear();
+
+                    wgpu::Color {
+                        r: f64::from(r),
+                        g: f64::from(g),
+                        b: f64::from(b),
+                        a: f64::from(a),
+                    }
                 },
             }],
             depth_stencil_attachment: None,

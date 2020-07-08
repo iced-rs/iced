@@ -1,4 +1,4 @@
-use crate::{Backend, Renderer, Settings, Viewport};
+use crate::{Backend, Color, Renderer, Settings, Viewport};
 
 use core::ffi::c_void;
 use glow::HasContext;
@@ -20,8 +20,6 @@ impl iced_graphics::window::GLCompositor for Compositor {
         loader_function: impl FnMut(&str) -> *const c_void,
     ) -> (Self, Self::Renderer) {
         let gl = glow::Context::from_loader_function(loader_function);
-
-        gl.clear_color(1.0, 1.0, 1.0, 1.0);
 
         // Enable auto-conversion from/to sRGB
         gl.enable(glow::FRAMEBUFFER_SRGB);
@@ -60,12 +58,16 @@ impl iced_graphics::window::GLCompositor for Compositor {
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
+        color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction {
         let gl = &self.gl;
 
+        let [r, g, b, a] = color.into_linear();
+
         unsafe {
+            gl.clear_color(r, g, b, a);
             gl.clear(glow::COLOR_BUFFER_BIT);
         }
 

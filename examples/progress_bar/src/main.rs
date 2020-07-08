@@ -36,12 +36,15 @@ impl Sandbox for Progress {
         Column::new()
             .padding(20)
             .push(ProgressBar::new(0.0..=100.0, self.value))
-            .push(Slider::new(
-                &mut self.progress_bar_slider,
-                0.0..=100.0,
-                self.value,
-                Message::SliderChanged,
-            ))
+            .push(
+                Slider::new(
+                    &mut self.progress_bar_slider,
+                    0.0..=100.0,
+                    self.value,
+                    Message::SliderChanged,
+                )
+                .step(0.01),
+            )
             .into()
     }
 }

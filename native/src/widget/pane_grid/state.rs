@@ -157,8 +157,10 @@ impl<T> State<T> {
     /// [`Pane`]: struct.Pane.html
     /// [`State::active`]: struct.State.html#method.active
     pub fn adjacent(&self, pane: &Pane, direction: Direction) -> Option<Pane> {
-        let regions =
-            self.internal.layout.regions(0.0, Size::new(4096.0, 4096.0));
+        let regions = self
+            .internal
+            .layout
+            .pane_regions(0.0, Size::new(4096.0, 4096.0));
 
         let current_region = regions.get(pane)?;
 
@@ -192,6 +194,13 @@ impl<T> State<T> {
     /// [`Pane`]: struct.Pane.html
     pub fn focus(&mut self, pane: &Pane) {
         self.internal.focus(pane);
+    }
+
+    /// Unfocuses the current focused [`Pane`].
+    ///
+    /// [`Pane`]: struct.Pane.html
+    pub fn unfocus(&mut self) {
+        self.internal.unfocus();
     }
 
     /// Splits the given [`Pane`] into two in the given [`Axis`] and
@@ -366,20 +375,20 @@ impl Internal {
         }
     }
 
-    pub fn regions(
+    pub fn pane_regions(
         &self,
         spacing: f32,
         size: Size,
     ) -> HashMap<Pane, Rectangle> {
-        self.layout.regions(spacing, size)
+        self.layout.pane_regions(spacing, size)
     }
 
-    pub fn splits(
+    pub fn split_regions(
         &self,
         spacing: f32,
         size: Size,
     ) -> HashMap<Split, (Axis, Rectangle, f32)> {
-        self.layout.splits(spacing, size)
+        self.layout.split_regions(spacing, size)
     }
 
     pub fn focus(&mut self, pane: &Pane) {

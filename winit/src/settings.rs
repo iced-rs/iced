@@ -14,7 +14,7 @@ use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
 
 /// The settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Settings<Flags> {
     /// The [`Window`] settings
     ///
@@ -28,16 +28,25 @@ pub struct Settings<Flags> {
 }
 
 /// The window settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Window {
     /// The size of the window.
     pub size: (u32, u32),
+
+    /// The minimum size of the window.
+    pub min_size: Option<(u32, u32)>,
+
+    /// The maximum size of the window.
+    pub max_size: Option<(u32, u32)>,
 
     /// Whether the window should be resizable or not.
     pub resizable: bool,
 
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
+
+    /// The window icon, which is also usually used in the taskbar
+    pub icon: Option<winit::window::Icon>,
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
@@ -60,7 +69,18 @@ impl Window {
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
+            .with_window_icon(self.icon)
             .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
+
+        if let Some((width, height)) = self.min_size {
+            window_builder = window_builder
+                .with_min_inner_size(winit::dpi::LogicalSize { width, height });
+        }
+
+        if let Some((width, height)) = self.max_size {
+            window_builder = window_builder
+                .with_max_inner_size(winit::dpi::LogicalSize { width, height });
+        }
 
         #[cfg(target_os = "windows")]
         {
@@ -79,8 +99,11 @@ impl Default for Window {
     fn default() -> Window {
         Window {
             size: (1024, 768),
+            min_size: None,
+            max_size: None,
             resizable: true,
             decorations: true,
+            icon: None,
             platform_specific: Default::default(),
         }
     }

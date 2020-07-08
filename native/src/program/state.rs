@@ -1,5 +1,5 @@
 use crate::{
-    Cache, Clipboard, Command, Debug, Event, Program, Renderer, Size,
+    Cache, Clipboard, Command, Debug, Event, Point, Program, Renderer, Size,
     UserInterface,
 };
 
@@ -31,6 +31,7 @@ where
     pub fn new(
         mut program: P,
         bounds: Size,
+        cursor_position: Point,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Self {
@@ -43,7 +44,7 @@ where
         );
 
         debug.draw_started();
-        let primitive = user_interface.draw(renderer);
+        let primitive = user_interface.draw(renderer, cursor_position);
         debug.draw_finished();
 
         let cache = Some(user_interface.into_cache());
@@ -88,6 +89,13 @@ where
         self.queued_messages.push(message);
     }
 
+    /// Returns whether the event queue of the [`State`] is empty or not.
+    ///
+    /// [`State`]: struct.State.html
+    pub fn is_queue_empty(&self) -> bool {
+        self.queued_events.is_empty() && self.queued_messages.is_empty()
+    }
+
     /// Processes all the queued events and messages, rebuilding and redrawing
     /// the widgets of the linked [`Program`] if necessary.
     ///
@@ -97,15 +105,12 @@ where
     /// [`Program`]: trait.Program.html
     pub fn update(
         &mut self,
-        clipboard: Option<&dyn Clipboard>,
         bounds: Size,
+        cursor_position: Point,
+        clipboard: Option<&dyn Clipboard>,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
-        if self.queued_events.is_empty() && self.queued_messages.is_empty() {
-            return None;
-        }
-
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
@@ -117,6 +122,7 @@ where
         debug.event_processing_started();
         let mut messages = user_interface.update(
             self.queued_events.drain(..),
+            cursor_position,
             clipboard,
             renderer,
         );
@@ -125,7 +131,7 @@ where
 
         if messages.is_empty() {
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer);
+            self.primitive = user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -156,7 +162,7 @@ where
             );
 
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer);
+            self.primitive = user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());

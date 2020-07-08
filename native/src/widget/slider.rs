@@ -16,13 +16,16 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// A [`Slider`] will try to fill the horizontal space of its container.
 ///
+/// The [`Slider`] range of numeric values is generic and its step size defaults
+/// to 1 unit.
+///
 /// [`Slider`]: struct.Slider.html
 ///
 /// # Example
 /// ```
 /// # use iced_native::{slider, renderer::Null};
 /// #
-/// # pub type Slider<'a, Message> = iced_native::Slider<'a, Message, Null>;
+/// # pub type Slider<'a, T, Message> = iced_native::Slider<'a, T, Message, Null>;
 /// pub enum Message {
 ///     SliderChanged(f32),
 /// }
@@ -35,17 +38,22 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, Message, Renderer: self::Renderer> {
+pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
     state: &'a mut State,
-    range: RangeInclusive<f32>,
-    value: f32,
-    on_change: Box<dyn Fn(f32) -> Message>,
+    range: RangeInclusive<T>,
+    step: T,
+    value: T,
+    on_change: Box<dyn Fn(T) -> Message>,
     on_release: Option<Message>,
     width: Length,
     style: Renderer::Style,
 }
 
-impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
+impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
+where
+    T: Copy + From<u8> + std::cmp::PartialOrd,
+    Renderer: self::Renderer,
+{
     /// Creates a new [`Slider`].
     ///
     /// It expects:
@@ -60,17 +68,30 @@ impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
     /// [`State`]: struct.State.html
     pub fn new<F>(
         state: &'a mut State,
-        range: RangeInclusive<f32>,
-        value: f32,
+        range: RangeInclusive<T>,
+        value: T,
         on_change: F,
     ) -> Self
     where
-        F: 'static + Fn(f32) -> Message,
+        F: 'static + Fn(T) -> Message,
     {
+        let value = if value >= *range.start() {
+            value
+        } else {
+            *range.start()
+        };
+
+        let value = if value <= *range.end() {
+            value
+        } else {
+            *range.end()
+        };
+
         Slider {
             state,
-            value: value.max(*range.start()).min(*range.end()),
+            value,
             range,
+            step: T::from(1),
             on_change: Box::new(on_change),
             on_release: None,
             width: Length::Fill,
@@ -106,6 +127,14 @@ impl<'a, Message, Renderer: self::Renderer> Slider<'a, Message, Renderer> {
         self.style = style.into();
         self
     }
+
+    /// Sets the step size of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn step(mut self, step: T) -> Self {
+        self.step = step;
+        self
+    }
 }
 
 /// The local state of a [`Slider`].
@@ -125,9 +154,10 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, Message, Renderer>
+impl<'a, T, Message, Renderer> Widget<Message, Renderer>
+    for Slider<'a, T, Message, Renderer>
 where
+    T: Copy + Into<f64> + num_traits::FromPrimitive,
     Renderer: self::Renderer,
     Message: Clone,
 {
@@ -164,17 +194,24 @@ where
     ) {
         let mut change = || {
             let bounds = layout.bounds();
-
             if cursor_position.x <= bounds.x {
                 messages.push((self.on_change)(*self.range.start()));
             } else if cursor_position.x >= bounds.x + bounds.width {
                 messages.push((self.on_change)(*self.range.end()));
             } else {
-                let percent = (cursor_position.x - bounds.x) / bounds.width;
-                let value = (self.range.end() - self.range.start()) * percent
-                    + self.range.start();
+                let step = self.step.into();
+                let start = (*self.range.start()).into();
+                let end = (*self.range.end()).into();
 
-                messages.push((self.on_change)(value));
+                let percent = f64::from(cursor_position.x - bounds.x)
+                    / f64::from(bounds.width);
+
+                let steps = (percent * (end - start) / step).round();
+                let value = steps * step + start;
+
+                if let Some(value) = T::from_f64(value) {
+                    messages.push((self.on_change)(value));
+                }
             }
         };
 
@@ -212,11 +249,14 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
+        let start = *self.range.start();
+        let end = *self.range.end();
+
         renderer.draw(
             layout.bounds(),
             cursor_position,
-            self.range.clone(),
-            self.value,
+            start.into() as f32..=end.into() as f32,
+            self.value.into() as f32,
             self.state.is_dragging,
             &self.style,
         )
@@ -269,14 +309,15 @@ pub trait Renderer: crate::Renderer {
     ) -> Self::Output;
 }
 
-impl<'a, Message, Renderer> From<Slider<'a, Message, Renderer>>
+impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
+    T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
     Renderer: 'a + self::Renderer,
     Message: 'a + Clone,
 {
     fn from(
-        slider: Slider<'a, Message, Renderer>,
+        slider: Slider<'a, T, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }

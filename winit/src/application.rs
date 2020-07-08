@@ -1,6 +1,6 @@
 //! Create interactive, native cross-platform applications.
 use crate::{
-    conversion, mouse, Clipboard, Command, Debug, Executor, Mode, Proxy,
+    conversion, mouse, Clipboard, Color, Command, Debug, Executor, Mode, Proxy,
     Runtime, Settings, Size, Subscription,
 };
 use iced_graphics::window;
@@ -73,6 +73,32 @@ pub trait Application: Program {
     fn mode(&self) -> Mode {
         Mode::Windowed
     }
+
+    /// Returns the background [`Color`] of the [`Application`].
+    ///
+    /// By default, it returns [`Color::WHITE`].
+    ///
+    /// [`Color`]: struct.Color.html
+    /// [`Application`]: trait.Application.html
+    /// [`Color::WHITE`]: struct.Color.html#const.WHITE
+    fn background_color(&self) -> Color {
+        Color::WHITE
+    }
+
+    /// Returns the scale factor of the [`Application`].
+    ///
+    /// It can be used to dynamically control the size of the UI at runtime
+    /// (i.e. zooming).
+    ///
+    /// For instance, a scale factor of `2.0` will make widgets twice as big,
+    /// while a scale factor of `0.5` will shrink them to half their size.
+    ///
+    /// By default, it returns `1.0`.
+    ///
+    /// [`Application`]: trait.Application.html
+    fn scale_factor(&self) -> f64 {
+        1.0
+    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -112,6 +138,8 @@ pub fn run<A, E, C>(
 
     let mut title = application.title();
     let mut mode = application.mode();
+    let mut background_color = application.background_color();
+    let mut scale_factor = application.scale_factor();
 
     let window = settings
         .window
@@ -120,13 +148,14 @@ pub fn run<A, E, C>(
         .expect("Open window");
 
     let clipboard = Clipboard::new(&window);
+    let mut cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
     let mut mouse_interaction = mouse::Interaction::default();
     let mut modifiers = winit::event::ModifiersState::default();
 
     let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
         Size::new(physical_size.width, physical_size.height),
-        window.scale_factor(),
+        window.scale_factor() * scale_factor,
     );
     let mut resized = false;
 
@@ -143,6 +172,7 @@ pub fn run<A, E, C>(
     let mut state = program::State::new(
         application,
         viewport.logical_size(),
+        conversion::cursor_position(cursor_position, viewport.scale_factor()),
         &mut renderer,
         &mut debug,
     );
@@ -150,10 +180,18 @@ pub fn run<A, E, C>(
 
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::MainEventsCleared => {
+            if state.is_queue_empty() {
+                return;
+            }
+
             let command = runtime.enter(|| {
                 state.update(
-                    clipboard.as_ref().map(|c| c as _),
                     viewport.logical_size(),
+                    conversion::cursor_position(
+                        cursor_position,
+                        viewport.scale_factor(),
+                    ),
+                    clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
                     &mut debug,
                 )
@@ -189,6 +227,39 @@ pub fn run<A, E, C>(
 
                     mode = new_mode;
                 }
+
+                // Update background color
+                background_color = program.background_color();
+
+                // Update scale factor
+                let new_scale_factor = program.scale_factor();
+
+                if scale_factor != new_scale_factor {
+                    let size = window.inner_size();
+
+                    viewport = Viewport::with_physical_size(
+                        Size::new(size.width, size.height),
+                        window.scale_factor() * new_scale_factor,
+                    );
+
+                    // We relayout the UI with the new logical size.
+                    // The queue is empty, therefore this will never produce
+                    // a `Command`.
+                    //
+                    // TODO: Properly queue `WindowResized`
+                    let _ = state.update(
+                        viewport.logical_size(),
+                        conversion::cursor_position(
+                            cursor_position,
+                            viewport.scale_factor(),
+                        ),
+                        clipboard.as_ref().map(|c| c as _),
+                        &mut renderer,
+                        &mut debug,
+                    );
+
+                    scale_factor = new_scale_factor;
+                }
             }
 
             window.request_redraw();
@@ -215,6 +286,7 @@ pub fn run<A, E, C>(
                 &mut renderer,
                 &mut swap_chain,
                 &viewport,
+                background_color,
                 state.primitive(),
                 &debug.overlay(),
             );
@@ -239,7 +311,9 @@ pub fn run<A, E, C>(
             handle_window_event(
                 &window_event,
                 &window,
+                scale_factor,
                 control_flow,
+                &mut cursor_position,
                 &mut modifiers,
                 &mut viewport,
                 &mut resized,
@@ -266,7 +340,9 @@ pub fn run<A, E, C>(
 pub fn handle_window_event(
     event: &winit::event::WindowEvent<'_>,
     window: &winit::window::Window,
+    scale_factor: f64,
     control_flow: &mut winit::event_loop::ControlFlow,
+    cursor_position: &mut winit::dpi::PhysicalPosition<f64>,
     modifiers: &mut winit::event::ModifiersState,
     viewport: &mut Viewport,
     resized: &mut bool,
@@ -278,12 +354,17 @@ pub fn handle_window_event(
         WindowEvent::Resized(new_size) => {
             let size = Size::new(new_size.width, new_size.height);
 
-            *viewport =
-                Viewport::with_physical_size(size, window.scale_factor());
+            *viewport = Viewport::with_physical_size(
+                size,
+                window.scale_factor() * scale_factor,
+            );
             *resized = true;
         }
         WindowEvent::CloseRequested => {
             *control_flow = ControlFlow::Exit;
+        }
+        WindowEvent::CursorMoved { position, .. } => {
+            *cursor_position = *position;
         }
         WindowEvent::ModifiersChanged(new_modifiers) => {
             *modifiers = *new_modifiers;

@@ -48,24 +48,33 @@ impl Program for Controls {
         let sliders = Row::new()
             .width(Length::Units(500))
             .spacing(20)
-            .push(Slider::new(r, 0.0..=1.0, background_color.r, move |r| {
-                Message::BackgroundColorChanged(Color {
-                    r,
-                    ..background_color
+            .push(
+                Slider::new(r, 0.0..=1.0, background_color.r, move |r| {
+                    Message::BackgroundColorChanged(Color {
+                        r,
+                        ..background_color
+                    })
                 })
-            }))
-            .push(Slider::new(g, 0.0..=1.0, background_color.g, move |g| {
-                Message::BackgroundColorChanged(Color {
-                    g,
-                    ..background_color
+                .step(0.01),
+            )
+            .push(
+                Slider::new(g, 0.0..=1.0, background_color.g, move |g| {
+                    Message::BackgroundColorChanged(Color {
+                        g,
+                        ..background_color
+                    })
                 })
-            }))
-            .push(Slider::new(b, 0.0..=1.0, background_color.b, move |b| {
-                Message::BackgroundColorChanged(Color {
-                    b,
-                    ..background_color
+                .step(0.01),
+            )
+            .push(
+                Slider::new(b, 0.0..=1.0, background_color.b, move |b| {
+                    Message::BackgroundColorChanged(Color {
+                        b,
+                        ..background_color
+                    })
                 })
-            }));
+                .step(0.01),
+            );
 
         Row::new()
             .width(Length::Fill)

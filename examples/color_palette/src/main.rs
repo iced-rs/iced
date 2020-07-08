@@ -269,7 +269,7 @@ struct ColorPicker<C: ColorSpace> {
 
 trait ColorSpace: Sized {
     const LABEL: &'static str;
-    const COMPONENT_RANGES: [RangeInclusive<f32>; 3];
+    const COMPONENT_RANGES: [RangeInclusive<f64>; 3];
 
     fn new(a: f32, b: f32, c: f32) -> Self;
 
@@ -284,13 +284,25 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
         let [s1, s2, s3] = &mut self.sliders;
         let [cr1, cr2, cr3] = C::COMPONENT_RANGES;
 
+        fn slider<C>(
+            state: &mut slider::State,
+            range: RangeInclusive<f64>,
+            component: f32,
+            update: impl Fn(f32) -> C + 'static,
+        ) -> Slider<f64, C> {
+            Slider::new(state, range, f64::from(component), move |v| {
+                update(v as f32)
+            })
+            .step(0.01)
+        }
+
         Row::new()
             .spacing(10)
             .align_items(Align::Center)
             .push(Text::new(C::LABEL).width(Length::Units(50)))
-            .push(Slider::new(s1, cr1, c1, move |v| C::new(v, c2, c3)))
-            .push(Slider::new(s2, cr2, c2, move |v| C::new(c1, v, c3)))
-            .push(Slider::new(s3, cr3, c3, move |v| C::new(c1, c2, v)))
+            .push(slider(s1, cr1, c1, move |v| C::new(v, c2, c3)))
+            .push(slider(s2, cr2, c2, move |v| C::new(c1, v, c3)))
+            .push(slider(s3, cr3, c3, move |v| C::new(c1, c2, v)))
             .push(
                 Text::new(color.to_string())
                     .width(Length::Units(185))
@@ -302,7 +314,7 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
 
 impl ColorSpace for Color {
     const LABEL: &'static str = "RGB";
-    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+    const COMPONENT_RANGES: [RangeInclusive<f64>; 3] =
         [0.0..=1.0, 0.0..=1.0, 0.0..=1.0];
 
     fn new(r: f32, g: f32, b: f32) -> Self {
@@ -325,7 +337,7 @@ impl ColorSpace for Color {
 
 impl ColorSpace for palette::Hsl {
     const LABEL: &'static str = "HSL";
-    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+    const COMPONENT_RANGES: [RangeInclusive<f64>; 3] =
         [0.0..=360.0, 0.0..=1.0, 0.0..=1.0];
 
     fn new(hue: f32, saturation: f32, lightness: f32) -> Self {
@@ -356,7 +368,7 @@ impl ColorSpace for palette::Hsl {
 
 impl ColorSpace for palette::Hsv {
     const LABEL: &'static str = "HSV";
-    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+    const COMPONENT_RANGES: [RangeInclusive<f64>; 3] =
         [0.0..=360.0, 0.0..=1.0, 0.0..=1.0];
 
     fn new(hue: f32, saturation: f32, value: f32) -> Self {
@@ -379,7 +391,7 @@ impl ColorSpace for palette::Hsv {
 
 impl ColorSpace for palette::Hwb {
     const LABEL: &'static str = "HWB";
-    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+    const COMPONENT_RANGES: [RangeInclusive<f64>; 3] =
         [0.0..=360.0, 0.0..=1.0, 0.0..=1.0];
 
     fn new(hue: f32, whiteness: f32, blackness: f32) -> Self {
@@ -410,7 +422,7 @@ impl ColorSpace for palette::Hwb {
 
 impl ColorSpace for palette::Lab {
     const LABEL: &'static str = "Lab";
-    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+    const COMPONENT_RANGES: [RangeInclusive<f64>; 3] =
         [0.0..=100.0, -128.0..=127.0, -128.0..=127.0];
 
     fn new(l: f32, a: f32, b: f32) -> Self {
@@ -428,7 +440,7 @@ impl ColorSpace for palette::Lab {
 
 impl ColorSpace for palette::Lch {
     const LABEL: &'static str = "Lch";
-    const COMPONENT_RANGES: [RangeInclusive<f32>; 3] =
+    const COMPONENT_RANGES: [RangeInclusive<f64>; 3] =
         [0.0..=100.0, 0.0..=128.0, 0.0..=360.0];
 
     fn new(l: f32, chroma: f32, hue: f32) -> Self {

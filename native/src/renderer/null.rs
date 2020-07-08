@@ -50,7 +50,9 @@ impl row::Renderer for Null {
 impl text::Renderer for Null {
     type Font = Font;
 
-    const DEFAULT_SIZE: u16 = 20;
+    fn default_size(&self) -> u16 {
+        20
+    }
 
     fn measure(
         &self,
@@ -104,12 +106,7 @@ impl scrollable::Renderer for Null {
 }
 
 impl text_input::Renderer for Null {
-    type Font = Font;
     type Style = ();
-
-    fn default_size(&self) -> u16 {
-        20
-    }
 
     fn measure_value(&self, _value: &str, _size: u16, _font: Font) -> f32 {
         0.0

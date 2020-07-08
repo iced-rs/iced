@@ -17,8 +17,8 @@ use editor::Editor;
 use crate::{
     keyboard, layout,
     mouse::{self, click},
-    Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle, Size,
-    Widget,
+    text, Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle,
+    Size, Widget,
 };
 
 use std::u32;
@@ -486,7 +486,8 @@ where
         let text_bounds = layout.children().next().unwrap().bounds();
 
         if self.is_secure {
-            renderer.draw(
+            self::Renderer::draw(
+                renderer,
                 bounds,
                 text_bounds,
                 cursor_position,
@@ -498,7 +499,8 @@ where
                 &self.style,
             )
         } else {
-            renderer.draw(
+            self::Renderer::draw(
+                renderer,
                 bounds,
                 text_bounds,
                 cursor_position,
@@ -531,19 +533,9 @@ where
 ///
 /// [`TextInput`]: struct.TextInput.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer: crate::Renderer + Sized {
-    /// The font type used for [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    type Font: Default + Copy;
-
+pub trait Renderer: text::Renderer + Sized {
     /// The style supported by this renderer.
     type Style: Default;
-
-    /// Returns the default size of the text of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    fn default_size(&self) -> u16;
 
     /// Returns the width of the value of the [`TextInput`].
     ///
@@ -682,6 +674,30 @@ impl State {
     /// [`TextInput`]: struct.TextInput.html
     pub fn cursor(&self) -> Cursor {
         self.cursor
+    }
+
+    /// Moves the [`Cursor`] of the [`TextInput`] to the front of the input text.
+    ///
+    /// [`Cursor`]: struct.Cursor.html
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn move_cursor_to_front(&mut self) {
+        self.cursor.move_to(0);
+    }
+
+    /// Moves the [`Cursor`] of the [`TextInput`] to the end of the input text.
+    ///
+    /// [`Cursor`]: struct.Cursor.html
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn move_cursor_to_end(&mut self) {
+        self.cursor.move_to(usize::MAX);
+    }
+
+    /// Moves the [`Cursor`] of the [`TextInput`] to an arbitrary location.
+    ///
+    /// [`Cursor`]: struct.Cursor.html
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn move_cursor_to(&mut self, position: usize) {
+        self.cursor.move_to(position);
     }
 }
 
