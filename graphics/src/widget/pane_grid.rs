@@ -82,12 +82,6 @@ where
             let pane = panes.remove(index);
             let bounds = layout.bounds();
 
-            if let Primitive::Group { primitives } = &pane {
-                panes.push(
-                    primitives.first().cloned().unwrap_or(Primitive::None),
-                );
-            }
-
             // TODO: Fix once proper layering is implemented.
             // This is a pretty hacky way to achieve layering.
             let clip = Primitive::Clip {
