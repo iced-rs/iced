@@ -36,7 +36,7 @@ use crate::{
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
 ///
-/// [![Pane grid - Iced](https://thumbs.gfycat.com/MixedFlatJellyfish-small.gif)](https://gfycat.com/mixedflatjellyfish)
+/// [![Pane grid - Iced](https://thumbs.gfycat.com/FrailFreshAiredaleterrier-small.gif)](https://gfycat.com/frailfreshairedaleterrier)
 ///
 /// This distribution of space is common in tiling window managers (like
 /// [`awesome`](https://awesomewm.org/), [`i3`](https://i3wm.org/), or even
