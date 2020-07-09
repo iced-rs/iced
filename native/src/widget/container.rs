@@ -2,7 +2,7 @@
 use std::hash::Hash;
 
 use crate::{
-    layout, Align, Clipboard, Element, Event, Hasher, Layout, Length, Overlay,
+    layout, overlay, Align, Clipboard, Element, Event, Hasher, Layout, Length,
     Point, Rectangle, Widget,
 };
 
@@ -218,7 +218,7 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
         self.content.overlay(layout.children().next().unwrap())
     }
 }

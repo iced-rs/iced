@@ -1,5 +1,5 @@
 use crate::{
-    layout, Clipboard, Color, Event, Hasher, Layout, Length, Overlay, Point,
+    layout, overlay, Clipboard, Color, Event, Hasher, Layout, Length, Point,
     Widget,
 };
 use std::rc::Rc;
@@ -276,7 +276,7 @@ where
     pub fn overlay<'b>(
         &'b mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
         self.widget.overlay(layout)
     }
 }
@@ -366,7 +366,7 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'_, B, Renderer>> {
+    ) -> Option<overlay::Element<'_, B, Renderer>> {
         let mapper = self.mapper.clone();
 
         self.widget
@@ -452,7 +452,7 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
         self.element.overlay(layout)
     }
 }

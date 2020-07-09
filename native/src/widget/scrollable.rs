@@ -1,7 +1,7 @@
 //! Navigate an endless amount of content with a scrollbar.
 use crate::{
-    column, layout, mouse, Align, Clipboard, Column, Element, Event, Hasher,
-    Layout, Length, Overlay, Point, Rectangle, Size, Vector, Widget,
+    column, layout, mouse, overlay, Align, Clipboard, Column, Element, Event,
+    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -319,7 +319,7 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
         let Self { content, state, .. } = self;
 
         content

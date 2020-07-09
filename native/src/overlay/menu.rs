@@ -70,8 +70,8 @@ where
         self,
         position: Point,
         target_height: f32,
-    ) -> overlay::Overlay<'a, Message, Renderer> {
-        overlay::Overlay::new(
+    ) -> overlay::Element<'a, Message, Renderer> {
+        overlay::Element::new(
             position,
             Box::new(Overlay::new(self, target_height)),
         )
@@ -149,7 +149,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> overlay::Content<Message, Renderer>
+impl<'a, Message, Renderer> crate::Overlay<Message, Renderer>
     for Overlay<'a, Message, Renderer>
 where
     Renderer: self::Renderer,

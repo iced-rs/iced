@@ -70,7 +70,7 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{layout, Clipboard, Event, Hasher, Layout, Length, Overlay, Point};
+use crate::{layout, overlay, Clipboard, Event, Hasher, Layout, Length, Point};
 
 /// A component that displays information and allows interaction.
 ///
@@ -182,7 +182,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         _layout: Layout<'_>,
-    ) -> Option<Overlay<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
         None
     }
 }

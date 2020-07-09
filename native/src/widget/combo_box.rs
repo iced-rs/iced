@@ -1,8 +1,8 @@
 use crate::{
-    layout, mouse,
+    layout, mouse, overlay,
     overlay::menu::{self, Menu},
-    scrollable, text, Clipboard, Element, Event, Hasher, Layout, Length,
-    Overlay, Point, Rectangle, Size, Widget,
+    scrollable, text, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -225,7 +225,7 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-    ) -> Option<Overlay<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
         if self.menu.is_open() {
             let bounds = layout.bounds();
 

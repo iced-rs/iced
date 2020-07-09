@@ -1,4 +1,4 @@
-use crate::{layout, Clipboard, Element, Event, Layout, Overlay, Point, Size};
+use crate::{layout, overlay, Clipboard, Element, Event, Layout, Point, Size};
 
 use std::hash::Hasher;
 
@@ -398,7 +398,7 @@ where
     fn overlay_layer(
         cache: Option<Layer>,
         bounds: Size,
-        overlay: &mut Overlay<'_, Message, Renderer>,
+        overlay: &mut overlay::Element<'_, Message, Renderer>,
         renderer: &Renderer,
     ) -> Layer {
         let new_hash = {
