@@ -9,6 +9,7 @@
 //! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
 //! [`PaneGrid`]: type.PaneGrid.html
 use crate::backend::{self, Backend};
+use crate::defaults;
 use crate::{Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::pane_grid;
@@ -197,11 +198,17 @@ where
     ) -> Self::Output {
         let style = style_sheet.style();
 
+        let defaults = Self::Defaults {
+            text: defaults::Text {
+                color: style.text_color.unwrap_or(defaults.text.color),
+            },
+        };
+
         let background = crate::widget::container::background(bounds, &style);
 
         let (title_primitive, _) = text::Renderer::draw(
             self,
-            defaults,
+            &defaults,
             title_bounds,
             title,
             title_size,
@@ -212,8 +219,12 @@ where
         );
 
         if let Some((controls, controls_layout)) = controls {
-            let (controls_primitive, controls_interaction) =
-                controls.draw(self, defaults, controls_layout, cursor_position);
+            let (controls_primitive, controls_interaction) = controls.draw(
+                self,
+                &defaults,
+                controls_layout,
+                cursor_position,
+            );
 
             (
                 Primitive::Group {
