@@ -29,8 +29,8 @@ pub use state::{Focus, State};
 pub use title_bar::TitleBar;
 
 use crate::{
-    container, keyboard, layout, mouse, row, text, Clipboard, Element, Event,
-    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    container, keyboard, layout, mouse, overlay, row, text, Clipboard, Element,
+    Event, Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -635,6 +635,17 @@ where
         for (_, element) in &self.elements {
             element.hash_layout(state);
         }
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.elements
+            .iter_mut()
+            .zip(layout.children())
+            .filter_map(|((_, pane), layout)| pane.overlay(layout))
+            .next()
     }
 }
 
