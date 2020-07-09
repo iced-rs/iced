@@ -202,7 +202,7 @@ where
                 vec![title_layout, controls_layout],
             )
         } else {
-            layout::Node::new(Size::new(title_width, title_height))
+            layout::Node::new(Size::new(max_size.width, title_height))
         };
 
         node.move_to(Point::new(padding, padding));
