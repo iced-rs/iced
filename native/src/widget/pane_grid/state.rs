@@ -1,5 +1,4 @@
 use crate::{
-    keyboard,
     pane_grid::{Axis, Configuration, Direction, Node, Pane, Split},
     Hasher, Point, Rectangle, Size,
 };
@@ -25,7 +24,6 @@ use std::collections::HashMap;
 pub struct State<T> {
     pub(super) panes: HashMap<Pane, T>,
     pub(super) internal: Internal,
-    pub(super) modifiers: keyboard::ModifiersState,
 }
 
 /// The current focus of a [`Pane`].
@@ -76,7 +74,6 @@ impl<T> State<T> {
                 last_id,
                 action: Action::Idle { focus: None },
             },
-            modifiers: keyboard::ModifiersState::default(),
         }
     }
 

@@ -88,7 +88,6 @@ use crate::{
 #[allow(missing_debug_implementations)]
 pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     state: &'a mut state::Internal,
-    pressed_modifiers: &'a mut keyboard::ModifiersState,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
@@ -143,7 +142,6 @@ where
 
         Self {
             state: &mut state.internal,
-            pressed_modifiers: &mut state.modifiers,
             elements,
             width: Length::Fill,
             height: Length::Fill,
@@ -557,9 +555,6 @@ where
                                 }
                             }
                         }
-                    }
-                    keyboard::Event::ModifiersChanged(modifiers) => {
-                        *self.pressed_modifiers = modifiers;
                     }
                     _ => {}
                 }
