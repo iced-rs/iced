@@ -148,8 +148,8 @@ where
 
         if let Some((title_bar, title_bar_layout)) = title_bar {
             let show_controls = bounds.contains(cursor_position);
-            let is_over_draggable =
-                title_bar.is_over_draggable(title_bar_layout, cursor_position);
+            let is_over_pick_area =
+                title_bar.is_over_pick_area(title_bar_layout, cursor_position);
 
             let (title_bar_primitive, title_bar_interaction) = title_bar.draw(
                 self,
@@ -167,7 +167,7 @@ where
                         body_primitive,
                     ],
                 },
-                if is_over_draggable {
+                if is_over_pick_area {
                     mouse::Interaction::Grab
                 } else if title_bar_interaction > body_interaction {
                     title_bar_interaction

@@ -1,11 +1,12 @@
 use crate::container;
 use crate::layout;
 use crate::pane_grid::{self, TitleBar};
-use crate::{Clipboard, Element, Event, Hasher, Layout, Point, Size, Vector};
+use crate::{Clipboard, Element, Event, Hasher, Layout, Point, Size};
 
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: struct.Pane.html
+#[allow(missing_debug_implementations)]
 pub struct Content<'a, Message, Renderer: pane_grid::Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
     body: Element<'a, Message, Renderer>,
@@ -16,6 +17,9 @@ impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: pane_grid::Renderer,
 {
+    /// Creates a new [`Content`] with the provided body.
+    ///
+    /// [`Content`]: struct.Content.html
     pub fn new(body: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Self {
             title_bar: None,
@@ -24,6 +28,10 @@ where
         }
     }
 
+    /// Sets the [`TitleBar`] of this [`Content`].
+    ///
+    /// [`TitleBar`]: struct.TitleBar.html
+    /// [`Content`]: struct.Content.html
     pub fn title_bar(
         mut self,
         title_bar: TitleBar<'a, Message, Renderer>,
@@ -45,6 +53,11 @@ impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: pane_grid::Renderer,
 {
+    /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
+    ///
+    /// [`Content`]: struct.Content.html
+    /// [`Renderer`]: trait.Renderer.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -77,24 +90,23 @@ where
         }
     }
 
-    pub fn drag_origin(
+    /// Returns whether the [`Content`] with the given [`Layout`] can be picked
+    /// at the provided cursor position.
+    ///
+    /// [`Content`]: struct.Content.html
+    /// [`Layout`]: ../layout/struct.Layout.html
+    pub fn can_be_picked_at(
         &self,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Option<Point> {
+    ) -> bool {
         if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();
             let title_bar_layout = children.next().unwrap();
 
-            if title_bar.is_over_draggable(title_bar_layout, cursor_position) {
-                let position = layout.position();
-
-                Some(cursor_position - Vector::new(position.x, position.y))
-            } else {
-                None
-            }
+            title_bar.is_over_pick_area(title_bar_layout, cursor_position)
         } else {
-            None
+            false
         }
     }
 

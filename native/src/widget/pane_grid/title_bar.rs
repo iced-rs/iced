@@ -2,6 +2,10 @@ use crate::layout;
 use crate::pane_grid;
 use crate::{Clipboard, Element, Event, Layout, Point, Rectangle, Size};
 
+/// The title bar of a [`Pane`].
+///
+/// [`Pane`]: struct.Pane.html
+#[allow(missing_debug_implementations)]
 pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
     title: String,
     title_size: Option<u16>,
@@ -14,6 +18,9 @@ impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: pane_grid::Renderer,
 {
+    /// Cretes a new [`TitleBar`] with the given title.
+    ///
+    /// [`TitleBar`]: struct.TitleBar.html
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             title: title.into(),
@@ -26,7 +33,7 @@ where
 
     /// Sets the size of the title of the [`TitleBar`].
     ///
-    /// [`TitleBar`]: struct.Text.html
+    /// [`TitleBar`]: struct.TitleBar.html
     pub fn title_size(mut self, size: u16) -> Self {
         self.title_size = Some(size);
         self
@@ -64,6 +71,11 @@ impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: pane_grid::Renderer,
 {
+    /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
+    ///
+    /// [`TitleBar`]: struct.TitleBar.html
+    /// [`Renderer`]: trait.Renderer.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -118,7 +130,13 @@ where
         }
     }
 
-    pub fn is_over_draggable(
+    /// Returns whether the mouse cursor is over the pick area of the
+    /// [`TitleBar`] or not.
+    ///
+    /// The whole [`TitleBar`] is a pick area, except its controls.
+    ///
+    /// [`TitleBar`]: struct.TitleBar.html
+    pub fn is_over_pick_area(
         &self,
         layout: Layout<'_>,
         cursor_position: Point,

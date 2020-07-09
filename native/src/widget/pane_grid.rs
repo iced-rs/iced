@@ -30,7 +30,7 @@ pub use title_bar::TitleBar;
 
 use crate::{
     container, keyboard, layout, mouse, row, text, Clipboard, Element, Event,
-    Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -273,9 +273,12 @@ where
         if let Some(((pane, content), layout)) = clicked_region.next() {
             match &self.on_drag {
                 Some(on_drag) => {
-                    if let Some(origin) =
-                        content.drag_origin(layout, cursor_position)
-                    {
+                    if content.can_be_picked_at(layout, cursor_position) {
+                        let pane_position = layout.position();
+
+                        let origin = cursor_position
+                            - Vector::new(pane_position.x, pane_position.y);
+
                         self.state.pick_pane(pane, origin);
 
                         messages
@@ -693,6 +696,17 @@ pub trait Renderer:
         cursor_position: Point,
     ) -> Self::Output;
 
+    /// Draws a [`TitleBar`].
+    ///
+    /// It receives:
+    /// - the bounds, style of the [`TitleBar`]
+    /// - the style of the [`TitleBar`]
+    /// - the title of the [`TitleBar`] with its size, font, and bounds
+    /// - the controls of the [`TitleBar`] with their [`Layout`+, if any
+    /// - the cursor position
+    ///
+    /// [`TitleBar`]: struct.TitleBar.html
+    /// [`Layout`]: ../layout/struct.Layout.html
     fn draw_title_bar<Message>(
         &mut self,
         defaults: &Self::Defaults,
