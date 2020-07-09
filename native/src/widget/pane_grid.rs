@@ -182,8 +182,7 @@ where
 
     /// Sets the modifier keys of the [`PaneGrid`].
     ///
-    /// The modifier keys will need to be pressed to trigger dragging, and key
-    /// events.
+    /// The modifier keys will need to be pressed to trigger key events.
     ///
     /// The default modifier key is `Ctrl`.
     ///
