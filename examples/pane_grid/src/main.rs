@@ -97,7 +97,16 @@ impl Sandbox for Example {
 
         let pane_grid =
             PaneGrid::new(&mut self.panes, |pane, content, focus| {
-                pane_grid::Content::new(content.view(pane, focus, total_panes))
+                let title_bar =
+                    pane_grid::TitleBar::new(format!("Pane {}", content.id))
+                        .padding(10)
+                        .style(style::TitleBar { focus });
+
+                pane_grid::Content::new(content.view(pane, total_panes))
+                    .title_bar(title_bar)
+                    .style(style::Pane {
+                        is_focused: focus.is_some(),
+                    })
             })
             .width(Length::Fill)
             .height(Length::Fill)
@@ -155,15 +164,14 @@ impl Content {
     fn view(
         &mut self,
         pane: pane_grid::Pane,
-        focus: Option<pane_grid::Focus>,
         total_panes: usize,
     ) -> Element<Message> {
         let Content {
-            id,
             scroll,
             split_horizontally,
             split_vertically,
             close,
+            ..
         } = self;
 
         let button = |state, label, message, style| {
@@ -209,7 +217,6 @@ impl Content {
             .width(Length::Fill)
             .spacing(10)
             .align_items(Align::Center)
-            .push(Text::new(format!("Pane {}", id)).size(30))
             .push(controls);
 
         Container::new(content)
@@ -217,15 +224,12 @@ impl Content {
             .height(Length::Fill)
             .padding(5)
             .center_y()
-            .style(style::Pane {
-                is_focused: focus.is_some(),
-            })
             .into()
     }
 }
 
 mod style {
-    use iced::{button, container, Background, Color, Vector};
+    use iced::{button, container, pane_grid, Background, Color, Vector};
 
     const SURFACE: Color = Color::from_rgb(
         0xF2 as f32 / 255.0,
@@ -245,6 +249,25 @@ mod style {
         0xC4 as f32 / 255.0,
     );
 
+    pub struct TitleBar {
+        pub focus: Option<pane_grid::Focus>,
+    }
+
+    impl container::StyleSheet for TitleBar {
+        fn style(&self) -> container::Style {
+            let pane = Pane {
+                is_focused: self.focus.is_some(),
+            }
+            .style();
+
+            container::Style {
+                text_color: Some(Color::WHITE),
+                background: Some(pane.border_color.into()),
+                ..Default::default()
+            }
+        }
+    }
+
     pub struct Pane {
         pub is_focused: bool,
     }
@@ -254,9 +277,10 @@ mod style {
             container::Style {
                 background: Some(Background::Color(SURFACE)),
                 border_width: 2,
-                border_color: Color {
-                    a: if self.is_focused { 1.0 } else { 0.3 },
-                    ..Color::BLACK
+                border_color: if self.is_focused {
+                    Color::BLACK
+                } else {
+                    Color::from_rgb(0.7, 0.7, 0.7)
                 },
                 ..Default::default()
             }
