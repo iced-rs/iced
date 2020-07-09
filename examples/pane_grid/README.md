@@ -15,8 +15,8 @@ This example showcases the `PaneGrid` widget, which features:
 The __[`main`]__ file contains all the code of the example.
 
 <div align="center">
-  <a href="https://gfycat.com/mixedflatjellyfish">
-    <img src="https://thumbs.gfycat.com/MixedFlatJellyfish-small.gif">
+  <a href="https://gfycat.com/frailfreshairedaleterrier">
+    <img src="https://thumbs.gfycat.com/FrailFreshAiredaleterrier-small.gif">
   </a>
 </div>
 

@@ -1,6 +1,5 @@
 use crate::{
-    keyboard,
-    pane_grid::{Axis, Content, Direction, Node, Pane, Split},
+    pane_grid::{Axis, Configuration, Direction, Node, Pane, Split},
     Hasher, Point, Rectangle, Size,
 };
 
@@ -25,7 +24,6 @@ use std::collections::HashMap;
 pub struct State<T> {
     pub(super) panes: HashMap<Pane, T>,
     pub(super) internal: Internal,
-    pub(super) modifiers: keyboard::ModifiersState,
 }
 
 /// The current focus of a [`Pane`].
@@ -53,18 +51,21 @@ impl<T> State<T> {
     /// [`State`]: struct.State.html
     /// [`Pane`]: struct.Pane.html
     pub fn new(first_pane_state: T) -> (Self, Pane) {
-        (Self::with_content(Content::Pane(first_pane_state)), Pane(0))
+        (
+            Self::with_configuration(Configuration::Pane(first_pane_state)),
+            Pane(0),
+        )
     }
 
-    /// Creates a new [`State`] with the given [`Content`].
+    /// Creates a new [`State`] with the given [`Configuration`].
     ///
     /// [`State`]: struct.State.html
-    /// [`Content`]: enum.Content.html
-    pub fn with_content(content: impl Into<Content<T>>) -> Self {
+    /// [`Configuration`]: enum.Configuration.html
+    pub fn with_configuration(config: impl Into<Configuration<T>>) -> Self {
         let mut panes = HashMap::new();
 
         let (layout, last_id) =
-            Self::distribute_content(&mut panes, content.into(), 0);
+            Self::distribute_content(&mut panes, config.into(), 0);
 
         State {
             panes,
@@ -73,7 +74,6 @@ impl<T> State<T> {
                 last_id,
                 action: Action::Idle { focus: None },
             },
-            modifiers: keyboard::ModifiersState::default(),
         }
     }
 
@@ -283,11 +283,11 @@ impl<T> State<T> {
 
     fn distribute_content(
         panes: &mut HashMap<Pane, T>,
-        content: Content<T>,
+        content: Configuration<T>,
         next_id: usize,
     ) -> (Node, usize) {
         match content {
-            Content::Split { axis, ratio, a, b } => {
+            Configuration::Split { axis, ratio, a, b } => {
                 let (a, next_id) = Self::distribute_content(panes, *a, next_id);
                 let (b, next_id) = Self::distribute_content(panes, *b, next_id);
 
@@ -302,7 +302,7 @@ impl<T> State<T> {
                     next_id + 1,
                 )
             }
-            Content::Pane(state) => {
+            Configuration::Pane(state) => {
                 let id = Pane(next_id);
                 let _ = panes.insert(id, state);
 
@@ -319,13 +319,14 @@ pub struct Internal {
     action: Action,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Action {
     Idle {
         focus: Option<Pane>,
     },
     Dragging {
         pane: Pane,
+        origin: Point,
     },
     Resizing {
         split: Split,
@@ -340,7 +341,7 @@ impl Action {
             Action::Idle { focus } | Action::Resizing { focus, .. } => {
                 focus.map(|pane| (pane, Focus::Idle))
             }
-            Action::Dragging { pane } => Some((*pane, Focus::Dragging)),
+            Action::Dragging { pane, .. } => Some((*pane, Focus::Dragging)),
         }
     }
 }
@@ -357,9 +358,9 @@ impl Internal {
         }
     }
 
-    pub fn picked_pane(&self) -> Option<Pane> {
+    pub fn picked_pane(&self) -> Option<(Pane, Point)> {
         match self.action {
-            Action::Dragging { pane } => Some(pane),
+            Action::Dragging { pane, origin } => Some((pane, origin)),
             _ => None,
         }
     }
@@ -391,8 +392,11 @@ impl Internal {
         self.action = Action::Idle { focus: Some(*pane) };
     }
 
-    pub fn pick_pane(&mut self, pane: &Pane) {
-        self.action = Action::Dragging { pane: *pane };
+    pub fn pick_pane(&mut self, pane: &Pane, origin: Point) {
+        self.action = Action::Dragging {
+            pane: *pane,
+            origin,
+        };
     }
 
     pub fn pick_split(&mut self, split: &Split, axis: Axis) {

@@ -1,7 +1,8 @@
 use crate::{
-    button, checkbox, column, progress_bar, radio, row, scrollable, slider,
-    text, text_input, Color, Element, Font, HorizontalAlignment, Layout, Point,
-    Rectangle, Renderer, Size, VerticalAlignment,
+    button, checkbox, column, container, pane_grid, progress_bar, radio, row,
+    scrollable, slider, text, text_input, Color, Element, Font,
+    HorizontalAlignment, Layout, Point, Rectangle, Renderer, Size,
+    VerticalAlignment,
 };
 
 /// A renderer that does nothing.
@@ -220,6 +221,62 @@ impl progress_bar::Renderer for Null {
         _range: std::ops::RangeInclusive<f32>,
         _value: f32,
         _style: &Self::Style,
+    ) {
+    }
+}
+
+impl container::Renderer for Null {
+    type Style = ();
+
+    fn draw<Message>(
+        &mut self,
+        _defaults: &Self::Defaults,
+        _bounds: Rectangle,
+        _cursor_position: Point,
+        _style: &Self::Style,
+        _content: &Element<'_, Message, Self>,
+        _content_layout: Layout<'_>,
+    ) {
+    }
+}
+
+impl pane_grid::Renderer for Null {
+    fn draw<Message>(
+        &mut self,
+        _defaults: &Self::Defaults,
+        _content: &[(pane_grid::Pane, pane_grid::Content<'_, Message, Self>)],
+        _dragging: Option<(pane_grid::Pane, Point)>,
+        _resizing: Option<pane_grid::Axis>,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+    ) {
+    }
+
+    fn draw_pane<Message>(
+        &mut self,
+        _defaults: &Self::Defaults,
+        _bounds: Rectangle,
+        _style: &Self::Style,
+        _title_bar: Option<(
+            &pane_grid::TitleBar<'_, Message, Self>,
+            Layout<'_>,
+        )>,
+        _body: (&Element<'_, Message, Self>, Layout<'_>),
+        _cursor_position: Point,
+    ) {
+    }
+
+    fn draw_title_bar<Message>(
+        &mut self,
+        _defaults: &Self::Defaults,
+        _bounds: Rectangle,
+        _style: &Self::Style,
+        _title: &str,
+        _title_size: u16,
+        _title_font: Self::Font,
+        _title_bounds: Rectangle,
+        _controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
+        _cursor_position: Point,
     ) {
     }
 }
