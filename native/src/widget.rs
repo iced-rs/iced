@@ -179,6 +179,9 @@ where
     ) {
     }
 
+    /// Returns the overlay of the [`Element`], if there is any.
+    ///
+    /// [`Element`]: struct.Element.html
     fn overlay(
         &mut self,
         _layout: Layout<'_>,

@@ -1,3 +1,4 @@
+//! Display a dropdown list of selectable values.
 pub use iced_native::combo_box::State;
 
 pub use iced_graphics::combo_box::{Style, StyleSheet};

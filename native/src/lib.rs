@@ -30,8 +30,8 @@
 //! [`Widget`]: widget/trait.Widget.html
 //! [`UserInterface`]: struct.UserInterface.html
 //! [renderer]: renderer/index.html
-//#![deny(missing_docs)]
-//#![deny(missing_debug_implementations)]
+#![deny(missing_docs)]
+#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]

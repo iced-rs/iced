@@ -24,7 +24,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    /// Create a new [`Element`] containing the given [`Widget`].
+    /// Creates a new [`Element`] containing the given [`Widget`].
     ///
     /// [`Element`]: struct.Element.html
     /// [`Widget`]: widget/trait.Widget.html
@@ -273,6 +273,9 @@ where
         self.widget.hash_layout(state);
     }
 
+    /// Returns the overlay of the [`Element`], if there is any.
+    ///
+    /// [`Element`]: struct.Element.html
     pub fn overlay<'b>(
         &'b mut self,
         layout: Layout<'_>,

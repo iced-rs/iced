@@ -1,3 +1,4 @@
+//! Display a dropdown list of selectable values.
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::{

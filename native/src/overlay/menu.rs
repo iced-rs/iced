@@ -1,9 +1,12 @@
+//! Build and show dropdown menus.
 use crate::{
     container, layout, mouse, overlay, scrollable, text, Clipboard, Container,
     Element, Event, Hasher, Layout, Length, Point, Rectangle, Scrollable, Size,
     Vector, Widget,
 };
 
+/// A list of selectable options.
+#[allow(missing_debug_implementations)]
 pub struct Menu<'a, T, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     options: &'a [T],
@@ -21,6 +24,11 @@ where
     Message: 'a,
     Renderer: self::Renderer + 'a,
 {
+    /// Creates a new [`Menu`] with the given [`State`], a list of options, and
+    /// the message to produced when an option is selected.
+    ///
+    /// [`Menu`]: struct.Menu.html
+    /// [`State`]: struct.State.html
     pub fn new(
         state: &'a mut State,
         options: &'a [T],
@@ -38,26 +46,41 @@ where
         }
     }
 
+    /// Sets the width of the [`Menu`].
+    ///
+    /// [`Menu`]: struct.Menu.html
     pub fn width(mut self, width: u16) -> Self {
         self.width = width;
         self
     }
 
+    /// Sets the padding of the [`Menu`].
+    ///
+    /// [`Menu`]: struct.Menu.html
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
         self
     }
 
+    /// Sets the text size of the [`Menu`].
+    ///
+    /// [`Menu`]: struct.Menu.html
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
         self
     }
 
+    /// Sets the font of the [`Menu`].
+    ///
+    /// [`Menu`]: struct.Menu.html
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
     }
 
+    /// Sets the style of the [`Menu`].
+    ///
+    /// [`Menu`]: struct.Menu.html
     pub fn style(
         mut self,
         style: impl Into<<Renderer as self::Renderer>::Style>,
@@ -66,6 +89,14 @@ where
         self
     }
 
+    /// Turns the [`Menu`] into an overlay [`Element`] at the given target
+    /// position.
+    ///
+    /// The `target_height` will be used to display the menu either on top
+    /// of the target or under it, depending on the screen position and the
+    /// dimensions of the [`Menu`].
+    ///
+    /// [`Menu`]: struct.Menu.html
     pub fn overlay(
         self,
         position: Point,
@@ -78,7 +109,10 @@ where
     }
 }
 
-#[derive(Default)]
+/// The local state of a [`Menu`].
+///
+/// [`Menu`]: struct.Menu.html
+#[derive(Debug, Clone, Default)]
 pub struct State {
     scrollable: scrollable::State,
     hovered_option: Option<usize>,
@@ -86,10 +120,16 @@ pub struct State {
 }
 
 impl State {
+    /// Returns whether the [`Menu`] is currently open or not.
+    ///
+    /// [`Menu`]: struct.Menu.html
     pub fn is_open(&self) -> bool {
         self.is_open
     }
 
+    /// Opens the [`Menu`] with the given option hovered by default.
+    ///
+    /// [`Menu`]: struct.Menu.html
     pub fn open(&mut self, hovered_option: Option<usize>) {
         self.is_open = true;
         self.hovered_option = hovered_option;
@@ -367,11 +407,26 @@ where
     }
 }
 
+/// The renderer of a [`Menu`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`Menu`] in your user interface.
+///
+/// [`Menu`]: struct.Menu.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer:
     scrollable::Renderer + container::Renderer + text::Renderer
 {
+    /// The [`Menu`] style supported by this renderer.
+    ///
+    /// [`Menu`]: struct.Menu.html
     type Style: Default + Clone;
 
+    /// Decorates a the list of options of a [`Menu`].
+    ///
+    /// This method can be used to draw a background for the [`Menu`].
+    ///
+    /// [`Menu`]: struct.Menu.html
     fn decorate(
         &mut self,
         bounds: Rectangle,
@@ -380,6 +435,9 @@ pub trait Renderer:
         primitive: Self::Output,
     ) -> Self::Output;
 
+    /// Draws the list of options of a [`Menu`].
+    ///
+    /// [`Menu`]: struct.Menu.html
     fn draw<T: ToString>(
         &mut self,
         bounds: Rectangle,

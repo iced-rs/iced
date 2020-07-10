@@ -1,3 +1,4 @@
+//! Display a dropdown list of selectable values.
 use crate::{
     layout, mouse, overlay,
     overlay::menu::{self, Menu},
@@ -6,6 +7,8 @@ use crate::{
 };
 use std::borrow::Cow;
 
+/// A widget for selecting a single value from a list of options.
+#[allow(missing_debug_implementations)]
 pub struct ComboBox<'a, T, Message, Renderer: self::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
@@ -22,7 +25,10 @@ where
     is_open: bool,
 }
 
-#[derive(Default)]
+/// The local state of a [`ComboBox`].
+///
+/// [`ComboBox`]: struct.ComboBox.html
+#[derive(Debug, Clone, Default)]
 pub struct State {
     menu: menu::State,
 }
@@ -33,6 +39,12 @@ where
     T: ToString,
     [T]: ToOwned<Owned = Vec<T>>,
 {
+    /// Creates a new [`ComboBox`] with the given [`State`], a list of options,
+    /// the current selected value, and the message to produce when an option is
+    /// selected.
+    ///
+    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`State`]: struct.State.html
     pub fn new(
         state: &'a mut State,
         options: impl Into<Cow<'a, [T]>>,
@@ -57,7 +69,7 @@ where
 
     /// Sets the width of the [`ComboBox`].
     ///
-    /// [`ComboBox`]: struct.Button.html
+    /// [`ComboBox`]: struct.ComboBox.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
@@ -65,17 +77,23 @@ where
 
     /// Sets the padding of the [`ComboBox`].
     ///
-    /// [`ComboBox`]: struct.Button.html
+    /// [`ComboBox`]: struct.ComboBox.html
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
         self
     }
 
+    /// Sets the text size of the [`ComboBox`].
+    ///
+    /// [`ComboBox`]: struct.ComboBox.html
     pub fn text_size(mut self, size: u16) -> Self {
         self.text_size = Some(size);
         self
     }
 
+    /// Sets the font of the [`ComboBox`].
+    ///
+    /// [`ComboBox`]: struct.ComboBox.html
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
@@ -247,15 +265,35 @@ where
     }
 }
 
+/// The renderer of a [`ComboBox`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`ComboBox`] in your user interface.
+///
+/// [`ComboBox`]: struct.ComboBox.html
+/// [renderer]: ../../renderer/index.html
 pub trait Renderer: text::Renderer + menu::Renderer {
-    type Style: Default;
-
+    /// The default padding of a [`ComboBox`].
+    ///
+    /// [`ComboBox`]: struct.ComboBox.html
     const DEFAULT_PADDING: u16;
 
+    /// The [`ComboBox`] style supported by this renderer.
+    ///
+    /// [`ComboBox`]: struct.ComboBox.html
+    type Style: Default;
+
+    /// Returns the style of the [`Menu`] of the [`ComboBox`].
+    ///
+    /// [`Menu`]: ../../overlay/menu/struct.Menu.html
+    /// [`ComboBox`]: struct.ComboBox.html
     fn menu_style(
         style: &<Self as Renderer>::Style,
     ) -> <Self as menu::Renderer>::Style;
 
+    /// Draws a [`ComboBox`].
+    ///
+    /// [`ComboBox`]: struct.ComboBox.html
     fn draw(
         &mut self,
         bounds: Rectangle,

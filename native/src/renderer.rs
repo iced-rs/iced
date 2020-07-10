@@ -57,6 +57,8 @@ pub trait Renderer: Sized {
         element.layout(self, limits)
     }
 
+    /// Overlays the `overlay` output with the given bounds on top of the `base`
+    /// output.
     fn overlay(
         &mut self,
         base: Self::Output,

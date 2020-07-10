@@ -2,7 +2,7 @@
 //! for [`iced`].
 //!
 //! [`iced`]: https://github.com/hecrj/iced
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![deny(unsafe_code)]

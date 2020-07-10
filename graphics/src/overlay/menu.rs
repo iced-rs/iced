@@ -1,3 +1,4 @@
+//! Build and show dropdown menus.
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::{
