@@ -166,8 +166,8 @@ impl Cursor {
         end.min(value.len())
     }
 
-    pub(crate) fn selection(&self) -> Option<(usize, usize)> {
-        match self.state {
+    pub(crate) fn selection(&self, value: &Value) -> Option<(usize, usize)> {
+        match self.state(value) {
             State::Selection { start, end } => {
                 Some((start.min(end), start.max(end)))
             }

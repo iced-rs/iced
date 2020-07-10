@@ -15,12 +15,10 @@ impl<'a> Editor<'a> {
     }
 
     pub fn insert(&mut self, character: char) {
-        match self.cursor.selection() {
+        match self.cursor.selection(self.value) {
             Some((left, right)) => {
-                if left < self.value.len() {
-                    self.cursor.move_left(self.value);
-                    self.value.remove_many(left, right.min(self.value.len()));
-                }
+                self.cursor.move_left(self.value);
+                self.value.remove_many(left, right.min(self.value.len()));
             }
             _ => (),
         }
@@ -32,12 +30,10 @@ impl<'a> Editor<'a> {
     pub fn paste(&mut self, content: Value) {
         let length = content.len();
 
-        match self.cursor.selection() {
+        match self.cursor.selection(self.value) {
             Some((left, right)) => {
-                if left < self.value.len() {
-                    self.cursor.move_left(self.value);
-                    self.value.remove_many(left, right.min(self.value.len()));
-                }
+                self.cursor.move_left(self.value);
+                self.value.remove_many(left, right.min(self.value.len()));
             }
             _ => (),
         }
@@ -48,12 +44,10 @@ impl<'a> Editor<'a> {
     }
 
     pub fn backspace(&mut self) {
-        match self.cursor.selection() {
+        match self.cursor.selection(self.value) {
             Some((start, end)) => {
-                if start < self.value.len() {
-                    self.cursor.move_left(self.value);
-                    self.value.remove_many(start, end.min(self.value.len()));
-                }
+                self.cursor.move_left(self.value);
+                self.value.remove_many(start, end.min(self.value.len()));
             }
             None => {
                 let start = self.cursor.start(self.value);
@@ -67,7 +61,7 @@ impl<'a> Editor<'a> {
     }
 
     pub fn delete(&mut self) {
-        match self.cursor.selection() {
+        match self.cursor.selection(self.value) {
             Some(_) => {
                 self.backspace();
             }

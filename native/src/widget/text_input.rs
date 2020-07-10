@@ -329,7 +329,7 @@ where
                 }
                 keyboard::KeyCode::Backspace => {
                     if platform::is_jump_modifier_pressed(modifiers)
-                        && self.state.cursor.selection().is_none()
+                        && self.state.cursor.selection(&self.value).is_none()
                     {
                         if self.is_secure {
                             let cursor_pos = self.state.cursor.end(&self.value);
@@ -349,7 +349,7 @@ where
                 }
                 keyboard::KeyCode::Delete => {
                     if platform::is_jump_modifier_pressed(modifiers)
-                        && self.state.cursor.selection().is_none()
+                        && self.state.cursor.selection(&self.value).is_none()
                     {
                         if self.is_secure {
                             let cursor_pos = self.state.cursor.end(&self.value);
