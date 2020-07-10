@@ -6,14 +6,14 @@ use iced_native::{
 };
 use iced_style::menu;
 
-pub use iced_native::combo_box::State;
-pub use iced_style::combo_box::{Style, StyleSheet};
+pub use iced_native::pick_list::State;
+pub use iced_style::pick_list::{Style, StyleSheet};
 
 /// A widget allowing the selection of a single value from a list of options.
-pub type ComboBox<'a, T, Message, Backend> =
-    iced_native::ComboBox<'a, T, Message, Renderer<Backend>>;
+pub type PickList<'a, T, Message, Backend> =
+    iced_native::PickList<'a, T, Message, Renderer<Backend>>;
 
-impl<B> iced_native::combo_box::Renderer for Renderer<B>
+impl<B> iced_native::pick_list::Renderer for Renderer<B>
 where
     B: Backend + backend::Text,
 {

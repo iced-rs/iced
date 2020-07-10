@@ -9,7 +9,7 @@ use std::borrow::Cow;
 
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
-pub struct ComboBox<'a, T, Message, Renderer: self::Renderer>
+pub struct PickList<'a, T, Message, Renderer: self::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
 {
@@ -25,25 +25,25 @@ where
     is_open: bool,
 }
 
-/// The local state of a [`ComboBox`].
+/// The local state of a [`PickList`].
 ///
-/// [`ComboBox`]: struct.ComboBox.html
+/// [`PickList`]: struct.PickList.html
 #[derive(Debug, Clone, Default)]
 pub struct State {
     menu: menu::State,
 }
 
 impl<'a, T: 'a, Message, Renderer: self::Renderer>
-    ComboBox<'a, T, Message, Renderer>
+    PickList<'a, T, Message, Renderer>
 where
     T: ToString,
     [T]: ToOwned<Owned = Vec<T>>,
 {
-    /// Creates a new [`ComboBox`] with the given [`State`], a list of options,
+    /// Creates a new [`PickList`] with the given [`State`], a list of options,
     /// the current selected value, and the message to produce when an option is
     /// selected.
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     /// [`State`]: struct.State.html
     pub fn new(
         state: &'a mut State,
@@ -67,41 +67,41 @@ where
         }
     }
 
-    /// Sets the width of the [`ComboBox`].
+    /// Sets the width of the [`PickList`].
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
-    /// Sets the padding of the [`ComboBox`].
+    /// Sets the padding of the [`PickList`].
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
         self
     }
 
-    /// Sets the text size of the [`ComboBox`].
+    /// Sets the text size of the [`PickList`].
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     pub fn text_size(mut self, size: u16) -> Self {
         self.text_size = Some(size);
         self
     }
 
-    /// Sets the font of the [`ComboBox`].
+    /// Sets the font of the [`PickList`].
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
     }
 
-    /// Sets the style of the [`ComboBox`].
+    /// Sets the style of the [`PickList`].
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     pub fn style(
         mut self,
         style: impl Into<<Renderer as self::Renderer>::Style>,
@@ -112,7 +112,7 @@ where
 }
 
 impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
-    for ComboBox<'a, T, Message, Renderer>
+    for PickList<'a, T, Message, Renderer>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
@@ -265,35 +265,35 @@ where
     }
 }
 
-/// The renderer of a [`ComboBox`].
+/// The renderer of a [`PickList`].
 ///
 /// Your [renderer] will need to implement this trait before being
-/// able to use a [`ComboBox`] in your user interface.
+/// able to use a [`PickList`] in your user interface.
 ///
-/// [`ComboBox`]: struct.ComboBox.html
+/// [`PickList`]: struct.PickList.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: text::Renderer + menu::Renderer {
-    /// The default padding of a [`ComboBox`].
+    /// The default padding of a [`PickList`].
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     const DEFAULT_PADDING: u16;
 
-    /// The [`ComboBox`] style supported by this renderer.
+    /// The [`PickList`] style supported by this renderer.
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     type Style: Default;
 
-    /// Returns the style of the [`Menu`] of the [`ComboBox`].
+    /// Returns the style of the [`Menu`] of the [`PickList`].
     ///
     /// [`Menu`]: ../../overlay/menu/struct.Menu.html
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     fn menu_style(
         style: &<Self as Renderer>::Style,
     ) -> <Self as menu::Renderer>::Style;
 
-    /// Draws a [`ComboBox`].
+    /// Draws a [`PickList`].
     ///
-    /// [`ComboBox`]: struct.ComboBox.html
+    /// [`PickList`]: struct.PickList.html
     fn draw(
         &mut self,
         bounds: Rectangle,
@@ -307,7 +307,7 @@ pub trait Renderer: text::Renderer + menu::Renderer {
 }
 
 impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for ComboBox<'a, T, Message, Renderer>
+    for PickList<'a, T, Message, Renderer>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,

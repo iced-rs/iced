@@ -1,7 +1,7 @@
 use crate::menu;
 use iced_core::{Background, Color};
 
-/// The appearance of a combo box.
+/// The appearance of a pick list.
 #[derive(Debug, Clone, Copy)]
 pub struct Style {
     pub text_color: Color,

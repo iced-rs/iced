@@ -1,5 +1,5 @@
 [package]
-name = "combo_box"
+name = "pick_list"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
@@ -7,5 +7,3 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["debug"] }
-iced_native = { path = "../../native" }
-iced_wgpu = { path = "../../wgpu" }

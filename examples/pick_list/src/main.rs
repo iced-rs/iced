@@ -1,6 +1,6 @@
 use iced::{
-    button, combo_box, scrollable, Align, Button, ComboBox, Container, Element,
-    Length, Sandbox, Scrollable, Settings, Space, Text,
+    button, pick_list, scrollable, Align, Button, Container, Element, Length,
+    PickList, Sandbox, Scrollable, Settings, Space, Text,
 };
 
 pub fn main() {
@@ -11,7 +11,7 @@ pub fn main() {
 struct Example {
     scroll: scrollable::State,
     button: button::State,
-    combo_box: combo_box::State,
+    pick_list: pick_list::State,
     selected_language: Language,
 }
 
@@ -29,7 +29,7 @@ impl Sandbox for Example {
     }
 
     fn title(&self) -> String {
-        String::from("Combo box - Iced")
+        String::from("Pick list - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -42,8 +42,8 @@ impl Sandbox for Example {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let combo_box = ComboBox::new(
-            &mut self.combo_box,
+        let pick_list = PickList::new(
+            &mut self.pick_list,
             &Language::ALL[..],
             Some(self.selected_language),
             Message::LanguageSelected,
@@ -58,7 +58,7 @@ impl Sandbox for Example {
             .spacing(10)
             .push(Space::with_height(Length::Units(800)))
             .push(Text::new("Which is your favorite language?"))
-            .push(combo_box);
+            .push(pick_list);
 
         content = content
             .push(button)

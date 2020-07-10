@@ -23,10 +23,10 @@
 pub mod button;
 pub mod checkbox;
 pub mod column;
-pub mod combo_box;
 pub mod container;
 pub mod image;
 pub mod pane_grid;
+pub mod pick_list;
 pub mod progress_bar;
 pub mod radio;
 pub mod row;
@@ -44,13 +44,13 @@ pub use checkbox::Checkbox;
 #[doc(no_inline)]
 pub use column::Column;
 #[doc(no_inline)]
-pub use combo_box::ComboBox;
-#[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
+#[doc(no_inline)]
+pub use pick_list::PickList;
 #[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
