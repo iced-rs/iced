@@ -17,8 +17,10 @@ impl<'a> Editor<'a> {
     pub fn insert(&mut self, character: char) {
         match self.cursor.selection() {
             Some((left, right)) => {
-                self.cursor.move_left(self.value);
-                self.value.remove_many(left, right);
+                if left < self.value.len() {
+                    self.cursor.move_left(self.value);
+                    self.value.remove_many(left, right.min(self.value.len()));
+                }
             }
             _ => (),
         }
@@ -32,8 +34,10 @@ impl<'a> Editor<'a> {
 
         match self.cursor.selection() {
             Some((left, right)) => {
-                self.cursor.move_left(self.value);
-                self.value.remove_many(left, right);
+                if left < self.value.len() {
+                    self.cursor.move_left(self.value);
+                    self.value.remove_many(left, right.min(self.value.len()));
+                }
             }
             _ => (),
         }
@@ -46,8 +50,10 @@ impl<'a> Editor<'a> {
     pub fn backspace(&mut self) {
         match self.cursor.selection() {
             Some((start, end)) => {
-                self.cursor.move_left(self.value);
-                self.value.remove_many(start, end);
+                if start < self.value.len() {
+                    self.cursor.move_left(self.value);
+                    self.value.remove_many(start, end.min(self.value.len()));
+                }
             }
             None => {
                 let start = self.cursor.start(self.value);
