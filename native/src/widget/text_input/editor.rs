@@ -18,7 +18,7 @@ impl<'a> Editor<'a> {
         match self.cursor.selection(self.value) {
             Some((left, right)) => {
                 self.cursor.move_left(self.value);
-                self.value.remove_many(left, right.min(self.value.len()));
+                self.value.remove_many(left, right);
             }
             _ => (),
         }
@@ -33,7 +33,7 @@ impl<'a> Editor<'a> {
         match self.cursor.selection(self.value) {
             Some((left, right)) => {
                 self.cursor.move_left(self.value);
-                self.value.remove_many(left, right.min(self.value.len()));
+                self.value.remove_many(left, right);
             }
             _ => (),
         }
@@ -47,7 +47,7 @@ impl<'a> Editor<'a> {
         match self.cursor.selection(self.value) {
             Some((start, end)) => {
                 self.cursor.move_left(self.value);
-                self.value.remove_many(start, end.min(self.value.len()));
+                self.value.remove_many(start, end);
             }
             None => {
                 let start = self.cursor.start(self.value);
