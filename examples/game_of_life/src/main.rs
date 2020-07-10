@@ -1,15 +1,19 @@
 //! This example showcases an interactive version of the Game of Life, invented
 //! by John Conway. It leverages a `Canvas` together with other widgets.
+mod preset;
 mod style;
 
 use grid::Grid;
+use iced::button::{self, Button};
+use iced::executor;
+use iced::pick_list::{self, PickList};
+use iced::slider::{self, Slider};
+use iced::time;
 use iced::{
-    button::{self, Button},
-    executor,
-    slider::{self, Slider},
-    time, Align, Application, Checkbox, Column, Command, Container, Element,
-    Length, Row, Settings, Subscription, Text,
+    Align, Application, Checkbox, Column, Command, Container, Element, Length,
+    Row, Settings, Subscription, Text,
 };
+use preset::Preset;
 use std::time::{Duration, Instant};
 
 pub fn main() {
@@ -38,6 +42,7 @@ enum Message {
     Next,
     Clear,
     SpeedChanged(f32),
+    PresetPicked(Preset),
 }
 
 impl Application for GameOfLife {
@@ -48,7 +53,7 @@ impl Application for GameOfLife {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             Self {
-                speed: 1,
+                speed: 5,
                 ..Self::default()
             },
             Command::none(),
@@ -93,6 +98,9 @@ impl Application for GameOfLife {
                     self.speed = speed.round() as usize;
                 }
             }
+            Message::PresetPicked(new_preset) => {
+                self.grid = Grid::from_preset(new_preset);
+            }
         }
 
         Command::none()
@@ -113,6 +121,7 @@ impl Application for GameOfLife {
             self.is_playing,
             self.grid.are_lines_visible(),
             selected_speed,
+            self.grid.preset(),
         );
 
         let content = Column::new()
@@ -128,6 +137,7 @@ impl Application for GameOfLife {
 }
 
 mod grid {
+    use crate::Preset;
     use iced::{
         canvas::{
             self, Cache, Canvas, Cursor, Event, Frame, Geometry, Path, Text,
@@ -142,6 +152,7 @@ mod grid {
 
     pub struct Grid {
         state: State,
+        preset: Preset,
         interaction: Interaction,
         life_cache: Cache,
         grid_cache: Cache,
@@ -171,8 +182,24 @@ mod grid {
 
     impl Default for Grid {
         fn default() -> Self {
+            Self::from_preset(Preset::default())
+        }
+    }
+
+    impl Grid {
+        const MIN_SCALING: f32 = 0.1;
+        const MAX_SCALING: f32 = 2.0;
+
+        pub fn from_preset(preset: Preset) -> Self {
             Self {
-                state: State::default(),
+                state: State::with_life(
+                    preset
+                        .life()
+                        .into_iter()
+                        .map(|(i, j)| Cell { i, j })
+                        .collect(),
+                ),
+                preset,
                 interaction: Interaction::None,
                 life_cache: Cache::default(),
                 grid_cache: Cache::default(),
@@ -184,11 +211,6 @@ mod grid {
                 version: 0,
             }
         }
-    }
-
-    impl Grid {
-        const MIN_SCALING: f32 = 0.1;
-        const MAX_SCALING: f32 = 2.0;
 
         pub fn tick(
             &mut self,
@@ -217,10 +239,14 @@ mod grid {
                 Message::Populate(cell) => {
                     self.state.populate(cell);
                     self.life_cache.clear();
+
+                    self.preset = Preset::Custom;
                 }
                 Message::Unpopulate(cell) => {
                     self.state.unpopulate(&cell);
                     self.life_cache.clear();
+
+                    self.preset = Preset::Custom;
                 }
                 Message::Ticked {
                     result: Ok(life),
@@ -230,6 +256,7 @@ mod grid {
                     self.state.update(life);
                     self.life_cache.clear();
 
+                    self.version += 1;
                     self.last_tick_duration = tick_duration;
                 }
                 Message::Ticked {
@@ -250,9 +277,14 @@ mod grid {
 
         pub fn clear(&mut self) {
             self.state = State::default();
+            self.preset = Preset::Custom;
             self.version += 1;
 
             self.life_cache.clear();
+        }
+
+        pub fn preset(&self) -> Preset {
+            self.preset
         }
 
         pub fn toggle_lines(&mut self, enabled: bool) {
@@ -533,6 +565,13 @@ mod grid {
     }
 
     impl State {
+        pub fn with_life(life: Life) -> Self {
+            Self {
+                life,
+                ..Self::default()
+            }
+        }
+
         fn cell_count(&self) -> usize {
             self.life.len() + self.births.len()
         }
@@ -647,6 +686,14 @@ mod grid {
         }
     }
 
+    impl std::iter::FromIterator<Cell> for Life {
+        fn from_iter<I: IntoIterator<Item = Cell>>(iter: I) -> Self {
+            Life {
+                cells: iter.into_iter().collect(),
+            }
+        }
+    }
+
     impl std::fmt::Debug for Life {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             f.debug_struct("Life")
@@ -741,6 +788,7 @@ struct Controls {
     next_button: button::State,
     clear_button: button::State,
     speed_slider: slider::State,
+    preset_list: pick_list::State,
 }
 
 impl Controls {
@@ -749,6 +797,7 @@ impl Controls {
         is_playing: bool,
         is_grid_enabled: bool,
         speed: usize,
+        preset: Preset,
     ) -> Element<'a, Message> {
         let playback_controls = Row::new()
             .spacing(10)
@@ -793,6 +842,12 @@ impl Controls {
                     .spacing(5)
                     .text_size(16),
             )
+            .push(PickList::new(
+                &mut self.preset_list,
+                preset::ALL,
+                Some(preset),
+                Message::PresetPicked,
+            ))
             .push(
                 Button::new(&mut self.clear_button, Text::new("Clear"))
                     .on_press(Message::Clear)
