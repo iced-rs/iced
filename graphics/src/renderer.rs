@@ -93,7 +93,7 @@ where
     fn explain<Message>(
         &mut self,
         defaults: &Defaults,
-        widget: &dyn Widget<'_, Message, Self>,
+        widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
         color: Color,

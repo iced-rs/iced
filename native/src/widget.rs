@@ -97,7 +97,7 @@ use crate::{layout, overlay, Clipboard, Event, Hasher, Layout, Length, Point};
 /// [`geometry`]: https://github.com/hecrj/iced/tree/0.1/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
 /// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.1/wgpu
-pub trait Widget<'a, Message, Renderer>
+pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -179,10 +179,10 @@ where
     ) {
     }
 
-    fn overlay<'b>(
-        &'b mut self,
+    fn overlay(
+        &mut self,
         _layout: Layout<'_>,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
         None
     }
 }

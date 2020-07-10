@@ -154,7 +154,7 @@ impl State {
     }
 }
 
-impl<'a, T, Message, Renderer> Widget<'a, Message, Renderer>
+impl<'a, T, Message, Renderer> Widget<Message, Renderer>
     for Slider<'a, T, Message, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,

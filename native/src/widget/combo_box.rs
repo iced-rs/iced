@@ -93,7 +93,7 @@ where
     }
 }
 
-impl<'a, T: 'a, Message, Renderer> Widget<'a, Message, Renderer>
+impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
     for ComboBox<'a, T, Message, Renderer>
 where
     T: Clone + ToString + Eq,

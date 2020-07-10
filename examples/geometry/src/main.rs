@@ -27,7 +27,7 @@ mod rainbow {
         }
     }
 
-    impl<'a, Message, B> Widget<'a, Message, Renderer<B>> for Rainbow
+    impl<Message, B> Widget<Message, Renderer<B>> for Rainbow
     where
         B: Backend,
     {

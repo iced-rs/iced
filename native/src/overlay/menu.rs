@@ -260,7 +260,7 @@ struct List<'a, T, Message, Renderer: self::Renderer> {
     style: <Renderer as self::Renderer>::Style,
 }
 
-impl<'a, T, Message, Renderer: self::Renderer> Widget<'a, Message, Renderer>
+impl<'a, T, Message, Renderer: self::Renderer> Widget<Message, Renderer>
     for List<'a, T, Message, Renderer>
 where
     T: Clone + ToString,

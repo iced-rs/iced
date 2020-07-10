@@ -60,7 +60,7 @@ impl Svg {
     }
 }
 
-impl<'a, Message, Renderer> Widget<'a, Message, Renderer> for Svg
+impl<Message, Renderer> Widget<Message, Renderer> for Svg
 where
     Renderer: self::Renderer,
 {

@@ -121,8 +121,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     }
 }
 
-impl<'a, Message, Renderer> Widget<'a, Message, Renderer>
-    for Radio<Message, Renderer>
+impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
     Renderer: self::Renderer + text::Renderer + row::Renderer,
     Message: Clone,

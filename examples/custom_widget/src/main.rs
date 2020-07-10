@@ -25,7 +25,7 @@ mod circle {
         }
     }
 
-    impl<'a, Message, B> Widget<'a, Message, Renderer<B>> for Circle
+    impl<Message, B> Widget<Message, Renderer<B>> for Circle
     where
         B: Backend,
     {
