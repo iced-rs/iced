@@ -1,6 +1,6 @@
 use iced::{
-    button, pick_list, scrollable, Align, Button, Container, Element, Length,
-    PickList, Sandbox, Scrollable, Settings, Space, Text,
+    pick_list, scrollable, Align, Container, Element, Length, PickList,
+    Sandbox, Scrollable, Settings, Space, Text,
 };
 
 pub fn main() {
@@ -10,14 +10,12 @@ pub fn main() {
 #[derive(Default)]
 struct Example {
     scroll: scrollable::State,
-    button: button::State,
     pick_list: pick_list::State,
     selected_language: Language,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    ButtonPressed,
     LanguageSelected(Language),
 }
 
@@ -34,7 +32,6 @@ impl Sandbox for Example {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::ButtonPressed => {}
             Message::LanguageSelected(language) => {
                 self.selected_language = language;
             }
@@ -49,20 +46,15 @@ impl Sandbox for Example {
             Message::LanguageSelected,
         );
 
-        let button = Button::new(&mut self.button, Text::new("Press me!"))
-            .on_press(Message::ButtonPressed);
-
         let mut content = Scrollable::new(&mut self.scroll)
             .width(Length::Fill)
             .align_items(Align::Center)
             .spacing(10)
-            .push(Space::with_height(Length::Units(800)))
+            .push(Space::with_height(Length::Units(600)))
             .push(Text::new("Which is your favorite language?"))
             .push(pick_list);
 
-        content = content
-            .push(button)
-            .push(Space::with_height(Length::Units(800)));
+        content = content.push(Space::with_height(Length::Units(600)));
 
         Container::new(content)
             .width(Length::Fill)
