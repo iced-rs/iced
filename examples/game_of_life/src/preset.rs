@@ -8,8 +8,8 @@ pub enum Preset {
     TenCellRow,
     LightweightSpaceship,
     Tumbler,
-    Acorn,
     GliderGun,
+    Acorn,
 }
 
 pub static ALL: &[Preset] = &[
@@ -21,8 +21,8 @@ pub static ALL: &[Preset] = &[
     Preset::TenCellRow,
     Preset::LightweightSpaceship,
     Preset::Tumbler,
-    Preset::Acorn,
     Preset::GliderGun,
+    Preset::Acorn,
 ];
 
 impl Preset {
@@ -76,11 +76,6 @@ impl Preset {
                 "x x x x",
                 "xx   xx",
             ],
-            Preset::Acorn => vec![
-                " x     ",
-                "   x   ",
-                "xx  xxx",
-            ],
             Preset::GliderGun => vec![
                 "                        x           ",
                 "                      x x           ",
@@ -91,7 +86,12 @@ impl Preset {
                 "          x     x       x           ",
                 "           x   x                    ",
                 "            xx                      ",
-            ]
+            ],
+            Preset::Acorn => vec![
+                " x     ",
+                "   x   ",
+                "xx  xxx",
+            ],
         };
 
         let start_row = -(cells.len() as isize / 2);
@@ -134,8 +134,8 @@ impl std::fmt::Display for Preset {
                 Preset::TenCellRow => "10 Cell Row",
                 Preset::LightweightSpaceship => "Lightweight spaceship",
                 Preset::Tumbler => "Tumbler",
-                Preset::Acorn => "Acorn",
                 Preset::GliderGun => "Gosper Glider Gun",
+                Preset::Acorn => "Acorn",
             }
         )
     }

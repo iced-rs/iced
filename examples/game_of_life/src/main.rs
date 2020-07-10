@@ -842,12 +842,17 @@ impl Controls {
                     .spacing(5)
                     .text_size(16),
             )
-            .push(PickList::new(
-                &mut self.preset_list,
-                preset::ALL,
-                Some(preset),
-                Message::PresetPicked,
-            ))
+            .push(
+                PickList::new(
+                    &mut self.preset_list,
+                    preset::ALL,
+                    Some(preset),
+                    Message::PresetPicked,
+                )
+                .padding(8)
+                .text_size(16)
+                .style(style::PickList),
+            )
             .push(
                 Button::new(&mut self.clear_button, Text::new("Clear"))
                     .on_press(Message::Clear)

@@ -1,4 +1,4 @@
-use iced::{button, container, slider, Background, Color};
+use iced::{button, container, pick_list, slider, Background, Color};
 
 const ACTIVE: Color = Color::from_rgb(
     0x72 as f32 / 255.0,
@@ -16,6 +16,12 @@ const HOVERED: Color = Color::from_rgb(
     0x67 as f32 / 255.0,
     0x7B as f32 / 255.0,
     0xC4 as f32 / 255.0,
+);
+
+const BACKGROUND: Color = Color::from_rgb(
+    0x2F as f32 / 255.0,
+    0x31 as f32 / 255.0,
+    0x36 as f32 / 255.0,
 );
 
 pub struct Container;
@@ -127,6 +133,54 @@ impl slider::StyleSheet for Slider {
             handle: slider::Handle {
                 color: Color::from_rgb(0.85, 0.85, 0.85),
                 ..active.handle
+            },
+            ..active
+        }
+    }
+}
+
+pub struct PickList;
+
+impl pick_list::StyleSheet for PickList {
+    fn menu(&self) -> pick_list::Menu {
+        pick_list::Menu {
+            text_color: Color::WHITE,
+            background: BACKGROUND.into(),
+            border_width: 1,
+            border_color: Color {
+                a: 0.7,
+                ..Color::BLACK
+            },
+            selected_background: Color {
+                a: 0.5,
+                ..Color::BLACK
+            }
+            .into(),
+            selected_text_color: Color::WHITE,
+        }
+    }
+
+    fn active(&self) -> pick_list::Style {
+        pick_list::Style {
+            text_color: Color::WHITE,
+            background: BACKGROUND.into(),
+            border_width: 1,
+            border_color: Color {
+                a: 0.6,
+                ..Color::BLACK
+            },
+            border_radius: 2,
+            icon_size: 0.5,
+        }
+    }
+
+    fn hovered(&self) -> pick_list::Style {
+        let active = self.active();
+
+        pick_list::Style {
+            border_color: Color {
+                a: 0.9,
+                ..Color::BLACK
             },
             ..active
         }
