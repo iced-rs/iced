@@ -15,7 +15,7 @@ impl<'a> Editor<'a> {
     }
 
     pub fn insert(&mut self, character: char) {
-        match self.cursor.selection() {
+        match self.cursor.selection(self.value) {
             Some((left, right)) => {
                 self.cursor.move_left(self.value);
                 self.value.remove_many(left, right);
@@ -30,7 +30,7 @@ impl<'a> Editor<'a> {
     pub fn paste(&mut self, content: Value) {
         let length = content.len();
 
-        match self.cursor.selection() {
+        match self.cursor.selection(self.value) {
             Some((left, right)) => {
                 self.cursor.move_left(self.value);
                 self.value.remove_many(left, right);
@@ -44,7 +44,7 @@ impl<'a> Editor<'a> {
     }
 
     pub fn backspace(&mut self) {
-        match self.cursor.selection() {
+        match self.cursor.selection(self.value) {
             Some((start, end)) => {
                 self.cursor.move_left(self.value);
                 self.value.remove_many(start, end);
@@ -61,7 +61,7 @@ impl<'a> Editor<'a> {
     }
 
     pub fn delete(&mut self) {
-        match self.cursor.selection() {
+        match self.cursor.selection(self.value) {
             Some(_) => {
                 self.backspace();
             }
