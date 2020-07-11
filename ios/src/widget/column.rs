@@ -1,6 +1,10 @@
-use crate::{Align, event::WidgetEvent, Element, Length, Widget, Hasher, layout, WidgetPointers};
+use crate::{
+    event::WidgetEvent,
+    layout,
+    widget::{WidgetNode, WidgetType},
+    Align, Element, Hasher, Length, Widget,
+};
 use std::hash::Hash;
-
 
 use std::u32;
 
@@ -115,29 +119,14 @@ impl<'a, Message> Column<'a, Message> {
     }
 }
 use uikit_sys::{
-    UIView,
-    id,
-    UIStackView,
-    IUIStackView,
-    UIView_UIViewRendering,
-    CGRect, CGPoint, CGSize,
-    INSObject,
-    UIColor, IUIColor,
-    UIView_UIViewHierarchy,
-    UIView_UIViewGeometry,
-
-    NSLayoutDimension,
-    INSLayoutDimension,
-    NSLayoutConstraint,
-    INSLayoutConstraint,
-    UIView_UIViewLayoutConstraintCreation,
-    UIStackViewDistribution_UIStackViewDistributionFill,
-    UITextView,
-    IUITextView,
-
-
-    UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
+    id, CGPoint, CGRect, CGSize, INSLayoutConstraint, INSLayoutDimension,
+    INSObject, IUIColor, IUIStackView, IUITextView, NSLayoutConstraint,
+    NSLayoutDimension, UIColor,
+    UILayoutConstraintAxis_UILayoutConstraintAxisVertical, UIStackView,
     UIStackViewAlignment_UIStackViewAlignmentCenter,
+    UIStackViewDistribution_UIStackViewDistributionFill, UITextView, UIView,
+    UIView_UIViewGeometry, UIView_UIViewHierarchy,
+    UIView_UIViewLayoutConstraintCreation, UIView_UIViewRendering,
 };
 
 impl<'a, Message> Widget<Message> for Column<'a, Message>
@@ -148,16 +137,15 @@ where
         &mut self,
         event: WidgetEvent,
         //_layout: Layout<'_>,
-        //_cursor_position: Point,
         messages: &mut Vec<Message>,
-        widget_pointers: &WidgetPointers,
-        //_renderer: &Renderer,
-        //_clipboard: Option<&dyn Clipboard>,
+        widget_node: &WidgetNode,
     ) {
-        debug!("on_widget_event for column");
-        for i in &mut self.children {
-            debug!("on_widget_event for child!");
-            i.on_widget_event(event.clone(), messages, widget_pointers);
+        debug!("on_widget_event for column for {:?} children", self.children.len());
+        for (i, node) in
+            &mut self.children.iter_mut().zip(widget_node.children.iter())
+        {
+            debug!("on_widget_event for {:?} child", i.get_widget_type());
+            i.on_widget_event(event.clone(), messages, &node.borrow());
         }
     }
     fn hash_layout(&self, state: &mut Hasher) {
@@ -175,10 +163,7 @@ where
             child.widget.hash_layout(state);
         }
     }
-    fn layout(
-        &self,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&self, limits: &layout::Limits) -> layout::Node {
         let limits = limits
             .max_width(self.max_width)
             .max_height(self.max_height)
@@ -202,30 +187,32 @@ where
         self.height
     }
 
-    fn draw(&mut self, parent: UIView) -> WidgetPointers {
+    fn get_widget_type(&self) -> WidgetType {
+        WidgetType::Column
+    }
+
+    fn update_or_add(&mut self, parent: Option<UIView>, old_node: Option<WidgetNode>,) -> WidgetNode {
         let stack_view = unsafe {
             let rect = CGRect {
                 origin: CGPoint { x: 0.0, y: 0.0 },
                 size: CGSize {
                     height: 400.0,
-                    width: 400.0,
+                    width: 300.0,
                 },
             };
-            let stack_view = UIStackView(UIStackView::alloc().initWithFrame_(rect));
+            let stack_view =
+                UIStackView(UIStackView::alloc().initWithFrame_(rect));
             //let stack_view = UIStackView(UIStackView::alloc().init());
             //stack_view.setFrame_(rect);
-            stack_view.setAxis_(UILayoutConstraintAxis_UILayoutConstraintAxisVertical);
-            stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
-            stack_view.setDistribution_(UIStackViewDistribution_UIStackViewDistributionFill);
-            stack_view.setSpacing_(10.0);
-            for i in &mut self.children {
-                let subview = UIView(i.draw(UIView(0 as id)).root);
-                debug!("SUBVIEW VALUE: {:?}, PARENT: {:?}", subview.0, parent.0);
-                let layout = NSLayoutDimension(subview.heightAnchor());
-                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0)).setActive_(true);
-                let layout = NSLayoutDimension(subview.widthAnchor());
-                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0)).setActive_(true);
-                stack_view.addArrangedSubview_(subview.0);
+            stack_view.setAxis_(
+                UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
+            );
+            //stack_view .setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
+            stack_view.setDistribution_(
+                UIStackViewDistribution_UIStackViewDistributionFill,
+            );
+            if let Some(parent) = parent {
+                parent.addSubview_(stack_view.0);
             }
 
             /*
@@ -235,7 +222,77 @@ where
             let layout = NSLayoutDimension(view3.widthAnchor());
             NSLayoutConstraint(layout.constraintEqualToConstant_(120.0)).setActive_(true);
             stack_view.addArrangedSubview_(view3.0);
+            */
 
+
+            stack_view
+        };
+        let mut stackview_node =
+            WidgetNode::new(stack_view.0, WidgetType::Column);
+        for i in &mut self.children {
+            let node = i.update_or_add(None, None);
+            let subview = UIView(node.view_id);
+            stackview_node.add_child(node);
+            unsafe {
+                let layout = NSLayoutDimension(subview.heightAnchor());
+                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                    .setActive_(true);
+                let layout = NSLayoutDimension(subview.widthAnchor());
+                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                    .setActive_(true);
+                stack_view.addArrangedSubview_(subview.0);
+            }
+        }
+        /*
+        if let Some(old_node) = old_node {
+            if self.children.len() != old_node.children.len() {
+                for i in &mut self.children {
+                    let node = i.update_or_add(None, None);
+                    let subview = UIView(node.view_id);
+                    stackview_node.add_child(node);
+                    unsafe {
+                        let layout = NSLayoutDimension(subview.heightAnchor());
+                        NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                            .setActive_(true);
+                        let layout = NSLayoutDimension(subview.widthAnchor());
+                        NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                            .setActive_(true);
+                        stack_view.addArrangedSubview_(subview.0);
+                    }
+                }
+            } else {
+                for (i, node) in
+                    self.children.iter_mut().zip(old_node.children.iter())
+                    {
+                        if i.get_widget_type() == node.borrow().widget_type {
+                        } else {
+                            unsafe {
+                                let view = UIView(node.borrow().view_id);
+                                //view.removeFromSuperview();
+                                stack_view.removeArrangedSubview_(node.borrow().view_id);
+                            }
+                            let node = i.update_or_add(None, Some(node.borrow()));
+                            let subview = UIView(node.view_id);
+                            stackview_node.add_child(node);
+                            unsafe {
+                                let layout = NSLayoutDimension(subview.heightAnchor());
+                                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                                    .setActive_(true);
+                                let layout = NSLayoutDimension(subview.widthAnchor());
+                                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                                    .setActive_(true);
+                                stack_view.addArrangedSubview_(subview.0);
+                            }
+                        }
+                    }
+            }
+        } else {
+        */
+        //}
+        /*
+        unsafe {
+
+            stack_view.setSpacing_(10.0);
             let view1 = UIView(UIView::alloc().init());
             view1.setBackgroundColor_(UIColor::redColor());
             let layout = NSLayoutDimension(view1.heightAnchor());
@@ -252,21 +309,9 @@ where
             let layout = NSLayoutDimension(view2.widthAnchor());
             NSLayoutConstraint(layout.constraintEqualToConstant_(100.0)).setActive_(true);
             stack_view.addArrangedSubview_(view2.0);
-            */
-
-            parent.addSubview_(stack_view.0);
-
-            //let background = UIColor(UIColor::greenColor());
-            //let background = UIColor(UIColor::blackColor());
-            //stack_view.setBackgroundColor_(background.0);
-            stack_view
-        };
-        WidgetPointers {
-            root: stack_view.0,
-            others: Vec::new(),
-            hash: 0,
-            //children: None
         }
+        */
+        stackview_node
     }
 }
 

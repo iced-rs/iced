@@ -6,7 +6,11 @@
 //! [`State`]: struct.State.html
 use crate::{
     event::{EventHandler, WidgetEvent},
-    layout, Element, Hasher, Length, Widget, WidgetPointers,
+    layout, Element, Hasher, Length, Widget,
+    widget::{
+        WidgetType,
+        WidgetNode,
+    },
 };
 
 pub use iced_style::text_input::{Style, StyleSheet};
@@ -55,7 +59,6 @@ pub struct TextInput<'a, Message> {
     on_submit: Option<Message>,
     style_sheet: Box<dyn StyleSheet>,
     widget_id: u64,
-    pub ui_textview: Option<UITextView>,
 }
 
 impl<'a, Message> TextInput<'a, Message> {
@@ -78,6 +81,7 @@ impl<'a, Message> TextInput<'a, Message> {
     where
         F: 'static + Fn(String) -> Message,
     {
+        debug!("CREATING NEW TEXT INPUT");
         Self {
             _state: state,
             placeholder: String::from(placeholder),
@@ -91,7 +95,6 @@ impl<'a, Message> TextInput<'a, Message> {
             on_submit: None,
             style_sheet: Default::default(),
             widget_id: 0,
-            ui_textview: None,
         }
     }
 
@@ -167,124 +170,105 @@ where
         self.padding.hash(state);
         self.size.hash(state);
     }
+    fn get_widget_type(&self) -> WidgetType {
+        WidgetType::TextInput
+    }
 
-    fn draw(&mut self, _parent: UIView) -> WidgetPointers {
-        let _input_rect = CGRect {
-            origin: CGPoint { x: 10.0, y: 10.0 },
-            size: CGSize {
-                width: 100.0,
-                height: 100.0,
-            },
-        };
-        let textview = unsafe {
-            let ui_textview = {
-                let foo = UITextView(UITextView::alloc().init());
+    fn update_or_add(&mut self, parent: Option<UIView>, old_node: Option<WidgetNode>,) -> WidgetNode {
+        if let Some(old_node) = old_node {
+            old_node
+        } else {
+            let textview = unsafe {
+                let ui_textview = {
+                    if parent.is_none() {
+                        UITextView(UITextView::alloc().init())
+                    } else {
+                        let input_rect = CGRect {
+                            origin: CGPoint { x: 10.0, y: 10.0 },
+                            size: CGSize {
+                                width: 100.0,
+                                height: 100.0,
+                            },
+                        };
+                        UITextView(UITextView::alloc().initWithFrame_textContainer_(
+                                input_rect,
+                                0 as id,
+                        ))
+                    }
+                };
+                let on_change = EventHandler::new(ui_textview.0);
+                self.widget_id = on_change.widget_id;
                 /*
-                UITextView::alloc().initWithFrame_textContainer_(
-                    input_rect,
-                    0 as id,
-                ));
-                */
-                foo
-            };
-            let on_change = EventHandler::new(ui_textview.0);
-            /*
-            input.addTarget_action_forControlEvents_(
-                on_change.id,
-                sel!(sendEvent),
-                uikit_sys::UIControlEvents_UIControlEventValueChanged,
-            );
-            */
-            // https://developer.apple.com/documentation/foundation/nsnotificationcenter/1415360-addobserver?language=objc
-            let center =
-                NSNotificationCenter(NSNotificationCenter::defaultCenter());
-            println!(
-                "TEXT INPUT SUBVIEW VALUE: {:?}, PARENT: {:?}",
-                ui_textview.0, _parent.0
-            );
-            center.addObserver_selector_name_object_(
-                on_change.id,
-                sel!(sendEvent),
-                UITextViewTextDidChangeNotification,
-                ui_textview.0,
-            );
-            //parent.addSubview_(ui_textview.0);
-            ui_textview
-        };
-
-        //self.widget_id = on_change.widget_id;
-        debug!("draw TEXT UIVIEW {:?}", self.ui_textview.is_some());
-        use std::hash::Hasher;
-        let hash = {
-            let mut hash = &mut crate::Hasher::default();
-            self.hash_layout(&mut hash);
-            hash.finish()
-        };
-
-        WidgetPointers {
-            root: textview.0,
-            others: Vec::new(),
-            hash,
-        }
-
-        /*
-            use uikit_sys::{
-                UISwitch, IUISwitch,
-                IUIControl,
-            };
-            let input_rect = CGRect {
-                origin: CGPoint {
-                    x: 10.0,
-                    y: 10.0
-                },
-                size: CGSize {
-                    width: 200.0,
-                    height: 200.0,
-                }
-            };
-            unsafe {
-                let switch = UISwitch(
-                    IUISwitch::initWithFrame_(
-                        UISwitch::alloc(),
-                        input_rect,
-                    )
-                );
-
-                /*
-                switch.addTarget_action_forControlEvents_(
+                   input.addTarget_action_forControlEvents_(
+                   on_change.id,
+                   sel!(sendEvent),
+                   uikit_sys::UIControlEvents_UIControlEventValueChanged,
+                   );
+                   */
+                // https://developer.apple.com/documentation/foundation/nsnotificationcenter/1415360-addobserver?language=objc
+                let center =
+                    NSNotificationCenter(NSNotificationCenter::defaultCenter());
+                center.addObserver_selector_name_object_(
                     on_change.id,
                     sel!(sendEvent),
-                    uikit_sys::UIControlEvents_UIControlEventValueChanged,
+                    UITextViewTextDidChangeNotification,
+                    ui_textview.0,
                 );
-                */
+                //parent.addSubview_(ui_textview.0);
+                if let Some(parent) = parent {
+                    parent.addSubview_(ui_textview.0);
+                }
+                ui_textview
+            };
 
-                parent.addSubview_(switch.0);
-            }
-        */
+            use std::hash::Hasher;
+            let hash = {
+                let mut hash = &mut crate::Hasher::default();
+                self.hash_layout(&mut hash);
+                hash.finish()
+            };
+
+            WidgetNode::new(textview.0, WidgetType::TextInput)
+        }
+
     }
 
     fn on_widget_event(
         &mut self,
         widget_event: WidgetEvent,
         messages: &mut Vec<Message>,
-        widget_pointers: &WidgetPointers,
+        widget_node: &WidgetNode,
     ) {
-        debug!("on_widget_event for text input: widget_event.id: {:x}", widget_event.id);
-        let ui_textview = UITextView(widget_event.id as id);
-        let value = unsafe {
-            let value = NSString(ui_textview.text());
-            let len = value
-                .lengthOfBytesUsingEncoding_(uikit_sys::NSUTF8StringEncoding);
-            let bytes = value.UTF8String() as *const u8;
-            String::from_utf8(
-                std::slice::from_raw_parts(bytes, len.try_into().unwrap())
+        debug!(
+            "on_widget_event for text input: widget_event.id: {:x} for widget_id: {:?}, self.widget_id: {:?} widget_node.view_id {:?}",
+            widget_event.id,
+            widget_event.widget_id,
+            self.widget_id,
+            widget_node.view_id,
+            );
+        if widget_event.id as id == widget_node.view_id {
+            let ui_textview = UITextView(widget_event.id as id);
+            let value = unsafe {
+                let value = NSString(ui_textview.text());
+                let len = value
+                    .lengthOfBytesUsingEncoding_(uikit_sys::NSUTF8StringEncoding);
+                let bytes = value.UTF8String() as *const u8;
+                String::from_utf8(
+                    std::slice::from_raw_parts(bytes, len.try_into().unwrap())
                     .to_vec(),
-            )
-            .unwrap()
-        };
-        self.value = value;
+                )
+                    .unwrap()
+            };
+            if value.ends_with("\n") {
+                if let Some(on_submit) = self.on_submit.take() {
+                    messages.push(on_submit);
+                }
+            } else {
+                self.value = value;
 
-        messages.push((self.on_change)(self.value.clone()));
+                messages.push((self.on_change)(self.value.clone()));
+            }
+        }
 
         /*
         debug!("on_widget_event TEXT UIVIEW {:?}", self.ui_textview.is_some());

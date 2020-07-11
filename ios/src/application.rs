@@ -1,7 +1,9 @@
 use crate::{
     event::{EventHandler, WidgetEvent},
-    WidgetPointers,
-    widget::Widget,
+    widget::{
+        Widget,
+        WidgetNode,
+    },
     Command, Element, Executor, Runtime, Subscription,
 };
 use std::hash::Hasher;
@@ -22,9 +24,10 @@ use uikit_sys::{
     //IUISwitch,
     //IUIView,
     UIColor,
-    //UIView_UIViewGeometry,
+    UIView_UIViewGeometry,
     //UISwitch,
     UIView,
+    CGPoint, CGRect, CGSize,
     //UIView_UIViewHierarchy,
     //UIView,
     //UIViewController,
@@ -131,8 +134,8 @@ pub trait Application: Sized {
             window_builder = window_builder
                 .with_title(title)
                 .with_maximized(true)
-                .with_fullscreen(None)
-                //.with_inner_size(winit::dpi::LogicalSize { width: 100, height: 100})
+                //.with_fullscreen(None)
+                //.with_inner_size(winit::dpi::LogicalSize { width: 1000, height: 1000})
             ;
             /*
             .with_resizable(settings.window.resizable)
@@ -146,15 +149,20 @@ pub trait Application: Sized {
             let background = UIColor(UIColor::greenColor());
             //let background = UIColor(UIColor::whiteColor());
             root_view.setBackgroundColor_(background.0);
+            /*
+            let rect = CGRect {
+                origin: CGPoint { x: 0.0, y: 0.0 },
+                size: CGSize {
+                    height: 400.0,
+                    width: 300.0,
+                },
+            };
+            root_view.setFrame_(rect);
+            */
         }
         //proxy.send_event(WidgetEvent {widget_id: 0} );
         let mut cached_hash: u64 = 0;
-        let mut _current_element: Option<Element<Self::Message>> = None;
-        let mut widget_pointers = WidgetPointers {
-            root: 0 as id,
-            others: Vec::new(),
-            hash: cached_hash,
-        };
+        let mut widget_tree : Option<WidgetNode> = None;
 
         event_loop.run(
             move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
@@ -165,9 +173,11 @@ pub trait Application: Sized {
                     event::Event::MainEventsCleared => {}
                     event::Event::UserEvent(widget_event) => {
                         let mut element = app.view();
-                        element
+                        if let Some(ref widget_tree) = widget_tree {
+                            element
                             .widget
-                            .on_widget_event(widget_event, &mut messages, &widget_pointers);
+                            .on_widget_event(widget_event, &mut messages, &widget_tree);
+                        }
 
                         let hash = {
                             let mut hash = &mut crate::Hasher::default();
@@ -176,7 +186,7 @@ pub trait Application: Sized {
                         };
                         if hash != cached_hash {
                             cached_hash = hash;
-                            widget_pointers = element.draw(root_view);
+                            widget_tree = Some(element.update_or_add(Some(root_view), widget_tree.take()));
                         }
                     }
                     event::Event::RedrawRequested(_) => {
@@ -194,9 +204,10 @@ pub trait Application: Sized {
                             element.widget.hash_layout(&mut hash);
                             hash.finish()
                         };
+                        //widget_tree = Some(element.update_or_add(root_view, widget_tree));
                         if hash != cached_hash {
                             cached_hash = hash;
-                            widget_pointers = element.draw(root_view);
+                            widget_tree = Some(element.update_or_add(Some(root_view), widget_tree.take()));
                         }
                     }
                     _ => {

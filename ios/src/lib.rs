@@ -10,7 +10,7 @@ pub mod widget;
 pub mod keyboard;
 pub mod mouse;
 pub use widget::{
-    Element, Widget, Text, TextInput, WidgetPointers, Column,
+    Element, Widget, Text, TextInput, Column,
 };
 use event::WidgetEvent;
 mod layout;

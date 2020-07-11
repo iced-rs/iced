@@ -8,7 +8,7 @@ use crate::{
     Length,
     VerticalAlignment,
     Widget,
-    WidgetPointers,
+    widget::{WidgetNode, WidgetType},
     Hasher, layout, Size,
 };
 use std::convert::TryInto;
@@ -29,7 +29,6 @@ use uikit_sys::{
 /// Text::new("I <3 iced!")
 ///     .size(40);
 /// ```
-#[derive(Debug, Clone)]
 pub struct Text {
     content: String,
     size: Option<u16>,
@@ -133,59 +132,59 @@ impl<'a, Message> Widget<Message> for Text {
         self.width.hash(state);
         self.height.hash(state);
     }
+    fn get_widget_type(&self) -> WidgetType {
+        WidgetType::Text
+    }
 
-    fn draw(&mut self, _parent: UIView) -> WidgetPointers {
+    fn update_or_add(&mut self, parent: Option<UIView>, old_node: Option<WidgetNode>,) -> WidgetNode {
+        if let Some(_old_node) = old_node {
+            unimplemented!("Update this text with new text maybe");
+            //WidgetNode::default()
+        } else {
 
-        let label = unsafe {
-            let label = UILabel::alloc();
-            let text = NSString(
-                NSString::alloc().initWithBytes_length_encoding_(
-                    CString::new(self.content.as_str())
+            let label = unsafe {
+                let label = UILabel::alloc();
+                let text = NSString(
+                    NSString::alloc().initWithBytes_length_encoding_(
+                        CString::new(self.content.as_str())
                         .expect("CString::new failed")
                         .as_ptr() as *mut std::ffi::c_void,
-                    self.content.len().try_into().unwrap(),
-                    uikit_sys::NSUTF8StringEncoding,
-                ),
-            );
-            label.init();
-            label.setText_(text.0);
-            /*
-            let rect = CGRect {
-                origin: CGPoint { x: 0.0, y: 0.0 },
-                size: CGSize {
-                    height: 0.0,
-                    width: 0.0,
-                },
+                        self.content.len().try_into().unwrap(),
+                        uikit_sys::NSUTF8StringEncoding,
+                    ),
+                );
+                label.init();
+                label.setText_(text.0);
+                /*
+                   let rect = CGRect {
+                   origin: CGPoint { x: 0.0, y: 0.0 },
+                   size: CGSize {
+                   height: 0.0,
+                   width: 0.0,
+                   },
+                   };
+                   label.setFrame_(rect);
+                   */
+                label.setAdjustsFontSizeToFitWidth_(true);
+                label.setMinimumScaleFactor_(10.0);
+                if let Some(color) = self.color {
+                    let background =
+                        UIColor(UIColor::alloc().initWithRed_green_blue_alpha_(
+                                color.r.into(),
+                                color.g.into(),
+                                color.b.into(),
+                                color.a.into(),
+                        ));
+                    label.setTextColor_(background.0)
+                }
+                if let Some(parent) = parent {
+                    parent.addSubview_(label.0);
+                }
+                label
             };
-            label.setFrame_(rect);
-            */
-            label.setAdjustsFontSizeToFitWidth_(true);
-            label.setMinimumScaleFactor_(100.0);
-            if let Some(color) = self.color {
-                let background =
-                    UIColor(UIColor::alloc().initWithRed_green_blue_alpha_(
-                        color.r.into(),
-                        color.g.into(),
-                        color.b.into(),
-                        color.a.into(),
-                    ));
-                label.setTextColor_(background.0)
-            }
-            //parent.addSubview_(label.0);
-            label
-        };
-        let hash = {
-            let mut hash = &mut crate::Hasher::default();
-            //self.hash_layout(&mut hash);
-            use std::hash::Hasher;
-            hash.finish()
-        };
-
-        WidgetPointers {
-            root: label.0,
-            others: Vec::new(),
-            hash,
+            WidgetNode::new(label.0, WidgetType::Text)
         }
+
     }
     fn width(&self) -> Length {
         self.width
@@ -197,15 +196,15 @@ impl<'a, Message> Widget<Message> for Text {
 
     fn layout(
         &self,
-        limits: &layout::Limits,
+        _limits: &layout::Limits,
     ) -> layout::Node {
+        todo!()
+            /*
         let limits = limits.width(self.width).height(self.height);
 
         let size = self.size.unwrap_or(0);
 
         let bounds = limits.max();
-        todo!()
-            /*
 
         let (width, height) =
             renderer.measure(&self.content, size, self.font, bounds);

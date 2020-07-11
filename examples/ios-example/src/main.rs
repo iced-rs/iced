@@ -12,9 +12,9 @@ use iced::{
     Text,
     TextInput,
     text_input,
-    Container,
+    //Container,
     Color,
-    Checkbox,
+    //Checkbox,
 };
 pub fn main() {
     color_backtrace::install();
@@ -31,12 +31,14 @@ pub struct Simple {
     toggle: bool,
     text: String,
     text_state: text_input::State,
+    text_state2: text_input::State,
 }
 #[derive(Debug, Clone)]
 pub enum Message {
     //EventOccurred(iced_native::Event),
     Toggled(bool),
     TextUpdated(String),
+    TextSubmit,
 }
 
 impl Sandbox for Simple {
@@ -65,19 +67,39 @@ impl Sandbox for Simple {
         debug!("RERUNNING VIEW : {:#?}", self);
         let column = Column::new()
             .push(
-                TextInput::new(
-                    &mut self.text_state,
-                    "",
-                    "",
-                    |s| { Message::TextUpdated(s) }
+                Column::new()
+                //.push(
+                //    Text::new(String::from("FIRST FIRST")).color(Color::BLACK)
+                //)
+                .push(
+                    TextInput::new(
+                        &mut self.text_state,
+                        "",
+                        "",
+                        |s| {
+                            debug!("The 1st text box has \"{}\" in it!", s);
+                            Message::TextUpdated(s)
+                        }
+                    ).on_submit(Message::TextSubmit),
                 )
             )
             .push(
-                Text::new(&self.text).color(Color::BLACK)
+                Text::new(String::from("SECOND SECOND")).color(Color::BLACK)
             )
             .push(
-                Text::new(String::from("foo foo foo")).color(Color::BLACK)
+                TextInput::new(
+                    &mut self.text_state2,
+                    "",
+                    "",
+                    |s| {
+                        debug!("The 2nd text box has \"{}\" in it!", s);
+                        Message::TextUpdated(s)
+                    }
+                )
             )
+            //.push(
+            //    Text::new(&self.text).color(Color::BLACK)
+            //)
             ;
         column.into()
 
