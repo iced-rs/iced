@@ -1,7 +1,6 @@
 use crate::{
     event::WidgetEvent,
-    layout,
-    widget::{WidgetNode, WidgetType},
+    widget::{WidgetNode, WidgetType, RenderAction,},
     Align, Element, Hasher, Length, Widget,
 };
 use std::hash::Hash;
@@ -148,6 +147,7 @@ where
             i.on_widget_event(event.clone(), messages, &node.borrow());
         }
     }
+
     fn hash_layout(&self, state: &mut Hasher) {
         struct Marker;
         std::any::TypeId::of::<Marker>().hash(state);
@@ -163,22 +163,6 @@ where
             child.widget.hash_layout(state);
         }
     }
-    fn layout(&self, limits: &layout::Limits) -> layout::Node {
-        let limits = limits
-            .max_width(self.max_width)
-            .max_height(self.max_height)
-            .width(self.width)
-            .height(self.height);
-
-        layout::flex::resolve(
-            layout::flex::Axis::Vertical,
-            &limits,
-            self.padding as f32,
-            self.spacing as f32,
-            self.align_items,
-            &self.children,
-        )
-    }
     fn width(&self) -> Length {
         self.width
     }
@@ -192,55 +176,97 @@ where
     }
 
     fn update_or_add(&mut self, parent: Option<UIView>, old_node: Option<WidgetNode>,) -> WidgetNode {
-        let stack_view = unsafe {
-            let rect = CGRect {
-                origin: CGPoint { x: 0.0, y: 0.0 },
-                size: CGSize {
-                    height: 400.0,
-                    width: 300.0,
-                },
-            };
-            let stack_view =
-                UIStackView(UIStackView::alloc().initWithFrame_(rect));
-            //let stack_view = UIStackView(UIStackView::alloc().init());
-            //stack_view.setFrame_(rect);
-            stack_view.setAxis_(
-                UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
-            );
-            //stack_view .setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
-            stack_view.setDistribution_(
-                UIStackViewDistribution_UIStackViewDistributionFill,
-            );
-            if let Some(parent) = parent {
-                parent.addSubview_(stack_view.0);
-            }
+        match self.get_render_action(old_node.as_ref()) {
+            RenderAction::Add => {
 
-            /*
-            let view3 = UITextView(UITextView::alloc().init());
-            let layout = NSLayoutDimension(view3.heightAnchor());
-            NSLayoutConstraint(layout.constraintEqualToConstant_(100.0)).setActive_(true);
-            let layout = NSLayoutDimension(view3.widthAnchor());
-            NSLayoutConstraint(layout.constraintEqualToConstant_(120.0)).setActive_(true);
-            stack_view.addArrangedSubview_(view3.0);
-            */
+                let stack_view = unsafe {
+                    let rect = CGRect {
+                        origin: CGPoint { x: 0.0, y: 0.0 },
+                        size: CGSize {
+                            height: 400.0,
+                            width: 300.0,
+                        },
+                    };
+                    let stack_view =
+                        UIStackView(UIStackView::alloc().initWithFrame_(rect));
+                    //let stack_view = UIStackView(UIStackView::alloc().init());
+                    //stack_view.setFrame_(rect);
+                    stack_view.setAxis_(
+                        UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
+                    );
+                    //stack_view .setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
+                    stack_view.setDistribution_(
+                        UIStackViewDistribution_UIStackViewDistributionFill,
+                    );
+                    if let Some(parent) = parent {
+                        parent.addSubview_(stack_view.0);
+                    }
 
+                    /*
+                       let view3 = UITextView(UITextView::alloc().init());
+                       let layout = NSLayoutDimension(view3.heightAnchor());
+                       NSLayoutConstraint(layout.constraintEqualToConstant_(100.0)).setActive_(true);
+                       let layout = NSLayoutDimension(view3.widthAnchor());
+                       NSLayoutConstraint(layout.constraintEqualToConstant_(120.0)).setActive_(true);
+                       stack_view.addArrangedSubview_(view3.0);
+                       */
 
-            stack_view
-        };
-        let mut stackview_node =
-            WidgetNode::new(stack_view.0, WidgetType::Column);
-        for i in &mut self.children {
-            let node = i.update_or_add(None, None);
-            let subview = UIView(node.view_id);
-            stackview_node.add_child(node);
-            unsafe {
-                let layout = NSLayoutDimension(subview.heightAnchor());
-                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
-                    .setActive_(true);
-                let layout = NSLayoutDimension(subview.widthAnchor());
-                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
-                    .setActive_(true);
-                stack_view.addArrangedSubview_(subview.0);
+                    stack_view
+                };
+                let mut stackview_node =
+                    WidgetNode::new(Some(stack_view.0), self.get_widget_type());
+                for (i, val) in self.children.iter_mut().enumerate() {
+                    let node = val.update_or_add(None, None);
+                    let subview = UIView(node.view_id.unwrap());
+                    stackview_node.add_child(node);
+                    unsafe {
+                        let layout = NSLayoutDimension(subview.heightAnchor());
+                        NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                            .setActive_(true);
+                        let layout = NSLayoutDimension(subview.widthAnchor());
+                        NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                            .setActive_(true);
+                        stack_view.addArrangedSubview_(subview.0);
+                    }
+                }
+                stackview_node
+            },
+            RenderAction::Update => {
+                /*
+                if let Some(node) = old_node {
+                    let stack_view = UIStackView(node.view_id);
+                    let mut stackview_node =
+                        WidgetNode::new(stack_view.0, WidgetType::Column);
+                    for (i, val) in self.children.iter_mut().enumerate() {
+                        if let Some(child) = node.children.get(i).as_deref() {
+                            let node = val.update_or_add(None, Some((*child.borrow()).clone()));
+                        } else {
+                            let node = val.update_or_add(None, None);
+                            let subview = UIView(node.view_id);
+                            stackview_node.add_child(node);
+                            unsafe {
+                                let layout = NSLayoutDimension(subview.heightAnchor());
+                                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                                    .setActive_(true);
+                                let layout = NSLayoutDimension(subview.widthAnchor());
+                                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                                    .setActive_(true);
+                                stack_view.addArrangedSubview_(subview.0);
+                            }
+                        }
+                    }
+                    stackview_node
+                } else {
+                    WidgetNode::default()
+                }
+                */
+                WidgetNode::new(None, self.get_widget_type())
+            },
+            RenderAction::Remove => {
+                if let Some(node) = old_node {
+                    node.drop_from_ui();
+                }
+                WidgetNode::new(None, self.get_widget_type())
             }
         }
         /*
@@ -311,7 +337,7 @@ where
             stack_view.addArrangedSubview_(view2.0);
         }
         */
-        stackview_node
+        //stackview_node
     }
 }
 
@@ -322,4 +348,19 @@ where
     fn from(column: Column<'a, Message>) -> Element<'a, Message> {
         Element::new(column)
     }
+}
+/*
+impl<'a, Message> From<Column<'a, Message>> for WidgetNode {
+    fn from(column: Column<'a, Message>) -> WidgetNode {
+        let mut widget = WidgetNode::new(None, WidgetType::Column);
+        for i in &column.children {
+            widget.add_child(WidgetNode::from(i));
+        }
+        widget
+    }
+}
+*/
+#[test]
+fn test_foo() {
+    assert!(true);
 }

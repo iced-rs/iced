@@ -1,7 +1,4 @@
 use crate::{
-    layout::{self,
-        Layout,
-    },
     Length,
     event::WidgetEvent,
     Hasher,
@@ -52,7 +49,7 @@ pub use row::Row;
 pub use space::Space;
 */
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum WidgetType {
     BaseElement,
     Button,
@@ -72,8 +69,9 @@ pub enum WidgetType {
 use std::rc::Rc;
 use std::cell::RefCell;
 
+#[derive(Debug, Clone)]
 pub struct WidgetNode {
-    pub (crate) view_id: id,
+    pub (crate) view_id: Option<id>,
     //pub (crate) widget_id: u64,
 
     // Used for memory collection.
@@ -86,7 +84,7 @@ pub struct WidgetNode {
 impl Default for WidgetNode {
     fn default() -> Self {
         Self {
-            view_id: 0 as id,
+            view_id: None,
             //widget_id: 0,
             related_ids: Vec::new(),
             widget_type: WidgetType::BaseElement,
@@ -95,9 +93,9 @@ impl Default for WidgetNode {
     }
 }
 
+/*
 impl Drop for WidgetNode {
     fn drop(&mut self) {
-        /*
         debug!("DROPPING A WIDGET NODE! {:?}", self.view_id);
         use uikit_sys::{
             UIView_UIViewHierarchy,
@@ -117,12 +115,11 @@ impl Drop for WidgetNode {
         for i in &self.children {
             drop(i);
         }
-        */
     }
 }
-
+*/
 impl WidgetNode {
-    pub fn new(view_id: id, widget_type: WidgetType) -> Self {
+    pub fn new(view_id: Option<id>, widget_type: WidgetType) -> Self {
         Self {
             view_id,
             related_ids: Vec::new(),
@@ -130,6 +127,31 @@ impl WidgetNode {
             children: Vec::new(),
         }
     }
+
+    pub fn drop_from_ui(&self) {
+        debug!("DROPPING A WIDGET NODE! {:?}", self.view_id);
+        use uikit_sys::{
+            UIView_UIViewHierarchy,
+            NSObject, INSObject,
+        };
+        if let Some(view_id) = self.view_id {
+            let view = UIView(view_id);
+            unsafe {
+                view.removeFromSuperview();
+                view.dealloc();
+            }
+        }
+        for i in &self.related_ids {
+            let obj = NSObject(*i);
+            unsafe {
+                obj.dealloc();
+            }
+        }
+        for i in &self.children {
+            i.borrow().drop_from_ui();
+        }
+    }
+
     pub fn add_related_id(&mut self, related_id: id) {
         self.related_ids.push(related_id);
     }
@@ -146,7 +168,15 @@ impl WidgetNode {
     }
 }
 
-pub trait Widget<Message> {
+#[derive(Debug)]
+pub enum RenderAction {
+    Add,
+    Remove,
+    Update,
+}
+
+pub trait Widget<Message> //: Into<WidgetNode> + Sized
+{
     fn update_or_add(
         &mut self,
         _parent: Option<UIView>,
@@ -170,10 +200,18 @@ pub trait Widget<Message> {
     ) {
         debug!("on_widget_event for {:?}", self.get_widget_type());
     }
-    fn layout(
-        &self,
-        limits: &layout::Limits,
-    ) -> layout::Node;
+
+    fn get_render_action(&self, widget_node: Option<&WidgetNode>) -> RenderAction {
+        let action = if widget_node.is_none() {
+            RenderAction::Add
+        } else if widget_node.is_some() && widget_node.unwrap().widget_type == self.get_widget_type() {
+            RenderAction::Update
+        } else {
+            RenderAction::Remove
+        };
+        debug!("RENDER ACTION FOR WIDGET {:?} is {:?}", self.get_widget_type(), action);
+        action
+    }
 
     fn width(&self) -> Length;
 
@@ -184,6 +222,7 @@ pub trait Widget<Message> {
 pub struct Element<'a, Message> {
     pub(crate) widget: Box<dyn Widget<Message> + 'a>,
 }
+
 impl<'a, Message> Element<'a, Message> {
     /// Create a new [`Element`] containing the given [`Widget`].
     ///
@@ -195,6 +234,7 @@ impl<'a, Message> Element<'a, Message> {
         }
     }
 }
+
 impl<'a, Message> Widget<Message> for Element<'a, Message>
 {
     fn hash_layout(&self, state: &mut Hasher) {
@@ -204,19 +244,12 @@ impl<'a, Message> Widget<Message> for Element<'a, Message>
         self.widget.hash_layout(state);
     }
 
-    fn layout(
-        &self,
-        _limits: &layout::Limits,
-    ) -> layout::Node {
-        todo!();
-    }
-
     fn width(&self) -> Length {
-        todo!();
+        self.widget.width()
     }
 
     fn height(&self) -> Length {
-        todo!();
+        self.widget.height()
     }
 
     fn update_or_add(&mut self, parent: Option<UIView>, old_node: Option<WidgetNode>) -> WidgetNode {
@@ -225,6 +258,9 @@ impl<'a, Message> Widget<Message> for Element<'a, Message>
 
     fn get_widget_type(&self) -> WidgetType {
         self.widget.get_widget_type()
+    }
+    fn get_render_action(&self, widget_node: Option<&WidgetNode>) -> RenderAction {
+        self.widget.get_render_action(widget_node)
     }
 
     fn on_widget_event(
@@ -240,3 +276,21 @@ impl<'a, Message> Widget<Message> for Element<'a, Message>
         self.widget.on_widget_event(event, messages, widget_node);
     }
 }
+
+/*
+impl<'a, Message> From<Box<dyn Widget<Message> + 'a>> for WidgetNode {
+    fn from(element: Box<dyn Widget<Message> + 'a>) -> WidgetNode {
+        Widget::from(element)
+    }
+}
+impl<'a, Message> From<Element<'a, Message>> for WidgetNode {
+    fn from(element: Element<'a, Message>) -> WidgetNode {
+        Widget::from(element.widget)
+    }
+}
+impl<'a, Message> From<&Element<'a, Message>> for WidgetNode {
+    fn from(element: &Element<'a, Message>) -> WidgetNode {
+        Widget::from(element.widget)
+    }
+}
+*/

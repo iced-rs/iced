@@ -1,12 +1,8 @@
 use crate::{
     event::{EventHandler, WidgetEvent},
-    widget::{
-        Widget,
-        WidgetNode,
-    },
+    widget::{RenderAction, Widget, WidgetNode},
     Command, Element, Executor, Runtime, Subscription,
 };
-use std::hash::Hasher;
 use winit::{
     event,
     event_loop::{ControlFlow, EventLoop},
@@ -24,10 +20,9 @@ use uikit_sys::{
     //IUISwitch,
     //IUIView,
     UIColor,
-    UIView_UIViewGeometry,
     //UISwitch,
     UIView,
-    CGPoint, CGRect, CGSize,
+    //UIView_UIViewGeometry,
     //UIView_UIViewHierarchy,
     //UIView,
     //UIViewController,
@@ -161,8 +156,7 @@ pub trait Application: Sized {
             */
         }
         //proxy.send_event(WidgetEvent {widget_id: 0} );
-        let mut cached_hash: u64 = 0;
-        let mut widget_tree : Option<WidgetNode> = None;
+        let mut widget_tree: Option<WidgetNode> = None;
 
         event_loop.run(
             move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
@@ -172,25 +166,43 @@ pub trait Application: Sized {
                 match event {
                     event::Event::MainEventsCleared => {}
                     event::Event::UserEvent(widget_event) => {
+                        {
+                            let mut element = app.view();
+                            if let Some(ref widget_tree) = widget_tree {
+                                element.widget.on_widget_event(
+                                    widget_event,
+                                    &mut messages,
+                                    &widget_tree,
+                                );
+                            }
+                            debug!("Root widget before: {:#?}", widget_tree);
+                        }
                         let mut element = app.view();
-                        if let Some(ref widget_tree) = widget_tree {
-                            element
-                            .widget
-                            .on_widget_event(widget_event, &mut messages, &widget_tree);
-                        }
 
-                        let hash = {
-                            let mut hash = &mut crate::Hasher::default();
-                            element.widget.hash_layout(&mut hash);
-                            hash.finish()
-                        };
-                        if hash != cached_hash {
-                            cached_hash = hash;
-                            widget_tree = Some(element.update_or_add(Some(root_view), widget_tree.take()));
+                        match element
+                            .get_render_action(widget_tree.take().as_ref())
+                        {
+                            RenderAction::Add | RenderAction::Update => {
+                                debug!("Adding or updating root widget {:?} with {:?}", widget_tree.as_ref(), element.get_widget_type());
+                                widget_tree = Some(element.update_or_add(
+                                    Some(root_view),
+                                    widget_tree.take(),
+                                ));
+                            }
+                            RenderAction::Remove => {
+                                if let Some(node) = &widget_tree {
+                                    debug!("Removing root widget {:?} with {:?}", node, element.get_widget_type());
+                                    node.drop_from_ui();
+                                }
+                                widget_tree = Some(element.update_or_add(
+                                    Some(root_view),
+                                    None,
+                                ));
+                            },
                         }
+                        debug!("Root widget after: {:#?}", widget_tree);
                     }
-                    event::Event::RedrawRequested(_) => {
-                    }
+                    event::Event::RedrawRequested(_) => {}
                     event::Event::WindowEvent {
                         event: _window_event,
                         ..
@@ -199,16 +211,10 @@ pub trait Application: Sized {
                         let root_view: UIView = UIView(window.ui_view() as id);
                         let mut element = app.view();
 
-                        let hash = {
-                            let mut hash = &mut crate::Hasher::default();
-                            element.widget.hash_layout(&mut hash);
-                            hash.finish()
-                        };
-                        //widget_tree = Some(element.update_or_add(root_view, widget_tree));
-                        if hash != cached_hash {
-                            cached_hash = hash;
-                            widget_tree = Some(element.update_or_add(Some(root_view), widget_tree.take()));
-                        }
+                        widget_tree = Some(element.update_or_add(
+                                Some(root_view),
+                                widget_tree.take(),
+                        ));
                     }
                     _ => {
                         *control_flow = ControlFlow::Wait;

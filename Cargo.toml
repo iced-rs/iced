@@ -52,7 +52,6 @@ members = [
     "style",
     "web",
     "ios",
-    "examples/ios-example",
     "wgpu",
     "winit",
     "examples/bezier_tool",

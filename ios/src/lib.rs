@@ -13,8 +13,6 @@ pub use widget::{
     Element, Widget, Text, TextInput, Column,
 };
 use event::WidgetEvent;
-mod layout;
-pub use layout::Layout;
 pub use application::Application;
 
 pub type Hasher = std::collections::hash_map::DefaultHasher;

@@ -6,7 +6,7 @@
 //! [`State`]: struct.State.html
 use crate::{
     event::{EventHandler, WidgetEvent},
-    layout, Element, Hasher, Length, Widget,
+    Element, Hasher, Length, Widget,
     widget::{
         WidgetType,
         WidgetNode,
@@ -175,6 +175,7 @@ where
     }
 
     fn update_or_add(&mut self, parent: Option<UIView>, old_node: Option<WidgetNode>,) -> WidgetNode {
+        debug!("TEXT WIDGET ADD OR UPDATE old_node :{:?}", old_node);
         if let Some(old_node) = old_node {
             old_node
         } else {
@@ -221,14 +222,8 @@ where
                 ui_textview
             };
 
-            use std::hash::Hasher;
-            let hash = {
-                let mut hash = &mut crate::Hasher::default();
-                self.hash_layout(&mut hash);
-                hash.finish()
-            };
 
-            WidgetNode::new(textview.0, WidgetType::TextInput)
+            WidgetNode::new(Some(textview.0), WidgetType::TextInput)
         }
 
     }
@@ -246,7 +241,7 @@ where
             self.widget_id,
             widget_node.view_id,
             );
-        if widget_event.id as id == widget_node.view_id {
+        if Some(widget_event.id as id) == widget_node.view_id {
             let ui_textview = UITextView(widget_event.id as id);
             let value = unsafe {
                 let value = NSString(ui_textview.text());
@@ -290,16 +285,12 @@ where
         */
     }
 
-    fn layout(&self, limits: &layout::Limits) -> layout::Node {
-        todo!();
-    }
-
     fn width(&self) -> Length {
-        todo!();
+        self.width
     }
 
     fn height(&self) -> Length {
-        todo!();
+        todo!()
     }
 }
 
@@ -309,6 +300,11 @@ where
 {
     fn from(text_input: TextInput<'a, Message>) -> Element<'a, Message> {
         Element::new(text_input)
+    }
+}
+impl<'a, Message> From<TextInput<'a, Message>> for WidgetNode {
+    fn from(_text_input: TextInput<'a, Message>) -> WidgetNode {
+        WidgetNode::new(None, WidgetType::TextInput)
     }
 }
 

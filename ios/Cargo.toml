@@ -3,6 +3,19 @@ name = "iced_ios"
 version = "0.1.0"
 authors = ["Sebastian Imlay <sebastian.imlay@gmail.com>"]
 edition = "2018"
+description = "iOS backend for iced"
+
+[package.metadata.bundle.example.ios-example]
+name = "ios-example"
+identifier = "com.github.iced.simple"
+category = "Utility"
+short_description = "An example of a bundled application"
+long_description = """
+A trivial application that just displays a blank window with
+a title bar.  It serves as an example of an application that
+can be bundled with cargo-bundle, as well as a test-case for
+cargo-bundle's support for bundling crate examples.
+"""
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -28,3 +41,8 @@ path = "../style"
 version = "0.1"
 path = "../futures"
 features = ["thread-pool"]
+
+[dev-dependencies]
+iced = { path = "../", features = ["image", "debug"] }
+pretty_env_logger = "0.3"
+color-backtrace = { version = "0.4.2", features = ["failure-bt"] }

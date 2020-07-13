@@ -65,43 +65,47 @@ impl Sandbox for Simple {
 
     fn view(&mut self) -> Element<Message> {
         debug!("RERUNNING VIEW : {:#?}", self);
-        let column = Column::new()
-            .push(
-                Column::new()
-                //.push(
-                //    Text::new(String::from("FIRST FIRST")).color(Color::BLACK)
-                //)
+        if self.text.starts_with("A") {
+            debug!("RETURNING TEXT ONLY VIEW NOW");
+            Text::new("THE TEXT STARTS WITH THE LETTER A").into()
+        } else {
+            let column = Column::new()
+                .push(
+                    Column::new()
+                    //.push(
+                    //    Text::new(String::from("FIRST FIRST")).color(Color::BLACK)
+                    //)
+                    .push(
+                        TextInput::new(
+                            &mut self.text_state,
+                            "",
+                            "",
+                            |s| {
+                                debug!("The 1st text box has \"{}\" in it!", s);
+                                Message::TextUpdated(s)
+                            }
+                        ).on_submit(Message::TextSubmit),
+                    )
+                )
+                .push(
+                    Text::new(String::from("SECOND SECOND")).color(Color::BLACK)
+                )
                 .push(
                     TextInput::new(
-                        &mut self.text_state,
+                        &mut self.text_state2,
                         "",
                         "",
                         |s| {
-                            debug!("The 1st text box has \"{}\" in it!", s);
+                            debug!("The 2nd text box has \"{}\" in it!", s);
                             Message::TextUpdated(s)
                         }
-                    ).on_submit(Message::TextSubmit),
+                    )
                 )
-            )
-            .push(
-                Text::new(String::from("SECOND SECOND")).color(Color::BLACK)
-            )
-            .push(
-                TextInput::new(
-                    &mut self.text_state2,
-                    "",
-                    "",
-                    |s| {
-                        debug!("The 2nd text box has \"{}\" in it!", s);
-                        Message::TextUpdated(s)
-                    }
-                )
-            )
-            //.push(
-            //    Text::new(&self.text).color(Color::BLACK)
-            //)
-            ;
-        column.into()
-
+                //.push(
+                //    Text::new(&self.text).color(Color::BLACK)
+                //)
+                ;
+            column.into()
+        }
     }
 }

@@ -43,7 +43,6 @@ impl EventHandler {
             if let Some(mut counter) = COUNTER {
                 counter += 1;
                 COUNTER = Some(counter);
-                debug!("WHAT THE FUCK IS THE COUNTER: {:?}!", counter);
                 widget_id = counter;
                 //widget_id = counter.fetch_add(0, Ordering::SeqCst);
                 (*obj).set_ivar::<u64>("widget_id", widget_id);
