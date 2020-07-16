@@ -2,7 +2,6 @@ use crate::{
     layout, overlay, Clipboard, Color, Event, Hasher, Layout, Length, Point,
     Widget,
 };
-use std::rc::Rc;
 
 /// A generic [`Widget`].
 ///
@@ -286,7 +285,7 @@ where
 
 struct Map<'a, A, B, Renderer> {
     widget: Box<dyn Widget<A, Renderer> + 'a>,
-    mapper: Rc<dyn Fn(A) -> B>,
+    mapper: Box<dyn Fn(A) -> B>,
 }
 
 impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
@@ -299,7 +298,7 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     {
         Map {
             widget,
-            mapper: Rc::new(mapper),
+            mapper: Box::new(mapper),
         }
     }
 }
@@ -370,7 +369,7 @@ where
         &mut self,
         layout: Layout<'_>,
     ) -> Option<overlay::Element<'_, B, Renderer>> {
-        let mapper = self.mapper.clone();
+        let mapper = &self.mapper;
 
         self.widget
             .overlay(layout)

@@ -1,7 +1,6 @@
 pub use crate::Overlay;
 
 use crate::{layout, Clipboard, Event, Hasher, Layout, Point, Size, Vector};
-use std::rc::Rc;
 
 /// A generic [`Overlay`].
 ///
@@ -38,7 +37,7 @@ where
     /// Applies a transformation to the produced message of the [`Element`].
     ///
     /// [`Element`]: struct.Element.html
-    pub fn map<B>(self, f: Rc<dyn Fn(Message) -> B>) -> Element<'a, B, Renderer>
+    pub fn map<B>(self, f: &'a dyn Fn(Message) -> B) -> Element<'a, B, Renderer>
     where
         Message: 'a,
         Renderer: 'a,
@@ -104,13 +103,13 @@ where
 
 struct Map<'a, A, B, Renderer> {
     content: Box<dyn Overlay<A, Renderer> + 'a>,
-    mapper: Rc<dyn Fn(A) -> B>,
+    mapper: &'a dyn Fn(A) -> B,
 }
 
 impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     pub fn new(
         content: Box<dyn Overlay<A, Renderer> + 'a>,
-        mapper: Rc<dyn Fn(A) -> B + 'static>,
+        mapper: &'a dyn Fn(A) -> B,
     ) -> Map<'a, A, B, Renderer> {
         Map { content, mapper }
     }
