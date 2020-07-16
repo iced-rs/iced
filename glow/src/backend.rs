@@ -193,6 +193,7 @@ impl iced_graphics::Backend for Backend {
 impl backend::Text for Backend {
     const ICON_FONT: Font = font::ICONS;
     const CHECKMARK_ICON: char = font::CHECKMARK_ICON;
+    const ARROW_DOWN_ICON: char = font::ARROW_DOWN_ICON;
 
     fn default_size(&self) -> u16 {
         self.default_text_size

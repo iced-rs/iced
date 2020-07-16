@@ -1,7 +1,9 @@
 use crate::{Backend, Defaults, Primitive};
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
-use iced_native::{Background, Color, Element, Point, Widget};
+use iced_native::{
+    Background, Color, Element, Point, Rectangle, Vector, Widget,
+};
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
@@ -52,6 +54,35 @@ where
         self.backend.trim_measurements();
 
         layout
+    }
+
+    fn overlay(
+        &mut self,
+        (base_primitive, base_cursor): (Primitive, mouse::Interaction),
+        (overlay_primitives, overlay_cursor): (Primitive, mouse::Interaction),
+        overlay_bounds: Rectangle,
+    ) -> (Primitive, mouse::Interaction) {
+        (
+            Primitive::Group {
+                primitives: vec![
+                    base_primitive,
+                    Primitive::Clip {
+                        bounds: Rectangle {
+                            width: overlay_bounds.width + 0.5,
+                            height: overlay_bounds.height + 0.5,
+                            ..overlay_bounds
+                        },
+                        offset: Vector::new(0, 0),
+                        content: Box::new(overlay_primitives),
+                    },
+                ],
+            },
+            if base_cursor > overlay_cursor {
+                base_cursor
+            } else {
+                overlay_cursor
+            },
+        )
     }
 }
 

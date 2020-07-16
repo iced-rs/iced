@@ -23,6 +23,9 @@ impl Null {
 impl Renderer for Null {
     type Output = ();
     type Defaults = ();
+
+    fn overlay(&mut self, _base: (), _overlay: (), _overlay_bounds: Rectangle) {
+    }
 }
 
 impl column::Renderer for Null {

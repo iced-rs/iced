@@ -13,13 +13,14 @@ mod primitive;
 mod renderer;
 mod transformation;
 mod viewport;
-mod widget;
 
 pub mod backend;
 pub mod defaults;
 pub mod font;
 pub mod layer;
+pub mod overlay;
 pub mod triangle;
+pub mod widget;
 pub mod window;
 
 #[doc(no_inline)]
