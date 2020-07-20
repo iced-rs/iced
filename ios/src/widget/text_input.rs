@@ -58,7 +58,6 @@ pub struct TextInput<'a, Message> {
     on_change: Rc<Box<dyn Fn(String) -> Message>>,
     on_submit: Option<Message>,
     style_sheet: Box<dyn StyleSheet>,
-    widget_id: u64,
 }
 
 impl<'a, Message> TextInput<'a, Message> {
@@ -94,7 +93,6 @@ impl<'a, Message> TextInput<'a, Message> {
             on_change: Rc::new(Box::new(on_change)),
             on_submit: None,
             style_sheet: Default::default(),
-            widget_id: 0,
         }
     }
 
@@ -170,63 +168,51 @@ where
         self.padding.hash(state);
         self.size.hash(state);
     }
+
     fn get_widget_type(&self) -> WidgetType {
         WidgetType::TextInput
     }
 
-    fn update_or_add(&mut self, parent: Option<UIView>, old_node: Option<WidgetNode>,) -> WidgetNode {
-        debug!("TEXT WIDGET ADD OR UPDATE old_node :{:?}", old_node);
-        if let Some(old_node) = old_node {
-            old_node
-        } else {
-            let textview = unsafe {
-                let ui_textview = {
-                    if parent.is_none() {
-                        UITextView(UITextView::alloc().init())
-                    } else {
-                        let input_rect = CGRect {
-                            origin: CGPoint { x: 10.0, y: 10.0 },
-                            size: CGSize {
-                                width: 100.0,
-                                height: 100.0,
-                            },
-                        };
-                        UITextView(UITextView::alloc().initWithFrame_textContainer_(
-                                input_rect,
-                                0 as id,
-                        ))
-                    }
-                };
-                let on_change = EventHandler::new(ui_textview.0);
-                self.widget_id = on_change.widget_id;
+    fn build_uiview(&self) -> WidgetNode {
+        let textview = unsafe {
+            let ui_textview = {
+                // TODO: Use something better than just a rect.
+                UITextView(UITextView::alloc().init())
                 /*
-                   input.addTarget_action_forControlEvents_(
-                   on_change.id,
-                   sel!(sendEvent),
-                   uikit_sys::UIControlEvents_UIControlEventValueChanged,
-                   );
-                   */
-                // https://developer.apple.com/documentation/foundation/nsnotificationcenter/1415360-addobserver?language=objc
-                let center =
-                    NSNotificationCenter(NSNotificationCenter::defaultCenter());
-                center.addObserver_selector_name_object_(
-                    on_change.id,
-                    sel!(sendEvent),
-                    UITextViewTextDidChangeNotification,
-                    ui_textview.0,
-                );
-                //parent.addSubview_(ui_textview.0);
-                if let Some(parent) = parent {
-                    parent.addSubview_(ui_textview.0);
+                if parent.is_none() {
+                    UITextView(UITextView::alloc().init())
+                } else {
+                    let input_rect = CGRect {
+                        origin: CGPoint { x: 10.0, y: 10.0 },
+                        size: CGSize {
+                            width: 100.0,
+                            height: 100.0,
+                        },
+                    };
+                    UITextView(UITextView::alloc().initWithFrame_textContainer_(
+                            input_rect,
+                            0 as id,
+                    ))
                 }
-                ui_textview
+                */
             };
+            let on_change = EventHandler::new(ui_textview.0);
+            // https://developer.apple.com/documentation/foundation/nsnotificationcenter/1415360-addobserver?language=objc
+            let center =
+                NSNotificationCenter(NSNotificationCenter::defaultCenter());
+            center.addObserver_selector_name_object_(
+                on_change.id,
+                sel!(sendEvent),
+                UITextViewTextDidChangeNotification,
+                ui_textview.0,
+            );
+            ui_textview
+        };
 
 
-            WidgetNode::new(Some(textview.0), WidgetType::TextInput)
-        }
-
+        WidgetNode::new(textview.0, self.get_widget_type(), self.get_my_hash())
     }
+
 
     fn on_widget_event(
         &mut self,
@@ -238,10 +224,9 @@ where
             "on_widget_event for text input: widget_event.id: {:x} for widget_id: {:?}, self.widget_id: {:?} widget_node.view_id {:?}",
             widget_event.id,
             widget_event.widget_id,
-            self.widget_id,
             widget_node.view_id,
             );
-        if Some(widget_event.id as id) == widget_node.view_id {
+        if widget_event.id as id == widget_node.view_id {
             let ui_textview = UITextView(widget_event.id as id);
             let value = unsafe {
                 let value = NSString(ui_textview.text());
@@ -260,29 +245,9 @@ where
                 }
             } else {
                 self.value = value;
-
                 messages.push((self.on_change)(self.value.clone()));
             }
         }
-
-        /*
-        debug!("on_widget_event TEXT UIVIEW {:?}", self.ui_textview.is_some());
-        if let Some(ui_textview) = self.ui_textview {
-            if widget_event.widget_id == self.widget_id {
-                let value = unsafe {
-                    let value = NSString(ui_textview.text());
-                    let len = value.lengthOfBytesUsingEncoding_(
-                        uikit_sys::NSUTF8StringEncoding,
-                    );
-                    let bytes = value.UTF8String() as *const u8;
-                    String::from_utf8(std::slice::from_raw_parts(bytes, len.try_into().unwrap()).to_vec()).unwrap()
-                };
-                self.value = value;
-
-                messages.push((self.on_change)(self.value.clone()));
-            }
-        }
-        */
     }
 
     fn width(&self) -> Length {
@@ -300,11 +265,6 @@ where
 {
     fn from(text_input: TextInput<'a, Message>) -> Element<'a, Message> {
         Element::new(text_input)
-    }
-}
-impl<'a, Message> From<TextInput<'a, Message>> for WidgetNode {
-    fn from(_text_input: TextInput<'a, Message>) -> WidgetNode {
-        WidgetNode::new(None, WidgetType::TextInput)
     }
 }
 

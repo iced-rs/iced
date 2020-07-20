@@ -135,114 +135,49 @@ impl<Message> Widget<Message> for Text<Message> {
         self.width.hash(state);
         self.height.hash(state);
     }
+
     fn get_widget_type(&self) -> WidgetType {
         WidgetType::Text
     }
-
-    fn update_or_add(&mut self, parent: Option<UIView>, old_node: Option<WidgetNode>,) -> WidgetNode {
-        /*
-        match element
-            .get_render_action(widget_tree.take().as_ref())
-            {
-                RenderAction::Add | RenderAction::Update => {
-                    debug!("Adding or updating root widget {:?} with {:?}", widget_tree.as_ref(), element.get_widget_type());
-                    widget_tree = Some(element.update_or_add(
-                            Some(root_view),
-                            widget_tree.take(),
+    fn build_uiview(&self) -> WidgetNode {
+        let label = unsafe {
+            let label = UILabel::alloc();
+            let text = NSString(
+                NSString::alloc().initWithBytes_length_encoding_(
+                    CString::new(self.content.as_str())
+                    .expect("CString::new failed")
+                    .as_ptr() as *mut std::ffi::c_void,
+                    self.content.len().try_into().unwrap(),
+                    uikit_sys::NSUTF8StringEncoding,
+                ),
+            );
+            label.init();
+            label.setText_(text.0);
+            /*
+               let rect = CGRect {
+               origin: CGPoint { x: 0.0, y: 0.0 },
+               size: CGSize {
+               height: 0.0,
+               width: 0.0,
+               },
+               };
+               label.setFrame_(rect);
+               */
+            label.setAdjustsFontSizeToFitWidth_(true);
+            label.setMinimumScaleFactor_(10.0);
+            if let Some(color) = self.color {
+                let background =
+                    UIColor(UIColor::alloc().initWithRed_green_blue_alpha_(
+                            color.r.into(),
+                            color.g.into(),
+                            color.b.into(),
+                            color.a.into(),
                     ));
-                }
-                RenderAction::Remove => {
-                    if let Some(node) = &widget_tree {
-                        debug!("Removing root widget {:?} with {:?}", node, element.get_widget_type());
-                        node.drop_from_ui();
-                    }
-                    widget_tree = Some(element.update_or_add(
-                            Some(root_view),
-                            None,
-                    ));
-                },
+                label.setTextColor_(background.0)
             }
-        */
-        match self.get_render_action(old_node.as_ref()) {
-
-            RenderAction::Add => {
-
-                let label = unsafe {
-                    let label = UILabel::alloc();
-                    let text = NSString(
-                        NSString::alloc().initWithBytes_length_encoding_(
-                            CString::new(self.content.as_str())
-                            .expect("CString::new failed")
-                            .as_ptr() as *mut std::ffi::c_void,
-                            self.content.len().try_into().unwrap(),
-                            uikit_sys::NSUTF8StringEncoding,
-                        ),
-                    );
-                    label.init();
-                    label.setText_(text.0);
-                    /*
-                       let rect = CGRect {
-                       origin: CGPoint { x: 0.0, y: 0.0 },
-                       size: CGSize {
-                       height: 0.0,
-                       width: 0.0,
-                       },
-                       };
-                       label.setFrame_(rect);
-                       */
-                    label.setAdjustsFontSizeToFitWidth_(true);
-                    label.setMinimumScaleFactor_(10.0);
-                    if let Some(color) = self.color {
-                        let background =
-                            UIColor(UIColor::alloc().initWithRed_green_blue_alpha_(
-                                    color.r.into(),
-                                    color.g.into(),
-                                    color.b.into(),
-                                    color.a.into(),
-                            ));
-                        label.setTextColor_(background.0)
-                    }
-                    if let Some(parent) = parent {
-                        parent.addSubview_(label.0);
-                    }
-                    label
-                };
-                WidgetNode::new(Some(label.0), self.get_widget_type())
-            },
-            RenderAction::Update => {
-                if let Some(node) = old_node {
-                    let label = unsafe {
-                        let label = UILabel(node.view_id.unwrap());
-                        let text = NSString(
-                            NSString::alloc().initWithBytes_length_encoding_(
-                                CString::new(self.content.as_str())
-                                .expect("CString::new failed")
-                                .as_ptr() as *mut std::ffi::c_void,
-                                self.content.len().try_into().unwrap(),
-                                uikit_sys::NSUTF8StringEncoding,
-                            ),
-                        );
-                        label.setText_(text.0);
-                        label
-                    };
-                    WidgetNode::new(Some(label.0), self.get_widget_type())
-                } else {
-                    WidgetNode::new(None, self.get_widget_type())
-                }
-            }
-            RenderAction::Remove => {
-                if let Some(node) = old_node {
-                    node.drop_from_ui();
-                    /*
-                    let view = UIView(node.view_id);
-                    unsafe {
-                        view.removeFromSuperview();
-                    }*/
-                }
-                WidgetNode::new(None, self.get_widget_type())
-            },
-        }
-
+            label
+        };
+        WidgetNode::new(label.0, self.get_widget_type(), self.get_my_hash())
     }
     fn width(&self) -> Length {
         self.width
@@ -259,12 +194,5 @@ where Message: 'a
 {
     fn from(text: Text<Message>) -> Element<'a, Message> {
         Element::new(text)
-    }
-}
-
-impl<Message> From<Text<Message>> for WidgetNode
-{
-    fn from(_text: Text<Message>) -> WidgetNode {
-        WidgetNode::new(None, WidgetType::Text)
     }
 }

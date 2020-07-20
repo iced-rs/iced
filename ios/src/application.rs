@@ -155,8 +155,7 @@ pub trait Application: Sized {
             root_view.setFrame_(rect);
             */
         }
-        //proxy.send_event(WidgetEvent {widget_id: 0} );
-        let mut widget_tree: Option<WidgetNode> = None;
+        let mut widget_tree: WidgetNode = app.view().get_widget_node();
 
         event_loop.run(
             move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
@@ -168,39 +167,54 @@ pub trait Application: Sized {
                     event::Event::UserEvent(widget_event) => {
                         {
                             let mut element = app.view();
-                            if let Some(ref widget_tree) = widget_tree {
-                                element.widget.on_widget_event(
-                                    widget_event,
-                                    &mut messages,
-                                    &widget_tree,
-                                );
-                            }
-                            debug!("Root widget before: {:#?}", widget_tree);
+                            element.widget.on_widget_event(
+                                widget_event,
+                                &mut messages,
+                                &widget_tree,
+                            );
+                            debug!("Root widget before: {:?}", widget_tree);
+                        }
+                        for message in messages {
+                            let (command, subscription) = runtime.enter(|| {
+                                let command = app.update(message);
+                                let subscription = app.subscription();
+
+                                (command, subscription)
+                            });
+
+                            runtime.spawn(command);
+                            runtime.track(subscription);
                         }
                         let mut element = app.view();
+                        let new_tree = element.build_uiview();
+                        if new_tree != widget_tree {
+                            new_tree.draw(root_view);
+                            widget_tree.drop_from_ui();
+                            widget_tree = new_tree;
+                        }
+                        /*
 
                         match element
-                            .get_render_action(widget_tree.take().as_ref())
+                            .get_render_action(widget_tree)
                         {
                             RenderAction::Add | RenderAction::Update => {
                                 debug!("Adding or updating root widget {:?} with {:?}", widget_tree.as_ref(), element.get_widget_type());
-                                widget_tree = Some(element.update_or_add(
+                                widget_tree = element.update_or_add(
                                     Some(root_view),
-                                    widget_tree.take(),
-                                ));
+                                    widget_tree,
+                                );
                             }
                             RenderAction::Remove => {
-                                if let Some(node) = &widget_tree {
-                                    debug!("Removing root widget {:?} with {:?}", node, element.get_widget_type());
-                                    node.drop_from_ui();
-                                }
-                                widget_tree = Some(element.update_or_add(
+                                debug!("Removing root widget {:?} with {:?}", node, element.get_widget_type());
+                                node.drop_from_ui();
+                                widget_tree = element.update_or_add(
                                     Some(root_view),
-                                    None,
-                                ));
+                                    widget_tree,
+                                );
                             },
                         }
-                        debug!("Root widget after: {:#?}", widget_tree);
+                        */
+                        debug!("Root widget after: {:?}", widget_tree);
                     }
                     event::Event::RedrawRequested(_) => {}
                     event::Event::WindowEvent {
@@ -208,28 +222,14 @@ pub trait Application: Sized {
                         ..
                     } => {}
                     event::Event::NewEvents(event::StartCause::Init) => {
-                        let root_view: UIView = UIView(window.ui_view() as id);
                         let mut element = app.view();
-
-                        widget_tree = Some(element.update_or_add(
-                                Some(root_view),
-                                widget_tree.take(),
-                        ));
+                        widget_tree = element.build_uiview();
+                        let root_view: UIView = UIView(window.ui_view() as id);
+                        widget_tree.draw(root_view);
                     }
                     _ => {
                         *control_flow = ControlFlow::Wait;
                     }
-                }
-                for message in messages {
-                    let (command, subscription) = runtime.enter(|| {
-                        let command = app.update(message);
-                        let subscription = app.subscription();
-
-                        (command, subscription)
-                    });
-
-                    runtime.spawn(command);
-                    runtime.track(subscription);
                 }
             },
         );
