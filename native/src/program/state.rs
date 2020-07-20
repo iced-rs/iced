@@ -17,12 +17,26 @@ where
     primitive: <P::Renderer as Renderer>::Output,
     queued_events: Vec<Event>,
     queued_messages: Vec<P::Message>,
+    is_wanting_mouse_events: bool,
+    has_focus: bool,
 }
 
 impl<P> State<P>
 where
     P: Program + 'static,
 {
+    /// Returns whether any widgets in this state is wanting mouse events, for
+    /// example when the cursor is over a widget or when the widget is
+    /// performing a dragging action.
+    pub fn is_wanting_mouse_events(&self) -> bool {
+        self.is_wanting_mouse_events
+    }
+
+    /// Returns whether any widgets in this state is receiving focus.
+    pub fn has_focus(&self) -> bool {
+        self.has_focus
+    }
+
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
     ///
@@ -55,6 +69,8 @@ where
             primitive,
             queued_events: Vec::new(),
             queued_messages: Vec::new(),
+            is_wanting_mouse_events: false,
+            has_focus: false,
         }
     }
 
@@ -136,6 +152,8 @@ where
             self.primitive = user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
+            self.is_wanting_mouse_events = user_interface.is_wanting_mouse_events();
+            self.has_focus = user_interface.has_focus().unwrap_or(false);
             self.cache = Some(user_interface.into_cache());
 
             None
@@ -167,6 +185,8 @@ where
             self.primitive = user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
+            self.is_wanting_mouse_events = user_interface.is_wanting_mouse_events();
+            self.has_focus = user_interface.has_focus().unwrap_or(false);
             self.cache = Some(user_interface.into_cache());
 
             Some(commands)

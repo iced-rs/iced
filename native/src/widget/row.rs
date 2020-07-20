@@ -127,6 +127,22 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer,
 {
+    fn is_wanting_mouse_events(&self) -> bool {
+        self.children
+            .iter()
+            .any(|x| x.widget.is_wanting_mouse_events())
+    }
+
+    fn has_focus(&self) -> Option<bool> {
+        self.children
+            .iter()
+            .filter_map(|x| x.widget.has_focus())
+            .fold(None, |acc, x| match acc {
+                None => Some(x),
+                Some(v) => Some(v || x),
+            })
+    }
+
     fn width(&self) -> Length {
         self.width
     }

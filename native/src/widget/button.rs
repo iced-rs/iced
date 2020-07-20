@@ -127,6 +127,7 @@ where
 /// [`Button`]: struct.Button.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
+    is_cursor_over: bool,
     is_pressed: bool,
 }
 
@@ -145,6 +146,10 @@ where
     Renderer: self::Renderer,
     Message: Clone,
 {
+    fn is_wanting_mouse_events(&self) -> bool {
+        self.state.is_cursor_over || self.state.is_pressed
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -204,6 +209,10 @@ where
                         messages.push(on_press);
                     }
                 }
+            }
+            Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                self.state.is_cursor_over =
+                    layout.bounds().contains(cursor_position);
             }
             _ => {}
         }

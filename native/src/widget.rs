@@ -101,6 +101,23 @@ pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
+    /// Returns whether this or any child widgets is wanting mouse events, for
+    /// example when the cursor is over the widget or when the widget is
+    /// performing a dragging action. Container widgets should return an
+    /// aggregated result by iterating through all child widgets.
+    fn is_wanting_mouse_events(&self) -> bool {
+        false
+    }
+
+    /// Returns whether this or any child widgets can receive and is receiving
+    /// focus. If this or any child widgets can receive focus, `Some(focused)`
+    /// is returned where `focused` indicates whether this or any child widgets
+    /// are focused, otherwise `None` is returned. Container widgets should
+    /// return an aggregated result by iterating through all child widgets.
+    fn has_focus(&self) -> Option<bool> {
+        None
+    }
+
     /// Returns the width of the [`Widget`].
     ///
     /// [`Widget`]: trait.Widget.html

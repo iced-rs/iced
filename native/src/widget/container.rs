@@ -134,6 +134,14 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: self::Renderer,
 {
+    fn is_wanting_mouse_events(&self) -> bool {
+        self.content.widget.is_wanting_mouse_events()
+    }
+
+    fn has_focus(&self) -> Option<bool> {
+        self.content.widget.has_focus()
+    }
+
     fn width(&self) -> Length {
         self.width
     }

@@ -29,6 +29,14 @@ impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
+    pub(crate) fn is_wanting_mouse_events(&self) -> bool {
+        self.root.widget.is_wanting_mouse_events()
+    }
+
+    pub(crate) fn has_focus(&self) -> Option<bool> {
+        self.root.widget.has_focus()
+    }
+
     /// Builds a user interface for an [`Element`].
     ///
     /// It is able to avoid expensive computations when using a [`Cache`]

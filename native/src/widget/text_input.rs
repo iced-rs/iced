@@ -171,6 +171,14 @@ where
     Renderer: self::Renderer,
     Message: Clone,
 {
+    fn is_wanting_mouse_events(&self) -> bool {
+        self.state.is_cursor_over || self.state.is_dragging
+    }
+
+    fn has_focus(&self) -> Option<bool> {
+        Some(self.state.is_focused)
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -304,6 +312,8 @@ where
                         );
                     }
                 }
+                self.state.is_cursor_over =
+                    layout.bounds().contains(cursor_position);
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
@@ -633,6 +643,7 @@ where
 #[derive(Debug, Default, Clone)]
 pub struct State {
     is_focused: bool,
+    is_cursor_over: bool,
     is_dragging: bool,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
@@ -654,6 +665,7 @@ impl State {
     pub fn focused() -> Self {
         Self {
             is_focused: true,
+            is_cursor_over: false,
             is_dragging: false,
             is_pasting: None,
             last_click: None,
