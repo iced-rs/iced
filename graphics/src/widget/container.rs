@@ -56,17 +56,17 @@ pub(crate) fn background(
     bounds: Rectangle,
     style: &container::Style,
 ) -> Option<Primitive> {
-    if style.background.is_none() && style.border_width > 0 {
-        return None;
+    if style.background.is_some() || style.border_width > 0 {
+        Some(Primitive::Quad {
+            bounds,
+            background: style
+                .background
+                .unwrap_or(Background::Color(Color::TRANSPARENT)),
+            border_radius: style.border_radius,
+            border_width: style.border_width,
+            border_color: style.border_color,
+        })
+    } else {
+        None
     }
-
-    Some(Primitive::Quad {
-        bounds,
-        background: style
-            .background
-            .unwrap_or(Background::Color(Color::TRANSPARENT)),
-        border_radius: style.border_radius,
-        border_width: style.border_width,
-        border_color: style.border_color,
-    })
 }

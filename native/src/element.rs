@@ -1,5 +1,6 @@
 use crate::{
-    layout, Clipboard, Color, Event, Hasher, Layout, Length, Point, Widget,
+    layout, overlay, Clipboard, Color, Event, Hasher, Layout, Length, Point,
+    Widget,
 };
 
 /// A generic [`Widget`].
@@ -22,7 +23,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    /// Create a new [`Element`] containing the given [`Widget`].
+    /// Creates a new [`Element`] containing the given [`Widget`].
     ///
     /// [`Element`]: struct.Element.html
     /// [`Widget`]: widget/trait.Widget.html
@@ -270,6 +271,16 @@ where
     pub fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
+
+    /// Returns the overlay of the [`Element`], if there is any.
+    ///
+    /// [`Element`]: struct.Element.html
+    pub fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.widget.overlay(layout)
+    }
 }
 
 struct Map<'a, A, B, Renderer> {
@@ -294,7 +305,9 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
 
 impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: crate::Renderer + 'a,
+    A: 'static,
+    B: 'static,
 {
     fn width(&self) -> Length {
         self.widget.width()
@@ -350,6 +363,17 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, B, Renderer>> {
+        let mapper = &self.mapper;
+
+        self.widget
+            .overlay(layout)
+            .map(move |overlay| overlay.map(mapper))
     }
 }
 
@@ -425,5 +449,12 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         self.element.widget.hash_layout(state);
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.element.overlay(layout)
     }
 }

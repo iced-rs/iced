@@ -24,6 +24,14 @@ pub fn window_event(
                 height: logical_size.height,
             }))
         }
+        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+            let logical_size = new_inner_size.to_logical(scale_factor);
+
+            Some(Event::Window(window::Event::Resized {
+                width: logical_size.width,
+                height: logical_size.height,
+            }))
+        }
         WindowEvent::CursorMoved { position, .. } => {
             let position = position.to_logical::<f64>(scale_factor);
 

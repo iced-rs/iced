@@ -2,8 +2,8 @@
 use std::hash::Hash;
 
 use crate::{
-    layout, Align, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Widget,
+    layout, overlay, Align, Clipboard, Element, Event, Hasher, Layout, Length,
+    Point, Rectangle, Widget,
 };
 
 use std::u32;
@@ -213,6 +213,13 @@ where
         self.max_height.hash(state);
 
         self.content.hash_layout(state);
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.content.overlay(layout.children().next().unwrap())
     }
 }
 

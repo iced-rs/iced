@@ -26,6 +26,7 @@ pub mod column;
 pub mod container;
 pub mod image;
 pub mod pane_grid;
+pub mod pick_list;
 pub mod progress_bar;
 pub mod radio;
 pub mod row;
@@ -49,6 +50,8 @@ pub use image::Image;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
+pub use pick_list::PickList;
+#[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
 pub use radio::Radio;
@@ -67,7 +70,7 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{layout, Clipboard, Event, Hasher, Layout, Length, Point};
+use crate::{layout, overlay, Clipboard, Event, Hasher, Layout, Length, Point};
 
 /// A component that displays information and allows interaction.
 ///
@@ -174,5 +177,15 @@ where
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
+    }
+
+    /// Returns the overlay of the [`Element`], if there is any.
+    ///
+    /// [`Element`]: struct.Element.html
+    fn overlay(
+        &mut self,
+        _layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        None
     }
 }

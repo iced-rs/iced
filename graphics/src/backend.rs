@@ -22,8 +22,13 @@ pub trait Text {
 
     /// The `char` representing a ✔ icon in the [`ICON_FONT`].
     ///
-    /// [`ICON_FONT`]: #associatedconst.ICON_FONt
+    /// [`ICON_FONT`]: #associatedconst.ICON_FONT
     const CHECKMARK_ICON: char;
+
+    /// The `char` representing a ▼ icon in the built-in [`ICONS`] font.
+    ///
+    /// [`ICON_FONT`]: #associatedconst.ICON_FONT
+    const ARROW_DOWN_ICON: char;
 
     /// Returns the default size of text.
     fn default_size(&self) -> u16;

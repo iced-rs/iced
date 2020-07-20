@@ -360,6 +360,18 @@ pub fn handle_window_event(
             );
             *resized = true;
         }
+        WindowEvent::ScaleFactorChanged {
+            scale_factor: new_scale_factor,
+            new_inner_size,
+        } => {
+            let size = Size::new(new_inner_size.width, new_inner_size.height);
+
+            *viewport = Viewport::with_physical_size(
+                size,
+                new_scale_factor * scale_factor,
+            );
+            *resized = true;
+        }
         WindowEvent::CloseRequested => {
             *control_flow = ControlFlow::Exit;
         }

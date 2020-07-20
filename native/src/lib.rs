@@ -38,6 +38,7 @@
 pub mod keyboard;
 pub mod layout;
 pub mod mouse;
+pub mod overlay;
 pub mod program;
 pub mod renderer;
 pub mod subscription;
@@ -75,6 +76,7 @@ pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
+pub use overlay::Overlay;
 pub use program::Program;
 pub use renderer::Renderer;
 pub use runtime::Runtime;

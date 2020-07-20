@@ -1,5 +1,6 @@
 use crate::container;
 use crate::layout;
+use crate::overlay;
 use crate::pane_grid::{self, TitleBar};
 use crate::{Clipboard, Element, Event, Hasher, Layout, Point, Size};
 
@@ -183,6 +184,24 @@ where
 
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {
         self.body.hash_layout(state);
+    }
+
+    pub(crate) fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        let body_layout = if self.title_bar.is_some() {
+            let mut children = layout.children();
+
+            // Overlays only allowed in the pane body, for now at least.
+            let _title_bar_layout = children.next();
+
+            children.next()?
+        } else {
+            layout
+        };
+
+        self.body.overlay(body_layout)
     }
 }
 

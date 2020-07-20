@@ -2,8 +2,8 @@
 use std::hash::Hash;
 
 use crate::{
-    layout, Align, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Widget,
+    layout, overlay, Align, Clipboard, Element, Event, Hasher, Layout, Length,
+    Point, Widget,
 };
 
 use std::u32;
@@ -205,6 +205,17 @@ where
         for child in &self.children {
             child.widget.hash_layout(state);
         }
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.children
+            .iter_mut()
+            .zip(layout.children())
+            .filter_map(|(child, layout)| child.widget.overlay(layout))
+            .next()
     }
 }
 

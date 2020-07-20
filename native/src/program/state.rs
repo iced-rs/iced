@@ -35,7 +35,7 @@ where
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Self {
-        let user_interface = build_user_interface(
+        let mut user_interface = build_user_interface(
             &mut program,
             Cache::default(),
             renderer,
@@ -121,12 +121,14 @@ where
 
         debug.event_processing_started();
         let mut messages = user_interface.update(
-            self.queued_events.drain(..),
+            &self.queued_events,
             cursor_position,
             clipboard,
             renderer,
         );
         messages.extend(self.queued_messages.drain(..));
+
+        self.queued_events.clear();
         debug.event_processing_finished();
 
         if messages.is_empty() {
@@ -153,7 +155,7 @@ where
                     command
                 }));
 
-            let user_interface = build_user_interface(
+            let mut user_interface = build_user_interface(
                 &mut self.program,
                 temp_cache,
                 renderer,
