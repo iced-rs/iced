@@ -122,6 +122,14 @@ impl<T> State<T> {
         &self.internal.layout
     }
 
+    /// Returns the focused [`Pane`] of the [`State`], if there is one.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    /// [`State`]: struct.State.html
+    pub fn focused(&self) -> Option<Pane> {
+        self.internal.focused_pane()
+    }
+
     /// Returns the active [`Pane`] of the [`State`], if there is one.
     ///
     /// A [`Pane`] is active if it is focused and is __not__ being dragged.
@@ -349,6 +357,14 @@ impl Action {
 impl Internal {
     pub fn action(&self) -> Action {
         self.action
+    }
+
+    pub fn focused_pane(&self) -> Option<Pane> {
+        match self.action {
+            Action::Idle { focus } => focus,
+            Action::Dragging { pane, .. } => Some(pane),
+            Action::Resizing { focus, .. } => focus,
+        }
     }
 
     pub fn active_pane(&self) -> Option<Pane> {
