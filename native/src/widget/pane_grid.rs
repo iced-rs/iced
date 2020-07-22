@@ -625,6 +625,7 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         use std::hash::Hash;
+
         struct Marker;
         std::any::TypeId::of::<Marker>().hash(state);
 
