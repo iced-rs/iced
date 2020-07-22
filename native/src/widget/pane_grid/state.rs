@@ -335,6 +335,7 @@ pub enum Action {
     Dragging {
         pane: Pane,
         origin: Point,
+        focus: Option<Pane>,
     },
     Resizing {
         split: Split,
@@ -362,7 +363,7 @@ impl Internal {
     pub fn focused_pane(&self) -> Option<Pane> {
         match self.action {
             Action::Idle { focus } => focus,
-            Action::Dragging { pane, .. } => Some(pane),
+            Action::Dragging { focus, .. } => focus,
             Action::Resizing { focus, .. } => focus,
         }
     }
@@ -376,7 +377,7 @@ impl Internal {
 
     pub fn picked_pane(&self) -> Option<(Pane, Point)> {
         match self.action {
-            Action::Dragging { pane, origin } => Some((pane, origin)),
+            Action::Dragging { pane, origin, .. } => Some((pane, origin)),
             _ => None,
         }
     }
@@ -409,9 +410,12 @@ impl Internal {
     }
 
     pub fn pick_pane(&mut self, pane: &Pane, origin: Point) {
+        let focus = self.focused_pane();
+
         self.action = Action::Dragging {
             pane: *pane,
             origin,
+            focus,
         };
     }
 
