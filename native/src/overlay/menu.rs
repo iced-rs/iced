@@ -120,6 +120,14 @@ pub struct State {
 }
 
 impl State {
+    /// Creates a new [`State`] for a [`Menu`].
+    ///
+    /// [`State`]: struct.State.html
+    /// [`Menu`]: struct.Menu.html
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Returns whether the [`Menu`] is currently open or not.
     ///
     /// [`Menu`]: struct.Menu.html
