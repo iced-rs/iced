@@ -227,6 +227,7 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if *self.is_open {
+                    // TODO: Encode cursor availability in the type system
                     *self.is_open =
                         cursor_position.x < 0.0 || cursor_position.y < 0.0;
                 } else if layout.bounds().contains(cursor_position) {
