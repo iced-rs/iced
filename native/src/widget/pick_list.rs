@@ -30,12 +30,23 @@ where
 /// The local state of a [`PickList`].
 ///
 /// [`PickList`]: struct.PickList.html
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct State<T> {
     menu: menu::State,
     is_open: bool,
     hovered_option: Option<usize>,
     last_selection: Option<T>,
+}
+
+impl<T> Default for State<T> {
+    fn default() -> Self {
+        Self {
+            menu: menu::State::default(),
+            is_open: bool::default(),
+            hovered_option: Option::default(),
+            last_selection: Option::default(),
+        }
+    }
 }
 
 impl<'a, T: 'a, Message, Renderer: self::Renderer>
