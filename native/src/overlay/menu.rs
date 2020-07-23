@@ -243,6 +243,7 @@ where
 
         (position.x as u32).hash(state);
         (position.y as u32).hash(state);
+        self.container.hash_layout(state);
     }
 
     fn on_event(
