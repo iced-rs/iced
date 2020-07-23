@@ -7,10 +7,11 @@ use crate::{
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
-pub struct Menu<'a, T, Message, Renderer: self::Renderer> {
+pub struct Menu<'a, T, Renderer: self::Renderer> {
     state: &'a mut State,
     options: &'a [T],
-    on_selected: &'a dyn Fn(T) -> Message,
+    hovered_option: &'a mut Option<usize>,
+    last_selection: &'a mut Option<T>,
     width: u16,
     padding: u16,
     text_size: Option<u16>,
@@ -18,10 +19,9 @@ pub struct Menu<'a, T, Message, Renderer: self::Renderer> {
     style: <Renderer as self::Renderer>::Style,
 }
 
-impl<'a, T, Message, Renderer> Menu<'a, T, Message, Renderer>
+impl<'a, T, Renderer> Menu<'a, T, Renderer>
 where
     T: ToString + Clone,
-    Message: 'a,
     Renderer: self::Renderer + 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
@@ -32,12 +32,14 @@ where
     pub fn new(
         state: &'a mut State,
         options: &'a [T],
-        on_selected: &'a dyn Fn(T) -> Message,
+        hovered_option: &'a mut Option<usize>,
+        last_selection: &'a mut Option<T>,
     ) -> Self {
         Menu {
             state,
             options,
-            on_selected,
+            hovered_option,
+            last_selection,
             width: 0,
             padding: 0,
             text_size: None,
@@ -97,7 +99,7 @@ where
     /// dimensions of the [`Menu`].
     ///
     /// [`Menu`]: struct.Menu.html
-    pub fn overlay(
+    pub fn overlay<Message: 'a>(
         self,
         position: Point,
         target_height: f32,
@@ -115,8 +117,6 @@ where
 #[derive(Debug, Clone, Default)]
 pub struct State {
     scrollable: scrollable::State,
-    hovered_option: Option<usize>,
-    is_open: bool,
 }
 
 impl State {
@@ -127,26 +127,10 @@ impl State {
     pub fn new() -> Self {
         Self::default()
     }
-
-    /// Returns whether the [`Menu`] is currently open or not.
-    ///
-    /// [`Menu`]: struct.Menu.html
-    pub fn is_open(&self) -> bool {
-        self.is_open
-    }
-
-    /// Opens the [`Menu`] with the given option hovered by default.
-    ///
-    /// [`Menu`]: struct.Menu.html
-    pub fn open(&mut self, hovered_option: Option<usize>) {
-        self.is_open = true;
-        self.hovered_option = hovered_option;
-    }
 }
 
 struct Overlay<'a, Message, Renderer: self::Renderer> {
     container: Container<'a, Message, Renderer>,
-    is_open: &'a mut bool,
     width: u16,
     target_height: f32,
     style: <Renderer as self::Renderer>::Style,
@@ -157,17 +141,15 @@ where
     Message: 'a,
     Renderer: 'a,
 {
-    pub fn new<T>(
-        menu: Menu<'a, T, Message, Renderer>,
-        target_height: f32,
-    ) -> Self
+    pub fn new<T>(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self
     where
         T: Clone + ToString,
     {
         let Menu {
             state,
             options,
-            on_selected,
+            hovered_option,
+            last_selection,
             width,
             padding,
             font,
@@ -178,8 +160,8 @@ where
         let container =
             Container::new(Scrollable::new(&mut state.scrollable).push(List {
                 options,
-                hovered_option: &mut state.hovered_option,
-                on_selected,
+                hovered_option,
+                last_selection,
                 font,
                 text_size,
                 padding,
@@ -189,7 +171,6 @@ where
 
         Self {
             container,
-            is_open: &mut state.is_open,
             width: width,
             target_height,
             style: style,
@@ -255,9 +236,6 @@ where
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
     ) {
-        let bounds = layout.bounds();
-        let current_messages = messages.len();
-
         self.container.on_event(
             event.clone(),
             layout,
@@ -266,17 +244,6 @@ where
             renderer,
             clipboard,
         );
-
-        let option_was_selected = current_messages < messages.len();
-
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                if !bounds.contains(cursor_position) || option_was_selected =>
-            {
-                *self.is_open = false;
-            }
-            _ => {}
-        }
     }
 
     fn draw(
@@ -299,10 +266,10 @@ where
     }
 }
 
-struct List<'a, T, Message, Renderer: self::Renderer> {
+struct List<'a, T, Renderer: self::Renderer> {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
-    on_selected: &'a dyn Fn(T) -> Message,
+    last_selection: &'a mut Option<T>,
     padding: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
@@ -310,7 +277,7 @@ struct List<'a, T, Message, Renderer: self::Renderer> {
 }
 
 impl<'a, T, Message, Renderer: self::Renderer> Widget<Message, Renderer>
-    for List<'a, T, Message, Renderer>
+    for List<'a, T, Renderer>
 where
     T: Clone + ToString,
     Renderer: self::Renderer,
@@ -362,7 +329,7 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
+        _messages: &mut Vec<Message>,
         renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
@@ -373,7 +340,7 @@ where
                 if bounds.contains(cursor_position) {
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
-                            messages.push((self.on_selected)(option.clone()));
+                            *self.last_selection = Some(option.clone());
                         }
                     }
                 }
@@ -461,7 +428,7 @@ pub trait Renderer:
 }
 
 impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for List<'a, T, Message, Renderer>
+    for List<'a, T, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,

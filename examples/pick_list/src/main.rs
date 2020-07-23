@@ -10,7 +10,7 @@ pub fn main() {
 #[derive(Default)]
 struct Example {
     scroll: scrollable::State,
-    pick_list: pick_list::State,
+    pick_list: pick_list::State<Language>,
     selected_language: Language,
 }
 
