@@ -21,9 +21,10 @@ use std::convert::TryInto;
 use uikit_sys::{
     id, CGPoint, CGRect, CGSize, INSNotificationCenter, INSObject, IUITextView,
     NSNotificationCenter, NSString, NSString_NSStringExtensionMethods,
-    UITextView, UITextViewTextDidChangeNotification, UIView,
+    UITextView, UITextViewTextDidChangeNotification, UIView, IUIView,
     UIView_UIViewHierarchy,
     UIView_UIViewGeometry,
+    CALayer, ICALayer,
     UIScreen, IUIScreen,
 };
 
@@ -185,6 +186,8 @@ where
                     let frame = screen.bounds();
                     view.setFrame_(frame);
                 }
+                let layer = CALayer(view.layer());
+                layer.setBorderWidth_(3.0);
                 view
                 /*
                 if parent.is_none() {

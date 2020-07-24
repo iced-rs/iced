@@ -242,10 +242,12 @@ where
             stack_view.setAxis_(
                 UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
             );
-            stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
+            //stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
+            /*
             stack_view.setDistribution_(
                 UIStackViewDistribution_UIStackViewDistributionFill,
             );
+            */
             stack_view
         };
         let mut stackview_node = WidgetNode::new(

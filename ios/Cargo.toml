@@ -22,7 +22,9 @@ cargo-bundle's support for bundling crate examples.
 [dependencies]
 twox-hash = "1.5"
 raw-window-handle = "^0.3"
-winit = "^0.22"
+# winit = "^0.22"
+# winit = { path = "../../winit/" }
+winit = { git = "https://github.com/simlay/winit", branch = "ios-rename-nsstring"}
 objc = "0.2.7"
 uikit-sys = { git = "https://github.com/simlay/uikit-sys" }
 log = "0.4"

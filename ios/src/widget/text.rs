@@ -16,9 +16,10 @@ use std::ffi::CString;
 use uikit_sys::{
     CGPoint, CGRect, CGSize, INSObject, IUIColor, IUILabel,
     NSString, NSString_NSStringExtensionMethods,
-    UIColor, UILabel, UIView,
+    UIColor, UILabel, UIView, IUIView,
     UIView_UIViewGeometry, UIView_UIViewHierarchy,
     UIView_UIViewRendering,
+    CALayer, ICALayer,
     UIScreen, IUIScreen,
 };
 use std::marker::PhantomData;
@@ -163,6 +164,8 @@ impl<Message> Widget<Message> for Text<Message> {
                 let frame = screen.bounds();
                 label.setFrame_(frame);
             }
+            let layer = CALayer(label.layer());
+            layer.setBorderWidth_(3.0);
             /*
                let rect = CGRect {
                origin: CGPoint { x: 0.0, y: 0.0 },
