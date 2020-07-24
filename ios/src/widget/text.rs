@@ -15,8 +15,11 @@ use std::convert::TryInto;
 use std::ffi::CString;
 use uikit_sys::{
     CGPoint, CGRect, CGSize, INSObject, IUIColor, IUILabel,
-    NSString, NSString_NSStringExtensionMethods, UIColor, UILabel, UIView,
+    NSString, NSString_NSStringExtensionMethods,
+    UIColor, UILabel, UIView,
     UIView_UIViewGeometry, UIView_UIViewHierarchy,
+    UIView_UIViewRendering,
+    UIScreen, IUIScreen,
 };
 use std::marker::PhantomData;
 
@@ -137,11 +140,13 @@ impl<Message> Widget<Message> for Text<Message> {
     }
 
     fn get_widget_type(&self) -> WidgetType {
-        WidgetType::Text
+        WidgetType::Text(self.content.clone())
     }
-    fn build_uiview(&self) -> WidgetNode {
+    fn build_uiview(&self, is_root: bool) -> WidgetNode {
         let label = unsafe {
             let label = UILabel::alloc();
+            label.init();
+
             let text = NSString(
                 NSString::alloc().initWithBytes_length_encoding_(
                     CString::new(self.content.as_str())
@@ -151,8 +156,13 @@ impl<Message> Widget<Message> for Text<Message> {
                     uikit_sys::NSUTF8StringEncoding,
                 ),
             );
-            label.init();
             label.setText_(text.0);
+            debug!("THIS TEXT IS A ROOT NODE: {:?}", is_root);
+            if is_root {
+                let screen = UIScreen(UIScreen::mainScreen());
+                let frame = screen.bounds();
+                label.setFrame_(frame);
+            }
             /*
                let rect = CGRect {
                origin: CGPoint { x: 0.0, y: 0.0 },
@@ -165,6 +175,7 @@ impl<Message> Widget<Message> for Text<Message> {
                */
             label.setAdjustsFontSizeToFitWidth_(true);
             label.setMinimumScaleFactor_(10.0);
+            label.setClipsToBounds_(true);
             if let Some(color) = self.color {
                 let background =
                     UIColor(UIColor::alloc().initWithRed_green_blue_alpha_(

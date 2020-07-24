@@ -1,11 +1,25 @@
 use crate::{
     event::WidgetEvent,
-    widget::{WidgetNode, WidgetType, RenderAction,},
+    widget::{RenderAction, WidgetNode, WidgetType},
     Align, Element, Hasher, Length, Widget,
 };
+use std::cell::RefCell;
 use std::hash::Hash;
+use std::rc::Rc;
 
 use std::u32;
+use uikit_sys::{
+    id, CGPoint, CGRect, CGSize, INSLayoutConstraint, INSLayoutDimension,
+    INSObject, IUIColor, IUIStackView, IUITextView, NSLayoutConstraint,
+    NSLayoutDimension, UIColor,
+    UILayoutConstraintAxis_UILayoutConstraintAxisVertical, UIStackView,
+    UIStackViewAlignment_UIStackViewAlignmentCenter,
+    UIStackViewDistribution_UIStackViewDistributionFill, UITextView, UIView,
+    UIView_UIViewGeometry, UIView_UIViewHierarchy,
+    UIView_UIViewLayoutConstraintCreation, UIView_UIViewRendering,
+    UIScreen,
+    IUIScreen,
+};
 
 /// A container that distributes its contents vertically.
 ///
@@ -117,16 +131,6 @@ impl<'a, Message> Column<'a, Message> {
         self
     }
 }
-use uikit_sys::{
-    id, CGPoint, CGRect, CGSize, INSLayoutConstraint, INSLayoutDimension,
-    INSObject, IUIColor, IUIStackView, IUITextView, NSLayoutConstraint,
-    NSLayoutDimension, UIColor,
-    UILayoutConstraintAxis_UILayoutConstraintAxisVertical, UIStackView,
-    UIStackViewAlignment_UIStackViewAlignmentCenter,
-    UIStackViewDistribution_UIStackViewDistributionFill, UITextView, UIView,
-    UIView_UIViewGeometry, UIView_UIViewHierarchy,
-    UIView_UIViewLayoutConstraintCreation, UIView_UIViewRendering,
-};
 
 impl<'a, Message> Widget<Message> for Column<'a, Message>
 where
@@ -138,12 +142,21 @@ where
         messages: &mut Vec<Message>,
         widget_node: &WidgetNode,
     ) {
-        debug!("on_widget_event for column for {:?} children", self.children.len());
-        for (i, node) in
-            &mut self.children.iter_mut().zip(widget_node.children.iter())
-        {
-            debug!("on_widget_event for {:?} child", i.get_widget_node());
-            i.on_widget_event(event.clone(), messages, &node.borrow());
+        debug!(
+            "on_widget_event for column for {:?} children",
+            self.children.len()
+        );
+        match &widget_node.widget_type {
+            WidgetType::Column(node_children) => {
+                for (i, node) in
+                    &mut self.children.iter_mut().zip(node_children)
+                    {
+                        i.on_widget_event(event.clone(), messages, &node.borrow());
+                    }
+            }
+            e => {
+                error!("Widget tree traversal out of sync. {:?} should be a Column!", e);
+            }
         }
     }
 
@@ -171,41 +184,77 @@ where
     }
 
     fn get_widget_type(&self) -> WidgetType {
-        WidgetType::Column
+        WidgetType::Column(Vec::new())
     }
     fn get_widget_node(&self) -> WidgetNode {
-        let mut node = WidgetNode::new(0 as id, WidgetType::Column, self.get_my_hash());
+        /*
+        let children = self
+            .children
+            .into_iter()
+            .map(|i| Rc::new(RefCell::new(i.get_widget_node())))
+            .collect::<Vec<Rc<RefCell<WidgetNode>>>>();
+        */
+
+        let mut children = Vec::new();
+        for i in &self.children {
+            children.push(Rc::new(RefCell::new(i.get_widget_node())));
+        }
+
+        let mut node = WidgetNode::new(
+            0 as id,
+            WidgetType::Column(children),
+            self.get_my_hash(),
+        );
+        /*
         for i in &self.children {
             node.add_child(i.get_widget_node());
         }
+        */
         node
     }
-    fn build_uiview(&self) -> WidgetNode {
+    fn build_uiview(&self, is_root: bool) -> WidgetNode {
         let stack_view = unsafe {
+
+            /*
             let rect = CGRect {
                 origin: CGPoint { x: 0.0, y: 0.0 },
                 size: CGSize {
                     height: 400.0,
-                    width: 300.0,
+                    width: 500.0,
                 },
             };
-            let stack_view =
-                UIStackView(UIStackView::alloc().initWithFrame_(rect));
-            //let stack_view = UIStackView(UIStackView::alloc().init());
-            //stack_view.setFrame_(rect);
+            */
+            //let stack_view =
+            //    UIStackView(UIStackView::alloc().initWithFrame_(rect));
+            let stack_view = UIStackView(UIStackView::alloc().init());
+            if is_root {
+                let screen = UIScreen(UIScreen::mainScreen());
+                let frame = screen.bounds();
+                stack_view.setFrame_(frame);
+            }
+            /*
+             *
+             * This is for a Row widget.
+            stack_view.setAxis_(
+                uikit_sys::UILayoutConstraintAxis_UILayoutConstraintAxisHorizontal,
+            );
+            */
             stack_view.setAxis_(
                 UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
             );
-            //stack_view .setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
+            stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
             stack_view.setDistribution_(
                 UIStackViewDistribution_UIStackViewDistributionFill,
             );
             stack_view
         };
-        let mut stackview_node =
-            WidgetNode::new(stack_view.0, self.get_widget_type(), self.get_my_hash());
+        let mut stackview_node = WidgetNode::new(
+            stack_view.0,
+            self.get_widget_type(),
+            self.get_my_hash(),
+        );
         for (i, val) in self.children.iter().enumerate() {
-            let node = val.build_uiview();
+            let node = val.build_uiview(false);
             let subview = UIView(node.view_id);
             stackview_node.add_child(node);
             unsafe {

@@ -186,35 +186,9 @@ pub trait Application: Sized {
                             runtime.track(subscription);
                         }
                         let mut element = app.view();
-                        let new_tree = element.build_uiview();
-                        if new_tree != widget_tree {
-                            new_tree.draw(root_view);
-                            widget_tree.drop_from_ui();
-                            widget_tree = new_tree;
-                        }
-                        /*
-
-                        match element
-                            .get_render_action(widget_tree)
-                        {
-                            RenderAction::Add | RenderAction::Update => {
-                                debug!("Adding or updating root widget {:?} with {:?}", widget_tree.as_ref(), element.get_widget_type());
-                                widget_tree = element.update_or_add(
-                                    Some(root_view),
-                                    widget_tree,
-                                );
-                            }
-                            RenderAction::Remove => {
-                                debug!("Removing root widget {:?} with {:?}", node, element.get_widget_type());
-                                node.drop_from_ui();
-                                widget_tree = element.update_or_add(
-                                    Some(root_view),
-                                    widget_tree,
-                                );
-                            },
-                        }
-                        */
-                        debug!("Root widget after: {:?}", widget_tree);
+                        let new_tree = element.build_uiview(true);
+                        widget_tree.merge(&new_tree, Some(root_view));
+                        debug!("Root widget after: {:#?}", widget_tree);
                     }
                     event::Event::RedrawRequested(_) => {}
                     event::Event::WindowEvent {
@@ -223,7 +197,7 @@ pub trait Application: Sized {
                     } => {}
                     event::Event::NewEvents(event::StartCause::Init) => {
                         let mut element = app.view();
-                        widget_tree = element.build_uiview();
+                        widget_tree = element.build_uiview(true);
                         let root_view: UIView = UIView(window.ui_view() as id);
                         widget_tree.draw(root_view);
                     }

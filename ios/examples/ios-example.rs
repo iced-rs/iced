@@ -56,7 +56,7 @@ impl Sandbox for Simple {
         debug!("GOT NEW MESSAGE: {:?}", message);
         match message {
             Message::TextUpdated(val) => {
-                self.text = format!("{}{}", self.text, val);
+                self.text = val;
             },
             _ => {
             },
@@ -64,26 +64,32 @@ impl Sandbox for Simple {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let column = Column::new()
-            .push(
-                //Text::new(String::from("SECOND SECOND")).color(Color::BLACK)
-                Text::new(format!("THIS IS THE TEXT: {:?}", self.text)).color(Color::BLACK)
-            )
-            .push(
-                TextInput::new(
-                    &mut self.text_state2,
-                    "",
-                    "",
-                    |s| {
-                        debug!("The 2nd text box has \"{}\" in it!", s);
-                        Message::TextUpdated(s)
-                    }
+        if self.text.starts_with("B") {
+            TextInput::new(
+                &mut self.text_state2,
+                "",
+                "",
+                |s| {
+                    Message::TextUpdated(s)
+                }
+            ).into()
+        } else  {
+            let column = Column::new()
+                .push(
+                    TextInput::new(
+                        &mut self.text_state,
+                        "",
+                        "",
+                        |s| {
+                            Message::TextUpdated(s)
+                        }
+                    )
                 )
-            )
-            .push(
-                Text::new(&self.text).color(Color::BLACK)
-            )
-            ;
-        column.into()
+                .push(
+                    Text::new(format!("TEXT2: {}", &self.text)).color(Color::BLACK)
+                )
+                ;
+            column.into()
+        }
     }
 }

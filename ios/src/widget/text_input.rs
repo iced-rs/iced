@@ -23,6 +23,8 @@ use uikit_sys::{
     NSNotificationCenter, NSString, NSString_NSStringExtensionMethods,
     UITextView, UITextViewTextDidChangeNotification, UIView,
     UIView_UIViewHierarchy,
+    UIView_UIViewGeometry,
+    UIScreen, IUIScreen,
 };
 
 /// A field that can be filled with text.
@@ -173,11 +175,17 @@ where
         WidgetType::TextInput
     }
 
-    fn build_uiview(&self) -> WidgetNode {
+    fn build_uiview(&self, is_root: bool) -> WidgetNode {
         let textview = unsafe {
             let ui_textview = {
                 // TODO: Use something better than just a rect.
-                UITextView(UITextView::alloc().init())
+                let view = UITextView(UITextView::alloc().init());
+                if is_root {
+                    let screen = UIScreen(UIScreen::mainScreen());
+                    let frame = screen.bounds();
+                    view.setFrame_(frame);
+                }
+                view
                 /*
                 if parent.is_none() {
                     UITextView(UITextView::alloc().init())
@@ -221,7 +229,7 @@ where
         widget_node: &WidgetNode,
     ) {
         debug!(
-            "on_widget_event for text input: widget_event.id: {:x} for widget_id: {:?}, self.widget_id: {:?} widget_node.view_id {:?}",
+            "on_widget_event for text input: widget_event.id: {:x} for widget_id: {:?}, widget_node.view_id {:?}",
             widget_event.id,
             widget_event.widget_id,
             widget_node.view_id,

@@ -1,4 +1,6 @@
 use crate::{event::WidgetEvent, Hasher, Length};
+use std::cell::RefCell;
+use std::rc::Rc;
 use uikit_sys::{id, UIView};
 
 /*
@@ -48,10 +50,10 @@ pub enum WidgetType {
     Button,
     Scrollable,
     Slider,
-    Text,
+    Text(String),
     TextInput,
     Checkbox,
-    Column,
+    Column(Vec<Rc<RefCell<WidgetNode>>>),
     Container,
     Image,
     ProgressBar,
@@ -59,10 +61,8 @@ pub enum WidgetType {
     Row,
     Space,
 }
-use std::cell::RefCell;
-use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WidgetNode {
     pub(crate) view_id: id,
     pub(crate) hash: u64,
@@ -72,14 +72,12 @@ pub struct WidgetNode {
     related_ids: Vec<id>,
     pub widget_type: WidgetType,
     // Used in things like Row, Column and Container.
-    pub(crate) children: Vec<Rc<RefCell<WidgetNode>>>,
+    //pub(crate) children: Vec<Rc<RefCell<WidgetNode>>>,
 }
 
 impl PartialEq for WidgetNode {
     fn eq(&self, other: &Self) -> bool {
-        self.hash == other.hash
-            && self.widget_type == other.widget_type
-            && self.children == other.children
+        self.hash == other.hash && self.widget_type == other.widget_type
     }
 }
 
@@ -90,7 +88,7 @@ impl Default for WidgetNode {
             hash: 0,
             related_ids: Vec::new(),
             widget_type: WidgetType::BaseElement,
-            children: Vec::new(),
+            //children: Vec::new(),
         }
     }
 }
@@ -120,6 +118,7 @@ impl Drop for WidgetNode {
     }
 }
 */
+
 impl WidgetNode {
     pub fn new(view_id: id, widget_type: WidgetType, hash: u64) -> Self {
         Self {
@@ -127,7 +126,7 @@ impl WidgetNode {
             hash,
             related_ids: Vec::new(),
             widget_type,
-            children: Vec::new(),
+            //children: Vec::new(),
         }
     }
 
@@ -144,14 +143,18 @@ impl WidgetNode {
         for i in &self.related_ids {
             let obj = NSObject(*i);
             unsafe {
-                //obj.dealloc();
+                obj.dealloc();
             }
         }
-        for i in &self.children {
-            i.borrow().drop_from_ui();
+        match &self.widget_type {
+            WidgetType::Column(ref children) => {
+                for i in children {
+                    i.borrow().drop_from_ui();
+                }
+            }
+            _ => {}
         }
     }
-
 
     pub fn draw(&self, parent: UIView) {
         use uikit_sys::UIView_UIViewHierarchy;
@@ -161,13 +164,143 @@ impl WidgetNode {
             }
         }
     }
+    fn is_mergeable(&self, other: &Self) -> bool {
+        use WidgetType::*;
+        match (&self.widget_type, &other.widget_type) {
+            (Text(_), Text(_))
+            | (Column(_), Column(_))
+            | (TextInput, TextInput) => true,
+            _ => false,
+        }
+    }
+
+    pub fn merge(&mut self, other: &Self, root_view: Option<UIView>) {
+        use std::convert::TryInto;
+        use uikit_sys::{IUIStackView, UIStackView, UIView_UIViewHierarchy};
+
+        if !self.is_mergeable(other) {
+            let old_self = self.clone();
+            *self = Self { ..other.clone() };
+            if let Some(parent) = root_view {
+                self.draw(parent);
+                old_self.drop_from_ui();
+                /*
+
+                let old_view = UIView(self.view_id);
+                unsafe {
+                    old_view.removeFromSuperview();
+                }
+                */
+            }
+            old_self.drop_from_ui();
+        } else {
+            match (&mut self.widget_type, &other.widget_type) {
+                (
+                    WidgetType::Column(ref mut my_children),
+                    WidgetType::Column(other_children),
+                ) => {
+                    let stackview = UIStackView(self.view_id);
+                    if my_children.len() == other_children.len() {
+                        for i in 0..my_children.len() {
+                            let current_child = my_children.get_mut(i).unwrap();
+                            let new_child = other_children.get(i).unwrap();
+
+                            if current_child
+                                .borrow()
+                                .is_mergeable(&new_child.borrow())
+                            {
+                                current_child
+                                    .borrow_mut()
+                                    .merge(&new_child.borrow(), None);
+                            } else {
+                                unsafe {
+                                    stackview.removeArrangedSubview_(
+                                        current_child.borrow().view_id,
+                                    );
+                                    current_child.borrow().drop_from_ui();
+                                    stackview.insertArrangedSubview_atIndex_(
+                                        new_child.borrow().view_id,
+                                        i.try_into().unwrap(),
+                                    );
+                                }
+                                my_children[i] = new_child.clone();
+                            }
+                        }
+                    } else {
+                        let stackview = uikit_sys::UIStackView(self.view_id);
+                        for i in my_children.clone() {
+                            unsafe {
+                                stackview
+                                    .removeArrangedSubview_(i.borrow().view_id)
+                            }
+                            i.borrow().drop_from_ui();
+                        }
+                        *my_children = other_children.clone();
+                        for i in my_children {
+                            unsafe {
+                                stackview
+                                    .addArrangedSubview_(i.borrow().view_id)
+                            }
+                        }
+                    }
+                }
+                (
+                    WidgetType::Text(current_text),
+                    WidgetType::Text(new_text),
+                ) => {
+                    debug!(
+                        "Updating text from {} to {}",
+                        current_text, new_text
+                    );
+                    use std::convert::TryInto;
+                    use std::ffi::CString;
+                    use uikit_sys::{
+                        IUITextView, NSString,
+                        NSString_NSStringExtensionMethods,
+                        NSUTF8StringEncoding, UITextView,
+                    };
+                    let label = UITextView(self.view_id);
+                    unsafe {
+                        let text = NSString(
+                            NSString::alloc().initWithBytes_length_encoding_(
+                                CString::new(new_text.as_str())
+                                    .expect("CString::new failed")
+                                    .as_ptr()
+                                    as *mut std::ffi::c_void,
+                                new_text.len().try_into().unwrap(),
+                                NSUTF8StringEncoding,
+                            ),
+                        );
+                        label.setText_(text.0);
+                    }
+                }
+                (
+                    WidgetType::TextInput,
+                    WidgetType::TextInput,
+                ) => {
+                    debug!("Updating text input widgets is not implemented yet");
+                    //TODO: Add stuff about Text Input
+                }
+                (me, you) => {
+                    debug!("Widget's don't match! {:?}, {:?}", me, you);
+                }
+            }
+        }
+    }
 
     pub fn add_related_id(&mut self, related_id: id) {
         self.related_ids.push(related_id);
     }
 
     pub fn add_child(&mut self, child: WidgetNode) {
-        self.children.push(Rc::new(RefCell::new(child)));
+        match &mut self.widget_type {
+            WidgetType::Column(ref mut children) => {
+                children.push(Rc::new(RefCell::new(child)));
+            }
+            e => {
+                unimplemented!("CHILDREN ARE NOT IMPLEMENTED FOR {:?}", e);
+            }
+        }
     }
     pub fn add_children(&mut self, _children: Vec<WidgetNode>) {
         /*
@@ -193,7 +326,7 @@ pub trait Widget<Message> {
         WidgetNode::new(0 as id, self.get_widget_type(), hash)
     }
 
-    fn build_uiview(&self) -> WidgetNode {
+    fn build_uiview(&self, is_root: bool) -> WidgetNode {
         unimplemented!(
             "{:?} using base implementation",
             self.get_widget_type()
@@ -305,8 +438,8 @@ impl<'a, Message> Widget<Message> for Element<'a, Message> {
         self.widget.get_render_action(widget_node)
     }
 
-    fn build_uiview(&self) -> WidgetNode {
-        self.widget.build_uiview()
+    fn build_uiview(&self, is_root: bool) -> WidgetNode {
+        self.widget.build_uiview(is_root)
     }
 
     fn on_widget_event(
