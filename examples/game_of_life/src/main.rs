@@ -788,7 +788,7 @@ struct Controls {
     next_button: button::State,
     clear_button: button::State,
     speed_slider: slider::State,
-    preset_list: pick_list::State,
+    preset_list: pick_list::State<Preset>,
 }
 
 impl Controls {

@@ -122,6 +122,14 @@ impl<T> State<T> {
         &self.internal.layout
     }
 
+    /// Returns the focused [`Pane`] of the [`State`], if there is one.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    /// [`State`]: struct.State.html
+    pub fn focused(&self) -> Option<Pane> {
+        self.internal.focused_pane()
+    }
+
     /// Returns the active [`Pane`] of the [`State`], if there is one.
     ///
     /// A [`Pane`] is active if it is focused and is __not__ being dragged.
@@ -327,6 +335,7 @@ pub enum Action {
     Dragging {
         pane: Pane,
         origin: Point,
+        focus: Option<Pane>,
     },
     Resizing {
         split: Split,
@@ -351,6 +360,14 @@ impl Internal {
         self.action
     }
 
+    pub fn focused_pane(&self) -> Option<Pane> {
+        match self.action {
+            Action::Idle { focus } => focus,
+            Action::Dragging { focus, .. } => focus,
+            Action::Resizing { focus, .. } => focus,
+        }
+    }
+
     pub fn active_pane(&self) -> Option<Pane> {
         match self.action {
             Action::Idle { focus } => focus,
@@ -360,7 +377,7 @@ impl Internal {
 
     pub fn picked_pane(&self) -> Option<(Pane, Point)> {
         match self.action {
-            Action::Dragging { pane, origin } => Some((pane, origin)),
+            Action::Dragging { pane, origin, .. } => Some((pane, origin)),
             _ => None,
         }
     }
@@ -393,9 +410,12 @@ impl Internal {
     }
 
     pub fn pick_pane(&mut self, pane: &Pane, origin: Point) {
+        let focus = self.focused_pane();
+
         self.action = Action::Dragging {
             pane: *pane,
             origin,
+            focus,
         };
     }
 

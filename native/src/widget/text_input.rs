@@ -163,6 +163,13 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
         self.style = style.into();
         self
     }
+
+    /// Returns the current [`State`] of the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn state(&self) -> &State {
+        self.state
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>

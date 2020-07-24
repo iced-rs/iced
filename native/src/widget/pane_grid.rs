@@ -496,7 +496,10 @@ where
                             }
                         }
                     } else {
-                        self.state.unfocus();
+                        // TODO: Encode cursor availability in the type system
+                        if cursor_position.x > 0.0 && cursor_position.y > 0.0 {
+                            self.state.unfocus();
+                        }
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
@@ -625,6 +628,7 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         use std::hash::Hash;
+
         struct Marker;
         std::any::TypeId::of::<Marker>().hash(state);
 

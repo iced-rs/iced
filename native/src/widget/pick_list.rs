@@ -14,6 +14,9 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
 {
     menu: &'a mut menu::State,
+    is_open: &'a mut bool,
+    hovered_option: &'a mut Option<usize>,
+    last_selection: &'a mut Option<T>,
     on_selected: Box<dyn Fn(T) -> Message>,
     options: Cow<'a, [T]>,
     selected: Option<T>,
@@ -22,15 +25,28 @@ where
     text_size: Option<u16>,
     font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
-    is_open: bool,
 }
 
 /// The local state of a [`PickList`].
 ///
 /// [`PickList`]: struct.PickList.html
-#[derive(Debug, Clone, Default)]
-pub struct State {
+#[derive(Debug, Clone)]
+pub struct State<T> {
     menu: menu::State,
+    is_open: bool,
+    hovered_option: Option<usize>,
+    last_selection: Option<T>,
+}
+
+impl<T> Default for State<T> {
+    fn default() -> Self {
+        Self {
+            menu: menu::State::default(),
+            is_open: bool::default(),
+            hovered_option: Option::default(),
+            last_selection: Option::default(),
+        }
+    }
 }
 
 impl<'a, T: 'a, Message, Renderer: self::Renderer>
@@ -46,15 +62,23 @@ where
     /// [`PickList`]: struct.PickList.html
     /// [`State`]: struct.State.html
     pub fn new(
-        state: &'a mut State,
+        state: &'a mut State<T>,
         options: impl Into<Cow<'a, [T]>>,
         selected: Option<T>,
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
-        let is_open = state.menu.is_open();
+        let State {
+            menu,
+            is_open,
+            hovered_option,
+            last_selection,
+        } = state;
 
         Self {
-            menu: &mut state.menu,
+            menu,
+            is_open,
+            hovered_option,
+            last_selection,
             on_selected: Box::new(on_selected),
             options: options.into(),
             selected,
@@ -63,7 +87,6 @@ where
             padding: Renderer::DEFAULT_PADDING,
             font: Default::default(),
             style: Default::default(),
-            is_open,
         }
     }
 
@@ -197,27 +220,33 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _messages: &mut Vec<Message>,
+        messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) {
-        if !self.is_open {
-            match event {
-                Event::Mouse(mouse::Event::ButtonPressed(
-                    mouse::Button::Left,
-                )) => {
-                    if layout.bounds().contains(cursor_position) {
-                        let selected = self.selected.as_ref();
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                if *self.is_open {
+                    // TODO: Encode cursor availability in the type system
+                    *self.is_open =
+                        cursor_position.x < 0.0 || cursor_position.y < 0.0;
+                } else if layout.bounds().contains(cursor_position) {
+                    let selected = self.selected.as_ref();
 
-                        self.menu.open(
-                            self.options
-                                .iter()
-                                .position(|option| Some(option) == selected),
-                        );
-                    }
+                    *self.is_open = true;
+                    *self.hovered_option = self
+                        .options
+                        .iter()
+                        .position(|option| Some(option) == selected);
                 }
-                _ => {}
+
+                if let Some(last_selection) = self.last_selection.take() {
+                    messages.push((self.on_selected)(last_selection));
+
+                    *self.is_open = false;
+                }
             }
+            _ => {}
         }
     }
 
@@ -244,15 +273,19 @@ where
         &mut self,
         layout: Layout<'_>,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        if self.menu.is_open() {
+        if *self.is_open {
             let bounds = layout.bounds();
 
-            let mut menu =
-                Menu::new(&mut self.menu, &self.options, &self.on_selected)
-                    .width(bounds.width.round() as u16)
-                    .padding(self.padding)
-                    .font(self.font)
-                    .style(Renderer::menu_style(&self.style));
+            let mut menu = Menu::new(
+                &mut self.menu,
+                &self.options,
+                &mut self.hovered_option,
+                &mut self.last_selection,
+            )
+            .width(bounds.width.round() as u16)
+            .padding(self.padding)
+            .font(self.font)
+            .style(Renderer::menu_style(&self.style));
 
             if let Some(text_size) = self.text_size {
                 menu = menu.text_size(text_size);
