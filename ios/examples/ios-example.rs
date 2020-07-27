@@ -1,4 +1,4 @@
-#[macro_use] extern crate log;
+//#[macro_use] extern crate log;
 use iced::{
     //button, scrollable, slider, text_input, Button, Checkbox, Color,
     Column,
@@ -53,7 +53,7 @@ impl Sandbox for Simple {
     }
 
     fn update(&mut self, message: Message) {
-        debug!("GOT NEW MESSAGE: {:?}", message);
+        log::debug!("GOT NEW MESSAGE: {:?}", message);
         match message {
             Message::TextUpdated(val) => {
                 self.text = val;

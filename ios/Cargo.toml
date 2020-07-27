@@ -9,6 +9,7 @@ description = "iOS backend for iced"
 name = "ios-example"
 identifier = "com.github.iced.simple"
 category = "Utility"
+icon = ["examples/icon32x32.png"]
 short_description = "An example of a bundled application"
 long_description = """
 A trivial application that just displays a blank window with

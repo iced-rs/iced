@@ -242,12 +242,10 @@ where
             stack_view.setAxis_(
                 UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
             );
-            //stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
-            /*
+            stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
             stack_view.setDistribution_(
                 UIStackViewDistribution_UIStackViewDistributionFill,
             );
-            */
             stack_view
         };
         let mut stackview_node = WidgetNode::new(
@@ -261,10 +259,10 @@ where
             stackview_node.add_child(node);
             unsafe {
                 let layout = NSLayoutDimension(subview.heightAnchor());
-                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                NSLayoutConstraint(layout.constraintEqualToConstant_(10.0))
                     .setActive_(true);
                 let layout = NSLayoutDimension(subview.widthAnchor());
-                NSLayoutConstraint(layout.constraintEqualToConstant_(100.0))
+                NSLayoutConstraint(layout.constraintEqualToConstant_(10.0))
                     .setActive_(true);
                 stack_view.addArrangedSubview_(subview.0);
             }

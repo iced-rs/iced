@@ -6,8 +6,15 @@ use crate::{
 use winit::{
     event,
     event_loop::{ControlFlow, EventLoop},
-    platform::ios::WindowExtIOS,
-    window::WindowBuilder,
+    platform::ios::{
+        WindowExtIOS
+    },
+    monitor::MonitorHandle,
+    window::{
+        WindowBuilder,
+        Window,
+        Fullscreen,
+    },
 };
 
 use uikit_sys::{
@@ -124,12 +131,13 @@ pub trait Application: Sized {
         let window = {
             let mut window_builder = WindowBuilder::new();
 
-            //let (width, height) = settings.window.size;
-
+            //let (width, height) = settings.window.size
+            //let window = Window::new(&event_loop).unwrap();
             window_builder = window_builder
                 .with_title(title)
-                .with_maximized(true)
-                //.with_fullscreen(None)
+                //.with_maximized(true)
+                //.with_decorations(false)
+                //.with_fullscreen()//Some(Fullscreen::Borderless(window.current_monitor())))
                 //.with_inner_size(winit::dpi::LogicalSize { width: 1000, height: 1000})
             ;
             /*
