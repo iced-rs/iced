@@ -157,14 +157,14 @@ impl<Message> Widget<Message> for Text<Message> {
                     uikit_sys::NSUTF8StringEncoding,
                 ),
             );
-            label.setText_(text.0);
+            label.setText_(text);
             debug!("THIS TEXT IS A ROOT NODE: {:?}", is_root);
             if is_root {
-                let screen = UIScreen(UIScreen::mainScreen());
+                let screen = UIScreen::mainScreen();
                 let frame = screen.bounds();
                 label.setFrame_(frame);
             }
-            let layer = CALayer(label.layer());
+            let layer = label.layer();
             layer.setBorderWidth_(3.0);
             /*
                let rect = CGRect {
@@ -181,13 +181,13 @@ impl<Message> Widget<Message> for Text<Message> {
             label.setClipsToBounds_(true);
             if let Some(color) = self.color {
                 let background =
-                    UIColor(UIColor::alloc().initWithRed_green_blue_alpha_(
+                    UIColor::alloc().initWithRed_green_blue_alpha_(
                             color.r.into(),
                             color.g.into(),
                             color.b.into(),
                             color.a.into(),
-                    ));
-                label.setTextColor_(background.0)
+                    );
+                label.setTextColor_(background)
             }
             label
         };

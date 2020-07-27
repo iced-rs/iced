@@ -228,7 +228,7 @@ where
             //    UIStackView(UIStackView::alloc().initWithFrame_(rect));
             let stack_view = UIStackView(UIStackView::alloc().init());
             if is_root {
-                let screen = UIScreen(UIScreen::mainScreen());
+                let screen = UIScreen::mainScreen();
                 let frame = screen.bounds();
                 stack_view.setFrame_(frame);
             }
@@ -242,7 +242,7 @@ where
             stack_view.setAxis_(
                 UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
             );
-            stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
+            //stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
             stack_view.setDistribution_(
                 UIStackViewDistribution_UIStackViewDistributionFill,
             );
@@ -258,13 +258,11 @@ where
             let subview = UIView(node.view_id);
             stackview_node.add_child(node);
             unsafe {
-                let layout = NSLayoutDimension(subview.heightAnchor());
-                NSLayoutConstraint(layout.constraintEqualToConstant_(10.0))
-                    .setActive_(true);
-                let layout = NSLayoutDimension(subview.widthAnchor());
-                NSLayoutConstraint(layout.constraintEqualToConstant_(10.0))
-                    .setActive_(true);
-                stack_view.addArrangedSubview_(subview.0);
+                let layout = subview.heightAnchor();
+                layout.constraintEqualToConstant_(100.0).setActive_(true);
+                let layout = subview.widthAnchor();
+                layout.constraintEqualToConstant_(100.0).setActive_(true);
+                stack_view.addArrangedSubview_(subview);
             }
         }
         stackview_node

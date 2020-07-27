@@ -149,9 +149,9 @@ pub trait Application: Sized {
 
         let root_view: UIView = UIView(window.ui_view() as id);
         unsafe {
-            let background = UIColor(UIColor::greenColor());
+            let background = UIColor::greenColor();
             //let background = UIColor(UIColor::whiteColor());
-            root_view.setBackgroundColor_(background.0);
+            root_view.setBackgroundColor_(background);
             /*
             let rect = CGRect {
                 origin: CGPoint { x: 0.0, y: 0.0 },

@@ -27,10 +27,10 @@ raw-window-handle = "^0.3"
 # winit = { path = "../../winit/" }
 winit = { git = "https://github.com/simlay/winit", branch = "ios-rename-nsstring"}
 objc = "0.2.7"
-uikit-sys = { git = "https://github.com/simlay/uikit-sys" }
 log = "0.4"
 num-traits = "0.2"
-#uikit-sys = { path = "../../uikit-sys/" }
+uikit-sys = { path = "../../uikit-sys/" }
+#uikit-sys = { git = "https://github.com/simlay/uikit-sys" }
 
 [dependencies.iced_core]
 version = "0.2"

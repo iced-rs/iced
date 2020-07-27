@@ -160,7 +160,7 @@ impl WidgetNode {
         use uikit_sys::UIView_UIViewHierarchy;
         if self.view_id != 0 as id {
             unsafe {
-                parent.addSubview_(self.view_id);
+                parent.addSubview_(UIView(self.view_id));
             }
         }
     }
@@ -215,11 +215,11 @@ impl WidgetNode {
                             } else {
                                 unsafe {
                                     stackview.removeArrangedSubview_(
-                                        current_child.borrow().view_id,
+                                        UIView(current_child.borrow().view_id)
                                     );
                                     current_child.borrow().drop_from_ui();
                                     stackview.insertArrangedSubview_atIndex_(
-                                        new_child.borrow().view_id,
+                                        UIView(new_child.borrow().view_id),
                                         i.try_into().unwrap(),
                                     );
                                 }
@@ -231,7 +231,7 @@ impl WidgetNode {
                         for i in my_children.clone() {
                             unsafe {
                                 stackview
-                                    .removeArrangedSubview_(i.borrow().view_id)
+                                    .removeArrangedSubview_(UIView(i.borrow().view_id))
                             }
                             i.borrow().drop_from_ui();
                         }
@@ -239,7 +239,7 @@ impl WidgetNode {
                         for i in my_children {
                             unsafe {
                                 stackview
-                                    .addArrangedSubview_(i.borrow().view_id)
+                                    .addArrangedSubview_(UIView(i.borrow().view_id))
                             }
                         }
                     }
@@ -271,7 +271,7 @@ impl WidgetNode {
                                 NSUTF8StringEncoding,
                             ),
                         );
-                        label.setText_(text.0);
+                        label.setText_(text);
                     }
                 }
                 (

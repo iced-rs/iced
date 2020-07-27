@@ -182,11 +182,11 @@ where
                 // TODO: Use something better than just a rect.
                 let view = UITextView(UITextView::alloc().init());
                 if is_root {
-                    let screen = UIScreen(UIScreen::mainScreen());
+                    let screen = UIScreen::mainScreen();
                     let frame = screen.bounds();
                     view.setFrame_(frame);
                 }
-                let layer = CALayer(view.layer());
+                let layer = view.layer();
                 layer.setBorderWidth_(3.0);
                 view
                 /*
@@ -209,8 +209,7 @@ where
             };
             let on_change = EventHandler::new(ui_textview.0);
             // https://developer.apple.com/documentation/foundation/nsnotificationcenter/1415360-addobserver?language=objc
-            let center =
-                NSNotificationCenter(NSNotificationCenter::defaultCenter());
+            let center = NSNotificationCenter::defaultCenter();
             center.addObserver_selector_name_object_(
                 on_change.id,
                 sel!(sendEvent),
@@ -240,7 +239,7 @@ where
         if widget_event.id as id == widget_node.view_id {
             let ui_textview = UITextView(widget_event.id as id);
             let value = unsafe {
-                let value = NSString(ui_textview.text());
+                let value = ui_textview.text();
                 let len = value
                     .lengthOfBytesUsingEncoding_(uikit_sys::NSUTF8StringEncoding);
                 let bytes = value.UTF8String() as *const u8;
