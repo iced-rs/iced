@@ -200,8 +200,14 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        overlay_content_bounds: Option<Rectangle>,
+        cursor_position: Point,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.content.overlay(layout.children().next().unwrap())
+        self.content.overlay(
+            layout.children().next().unwrap(),
+            overlay_content_bounds,
+            cursor_position,
+        )
     }
 }
 

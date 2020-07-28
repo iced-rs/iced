@@ -1,3 +1,5 @@
+use iced_core::Rectangle;
+
 use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
@@ -189,6 +191,8 @@ where
     pub(crate) fn overlay(
         &mut self,
         layout: Layout<'_>,
+        overlay_content_bounds: Option<Rectangle>,
+        cursor_position: Point,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         let body_layout = if self.title_bar.is_some() {
             let mut children = layout.children();
@@ -201,7 +205,8 @@ where
             layout
         };
 
-        self.body.overlay(body_layout)
+        self.body
+            .overlay(body_layout, overlay_content_bounds, cursor_position)
     }
 }
 

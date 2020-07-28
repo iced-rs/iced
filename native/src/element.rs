@@ -259,8 +259,11 @@ where
     pub fn overlay<'b>(
         &'b mut self,
         layout: Layout<'_>,
+        overlay_content_bounds: Option<Rectangle>,
+        cursor_position: Point,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        self.widget.overlay(layout)
+        self.widget
+            .overlay(layout, overlay_content_bounds, cursor_position)
     }
 }
 
@@ -352,11 +355,13 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        overlay_content_bounds: Option<Rectangle>,
+        cursor_position: Point,
     ) -> Option<overlay::Element<'_, B, Renderer>> {
         let mapper = &self.mapper;
 
         self.widget
-            .overlay(layout)
+            .overlay(layout, overlay_content_bounds, cursor_position)
             .map(move |overlay| overlay.map(mapper))
     }
 }
@@ -440,7 +445,10 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        overlay_content_bounds: Option<Rectangle>,
+        cursor_position: Point,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.element.overlay(layout)
+        self.element
+            .overlay(layout, overlay_content_bounds, cursor_position)
     }
 }

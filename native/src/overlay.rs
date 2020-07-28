@@ -4,6 +4,7 @@ mod element;
 pub mod menu;
 
 pub use element::Element;
+use iced_core::Rectangle;
 pub use menu::Menu;
 
 use crate::event::{self, Event};
@@ -35,6 +36,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output;
 
     /// Computes the _layout_ hash of the [`Overlay`].

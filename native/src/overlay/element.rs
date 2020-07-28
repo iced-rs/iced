@@ -1,3 +1,5 @@
+use iced_core::Rectangle;
+
 pub use crate::Overlay;
 
 use crate::event::{self, Event};
@@ -74,9 +76,10 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         self.overlay
-            .draw(renderer, defaults, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position, viewport)
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -145,9 +148,10 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         self.content
-            .draw(renderer, defaults, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position, viewport)
     }
 
     fn hash_layout(&self, state: &mut Hasher, position: Point) {

@@ -197,11 +197,19 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        overlay_content_bounds: Option<Rectangle>,
+        cursor_position: Point,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         self.children
             .iter_mut()
             .zip(layout.children())
-            .filter_map(|(child, layout)| child.widget.overlay(layout))
+            .filter_map(|(child, layout)| {
+                child.widget.overlay(
+                    layout,
+                    overlay_content_bounds,
+                    cursor_position,
+                )
+            })
             .next()
     }
 }
