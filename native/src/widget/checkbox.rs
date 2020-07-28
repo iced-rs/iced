@@ -146,6 +146,7 @@ where
             )
             .push(
                 Text::new(&self.label)
+                    .font(self.font)
                     .width(self.width)
                     .size(self.text_size.unwrap_or(renderer.default_size())),
             )
