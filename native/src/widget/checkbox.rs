@@ -33,6 +33,7 @@ pub struct Checkbox<Message, Renderer: self::Renderer + text::Renderer> {
     size: u16,
     spacing: u16,
     text_size: Option<u16>,
+    font: Renderer::Font,
     style: Renderer::Style,
 }
 
@@ -61,6 +62,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
             size: <Renderer as self::Renderer>::DEFAULT_SIZE,
             spacing: Renderer::DEFAULT_SPACING,
             text_size: None,
+            font: Renderer::Font::default(),
             style: Renderer::Style::default(),
         }
     }
@@ -94,6 +96,15 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     /// [`Checkbox`]: struct.Checkbox.html
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
+        self
+    }
+
+    /// Sets the [`Font`] of the text of the [`Checkbox`].
+    ///
+    /// [`Checkbox`]: struct.Checkbox.html
+    /// [`Font`]: ../../struct.Font.html
+    pub fn font(mut self, font: Renderer::Font) -> Self {
+        self.font = font;
         self
     }
 
@@ -182,7 +193,7 @@ where
             label_layout.bounds(),
             &self.label,
             self.text_size.unwrap_or(renderer.default_size()),
-            Default::default(),
+            self.font,
             None,
             HorizontalAlignment::Left,
             VerticalAlignment::Center,
