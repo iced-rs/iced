@@ -48,13 +48,13 @@ impl Pipeline {
 
             let matrix: [f32; 16] = Transformation::identity().into();
             gl.uniform_matrix_4_f32_slice(
-                Some(transform_location),
+                Some(&transform_location),
                 false,
                 &matrix,
             );
 
-            gl.uniform_1_f32(Some(scale_location), 1.0);
-            gl.uniform_1_f32(Some(screen_height_location), 0.0);
+            gl.uniform_1_f32(Some(&scale_location), 1.0);
+            gl.uniform_1_f32(Some(&screen_height_location), 0.0);
 
             gl.use_program(None);
         }
@@ -102,7 +102,7 @@ impl Pipeline {
             unsafe {
                 let matrix: [f32; 16] = transformation.into();
                 gl.uniform_matrix_4_f32_slice(
-                    Some(self.transform_location),
+                    Some(&self.transform_location),
                     false,
                     &matrix,
                 );
@@ -113,7 +113,7 @@ impl Pipeline {
 
         if scale != self.current_scale {
             unsafe {
-                gl.uniform_1_f32(Some(self.scale_location), scale);
+                gl.uniform_1_f32(Some(&self.scale_location), scale);
             }
 
             self.current_scale = scale;
@@ -122,7 +122,7 @@ impl Pipeline {
         if target_height != self.current_target_height {
             unsafe {
                 gl.uniform_1_f32(
-                    Some(self.screen_height_location),
+                    Some(&self.screen_height_location),
                     target_height as f32,
                 );
             }
