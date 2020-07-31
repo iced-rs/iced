@@ -468,6 +468,11 @@ where
                         self.state.cursor.select_all(&self.value);
                     }
                 }
+                keyboard::KeyCode::Escape => {
+                    self.state.is_focused = false;
+                    self.state.is_dragging = false;
+                    self.state.is_pasting = None;
+                }
                 _ => {}
             },
             Event::Keyboard(keyboard::Event::KeyReleased {

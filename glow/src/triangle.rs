@@ -44,7 +44,7 @@ impl Pipeline {
 
             let transform: [f32; 16] = Transformation::identity().into();
             gl.uniform_matrix_4_f32_slice(
-                Some(transform_location),
+                Some(&transform_location),
                 false,
                 &transform,
             );
@@ -182,7 +182,7 @@ impl Pipeline {
                 if self.current_transform != transform {
                     let matrix: [f32; 16] = transform.into();
                     gl.uniform_matrix_4_f32_slice(
-                        Some(self.transform_location),
+                        Some(&self.transform_location),
                         false,
                         &matrix,
                     );
