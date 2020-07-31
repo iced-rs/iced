@@ -15,7 +15,11 @@ use crate::{
 
 pub use iced_style::text_input::{Style, StyleSheet};
 
-use std::{rc::Rc, u32};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    u32
+};
 
 use std::convert::TryInto;
 use uikit_sys::{
@@ -24,7 +28,7 @@ use uikit_sys::{
     UITextView, UITextViewTextDidChangeNotification, UIView, IUIView,
     UIView_UIViewHierarchy,
     UIView_UIViewGeometry,
-    CALayer, ICALayer,
+    CALayer,
     UIScreen, IUIScreen,
 };
 
@@ -177,35 +181,17 @@ where
     }
 
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
-        let textview = unsafe {
+        let textview_builder = move || unsafe {
             let ui_textview = {
                 // TODO: Use something better than just a rect.
                 let view = UITextView(UITextView::alloc().init());
+                debug!("THIS UITEXT VIEW IS A ROOT? {:?}", is_root);
                 if is_root {
                     let screen = UIScreen::mainScreen();
                     let frame = screen.bounds();
                     view.setFrame_(frame);
                 }
-                let layer = view.layer();
-                layer.setBorderWidth_(3.0);
                 view
-                /*
-                if parent.is_none() {
-                    UITextView(UITextView::alloc().init())
-                } else {
-                    let input_rect = CGRect {
-                        origin: CGPoint { x: 10.0, y: 10.0 },
-                        size: CGSize {
-                            width: 100.0,
-                            height: 100.0,
-                        },
-                    };
-                    UITextView(UITextView::alloc().initWithFrame_textContainer_(
-                            input_rect,
-                            0 as id,
-                    ))
-                }
-                */
             };
             let on_change = EventHandler::new(ui_textview.0);
             // https://developer.apple.com/documentation/foundation/nsnotificationcenter/1415360-addobserver?language=objc
@@ -216,11 +202,16 @@ where
                 UITextViewTextDidChangeNotification,
                 ui_textview.0,
             );
-            ui_textview
+            ui_textview.0
         };
 
 
-        WidgetNode::new(textview.0, self.get_widget_type(), self.get_my_hash())
+        WidgetNode::new(
+            Rc::new(RefCell::new(textview_builder)),
+            //textview.0,
+            self.get_widget_type(),
+            self.get_my_hash()
+        )
     }
 
 

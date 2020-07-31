@@ -8,19 +8,24 @@ use crate::{
     Length,
     VerticalAlignment,
     Widget,
-    widget::{WidgetNode, WidgetType, RenderAction},
+    widget::{WidgetNode, WidgetType},
     Hasher, Size,
 };
 use std::convert::TryInto;
 use std::ffi::CString;
 use uikit_sys::{
+    id,
     CGPoint, CGRect, CGSize, INSObject, IUIColor, IUILabel,
     NSString, NSString_NSStringExtensionMethods,
     UIColor, UILabel, UIView, IUIView,
     UIView_UIViewGeometry, UIView_UIViewHierarchy,
     UIView_UIViewRendering,
-    CALayer, ICALayer,
+    ICALayer,
     UIScreen, IUIScreen,
+};
+use std::{
+    cell::RefCell,
+    rc::Rc,
 };
 use std::marker::PhantomData;
 
@@ -144,54 +149,54 @@ impl<Message> Widget<Message> for Text<Message> {
         WidgetType::Text(self.content.clone())
     }
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
-        let label = unsafe {
-            let label = UILabel::alloc();
-            label.init();
+        let content = self.content.clone();
+        let color = self.color.clone();
+        let label_builder = move || {
+            unsafe {
+                let label = UILabel::alloc();
+                label.init();
 
-            let text = NSString(
-                NSString::alloc().initWithBytes_length_encoding_(
-                    CString::new(self.content.as_str())
-                    .expect("CString::new failed")
-                    .as_ptr() as *mut std::ffi::c_void,
-                    self.content.len().try_into().unwrap(),
-                    uikit_sys::NSUTF8StringEncoding,
-                ),
-            );
-            label.setText_(text);
-            debug!("THIS TEXT IS A ROOT NODE: {:?}", is_root);
-            if is_root {
-                let screen = UIScreen::mainScreen();
-                let frame = screen.bounds();
-                label.setFrame_(frame);
-            }
-            let layer = label.layer();
-            layer.setBorderWidth_(3.0);
-            /*
-               let rect = CGRect {
-               origin: CGPoint { x: 0.0, y: 0.0 },
-               size: CGSize {
-               height: 0.0,
-               width: 0.0,
-               },
-               };
-               label.setFrame_(rect);
-               */
-            label.setAdjustsFontSizeToFitWidth_(true);
-            label.setMinimumScaleFactor_(10.0);
-            label.setClipsToBounds_(true);
-            if let Some(color) = self.color {
-                let background =
-                    UIColor::alloc().initWithRed_green_blue_alpha_(
+                let text = NSString(
+                    NSString::alloc().initWithBytes_length_encoding_(
+                        CString::new(content.as_str())
+                        .expect("CString::new failed")
+                        .as_ptr() as *mut std::ffi::c_void,
+                        content.len().try_into().unwrap(),
+                        uikit_sys::NSUTF8StringEncoding,
+                    ),
+                );
+                label.setText_(text);
+                debug!("THIS TEXT IS A ROOT NODE: {:?}", is_root);
+                if is_root {
+                    let screen = UIScreen::mainScreen();
+                    let frame = screen.bounds();
+                    label.setFrame_(frame);
+                }
+
+                let layer = label.layer();
+                layer.setBorderWidth_(3.0);
+
+                label.setAdjustsFontSizeToFitWidth_(true);
+                label.setMinimumScaleFactor_(10.0);
+                label.setClipsToBounds_(true);
+                if let Some(color) = color {
+                    let background =
+                        UIColor::alloc().initWithRed_green_blue_alpha_(
                             color.r.into(),
                             color.g.into(),
                             color.b.into(),
                             color.a.into(),
-                    );
-                label.setTextColor_(background)
+                        );
+                    label.setTextColor_(background)
+                }
+                label.0
             }
-            label
         };
-        WidgetNode::new(label.0, self.get_widget_type(), self.get_my_hash())
+        WidgetNode::new(
+            Rc::new(RefCell::new(label_builder)),
+            self.get_widget_type(),
+            self.get_my_hash()
+            )
     }
     fn width(&self) -> Length {
         self.width

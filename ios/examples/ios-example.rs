@@ -76,6 +76,9 @@ impl Sandbox for Simple {
         } else  {
             let column = Column::new()
                 .push(
+                    Text::new(format!("FOO: {}", &self.text)).color(Color::BLACK)
+                )
+                .push(
                     TextInput::new(
                         &mut self.text_state,
                         "",
@@ -86,7 +89,25 @@ impl Sandbox for Simple {
                     )
                 )
                 .push(
-                    Text::new(format!("TEXT2: {}", &self.text)).color(Color::BLACK)
+                    Text::new(format!("BAR: {}", &self.text)).color(Color::BLACK)
+                )
+                .push(
+                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
+                )
+                .push(
+                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
+                )
+                .push(
+                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
+                )
+                .push(
+                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
+                )
+                .push(
+                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
+                )
+                .push(
+                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
                 )
                 ;
             column.into()

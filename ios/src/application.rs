@@ -1,6 +1,6 @@
 use crate::{
     event::{EventHandler, WidgetEvent},
-    widget::{RenderAction, Widget, WidgetNode},
+    widget::{Widget, WidgetNode},
     Command, Element, Executor, Runtime, Subscription,
 };
 use winit::{
@@ -135,8 +135,7 @@ pub trait Application: Sized {
             //let window = Window::new(&event_loop).unwrap();
             window_builder = window_builder
                 .with_title(title)
-                //.with_maximized(true)
-                //.with_decorations(false)
+                .with_decorations(true)
                 //.with_fullscreen()//Some(Fullscreen::Borderless(window.current_monitor())))
                 //.with_inner_size(winit::dpi::LogicalSize { width: 1000, height: 1000})
             ;
@@ -163,7 +162,7 @@ pub trait Application: Sized {
             root_view.setFrame_(rect);
             */
         }
-        let mut widget_tree: WidgetNode = app.view().get_widget_node();
+        let mut widget_tree: WidgetNode = app.view().build_uiview(true);
 
         event_loop.run(
             move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
@@ -180,7 +179,7 @@ pub trait Application: Sized {
                                 &mut messages,
                                 &widget_tree,
                             );
-                            debug!("Root widget before: {:?}", widget_tree);
+                            //debug!("Root widget before: {:?}", widget_tree);
                         }
                         for message in messages {
                             let (command, subscription) = runtime.enter(|| {
@@ -193,10 +192,11 @@ pub trait Application: Sized {
                             runtime.spawn(command);
                             runtime.track(subscription);
                         }
-                        let mut element = app.view();
+                        let element = app.view();
+                        //widget_tree = element.update(widget_tree, Some(root_view));
                         let new_tree = element.build_uiview(true);
                         widget_tree.merge(&new_tree, Some(root_view));
-                        debug!("Root widget after: {:#?}", widget_tree);
+                        //debug!("Root widget after: {:#?}", widget_tree);
                     }
                     event::Event::RedrawRequested(_) => {}
                     event::Event::WindowEvent {
@@ -204,7 +204,7 @@ pub trait Application: Sized {
                         ..
                     } => {}
                     event::Event::NewEvents(event::StartCause::Init) => {
-                        let mut element = app.view();
+                        let element = app.view();
                         widget_tree = element.build_uiview(true);
                         let root_view: UIView = UIView(window.ui_view() as id);
                         widget_tree.draw(root_view);

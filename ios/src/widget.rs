@@ -2,6 +2,7 @@ use crate::{event::WidgetEvent, Hasher, Length};
 use std::cell::RefCell;
 use std::rc::Rc;
 use uikit_sys::{id, UIView};
+use std::convert::TryInto;
 
 /*
 pub mod button;
@@ -62,18 +63,28 @@ pub enum WidgetType {
     Space,
 }
 
-#[derive(Debug, Clone)]
 pub struct WidgetNode {
     pub(crate) view_id: id,
     pub(crate) hash: u64,
+    pub(crate) uikit_builder: Rc<RefCell<dyn FnMut() -> id>>,
     //pub (crate) widget_id: u64,
 
     // Used for memory collection.
     related_ids: Vec<id>,
     pub widget_type: WidgetType,
-    // Used in things like Row, Column and Container.
-    //pub(crate) children: Vec<Rc<RefCell<WidgetNode>>>,
 }
+
+use std::fmt;
+impl fmt::Debug for WidgetNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WidgetNode")
+            .field("view_id", &self.view_id)
+            .field("hash", &self.hash)
+            .field("widget_type", &self.widget_type)
+            .finish()
+    }
+}
+
 
 impl PartialEq for WidgetNode {
     fn eq(&self, other: &Self) -> bool {
@@ -81,17 +92,6 @@ impl PartialEq for WidgetNode {
     }
 }
 
-impl Default for WidgetNode {
-    fn default() -> Self {
-        Self {
-            view_id: 0 as id,
-            hash: 0,
-            related_ids: Vec::new(),
-            widget_type: WidgetType::BaseElement,
-            //children: Vec::new(),
-        }
-    }
-}
 
 /*
 impl Drop for WidgetNode {
@@ -120,10 +120,11 @@ impl Drop for WidgetNode {
 */
 
 impl WidgetNode {
-    pub fn new(view_id: id, widget_type: WidgetType, hash: u64) -> Self {
+    pub fn new(uikit_builder: Rc<RefCell<dyn FnMut() -> id>>, widget_type: WidgetType, hash: u64) -> Self {
         Self {
-            view_id,
+            view_id: 0 as id,
             hash,
+            uikit_builder,
             related_ids: Vec::new(),
             widget_type,
             //children: Vec::new(),
@@ -164,6 +165,7 @@ impl WidgetNode {
             }
         }
     }
+
     fn is_mergeable(&self, other: &Self) -> bool {
         use WidgetType::*;
         match (&self.widget_type, &other.widget_type) {
@@ -175,24 +177,18 @@ impl WidgetNode {
     }
 
     pub fn merge(&mut self, other: &Self, root_view: Option<UIView>) {
-        use std::convert::TryInto;
         use uikit_sys::{IUIStackView, UIStackView, UIView_UIViewHierarchy};
 
         if !self.is_mergeable(other) {
+            /*
             let old_self = self.clone();
             *self = Self { ..other.clone() };
             if let Some(parent) = root_view {
                 self.draw(parent);
                 old_self.drop_from_ui();
-                /*
-
-                let old_view = UIView(self.view_id);
-                unsafe {
-                    old_view.removeFromSuperview();
-                }
-                */
             }
             old_self.drop_from_ui();
+            */
         } else {
             match (&mut self.widget_type, &other.widget_type) {
                 (
@@ -212,6 +208,7 @@ impl WidgetNode {
                                 current_child
                                     .borrow_mut()
                                     .merge(&new_child.borrow(), None);
+                                new_child.borrow().drop_from_ui();
                             } else {
                                 unsafe {
                                     stackview.removeArrangedSubview_(
@@ -245,14 +242,9 @@ impl WidgetNode {
                     }
                 }
                 (
-                    WidgetType::Text(current_text),
+                    WidgetType::Text(_current_text),
                     WidgetType::Text(new_text),
                 ) => {
-                    debug!(
-                        "Updating text from {} to {}",
-                        current_text, new_text
-                    );
-                    use std::convert::TryInto;
                     use std::ffi::CString;
                     use uikit_sys::{
                         IUITextView, NSString,
@@ -292,6 +284,20 @@ impl WidgetNode {
         self.related_ids.push(related_id);
     }
 
+    fn replace_child(&mut self, child: WidgetNode, i: usize) {
+        match &mut self.widget_type {
+            WidgetType::Column(ref mut children) => {
+                if i < children.len() {
+                    children[i] = Rc::new(RefCell::new(child));
+                }
+            }
+            e => {
+                unimplemented!("CHILDREN ARE NOT IMPLEMENTED FOR {:?}", e);
+            }
+        }
+
+    }
+
     pub fn add_child(&mut self, child: WidgetNode) {
         match &mut self.widget_type {
             WidgetType::Column(ref mut children) => {
@@ -311,22 +317,17 @@ impl WidgetNode {
     }
 }
 
-#[derive(Debug)]
-pub enum RenderAction {
-    Add,
-    Remove,
-    Update,
-}
-
 pub trait Widget<Message> {
     fn get_widget_type(&self) -> WidgetType;
 
-    fn get_widget_node(&self) -> WidgetNode {
-        let hash = self.get_my_hash();
-        WidgetNode::new(0 as id, self.get_widget_type(), hash)
+    fn build_uiview(&self, _is_root: bool) -> WidgetNode {
+        unimplemented!(
+            "{:?} using base implementation",
+            self.get_widget_type()
+        );
     }
 
-    fn build_uiview(&self, is_root: bool) -> WidgetNode {
+    fn update(&self, current_node: WidgetNode, root_view: Option<UIView>) -> WidgetNode {
         unimplemented!(
             "{:?} using base implementation",
             self.get_widget_type()
@@ -352,28 +353,7 @@ pub trait Widget<Message> {
         //_renderer: &Renderer,
         //_clipboard: Option<&dyn Clipboard>,
     ) {
-        debug!("on_widget_event for {:?}", self.get_widget_type());
-    }
-
-    fn get_render_action(
-        &self,
-        widget_node: Option<&WidgetNode>,
-    ) -> RenderAction {
-        let action = if widget_node.is_none() {
-            RenderAction::Add
-        } else if widget_node.is_some()
-            && widget_node.unwrap().widget_type == self.get_widget_type()
-        {
-            RenderAction::Update
-        } else {
-            RenderAction::Remove
-        };
-        debug!(
-            "RENDER ACTION FOR WIDGET {:?} is {:?}",
-            self.get_widget_type(),
-            action
-        );
-        action
+        //debug!("on_widget_event for {:?}", self.get_widget_type());
     }
 
     fn width(&self) -> Length;
@@ -420,6 +400,11 @@ impl<'a, Message> Widget<Message> for Element<'a, Message> {
         self.widget.hash_layout(state);
     }
 
+    fn update(&self, current_node: WidgetNode, root_view: Option<UIView>) -> WidgetNode {
+        self.widget.update(current_node, root_view)
+    }
+
+
     fn width(&self) -> Length {
         self.widget.width()
     }
@@ -430,12 +415,6 @@ impl<'a, Message> Widget<Message> for Element<'a, Message> {
 
     fn get_widget_type(&self) -> WidgetType {
         self.widget.get_widget_type()
-    }
-    fn get_render_action(
-        &self,
-        widget_node: Option<&WidgetNode>,
-    ) -> RenderAction {
-        self.widget.get_render_action(widget_node)
     }
 
     fn build_uiview(&self, is_root: bool) -> WidgetNode {

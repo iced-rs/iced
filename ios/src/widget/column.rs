@@ -1,6 +1,6 @@
 use crate::{
     event::WidgetEvent,
-    widget::{RenderAction, WidgetNode, WidgetType},
+    widget::{WidgetNode, WidgetType},
     Align, Element, Hasher, Length, Widget,
 };
 use std::cell::RefCell;
@@ -14,10 +14,12 @@ use uikit_sys::{
     NSLayoutDimension, UIColor,
     UILayoutConstraintAxis_UILayoutConstraintAxisVertical, UIStackView,
     UIStackViewAlignment_UIStackViewAlignmentCenter,
-    UIStackViewDistribution_UIStackViewDistributionFill, UITextView, UIView,
+    UIStackViewDistribution_UIStackViewDistributionFillEqually, UITextView, UIView,
     UIView_UIViewGeometry, UIView_UIViewHierarchy,
     UIView_UIViewLayoutConstraintCreation, UIView_UIViewRendering,
     UIScreen,
+    IUIView,
+    ICALayer,
     IUIScreen,
 };
 
@@ -182,50 +184,36 @@ where
     fn height(&self) -> Length {
         self.height
     }
+    fn update(&self, mut current_node: WidgetNode, root_view: Option<UIView>) -> WidgetNode {
+        /*
+        match current_node.widget_type {
+            WidgetType::Column(ref other_children) => {
+                //if self.children.len() == other_children.len() {
+                for (i, (child, node)) in
+                    self.children.iter().zip(other_children).enumerate()
+                    {
+                        current_node.replace_child(child.update((*node).into_inner(), None), i);
+                        //node = &Rc::new(RefCell::new(child.update(node.into_inner(), None)));
+                    }
+                current_node
+            },
+            other => {
+                debug!("current node outdate! {:?}", other);
+                self.build_uiview(root_view.is_some())
+            }
+        }
+            */
+                self.build_uiview(root_view.is_some())
+
+    }
 
     fn get_widget_type(&self) -> WidgetType {
         WidgetType::Column(Vec::new())
     }
-    fn get_widget_node(&self) -> WidgetNode {
-        /*
-        let children = self
-            .children
-            .into_iter()
-            .map(|i| Rc::new(RefCell::new(i.get_widget_node())))
-            .collect::<Vec<Rc<RefCell<WidgetNode>>>>();
-        */
 
-        let mut children = Vec::new();
-        for i in &self.children {
-            children.push(Rc::new(RefCell::new(i.get_widget_node())));
-        }
-
-        let mut node = WidgetNode::new(
-            0 as id,
-            WidgetType::Column(children),
-            self.get_my_hash(),
-        );
-        /*
-        for i in &self.children {
-            node.add_child(i.get_widget_node());
-        }
-        */
-        node
-    }
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
-        let stack_view = unsafe {
-
-            /*
-            let rect = CGRect {
-                origin: CGPoint { x: 0.0, y: 0.0 },
-                size: CGSize {
-                    height: 400.0,
-                    width: 500.0,
-                },
-            };
-            */
-            //let stack_view =
-            //    UIStackView(UIStackView::alloc().initWithFrame_(rect));
+        let mut children : Vec<WidgetNode> = self.children.iter().map(|child| child.build_uiview(false)).collect();
+        let stackview_builder = move || unsafe {
             let stack_view = UIStackView(UIStackView::alloc().init());
             if is_root {
                 let screen = UIScreen::mainScreen();
@@ -242,29 +230,52 @@ where
             stack_view.setAxis_(
                 UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
             );
-            //stack_view.setAlignment_(UIStackViewAlignment_UIStackViewAlignmentCenter);
+            stack_view.setAlignment_(uikit_sys::UIStackViewAlignment_UIStackViewAlignmentFill);
             stack_view.setDistribution_(
-                UIStackViewDistribution_UIStackViewDistributionFill,
+                UIStackViewDistribution_UIStackViewDistributionFillEqually,
             );
-            stack_view
+            /*
+            for child in children {
+                let view_id = (child.uikit_builder.borrow_mut())();
+                let subview = UIView(view_id);
+                /*
+                   let layout = subview.heightAnchor();
+                   layout.constraintEqualToConstant_(100.0).setActive_(true);
+                   let layout = subview.widthAnchor();
+                   layout.constraintEqualToConstant_(100.0).setActive_(true);
+                   */
+                stack_view.addArrangedSubview_(subview);
+            }
+        */
+            stack_view.0
         };
         let mut stackview_node = WidgetNode::new(
-            stack_view.0,
+            Rc::new(RefCell::new(
+                stackview_builder
+            )),
+            //stack_view.0,
             self.get_widget_type(),
             self.get_my_hash(),
         );
-        for (i, val) in self.children.iter().enumerate() {
+        for child in &self.children {
+            stackview_node.add_child(child.build_uiview(false));
+        }
+        /*
+        for val in self.children.iter() {
             let node = val.build_uiview(false);
             let subview = UIView(node.view_id);
             stackview_node.add_child(node);
             unsafe {
+                /*
                 let layout = subview.heightAnchor();
                 layout.constraintEqualToConstant_(100.0).setActive_(true);
                 let layout = subview.widthAnchor();
                 layout.constraintEqualToConstant_(100.0).setActive_(true);
+                */
                 stack_view.addArrangedSubview_(subview);
             }
         }
+*/
         stackview_node
     }
 }
