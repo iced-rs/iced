@@ -19,7 +19,7 @@ impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: pane_grid::Renderer,
 {
-    /// Cretes a new [`TitleBar`] with the given title.
+    /// Creates a new [`TitleBar`] with the given title.
     ///
     /// [`TitleBar`]: struct.TitleBar.html
     pub fn new(title: impl Into<String>) -> Self {
