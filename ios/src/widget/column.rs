@@ -184,6 +184,7 @@ where
     fn height(&self) -> Length {
         self.height
     }
+    /*
     fn update(&self, mut current_node: WidgetNode, root_view: Option<UIView>) -> WidgetNode {
         /*
         match current_node.widget_type {
@@ -206,14 +207,14 @@ where
                 self.build_uiview(root_view.is_some())
 
     }
+*/
 
     fn get_widget_type(&self) -> WidgetType {
         WidgetType::Column(Vec::new())
     }
 
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
-        let mut children : Vec<WidgetNode> = self.children.iter().map(|child| child.build_uiview(false)).collect();
-        let stackview_builder = move || unsafe {
+        let stackview = unsafe {
             let stack_view = UIStackView(UIStackView::alloc().init());
             if is_root {
                 let screen = UIScreen::mainScreen();
@@ -234,48 +235,21 @@ where
             stack_view.setDistribution_(
                 UIStackViewDistribution_UIStackViewDistributionFillEqually,
             );
-            /*
-            for child in children {
-                let view_id = (child.uikit_builder.borrow_mut())();
-                let subview = UIView(view_id);
-                /*
-                   let layout = subview.heightAnchor();
-                   layout.constraintEqualToConstant_(100.0).setActive_(true);
-                   let layout = subview.widthAnchor();
-                   layout.constraintEqualToConstant_(100.0).setActive_(true);
-                   */
-                stack_view.addArrangedSubview_(subview);
-            }
-        */
-            stack_view.0
+            stack_view
         };
         let mut stackview_node = WidgetNode::new(
-            Rc::new(RefCell::new(
-                stackview_builder
-            )),
-            //stack_view.0,
+            stackview.0,
             self.get_widget_type(),
             self.get_my_hash(),
         );
         for child in &self.children {
-            stackview_node.add_child(child.build_uiview(false));
-        }
-        /*
-        for val in self.children.iter() {
-            let node = val.build_uiview(false);
+            let node = child.build_uiview(false);
             let subview = UIView(node.view_id);
             stackview_node.add_child(node);
             unsafe {
-                /*
-                let layout = subview.heightAnchor();
-                layout.constraintEqualToConstant_(100.0).setActive_(true);
-                let layout = subview.widthAnchor();
-                layout.constraintEqualToConstant_(100.0).setActive_(true);
-                */
-                stack_view.addArrangedSubview_(subview);
+                stackview.addArrangedSubview_(subview);
             }
         }
-*/
         stackview_node
     }
 }

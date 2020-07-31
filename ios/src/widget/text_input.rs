@@ -181,11 +181,11 @@ where
     }
 
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
-        let textview_builder = move || unsafe {
+        let mut ids_to_drop : Vec<id> = Vec::new();
+        let textview = unsafe {
             let ui_textview = {
                 // TODO: Use something better than just a rect.
                 let view = UITextView(UITextView::alloc().init());
-                debug!("THIS UITEXT VIEW IS A ROOT? {:?}", is_root);
                 if is_root {
                     let screen = UIScreen::mainScreen();
                     let frame = screen.bounds();
@@ -202,13 +202,13 @@ where
                 UITextViewTextDidChangeNotification,
                 ui_textview.0,
             );
-            ui_textview.0
+            ids_to_drop.push(on_change.id);
+            ui_textview
         };
 
 
         WidgetNode::new(
-            Rc::new(RefCell::new(textview_builder)),
-            //textview.0,
+            textview.0,
             self.get_widget_type(),
             self.get_my_hash()
         )

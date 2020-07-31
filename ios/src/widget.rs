@@ -63,10 +63,11 @@ pub enum WidgetType {
     Space,
 }
 
+#[derive(Clone)]
 pub struct WidgetNode {
     pub(crate) view_id: id,
     pub(crate) hash: u64,
-    pub(crate) uikit_builder: Rc<RefCell<dyn FnMut() -> id>>,
+    //pub(crate) uikit_builder: Rc<RefCell<dyn FnMut() -> id>>,
     //pub (crate) widget_id: u64,
 
     // Used for memory collection.
@@ -120,14 +121,12 @@ impl Drop for WidgetNode {
 */
 
 impl WidgetNode {
-    pub fn new(uikit_builder: Rc<RefCell<dyn FnMut() -> id>>, widget_type: WidgetType, hash: u64) -> Self {
+    pub fn new(view_id: id, widget_type: WidgetType, hash: u64) -> Self {
         Self {
-            view_id: 0 as id,
+            view_id,
             hash,
-            uikit_builder,
             related_ids: Vec::new(),
             widget_type,
-            //children: Vec::new(),
         }
     }
 
@@ -180,7 +179,6 @@ impl WidgetNode {
         use uikit_sys::{IUIStackView, UIStackView, UIView_UIViewHierarchy};
 
         if !self.is_mergeable(other) {
-            /*
             let old_self = self.clone();
             *self = Self { ..other.clone() };
             if let Some(parent) = root_view {
@@ -188,7 +186,6 @@ impl WidgetNode {
                 old_self.drop_from_ui();
             }
             old_self.drop_from_ui();
-            */
         } else {
             match (&mut self.widget_type, &other.widget_type) {
                 (
@@ -242,28 +239,31 @@ impl WidgetNode {
                     }
                 }
                 (
-                    WidgetType::Text(_current_text),
+                    WidgetType::Text(current_text),
                     WidgetType::Text(new_text),
                 ) => {
-                    use std::ffi::CString;
-                    use uikit_sys::{
-                        IUITextView, NSString,
-                        NSString_NSStringExtensionMethods,
-                        NSUTF8StringEncoding, UITextView,
-                    };
-                    let label = UITextView(self.view_id);
-                    unsafe {
-                        let text = NSString(
-                            NSString::alloc().initWithBytes_length_encoding_(
-                                CString::new(new_text.as_str())
+                    if current_text != new_text {
+                        debug!("UPDATING TEXT WIDGET TO {:?}", new_text);
+                        use std::ffi::CString;
+                        use uikit_sys::{
+                            IUITextView, NSString,
+                            NSString_NSStringExtensionMethods,
+                            NSUTF8StringEncoding, UITextView,
+                        };
+                        let label = UITextView(self.view_id);
+                        unsafe {
+                            let text = NSString(
+                                NSString::alloc().initWithBytes_length_encoding_(
+                                    CString::new(new_text.as_str())
                                     .expect("CString::new failed")
                                     .as_ptr()
                                     as *mut std::ffi::c_void,
-                                new_text.len().try_into().unwrap(),
-                                NSUTF8StringEncoding,
-                            ),
-                        );
-                        label.setText_(text);
+                                    new_text.len().try_into().unwrap(),
+                                    NSUTF8StringEncoding,
+                                ),
+                            );
+                            label.setText_(text);
+                        }
                     }
                 }
                 (

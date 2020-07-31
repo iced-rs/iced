@@ -162,7 +162,7 @@ pub trait Application: Sized {
             root_view.setFrame_(rect);
             */
         }
-        let mut widget_tree: WidgetNode = app.view().build_uiview(true);
+        let mut widget_tree: WidgetNode = WidgetNode::new(0 as id, crate::widget::WidgetType::BaseElement, 0);
 
         event_loop.run(
             move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
@@ -181,6 +181,7 @@ pub trait Application: Sized {
                             );
                             //debug!("Root widget before: {:?}", widget_tree);
                         }
+                        debug!("NEW MESSAGES! {:?}", messages);
                         for message in messages {
                             let (command, subscription) = runtime.enter(|| {
                                 let command = app.update(message);
@@ -192,10 +193,10 @@ pub trait Application: Sized {
                             runtime.spawn(command);
                             runtime.track(subscription);
                         }
-                        let element = app.view();
-                        //widget_tree = element.update(widget_tree, Some(root_view));
-                        let new_tree = element.build_uiview(true);
+                        let new_tree = app.view().build_uiview(true);
                         widget_tree.merge(&new_tree, Some(root_view));
+
+                        //widget_tree = element.update(widget_tree, Some(root_view));
                         //debug!("Root widget after: {:#?}", widget_tree);
                     }
                     event::Event::RedrawRequested(_) => {}
@@ -204,6 +205,7 @@ pub trait Application: Sized {
                         ..
                     } => {}
                     event::Event::NewEvents(event::StartCause::Init) => {
+                        debug!("WINDOW INIT!");
                         let element = app.view();
                         widget_tree = element.build_uiview(true);
                         let root_view: UIView = UIView(window.ui_view() as id);

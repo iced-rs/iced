@@ -151,49 +151,46 @@ impl<Message> Widget<Message> for Text<Message> {
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
         let content = self.content.clone();
         let color = self.color.clone();
-        let label_builder = move || {
-            unsafe {
-                let label = UILabel::alloc();
-                label.init();
+        let label = unsafe {
+            let label = UILabel::alloc();
+            label.init();
 
-                let text = NSString(
-                    NSString::alloc().initWithBytes_length_encoding_(
-                        CString::new(content.as_str())
-                        .expect("CString::new failed")
-                        .as_ptr() as *mut std::ffi::c_void,
-                        content.len().try_into().unwrap(),
-                        uikit_sys::NSUTF8StringEncoding,
-                    ),
-                );
-                label.setText_(text);
-                debug!("THIS TEXT IS A ROOT NODE: {:?}", is_root);
-                if is_root {
-                    let screen = UIScreen::mainScreen();
-                    let frame = screen.bounds();
-                    label.setFrame_(frame);
-                }
-
-                let layer = label.layer();
-                layer.setBorderWidth_(3.0);
-
-                label.setAdjustsFontSizeToFitWidth_(true);
-                label.setMinimumScaleFactor_(10.0);
-                label.setClipsToBounds_(true);
-                if let Some(color) = color {
-                    let background =
-                        UIColor::alloc().initWithRed_green_blue_alpha_(
-                            color.r.into(),
-                            color.g.into(),
-                            color.b.into(),
-                            color.a.into(),
-                        );
-                    label.setTextColor_(background)
-                }
-                label.0
+            let text = NSString(
+                NSString::alloc().initWithBytes_length_encoding_(
+                    CString::new(content.as_str())
+                    .expect("CString::new failed")
+                    .as_ptr() as *mut std::ffi::c_void,
+                    content.len().try_into().unwrap(),
+                    uikit_sys::NSUTF8StringEncoding,
+                ),
+            );
+            label.setText_(text);
+            if is_root {
+                let screen = UIScreen::mainScreen();
+                let frame = screen.bounds();
+                label.setFrame_(frame);
             }
+
+            let layer = label.layer();
+            layer.setBorderWidth_(3.0);
+
+            label.setAdjustsFontSizeToFitWidth_(true);
+            label.setMinimumScaleFactor_(10.0);
+            label.setClipsToBounds_(true);
+            if let Some(color) = color {
+                let background =
+                    UIColor::alloc().initWithRed_green_blue_alpha_(
+                        color.r.into(),
+                        color.g.into(),
+                        color.b.into(),
+                        color.a.into(),
+                    );
+                label.setTextColor_(background)
+            }
+            label
         };
         WidgetNode::new(
-            Rc::new(RefCell::new(label_builder)),
+            label.0,
             self.get_widget_type(),
             self.get_my_hash()
             )

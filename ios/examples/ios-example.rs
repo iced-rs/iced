@@ -91,6 +91,7 @@ impl Sandbox for Simple {
                 .push(
                     Text::new(format!("BAR: {}", &self.text)).color(Color::BLACK)
                 )
+                /*
                 .push(
                     Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
                 )
@@ -109,6 +110,7 @@ impl Sandbox for Simple {
                 .push(
                     Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
                 )
+                */
                 ;
             column.into()
         }
