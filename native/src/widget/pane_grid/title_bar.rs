@@ -9,9 +9,9 @@ use crate::{Clipboard, Element, Event, Layout, Point, Rectangle, Size};
 pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
     title: String,
     title_size: Option<u16>,
-    always_show_controls: bool,
     controls: Option<Element<'a, Message, Renderer>>,
     padding: u16,
+    always_show_controls: bool,
     style: Renderer::Style,
 }
 
