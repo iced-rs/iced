@@ -68,12 +68,15 @@ where
         self
     }
 
-    /// Sets whether or not the [`controls`] attached to this
-    /// panes [`TitleBar`] are always visible. By default, the controls
-    /// are only visible on hover.
+    /// Sets whether or not the [`controls`] attached to this [`TitleBar`] are
+    /// always visible.
+    ///
+    /// By default, the controls are only visible when the [`Pane`] of this
+    /// [`TitleBar`] is hovered.
     ///
     /// [`TitleBar`]: struct.TitleBar.html
     /// [`controls`]: struct.TitleBar.html#method.controls
+    /// [`Pane`]: struct.Pane.html
     pub fn always_show_controls(mut self) -> Self {
         self.always_show_controls = true;
         self
