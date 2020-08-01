@@ -197,9 +197,7 @@ impl checkbox::Renderer for Null {
 impl slider::Renderer for Null {
     type Style = ();
 
-    fn height(&self) -> u32 {
-        30
-    }
+    const DEFAULT_HEIGHT: u16 = 30;
 
     fn draw(
         &mut self,

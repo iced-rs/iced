@@ -46,6 +46,7 @@ pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
     on_change: Box<dyn Fn(T) -> Message>,
     on_release: Option<Message>,
     width: Length,
+    height: u16,
     style: Renderer::Style,
 }
 
@@ -95,6 +96,7 @@ where
             on_change: Box::new(on_change),
             on_release: None,
             width: Length::Fill,
+            height: Renderer::DEFAULT_HEIGHT,
             style: Renderer::Style::default(),
         }
     }
@@ -117,6 +119,14 @@ where
     /// [`Slider`]: struct.Slider.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the height of the [`Slider`].
+    ///
+    /// [`Slider`]: struct.Slider.html
+    pub fn height(mut self, height: u16) -> Self {
+        self.height = height;
         self
     }
 
@@ -171,12 +181,11 @@ where
 
     fn layout(
         &self,
-        renderer: &Renderer,
+        _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .width(self.width)
-            .height(Length::Units(renderer.height() as u16));
+        let limits =
+            limits.width(self.width).height(Length::Units(self.height));
 
         let size = limits.resolve(Size::ZERO);
 
@@ -281,10 +290,10 @@ pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
 
-    /// Returns the height of the [`Slider`].
+    /// The default height of a [`Slider`].
     ///
     /// [`Slider`]: struct.Slider.html
-    fn height(&self) -> u32;
+    const DEFAULT_HEIGHT: u16;
 
     /// Draws a [`Slider`].
     ///
