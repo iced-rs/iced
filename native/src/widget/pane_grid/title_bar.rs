@@ -11,6 +11,7 @@ pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
     title_size: Option<u16>,
     controls: Option<Element<'a, Message, Renderer>>,
     padding: u16,
+    always_show_controls: bool,
     style: Renderer::Style,
 }
 
@@ -18,7 +19,7 @@ impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: pane_grid::Renderer,
 {
-    /// Cretes a new [`TitleBar`] with the given title.
+    /// Creates a new [`TitleBar`] with the given title.
     ///
     /// [`TitleBar`]: struct.TitleBar.html
     pub fn new(title: impl Into<String>) -> Self {
@@ -27,6 +28,7 @@ where
             title_size: None,
             controls: None,
             padding: 0,
+            always_show_controls: false,
             style: Renderer::Style::default(),
         }
     }
@@ -65,6 +67,20 @@ where
         self.style = style.into();
         self
     }
+
+    /// Sets whether or not the [`controls`] attached to this [`TitleBar`] are
+    /// always visible.
+    ///
+    /// By default, the controls are only visible when the [`Pane`] of this
+    /// [`TitleBar`] is hovered.
+    ///
+    /// [`TitleBar`]: struct.TitleBar.html
+    /// [`controls`]: struct.TitleBar.html#method.controls
+    /// [`Pane`]: struct.Pane.html
+    pub fn always_show_controls(mut self) -> Self {
+        self.always_show_controls = true;
+        self
+    }
 }
 
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
@@ -92,17 +108,18 @@ where
             let title_layout = children.next().unwrap();
             let controls_layout = children.next().unwrap();
 
-            let (title_bounds, controls) = if show_controls {
-                (title_layout.bounds(), Some((controls, controls_layout)))
-            } else {
-                (
-                    Rectangle {
-                        width: padded.bounds().width,
-                        ..title_layout.bounds()
-                    },
-                    None,
-                )
-            };
+            let (title_bounds, controls) =
+                if show_controls || self.always_show_controls {
+                    (title_layout.bounds(), Some((controls, controls_layout)))
+                } else {
+                    (
+                        Rectangle {
+                            width: padded.bounds().width,
+                            ..title_layout.bounds()
+                        },
+                        None,
+                    )
+                };
 
             renderer.draw_title_bar(
                 defaults,
