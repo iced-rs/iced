@@ -255,14 +255,10 @@ pub trait Widget<Message> {
     fn on_widget_event(
         &mut self,
         _event: WidgetEvent,
-        //_layout: Layout<'_>,
-        //_cursor_position: Point,
         _messages: &mut Vec<Message>,
         _widget_node: &WidgetNode,
-        //_renderer: &Renderer,
-        //_clipboard: Option<&dyn Clipboard>,
     ) {
-        //debug!("on_widget_event for {:?}", self.get_widget_type());
+        trace!("on_widget_event for {:?}", self.get_widget_type());
     }
 
     fn width(&self) -> Length;
@@ -270,24 +266,11 @@ pub trait Widget<Message> {
     fn height(&self) -> Length;
 }
 
-//pub type Element<'a, Message> = ElementTemplate<Message, Box<dyn Widget<Message> + 'a>>;
 
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message> {
     pub widget: Box<dyn Widget<Message> + 'a>,
 }
-
-/*
-impl<T: Widget<Message>> Into<WidgetNode> for T {
-    fn into(self) -> WidgetNode {
-        let mut node = WidgetNode::new(None, self.get_widget_type());
-        for i in &self.get_element_children() {
-            node.add_child(i.widget.into());
-        }
-        node
-    }
-}
-*/
 
 impl<'a, Message> Element<'a, Message> {
     /// Create a new [`Element`] containing the given [`Widget`].
@@ -333,31 +316,9 @@ impl<'a, Message> Widget<Message> for Element<'a, Message> {
     fn on_widget_event(
         &mut self,
         event: WidgetEvent,
-        //_layout: Layout<'_>,
-        //_cursor_position: Point,
         messages: &mut Vec<Message>,
         widget_node: &WidgetNode,
-        //_renderer: &Renderer,
-        //_clipboard: Option<&dyn Clipboard>,
     ) {
         self.widget.on_widget_event(event, messages, widget_node);
     }
 }
-
-/*
-impl<'a, Message> From<Element<'a, Message>> for WidgetNode {
-    fn from(element: Element<'a, Message>) -> WidgetNode {
-        Widget::from(element.widget)
-    }
-}
-impl<'a, Message> From<Box<dyn Widget<Message> + 'a>> for WidgetNode {
-    fn from(element: Box<dyn Widget<Message> + 'a>) -> WidgetNode {
-        Widget::from(element)
-    }
-}
-impl<'a, Message> From<&Element<'a, Message>> for WidgetNode {
-    fn from(element: &Element<'a, Message>) -> WidgetNode {
-        Widget::from(element.widget)
-    }
-}
-*/

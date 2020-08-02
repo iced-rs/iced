@@ -218,6 +218,7 @@ impl<Message> Widget<Message> for Text<Message> {
             label.setAdjustsFontSizeToFitWidth_(true);
             label.setMinimumScaleFactor_(10.0);
             label.setClipsToBounds_(true);
+
             if let Some(color) = color {
                 let background =
                     UIColor::alloc().initWithRed_green_blue_alpha_(

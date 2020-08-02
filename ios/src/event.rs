@@ -44,10 +44,9 @@ impl EventHandler {
                 counter += 1;
                 COUNTER = Some(counter);
                 widget_id = counter;
-                //widget_id = counter.fetch_add(0, Ordering::SeqCst);
                 (*obj).set_ivar::<u64>("widget_id", widget_id);
-                (*obj).set_ivar::<id>("objc_id", objc_id);
             }
+            (*obj).set_ivar::<id>("objc_id", objc_id);
             obj
         };
         trace!("NEW EVENTHANDLER WITH WIDGET ID :{:?}", widget_id);
