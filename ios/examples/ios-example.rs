@@ -53,7 +53,6 @@ impl Sandbox for Simple {
     }
 
     fn update(&mut self, message: Message) {
-        log::debug!("GOT NEW MESSAGE: {:?}", message);
         match message {
             Message::TextUpdated(val) => {
                 self.text = val;
@@ -74,7 +73,7 @@ impl Sandbox for Simple {
                 }
             ).into()
         } else  {
-            let column = Column::new()
+            let mut column = Column::new()
                 .push(
                     Text::new(format!("FOO: {}", &self.text)).color(Color::BLACK)
                 )
@@ -112,6 +111,13 @@ impl Sandbox for Simple {
                 )
                 */
                 ;
+            /*
+            if self.text.len() % 2 == 0 {
+                column = column.push(
+                    Text::new(format!("TEXT IS LENGTH 2")).color(Color::BLACK)
+                )
+            }
+            */
             column.into()
         }
     }

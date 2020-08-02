@@ -193,10 +193,9 @@ pub trait Application: Sized {
                             runtime.spawn(command);
                             runtime.track(subscription);
                         }
-                        let new_tree = app.view().build_uiview(true);
-                        widget_tree.merge(&new_tree, Some(root_view));
+                        let element = app.view();
 
-                        //widget_tree = element.update(widget_tree, Some(root_view));
+                        element.update(&mut widget_tree, Some(root_view));
                         //debug!("Root widget after: {:#?}", widget_tree);
                     }
                     event::Event::RedrawRequested(_) => {}

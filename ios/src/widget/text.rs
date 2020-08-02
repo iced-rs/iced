@@ -148,9 +148,49 @@ impl<Message> Widget<Message> for Text<Message> {
     fn get_widget_type(&self) -> WidgetType {
         WidgetType::Text(self.content.clone())
     }
+    fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
+        let mut ids_to_drop : Vec<id> = Vec::new();
+        match &mut current_node.widget_type {
+            WidgetType::Text(ref mut old_text) => {
+                let new_text = &self.content;
+                if old_text != new_text {
+                    use std::ffi::CString;
+                    use uikit_sys::{
+                        IUITextView, NSString,
+                        NSString_NSStringExtensionMethods,
+                        NSUTF8StringEncoding, UITextView,
+                    };
+                    let label = UITextView(current_node.view_id);
+                    unsafe {
+                        let text = NSString(
+                            NSString::alloc().initWithBytes_length_encoding_(
+                                CString::new(new_text.as_str())
+                                .expect("CString::new failed")
+                                .as_ptr()
+                                as *mut std::ffi::c_void,
+                                new_text.len().try_into().unwrap(),
+                                NSUTF8StringEncoding,
+                            ),
+                        );
+                        label.setText_(text);
+                        ids_to_drop.push(text.0);
+                    }
+                }
+                *old_text = new_text.clone();
+            },
+            other => {
+                current_node.drop_from_ui();
+                *current_node = self.build_uiview(false);
+            }
+        }
+        for i in &ids_to_drop {
+            current_node.add_related_id(*i);
+        }
+    }
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
         let content = self.content.clone();
         let color = self.color.clone();
+        let mut ids_to_drop : Vec<id> = Vec::new();
         let label = unsafe {
             let label = UILabel::alloc();
             label.init();
@@ -164,6 +204,7 @@ impl<Message> Widget<Message> for Text<Message> {
                     uikit_sys::NSUTF8StringEncoding,
                 ),
             );
+            ids_to_drop.push(text.0);
             label.setText_(text);
             if is_root {
                 let screen = UIScreen::mainScreen();
@@ -185,15 +226,20 @@ impl<Message> Widget<Message> for Text<Message> {
                         color.b.into(),
                         color.a.into(),
                     );
+                ids_to_drop.push(background.0);
                 label.setTextColor_(background)
             }
             label
         };
-        WidgetNode::new(
+        let mut node = WidgetNode::new(
             label.0,
             self.get_widget_type(),
             self.get_my_hash()
-            )
+        );
+        for i in &ids_to_drop {
+            node.add_related_id(*i);
+        }
+        node
     }
     fn width(&self) -> Length {
         self.width

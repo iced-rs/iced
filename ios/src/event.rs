@@ -50,7 +50,7 @@ impl EventHandler {
             }
             obj
         };
-        debug!("NEW EVENTHANDLER WITH WIDGET ID :{:?}", widget_id);
+        trace!("NEW EVENTHANDLER WITH WIDGET ID :{:?}", widget_id);
         Self{id: obj, widget_id}
     }
     extern "C" fn event(this: &Object, _cmd: objc::runtime::Sel)

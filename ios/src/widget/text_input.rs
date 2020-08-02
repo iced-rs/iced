@@ -179,6 +179,16 @@ where
     fn get_widget_type(&self) -> WidgetType {
         WidgetType::TextInput
     }
+    fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
+        match &current_node.widget_type {
+            WidgetType::TextInput => {
+            },
+            other => {
+                debug!("Updating from {:?}, to {:?}", other, self.get_widget_type());
+                current_node.drop_from_ui();
+            }
+        }
+    }
 
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
         let mut ids_to_drop : Vec<id> = Vec::new();
@@ -207,11 +217,15 @@ where
         };
 
 
-        WidgetNode::new(
+        let mut node = WidgetNode::new(
             textview.0,
             self.get_widget_type(),
             self.get_my_hash()
-        )
+        );
+        for i in &ids_to_drop {
+            node.add_related_id(*i);
+        }
+        node
     }
 
 
@@ -221,7 +235,7 @@ where
         messages: &mut Vec<Message>,
         widget_node: &WidgetNode,
     ) {
-        debug!(
+        trace!(
             "on_widget_event for text input: widget_event.id: {:x} for widget_id: {:?}, widget_node.view_id {:?}",
             widget_event.id,
             widget_event.widget_id,

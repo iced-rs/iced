@@ -63,12 +63,22 @@ pub enum WidgetType {
     Space,
 }
 
+impl WidgetType {
+    fn is_mergeable(&self, other: &Self) -> bool {
+        use WidgetType::*;
+        match (&self, &other) {
+            (Text(_), Text(_))
+                | (Column(_), Column(_))
+                | (TextInput, TextInput) => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct WidgetNode {
     pub(crate) view_id: id,
     pub(crate) hash: u64,
-    //pub(crate) uikit_builder: Rc<RefCell<dyn FnMut() -> id>>,
-    //pub (crate) widget_id: u64,
 
     // Used for memory collection.
     related_ids: Vec<id>,
@@ -131,7 +141,7 @@ impl WidgetNode {
     }
 
     pub fn drop_from_ui(&self) {
-        debug!("DROPPING A WIDGET NODE! {:?}", self.view_id);
+        trace!("DROPPING A WIDGET NODE! {:?}", self.view_id);
         use uikit_sys::{INSObject, NSObject, UIView_UIViewHierarchy};
         if self.view_id != 0 as id {
             let view = UIView(self.view_id);
@@ -166,118 +176,7 @@ impl WidgetNode {
     }
 
     fn is_mergeable(&self, other: &Self) -> bool {
-        use WidgetType::*;
-        match (&self.widget_type, &other.widget_type) {
-            (Text(_), Text(_))
-            | (Column(_), Column(_))
-            | (TextInput, TextInput) => true,
-            _ => false,
-        }
-    }
-
-    pub fn merge(&mut self, other: &Self, root_view: Option<UIView>) {
-        use uikit_sys::{IUIStackView, UIStackView, UIView_UIViewHierarchy};
-
-        if !self.is_mergeable(other) {
-            let old_self = self.clone();
-            *self = Self { ..other.clone() };
-            if let Some(parent) = root_view {
-                self.draw(parent);
-                old_self.drop_from_ui();
-            }
-            old_self.drop_from_ui();
-        } else {
-            match (&mut self.widget_type, &other.widget_type) {
-                (
-                    WidgetType::Column(ref mut my_children),
-                    WidgetType::Column(other_children),
-                ) => {
-                    let stackview = UIStackView(self.view_id);
-                    if my_children.len() == other_children.len() {
-                        for i in 0..my_children.len() {
-                            let current_child = my_children.get_mut(i).unwrap();
-                            let new_child = other_children.get(i).unwrap();
-
-                            if current_child
-                                .borrow()
-                                .is_mergeable(&new_child.borrow())
-                            {
-                                current_child
-                                    .borrow_mut()
-                                    .merge(&new_child.borrow(), None);
-                                new_child.borrow().drop_from_ui();
-                            } else {
-                                unsafe {
-                                    stackview.removeArrangedSubview_(
-                                        UIView(current_child.borrow().view_id)
-                                    );
-                                    current_child.borrow().drop_from_ui();
-                                    stackview.insertArrangedSubview_atIndex_(
-                                        UIView(new_child.borrow().view_id),
-                                        i.try_into().unwrap(),
-                                    );
-                                }
-                                my_children[i] = new_child.clone();
-                            }
-                        }
-                    } else {
-                        let stackview = uikit_sys::UIStackView(self.view_id);
-                        for i in my_children.clone() {
-                            unsafe {
-                                stackview
-                                    .removeArrangedSubview_(UIView(i.borrow().view_id))
-                            }
-                            i.borrow().drop_from_ui();
-                        }
-                        *my_children = other_children.clone();
-                        for i in my_children {
-                            unsafe {
-                                stackview
-                                    .addArrangedSubview_(UIView(i.borrow().view_id))
-                            }
-                        }
-                    }
-                }
-                (
-                    WidgetType::Text(current_text),
-                    WidgetType::Text(new_text),
-                ) => {
-                    if current_text != new_text {
-                        debug!("UPDATING TEXT WIDGET TO {:?}", new_text);
-                        use std::ffi::CString;
-                        use uikit_sys::{
-                            IUITextView, NSString,
-                            NSString_NSStringExtensionMethods,
-                            NSUTF8StringEncoding, UITextView,
-                        };
-                        let label = UITextView(self.view_id);
-                        unsafe {
-                            let text = NSString(
-                                NSString::alloc().initWithBytes_length_encoding_(
-                                    CString::new(new_text.as_str())
-                                    .expect("CString::new failed")
-                                    .as_ptr()
-                                    as *mut std::ffi::c_void,
-                                    new_text.len().try_into().unwrap(),
-                                    NSUTF8StringEncoding,
-                                ),
-                            );
-                            label.setText_(text);
-                        }
-                    }
-                }
-                (
-                    WidgetType::TextInput,
-                    WidgetType::TextInput,
-                ) => {
-                    debug!("Updating text input widgets is not implemented yet");
-                    //TODO: Add stuff about Text Input
-                }
-                (me, you) => {
-                    debug!("Widget's don't match! {:?}, {:?}", me, you);
-                }
-            }
-        }
+        self.widget_type.is_mergeable(&other.widget_type)
     }
 
     pub fn add_related_id(&mut self, related_id: id) {
@@ -292,10 +191,20 @@ impl WidgetNode {
                 }
             }
             e => {
-                unimplemented!("CHILDREN ARE NOT IMPLEMENTED FOR {:?}", e);
+                unimplemented!("REPLACE CHILD IS NOT IMPLEMENTED FOR {:?}", e);
             }
         }
 
+    }
+    pub fn drop_children(&mut self) {
+        match &mut self.widget_type {
+            WidgetType::Column(ref mut children) => {
+                *children = Vec::new();
+            }
+            e => {
+                unimplemented!("DROP CHILDREN ARE NOT IMPLEMENTED FOR {:?}", e);
+            }
+        }
     }
 
     pub fn add_child(&mut self, child: WidgetNode) {
@@ -327,8 +236,8 @@ pub trait Widget<Message> {
         );
     }
 
-    fn update(&self, current_node: WidgetNode, root_view: Option<UIView>) -> WidgetNode {
-        unimplemented!(
+    fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
+        error!(
             "{:?} using base implementation",
             self.get_widget_type()
         );
@@ -400,7 +309,7 @@ impl<'a, Message> Widget<Message> for Element<'a, Message> {
         self.widget.hash_layout(state);
     }
 
-    fn update(&self, current_node: WidgetNode, root_view: Option<UIView>) -> WidgetNode {
+    fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
         self.widget.update(current_node, root_view)
     }
 

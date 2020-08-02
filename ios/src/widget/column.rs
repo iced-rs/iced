@@ -6,6 +6,7 @@ use crate::{
 use std::cell::RefCell;
 use std::hash::Hash;
 use std::rc::Rc;
+use std::convert::TryInto;
 
 use std::u32;
 use uikit_sys::{
@@ -144,7 +145,7 @@ where
         messages: &mut Vec<Message>,
         widget_node: &WidgetNode,
     ) {
-        debug!(
+        trace!(
             "on_widget_event for column for {:?} children",
             self.children.len()
         );
@@ -184,30 +185,67 @@ where
     fn height(&self) -> Length {
         self.height
     }
-    /*
-    fn update(&self, mut current_node: WidgetNode, root_view: Option<UIView>) -> WidgetNode {
-        /*
-        match current_node.widget_type {
-            WidgetType::Column(ref other_children) => {
-                //if self.children.len() == other_children.len() {
-                for (i, (child, node)) in
-                    self.children.iter().zip(other_children).enumerate()
-                    {
-                        current_node.replace_child(child.update((*node).into_inner(), None), i);
-                        //node = &Rc::new(RefCell::new(child.update(node.into_inner(), None)));
+    fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
+
+        let mut replace_children = false;
+        match &mut current_node.widget_type {
+            WidgetType::Column(ref current_children) => {
+                if self.children.len() == current_children.len() {
+                    let stackview = UIStackView(current_node.view_id);
+                    for i in 0..self.children.len() {
+
+                        let current_child = current_children.get(i).unwrap();
+                        let old_id = current_child.borrow().view_id;
+                        let element_child = self.children.get(i).unwrap();
+                        if element_child.get_widget_type().is_mergeable(&current_child.borrow().widget_type) {
+                            element_child.update(&mut current_child.borrow_mut(), None);
+                        }
+                        if old_id != current_child.borrow().view_id {
+                            unsafe {
+                                stackview.removeArrangedSubview_(
+                                    UIView(old_id)
+                                );
+                                stackview.insertArrangedSubview_atIndex_(
+                                    UIView(current_child.borrow().view_id),
+                                    i.try_into().unwrap(),
+                                );
+                            }
+                        }
                     }
-                current_node
-            },
+                } else {
+                    replace_children = true;
+                    let stackview = uikit_sys::UIStackView(current_node.view_id);
+                    for i in current_children {
+                        unsafe {
+                            stackview
+                                .removeArrangedSubview_(UIView(i.borrow().view_id))
+                        }
+                        i.borrow().drop_from_ui();
+                    }
+                }
+            }
             other => {
-                debug!("current node outdate! {:?}", other);
-                self.build_uiview(root_view.is_some())
+                let new_node = self.build_uiview(root_view.is_some());
+                if let Some(root_view) = root_view {
+                    new_node.draw(root_view);;
+                }
+                current_node.drop_from_ui();
+                *current_node = new_node;
+            },
+        }
+        if replace_children {
+            current_node.drop_children();
+            for i in &self.children {
+                let subview = i.build_uiview(false);
+                let stackview = uikit_sys::UIStackView(current_node.view_id);
+                unsafe {
+                    stackview
+                        .addArrangedSubview_(UIView(subview.view_id))
+                }
+                current_node.add_child(subview);
             }
         }
-            */
-                self.build_uiview(root_view.is_some())
-
     }
-*/
 
     fn get_widget_type(&self) -> WidgetType {
         WidgetType::Column(Vec::new())
