@@ -2,19 +2,14 @@
 use iced::{
     //button, scrollable, slider, text_input, Button, Checkbox, Color,
     Column,
-    //Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
-    //Sandbox, //Scrollable, Settings, Slider, Space, Text, TextInput,
     Sandbox,
     Settings,
-    Command,
-    executor,
     Element,
     Text,
     TextInput,
+    Button,
     text_input,
-    //Container,
     Color,
-    //Checkbox,
 };
 pub fn main() {
     color_backtrace::install();
@@ -30,15 +25,17 @@ pub fn main() {
 pub struct Simple {
     toggle: bool,
     text: String,
+    button_press_count: usize,
+    button_state: iced::button::State,
     text_state: text_input::State,
     text_state2: text_input::State,
 }
 #[derive(Debug, Clone)]
 pub enum Message {
-    //EventOccurred(iced_native::Event),
     Toggled(bool),
     TextUpdated(String),
     TextSubmit,
+    ButtonPress,
 }
 
 impl Sandbox for Simple {
@@ -56,6 +53,9 @@ impl Sandbox for Simple {
         match message {
             Message::TextUpdated(val) => {
                 self.text = val;
+            },
+            Message::ButtonPress => {
+                self.button_press_count += 1;
             },
             _ => {
             },
@@ -75,7 +75,12 @@ impl Sandbox for Simple {
         } else  {
             let mut column = Column::new()
                 .push(
-                    Text::new(format!("FOO: {}", &self.text)).color(Color::BLACK)
+                    Text::new(format!("text box: \"{}\", button pressed {:?}", &self.text, self.button_press_count)).color(Color::BLACK)
+                )
+                .push(
+                    Button::new(&mut self.button_state,
+                        Text::new(format!("FOO: {}", &self.text)).color(Color::BLACK)
+                    ).on_press(Message::ButtonPress)
                 )
                 .push(
                     TextInput::new(
@@ -90,26 +95,6 @@ impl Sandbox for Simple {
                 .push(
                     Text::new(format!("BAR: {}", &self.text)).color(Color::BLACK)
                 )
-                /*
-                .push(
-                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
-                )
-                .push(
-                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
-                )
-                .push(
-                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
-                )
-                .push(
-                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
-                )
-                .push(
-                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
-                )
-                .push(
-                    Text::new(format!("BAZ: {}", &self.text)).color(Color::BLACK)
-                )
-                */
                 ;
             /*
             if self.text.len() % 2 == 0 {

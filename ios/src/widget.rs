@@ -1,11 +1,8 @@
 use crate::{event::WidgetEvent, Hasher, Length};
-use std::cell::RefCell;
-use std::rc::Rc;
 use uikit_sys::{id, UIView};
 use std::convert::TryInto;
 
 /*
-pub mod button;
 pub mod checkbox;
 pub mod container;
 pub mod image;
@@ -17,13 +14,14 @@ mod row;
 mod space;
 */
 pub mod text_input;
+pub mod button;
 
 mod column;
 mod text;
 
-/*
 #[doc(no_inline)]
 pub use button::Button;
+/*
 #[doc(no_inline)]
 pub use scrollable::Scrollable;
 #[doc(no_inline)]
@@ -54,7 +52,7 @@ pub enum WidgetType {
     Text(String),
     TextInput,
     Checkbox,
-    Column(Vec<Rc<RefCell<WidgetNode>>>),
+    Column(Vec<Box<WidgetNode>>),
     Container,
     Image,
     ProgressBar,
@@ -159,7 +157,7 @@ impl WidgetNode {
         match &self.widget_type {
             WidgetType::Column(ref children) => {
                 for i in children {
-                    i.borrow().drop_from_ui();
+                    i.drop_from_ui();
                 }
             }
             _ => {}
@@ -175,10 +173,6 @@ impl WidgetNode {
         }
     }
 
-    fn is_mergeable(&self, other: &Self) -> bool {
-        self.widget_type.is_mergeable(&other.widget_type)
-    }
-
     pub fn add_related_id(&mut self, related_id: id) {
         self.related_ids.push(related_id);
     }
@@ -187,7 +181,7 @@ impl WidgetNode {
         match &mut self.widget_type {
             WidgetType::Column(ref mut children) => {
                 if i < children.len() {
-                    children[i] = Rc::new(RefCell::new(child));
+                    children[i] = Box::new(child);
                 }
             }
             e => {
@@ -210,7 +204,7 @@ impl WidgetNode {
     pub fn add_child(&mut self, child: WidgetNode) {
         match &mut self.widget_type {
             WidgetType::Column(ref mut children) => {
-                children.push(Rc::new(RefCell::new(child)));
+                children.push(Box::new(child));
             }
             e => {
                 unimplemented!("CHILDREN ARE NOT IMPLEMENTED FOR {:?}", e);
@@ -236,7 +230,7 @@ pub trait Widget<Message> {
         );
     }
 
-    fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
+    fn update(&self, _current_node: &mut WidgetNode, _root_view: Option<UIView>) {
         error!(
             "{:?} using base implementation",
             self.get_widget_type()

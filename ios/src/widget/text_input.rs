@@ -16,7 +16,6 @@ use crate::{
 pub use iced_style::text_input::{Style, StyleSheet};
 
 use std::{
-    cell::RefCell,
     rc::Rc,
     u32
 };
@@ -186,6 +185,12 @@ where
             other => {
                 debug!("Updating from {:?}, to {:?}", other, self.get_widget_type());
                 current_node.drop_from_ui();
+                let new_node = self.build_uiview(root_view.is_some());
+                if let Some(root_view) = root_view {
+                    new_node.draw(root_view);
+                }
+                *current_node = new_node;
+
             }
         }
     }
@@ -194,7 +199,6 @@ where
         let mut ids_to_drop : Vec<id> = Vec::new();
         let textview = unsafe {
             let ui_textview = {
-                // TODO: Use something better than just a rect.
                 let view = UITextView(UITextView::alloc().init());
                 if is_root {
                     let screen = UIScreen::mainScreen();

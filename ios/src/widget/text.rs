@@ -1,7 +1,6 @@
 use std::hash::Hash;
 use crate::{
     Color,
-    //    css, Bus, Color, Css,
     Element,
     Font,
     HorizontalAlignment,
@@ -15,17 +14,15 @@ use std::convert::TryInto;
 use std::ffi::CString;
 use uikit_sys::{
     id,
-    CGPoint, CGRect, CGSize, INSObject, IUIColor, IUILabel,
+    INSObject, IUIColor, IUILabel,
     NSString, NSString_NSStringExtensionMethods,
     UIColor, UILabel, UIView, IUIView,
-    UIView_UIViewGeometry, UIView_UIViewHierarchy,
+    UIView_UIViewGeometry,
     UIView_UIViewRendering,
     ICALayer,
     UIScreen, IUIScreen,
-};
-use std::{
-    cell::RefCell,
-    rc::Rc,
+    IUITextView,
+    NSUTF8StringEncoding, UITextView,
 };
 use std::marker::PhantomData;
 
@@ -154,12 +151,6 @@ impl<Message> Widget<Message> for Text<Message> {
             WidgetType::Text(ref mut old_text) => {
                 let new_text = &self.content;
                 if old_text != new_text {
-                    use std::ffi::CString;
-                    use uikit_sys::{
-                        IUITextView, NSString,
-                        NSString_NSStringExtensionMethods,
-                        NSUTF8StringEncoding, UITextView,
-                    };
                     let label = UITextView(current_node.view_id);
                     unsafe {
                         let text = NSString(
@@ -179,8 +170,9 @@ impl<Message> Widget<Message> for Text<Message> {
                 *old_text = new_text.clone();
             },
             other => {
+                trace!("{:?} is not a text widget! Dropping!", other);
                 current_node.drop_from_ui();
-                *current_node = self.build_uiview(false);
+                *current_node = self.build_uiview(root_view.is_some());
             }
         }
         for i in &ids_to_drop {
@@ -201,7 +193,7 @@ impl<Message> Widget<Message> for Text<Message> {
                     .expect("CString::new failed")
                     .as_ptr() as *mut std::ffi::c_void,
                     content.len().try_into().unwrap(),
-                    uikit_sys::NSUTF8StringEncoding,
+                    NSUTF8StringEncoding,
                 ),
             );
             ids_to_drop.push(text.0);
@@ -211,7 +203,6 @@ impl<Message> Widget<Message> for Text<Message> {
                 let frame = screen.bounds();
                 label.setFrame_(frame);
             }
-
             let layer = label.layer();
             layer.setBorderWidth_(3.0);
 

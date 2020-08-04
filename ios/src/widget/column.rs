@@ -3,14 +3,12 @@ use crate::{
     widget::{WidgetNode, WidgetType},
     Align, Element, Hasher, Length, Widget,
 };
-use std::cell::RefCell;
 use std::hash::Hash;
-use std::rc::Rc;
 use std::convert::TryInto;
 
 use std::u32;
 use uikit_sys::{
-    id, CGPoint, CGRect, CGSize, INSLayoutConstraint, INSLayoutDimension,
+    id, //CGPoint, CGRect, CGSize, INSLayoutConstraint, INSLayoutDimension,
     INSObject, IUIColor, IUIStackView, IUITextView, NSLayoutConstraint,
     NSLayoutDimension, UIColor,
     UILayoutConstraintAxis_UILayoutConstraintAxisVertical, UIStackView,
@@ -19,8 +17,6 @@ use uikit_sys::{
     UIView_UIViewGeometry, UIView_UIViewHierarchy,
     UIView_UIViewLayoutConstraintCreation, UIView_UIViewRendering,
     UIScreen,
-    IUIView,
-    ICALayer,
     IUIScreen,
 };
 
@@ -154,7 +150,7 @@ where
                 for (i, node) in
                     &mut self.children.iter_mut().zip(node_children)
                     {
-                        i.on_widget_event(event.clone(), messages, &node.borrow());
+                        i.on_widget_event(event.clone(), messages, &node);
                     }
             }
             e => {
@@ -189,24 +185,24 @@ where
 
         let mut replace_children = false;
         match &mut current_node.widget_type {
-            WidgetType::Column(ref current_children) => {
+            WidgetType::Column(ref mut current_children) => {
                 if self.children.len() == current_children.len() {
                     let stackview = UIStackView(current_node.view_id);
                     for i in 0..self.children.len() {
 
-                        let current_child = current_children.get(i).unwrap();
-                        let old_id = current_child.borrow().view_id;
+                        let mut current_child = current_children.get_mut(i).unwrap();
+                        let old_id = current_child.view_id;
                         let element_child = self.children.get(i).unwrap();
-                        if element_child.get_widget_type().is_mergeable(&current_child.borrow().widget_type) {
-                            element_child.update(&mut current_child.borrow_mut(), None);
+                        if element_child.get_widget_type().is_mergeable(&current_child.widget_type) {
+                            element_child.update(&mut current_child, None);
                         }
-                        if old_id != current_child.borrow().view_id {
+                        if old_id != current_child.view_id {
                             unsafe {
                                 stackview.removeArrangedSubview_(
                                     UIView(old_id)
                                 );
                                 stackview.insertArrangedSubview_atIndex_(
-                                    UIView(current_child.borrow().view_id),
+                                    UIView(current_child.view_id),
                                     i.try_into().unwrap(),
                                 );
                             }
@@ -218,16 +214,17 @@ where
                     for i in current_children {
                         unsafe {
                             stackview
-                                .removeArrangedSubview_(UIView(i.borrow().view_id))
+                                .removeArrangedSubview_(UIView(i.view_id));
                         }
-                        i.borrow().drop_from_ui();
+                        i.drop_from_ui();
                     }
                 }
             }
             other => {
+                debug!("{:?} is not a column widget! Dropping!", other);
                 let new_node = self.build_uiview(root_view.is_some());
                 if let Some(root_view) = root_view {
-                    new_node.draw(root_view);;
+                    new_node.draw(root_view);
                 }
                 current_node.drop_from_ui();
                 *current_node = new_node;

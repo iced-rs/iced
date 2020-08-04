@@ -179,7 +179,7 @@ pub trait Application: Sized {
                                 &mut messages,
                                 &widget_tree,
                             );
-                            //debug!("Root widget before: {:?}", widget_tree);
+                            trace!("Root widget before: {:?}", widget_tree);
                         }
                         debug!("NEW MESSAGES! {:?}", messages);
                         for message in messages {
@@ -196,7 +196,7 @@ pub trait Application: Sized {
                         let element = app.view();
 
                         element.update(&mut widget_tree, Some(root_view));
-                        //debug!("Root widget after: {:#?}", widget_tree);
+                        trace!("Root widget after: {:#?}", widget_tree);
                     }
                     event::Event::RedrawRequested(_) => {}
                     event::Event::WindowEvent {
@@ -204,7 +204,7 @@ pub trait Application: Sized {
                         ..
                     } => {}
                     event::Event::NewEvents(event::StartCause::Init) => {
-                        debug!("WINDOW INIT!");
+                        trace!("WINDOW INIT!");
                         let element = app.view();
                         widget_tree = element.build_uiview(true);
                         let root_view: UIView = UIView(window.ui_view() as id);

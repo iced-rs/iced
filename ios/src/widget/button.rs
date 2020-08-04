@@ -4,11 +4,14 @@
 //!
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
-use crate::{Background, Element, Length, Widget, Hasher, layout, Point};
+use crate::{
+    widget::{WidgetNode, WidgetType},
+    event::{EventHandler, WidgetEvent},
+    Background, Element, Hasher, Length, Point, Widget,
+};
 use std::hash::Hash;
 
 pub use iced_style::button::{Style, StyleSheet};
-
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -129,6 +132,25 @@ impl State {
     }
 }
 
+use uikit_sys::{
+    UIButton,
+    IUIButton,
+    UIScreen,
+    IUIScreen,
+    UIButtonType_UIButtonTypePlain,
+    UIView_UIViewGeometry,
+    ICALayer,
+    IUIView,
+    UIView,
+    NSString,
+    NSString_NSStringExtensionMethods,
+    NSUTF8StringEncoding,
+    IUIControl,
+    id,
+};
+use std::ffi::CString;
+use std::convert::TryInto;
+
 impl<'a, Message> Widget<Message> for Button<'a, Message>
 where
     Message: 'static + Clone,
@@ -147,27 +169,80 @@ where
     fn height(&self) -> Length {
         self.height
     }
+    fn get_widget_type(&self) -> WidgetType {
+        WidgetType::Button
+    }
 
-    fn layout(
-        &self,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        let padding = f32::from(self.padding);
-        let limits = limits
-            .min_width(self.min_width)
-            .min_height(self.min_height)
-            .width(self.width)
-            .height(self.height)
-            .pad(padding);
+    fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
+        match &current_node.widget_type {
+            WidgetType::Button => {
+            },
+            other => {
+                debug!("Updating from {:?}, to {:?}", other, self.get_widget_type());
+                current_node.drop_from_ui();
+                let new_node = self.build_uiview(root_view.is_some());
+                if let Some(root_view) = root_view {
+                    new_node.draw(root_view);
+                }
+                *current_node = new_node;
 
-        let mut content = self.content.layout(&limits);
-        content.move_to(Point::new(padding, padding));
+            }
+        }
+    }
 
-        let size = limits.resolve(content.size()).pad(padding);
+    fn build_uiview(&self, is_root: bool) -> WidgetNode {
+        let button = unsafe {
+            let button = UIButton(UIButton::buttonWithType_(UIButtonType_UIButtonTypePlain));
+            if is_root {
+                let screen = UIScreen::mainScreen();
+                let frame = screen.bounds();
+                button.setFrame_(frame);
+            }
+            let text = String::from("THIS IS A BUTTON");
+            let text = NSString(
+                NSString::alloc().initWithBytes_length_encoding_(
+                    CString::new(text.as_str())
+                    .expect("CString::new failed")
+                    .as_ptr()
+                    as *mut std::ffi::c_void,
+                    text.len().try_into().unwrap(),
+                    NSUTF8StringEncoding,
+                ),
+            );
+            button.setTitle_forState_(text, uikit_sys::UIControlState_UIControlStateNormal);
+            let layer = button.layer();
+            layer.setBorderWidth_(3.0);
 
-        layout::Node::with_children(size, vec![content])
+            let on_change = EventHandler::new(button.0);
+            button.addTarget_action_forControlEvents_(
+                on_change.id,
+                sel!(sendEvent),
+                uikit_sys::UIControlEvents_UIControlEventTouchDown,
+            );
+            button
+        };
+        WidgetNode::new(button.0, WidgetType::Button, self.get_my_hash())
+    }
+    fn on_widget_event(
+        &mut self,
+        widget_event: WidgetEvent,
+        messages: &mut Vec<Message>,
+        widget_node: &WidgetNode,
+    ) {
+        debug!(
+            "BUTTON on_widget_event for text input: widget_event.id: {:x} for widget_id: {:?}, widget_node.view_id {:?}",
+            widget_event.id,
+            widget_event.widget_id,
+            widget_node.view_id,
+        );
+        if widget_event.id as id == widget_node.view_id {
+            if let Some(message) = self.on_press.clone() {
+                messages.push(message);
+            }
+        }
     }
 }
+
 impl<'a, Message> From<Button<'a, Message>> for Element<'a, Message>
 where
     Message: 'static + Clone,

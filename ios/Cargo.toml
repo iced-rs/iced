@@ -27,7 +27,6 @@ winit = { git = "https://github.com/simlay/winit", branch = "ios-rename-nsstring
 objc = "0.2.7"
 log = "0.4"
 num-traits = "0.2"
-#uikit-sys = { path = "../../uikit-sys/" }
 uikit-sys = { git = "https://github.com/simlay/uikit-sys", branch = "bindgen-categories-and-better-return-types" }
 
 [dependencies.iced_core]
