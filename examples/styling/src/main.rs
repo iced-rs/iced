@@ -1,7 +1,7 @@
 use iced::{
     button, scrollable, slider, text_input, Align, Button, Checkbox, Column,
-    Container, Element, Length, ProgressBar, Radio, Row, Sandbox, Scrollable,
-    Settings, Slider, Space, Text, TextInput,
+    Container, Element, Length, ProgressBar, Radio, Row, Rule, Sandbox,
+    Scrollable, Settings, Slider, Space, Text, TextInput,
 };
 
 pub fn main() {
@@ -113,14 +113,17 @@ impl Sandbox for Styling {
             .padding(20)
             .max_width(600)
             .push(choose_theme)
+            .push(Rule::horizontal(38).style(self.theme))
             .push(Row::new().spacing(10).push(text_input).push(button))
             .push(slider)
             .push(progress_bar)
             .push(
                 Row::new()
                     .spacing(10)
+                    .height(Length::Units(100))
                     .align_items(Align::Center)
                     .push(scrollable)
+                    .push(Rule::vertical(38).style(self.theme))
                     .push(checkbox),
             );
 
@@ -136,8 +139,8 @@ impl Sandbox for Styling {
 
 mod style {
     use iced::{
-        button, checkbox, container, progress_bar, radio, scrollable, slider,
-        text_input,
+        button, checkbox, container, progress_bar, radio, rule, scrollable,
+        slider, text_input,
     };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -228,6 +231,15 @@ mod style {
         }
     }
 
+    impl From<Theme> for Box<dyn rule::StyleSheet> {
+        fn from(theme: Theme) -> Self {
+            match theme {
+                Theme::Light => Default::default(),
+                Theme::Dark => dark::Rule.into(),
+            }
+        }
+    }
+
     mod light {
         use iced::{button, Background, Color, Vector};
 
@@ -258,7 +270,7 @@ mod style {
 
     mod dark {
         use iced::{
-            button, checkbox, container, progress_bar, radio, scrollable,
+            button, checkbox, container, progress_bar, radio, rule, scrollable,
             slider, text_input, Background, Color,
         };
 
@@ -513,6 +525,19 @@ mod style {
                         ..if is_checked { ACTIVE } else { SURFACE }
                     }),
                     ..self.active(is_checked)
+                }
+            }
+        }
+
+        pub struct Rule;
+
+        impl rule::StyleSheet for Rule {
+            fn style(&self) -> rule::Style {
+                rule::Style {
+                    color: SURFACE,
+                    width: 2,
+                    radius: 1,
+                    fill_percent: 90,
                 }
             }
         }
