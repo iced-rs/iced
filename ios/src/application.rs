@@ -131,43 +131,18 @@ pub trait Application: Sized {
         let window = {
             let mut window_builder = WindowBuilder::new();
 
-            //let (width, height) = settings.window.size
-            //let window = Window::new(&event_loop).unwrap();
             window_builder = window_builder
                 .with_title(title)
                 .with_decorations(true)
-                //.with_fullscreen()//Some(Fullscreen::Borderless(window.current_monitor())))
-                //.with_inner_size(winit::dpi::LogicalSize { width: 1000, height: 1000})
             ;
-            /*
-            .with_resizable(settings.window.resizable)
-            .with_decorations(settings.window.decorations);
-            */
             window_builder.build(&event_loop).expect("Open window")
         };
 
         let root_view: UIView = UIView(window.ui_view() as id);
-        unsafe {
-            let background = UIColor::greenColor();
-            //let background = UIColor(UIColor::whiteColor());
-            root_view.setBackgroundColor_(background);
-            /*
-            let rect = CGRect {
-                origin: CGPoint { x: 0.0, y: 0.0 },
-                size: CGSize {
-                    height: 400.0,
-                    width: 300.0,
-                },
-            };
-            root_view.setFrame_(rect);
-            */
-        }
         let mut widget_tree: WidgetNode = WidgetNode::new(0 as id, crate::widget::WidgetType::BaseElement, 0);
 
         event_loop.run(
             move |event: winit::event::Event<WidgetEvent>, _, control_flow| {
-                //let new_title = application.borrow().title();
-                //debug!("NEW EVENT: {:?}", event);
                 let mut messages: Vec<Self::Message> = Vec::new();
                 match event {
                     event::Event::MainEventsCleared => {}

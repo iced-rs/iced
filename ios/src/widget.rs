@@ -1,6 +1,5 @@
 use crate::{event::WidgetEvent, Hasher, Length};
 use uikit_sys::{id, UIView};
-use std::convert::TryInto;
 
 /*
 pub mod checkbox;
