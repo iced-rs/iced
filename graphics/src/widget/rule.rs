@@ -5,7 +5,7 @@ use iced_native::mouse;
 use iced_native::rule;
 use iced_native::{Background, Color, Rectangle};
 
-pub use iced_style::rule::{Style, StyleSheet};
+pub use iced_style::rule::{FillMode, Style, StyleSheet};
 
 /// Display a horizontal or vertical rule for dividing content.
 ///
@@ -31,15 +31,46 @@ where
                 - (style.width as f32 / 2.0))
                 .round();
 
-            let (line_x, line_width) = if style.fill_percent >= 100 {
-                (bounds.x, bounds.width)
-            } else {
-                let percent_width =
-                    (bounds.width * style.fill_percent as f32 / 100.0).round();
-                (
-                    bounds.x + ((bounds.width - percent_width) / 2.0).round(),
-                    percent_width,
-                )
+            let (line_x, line_width) = match style.fill_mode {
+                FillMode::Full => (bounds.x, bounds.width),
+                FillMode::Percent(percent) => {
+                    if percent >= 100.0 {
+                        (bounds.x, bounds.width)
+                    } else {
+                        let percent_width =
+                            (bounds.width * percent / 100.0).round();
+
+                        (
+                            bounds.x
+                                + ((bounds.width - percent_width) / 2.0)
+                                    .round(),
+                            percent_width,
+                        )
+                    }
+                }
+                FillMode::Padded(padding) => {
+                    if padding == 0 {
+                        (bounds.x, bounds.width)
+                    } else {
+                        let padding = padding as f32;
+                        let mut line_width = bounds.width - (padding * 2.0);
+                        if line_width < 0.0 {
+                            line_width = 0.0;
+                        }
+
+                        (bounds.x + padding, line_width)
+                    }
+                }
+                FillMode::AsymmetricPadding(first_pad, second_pad) => {
+                    let first_pad = first_pad as f32;
+                    let second_pad = second_pad as f32;
+                    let mut line_width = bounds.width - first_pad - second_pad;
+                    if line_width < 0.0 {
+                        line_width = 0.0;
+                    }
+
+                    (bounds.x + first_pad, line_width)
+                }
             };
 
             Primitive::Quad {
@@ -59,15 +90,47 @@ where
                 - (style.width as f32 / 2.0))
                 .round();
 
-            let (line_y, line_height) = if style.fill_percent >= 100 {
-                (bounds.y, bounds.height)
-            } else {
-                let percent_height =
-                    (bounds.height * style.fill_percent as f32 / 100.0).round();
-                (
-                    bounds.y + ((bounds.height - percent_height) / 2.0).round(),
-                    percent_height,
-                )
+            let (line_y, line_height) = match style.fill_mode {
+                FillMode::Full => (bounds.y, bounds.height),
+                FillMode::Percent(percent) => {
+                    if percent >= 100.0 {
+                        (bounds.y, bounds.height)
+                    } else {
+                        let percent_height =
+                            (bounds.height * percent / 100.0).round();
+
+                        (
+                            bounds.y
+                                + ((bounds.height - percent_height) / 2.0)
+                                    .round(),
+                            percent_height,
+                        )
+                    }
+                }
+                FillMode::Padded(padding) => {
+                    if padding == 0 {
+                        (bounds.y, bounds.height)
+                    } else {
+                        let padding = padding as f32;
+                        let mut line_height = bounds.height - (padding * 2.0);
+                        if line_height < 0.0 {
+                            line_height = 0.0;
+                        }
+
+                        (bounds.y + padding, line_height)
+                    }
+                }
+                FillMode::AsymmetricPadding(first_pad, second_pad) => {
+                    let first_pad = first_pad as f32;
+                    let second_pad = second_pad as f32;
+                    let mut line_height =
+                        bounds.height - first_pad - second_pad;
+                    if line_height < 0.0 {
+                        line_height = 0.0;
+                    }
+
+                    (bounds.y + first_pad, line_height)
+                }
             };
 
             Primitive::Quad {

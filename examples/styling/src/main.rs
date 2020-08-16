@@ -537,7 +537,7 @@ mod style {
                     color: SURFACE,
                     width: 2,
                     radius: 1,
-                    fill_percent: 90,
+                    fill_mode: rule::FillMode::Padded(15),
                 }
             }
         }
