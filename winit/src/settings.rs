@@ -67,7 +67,6 @@ impl Window {
 
         let (width, height) = self.size;
 
-        println!("patched window with trasparent");
         window_builder = window_builder
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
@@ -88,13 +87,13 @@ impl Window {
         }
 
         #[cfg(target_os = "windows")]
-            {
-                use winit::platform::windows::WindowBuilderExtWindows;
+        {
+            use winit::platform::windows::WindowBuilderExtWindows;
 
-                if let Some(parent) = self.platform_specific.parent {
-                    window_builder = window_builder.with_parent_window(parent);
-                }
+            if let Some(parent) = self.platform_specific.parent {
+                window_builder = window_builder.with_parent_window(parent);
             }
+        }
 
         window_builder
     }
