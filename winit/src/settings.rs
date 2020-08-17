@@ -45,6 +45,7 @@ pub struct Window {
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
 
+    /// Whether the window should be transparent
     pub transparent: bool,
 
     /// The window icon, which is also usually used in the taskbar
