@@ -14,7 +14,11 @@ impl Transformation {
     /// Creates an orthographic projection.
     #[rustfmt::skip]
     pub fn orthographic(width: u32, height: u32) -> Transformation {
-        Transformation(Mat4::orthographic_rh_gl(0.0, width as f32, 0.0, height as f32, -1.0, 1.0))
+        Transformation(Mat4::orthographic_rh_gl(
+            0.0, width as f32,
+            height as f32, 0.0,
+            -1.0, 1.0
+        ))
     }
 
     /// Creates a translate transformation.
