@@ -45,6 +45,8 @@ pub struct Window {
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
 
+    pub transparent: bool,
+
     /// The window icon, which is also usually used in the taskbar
     pub icon: Option<winit::window::Icon>,
 
@@ -64,11 +66,13 @@ impl Window {
 
         let (width, height) = self.size;
 
+        println!("patched window with trasparent");
         window_builder = window_builder
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
+            .with_transparent(self.transparent)
             .with_window_icon(self.icon)
             .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
 
@@ -83,13 +87,13 @@ impl Window {
         }
 
         #[cfg(target_os = "windows")]
-        {
-            use winit::platform::windows::WindowBuilderExtWindows;
+            {
+                use winit::platform::windows::WindowBuilderExtWindows;
 
-            if let Some(parent) = self.platform_specific.parent {
-                window_builder = window_builder.with_parent_window(parent);
+                if let Some(parent) = self.platform_specific.parent {
+                    window_builder = window_builder.with_parent_window(parent);
+                }
             }
-        }
 
         window_builder
     }
@@ -103,6 +107,7 @@ impl Default for Window {
             max_size: None,
             resizable: true,
             decorations: true,
+            transparent: false,
             icon: None,
             platform_specific: Default::default(),
         }
