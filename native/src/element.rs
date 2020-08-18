@@ -1,6 +1,7 @@
+use crate::layout;
+use crate::overlay;
 use crate::{
-    layout, overlay, Clipboard, Color, Event, Hasher, Layout, Length, Point,
-    Widget,
+    Clipboard, Color, Event, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 /// A generic [`Widget`].
@@ -260,9 +261,10 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         self.widget
-            .draw(renderer, defaults, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position, viewport)
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -356,9 +358,10 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         self.widget
-            .draw(renderer, defaults, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position, viewport)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -437,12 +440,14 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         renderer.explain(
             defaults,
             self.element.widget.as_ref(),
             layout,
             cursor_position,
+            viewport,
             self.color,
         )
     }

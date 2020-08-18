@@ -8,8 +8,8 @@
 //! [`Frame`]: struct.Frame.html
 use crate::{Backend, Defaults, Primitive, Renderer};
 use iced_native::{
-    layout, mouse, Clipboard, Element, Hasher, Layout, Length, Point, Size,
-    Vector, Widget,
+    layout, mouse, Clipboard, Element, Hasher, Layout, Length, Point,
+    Rectangle, Size, Vector, Widget,
 };
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -196,6 +196,7 @@ where
         _defaults: &Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> (Primitive, mouse::Interaction) {
         let bounds = layout.bounds();
         let translation = Vector::new(bounds.x, bounds.y);

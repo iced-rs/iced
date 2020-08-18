@@ -15,8 +15,8 @@ mod rainbow {
         Backend, Defaults, Primitive, Renderer,
     };
     use iced_native::{
-        layout, mouse, Element, Hasher, Layout, Length, Point, Size, Vector,
-        Widget,
+        layout, mouse, Element, Hasher, Layout, Length, Point, Rectangle, Size,
+        Vector, Widget,
     };
 
     pub struct Rainbow;
@@ -57,6 +57,7 @@ mod rainbow {
             _defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
+            _viewport: &Rectangle,
         ) -> (Primitive, mouse::Interaction) {
             let b = layout.bounds();
 

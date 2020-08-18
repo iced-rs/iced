@@ -253,9 +253,13 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        let primitives =
-            self.container
-                .draw(renderer, defaults, layout, cursor_position);
+        let primitives = self.container.draw(
+            renderer,
+            defaults,
+            layout,
+            cursor_position,
+            &layout.bounds(),
+        );
 
         renderer.decorate(
             layout.bounds(),
@@ -368,6 +372,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         self::Renderer::draw(
             renderer,

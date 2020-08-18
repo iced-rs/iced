@@ -73,7 +73,9 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{layout, overlay, Clipboard, Event, Hasher, Layout, Length, Point};
+use crate::{
+    layout, overlay, Clipboard, Event, Hasher, Layout, Length, Point, Rectangle,
+};
 
 /// A component that displays information and allows interaction.
 ///
@@ -137,6 +139,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output;
 
     /// Computes the _layout_ hash of the [`Widget`].

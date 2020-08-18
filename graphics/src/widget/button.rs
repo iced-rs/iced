@@ -62,6 +62,7 @@ where
             },
             content_layout,
             cursor_position,
+            &bounds,
         );
 
         (

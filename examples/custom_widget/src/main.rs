@@ -12,7 +12,7 @@ mod circle {
     use iced_graphics::{Backend, Defaults, Primitive, Renderer};
     use iced_native::{
         layout, mouse, Background, Color, Element, Hasher, Layout, Length,
-        Point, Size, Widget,
+        Point, Rectangle, Size, Widget,
     };
 
     pub struct Circle {
@@ -60,6 +60,7 @@ mod circle {
             _defaults: &Defaults,
             layout: Layout<'_>,
             _cursor_position: Point,
+            _viewport: &Rectangle,
         ) -> (Primitive, mouse::Interaction) {
             (
                 Primitive::Quad {

@@ -303,6 +303,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -335,6 +336,10 @@ where
                 defaults,
                 content_layout,
                 cursor_position,
+                &Rectangle {
+                    y: bounds.y + offset as f32,
+                    ..bounds
+                },
             )
         };
 
