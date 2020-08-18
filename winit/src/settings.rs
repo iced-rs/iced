@@ -45,6 +45,9 @@ pub struct Window {
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
 
+    /// Whether the window should be transparent
+    pub transparent: bool,
+
     /// The window icon, which is also usually used in the taskbar
     pub icon: Option<winit::window::Icon>,
 
@@ -69,6 +72,7 @@ impl Window {
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
+            .with_transparent(self.transparent)
             .with_window_icon(self.icon)
             .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
 
@@ -103,6 +107,7 @@ impl Default for Window {
             max_size: None,
             resizable: true,
             decorations: true,
+            transparent: false,
             icon: None,
             platform_specific: Default::default(),
         }
