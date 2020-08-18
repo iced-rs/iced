@@ -42,6 +42,7 @@ where
         &mut self,
         bounds: Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
         options: &[T],
         hovered_option: Option<usize>,
         padding: u16,
@@ -52,16 +53,24 @@ where
         use std::f32;
 
         let is_mouse_over = bounds.contains(cursor_position);
+        let option_height = text_size as usize + padding as usize * 2;
 
         let mut primitives = Vec::new();
 
-        for (i, option) in options.iter().enumerate() {
+        let offset = viewport.y - bounds.y;
+        let start = (offset / option_height as f32) as usize;
+        let end =
+            ((offset + viewport.height) / option_height as f32).ceil() as usize;
+
+        let visible_options = &options[start..end.min(options.len())];
+
+        for (i, option) in visible_options.iter().enumerate() {
+            let i = start + i;
             let is_selected = hovered_option == Some(i);
 
             let bounds = Rectangle {
                 x: bounds.x,
-                y: bounds.y
-                    + ((text_size as usize + padding as usize * 2) * i) as f32,
+                y: bounds.y + (option_height * i) as f32,
                 width: bounds.width,
                 height: f32::from(text_size + padding * 2),
             };
