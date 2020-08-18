@@ -183,6 +183,10 @@ where
     }
 
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {
+        if let Some(title_bar) = &self.title_bar {
+            title_bar.hash_layout(state);
+        }
+
         self.body.hash_layout(state);
     }
 
