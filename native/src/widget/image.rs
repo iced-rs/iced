@@ -9,7 +9,7 @@ use std::{
 
 /// A frame that displays an image while keeping aspect ratio.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
 /// # use iced_native::Image;
@@ -18,6 +18,26 @@ use std::{
 /// ```
 ///
 /// <img src="https://github.com/hecrj/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
+///
+/// ```text
+/// fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
+///     Container::new(
+///         // This should go away once we unify resource loading on native
+///         // platforms
+///         if cfg!(target_arch = "wasm32") {
+///             Image::new("images/ferris.png")
+///         } else {
+///             Image::new(format!(
+///                 "{}/images/ferris.png",
+///                 env!("CARGO_MANIFEST_DIR")
+///             ))
+///         }
+///         .width(Length::Units(width)),
+///     )
+///     .width(Length::Fill)
+///     .center_x()
+/// }
+/// ```
 #[derive(Debug, Hash)]
 pub struct Image {
     handle: Handle,
