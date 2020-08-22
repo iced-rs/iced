@@ -15,6 +15,7 @@ pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
 pub mod radio;
+pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod svg;
@@ -39,6 +40,8 @@ pub use pick_list::PickList;
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
 pub use radio::Radio;
+#[doc(no_inline)]
+pub use rule::Rule;
 #[doc(no_inline)]
 pub use scrollable::Scrollable;
 #[doc(no_inline)]
