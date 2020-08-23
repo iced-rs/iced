@@ -7,9 +7,9 @@ pub trait Clipboard {
     fn content(&self) -> Option<String>;
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(feature = "clipboard")]
 use ::clipboard::{ClipboardContext, ClipboardProvider};
-#[cfg(target_os = "macos")]
+#[cfg(feature = "clipboard")]
 pub fn copy_to_clipboard<S: Into<String>>(text: S) {
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
     ctx.set_contents(text.into()).unwrap();

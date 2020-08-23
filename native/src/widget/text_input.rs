@@ -463,7 +463,7 @@ where
                         self.state.is_pasting = None;
                     }
                 }
-                #[cfg(target_os = "macos")]
+                #[cfg(feature = "clipboard")]
                 keyboard::KeyCode::C => {
                     if platform::is_copy_paste_modifier_pressed(modifiers) {
                         if let Some((start, end)) =
@@ -475,7 +475,7 @@ where
                         }
                     }
                 }
-                #[cfg(target_os = "macos")]
+                #[cfg(feature = "clipboard")]
                 keyboard::KeyCode::X => {
                     if platform::is_copy_paste_modifier_pressed(modifiers) {
                         if let Some((start, end)) =

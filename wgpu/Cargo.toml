@@ -11,6 +11,7 @@ repository = "https://github.com/hecrj/iced"
 svg = ["resvg"]
 canvas = ["iced_graphics/canvas"]
 default_system_font = ["iced_graphics/font-source"]
+clipboard = ["iced_native/clipboard"]
 
 [dependencies]
 wgpu = "0.5"

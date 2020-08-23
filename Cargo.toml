@@ -37,6 +37,8 @@ tokio = ["iced_futures/tokio"]
 async-std = ["iced_futures/async-std"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
+# Enables cut & copy feature on text_input widget via `clipboard` crate
+clipboard = ["iced_wgpu/clipboard"]
 
 [badges]
 maintenance = { status = "actively-developed" }
