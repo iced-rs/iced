@@ -70,7 +70,7 @@ pub use iced_futures::{executor, futures, Command};
 #[doc(no_inline)]
 pub use executor::Executor;
 
-pub use clipboard::Clipboard;
+pub use crate::clipboard::Clipboard;
 pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;

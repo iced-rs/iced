@@ -314,7 +314,7 @@ where
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
-                    && self.state.is_pasting.is_none()
+                    && !self.state.is_modifier_pressed
                     && !c.is_control() =>
             {
                 let mut editor =
@@ -463,6 +463,39 @@ where
                         self.state.is_pasting = None;
                     }
                 }
+                #[cfg(target_os = "macos")]
+                keyboard::KeyCode::C => {
+                    if platform::is_copy_paste_modifier_pressed(modifiers) {
+                        if let Some((start, end)) =
+                            self.state.cursor().selection(&self.value)
+                        {
+                            crate::clipboard::copy_to_clipboard(
+                                &self.value.to_string()[start..end],
+                            );
+                        }
+                    }
+                }
+                #[cfg(target_os = "macos")]
+                keyboard::KeyCode::X => {
+                    if platform::is_copy_paste_modifier_pressed(modifiers) {
+                        if let Some((start, end)) =
+                            self.state.cursor().selection(&self.value)
+                        {
+                            crate::clipboard::copy_to_clipboard(
+                                &self.value.to_string()[start..end],
+                            );
+                            let mut editor = Editor::new(
+                                &mut self.value,
+                                &mut self.state.cursor,
+                            );
+
+                            editor.delete();
+
+                            let message = (self.on_change)(editor.contents());
+                            messages.push(message);
+                        }
+                    }
+                }
                 keyboard::KeyCode::A => {
                     if platform::is_copy_paste_modifier_pressed(modifiers) {
                         self.state.cursor.select_all(&self.value);
@@ -472,17 +505,40 @@ where
                     self.state.is_focused = false;
                     self.state.is_dragging = false;
                     self.state.is_pasting = None;
+                    self.state.is_modifier_pressed = false;
                 }
                 _ => {}
             },
             Event::Keyboard(keyboard::Event::KeyReleased {
-                key_code, ..
-            }) => match key_code {
-                keyboard::KeyCode::V => {
-                    self.state.is_pasting = None;
+                key_code,
+                modifiers,
+            }) => {
+                match key_code {
+                    keyboard::KeyCode::V => {
+                        self.state.is_pasting = None;
+                    }
+                    _ => {}
                 }
-                _ => {}
-            },
+                if self.state.is_modifier_pressed
+                    && !platform::is_copy_paste_modifier_pressed(modifiers)
+                {
+                    self.state.is_modifier_pressed = false
+                }
+            }
+            Event::Keyboard(iced_core::keyboard::Event::ModifiersChanged(
+                state,
+            )) => {
+                if self.state.is_modifier_pressed
+                    && !platform::is_copy_paste_modifier_pressed(state)
+                {
+                    self.state.is_modifier_pressed = false;
+                }
+                if !self.state.is_modifier_pressed
+                    && platform::is_copy_paste_modifier_pressed(state)
+                {
+                    self.state.is_modifier_pressed = true;
+                }
+            }
             _ => {}
         }
     }
@@ -647,6 +703,7 @@ pub struct State {
     is_focused: bool,
     is_dragging: bool,
     is_pasting: Option<Value>,
+    is_modifier_pressed: bool,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     // TODO: Add stateful horizontal scrolling offset
@@ -668,6 +725,7 @@ impl State {
             is_focused: true,
             is_dragging: false,
             is_pasting: None,
+            is_modifier_pressed: false,
             last_click: None,
             cursor: Cursor::default(),
         }
