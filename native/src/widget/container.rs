@@ -22,7 +22,7 @@ pub struct Container<'a, Message, Renderer: self::Renderer> {
     vertical_alignment: Align,
     style: Renderer::Style,
     content: Element<'a, Message, Renderer>,
-    key_event_handler: Option<Box<dyn Fn(& crate::keyboard::Event) -> Option<Message>>>,
+    key_event_handler: Option<Box<dyn Fn(crate::keyboard::Event) -> Option<Message> + 'a>>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
@@ -80,8 +80,11 @@ where
     /// this message will be sent to the vent loop.
     ///
     /// If subscriber returns None the key event will be propagated to nested elements
-    pub fn on_key_event(mut self, handler: Box<dyn Fn(&crate::keyboard::Event) -> Option<Message>>) -> Self {
-        self.key_event_handler = Some(handler);
+    pub fn on_key_event<F>(mut self, f: F) -> Self
+    where
+        F: 'a + Fn(crate::keyboard::Event) -> Option<Message>,
+    {
+        self.key_event_handler = Some(Box::new(f));
         self
     }
 
@@ -191,7 +194,7 @@ where
         // Handle subscribers
         if let Some(event_handler) = &mut self.key_event_handler {
             if let Event::Keyboard(keyboard_event) = event {
-                if let Some(message) = event_handler(&keyboard_event) {
+                if let Some(message) = event_handler(keyboard_event) {
                     messages.push(message);
                     return;
                 }
