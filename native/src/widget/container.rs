@@ -22,6 +22,7 @@ pub struct Container<'a, Message, Renderer: self::Renderer> {
     vertical_alignment: Align,
     style: Renderer::Style,
     content: Element<'a, Message, Renderer>,
+    key_event_handler: Option<Box<dyn Fn(& crate::keyboard::Event) -> Option<Message>>>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
@@ -45,6 +46,7 @@ where
             vertical_alignment: Align::Start,
             style: Renderer::Style::default(),
             content: content.into(),
+            key_event_handler: None,
         }
     }
 
@@ -69,6 +71,17 @@ where
     /// [`Container`]: struct.Container.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
+        self
+    }
+
+    /// Set a subscriber for key events
+    ///
+    /// If subscriber returns Some(Message)
+    /// this message will be sent to the vent loop.
+    ///
+    /// If subscriber returns None the key event will be propagated to nested elements
+    pub fn on_key_event(mut self, handler: Box<dyn Fn(&crate::keyboard::Event) -> Option<Message>>) -> Self {
+        self.key_event_handler = Some(handler);
         self
     }
 
@@ -175,6 +188,16 @@ where
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
     ) {
+        // Handle subscribers
+        if let Some(event_handler) = &mut self.key_event_handler {
+            if let Event::Keyboard(keyboard_event) = event {
+                if let Some(message) = event_handler(&keyboard_event) {
+                    messages.push(message);
+                    return;
+                }
+            }
+        }
+
         self.content.widget.on_event(
             event,
             layout.children().next().unwrap(),
