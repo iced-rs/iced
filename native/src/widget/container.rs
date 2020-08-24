@@ -22,7 +22,8 @@ pub struct Container<'a, Message, Renderer: self::Renderer> {
     vertical_alignment: Align,
     style: Renderer::Style,
     content: Element<'a, Message, Renderer>,
-    key_event_handler: Option<Box<dyn Fn(crate::keyboard::Event) -> Option<Message> + 'a>>,
+    key_event_handler:
+        Option<Box<dyn Fn(crate::keyboard::Event) -> Option<Message> + 'a>>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>

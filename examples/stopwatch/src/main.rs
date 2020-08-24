@@ -1,7 +1,7 @@
 use iced::{
-    button, executor, time, Align, Application, Button, Column, Command,
-    Container, Element, HorizontalAlignment, Length, Row, Settings,
-    Subscription, Text, keyboard,
+    button, executor, keyboard, time, Align, Application, Button, Column,
+    Command, Container, Element, HorizontalAlignment, Length, Row, Settings,
+    Subscription, Text,
 };
 use std::time::{Duration, Instant};
 
@@ -141,7 +141,10 @@ impl Application for Stopwatch {
             .center_x()
             .center_y()
             .on_key_event(|event| {
-                if let keyboard::Event::KeyPressed {key_code,modifiers: _,} = event
+                if let keyboard::Event::KeyPressed {
+                    key_code,
+                    modifiers: _,
+                } = event
                 {
                     if let keyboard::KeyCode::Space = key_code {
                         return Some(Message::Toggle);
