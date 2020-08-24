@@ -40,6 +40,12 @@ pub fn window_event(
                 y: position.y as f32,
             }))
         }
+        WindowEvent::CursorEntered { .. } => {
+            Some(Event::Mouse(mouse::Event::CursorEntered))
+        }
+        WindowEvent::CursorLeft { .. } => {
+            Some(Event::Mouse(mouse::Event::CursorLeft))
+        }
         WindowEvent::MouseInput { button, state, .. } => {
             let button = mouse_button(*button);
 
