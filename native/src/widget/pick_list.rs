@@ -18,6 +18,7 @@ where
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
     on_selected: Box<dyn Fn(T) -> Message>,
+    on_opened: Option<Box<dyn Fn()>>,
     options: Cow<'a, [T]>,
     selected: Option<T>,
     width: Length,
@@ -80,6 +81,7 @@ where
             hovered_option,
             last_selection,
             on_selected: Box::new(on_selected),
+            on_opened: None,
             options: options.into(),
             selected,
             width: Length::Shrink,
@@ -95,6 +97,14 @@ where
     /// [`PickList`]: struct.PickList.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the callback function that will be called when the [`PickList`] is opened.
+    ///
+    /// [`PickList`]: struct.PickList.html
+    pub fn on_opened(mut self, on_opened: Box<dyn Fn()>) -> Self {
+        self.on_opened = Some(on_opened);
         self
     }
 
@@ -232,6 +242,9 @@ where
                         cursor_position.x < 0.0 || cursor_position.y < 0.0;
                 } else if layout.bounds().contains(cursor_position) {
                     let selected = self.selected.as_ref();
+
+                    let _ =
+                        self.on_opened.as_ref().map(|on_opened| on_opened());
 
                     *self.is_open = true;
                     *self.hovered_option = self
