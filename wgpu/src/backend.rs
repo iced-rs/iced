@@ -152,6 +152,7 @@ impl Backend {
 
                 self.image_pipeline.draw(
                     device,
+                    staging_belt,
                     encoder,
                     &layer.images,
                     scaled,
