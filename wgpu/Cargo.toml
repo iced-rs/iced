@@ -13,17 +13,15 @@ canvas = ["iced_graphics/canvas"]
 default_system_font = ["iced_graphics/font-source"]
 
 [dependencies]
-wgpu = "0.5"
-wgpu_glyph = "0.9"
+wgpu = "0.6"
+wgpu_glyph = "0.10"
 glyph_brush = "0.7"
 zerocopy = "0.3"
 bytemuck = "1.2"
 raw-window-handle = "0.3"
 log = "0.4"
 guillotiere = "0.5"
-# Pin `gfx-memory` until https://github.com/gfx-rs/wgpu-rs/issues/261 is
-# resolved
-gfx-memory = "=0.1.1"
+futures = "0.3"
 
 [dependencies.iced_native]
 version = "0.2"

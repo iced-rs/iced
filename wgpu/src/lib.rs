@@ -23,7 +23,7 @@
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
