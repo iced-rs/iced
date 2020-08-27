@@ -341,12 +341,7 @@ impl Pipeline {
                     (
                         attachment,
                         Some(resolve_target),
-                        wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 0.0,
-                        }),
+                        wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                     )
                 } else {
                     (target, None, wgpu::LoadOp::Load)
