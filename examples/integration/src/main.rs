@@ -7,6 +7,7 @@ use scene::Scene;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
 use iced_winit::{conversion, futures, program, winit, Debug, Size};
 
+use futures::task::SpawnExt;
 use winit::{
     dpi::PhysicalPosition,
     event::{Event, ModifiersState, WindowEvent},
@@ -29,26 +30,29 @@ pub fn main() {
     let mut modifiers = ModifiersState::default();
 
     // Initialize wgpu
-    let surface = wgpu::Surface::create(&window);
+    let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+    let surface = unsafe { instance.create_surface(&window) };
+
     let (mut device, queue) = futures::executor::block_on(async {
-        let adapter = wgpu::Adapter::request(
-            &wgpu::RequestAdapterOptions {
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::Default,
                 compatible_surface: Some(&surface),
-            },
-            wgpu::BackendBit::PRIMARY,
-        )
-        .await
-        .expect("Request adapter");
-
-        adapter
-            .request_device(&wgpu::DeviceDescriptor {
-                extensions: wgpu::Extensions {
-                    anisotropic_filtering: false,
-                },
-                limits: wgpu::Limits::default(),
             })
             .await
+            .expect("Request adapter");
+
+        adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    features: wgpu::Features::empty(),
+                    limits: wgpu::Limits::default(),
+                    shader_validation: false,
+                },
+                None,
+            )
+            .await
+            .expect("Request device")
     });
 
     let format = wgpu::TextureFormat::Bgra8UnormSrgb;
@@ -68,6 +72,10 @@ pub fn main() {
         )
     };
     let mut resized = false;
+
+    // Initialize staging belt and local pool
+    let mut staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
+    let mut local_pool = futures::executor::LocalPool::new();
 
     // Initialize scene and GUI controls
     let scene = Scene::new(&mut device);
@@ -160,7 +168,7 @@ pub fn main() {
                     resized = false;
                 }
 
-                let frame = swap_chain.get_next_texture().expect("Next frame");
+                let frame = swap_chain.get_current_frame().expect("Next frame");
 
                 let mut encoder = device.create_command_encoder(
                     &wgpu::CommandEncoderDescriptor { label: None },
@@ -171,7 +179,7 @@ pub fn main() {
                 {
                     // We clear the frame
                     let mut render_pass = scene.clear(
-                        &frame.view,
+                        &frame.output.view,
                         &mut encoder,
                         program.background_color(),
                     );
@@ -183,22 +191,32 @@ pub fn main() {
                 // And then iced on top
                 let mouse_interaction = renderer.backend_mut().draw(
                     &mut device,
+                    &mut staging_belt,
                     &mut encoder,
-                    &frame.view,
+                    &frame.output.view,
                     &viewport,
                     state.primitive(),
                     &debug.overlay(),
                 );
 
                 // Then we submit the work
-                queue.submit(&[encoder.finish()]);
+                staging_belt.finish();
+                queue.submit(Some(encoder.finish()));
 
-                // And update the mouse cursor
+                // Update the mouse cursor
                 window.set_cursor_icon(
                     iced_winit::conversion::mouse_interaction(
                         mouse_interaction,
                     ),
                 );
+
+                // And recall staging buffers
+                local_pool
+                    .spawner()
+                    .spawn(staging_belt.recall())
+                    .expect("Recall staging buffers");
+
+                local_pool.run_until_stalled();
             }
             _ => {}
         }
