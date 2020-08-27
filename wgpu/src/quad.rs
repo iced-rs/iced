@@ -34,12 +34,12 @@ impl Pipeline {
                 }],
             });
 
-        let constants_buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: Uniforms::default().as_bytes(),
-                usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-            });
+        let constants_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: mem::size_of::<Uniforms>() as u64,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            mapped_at_creation: false,
+        });
 
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
