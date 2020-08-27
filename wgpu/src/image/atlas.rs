@@ -47,7 +47,7 @@ impl Atlas {
         Atlas {
             texture,
             texture_view,
-            layers: vec![Layer::Empty, Layer::Empty],
+            layers: vec![Layer::Empty],
         }
     }
 
