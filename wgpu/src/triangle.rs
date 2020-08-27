@@ -272,12 +272,11 @@ impl Pipeline {
             let vertices = bytemuck::cast_slice(&mesh.buffers.vertices);
             let indices = bytemuck::cast_slice(&mesh.buffers.indices);
 
-            if let Some(vertices_size) =
-                wgpu::BufferSize::new(vertices.len() as u64)
-            {
-                if let Some(indices_size) =
-                    wgpu::BufferSize::new(indices.len() as u64)
-                {
+            match (
+                wgpu::BufferSize::new(vertices.len() as u64),
+                wgpu::BufferSize::new(indices.len() as u64),
+            ) {
+                (Some(vertices_size), Some(indices_size)) => {
                     {
                         let mut vertex_buffer = staging_belt.write_buffer(
                             encoder,
@@ -313,6 +312,7 @@ impl Pipeline {
                     last_vertex += mesh.buffers.vertices.len();
                     last_index += mesh.buffers.indices.len();
                 }
+                _ => {}
             }
         }
 
