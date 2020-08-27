@@ -123,7 +123,7 @@ impl Atlas {
             Entry::Fragmented { fragments, .. } => {
                 for fragment in fragments {
                     let (x, y) = fragment.position;
-                    let offset = (y * padded_width as u32 + x) as usize * 4;
+                    let offset = (y * padded_width as u32 + 4 * x) as usize;
 
                     self.upload_allocation(
                         &buffer,
