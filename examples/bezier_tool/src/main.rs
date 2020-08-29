@@ -143,6 +143,7 @@ mod bezier {
                     }
                     _ => None,
                 },
+                _ => None,
             }
         }
 

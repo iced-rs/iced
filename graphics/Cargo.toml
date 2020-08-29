@@ -13,7 +13,7 @@ opengl = []
 
 [dependencies]
 bytemuck = "1.2"
-glam = "0.8"
+glam = "0.9"
 raw-window-handle = "0.3"
 
 [dependencies.iced_native]

@@ -1,6 +1,8 @@
 use crate::layout;
 use crate::pane_grid;
-use crate::{Clipboard, Element, Event, Layout, Point, Rectangle, Size};
+use crate::{
+    Clipboard, Element, Event, Hasher, Layout, Point, Rectangle, Size,
+};
 
 /// The title bar of a [`Pane`].
 ///
@@ -174,6 +176,14 @@ where
         } else {
             false
         }
+    }
+
+    pub(crate) fn hash_layout(&self, hasher: &mut Hasher) {
+        use std::hash::Hash;
+
+        self.title.hash(hasher);
+        self.title_size.hash(hasher);
+        self.padding.hash(hasher);
     }
 
     pub(crate) fn layout(

@@ -413,6 +413,7 @@ mod grid {
                     },
                     _ => None,
                 },
+                _ => None,
             }
         }
 

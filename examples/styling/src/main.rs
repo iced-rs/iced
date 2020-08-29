@@ -1,7 +1,7 @@
 use iced::{
     button, scrollable, slider, text_input, Align, Button, Checkbox, Column,
-    Container, Element, Length, ProgressBar, Radio, Row, Sandbox, Scrollable,
-    Settings, Slider, Space, Text, TextInput,
+    Container, Element, Length, ProgressBar, Radio, Row, Rule, Sandbox,
+    Scrollable, Settings, Slider, Space, Text, TextInput,
 };
 
 pub fn main() {
@@ -113,14 +113,17 @@ impl Sandbox for Styling {
             .padding(20)
             .max_width(600)
             .push(choose_theme)
+            .push(Rule::horizontal(38).style(self.theme))
             .push(Row::new().spacing(10).push(text_input).push(button))
             .push(slider)
             .push(progress_bar)
             .push(
                 Row::new()
                     .spacing(10)
+                    .height(Length::Units(100))
                     .align_items(Align::Center)
                     .push(scrollable)
+                    .push(Rule::vertical(38).style(self.theme))
                     .push(checkbox),
             );
 
@@ -136,8 +139,8 @@ impl Sandbox for Styling {
 
 mod style {
     use iced::{
-        button, checkbox, container, progress_bar, radio, scrollable, slider,
-        text_input,
+        button, checkbox, container, progress_bar, radio, rule, scrollable,
+        slider, text_input,
     };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -228,17 +231,24 @@ mod style {
         }
     }
 
+    impl From<Theme> for Box<dyn rule::StyleSheet> {
+        fn from(theme: Theme) -> Self {
+            match theme {
+                Theme::Light => Default::default(),
+                Theme::Dark => dark::Rule.into(),
+            }
+        }
+    }
+
     mod light {
-        use iced::{button, Background, Color, Vector};
+        use iced::{button, Color, Vector};
 
         pub struct Button;
 
         impl button::StyleSheet for Button {
             fn active(&self) -> button::Style {
                 button::Style {
-                    background: Some(Background::Color(Color::from_rgb(
-                        0.11, 0.42, 0.87,
-                    ))),
+                    background: Color::from_rgb(0.11, 0.42, 0.87).into(),
                     border_radius: 12,
                     shadow_offset: Vector::new(1.0, 1.0),
                     text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
@@ -258,8 +268,8 @@ mod style {
 
     mod dark {
         use iced::{
-            button, checkbox, container, progress_bar, radio, scrollable,
-            slider, text_input, Background, Color,
+            button, checkbox, container, progress_bar, radio, rule, scrollable,
+            slider, text_input, Color,
         };
 
         const SURFACE: Color = Color::from_rgb(
@@ -291,10 +301,8 @@ mod style {
         impl container::StyleSheet for Container {
             fn style(&self) -> container::Style {
                 container::Style {
-                    background: Some(Background::Color(Color::from_rgb8(
-                        0x36, 0x39, 0x3F,
-                    ))),
-                    text_color: Some(Color::WHITE),
+                    background: Color::from_rgb8(0x36, 0x39, 0x3F).into(),
+                    text_color: Color::WHITE.into(),
                     ..container::Style::default()
                 }
             }
@@ -305,7 +313,7 @@ mod style {
         impl radio::StyleSheet for Radio {
             fn active(&self) -> radio::Style {
                 radio::Style {
-                    background: Background::Color(SURFACE),
+                    background: SURFACE.into(),
                     dot_color: ACTIVE,
                     border_width: 1,
                     border_color: ACTIVE,
@@ -314,7 +322,7 @@ mod style {
 
             fn hovered(&self) -> radio::Style {
                 radio::Style {
-                    background: Background::Color(Color { a: 0.5, ..SURFACE }),
+                    background: Color { a: 0.5, ..SURFACE }.into(),
                     ..self.active()
                 }
             }
@@ -325,7 +333,7 @@ mod style {
         impl text_input::StyleSheet for TextInput {
             fn active(&self) -> text_input::Style {
                 text_input::Style {
-                    background: Background::Color(SURFACE),
+                    background: SURFACE.into(),
                     border_radius: 2,
                     border_width: 0,
                     border_color: Color::TRANSPARENT,
@@ -366,7 +374,7 @@ mod style {
         impl button::StyleSheet for Button {
             fn active(&self) -> button::Style {
                 button::Style {
-                    background: Some(Background::Color(ACTIVE)),
+                    background: ACTIVE.into(),
                     border_radius: 3,
                     text_color: Color::WHITE,
                     ..button::Style::default()
@@ -375,7 +383,7 @@ mod style {
 
             fn hovered(&self) -> button::Style {
                 button::Style {
-                    background: Some(Background::Color(HOVERED)),
+                    background: HOVERED.into(),
                     text_color: Color::WHITE,
                     ..self.active()
                 }
@@ -395,7 +403,7 @@ mod style {
         impl scrollable::StyleSheet for Scrollable {
             fn active(&self) -> scrollable::Scrollbar {
                 scrollable::Scrollbar {
-                    background: Some(Background::Color(SURFACE)),
+                    background: SURFACE.into(),
                     border_radius: 2,
                     border_width: 0,
                     border_color: Color::TRANSPARENT,
@@ -412,10 +420,7 @@ mod style {
                 let active = self.active();
 
                 scrollable::Scrollbar {
-                    background: Some(Background::Color(Color {
-                        a: 0.5,
-                        ..SURFACE
-                    })),
+                    background: Color { a: 0.5, ..SURFACE }.into(),
                     scroller: scrollable::Scroller {
                         color: HOVERED,
                         ..active.scroller
@@ -482,8 +487,8 @@ mod style {
         impl progress_bar::StyleSheet for ProgressBar {
             fn style(&self) -> progress_bar::Style {
                 progress_bar::Style {
-                    background: Background::Color(SURFACE),
-                    bar: Background::Color(ACTIVE),
+                    background: SURFACE.into(),
+                    bar: ACTIVE.into(),
                     border_radius: 10,
                 }
             }
@@ -494,11 +499,8 @@ mod style {
         impl checkbox::StyleSheet for Checkbox {
             fn active(&self, is_checked: bool) -> checkbox::Style {
                 checkbox::Style {
-                    background: Background::Color(if is_checked {
-                        ACTIVE
-                    } else {
-                        SURFACE
-                    }),
+                    background: if is_checked { ACTIVE } else { SURFACE }
+                        .into(),
                     checkmark_color: Color::WHITE,
                     border_radius: 2,
                     border_width: 1,
@@ -508,11 +510,25 @@ mod style {
 
             fn hovered(&self, is_checked: bool) -> checkbox::Style {
                 checkbox::Style {
-                    background: Background::Color(Color {
+                    background: Color {
                         a: 0.8,
                         ..if is_checked { ACTIVE } else { SURFACE }
-                    }),
+                    }
+                    .into(),
                     ..self.active(is_checked)
+                }
+            }
+        }
+
+        pub struct Rule;
+
+        impl rule::StyleSheet for Rule {
+            fn style(&self) -> rule::Style {
+                rule::Style {
+                    color: SURFACE,
+                    width: 2,
+                    radius: 1,
+                    fill_mode: rule::FillMode::Padded(15),
                 }
             }
         }

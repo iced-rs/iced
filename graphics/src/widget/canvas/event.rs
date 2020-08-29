@@ -1,3 +1,4 @@
+use iced_native::keyboard;
 use iced_native::mouse;
 
 /// A [`Canvas`] event.
@@ -7,4 +8,7 @@ use iced_native::mouse;
 pub enum Event {
     /// A mouse event.
     Mouse(mouse::Event),
+
+    /// A keyboard event.
+    Keyboard(keyboard::Event),
 }

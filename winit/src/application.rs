@@ -148,6 +148,7 @@ pub fn run<A, E, C>(
         .expect("Open window");
 
     let clipboard = Clipboard::new(&window);
+    // TODO: Encode cursor availability in the type-system
     let mut cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
     let mut mouse_interaction = mouse::Interaction::default();
     let mut modifiers = winit::event::ModifiersState::default();
@@ -377,6 +378,10 @@ pub fn handle_window_event(
         }
         WindowEvent::CursorMoved { position, .. } => {
             *cursor_position = *position;
+        }
+        WindowEvent::CursorLeft { .. } => {
+            // TODO: Encode cursor availability in the type-system
+            *cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
         }
         WindowEvent::ModifiersChanged(new_modifiers) => {
             *modifiers = *new_modifiers;

@@ -20,7 +20,6 @@ glow_glyph = "0.3"
 glyph_brush = "0.7"
 euclid = "0.20"
 bytemuck = "1.2"
-glam = "0.8"
 log = "0.4"
 
 [dependencies.iced_native]
