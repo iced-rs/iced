@@ -3,6 +3,7 @@ use iced_graphics::layer;
 use iced_native::Rectangle;
 
 use std::mem;
+use wgpu::util::DeviceExt;
 use zerocopy::AsBytes;
 
 #[derive(Debug)]
@@ -19,51 +20,55 @@ impl Pipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Pipeline {
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
-                bindings: &[wgpu::BindGroupLayoutEntry {
+                label: Some("iced_wgpu::quad uniforms layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::UniformBuffer { dynamic: false },
+                    ty: wgpu::BindingType::UniformBuffer {
+                        dynamic: false,
+                        min_binding_size: wgpu::BufferSize::new(
+                            mem::size_of::<Uniforms>() as u64,
+                        ),
+                    },
+                    count: None,
                 }],
             });
 
-        let constants_buffer = device.create_buffer_with_data(
-            Uniforms::default().as_bytes(),
-            wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        );
+        let constants_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("iced_wgpu::quad uniforms buffer"),
+            size: mem::size_of::<Uniforms>() as u64,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            mapped_at_creation: false,
+        });
 
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
+            label: Some("iced_wgpu::quad uniforms bind group"),
             layout: &constant_layout,
-            bindings: &[wgpu::Binding {
+            entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::Buffer {
-                    buffer: &constants_buffer,
-                    range: 0..std::mem::size_of::<Uniforms>() as u64,
-                },
+                resource: wgpu::BindingResource::Buffer(
+                    constants_buffer.slice(..),
+                ),
             }],
         });
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("iced_wgpu::quad pipeline layout"),
+                push_constant_ranges: &[],
                 bind_group_layouts: &[&constant_layout],
             });
 
-        let vs = include_bytes!("shader/quad.vert.spv");
-        let vs_module = device.create_shader_module(
-            &wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
-                .expect("Read quad vertex shader as SPIR-V"),
-        );
+        let vs_module = device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.vert.spv"));
 
-        let fs = include_bytes!("shader/quad.frag.spv");
-        let fs_module = device.create_shader_module(
-            &wgpu::read_spirv(std::io::Cursor::new(&fs[..]))
-                .expect("Read quad fragment shader as SPIR-V"),
-        );
+        let fs_module = device
+            .create_shader_module(wgpu::include_spirv!("shader/quad.frag.spv"));
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                layout: &layout,
+                label: Some("iced_wgpu::quad pipeline"),
+                layout: Some(&layout),
                 vertex_stage: wgpu::ProgrammableStageDescriptor {
                     module: &vs_module,
                     entry_point: "main",
@@ -75,9 +80,7 @@ impl Pipeline {
                 rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                     front_face: wgpu::FrontFace::Cw,
                     cull_mode: wgpu::CullMode::None,
-                    depth_bias: 0,
-                    depth_bias_slope_scale: 0.0,
-                    depth_bias_clamp: 0.0,
+                    ..Default::default()
                 }),
                 primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                 color_states: &[wgpu::ColorStateDescriptor {
@@ -150,20 +153,25 @@ impl Pipeline {
                 alpha_to_coverage_enabled: false,
             });
 
-        let vertices = device.create_buffer_with_data(
-            QUAD_VERTS.as_bytes(),
-            wgpu::BufferUsage::VERTEX,
-        );
+        let vertices =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("iced_wgpu::quad vertex buffer"),
+                contents: QUAD_VERTS.as_bytes(),
+                usage: wgpu::BufferUsage::VERTEX,
+            });
 
-        let indices = device.create_buffer_with_data(
-            QUAD_INDICES.as_bytes(),
-            wgpu::BufferUsage::INDEX,
-        );
+        let indices =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("iced_wgpu::quad index buffer"),
+                contents: QUAD_INDICES.as_bytes(),
+                usage: wgpu::BufferUsage::INDEX,
+            });
 
         let instances = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
+            label: Some("iced_wgpu::quad instance buffer"),
             size: mem::size_of::<layer::Quad>() as u64 * MAX_INSTANCES as u64,
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
+            mapped_at_creation: false,
         });
 
         Pipeline {
@@ -179,6 +187,7 @@ impl Pipeline {
     pub fn draw(
         &mut self,
         device: &wgpu::Device,
+        staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         instances: &[layer::Quad],
         transformation: Transformation,
@@ -188,18 +197,18 @@ impl Pipeline {
     ) {
         let uniforms = Uniforms::new(transformation, scale);
 
-        let constants_buffer = device.create_buffer_with_data(
-            uniforms.as_bytes(),
-            wgpu::BufferUsage::COPY_SRC,
-        );
+        {
+            let mut constants_buffer = staging_belt.write_buffer(
+                encoder,
+                &self.constants_buffer,
+                0,
+                wgpu::BufferSize::new(mem::size_of::<Uniforms>() as u64)
+                    .unwrap(),
+                device,
+            );
 
-        encoder.copy_buffer_to_buffer(
-            &constants_buffer,
-            0,
-            &self.constants_buffer,
-            0,
-            std::mem::size_of::<Uniforms>() as u64,
-        );
+            constants_buffer.copy_from_slice(uniforms.as_bytes());
+        }
 
         let mut i = 0;
         let total = instances.len();
@@ -208,18 +217,17 @@ impl Pipeline {
             let end = (i + MAX_INSTANCES).min(total);
             let amount = end - i;
 
-            let instance_buffer = device.create_buffer_with_data(
-                bytemuck::cast_slice(&instances[i..end]),
-                wgpu::BufferUsage::COPY_SRC,
-            );
+            let instance_bytes = bytemuck::cast_slice(&instances[i..end]);
 
-            encoder.copy_buffer_to_buffer(
-                &instance_buffer,
-                0,
+            let mut instance_buffer = staging_belt.write_buffer(
+                encoder,
                 &self.instances,
                 0,
-                (mem::size_of::<layer::Quad>() * amount) as u64,
+                wgpu::BufferSize::new(instance_bytes.len() as u64).unwrap(),
+                device,
             );
+
+            instance_buffer.copy_from_slice(instance_bytes);
 
             {
                 let mut render_pass =
@@ -228,13 +236,9 @@ impl Pipeline {
                             wgpu::RenderPassColorAttachmentDescriptor {
                                 attachment: target,
                                 resolve_target: None,
-                                load_op: wgpu::LoadOp::Load,
-                                store_op: wgpu::StoreOp::Store,
-                                clear_color: wgpu::Color {
-                                    r: 0.0,
-                                    g: 0.0,
-                                    b: 0.0,
-                                    a: 0.0,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: true,
                                 },
                             },
                         ],
@@ -243,9 +247,9 @@ impl Pipeline {
 
                 render_pass.set_pipeline(&self.pipeline);
                 render_pass.set_bind_group(0, &self.constants, &[]);
-                render_pass.set_index_buffer(&self.indices, 0, 0);
-                render_pass.set_vertex_buffer(0, &self.vertices, 0, 0);
-                render_pass.set_vertex_buffer(1, &self.instances, 0, 0);
+                render_pass.set_index_buffer(self.indices.slice(..));
+                render_pass.set_vertex_buffer(0, self.vertices.slice(..));
+                render_pass.set_vertex_buffer(1, self.instances.slice(..));
                 render_pass.set_scissor_rect(
                     bounds.x,
                     bounds.y,

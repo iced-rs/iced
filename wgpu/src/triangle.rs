@@ -8,7 +8,7 @@ pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
 mod msaa;
 
-const UNIFORM_BUFFER_SIZE: usize = 100;
+const UNIFORM_BUFFER_SIZE: usize = 50;
 const VERTEX_BUFFER_SIZE: usize = 10_000;
 const INDEX_BUFFER_SIZE: usize = 10_000;
 
@@ -25,6 +25,7 @@ pub(crate) struct Pipeline {
 
 #[derive(Debug)]
 struct Buffer<T> {
+    label: &'static str,
     raw: wgpu::Buffer,
     size: usize,
     usage: wgpu::BufferUsage,
@@ -33,17 +34,20 @@ struct Buffer<T> {
 
 impl<T> Buffer<T> {
     pub fn new(
+        label: &'static str,
         device: &wgpu::Device,
         size: usize,
         usage: wgpu::BufferUsage,
     ) -> Self {
         let raw = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
+            label: Some(label),
             size: (std::mem::size_of::<T>() * size) as u64,
             usage,
+            mapped_at_creation: false,
         });
 
         Buffer {
+            label,
             raw,
             size,
             usage,
@@ -56,9 +60,10 @@ impl<T> Buffer<T> {
 
         if needs_resize {
             self.raw = device.create_buffer(&wgpu::BufferDescriptor {
-                label: None,
+                label: Some(self.label),
                 size: (std::mem::size_of::<T>() * size) as u64,
                 usage: self.usage,
+                mapped_at_creation: false,
             });
 
             self.size = size;
@@ -76,15 +81,22 @@ impl Pipeline {
     ) -> Pipeline {
         let constants_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
-                bindings: &[wgpu::BindGroupLayoutEntry {
+                label: Some("iced_wgpu::triangle uniforms layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::UniformBuffer { dynamic: true },
+                    ty: wgpu::BindingType::UniformBuffer {
+                        dynamic: true,
+                        min_binding_size: wgpu::BufferSize::new(
+                            mem::size_of::<Uniforms>() as u64,
+                        ),
+                    },
+                    count: None,
                 }],
             });
 
         let constants_buffer = Buffer::new(
+            "iced_wgpu::triangle uniforms buffer",
             device,
             UNIFORM_BUFFER_SIZE,
             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
@@ -92,37 +104,37 @@ impl Pipeline {
 
         let constant_bind_group =
             device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle uniforms bind group"),
                 layout: &constants_layout,
-                bindings: &[wgpu::Binding {
+                entries: &[wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &constants_buffer.raw,
-                        range: 0..std::mem::size_of::<Uniforms>() as u64,
-                    },
+                    resource: wgpu::BindingResource::Buffer(
+                        constants_buffer
+                            .raw
+                            .slice(0..std::mem::size_of::<Uniforms>() as u64),
+                    ),
                 }],
             });
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("iced_wgpu::triangle pipeline layout"),
+                push_constant_ranges: &[],
                 bind_group_layouts: &[&constants_layout],
             });
 
-        let vs = include_bytes!("shader/triangle.vert.spv");
-        let vs_module = device.create_shader_module(
-            &wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
-                .expect("Read triangle vertex shader as SPIR-V"),
-        );
+        let vs_module = device.create_shader_module(wgpu::include_spirv!(
+            "shader/triangle.vert.spv"
+        ));
 
-        let fs = include_bytes!("shader/triangle.frag.spv");
-        let fs_module = device.create_shader_module(
-            &wgpu::read_spirv(std::io::Cursor::new(&fs[..]))
-                .expect("Read triangle fragment shader as SPIR-V"),
-        );
+        let fs_module = device.create_shader_module(wgpu::include_spirv!(
+            "shader/triangle.frag.spv"
+        ));
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                layout: &layout,
+                label: Some("iced_wgpu::triangle pipeline"),
+                layout: Some(&layout),
                 vertex_stage: wgpu::ProgrammableStageDescriptor {
                     module: &vs_module,
                     entry_point: "main",
@@ -134,9 +146,7 @@ impl Pipeline {
                 rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                     front_face: wgpu::FrontFace::Cw,
                     cull_mode: wgpu::CullMode::None,
-                    depth_bias: 0,
-                    depth_bias_slope_scale: 0.0,
-                    depth_bias_clamp: 0.0,
+                    ..Default::default()
                 }),
                 primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                 color_states: &[wgpu::ColorStateDescriptor {
@@ -189,11 +199,13 @@ impl Pipeline {
             constants: constant_bind_group,
             uniforms_buffer: constants_buffer,
             vertex_buffer: Buffer::new(
+                "iced_wgpu::triangle vertex buffer",
                 device,
                 VERTEX_BUFFER_SIZE,
                 wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
             ),
             index_buffer: Buffer::new(
+                "iced_wgpu::triangle index buffer",
                 device,
                 INDEX_BUFFER_SIZE,
                 wgpu::BufferUsage::INDEX | wgpu::BufferUsage::COPY_DST,
@@ -204,6 +216,7 @@ impl Pipeline {
     pub fn draw(
         &mut self,
         device: &wgpu::Device,
+        staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         target_width: u32,
@@ -234,14 +247,15 @@ impl Pipeline {
         if self.uniforms_buffer.expand(device, meshes.len()) {
             self.constants =
                 device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: None,
+                    label: Some("iced_wgpu::triangle uniforms buffer"),
                     layout: &self.constants_layout,
-                    bindings: &[wgpu::Binding {
+                    entries: &[wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer {
-                            buffer: &self.uniforms_buffer.raw,
-                            range: 0..std::mem::size_of::<Uniforms>() as u64,
-                        },
+                        resource: wgpu::BindingResource::Buffer(
+                            self.uniforms_buffer.raw.slice(
+                                0..std::mem::size_of::<Uniforms>() as u64,
+                            ),
+                        ),
                     }],
                 });
         }
@@ -261,65 +275,80 @@ impl Pipeline {
                 * Transformation::translate(mesh.origin.x, mesh.origin.y))
             .into();
 
-            let vertex_buffer = device.create_buffer_with_data(
-                bytemuck::cast_slice(&mesh.buffers.vertices),
-                wgpu::BufferUsage::COPY_SRC,
-            );
+            let vertices = bytemuck::cast_slice(&mesh.buffers.vertices);
+            let indices = bytemuck::cast_slice(&mesh.buffers.indices);
 
-            let index_buffer = device.create_buffer_with_data(
-                mesh.buffers.indices.as_bytes(),
-                wgpu::BufferUsage::COPY_SRC,
-            );
+            match (
+                wgpu::BufferSize::new(vertices.len() as u64),
+                wgpu::BufferSize::new(indices.len() as u64),
+            ) {
+                (Some(vertices_size), Some(indices_size)) => {
+                    {
+                        let mut vertex_buffer = staging_belt.write_buffer(
+                            encoder,
+                            &self.vertex_buffer.raw,
+                            (std::mem::size_of::<Vertex2D>() * last_vertex)
+                                as u64,
+                            vertices_size,
+                            device,
+                        );
 
-            encoder.copy_buffer_to_buffer(
-                &vertex_buffer,
-                0,
-                &self.vertex_buffer.raw,
-                (std::mem::size_of::<Vertex2D>() * last_vertex) as u64,
-                (std::mem::size_of::<Vertex2D>() * mesh.buffers.vertices.len())
-                    as u64,
-            );
+                        vertex_buffer.copy_from_slice(vertices);
+                    }
 
-            encoder.copy_buffer_to_buffer(
-                &index_buffer,
-                0,
-                &self.index_buffer.raw,
-                (std::mem::size_of::<u32>() * last_index) as u64,
-                (std::mem::size_of::<u32>() * mesh.buffers.indices.len())
-                    as u64,
-            );
+                    {
+                        let mut index_buffer = staging_belt.write_buffer(
+                            encoder,
+                            &self.index_buffer.raw,
+                            (std::mem::size_of::<u32>() * last_index) as u64,
+                            indices_size,
+                            device,
+                        );
 
-            uniforms.push(transform);
-            offsets.push((
-                last_vertex as u64,
-                last_index as u64,
-                mesh.buffers.indices.len(),
-            ));
+                        index_buffer.copy_from_slice(indices);
+                    }
 
-            last_vertex += mesh.buffers.vertices.len();
-            last_index += mesh.buffers.indices.len();
+                    uniforms.push(transform);
+                    offsets.push((
+                        last_vertex as u64,
+                        last_index as u64,
+                        mesh.buffers.indices.len(),
+                    ));
+
+                    last_vertex += mesh.buffers.vertices.len();
+                    last_index += mesh.buffers.indices.len();
+                }
+                _ => {}
+            }
         }
 
-        let uniforms_buffer = device.create_buffer_with_data(
-            uniforms.as_bytes(),
-            wgpu::BufferUsage::COPY_SRC,
-        );
+        let uniforms = uniforms.as_bytes();
 
-        encoder.copy_buffer_to_buffer(
-            &uniforms_buffer,
-            0,
-            &self.uniforms_buffer.raw,
-            0,
-            (std::mem::size_of::<Uniforms>() * uniforms.len()) as u64,
-        );
+        if let Some(uniforms_size) =
+            wgpu::BufferSize::new(uniforms.len() as u64)
+        {
+            let mut uniforms_buffer = staging_belt.write_buffer(
+                encoder,
+                &self.uniforms_buffer.raw,
+                0,
+                uniforms_size,
+                device,
+            );
+
+            uniforms_buffer.copy_from_slice(uniforms);
+        }
 
         {
-            let (attachment, resolve_target, load_op) =
+            let (attachment, resolve_target, load) =
                 if let Some(blit) = &mut self.blit {
                     let (attachment, resolve_target) =
                         blit.targets(device, target_width, target_height);
 
-                    (attachment, Some(resolve_target), wgpu::LoadOp::Clear)
+                    (
+                        attachment,
+                        Some(resolve_target),
+                        wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    )
                 } else {
                     (target, None, wgpu::LoadOp::Load)
                 };
@@ -330,14 +359,7 @@ impl Pipeline {
                         wgpu::RenderPassColorAttachmentDescriptor {
                             attachment,
                             resolve_target,
-                            load_op,
-                            store_op: wgpu::StoreOp::Store,
-                            clear_color: wgpu::Color {
-                                r: 0.0,
-                                g: 0.0,
-                                b: 0.0,
-                                a: 0.0,
-                            },
+                            ops: wgpu::Operations { load, store: true },
                         },
                     ],
                     depth_stencil_attachment: None,
@@ -364,16 +386,16 @@ impl Pipeline {
                 );
 
                 render_pass.set_index_buffer(
-                    &self.index_buffer.raw,
-                    index_offset * std::mem::size_of::<u32>() as u64,
-                    0,
+                    self.index_buffer
+                        .raw
+                        .slice(index_offset * mem::size_of::<u32>() as u64..),
                 );
 
                 render_pass.set_vertex_buffer(
                     0,
-                    &self.vertex_buffer.raw,
-                    vertex_offset * std::mem::size_of::<Vertex2D>() as u64,
-                    0,
+                    self.vertex_buffer.raw.slice(
+                        vertex_offset * mem::size_of::<Vertex2D>() as u64..,
+                    ),
                 );
 
                 render_pass.draw_indexed(0..indices as u32, 0, 0..1);
