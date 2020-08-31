@@ -28,7 +28,7 @@ impl Blit {
 
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle:msaa uniforms layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
@@ -39,7 +39,7 @@ impl Blit {
 
         let constant_bind_group =
             device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle::msaa uniforms bind group"),
                 layout: &constant_layout,
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
@@ -49,7 +49,7 @@ impl Blit {
 
         let texture_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle::msaa texture layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
@@ -64,7 +64,7 @@ impl Blit {
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle::msaa pipeline layout"),
                 push_constant_ranges: &[],
                 bind_group_layouts: &[&constant_layout, &texture_layout],
             });
@@ -79,7 +79,7 @@ impl Blit {
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle::msaa pipeline"),
                 layout: Some(&layout),
                 vertex_stage: wgpu::ProgrammableStageDescriptor {
                     module: &vs_module,
@@ -221,7 +221,7 @@ impl Targets {
         };
 
         let attachment = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("iced_wgpu::triangle::msaa attachment"),
             size: extent,
             mip_level_count: 1,
             sample_count,
@@ -231,7 +231,7 @@ impl Targets {
         });
 
         let resolve = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("iced_wgpu::triangle::msaa resolve target"),
             size: extent,
             mip_level_count: 1,
             sample_count: 1,
@@ -248,7 +248,7 @@ impl Targets {
             resolve.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
+            label: Some("iced_wgpu::triangle::msaa texture bind group"),
             layout: texture_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,

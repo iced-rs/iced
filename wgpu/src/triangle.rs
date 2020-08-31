@@ -25,6 +25,7 @@ pub(crate) struct Pipeline {
 
 #[derive(Debug)]
 struct Buffer<T> {
+    label: &'static str,
     raw: wgpu::Buffer,
     size: usize,
     usage: wgpu::BufferUsage,
@@ -33,18 +34,20 @@ struct Buffer<T> {
 
 impl<T> Buffer<T> {
     pub fn new(
+        label: &'static str,
         device: &wgpu::Device,
         size: usize,
         usage: wgpu::BufferUsage,
     ) -> Self {
         let raw = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
+            label: Some(label),
             size: (std::mem::size_of::<T>() * size) as u64,
             usage,
             mapped_at_creation: false,
         });
 
         Buffer {
+            label,
             raw,
             size,
             usage,
@@ -57,7 +60,7 @@ impl<T> Buffer<T> {
 
         if needs_resize {
             self.raw = device.create_buffer(&wgpu::BufferDescriptor {
-                label: None,
+                label: Some(self.label),
                 size: (std::mem::size_of::<T>() * size) as u64,
                 usage: self.usage,
                 mapped_at_creation: false,
@@ -78,7 +81,7 @@ impl Pipeline {
     ) -> Pipeline {
         let constants_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle uniforms layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX,
@@ -93,6 +96,7 @@ impl Pipeline {
             });
 
         let constants_buffer = Buffer::new(
+            "iced_wgpu::triangle uniforms buffer",
             device,
             UNIFORM_BUFFER_SIZE,
             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
@@ -100,7 +104,7 @@ impl Pipeline {
 
         let constant_bind_group =
             device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle uniforms bind group"),
                 layout: &constants_layout,
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
@@ -114,7 +118,7 @@ impl Pipeline {
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle pipeline layout"),
                 push_constant_ranges: &[],
                 bind_group_layouts: &[&constants_layout],
             });
@@ -129,7 +133,7 @@ impl Pipeline {
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle pipeline"),
                 layout: Some(&layout),
                 vertex_stage: wgpu::ProgrammableStageDescriptor {
                     module: &vs_module,
@@ -195,11 +199,13 @@ impl Pipeline {
             constants: constant_bind_group,
             uniforms_buffer: constants_buffer,
             vertex_buffer: Buffer::new(
+                "iced_wgpu::triangle vertex buffer",
                 device,
                 VERTEX_BUFFER_SIZE,
                 wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
             ),
             index_buffer: Buffer::new(
+                "iced_wgpu::triangle index buffer",
                 device,
                 INDEX_BUFFER_SIZE,
                 wgpu::BufferUsage::INDEX | wgpu::BufferUsage::COPY_DST,
@@ -241,7 +247,7 @@ impl Pipeline {
         if self.uniforms_buffer.expand(device, meshes.len()) {
             self.constants =
                 device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: None,
+                    label: Some("iced_wgpu::triangle uniforms buffer"),
                     layout: &self.constants_layout,
                     entries: &[wgpu::BindGroupEntry {
                         binding: 0,

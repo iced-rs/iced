@@ -131,7 +131,9 @@ impl iced_graphics::window::Compositor for Compositor {
         let frame = swap_chain.get_current_frame().expect("Next frame");
 
         let mut encoder = self.device.create_command_encoder(
-            &wgpu::CommandEncoderDescriptor { label: None },
+            &wgpu::CommandEncoderDescriptor {
+                label: Some("iced_wgpu encoder"),
+            },
         );
 
         let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

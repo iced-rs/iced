@@ -20,7 +20,7 @@ impl Pipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Pipeline {
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
+                label: Some("iced_wgpu::quad uniforms layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX,
@@ -35,14 +35,14 @@ impl Pipeline {
             });
 
         let constants_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
+            label: Some("iced_wgpu::quad uniforms buffer"),
             size: mem::size_of::<Uniforms>() as u64,
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
             mapped_at_creation: false,
         });
 
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
+            label: Some("iced_wgpu::quad uniforms bind group"),
             layout: &constant_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
@@ -54,7 +54,7 @@ impl Pipeline {
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
+                label: Some("iced_wgpu::quad pipeline layout"),
                 push_constant_ranges: &[],
                 bind_group_layouts: &[&constant_layout],
             });
@@ -67,7 +67,7 @@ impl Pipeline {
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None,
+                label: Some("iced_wgpu::quad pipeline"),
                 layout: Some(&layout),
                 vertex_stage: wgpu::ProgrammableStageDescriptor {
                     module: &vs_module,
@@ -155,20 +155,20 @@ impl Pipeline {
 
         let vertices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
+                label: Some("iced_wgpu::quad vertex buffer"),
                 contents: QUAD_VERTS.as_bytes(),
                 usage: wgpu::BufferUsage::VERTEX,
             });
 
         let indices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
+                label: Some("iced_wgpu::quad index buffer"),
                 contents: QUAD_INDICES.as_bytes(),
                 usage: wgpu::BufferUsage::INDEX,
             });
 
         let instances = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
+            label: Some("iced_wgpu::quad instance buffer"),
             size: mem::size_of::<layer::Quad>() as u64 * MAX_INSTANCES as u64,
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
             mapped_at_creation: false,

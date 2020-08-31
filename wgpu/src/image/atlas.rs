@@ -28,7 +28,7 @@ impl Atlas {
         };
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("iced_wgpu::image texture atlas"),
             size: extent,
             mip_level_count: 1,
             sample_count: 1,
@@ -103,7 +103,7 @@ impl Atlas {
 
         let buffer =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
+                label: Some("iced_wgpu::image staging buffer"),
                 contents: &padded_data,
                 usage: wgpu::BufferUsage::COPY_SRC,
             });
@@ -330,7 +330,7 @@ impl Atlas {
         }
 
         let new_texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("iced_wgpu::image texture atlas"),
             size: wgpu::Extent3d {
                 width: SIZE,
                 height: SIZE,
