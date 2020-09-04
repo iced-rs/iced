@@ -13,22 +13,22 @@ in float v_BorderWidth;
 
 out vec4 o_Color;
 
-float quad_distance(vec2 frag_coord, vec2 position, vec2 size, float radius)
+float quad_distance(in vec2 frag_coord, in vec2 position, in vec2 size, float radius)
 {
     // TODO: Try SDF approach: https://www.shadertoy.com/view/wd3XRN
     vec2 inner_size = size - vec2(radius, radius) * 2.0;
     vec2 top_left = position + vec2(radius, radius);
     vec2 bottom_right = top_left + inner_size;
 
-    vec2 top_left_distance = top_left - frag_coord;
-    vec2 bottom_right_distance = frag_coord - bottom_right;
+    vec2 top_left_quad_distance = top_left - frag_coord;
+    vec2 bottom_right_quad_distance = frag_coord - bottom_right;
 
-    vec2 distance = vec2(
-        max(max(top_left_distance.x, bottom_right_distance.x), 0.0),
-        max(max(top_left_distance.y, bottom_right_distance.y), 0.0)
+    vec2 quad_distance = vec2(
+        max(max(top_left_quad_distance.x, bottom_right_quad_distance.x), 0.0),
+        max(max(top_left_quad_distance.y, bottom_right_quad_distance.y), 0.0)
     );
 
-    return sqrt(distance.x * distance.x + distance.y * distance.y);
+    return sqrt(quad_distance.x * quad_distance.x + quad_distance.y * quad_distance.y);
 }
 
 void main() {
@@ -40,7 +40,7 @@ void main() {
     if (v_BorderWidth > 0.0) {
         float internal_border = max(v_BorderRadius - v_BorderWidth, 0.0);
 
-        float internal_distance = quad_distance(
+        float internal_quad_distance = quad_distance(
             fragCoord,
             v_Pos + vec2(v_BorderWidth),
             v_Scale - vec2(v_BorderWidth * 2.0),
@@ -50,7 +50,7 @@ void main() {
         float border_mix = smoothstep(
             max(internal_border - 0.5, 0.0),
             internal_border + 0.5,
-            internal_distance
+            internal_quad_distance
         );
 
         mixed_color = mix(v_Color, v_BorderColor, border_mix);

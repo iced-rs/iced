@@ -1,13 +1,13 @@
 //! Find system fonts or use the built-in ones.
-#[cfg(feature = "font-source")]
+#[cfg(all(feature = "font-source", not(target_arch = "wasm32")))]
 mod source;
 
-#[cfg(feature = "font-source")]
-#[cfg_attr(docsrs, doc(cfg(feature = "font-source")))]
+#[cfg(all(feature = "font-source", not(target_arch = "wasm32")))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "font-source", not(target_arch = "wasm32")))))]
 pub use source::Source;
 
-#[cfg(feature = "font-source")]
-#[cfg_attr(docsrs, doc(cfg(feature = "font-source")))]
+#[cfg(all(feature = "font-source", not(target_arch = "wasm32")))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "font-source", not(target_arch = "wasm32")))))]
 pub use font_kit::{
     error::SelectionError as LoadError, family_name::FamilyName as Family,
 };

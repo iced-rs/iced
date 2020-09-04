@@ -28,7 +28,7 @@ path = "../style"
 version = "0.15"
 optional = true
 
-[dependencies.font-kit]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.font-kit]
 version = "0.6"
 optional = true
 
