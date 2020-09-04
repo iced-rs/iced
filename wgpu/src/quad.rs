@@ -299,14 +299,14 @@ const MAX_INSTANCES: usize = 100_000;
 #[derive(Debug, Clone, Copy, AsBytes)]
 struct Uniforms {
     transform: [f32; 16],
-    scale: f32,
+    scale: [f32; 4],
 }
 
 impl Uniforms {
     fn new(transformation: Transformation, scale: f32) -> Uniforms {
         Self {
             transform: *transformation.as_ref(),
-            scale,
+            scale: [scale, 0.0, 0.0, 0.0],
         }
     }
 }
@@ -315,7 +315,7 @@ impl Default for Uniforms {
     fn default() -> Self {
         Self {
             transform: *Transformation::identity().as_ref(),
-            scale: 1.0,
+            scale: [1.0, 0.0, 0.0, 0.0],
         }
     }
 }
