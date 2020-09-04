@@ -91,6 +91,7 @@ iced_glutin = { version = "0.1", path = "glutin", optional = true }
 iced_wgpu = { version = "0.2", path = "wgpu", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-timer = "0.2"
 iced_web = { version = "0.2", path = "web" }
 iced_winit = { version = "0.1", path = "winit", optional = true }
 iced_web_winit = { version = "0.1", path = "web_winit", optional = true }

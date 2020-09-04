@@ -14,11 +14,10 @@ mod runtime;
 pub mod executor;
 pub mod subscription;
 
-#[cfg(all(
-    any(feature = "tokio", feature = "async-std"),
-    not(target_arch = "wasm32")
+#[cfg(any(
+    feature = "tokio", feature = "async-std", target_arch = "wasm32"
 ))]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "tokio", feature = "async-std"))))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "tokio", feature = "async-std", target_arch = "wasm32"))))]
 pub mod time;
 
 pub use command::Command;
