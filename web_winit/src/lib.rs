@@ -11,11 +11,13 @@
 #[doc(no_inline)]
 pub use iced_native::*;
 
+#[cfg(target_arch = "wasm32")]
 pub mod application;
 
 pub use iced_winit::settings;
 pub use iced_winit::Mode;
 
+#[cfg(target_arch = "wasm32")]
 #[doc(no_inline)]
 pub use application::Application;
 #[doc(no_inline)]
