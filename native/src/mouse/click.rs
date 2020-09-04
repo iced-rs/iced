@@ -1,6 +1,11 @@
 //! Track mouse clicks.
 use crate::Point;
+
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_timer::Instant;
 
 /// A mouse click.
 #[derive(Debug, Clone, Copy)]
@@ -67,10 +72,19 @@ impl Click {
     }
 
     fn is_consecutive(&self, new_position: Point, time: Instant) -> bool {
-        self.position == new_position
-            && time
-                .checked_duration_since(self.time)
-                .map(|duration| duration.as_millis() <= 300)
-                .unwrap_or(false)
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.position == new_position
+                && time
+                    .checked_duration_since(self.time)
+                    .map(|duration| duration.as_millis() <= 300)
+                    .unwrap_or(false)
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.position == new_position
+                && time.duration_since(self.time).as_millis() <= 300
+        }
     }
 }
