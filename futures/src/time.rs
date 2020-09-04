@@ -56,7 +56,11 @@ where
     }
 }
 
-#[cfg(all(feature = "tokio", not(feature = "async-std"), not(target_arch = "wasm32")))]
+#[cfg(all(
+    feature = "tokio",
+    not(feature = "async-std"),
+    not(target_arch = "wasm32")
+))]
 impl<H, E> subscription::Recipe<H, E> for Every
 where
     H: std::hash::Hasher,
@@ -106,7 +110,7 @@ where
 
         Box::pin(
             wasm_timer::Interval::new(self.0)
-                .map(|_| wasm_timer::Instant::now())
+                .map(|_| wasm_timer::Instant::now()),
         )
     }
 }

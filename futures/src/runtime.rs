@@ -131,8 +131,7 @@ where
     Hasher: std::hash::Hasher + Default,
     Event: Send + Clone + 'static,
     Executor: self::Executor,
-    Sender:
-        Sink<Message, Error = mpsc::SendError> + Unpin + Clone + 'static,
+    Sender: Sink<Message, Error = mpsc::SendError> + Unpin + Clone + 'static,
     Message: 'static,
 {
     /// Creates a new empty [`Runtime`].

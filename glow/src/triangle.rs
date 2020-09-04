@@ -164,7 +164,11 @@ impl Pipeline {
                 {
                     // XXX allocating a big ol' array for every mesh on every draw because WebGL
                     // doesn't support `draw_elements_base_vertex`.
-                    let indices: Vec<_> = buffers.indices.iter().map(|x| *x + last_vertex as u32).collect();
+                    let indices: Vec<_> = buffers
+                        .indices
+                        .iter()
+                        .map(|x| *x + last_vertex as u32)
+                        .collect();
                     gl.buffer_sub_data_u8_slice(
                         glow::ELEMENT_ARRAY_BUFFER,
                         (last_index * std::mem::size_of::<u32>()) as i32,

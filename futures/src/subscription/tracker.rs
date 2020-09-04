@@ -192,10 +192,8 @@ where
     ) -> Vec<BoxFuture<()>>
     where
         Message: 'static,
-        Receiver: 'static
-            + Sink<Message, Error = mpsc::SendError>
-            + Unpin
-            + Clone,
+        Receiver:
+            'static + Sink<Message, Error = mpsc::SendError> + Unpin + Clone,
     {
         use futures::{future::FutureExt, stream::StreamExt};
 

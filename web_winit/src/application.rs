@@ -25,7 +25,7 @@ pub fn run<A, E, C>(
     use winit::{
         event,
         event_loop::{ControlFlow, EventLoop},
-	platform::web::WindowExtWebSys,
+        platform::web::WindowExtWebSys,
     };
 
     let mut debug = Debug::new();
@@ -72,19 +72,23 @@ pub fn run<A, E, C>(
         canvas.set_width(width);
         canvas.set_height(height);
 
-        let _ = body.append_child(&canvas)
+        let _ = body
+            .append_child(&canvas)
             .expect("Append canvas to HTML body");
 
         let onresize_callback = {
             wasm_bindgen::closure::Closure::wrap(Box::new(move || {
                 let window = web_sys::window().unwrap();
 
-                let width = window.inner_width().unwrap().as_f64().unwrap() as u32;
-                let height = window.inner_height().unwrap().as_f64().unwrap() as u32;
+                let width =
+                    window.inner_width().unwrap().as_f64().unwrap() as u32;
+                let height =
+                    window.inner_height().unwrap().as_f64().unwrap() as u32;
 
                 canvas.set_width(width);
                 canvas.set_height(height);
-            }) as Box<dyn FnMut()>)
+            })
+                as Box<dyn FnMut()>)
         };
         window.set_onresize(Some(onresize_callback.as_ref().unchecked_ref()));
         onresize_callback.forget();
@@ -103,11 +107,8 @@ pub fn run<A, E, C>(
     let mut resized = false;
 
     #[allow(unsafe_code)]
-    let (mut compositor, mut renderer) = unsafe {
-        C::new(compositor_settings, |address| {
-            std::ptr::null()
-        })
-    };
+    let (mut compositor, mut renderer) =
+        unsafe { C::new(compositor_settings, |address| std::ptr::null()) };
 
     let mut state = program::State::new(
         application,
@@ -231,9 +232,9 @@ pub fn run<A, E, C>(
                 debug.render_finished();
 
                 if new_mouse_interaction != mouse_interaction {
-                    window.set_cursor_icon(
-                        conversion::mouse_interaction(new_mouse_interaction),
-                    );
+                    window.set_cursor_icon(conversion::mouse_interaction(
+                        new_mouse_interaction,
+                    ));
 
                     mouse_interaction = new_mouse_interaction;
                 }
