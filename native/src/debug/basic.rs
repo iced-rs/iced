@@ -98,8 +98,7 @@ impl Debug {
     }
 
     pub fn view_finished(&mut self) {
-        self.view_durations
-            .push(Instant::now() - self.view_start);
+        self.view_durations.push(Instant::now() - self.view_start);
     }
 
     pub fn layout_started(&mut self) {
@@ -116,8 +115,7 @@ impl Debug {
     }
 
     pub fn event_processing_finished(&mut self) {
-        self.event_durations
-            .push(Instant::now() - self.event_start);
+        self.event_durations.push(Instant::now() - self.event_start);
     }
 
     pub fn draw_started(&mut self) {
@@ -125,8 +123,7 @@ impl Debug {
     }
 
     pub fn draw_finished(&mut self) {
-        self.draw_durations
-            .push(Instant::now() - self.draw_start);
+        self.draw_durations.push(Instant::now() - self.draw_start);
     }
 
     pub fn render_started(&mut self) {
