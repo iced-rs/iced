@@ -3,11 +3,17 @@
 mod source;
 
 #[cfg(all(feature = "font-source", not(target_arch = "wasm32")))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "font-source", not(target_arch = "wasm32")))))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(all(feature = "font-source", not(target_arch = "wasm32"))))
+)]
 pub use source::Source;
 
 #[cfg(all(feature = "font-source", not(target_arch = "wasm32")))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "font-source", not(target_arch = "wasm32")))))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(all(feature = "font-source", not(target_arch = "wasm32"))))
+)]
 pub use font_kit::{
     error::SelectionError as LoadError, family_name::FamilyName as Family,
 };
