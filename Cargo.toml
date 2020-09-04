@@ -12,13 +12,11 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-default = ["wgpu", "winit", "default_system_font"]
+default = ["wgpu", "web", "default_system_font"]
 # Enables the `iced_wgpu` renderer
 wgpu = ["iced_wgpu"]
 # Enables the `iced_web` renderer
-winit = ["iced_winit", "iced_web_winit"]
-# Enables the `iced_web` renderer
-#web = ["iced_web"]
+web = ["iced_web"]
 # Enables the `Image` widget
 image = ["iced_wgpu/image"]
 # Enables the `Svg` widget
@@ -92,9 +90,9 @@ iced_wgpu = { version = "0.2", path = "wgpu", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-timer = "0.2"
-iced_web = { version = "0.2", path = "web" }
+iced_web_winit = { version = "0.1", path = "web_winit" }
+iced_web = { version = "0.2", path = "web", optional = true }
 iced_winit = { version = "0.1", path = "winit", optional = true }
-iced_web_winit = { version = "0.1", path = "web_winit", optional = true }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

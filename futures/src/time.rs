@@ -30,7 +30,7 @@ pub fn every<H: std::hash::Hasher, E>(
 
 struct Every(std::time::Duration);
 
-#[cfg(feature = "async-std")]
+#[cfg(all(feature = "async-std", not(target_arch = "wasm32")))]
 impl<H, E> subscription::Recipe<H, E> for Every
 where
     H: std::hash::Hasher,
@@ -56,7 +56,7 @@ where
     }
 }
 
-#[cfg(all(feature = "tokio", not(feature = "async-std")))]
+#[cfg(all(feature = "tokio", not(feature = "async-std"), not(target_arch = "wasm32")))]
 impl<H, E> subscription::Recipe<H, E> for Every
 where
     H: std::hash::Hasher,

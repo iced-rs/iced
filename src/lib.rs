@@ -202,6 +202,8 @@ pub mod time;
     feature = "wgpu"
 ))]
 use iced_winit as runtime;
+#[cfg(all(target_arch = "wasm32", not(feature = "web")))]
+use iced_web_winit as runtime;
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
 use iced_glutin as runtime;
@@ -215,10 +217,8 @@ use iced_wgpu as renderer;
 
 #[cfg(feature = "glow")]
 use iced_glow as renderer;
-#[cfg(all(target_arch = "wasm32", feature = "winit"))]
-use iced_web_winit as runtime;
 
-#[cfg(feature = "web")]
+#[cfg(all(feature = "web", target_arch = "wasm32"))]
 use iced_web as runtime;
 
 #[doc(no_inline)]
