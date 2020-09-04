@@ -152,11 +152,26 @@ impl Pipeline {
                     bytemuck::cast_slice(&buffers.vertices),
                 );
 
-                gl.buffer_sub_data_u8_slice(
-                    glow::ELEMENT_ARRAY_BUFFER,
-                    (last_index * std::mem::size_of::<u32>()) as i32,
-                    bytemuck::cast_slice(&buffers.indices),
-                );
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    gl.buffer_sub_data_u8_slice(
+                        glow::ELEMENT_ARRAY_BUFFER,
+                        (last_index * std::mem::size_of::<u32>()) as i32,
+                        bytemuck::cast_slice(&buffers.indices),
+                    );
+                }
+                #[cfg(target_arch = "wasm32")]
+                {
+                    // XXX allocating a big ol' array for every mesh on every draw because WebGL
+                    // doesn't support `draw_elements_base_vertex`.
+                    let indices: Vec<_> = buffers.indices.iter().map(|x| *x + last_vertex as u32).collect();
+                    gl.buffer_sub_data_u8_slice(
+                        glow::ELEMENT_ARRAY_BUFFER,
+                        (last_index * std::mem::size_of::<u32>()) as i32,
+                        //bytemuck::cast_slice(&buffers.indices),
+                        bytemuck::cast_slice(&indices),
+                    );
+                }
 
                 last_vertex += buffers.vertices.len();
                 last_index += buffers.indices.len();
@@ -198,13 +213,25 @@ impl Pipeline {
                     clip_bounds.height as i32,
                 );
 
-                gl.draw_elements_base_vertex(
-                    glow::TRIANGLES,
-                    buffers.indices.len() as i32,
-                    glow::UNSIGNED_INT,
-                    (last_index * std::mem::size_of::<u32>()) as i32,
-                    last_vertex as i32,
-                );
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    gl.draw_elements_base_vertex(
+                        glow::TRIANGLES,
+                        buffers.indices.len() as i32,
+                        glow::UNSIGNED_INT,
+                        (last_index * std::mem::size_of::<u32>()) as i32,
+                        last_vertex as i32,
+                    );
+                }
+                #[cfg(target_arch = "wasm32")]
+                {
+                    gl.draw_elements(
+                        glow::TRIANGLES,
+                        buffers.indices.len() as i32,
+                        glow::UNSIGNED_INT,
+                        (last_index * std::mem::size_of::<u32>()) as i32,
+                    );
+                }
 
                 last_vertex += buffers.vertices.len();
                 last_index += buffers.indices.len();

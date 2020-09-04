@@ -14,8 +14,6 @@ categories = ["gui"]
 debug = ["iced_native/debug"]
 
 [dependencies]
-winit = "0.22"
-window_clipboard = "0.1"
 log = "0.4"
 
 [dependencies.iced_native]
@@ -28,3 +26,12 @@ path = "../graphics"
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+window_clipboard = "0.1"
+winit = "0.22"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.winit]
+version = "0.22"
+default_features = false
+features = ["web-sys"]

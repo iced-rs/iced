@@ -19,7 +19,32 @@ impl iced_graphics::window::GLCompositor for Compositor {
         settings: Self::Settings,
         loader_function: impl FnMut(&str) -> *const c_void,
     ) -> (Self, Self::Renderer) {
+        #[cfg(not(target_arch = "wasm32"))]
         let gl = glow::Context::from_loader_function(loader_function);
+
+        #[cfg(all(target_arch = "wasm32"))]
+        let (gl, render_loop, shader_version) = {
+            use wasm_bindgen::JsCast;
+            let canvas = web_sys::window()
+                .expect("iced web_sys window")
+                .document()
+                .expect("iced web_sys window.document")
+                .get_element_by_id("iced-is-good-gui")
+                .expect("iced web_sys window.document.get_element_by_id(\"canvas\")")
+                .dyn_into::<web_sys::HtmlCanvasElement>()
+                .expect("iced web_sys window.document.get_element_by_id(\"canvas\") as web_sys::HtmlCanvasElement");
+            let webgl2_context = canvas
+                .get_context("webgl2")
+                .unwrap()
+                .unwrap()
+                .dyn_into::<web_sys::WebGl2RenderingContext>()
+                .unwrap();
+            (
+                glow::Context::from_webgl2_context(webgl2_context),
+                glow::RenderLoop::from_request_animation_frame(),
+                "#version 300 es",
+            )
+        };
 
         // Enable auto-conversion from/to sRGB
         gl.enable(glow::FRAMEBUFFER_SRGB);

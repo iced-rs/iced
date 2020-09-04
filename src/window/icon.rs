@@ -3,18 +3,18 @@ use std::fmt;
 use std::io;
 
 /// The icon of a window.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "web"))]
 #[derive(Debug, Clone)]
 pub struct Icon(iced_winit::winit::window::Icon);
 
 /// The icon of a window.
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "web")]
 #[derive(Debug, Clone)]
 pub struct Icon;
 
 impl Icon {
     /// Creates an icon from 32bpp RGBA data.
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(feature = "web"))]
     pub fn from_rgba(
         rgba: Vec<u8>,
         width: u32,
@@ -27,7 +27,7 @@ impl Icon {
     }
 
     /// Creates an icon from 32bpp RGBA data.
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(feature = "web")]
     pub fn from_rgba(
         _rgba: Vec<u8>,
         _width: u32,
@@ -62,7 +62,7 @@ pub enum Error {
     OsError(io::Error),
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "web"))]
 impl From<iced_winit::winit::window::BadIcon> for Error {
     fn from(error: iced_winit::winit::window::BadIcon) -> Self {
         use iced_winit::winit::window::BadIcon;
@@ -86,7 +86,7 @@ impl From<iced_winit::winit::window::BadIcon> for Error {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "web "))]
 impl From<Icon> for iced_winit::winit::window::Icon {
     fn from(icon: Icon) -> Self {
         icon.0

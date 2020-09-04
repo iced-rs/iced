@@ -15,7 +15,14 @@ pub trait Program: Sized {
     /// The type of __messages__ your [`Program`] will produce.
     ///
     /// [`Program`]: trait.Program.html
+    #[cfg(not(target_arch = "wasm32"))]
     type Message: std::fmt::Debug + Send;
+
+    /// The type of __messages__ your [`Program`] will produce.
+    ///
+    /// [`Program`]: trait.Program.html
+    #[cfg(target_arch = "wasm32")]
+    type Message: std::fmt::Debug;
 
     /// Handles a __message__ and updates the state of the [`Program`].
     ///

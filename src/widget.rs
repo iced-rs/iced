@@ -16,7 +16,7 @@
 //!
 //! [`TextInput`]: text_input/struct.TextInput.html
 //! [`text_input::State`]: text_input/struct.State.html
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "web"))]
 mod platform {
     pub use crate::renderer::widget::{
         button, checkbox, container, pane_grid, pick_list, progress_bar, radio,
@@ -55,7 +55,7 @@ mod platform {
     pub use canvas::Canvas;
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "web")]
 mod platform {
     pub use iced_web::widget::*;
 }

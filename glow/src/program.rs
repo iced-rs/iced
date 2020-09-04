@@ -17,6 +17,7 @@ pub unsafe fn create(
         gl.compile_shader(shader);
 
         if !gl.get_shader_compile_status(shader) {
+            panic!("{}", shader_source);
             panic!(gl.get_shader_info_log(shader));
         }
 

@@ -1,4 +1,8 @@
-#version 330
+#version 300 es
+
+precision mediump float;
+
+// #version 330
 
 in vec4 v_Color;
 

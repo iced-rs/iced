@@ -12,9 +12,13 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-default = ["wgpu", "default_system_font"]
+default = ["wgpu", "winit", "default_system_font"]
 # Enables the `iced_wgpu` renderer
 wgpu = ["iced_wgpu"]
+# Enables the `iced_web` renderer
+winit = ["iced_winit", "iced_web_winit"]
+# Enables the `iced_web` renderer
+#web = ["iced_web"]
 # Enables the `Image` widget
 image = ["iced_wgpu/image"]
 # Enables the `Svg` widget
@@ -23,7 +27,7 @@ svg = ["iced_wgpu/svg"]
 canvas = ["iced_wgpu/canvas"]
 # Enables using system fonts.
 default_system_font = ["iced_wgpu/default_system_font"]
-# Enables the `iced_glow` renderer. Overrides `iced_wgpu`
+# Enables the `iced_glow` renderer. Overrides `iced_wgpu` on native and `iced_web` on wasm32.
 glow = ["iced_glow", "iced_glutin"]
 # Enables the `Canvas` widget for `iced_glow`
 glow_canvas = ["iced_glow/canvas"]
@@ -51,6 +55,7 @@ members = [
     "native",
     "style",
     "web",
+    "web_winit",
     "wgpu",
     "winit",
     "examples/bezier_tool",
@@ -78,15 +83,17 @@ members = [
 [dependencies]
 iced_core = { version = "0.2", path = "core" }
 iced_futures = { version = "0.1", path = "futures" }
+iced_glow = { version = "0.1", path = "glow", optional = true}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced_winit = { version = "0.1", path = "winit" }
 iced_glutin = { version = "0.1", path = "glutin", optional = true }
 iced_wgpu = { version = "0.2", path = "wgpu", optional = true }
-iced_glow = { version = "0.1", path = "glow", optional = true}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced_web = { version = "0.2", path = "web" }
+iced_winit = { version = "0.1", path = "winit", optional = true }
+iced_web_winit = { version = "0.1", path = "web_winit", optional = true }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

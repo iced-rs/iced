@@ -1,0 +1,31 @@
+[package]
+name = "iced_web_winit"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+description = "A web-only winit runtime for Iced"
+license = "MIT"
+repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced_web_winit"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
+
+[features]
+debug = ["iced_winit/debug"]
+
+[dependencies]
+winit = "0.22"
+web-sys = "0.3"
+wasm-bindgen = "0.2"
+
+[dependencies.iced_native]
+version = "0.2"
+path = "../native"
+
+[dependencies.iced_winit]
+version = "0.1"
+path = "../winit"
+
+[dependencies.iced_graphics]
+version = "0.1"
+path = "../graphics"

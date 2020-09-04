@@ -213,7 +213,7 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(not(feature = "web"))]
         {
             let renderer_settings = crate::renderer::Settings {
                 default_font: settings.default_font,
@@ -233,14 +233,14 @@ pub trait Application: Sized {
             >(settings.into(), renderer_settings);
         }
 
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(feature = "web")]
         <Instance<Self> as iced_web::Application>::run(settings.flags);
     }
 }
 
 struct Instance<A: Application>(A);
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "web"))]
 impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
@@ -257,7 +257,7 @@ where
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "web"))]
 impl<A> crate::runtime::Application for Instance<A>
 where
     A: Application,
@@ -294,7 +294,7 @@ where
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "web")]
 impl<A> iced_web::Application for Instance<A>
 where
     A: Application,
