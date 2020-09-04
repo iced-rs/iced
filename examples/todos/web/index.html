@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iced Todos</title>
+  </head>
+  <body>
+
+<style>
+* { margin:0; padding:0; } /* to remove the top and left whitespace */
+
+html, body { width:100%; height:100%; } /* just to be sure these are full screen*/
+
+canvas { display:block; } /* To remove the scrollbars */
+</style>
+
+    <script type="module">
+      import init from "./todos.js";
+      init('./todos_bg.wasm');
+    </script>
+  </body>
+</html>

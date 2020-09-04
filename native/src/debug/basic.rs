@@ -1,30 +1,36 @@
 #![allow(missing_docs)]
-use std::{collections::VecDeque, time};
+use std::{collections::VecDeque, time::Duration};
+
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_timer::Instant;
 
 /// A bunch of time measurements for debugging purposes.
 #[derive(Debug)]
 pub struct Debug {
     is_enabled: bool,
 
-    startup_start: time::Instant,
-    startup_duration: time::Duration,
+    startup_start: Instant,
+    startup_duration: Duration,
 
-    update_start: time::Instant,
+    update_start: Instant,
     update_durations: TimeBuffer,
 
-    view_start: time::Instant,
+    view_start: Instant,
     view_durations: TimeBuffer,
 
-    layout_start: time::Instant,
+    layout_start: Instant,
     layout_durations: TimeBuffer,
 
-    event_start: time::Instant,
+    event_start: Instant,
     event_durations: TimeBuffer,
 
-    draw_start: time::Instant,
+    draw_start: Instant,
     draw_durations: TimeBuffer,
 
-    render_start: time::Instant,
+    render_start: Instant,
     render_durations: TimeBuffer,
 
     message_count: usize,
@@ -36,12 +42,12 @@ impl Debug {
     ///
     /// [`Debug`]: struct.Debug.html
     pub fn new() -> Self {
-        let now = time::Instant::now();
+        let now = Instant::now();
 
         Self {
             is_enabled: false,
             startup_start: now,
-            startup_duration: time::Duration::from_secs(0),
+            startup_duration: Duration::from_secs(0),
 
             update_start: now,
             update_durations: TimeBuffer::new(200),
@@ -71,65 +77,65 @@ impl Debug {
     }
 
     pub fn startup_started(&mut self) {
-        self.startup_start = time::Instant::now();
+        self.startup_start = Instant::now();
     }
 
     pub fn startup_finished(&mut self) {
-        self.startup_duration = time::Instant::now() - self.startup_start;
+        self.startup_duration = Instant::now() - self.startup_start;
     }
 
     pub fn update_started(&mut self) {
-        self.update_start = time::Instant::now();
+        self.update_start = Instant::now();
     }
 
     pub fn update_finished(&mut self) {
         self.update_durations
-            .push(time::Instant::now() - self.update_start);
+            .push(Instant::now() - self.update_start);
     }
 
     pub fn view_started(&mut self) {
-        self.view_start = time::Instant::now();
+        self.view_start = Instant::now();
     }
 
     pub fn view_finished(&mut self) {
         self.view_durations
-            .push(time::Instant::now() - self.view_start);
+            .push(Instant::now() - self.view_start);
     }
 
     pub fn layout_started(&mut self) {
-        self.layout_start = time::Instant::now();
+        self.layout_start = Instant::now();
     }
 
     pub fn layout_finished(&mut self) {
         self.layout_durations
-            .push(time::Instant::now() - self.layout_start);
+            .push(Instant::now() - self.layout_start);
     }
 
     pub fn event_processing_started(&mut self) {
-        self.event_start = time::Instant::now();
+        self.event_start = Instant::now();
     }
 
     pub fn event_processing_finished(&mut self) {
         self.event_durations
-            .push(time::Instant::now() - self.event_start);
+            .push(Instant::now() - self.event_start);
     }
 
     pub fn draw_started(&mut self) {
-        self.draw_start = time::Instant::now();
+        self.draw_start = Instant::now();
     }
 
     pub fn draw_finished(&mut self) {
         self.draw_durations
-            .push(time::Instant::now() - self.draw_start);
+            .push(Instant::now() - self.draw_start);
     }
 
     pub fn render_started(&mut self) {
-        self.render_start = time::Instant::now();
+        self.render_start = Instant::now();
     }
 
     pub fn render_finished(&mut self) {
         self.render_durations
-            .push(time::Instant::now() - self.render_start);
+            .push(Instant::now() - self.render_start);
     }
 
     pub fn log_message<Message: std::fmt::Debug>(&mut self, message: &Message) {
@@ -190,7 +196,7 @@ impl Debug {
 struct TimeBuffer {
     head: usize,
     size: usize,
-    contents: Vec<time::Duration>,
+    contents: Vec<Duration>,
 }
 
 impl TimeBuffer {
@@ -198,18 +204,18 @@ impl TimeBuffer {
         TimeBuffer {
             head: 0,
             size: 0,
-            contents: vec![time::Duration::from_secs(0); capacity],
+            contents: vec![Duration::from_secs(0); capacity],
         }
     }
 
-    fn push(&mut self, duration: time::Duration) {
+    fn push(&mut self, duration: Duration) {
         self.head = (self.head + 1) % self.contents.len();
         self.contents[self.head] = duration;
         self.size = (self.size + 1).min(self.contents.len());
     }
 
-    fn average(&self) -> time::Duration {
-        let sum: time::Duration = if self.size == self.contents.len() {
+    fn average(&self) -> Duration {
+        let sum: Duration = if self.size == self.contents.len() {
             self.contents[..].iter().sum()
         } else {
             self.contents[..self.size].iter().sum()

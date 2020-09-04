@@ -108,7 +108,7 @@ pub fn run<A, E, C>(
 
     #[allow(unsafe_code)]
     let (mut compositor, mut renderer) =
-        unsafe { C::new(compositor_settings, |address| std::ptr::null()) };
+        unsafe { C::new(compositor_settings, |_| std::ptr::null()) };
 
     let mut state = program::State::new(
         application,

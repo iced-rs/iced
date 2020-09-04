@@ -23,3 +23,6 @@ path = "../core"
 version = "0.1"
 path = "../futures"
 features = ["thread-pool"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-timer = "0.2"

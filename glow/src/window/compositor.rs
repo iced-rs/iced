@@ -23,7 +23,7 @@ impl iced_graphics::window::GLCompositor for Compositor {
         let gl = glow::Context::from_loader_function(loader_function);
 
         #[cfg(all(target_arch = "wasm32"))]
-        let (gl, render_loop, shader_version) = {
+        let (gl, _render_loop, _shader_version) = {
             use wasm_bindgen::JsCast;
             let canvas = web_sys::window()
                 .expect("iced web_sys window")
