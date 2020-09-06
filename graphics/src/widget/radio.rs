@@ -13,16 +13,13 @@ pub use iced_style::radio::{Style, StyleSheet};
 pub type Radio<Message, Backend> =
     iced_native::Radio<Message, Renderer<Backend>>;
 
-const SIZE: f32 = 28.0;
-const DOT_SIZE: f32 = SIZE / 2.0;
-
 impl<B> radio::Renderer for Renderer<B>
 where
     B: Backend,
 {
     type Style = Box<dyn StyleSheet>;
 
-    const DEFAULT_SIZE: u16 = SIZE as u16;
+    const DEFAULT_SIZE: u16 = 28;
     const DEFAULT_SPACING: u16 = 15;
 
     fn draw(
@@ -39,10 +36,13 @@ where
             style_sheet.active()
         };
 
+        let size = bounds.width;
+        let dot_size = size / 2.0;
+
         let radio = Primitive::Quad {
             bounds,
             background: style.background,
-            border_radius: (SIZE / 2.0) as u16,
+            border_radius: (size / 2.0) as u16,
             border_width: style.border_width,
             border_color: style.border_color,
         };
@@ -52,13 +52,13 @@ where
                 primitives: if is_selected {
                     let radio_circle = Primitive::Quad {
                         bounds: Rectangle {
-                            x: bounds.x + DOT_SIZE / 2.0,
-                            y: bounds.y + DOT_SIZE / 2.0,
-                            width: bounds.width - DOT_SIZE,
-                            height: bounds.height - DOT_SIZE,
+                            x: bounds.x + dot_size / 2.0,
+                            y: bounds.y + dot_size / 2.0,
+                            width: bounds.width - dot_size,
+                            height: bounds.height - dot_size,
                         },
                         background: Background::Color(style.dot_color),
-                        border_radius: (DOT_SIZE / 2.0) as u16,
+                        border_radius: (dot_size / 2.0) as u16,
                         border_width: 0,
                         border_color: Color::TRANSPARENT,
                     };
