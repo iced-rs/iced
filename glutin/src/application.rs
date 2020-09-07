@@ -1,5 +1,5 @@
 //! Create interactive, native cross-platform applications.
-use crate::{mouse, Executor, Runtime, Size};
+use crate::{mouse, Error, Executor, Runtime, Size};
 use iced_graphics::window;
 use iced_graphics::Viewport;
 use iced_winit::application;
@@ -16,7 +16,8 @@ pub use iced_winit::{program, Program};
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     compositor_settings: C::Settings,
-) where
+) -> Result<(), Error>
+where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
@@ -32,7 +33,7 @@ pub fn run<A, E, C>(
 
     let event_loop = EventLoop::with_user_event();
     let mut runtime = {
-        let executor = E::new().expect("Create executor");
+        let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
         let proxy = Proxy::new(event_loop.create_proxy());
 
         Runtime::new(executor, proxy)
@@ -61,7 +62,16 @@ pub fn run<A, E, C>(
             .with_vsync(true)
             .with_multisampling(C::sample_count(&compositor_settings) as u16)
             .build_windowed(builder, &event_loop)
-            .expect("Open window");
+            .map_err(|error| {
+                use glutin::CreationError;
+
+                match error {
+                    CreationError::Window(error) => {
+                        Error::WindowCreationFailed(error)
+                    }
+                    _ => Error::GraphicsAdapterNotFound,
+                }
+            })?;
 
         #[allow(unsafe_code)]
         unsafe {
@@ -85,7 +95,7 @@ pub fn run<A, E, C>(
     let (mut compositor, mut renderer) = unsafe {
         C::new(compositor_settings, |address| {
             context.get_proc_address(address)
-        })
+        })?
     };
 
     let mut state = program::State::new(

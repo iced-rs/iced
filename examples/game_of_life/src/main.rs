@@ -16,7 +16,7 @@ use iced::{
 use preset::Preset;
 use std::time::{Duration, Instant};
 
-pub fn main() {
+pub fn main() -> iced::Result {
     GameOfLife::run(Settings {
         antialiasing: true,
         ..Settings::default()

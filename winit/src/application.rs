@@ -1,7 +1,9 @@
 //! Create interactive, native cross-platform applications.
+use crate::conversion;
+use crate::mouse;
 use crate::{
-    conversion, mouse, Clipboard, Color, Command, Debug, Executor, Mode, Proxy,
-    Runtime, Settings, Size, Subscription,
+    Clipboard, Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime,
+    Settings, Size, Subscription,
 };
 use iced_graphics::window;
 use iced_graphics::Viewport;
@@ -108,7 +110,8 @@ pub trait Application: Program {
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     compositor_settings: C::Settings,
-) where
+) -> Result<(), Error>
+where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
@@ -123,7 +126,7 @@ pub fn run<A, E, C>(
 
     let event_loop = EventLoop::with_user_event();
     let mut runtime = {
-        let executor = E::new().expect("Create executor");
+        let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
         let proxy = Proxy::new(event_loop.create_proxy());
 
         Runtime::new(executor, proxy)
@@ -145,7 +148,7 @@ pub fn run<A, E, C>(
         .window
         .into_builder(&title, mode, event_loop.primary_monitor())
         .build(&event_loop)
-        .expect("Open window");
+        .map_err(Error::WindowCreationFailed)?;
 
     let clipboard = Clipboard::new(&window);
     // TODO: Encode cursor availability in the type-system
@@ -160,7 +163,7 @@ pub fn run<A, E, C>(
     );
     let mut resized = false;
 
-    let (mut compositor, mut renderer) = C::new(compositor_settings);
+    let (mut compositor, mut renderer) = C::new(compositor_settings)?;
 
     let surface = compositor.create_surface(&window);
 

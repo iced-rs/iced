@@ -4,7 +4,7 @@ use iced::{
     Scrollable, Settings, Slider, Space, Text, TextInput,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Styling::run(Settings::default())
 }
 

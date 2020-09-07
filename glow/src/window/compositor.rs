@@ -1,4 +1,4 @@
-use crate::{Backend, Color, Renderer, Settings, Viewport};
+use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use core::ffi::c_void;
 use glow::HasContext;
@@ -18,7 +18,7 @@ impl iced_graphics::window::GLCompositor for Compositor {
     unsafe fn new(
         settings: Self::Settings,
         loader_function: impl FnMut(&str) -> *const c_void,
-    ) -> (Self, Self::Renderer) {
+    ) -> Result<(Self, Self::Renderer), Error> {
         let gl = glow::Context::from_loader_function(loader_function);
 
         // Enable auto-conversion from/to sRGB
@@ -33,7 +33,7 @@ impl iced_graphics::window::GLCompositor for Compositor {
 
         let renderer = Renderer::new(Backend::new(&gl, settings));
 
-        (Self { gl }, renderer)
+        Ok((Self { gl }, renderer))
     }
 
     fn sample_count(settings: &Settings) -> u32 {

@@ -90,7 +90,7 @@ use iced::{
     Slider, Text,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Example::run(Settings::default())
 }
 

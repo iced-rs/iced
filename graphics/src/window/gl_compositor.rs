@@ -1,4 +1,4 @@
-use crate::{Color, Size, Viewport};
+use crate::{Color, Error, Size, Viewport};
 use iced_native::mouse;
 
 use core::ffi::c_void;
@@ -41,7 +41,7 @@ pub trait GLCompositor: Sized {
     unsafe fn new(
         settings: Self::Settings,
         loader_function: impl FnMut(&str) -> *const c_void,
-    ) -> (Self, Self::Renderer);
+    ) -> Result<(Self, Self::Renderer), Error>;
 
     /// Returns the amount of samples that should be used when configuring
     /// an OpenGL context for this [`Compositor`].

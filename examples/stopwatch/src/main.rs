@@ -5,7 +5,7 @@ use iced::{
 };
 use std::time::{Duration, Instant};
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Stopwatch::run(Settings::default())
 }
 
