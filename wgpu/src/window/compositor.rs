@@ -1,7 +1,6 @@
-use crate::{Backend, Color, Renderer, Settings};
+use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::task::SpawnExt;
-use iced_graphics::Viewport;
 use iced_native::{futures, mouse};
 use raw_window_handle::HasRawWindowHandle;
 
@@ -82,13 +81,13 @@ impl iced_graphics::window::Compositor for Compositor {
     type Surface = wgpu::Surface;
     type SwapChain = wgpu::SwapChain;
 
-    fn new(settings: Self::Settings) -> (Self, Renderer) {
+    fn new(settings: Self::Settings) -> Result<(Self, Renderer), Error> {
         let compositor = futures::executor::block_on(Self::request(settings))
-            .expect("Could not find a suitable graphics adapter");
+            .ok_or(Error::AdapterNotFound)?;
 
         let backend = compositor.create_backend();
 
-        (compositor, Renderer::new(backend))
+        Ok((compositor, Renderer::new(backend)))
     }
 
     fn create_surface<W: HasRawWindowHandle>(

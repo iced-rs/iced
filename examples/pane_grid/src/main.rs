@@ -4,7 +4,7 @@ use iced::{
     Settings, Text,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Example::run(Settings::default())
 }
 

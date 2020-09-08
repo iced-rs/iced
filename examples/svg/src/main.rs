@@ -1,6 +1,6 @@
 use iced::{Container, Element, Length, Sandbox, Settings, Svg};
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Tiger::run(Settings::default())
 }
 

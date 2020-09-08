@@ -3,11 +3,11 @@ use iced::{
     button, Align, Button, Column, Element, Length, Sandbox, Settings, Text,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Example::run(Settings {
         antialiasing: true,
         ..Settings::default()
-    });
+    })
 }
 
 #[derive(Default)]
