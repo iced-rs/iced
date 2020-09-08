@@ -11,26 +11,23 @@ pub mod scrollable;
 pub mod slider;
 mod row;
 mod space;
-*/
-pub mod text_input;
-pub mod button;
-
-mod column;
-mod text;
-
-#[doc(no_inline)]
-pub use button::Button;
-/*
 #[doc(no_inline)]
 pub use scrollable::Scrollable;
 #[doc(no_inline)]
 pub use slider::Slider;
 */
+
+pub mod button;
+#[doc(no_inline)]
+pub use button::Button;
+mod text;
 #[doc(no_inline)]
 pub use text::Text;
+pub mod text_input;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
+mod column;
 pub use column::Column;
 /*
 pub use checkbox::Checkbox;

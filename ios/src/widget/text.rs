@@ -1,30 +1,18 @@
-use std::hash::Hash;
 use crate::{
-    Color,
-    Element,
-    Font,
-    HorizontalAlignment,
-    Length,
-    VerticalAlignment,
-    Widget,
     widget::{WidgetNode, WidgetType},
-    Hasher, Size,
+    Color, Element, Font, Hasher, HorizontalAlignment, Length, Size,
+    VerticalAlignment, Widget,
 };
 use std::convert::TryInto;
 use std::ffi::CString;
-use uikit_sys::{
-    id,
-    INSObject, IUIColor, IUILabel,
-    NSString, NSString_NSStringExtensionMethods,
-    UIColor, UILabel, UIView, IUIView,
-    UIView_UIViewGeometry,
-    UIView_UIViewRendering,
-    ICALayer,
-    UIScreen, IUIScreen,
-    IUITextView,
-    NSUTF8StringEncoding, UITextView,
-};
+use std::hash::Hash;
 use std::marker::PhantomData;
+use uikit_sys::{
+    id, ICALayer, INSObject, IUIColor, IUILabel, IUIScreen, IUITextView,
+    IUIView, NSString, NSString_NSStringExtensionMethods, NSUTF8StringEncoding,
+    UIColor, UILabel, UIScreen, UITextView, UIView, UIView_UIViewGeometry,
+    UIView_UIViewRendering,
+};
 
 /// A paragraph of text.
 ///
@@ -131,7 +119,6 @@ impl<Message> Text<Message> {
 }
 
 impl<Message> Widget<Message> for Text<Message> {
-
     fn hash_layout(&self, state: &mut Hasher) {
         struct Marker;
         std::any::TypeId::of::<Marker>().hash(state);
@@ -146,7 +133,7 @@ impl<Message> Widget<Message> for Text<Message> {
         WidgetType::Text(self.content.clone())
     }
     fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
-        let mut ids_to_drop : Vec<id> = Vec::new();
+        let mut ids_to_drop: Vec<id> = Vec::new();
         match &mut current_node.widget_type {
             WidgetType::Text(ref mut old_text) => {
                 let new_text = &self.content;
@@ -156,19 +143,19 @@ impl<Message> Widget<Message> for Text<Message> {
                         let text = NSString(
                             NSString::alloc().initWithBytes_length_encoding_(
                                 CString::new(new_text.as_str())
-                                .expect("CString::new failed")
-                                .as_ptr()
-                                as *mut std::ffi::c_void,
+                                    .expect("CString::new failed")
+                                    .as_ptr()
+                                    as *mut std::ffi::c_void,
                                 new_text.len().try_into().unwrap(),
                                 NSUTF8StringEncoding,
                             ),
                         );
-                        label.setText_(text);
+                        label.setText_(text.clone());
                         ids_to_drop.push(text.0);
                     }
                 }
                 *old_text = new_text.clone();
-            },
+            }
             other => {
                 trace!("{:?} is not a text widget! Dropping!", other);
                 current_node.drop_from_ui();
@@ -181,22 +168,24 @@ impl<Message> Widget<Message> for Text<Message> {
     }
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
         let content = self.content.clone();
-        let color = self.color.clone();
-        let mut ids_to_drop : Vec<id> = Vec::new();
+        let color = self.color;
+        let mut ids_to_drop: Vec<id> = Vec::new();
+        let cstr = CString::new(content.as_str())
+            .expect("CString::new failed")
+            .as_ptr() as *mut std::ffi::c_void;
+
+        let text = unsafe {
+            NSString(NSString::alloc().initWithBytes_length_encoding_(
+                    cstr,
+                    content.len().try_into().unwrap(),
+                    NSUTF8StringEncoding,
+            ))
+        };
+        ids_to_drop.push(text.0);
         let label = unsafe {
             let label = UILabel::alloc();
             label.init();
 
-            let text = NSString(
-                NSString::alloc().initWithBytes_length_encoding_(
-                    CString::new(content.as_str())
-                    .expect("CString::new failed")
-                    .as_ptr() as *mut std::ffi::c_void,
-                    content.len().try_into().unwrap(),
-                    NSUTF8StringEncoding,
-                ),
-            );
-            ids_to_drop.push(text.0);
             label.setText_(text);
             if is_root {
                 let screen = UIScreen::mainScreen();
@@ -210,23 +199,27 @@ impl<Message> Widget<Message> for Text<Message> {
             label.setMinimumScaleFactor_(10.0);
             label.setClipsToBounds_(true);
 
-            if let Some(color) = color {
-                let background =
-                    UIColor::alloc().initWithRed_green_blue_alpha_(
-                        color.r.into(),
-                        color.g.into(),
-                        color.b.into(),
-                        color.a.into(),
-                    );
-                ids_to_drop.push(background.0);
-                label.setTextColor_(background)
-            }
             label
         };
+        if let Some(color) = color {
+            let background = unsafe {UIColor::alloc()
+                .initWithRed_green_blue_alpha_(
+                    color.r.into(),
+                    color.g.into(),
+                    color.b.into(),
+                    color.a.into(),
+                )
+            };
+            ids_to_drop.push(background.0);
+            unsafe {
+                label.setTextColor_(background)
+            }
+        }
+
         let mut node = WidgetNode::new(
             label.0,
             self.get_widget_type(),
-            self.get_my_hash()
+            self.get_my_hash(),
         );
         for i in &ids_to_drop {
             node.add_related_id(*i);
@@ -240,11 +233,11 @@ impl<Message> Widget<Message> for Text<Message> {
     fn height(&self) -> Length {
         self.height
     }
-
 }
 
 impl<'a, Message> From<Text<Message>> for Element<'a, Message>
-where Message: 'a
+where
+    Message: 'a,
 {
     fn from(text: Text<Message>) -> Element<'a, Message> {
         Element::new(text)

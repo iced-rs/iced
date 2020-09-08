@@ -3,21 +3,31 @@ use crate::{
     widget::{WidgetNode, WidgetType},
     Align, Element, Hasher, Length, Widget,
 };
-use std::hash::Hash;
 use std::convert::TryInto;
+use std::hash::Hash;
 
 use std::u32;
 use uikit_sys::{
     id, //CGPoint, CGRect, CGSize, INSLayoutConstraint, INSLayoutDimension,
-    INSObject, IUIColor, IUIStackView, IUITextView, NSLayoutConstraint,
-    NSLayoutDimension, UIColor,
-    UILayoutConstraintAxis_UILayoutConstraintAxisVertical, UIStackView,
-    UIStackViewAlignment_UIStackViewAlignmentCenter,
-    UIStackViewDistribution_UIStackViewDistributionFillEqually, UITextView, UIView,
-    UIView_UIViewGeometry, UIView_UIViewHierarchy,
-    UIView_UIViewLayoutConstraintCreation, UIView_UIViewRendering,
-    UIScreen,
+    INSObject,
+    IUIColor,
     IUIScreen,
+    IUIStackView,
+    IUITextView,
+    NSLayoutConstraint,
+    NSLayoutDimension,
+    UIColor,
+    UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
+    UIScreen,
+    UIStackView,
+    UIStackViewAlignment_UIStackViewAlignmentCenter,
+    UIStackViewDistribution_UIStackViewDistributionFillEqually,
+    UITextView,
+    UIView,
+    UIView_UIViewGeometry,
+    UIView_UIViewHierarchy,
+    UIView_UIViewLayoutConstraintCreation,
+    UIView_UIViewRendering,
 };
 
 /// A container that distributes its contents vertically.
@@ -149,9 +159,9 @@ where
             WidgetType::Column(node_children) => {
                 for (i, node) in
                     &mut self.children.iter_mut().zip(node_children)
-                    {
-                        i.on_widget_event(event.clone(), messages, &node);
-                    }
+                {
+                    i.on_widget_event(event.clone(), messages, &node);
+                }
             }
             e => {
                 error!("Widget tree traversal out of sync. {:?} should be a Column!", e);
@@ -182,25 +192,26 @@ where
         self.height
     }
     fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
-
         let mut replace_children = false;
         match &mut current_node.widget_type {
             WidgetType::Column(ref mut current_children) => {
                 if self.children.len() == current_children.len() {
                     let stackview = UIStackView(current_node.view_id);
                     for i in 0..self.children.len() {
-
-                        let mut current_child = current_children.get_mut(i).unwrap();
+                        let mut current_child =
+                            current_children.get_mut(i).unwrap();
                         let old_id = current_child.view_id;
                         let element_child = self.children.get(i).unwrap();
-                        if element_child.get_widget_type().is_mergeable(&current_child.widget_type) {
+                        if element_child
+                            .get_widget_type()
+                            .is_mergeable(&current_child.widget_type)
+                        {
                             element_child.update(&mut current_child, None);
                         }
                         if old_id != current_child.view_id {
                             unsafe {
-                                stackview.removeArrangedSubview_(
-                                    UIView(old_id)
-                                );
+                                stackview
+                                    .removeArrangedSubview_(UIView(old_id));
                                 stackview.insertArrangedSubview_atIndex_(
                                     UIView(current_child.view_id),
                                     i.try_into().unwrap(),
@@ -210,11 +221,11 @@ where
                     }
                 } else {
                     replace_children = true;
-                    let stackview = uikit_sys::UIStackView(current_node.view_id);
+                    let stackview =
+                        uikit_sys::UIStackView(current_node.view_id);
                     for i in current_children {
                         unsafe {
-                            stackview
-                                .removeArrangedSubview_(UIView(i.view_id));
+                            stackview.removeArrangedSubview_(UIView(i.view_id));
                         }
                         i.drop_from_ui();
                     }
@@ -228,7 +239,7 @@ where
                 }
                 current_node.drop_from_ui();
                 *current_node = new_node;
-            },
+            }
         }
         if replace_children {
             current_node.drop_children();
@@ -236,8 +247,7 @@ where
                 let subview = i.build_uiview(false);
                 let stackview = uikit_sys::UIStackView(current_node.view_id);
                 unsafe {
-                    stackview
-                        .addArrangedSubview_(UIView(subview.view_id))
+                    stackview.addArrangedSubview_(UIView(subview.view_id))
                 }
                 current_node.add_child(subview);
             }
@@ -266,7 +276,9 @@ where
             stack_view.setAxis_(
                 UILayoutConstraintAxis_UILayoutConstraintAxisVertical,
             );
-            stack_view.setAlignment_(uikit_sys::UIStackViewAlignment_UIStackViewAlignmentFill);
+            stack_view.setAlignment_(
+                uikit_sys::UIStackViewAlignment_UIStackViewAlignmentFill,
+            );
             stack_view.setDistribution_(
                 UIStackViewDistribution_UIStackViewDistributionFillEqually,
             );

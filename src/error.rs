@@ -16,7 +16,7 @@ pub enum Error {
     GraphicsAdapterNotFound,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))]
 impl From<iced_winit::Error> for Error {
     fn from(error: iced_winit::Error) -> Error {
         match error {

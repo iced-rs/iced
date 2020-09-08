@@ -213,7 +213,7 @@ where
             center.addObserver_selector_name_object_(
                 on_change.id,
                 sel!(sendEvent),
-                UITextViewTextDidChangeNotification,
+                UITextViewTextDidChangeNotification.clone(),
                 ui_textview.0,
             );
             ids_to_drop.push(on_change.id);
