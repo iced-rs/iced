@@ -79,6 +79,7 @@ members = [
 [dependencies]
 iced_core = { version = "0.2", path = "core" }
 iced_futures = { version = "0.1", path = "futures" }
+thiserror = "1.0"
 
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))'.dependencies]
 iced_winit = { version = "0.1", path = "winit" }

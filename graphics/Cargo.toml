@@ -15,6 +15,7 @@ opengl = []
 bytemuck = "1.2"
 glam = "0.9"
 raw-window-handle = "0.3"
+thiserror = "1.0"
 
 [dependencies.iced_native]
 version = "0.2"

@@ -64,6 +64,7 @@ impl Backend {
     pub fn draw<T: AsRef<str>>(
         &mut self,
         device: &wgpu::Device,
+        staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
         viewport: &Viewport,
@@ -85,6 +86,7 @@ impl Backend {
                 scale_factor,
                 transformation,
                 &layer,
+                staging_belt,
                 encoder,
                 &frame,
                 target_size.width,
@@ -104,6 +106,7 @@ impl Backend {
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
+        staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         target_width: u32,
@@ -114,6 +117,7 @@ impl Backend {
         if !layer.quads.is_empty() {
             self.quad_pipeline.draw(
                 device,
+                staging_belt,
                 encoder,
                 &layer.quads,
                 transformation,
@@ -129,6 +133,7 @@ impl Backend {
 
             self.triangle_pipeline.draw(
                 device,
+                staging_belt,
                 encoder,
                 target,
                 target_width,
@@ -147,6 +152,7 @@ impl Backend {
 
                 self.image_pipeline.draw(
                     device,
+                    staging_belt,
                     encoder,
                     &layer.images,
                     scaled,
@@ -225,6 +231,7 @@ impl Backend {
 
             self.text_pipeline.draw_queued(
                 device,
+                staging_belt,
                 encoder,
                 target,
                 transformation,

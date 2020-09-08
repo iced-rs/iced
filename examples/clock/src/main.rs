@@ -4,7 +4,7 @@ use iced::{
     Point, Rectangle, Settings, Subscription, Vector,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Clock::run(Settings {
         antialiasing: true,
         ..Settings::default()

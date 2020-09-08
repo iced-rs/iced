@@ -1,18 +1,23 @@
-use crate::{Backend, Color, Renderer, Settings};
+use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
-use iced_graphics::Viewport;
+use futures::task::SpawnExt;
 use iced_native::{futures, mouse};
 use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `wgpu`.
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Compositor {
     settings: Settings,
+    instance: wgpu::Instance,
     device: wgpu::Device,
     queue: wgpu::Queue,
+    staging_belt: wgpu::util::StagingBelt,
+    local_pool: futures::executor::LocalPool,
 }
 
 impl Compositor {
+    const CHUNK_SIZE: u64 = 10 * 1024;
+
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
@@ -20,32 +25,44 @@ impl Compositor {
     /// [`Compositor`]: struct.Compositor.html
     /// [`Settings`]: struct.Settings.html
     pub async fn request(settings: Settings) -> Option<Self> {
-        let adapter = wgpu::Adapter::request(
-            &wgpu::RequestAdapterOptions {
+        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: if settings.antialiasing.is_none() {
                     wgpu::PowerPreference::Default
                 } else {
                     wgpu::PowerPreference::HighPerformance
                 },
                 compatible_surface: None,
-            },
-            wgpu::BackendBit::PRIMARY,
-        )
-        .await?;
+            })
+            .await?;
 
         let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor {
-                extensions: wgpu::Extensions {
-                    anisotropic_filtering: false,
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    features: wgpu::Features::empty(),
+                    limits: wgpu::Limits {
+                        max_bind_groups: 2,
+                        ..wgpu::Limits::default()
+                    },
+                    shader_validation: false,
                 },
-                limits: wgpu::Limits { max_bind_groups: 2 },
-            })
-            .await;
+                None,
+            )
+            .await
+            .ok()?;
+
+        let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
+        let local_pool = futures::executor::LocalPool::new();
 
         Some(Compositor {
+            instance,
             settings,
             device,
             queue,
+            staging_belt,
+            local_pool,
         })
     }
 
@@ -64,20 +81,23 @@ impl iced_graphics::window::Compositor for Compositor {
     type Surface = wgpu::Surface;
     type SwapChain = wgpu::SwapChain;
 
-    fn new(settings: Self::Settings) -> (Self, Renderer) {
+    fn new(settings: Self::Settings) -> Result<(Self, Renderer), Error> {
         let compositor = futures::executor::block_on(Self::request(settings))
-            .expect("Could not find a suitable graphics adapter");
+            .ok_or(Error::AdapterNotFound)?;
 
         let backend = compositor.create_backend();
 
-        (compositor, Renderer::new(backend))
+        Ok((compositor, Renderer::new(backend)))
     }
 
     fn create_surface<W: HasRawWindowHandle>(
         &mut self,
         window: &W,
     ) -> wgpu::Surface {
-        wgpu::Surface::create(window)
+        #[allow(unsafe_code)]
+        unsafe {
+            self.instance.create_surface(window)
+        }
     }
 
     fn create_swap_chain(
@@ -107,27 +127,30 @@ impl iced_graphics::window::Compositor for Compositor {
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction {
-        let frame = swap_chain.get_next_texture().expect("Next frame");
+        let frame = swap_chain.get_current_frame().expect("Next frame");
 
         let mut encoder = self.device.create_command_encoder(
-            &wgpu::CommandEncoderDescriptor { label: None },
+            &wgpu::CommandEncoderDescriptor {
+                label: Some("iced_wgpu encoder"),
+            },
         );
 
         let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: &frame.view,
+                attachment: &frame.output.view,
                 resolve_target: None,
-                load_op: wgpu::LoadOp::Clear,
-                store_op: wgpu::StoreOp::Store,
-                clear_color: {
-                    let [r, g, b, a] = background_color.into_linear();
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear({
+                        let [r, g, b, a] = background_color.into_linear();
 
-                    wgpu::Color {
-                        r: f64::from(r),
-                        g: f64::from(g),
-                        b: f64::from(b),
-                        a: f64::from(a),
-                    }
+                        wgpu::Color {
+                            r: f64::from(r),
+                            g: f64::from(g),
+                            b: f64::from(b),
+                            a: f64::from(a),
+                        }
+                    }),
+                    store: true,
                 },
             }],
             depth_stencil_attachment: None,
@@ -135,14 +158,25 @@ impl iced_graphics::window::Compositor for Compositor {
 
         let mouse_interaction = renderer.backend_mut().draw(
             &mut self.device,
+            &mut self.staging_belt,
             &mut encoder,
-            &frame.view,
+            &frame.output.view,
             viewport,
             output,
             overlay,
         );
 
-        self.queue.submit(&[encoder.finish()]);
+        // Submit work
+        self.staging_belt.finish();
+        self.queue.submit(Some(encoder.finish()));
+
+        // Recall staging buffers
+        self.local_pool
+            .spawner()
+            .spawn(self.staging_belt.recall())
+            .expect("Recall staging belt");
+
+        self.local_pool.run_until_stalled();
 
         mouse_interaction
     }

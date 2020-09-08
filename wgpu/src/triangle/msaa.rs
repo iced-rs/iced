@@ -23,26 +23,25 @@ impl Blit {
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Linear,
-            lod_min_clamp: -100.0,
-            lod_max_clamp: 100.0,
-            compare: wgpu::CompareFunction::Always,
+            ..Default::default()
         });
 
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
-                bindings: &[wgpu::BindGroupLayoutEntry {
+                label: Some("iced_wgpu::triangle:msaa uniforms layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Sampler { comparison: false },
+                    count: None,
                 }],
             });
 
         let constant_bind_group =
             device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
+                label: Some("iced_wgpu::triangle::msaa uniforms bind group"),
                 layout: &constant_layout,
-                bindings: &[wgpu::Binding {
+                entries: &[wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 }],
@@ -50,8 +49,8 @@ impl Blit {
 
         let texture_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: None,
-                bindings: &[wgpu::BindGroupLayoutEntry {
+                label: Some("iced_wgpu::triangle::msaa texture layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::SampledTexture {
@@ -59,29 +58,29 @@ impl Blit {
                         component_type: wgpu::TextureComponentType::Float,
                         multisampled: false,
                     },
+                    count: None,
                 }],
             });
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("iced_wgpu::triangle::msaa pipeline layout"),
+                push_constant_ranges: &[],
                 bind_group_layouts: &[&constant_layout, &texture_layout],
             });
 
-        let vs = include_bytes!("../shader/blit.vert.spv");
-        let vs_module = device.create_shader_module(
-            &wgpu::read_spirv(std::io::Cursor::new(&vs[..]))
-                .expect("Read blit vertex shader as SPIR-V"),
-        );
+        let vs_module = device.create_shader_module(wgpu::include_spirv!(
+            "../shader/blit.vert.spv"
+        ));
 
-        let fs = include_bytes!("../shader/blit.frag.spv");
-        let fs_module = device.create_shader_module(
-            &wgpu::read_spirv(std::io::Cursor::new(&fs[..]))
-                .expect("Read blit fragment shader as SPIR-V"),
-        );
+        let fs_module = device.create_shader_module(wgpu::include_spirv!(
+            "../shader/blit.frag.spv"
+        ));
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                layout: &layout,
+                label: Some("iced_wgpu::triangle::msaa pipeline"),
+                layout: Some(&layout),
                 vertex_stage: wgpu::ProgrammableStageDescriptor {
                     module: &vs_module,
                     entry_point: "main",
@@ -93,9 +92,7 @@ impl Blit {
                 rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                     front_face: wgpu::FrontFace::Cw,
                     cull_mode: wgpu::CullMode::None,
-                    depth_bias: 0,
-                    depth_bias_slope_scale: 0.0,
-                    depth_bias_clamp: 0.0,
+                    ..Default::default()
                 }),
                 primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                 color_states: &[wgpu::ColorStateDescriptor {
@@ -179,13 +176,9 @@ impl Blit {
                     wgpu::RenderPassColorAttachmentDescriptor {
                         attachment: target,
                         resolve_target: None,
-                        load_op: wgpu::LoadOp::Load,
-                        store_op: wgpu::StoreOp::Store,
-                        clear_color: wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 0.0,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: true,
                         },
                     },
                 ],
@@ -228,9 +221,8 @@ impl Targets {
         };
 
         let attachment = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("iced_wgpu::triangle::msaa attachment"),
             size: extent,
-            array_layer_count: 1,
             mip_level_count: 1,
             sample_count,
             dimension: wgpu::TextureDimension::D2,
@@ -239,9 +231,8 @@ impl Targets {
         });
 
         let resolve = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
+            label: Some("iced_wgpu::triangle::msaa resolve target"),
             size: extent,
-            array_layer_count: 1,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -250,13 +241,16 @@ impl Targets {
                 | wgpu::TextureUsage::SAMPLED,
         });
 
-        let attachment = attachment.create_default_view();
-        let resolve = resolve.create_default_view();
+        let attachment =
+            attachment.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let resolve =
+            resolve.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
+            label: Some("iced_wgpu::triangle::msaa texture bind group"),
             layout: texture_layout,
-            bindings: &[wgpu::Binding {
+            entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: wgpu::BindingResource::TextureView(&resolve),
             }],

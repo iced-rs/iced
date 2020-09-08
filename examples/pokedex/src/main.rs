@@ -3,7 +3,7 @@ use iced::{
     Container, Element, Image, Length, Row, Settings, Text,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Pokedex::run(Settings::default())
 }
 

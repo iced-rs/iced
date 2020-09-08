@@ -5,7 +5,7 @@ use iced::{
 };
 use serde::{Deserialize, Serialize};
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Todos::run(Settings::default())
 }
 

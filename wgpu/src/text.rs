@@ -65,6 +65,7 @@ impl Pipeline {
     pub fn draw_queued(
         &mut self,
         device: &wgpu::Device,
+        staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         transformation: Transformation,
@@ -74,6 +75,7 @@ impl Pipeline {
             .borrow_mut()
             .draw_queued_with_transform_and_scissoring(
                 device,
+                staging_belt,
                 encoder,
                 target,
                 transformation.into(),

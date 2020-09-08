@@ -8,7 +8,7 @@ use palette::{self, Hsl, Limited, Srgb};
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
-pub fn main() {
+pub fn main() -> iced::Result {
     ColorPalette::run(Settings {
         antialiasing: true,
         ..Settings::default()
