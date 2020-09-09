@@ -262,12 +262,12 @@ where
 }
 
 /// An interactive embedded web application.
-/// 
+///
 /// This trait is the main entrypoint of Iced. Once implemented, you can run
 /// your GUI application by simply calling [`run`](#method.run). It will either
 /// take control of the `<body>' or of an HTML element of the document specified
 /// by `container_id`.
-/// 
+///
 /// An [`Embedded`](trait.Embedded.html) can execute asynchronous actions
 /// by returning a [`Command`](struct.Command.html) in some of its methods.
 pub trait Embedded {
