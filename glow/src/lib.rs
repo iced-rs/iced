@@ -26,7 +26,7 @@ pub(crate) use iced_graphics::Transformation;
 #[doc(no_inline)]
 pub use widget::*;
 
-pub use iced_graphics::Viewport;
+pub use iced_graphics::{Error, Viewport};
 pub use iced_native::{
     Background, Color, Command, HorizontalAlignment, Length, Vector,
     VerticalAlignment,

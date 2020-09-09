@@ -3,7 +3,7 @@ use iced::{
     Element, Length, Settings, Subscription, Text,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Events::run(Settings::default())
 }
 

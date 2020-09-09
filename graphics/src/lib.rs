@@ -9,6 +9,7 @@
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
+mod error;
 mod primitive;
 mod renderer;
 mod transformation;
@@ -29,6 +30,7 @@ pub use widget::*;
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
 pub use defaults::Defaults;
+pub use error::Error;
 pub use layer::Layer;
 pub use primitive::Primitive;
 pub use renderer::Renderer;

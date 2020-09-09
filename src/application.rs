@@ -1,6 +1,5 @@
-use crate::{
-    window, Color, Command, Element, Executor, Settings, Subscription,
-};
+use crate::window;
+use crate::{Color, Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -59,7 +58,7 @@ use crate::{
 /// ```no_run
 /// use iced::{executor, Application, Command, Element, Settings, Text};
 ///
-/// pub fn main() {
+/// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
 /// }
 ///
@@ -204,12 +203,13 @@ pub trait Application: Sized {
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
-    /// and __will NOT return__.
+    /// and __will NOT return__ unless there is an [`Error`] during startup.
     ///
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Application`]: trait.Application.html
-    fn run(settings: Settings<Self::Flags>)
+    /// [`Error`]: enum.Error.html
+    fn run(settings: Settings<Self::Flags>) -> crate::Result
     where
         Self: 'static,
     {
@@ -226,15 +226,19 @@ pub trait Application: Sized {
                 ..crate::renderer::Settings::default()
             };
 
-            crate::runtime::application::run::<
+            Ok(crate::runtime::application::run::<
                 Instance<Self>,
                 Self::Executor,
                 crate::renderer::window::Compositor,
-            >(settings.into(), renderer_settings);
+            >(settings.into(), renderer_settings)?)
         }
 
         #[cfg(target_arch = "wasm32")]
-        <Instance<Self> as iced_web::Application>::run(settings.flags);
+        {
+            <Instance<Self> as iced_web::Application>::run(settings.flags);
+
+            Ok(())
+        }
     }
 }
 

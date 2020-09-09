@@ -4,7 +4,7 @@ use iced::{
     Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     env_logger::init();
 
     Tour::run(Settings::default())
