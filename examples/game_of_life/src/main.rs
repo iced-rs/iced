@@ -31,11 +31,12 @@ struct GameOfLife {
     queued_ticks: usize,
     speed: usize,
     next_speed: Option<usize>,
+    version: usize,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    Grid(grid::Message),
+    Grid(grid::Message, usize),
     Tick(Instant),
     TogglePlayback,
     ToggleGrid(bool),
@@ -66,8 +67,10 @@ impl Application for GameOfLife {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Grid(message) => {
-                self.grid.update(message);
+            Message::Grid(message, version) => {
+                if version == self.version {
+                    self.grid.update(message);
+                }
             }
             Message::Tick(_) | Message::Next => {
                 self.queued_ticks = (self.queued_ticks + 1).min(self.speed);
@@ -79,7 +82,11 @@ impl Application for GameOfLife {
 
                     self.queued_ticks = 0;
 
-                    return Command::perform(task, Message::Grid);
+                    let version = self.version;
+
+                    return Command::perform(task, move |message| {
+                        Message::Grid(message, version)
+                    });
                 }
             }
             Message::TogglePlayback => {
@@ -90,6 +97,7 @@ impl Application for GameOfLife {
             }
             Message::Clear => {
                 self.grid.clear();
+                self.version += 1;
             }
             Message::SpeedChanged(speed) => {
                 if self.is_playing {
@@ -100,6 +108,7 @@ impl Application for GameOfLife {
             }
             Message::PresetPicked(new_preset) => {
                 self.grid = Grid::from_preset(new_preset);
+                self.version += 1;
             }
         }
 
@@ -116,6 +125,7 @@ impl Application for GameOfLife {
     }
 
     fn view(&mut self) -> Element<Message> {
+        let version = self.version;
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let controls = self.controls.view(
             self.is_playing,
@@ -125,7 +135,11 @@ impl Application for GameOfLife {
         );
 
         let content = Column::new()
-            .push(self.grid.view().map(Message::Grid))
+            .push(
+                self.grid
+                    .view()
+                    .map(move |message| Message::Grid(message, version)),
+            )
             .push(controls);
 
         Container::new(content)
@@ -161,7 +175,6 @@ mod grid {
         show_lines: bool,
         last_tick_duration: Duration,
         last_queued_ticks: usize,
-        version: usize,
     }
 
     #[derive(Debug, Clone)]
@@ -171,7 +184,6 @@ mod grid {
         Ticked {
             result: Result<Life, TickError>,
             tick_duration: Duration,
-            version: usize,
         },
     }
 
@@ -208,7 +220,6 @@ mod grid {
                 show_lines: true,
                 last_tick_duration: Duration::default(),
                 last_queued_ticks: 0,
-                version: 0,
             }
         }
 
@@ -216,7 +227,6 @@ mod grid {
             &mut self,
             amount: usize,
         ) -> Option<impl Future<Output = Message>> {
-            let version = self.version;
             let tick = self.state.tick(amount)?;
 
             self.last_queued_ticks = amount;
@@ -228,7 +238,6 @@ mod grid {
 
                 Message::Ticked {
                     result,
-                    version,
                     tick_duration,
                 }
             })
@@ -250,13 +259,11 @@ mod grid {
                 }
                 Message::Ticked {
                     result: Ok(life),
-                    version,
                     tick_duration,
-                } if version == self.version => {
+                } => {
                     self.state.update(life);
                     self.life_cache.clear();
 
-                    self.version += 1;
                     self.last_tick_duration = tick_duration;
                 }
                 Message::Ticked {
@@ -264,7 +271,6 @@ mod grid {
                 } => {
                     dbg!(error);
                 }
-                Message::Ticked { .. } => {}
             }
         }
 
@@ -278,7 +284,6 @@ mod grid {
         pub fn clear(&mut self) {
             self.state = State::default();
             self.preset = Preset::Custom;
-            self.version += 1;
 
             self.life_cache.clear();
         }
