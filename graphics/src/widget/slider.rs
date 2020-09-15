@@ -88,7 +88,7 @@ where
         };
 
         let handle_offset = (bounds.width - handle_width)
-            * ((value - range_start) / (range_end - range_start).max(1.0));
+            * ((value - range_start) / (range_end - range_start).max(f32::EPSILON)).max(0.0).min(1.0);
 
         let handle = Primitive::Quad {
             bounds: Rectangle {
