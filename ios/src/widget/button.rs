@@ -191,6 +191,11 @@ where
     }
 
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
+        let text = String::from("THIS IS A BUTTON");
+        let cstr =
+            CString::new(text.as_str())
+            .expect("CString::new failed");
+        let cstr = cstr.as_ptr() as *mut std::ffi::c_void;
         let button = unsafe {
             let button = UIButton(UIButton::buttonWithType_(UIButtonType_UIButtonTypePlain));
             if is_root {
@@ -198,18 +203,16 @@ where
                 let frame = screen.bounds();
                 button.setFrame_(frame);
             }
-            let text = String::from("THIS IS A BUTTON");
             let text = NSString(
                 NSString::alloc().initWithBytes_length_encoding_(
-                    CString::new(text.as_str())
-                    .expect("CString::new failed")
-                    .as_ptr()
-                    as *mut std::ffi::c_void,
+                    cstr,
                     text.len().try_into().unwrap(),
                     NSUTF8StringEncoding,
                 ),
             );
             button.setTitle_forState_(text, uikit_sys::UIControlState_UIControlStateNormal);
+
+            // TODO: Make this a debug feature
             let layer = button.layer();
             layer.setBorderWidth_(3.0);
 

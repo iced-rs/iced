@@ -10,11 +10,12 @@ description = "iOS backend for iced"
 [dependencies]
 twox-hash = "1.5"
 raw-window-handle = "^0.3"
-winit = { git = "https://github.com/simlay/winit", branch = "ios-rename-nsstring"}
+winit = { git = "https://github.com/rust-windowing/winit", branch = "master"}
 objc = "0.2.7"
 log = "0.4"
 num-traits = "0.2"
 uikit-sys = { git = "https://github.com/simlay/uikit-sys", branch = "bindgen-category-and-no-copy" }
+dispatch = "0.2.0"
 
 [dependencies.iced_core]
 version = "0.2"

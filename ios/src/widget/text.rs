@@ -134,33 +134,34 @@ impl<Message> Widget<Message> for Text<Message> {
     }
     fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
         let mut ids_to_drop: Vec<id> = Vec::new();
-        match &mut current_node.widget_type {
-            WidgetType::Text(ref mut old_text) => {
-                let new_text = &self.content;
-                if old_text != new_text {
-                    let label = UITextView(current_node.view_id);
-                    unsafe {
-                        let text = NSString(
-                            NSString::alloc().initWithBytes_length_encoding_(
-                                CString::new(new_text.as_str())
-                                    .expect("CString::new failed")
-                                    .as_ptr()
-                                    as *mut std::ffi::c_void,
-                                new_text.len().try_into().unwrap(),
-                                NSUTF8StringEncoding,
-                            ),
-                        );
-                        label.setText_(text.clone());
-                        ids_to_drop.push(text.0);
-                    }
+        let new_text = &self.content;
+        let cstr = CString::new(new_text.as_str())
+            .expect("CString::new failed");
+        let cstr = cstr.as_ptr() as *mut std::ffi::c_void;
+            //.as_ptr()
+            //as *mut std::ffi::c_void;
+        if let WidgetType::Text(ref mut old_text) = &mut current_node.widget_type {
+
+            // TODO: check/update the styles of the text
+            if old_text != new_text {
+                let label = UITextView(current_node.view_id);
+                unsafe {
+                    let text = NSString(
+                        NSString::alloc().initWithBytes_length_encoding_(
+                            cstr,
+                            new_text.len().try_into().unwrap(),
+                            NSUTF8StringEncoding,
+                        ),
+                    );
+                    label.setText_(text.clone());
+                    ids_to_drop.push(text.0);
                 }
-                *old_text = new_text.clone();
             }
-            other => {
-                trace!("{:?} is not a text widget! Dropping!", other);
-                current_node.drop_from_ui();
-                *current_node = self.build_uiview(root_view.is_some());
-            }
+            *old_text = new_text.clone();
+        } else {
+            current_node.drop_from_ui();
+            trace!("{:?} is not a text widget! Dropping!", current_node.widget_type);
+            *current_node = self.build_uiview(root_view.is_some());
         }
         for i in &ids_to_drop {
             current_node.add_related_id(*i);
@@ -171,8 +172,8 @@ impl<Message> Widget<Message> for Text<Message> {
         let color = self.color;
         let mut ids_to_drop: Vec<id> = Vec::new();
         let cstr = CString::new(content.as_str())
-            .expect("CString::new failed")
-            .as_ptr() as *mut std::ffi::c_void;
+            .expect("CString::new failed");
+        let cstr = cstr.as_ptr() as *mut std::ffi::c_void;
 
         let text = unsafe {
             NSString(NSString::alloc().initWithBytes_length_encoding_(
@@ -192,6 +193,8 @@ impl<Message> Widget<Message> for Text<Message> {
                 let frame = screen.bounds();
                 label.setFrame_(frame);
             }
+
+            // TODO: Make this a debug feature
             let layer = label.layer();
             layer.setBorderWidth_(3.0);
 

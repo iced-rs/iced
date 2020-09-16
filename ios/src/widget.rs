@@ -62,8 +62,8 @@ impl WidgetType {
         use WidgetType::*;
         match (&self, &other) {
             (Text(_), Text(_))
-                | (Column(_), Column(_))
-                | (TextInput, TextInput) => true,
+            | (Column(_), Column(_))
+            | (TextInput, TextInput) => true,
             _ => false,
         }
     }
@@ -90,15 +90,15 @@ impl fmt::Debug for WidgetNode {
     }
 }
 
-
 impl PartialEq for WidgetNode {
     fn eq(&self, other: &Self) -> bool {
         self.hash == other.hash && self.widget_type == other.widget_type
     }
 }
 
-
 /*
+ *
+ *TODO: Make use of Drop.
 impl Drop for WidgetNode {
     fn drop(&mut self) {
         debug!("DROPPING A WIDGET NODE! {:?}", self.view_id);
@@ -150,6 +150,8 @@ impl WidgetNode {
                 obj.dealloc();
             }
         }
+
+        //TODO: WidgetType::Row will also has children.
         match &self.widget_type {
             WidgetType::Column(ref children) => {
                 for i in children {
@@ -184,8 +186,8 @@ impl WidgetNode {
                 unimplemented!("REPLACE CHILD IS NOT IMPLEMENTED FOR {:?}", e);
             }
         }
-
     }
+
     pub fn drop_children(&mut self) {
         match &mut self.widget_type {
             WidgetType::Column(ref mut children) => {
@@ -226,11 +228,12 @@ pub trait Widget<Message> {
         );
     }
 
-    fn update(&self, _current_node: &mut WidgetNode, _root_view: Option<UIView>) {
-        error!(
-            "{:?} using base implementation",
-            self.get_widget_type()
-        );
+    fn update(
+        &self,
+        _current_node: &mut WidgetNode,
+        _root_view: Option<UIView>,
+    ) {
+        error!("{:?} using base implementation", self.get_widget_type());
     }
 
     fn get_my_hash(&self) -> u64 {
@@ -255,7 +258,6 @@ pub trait Widget<Message> {
 
     fn height(&self) -> Length;
 }
-
 
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message> {
@@ -285,7 +287,6 @@ impl<'a, Message> Widget<Message> for Element<'a, Message> {
     fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
         self.widget.update(current_node, root_view)
     }
-
 
     fn width(&self) -> Length {
         self.widget.width()

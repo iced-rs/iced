@@ -139,6 +139,7 @@ pub trait Application: Sized {
         };
 
         let root_view: UIView = UIView(window.ui_view() as id);
+        // TODO: Make this a debug feature
         unsafe {
             root_view.setBackgroundColor_(UIColor::redColor());
         }

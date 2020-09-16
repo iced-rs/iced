@@ -155,67 +155,45 @@ where
             "on_widget_event for column for {:?} children",
             self.children.len()
         );
-        match &widget_node.widget_type {
-            WidgetType::Column(node_children) => {
-                for (i, node) in
-                    &mut self.children.iter_mut().zip(node_children)
-                {
-                    i.on_widget_event(event.clone(), messages, &node);
-                }
+        if let WidgetType::Column(node_children) = &widget_node.widget_type {
+            for (i, node) in &mut self.children.iter_mut().zip(node_children) {
+                i.on_widget_event(event.clone(), messages, &node);
             }
-            e => {
-                error!("Widget tree traversal out of sync. {:?} should be a Column!", e);
-            }
+        } else {
+            error!(
+                "Widget tree traversal out of sync. {:?} should be a Column!",
+                widget_node.widget_type
+            );
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
-        self.max_width.hash(state);
-        self.max_height.hash(state);
-        self.align_items.hash(state);
-        self.spacing.hash(state);
-
-        for child in &self.children {
-            child.widget.hash_layout(state);
-        }
-    }
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
     }
     fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
         let mut replace_children = false;
         match &mut current_node.widget_type {
             WidgetType::Column(ref mut current_children) => {
+                // If we have the same
                 if self.children.len() == current_children.len() {
                     let stackview = UIStackView(current_node.view_id);
                     for i in 0..self.children.len() {
                         let mut current_child =
                             current_children.get_mut(i).unwrap();
-                        let old_id = current_child.view_id;
                         let element_child = self.children.get(i).unwrap();
                         if element_child
                             .get_widget_type()
                             .is_mergeable(&current_child.widget_type)
                         {
+                            // TODO: Probably should do something smarter than just compare
+                            // pointers.
+                            let old_id = current_child.view_id;
                             element_child.update(&mut current_child, None);
-                        }
-                        if old_id != current_child.view_id {
-                            unsafe {
-                                stackview
-                                    .removeArrangedSubview_(UIView(old_id));
-                                stackview.insertArrangedSubview_atIndex_(
-                                    UIView(current_child.view_id),
-                                    i.try_into().unwrap(),
-                                );
+                            if old_id != current_child.view_id {
+                                unsafe {
+                                    stackview
+                                        .removeArrangedSubview_(UIView(old_id));
+                                    stackview.insertArrangedSubview_atIndex_(
+                                        UIView(current_child.view_id),
+                                        i.try_into().unwrap(),
+                                    );
+                                }
                             }
                         }
                     }
@@ -252,10 +230,6 @@ where
                 current_node.add_child(subview);
             }
         }
-    }
-
-    fn get_widget_type(&self) -> WidgetType {
-        WidgetType::Column(Vec::new())
     }
 
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
@@ -298,6 +272,32 @@ where
             }
         }
         stackview_node
+    }
+    fn get_widget_type(&self) -> WidgetType {
+        WidgetType::Column(Vec::new())
+    }
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
+        self.width.hash(state);
+        self.height.hash(state);
+        self.max_width.hash(state);
+        self.max_height.hash(state);
+        self.align_items.hash(state);
+        self.spacing.hash(state);
+
+        for child in &self.children {
+            child.widget.hash_layout(state);
+        }
+    }
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        self.height
     }
 }
 

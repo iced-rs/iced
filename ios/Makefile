@@ -13,3 +13,6 @@ example-run:  example-install
 
 test:
 	cargo dinghy --platform auto-ios-x86_64 test
+
+check:
+	cargo check --target x86_64-apple-ios
