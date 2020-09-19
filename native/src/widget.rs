@@ -36,6 +36,7 @@ pub mod space;
 pub mod svg;
 pub mod text;
 pub mod text_input;
+pub mod toggler;
 pub mod tooltip;
 
 #[doc(no_inline)]
@@ -72,6 +73,8 @@ pub use svg::Svg;
 pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
+#[doc(no_inline)]
+pub use toggler::Toggler;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
 
