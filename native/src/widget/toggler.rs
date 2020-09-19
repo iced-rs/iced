@@ -20,7 +20,7 @@ use crate::{
 ///
 /// let is_active = true;
 ///
-/// Toggler::new(is_active, "Toggle me!", |b| Message::TogglerToggled(b))
+/// Toggler::new(is_active, "Toggle me!", |b| Message::TogglerToggled(b));
 /// ```
 ///
 #[allow(missing_debug_implementations)]
