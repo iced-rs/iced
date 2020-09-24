@@ -299,7 +299,7 @@ impl toggler::Renderer for Null {
         _bounds: Rectangle,
         _is_checked: bool,
         _is_mouse_over: bool,
-        _label: Self::Output,
+        _label: Option<Self::Output>,
         _style: &Self::Style,
     ) {
     }

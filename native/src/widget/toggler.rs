@@ -20,14 +20,14 @@ use crate::{
 ///
 /// let is_active = true;
 ///
-/// Toggler::new(is_active, "Toggle me!", |b| Message::TogglerToggled(b));
+/// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
 /// ```
 ///
 #[allow(missing_debug_implementations)]
 pub struct Toggler<Message, Renderer: self::Renderer + text::Renderer> {
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
-    label: String,
+    label: Option<String>,
     width: Length,
     size: u16,
     text_size: Option<u16>,
@@ -44,13 +44,17 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     ///
     /// It expects:
     ///   * a boolean describing whether the [`Toggler`] is checked or not
-    ///   * the label of the [`Toggler`]
+    ///   * An optional label for the [`Toggler`]
     ///   * a function that will be called when the [`Toggler`] is toggled. It
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
     ///
     /// [`Toggler`]: struct.Toggler.html
-    pub fn new<F>(is_active: bool, label: impl Into<String>, f: F) -> Self
+    pub fn new<F>(
+        is_active: bool,
+        label: impl Into<Option<String>>,
+        f: F,
+    ) -> Self
     where
         F: 'static + Fn(bool) -> Message,
     {
@@ -143,25 +147,30 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        Row::<(), Renderer>::new()
+        let mut row = Row::<(), Renderer>::new()
             .width(self.width)
             .spacing(self.spacing)
-            .align_items(Align::Center)
-            .push(
-                Text::new(&self.label)
+            .align_items(Align::Center);
+
+        if let Some(label) = &self.label {
+            row = row.push(
+                Text::new(label)
                     .horizontal_alignment(
                         self.text_align.unwrap_or(HorizontalAlignment::Left),
                     )
                     .font(self.font)
                     .width(self.width)
                     .size(self.text_size.unwrap_or(renderer.default_size())),
-            )
-            .push(
-                Row::new()
-                    .width(Length::Units(2 * self.size))
-                    .height(Length::Units(self.size)),
-            )
-            .layout(renderer, limits)
+            );
+        }
+
+        row = row.push(
+            Row::new()
+                .width(Length::Units(2 * self.size))
+                .height(Length::Units(self.size)),
+        );
+
+        row.layout(renderer, limits)
     }
 
     fn on_event(
@@ -200,21 +209,28 @@ where
         let bounds = layout.bounds();
         let mut children = layout.children();
 
-        let label_layout = children.next().unwrap();
+        let label = match &self.label {
+            Some(label) => {
+                let label_layout = children.next().unwrap();
+
+                Some(text::Renderer::draw(
+                    renderer,
+                    defaults,
+                    label_layout.bounds(),
+                    &label,
+                    self.text_size.unwrap_or(renderer.default_size()),
+                    self.font,
+                    None,
+                    self.text_align.unwrap_or(HorizontalAlignment::Left),
+                    VerticalAlignment::Center,
+                ))
+            }
+
+            None => None,
+        };
+
         let toggler_layout = children.next().unwrap();
         let toggler_bounds = toggler_layout.bounds();
-
-        let label = text::Renderer::draw(
-            renderer,
-            defaults,
-            label_layout.bounds(),
-            &self.label,
-            self.text_size.unwrap_or(renderer.default_size()),
-            self.font,
-            None,
-            self.text_align.unwrap_or(HorizontalAlignment::Left),
-            VerticalAlignment::Center,
-        );
 
         let is_mouse_over = bounds.contains(cursor_position);
 
@@ -267,7 +283,7 @@ pub trait Renderer: crate::Renderer {
         bounds: Rectangle,
         is_active: bool,
         is_mouse_over: bool,
-        label: Self::Output,
+        label: Option<Self::Output>,
         style: &Self::Style,
     ) -> Self::Output;
 }

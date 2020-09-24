@@ -33,7 +33,7 @@ where
         bounds: Rectangle,
         is_active: bool,
         is_mouse_over: bool,
-        (label, _): Self::Output,
+        label: Option<Self::Output>,
         style_sheet: &Self::Style,
     ) -> Self::Output {
         let style = if is_mouse_over {
@@ -82,7 +82,12 @@ where
 
         (
             Primitive::Group {
-                primitives: vec![label, toggler_background, toggler_foreground],
+                primitives: match label {
+                    Some((l, _)) => {
+                        vec![l, toggler_background, toggler_foreground]
+                    }
+                    None => vec![toggler_background, toggler_foreground],
+                },
             },
             if is_mouse_over {
                 mouse::Interaction::Pointer
