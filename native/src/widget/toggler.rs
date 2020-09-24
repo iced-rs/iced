@@ -31,6 +31,8 @@ pub struct Toggler<Message, Renderer: self::Renderer + text::Renderer> {
     width: Length,
     size: u16,
     text_size: Option<u16>,
+    text_align: Option<HorizontalAlignment>,
+    spacing: u16,
     font: Renderer::Font,
     style: Renderer::Style,
 }
@@ -59,6 +61,8 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
             width: Length::Fill,
             size: <Renderer as self::Renderer>::DEFAULT_SIZE,
             text_size: None,
+            text_align: None,
+            spacing: 0,
             font: Renderer::Font::default(),
             style: Renderer::Style::default(),
         }
@@ -85,6 +89,22 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     /// [`Toggler`]: struct.Toggler.html
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
+        self
+    }
+
+    /// Sets the alignment of the text of the [`Toggler`]
+    ///
+    /// [`Toggler`]: struct.Toggler.html
+    pub fn text_align(mut self, align: HorizontalAlignment) -> Self {
+        self.text_align = Some(align);
+        self
+    }
+
+    /// Sets the spacing between the [`Toggler`] and the text.
+    ///
+    /// [`Toggler`]: struct.Toggler.html
+    pub fn spacing(mut self, spacing: u16) -> Self {
+        self.spacing = spacing;
         self
     }
 
@@ -125,9 +145,13 @@ where
     ) -> layout::Node {
         Row::<(), Renderer>::new()
             .width(self.width)
+            .spacing(self.spacing)
             .align_items(Align::Center)
             .push(
                 Text::new(&self.label)
+                    .horizontal_alignment(
+                        self.text_align.unwrap_or(HorizontalAlignment::Left),
+                    )
                     .font(self.font)
                     .width(self.width)
                     .size(self.text_size.unwrap_or(renderer.default_size())),
@@ -188,7 +212,7 @@ where
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
             None,
-            HorizontalAlignment::Left,
+            self.text_align.unwrap_or(HorizontalAlignment::Left),
             VerticalAlignment::Center,
         );
 
