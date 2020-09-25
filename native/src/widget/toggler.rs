@@ -96,7 +96,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
         self
     }
 
-    /// Sets the alignment of the text of the [`Toggler`]
+    /// Sets the horizontal alignment of the text of the [`Toggler`]
     ///
     /// [`Toggler`]: struct.Toggler.html
     pub fn text_align(mut self, align: HorizontalAlignment) -> Self {
