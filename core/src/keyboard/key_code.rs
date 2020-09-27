@@ -27,7 +27,8 @@ pub enum KeyCode {
     Key9,
     /// The '0' key over the 'O' and 'P' keys.
     Key0,
-
+    Plus,
+    Asterisk,
     A,
     B,
     C,

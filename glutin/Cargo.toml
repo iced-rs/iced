@@ -14,7 +14,7 @@ categories = ["gui"]
 debug = ["iced_winit/debug"]
 
 [dependencies]
-glutin = "0.24"
+glutin = "0.25"
 
 [dependencies.iced_native]
 version = "0.2"

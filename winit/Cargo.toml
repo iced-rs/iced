@@ -14,7 +14,7 @@ categories = ["gui"]
 debug = ["iced_native/debug"]
 
 [dependencies]
-winit = "0.22"
+winit = "0.23"
 window_clipboard = "0.1"
 log = "0.4"
 thiserror = "1.0"
