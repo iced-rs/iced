@@ -18,8 +18,11 @@ pub struct Settings {
     /// Whether the window should have a border, a title bar, etc. or not.
     pub decorations: bool,
 
-    /// Whether the window should be transparent
+    /// Whether the window should be transparent.
     pub transparent: bool,
+
+    /// Whether the window will always be on top of other windows.
+    pub always_on_top: bool,
 
     /// The icon of the window.
     pub icon: Option<Icon>,
@@ -34,6 +37,7 @@ impl Default for Settings {
             resizable: true,
             decorations: true,
             transparent: false,
+            always_on_top: false,
             icon: None,
         }
     }
@@ -49,6 +53,7 @@ impl From<Settings> for iced_winit::settings::Window {
             resizable: settings.resizable,
             decorations: settings.decorations,
             transparent: settings.transparent,
+            always_on_top: settings.always_on_top,
             icon: settings.icon.map(Icon::into),
             platform_specific: Default::default(),
         }
