@@ -42,7 +42,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         Column {
             spacing: 0,
             padding: 0,
-            width: Length::Shrink,
+            width: Length::Fill,
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
