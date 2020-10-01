@@ -588,6 +588,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         let picked_split = self
             .state
@@ -623,6 +624,7 @@ where
             picked_split,
             layout,
             cursor_position,
+            draw_at,
         )
     }
 
@@ -683,6 +685,7 @@ pub trait Renderer:
         resizing: Option<Axis>,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Self::Output;
 
     /// Draws a [`Pane`].
@@ -703,6 +706,7 @@ pub trait Renderer:
         title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
         body: (&Element<'_, Message, Self>, Layout<'_>),
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Self::Output;
 
     /// Draws a [`TitleBar`].
@@ -727,6 +731,7 @@ pub trait Renderer:
         title_bounds: Rectangle,
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Self::Output;
 }
 

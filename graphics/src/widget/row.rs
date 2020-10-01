@@ -17,6 +17,7 @@ where
         content: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Self::Output {
         let mut mouse_interaction = mouse::Interaction::default();
 
@@ -27,7 +28,7 @@ where
                     .zip(layout.children())
                     .map(|(child, layout)| {
                         let (primitive, new_mouse_interaction) =
-                            child.draw(self, defaults, layout, cursor_position);
+                            child.draw(self, defaults, layout, cursor_position, draw_at);
 
                         if new_mouse_interaction > mouse_interaction {
                             mouse_interaction = new_mouse_interaction;

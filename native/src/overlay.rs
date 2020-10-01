@@ -37,6 +37,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output;
 
     /// Computes the _layout_ hash of the [`Overlay`].

@@ -24,6 +24,7 @@ where
         defaults: &Defaults,
         bounds: Rectangle,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
         style_sheet: &Self::Style,
         content: &Element<'_, Message, Self>,
         content_layout: Layout<'_>,
@@ -37,7 +38,7 @@ where
         };
 
         let (content, mouse_interaction) =
-            content.draw(self, &defaults, content_layout, cursor_position);
+            content.draw(self, &defaults, content_layout, cursor_position, draw_at);
 
         if let Some(background) = background(bounds, &style) {
             (

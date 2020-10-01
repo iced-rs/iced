@@ -44,7 +44,7 @@ where
         );
 
         debug.draw_started();
-        let primitive = user_interface.draw(renderer, cursor_position);
+        let primitive = user_interface.draw(renderer, cursor_position, &mut None);
         debug.draw_finished();
 
         let cache = Some(user_interface.into_cache());
@@ -133,7 +133,7 @@ where
 
         if messages.is_empty() {
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer, cursor_position);
+            self.primitive = user_interface.draw(renderer, cursor_position, &mut None);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -164,7 +164,7 @@ where
             );
 
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer, cursor_position);
+            self.primitive = user_interface.draw(renderer, cursor_position, &mut None);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());

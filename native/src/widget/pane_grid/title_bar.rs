@@ -100,6 +100,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
         show_controls: bool,
     ) -> Renderer::Output {
         let mut children = layout.children();
@@ -133,6 +134,7 @@ where
                 title_bounds,
                 controls,
                 cursor_position,
+                draw_at,
             )
         } else {
             renderer.draw_title_bar::<()>(
@@ -145,6 +147,7 @@ where
                 padded.bounds(),
                 None,
                 cursor_position,
+                draw_at,
             )
         }
     }

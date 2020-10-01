@@ -96,10 +96,11 @@ where
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
         color: Color,
     ) -> Self::Output {
         let (primitive, cursor) =
-            widget.draw(self, defaults, layout, cursor_position);
+            widget.draw(self, defaults, layout, cursor_position, draw_at);
 
         let mut primitives = Vec::new();
 

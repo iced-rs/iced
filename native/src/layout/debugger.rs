@@ -21,6 +21,7 @@ pub trait Debugger: Renderer {
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
         color: Color,
     ) -> Self::Output;
 }

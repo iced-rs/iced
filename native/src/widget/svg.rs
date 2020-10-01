@@ -103,6 +103,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         renderer.draw(self.handle.clone(), layout)
     }

@@ -33,6 +33,7 @@ where
         _defaults: &Defaults,
         bounds: Rectangle,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
         is_disabled: bool,
         is_pressed: bool,
         style: &Box<dyn StyleSheet>,
@@ -62,6 +63,7 @@ where
             },
             content_layout,
             cursor_position,
+            draw_at,
         );
 
         (

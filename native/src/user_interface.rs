@@ -326,6 +326,7 @@ where
         &mut self,
         renderer: &mut Renderer,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         let overlay = if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
@@ -344,6 +345,7 @@ where
                 &Renderer::Defaults::default(),
                 Layout::new(&layer.layout),
                 cursor_position,
+                draw_at,
             );
 
             self.overlay = Some(layer);
@@ -365,6 +367,7 @@ where
                 &Renderer::Defaults::default(),
                 Layout::new(&self.base.layout),
                 base_cursor,
+                draw_at,
             );
 
             renderer.overlay(
@@ -378,6 +381,7 @@ where
                 &Renderer::Defaults::default(),
                 Layout::new(&self.base.layout),
                 cursor_position,
+                draw_at,
             )
         }
     }

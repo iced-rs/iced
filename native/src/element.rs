@@ -260,9 +260,10 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         self.widget
-            .draw(renderer, defaults, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position, draw_at)
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -356,9 +357,10 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         self.widget
-            .draw(renderer, defaults, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position, draw_at)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -437,12 +439,14 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         renderer.explain(
             defaults,
             self.element.widget.as_ref(),
             layout,
             cursor_position,
+            draw_at,
             self.color,
         )
     }

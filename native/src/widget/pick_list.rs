@@ -256,6 +256,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         self::Renderer::draw(
             renderer,

@@ -252,10 +252,11 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         let primitives =
             self.container
-                .draw(renderer, defaults, layout, cursor_position);
+                .draw(renderer, defaults, layout, cursor_position, draw_at);
 
         renderer.decorate(
             layout.bounds(),
@@ -368,6 +369,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         self::Renderer::draw(
             renderer,

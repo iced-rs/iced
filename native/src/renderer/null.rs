@@ -35,6 +35,7 @@ impl column::Renderer for Null {
         _content: &[Element<'_, Message, Self>],
         _layout: Layout<'_>,
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) {
     }
 }
@@ -46,6 +47,7 @@ impl row::Renderer for Null {
         _content: &[Element<'_, Message, Self>],
         _layout: Layout<'_>,
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) {
     }
 }
@@ -151,6 +153,7 @@ impl button::Renderer for Null {
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
         _is_disabled: bool,
         _is_pressed: bool,
         _style: &Self::Style,
@@ -234,6 +237,7 @@ impl container::Renderer for Null {
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
         _style: &Self::Style,
         _content: &Element<'_, Message, Self>,
         _content_layout: Layout<'_>,
@@ -250,6 +254,7 @@ impl pane_grid::Renderer for Null {
         _resizing: Option<pane_grid::Axis>,
         _layout: Layout<'_>,
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) {
     }
 
@@ -264,6 +269,7 @@ impl pane_grid::Renderer for Null {
         )>,
         _body: (&Element<'_, Message, Self>, Layout<'_>),
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) {
     }
 
@@ -278,6 +284,7 @@ impl pane_grid::Renderer for Null {
         _title_bounds: Rectangle,
         _controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) {
     }
 }

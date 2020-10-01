@@ -493,6 +493,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
         let text_bounds = layout.children().next().unwrap().bounds();

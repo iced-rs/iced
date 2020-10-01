@@ -45,6 +45,7 @@ where
         resizing: Option<Axis>,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Self::Output {
         let pane_cursor_position = if dragging.is_some() {
             // TODO: Remove once cursor availability is encoded in the type
@@ -63,7 +64,7 @@ where
             .enumerate()
             .map(|(i, ((id, pane), layout))| {
                 let (primitive, new_mouse_interaction) =
-                    pane.draw(self, defaults, layout, pane_cursor_position);
+                    pane.draw(self, defaults, layout, pane_cursor_position, draw_at);
 
                 if new_mouse_interaction > mouse_interaction {
                     mouse_interaction = new_mouse_interaction;
@@ -132,12 +133,13 @@ where
         title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
         body: (&Element<'_, Message, Self>, Layout<'_>),
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Self::Output {
         let style = style_sheet.style();
         let (body, body_layout) = body;
 
         let (body_primitive, body_interaction) =
-            body.draw(self, defaults, body_layout, cursor_position);
+            body.draw(self, defaults, body_layout, cursor_position, draw_at);
 
         let background = crate::widget::container::background(bounds, &style);
 
@@ -151,6 +153,7 @@ where
                 defaults,
                 title_bar_layout,
                 cursor_position,
+                draw_at,
                 show_controls,
             );
 
@@ -195,6 +198,7 @@ where
         title_bounds: Rectangle,
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Self::Output {
         let style = style_sheet.style();
 
@@ -224,6 +228,7 @@ where
                 &defaults,
                 controls_layout,
                 cursor_position,
+                draw_at,
             );
 
             (

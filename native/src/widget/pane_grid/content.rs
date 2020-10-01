@@ -65,6 +65,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();
@@ -78,6 +79,7 @@ where
                 Some((title_bar, title_bar_layout)),
                 (&self.body, body_layout),
                 cursor_position,
+                draw_at,
             )
         } else {
             renderer.draw_pane(
@@ -87,6 +89,7 @@ where
                 None,
                 (&self.body, layout),
                 cursor_position,
+                draw_at,
             )
         }
     }

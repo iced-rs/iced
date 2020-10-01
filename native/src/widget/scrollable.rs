@@ -264,6 +264,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -289,6 +290,7 @@ where
                 defaults,
                 content_layout,
                 cursor_position,
+                draw_at,
             )
         };
 

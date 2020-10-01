@@ -215,11 +215,13 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         renderer.draw(
             defaults,
             layout.bounds(),
             cursor_position,
+            draw_at,
             self.on_press.is_none(),
             self.state.is_pressed,
             &self.style,
@@ -261,6 +263,7 @@ pub trait Renderer: crate::Renderer + Sized {
         defaults: &Self::Defaults,
         bounds: Rectangle,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
         is_disabled: bool,
         is_pressed: bool,
         style: &Self::Style,

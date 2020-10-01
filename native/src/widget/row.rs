@@ -186,8 +186,9 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
-        renderer.draw(defaults, &self.children, layout, cursor_position)
+        renderer.draw(defaults, &self.children, layout, cursor_position, draw_at)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -242,6 +243,7 @@ pub trait Renderer: crate::Renderer + Sized {
         children: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Self::Output;
 }
 

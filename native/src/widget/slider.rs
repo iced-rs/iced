@@ -257,6 +257,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         let start = *self.range.start();
         let end = *self.range.end();
