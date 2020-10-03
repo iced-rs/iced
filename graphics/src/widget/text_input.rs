@@ -74,6 +74,7 @@ where
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
         font: Font,
         size: u16,
         placeholder: &str,
@@ -123,8 +124,12 @@ where
             vertical_alignment: VerticalAlignment::Center,
         };
 
-        let (contents_primitive, offset) = if state.is_focused() {
-            let cursor = state.cursor();
+        let cursor = state.cursor();
+        if let Some(next_draw) = cursor.next_draw() {
+            *draw_at = Some(next_draw);
+        };
+
+        let (contents_primitive, offset) = if state.is_focused() && cursor.blink_visible() {
 
             let (cursor_primitive, offset) = match cursor.state(value) {
                 cursor::State::Index(position) => {

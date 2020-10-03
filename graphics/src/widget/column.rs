@@ -27,12 +27,20 @@ where
                     .iter()
                     .zip(layout.children())
                     .map(|(child, layout)| {
+                        let mut draw_at_elem = None;
                         let (primitive, new_mouse_interaction) =
-                            child.draw(self, defaults, layout, cursor_position, draw_at);
+                            child.draw(self, defaults, layout, cursor_position, &mut draw_at_elem);
 
                         if new_mouse_interaction > mouse_interaction {
                             mouse_interaction = new_mouse_interaction;
                         }
+
+                        // Set draw_at to lower of the child or current values.
+                        *draw_at = match (draw_at_elem, draw_at.is_some()) {
+                            (Some(dae), false) => Some(dae),
+                            (Some(dae), true) => Some(std::cmp::min(dae, draw_at.unwrap())),
+                            (None, _) => *draw_at,
+                        };
 
                         primitive
                     })

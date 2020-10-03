@@ -184,7 +184,12 @@ where
 
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::MainEventsCleared => {
-            if state.is_queue_empty() {
+            let pending_update = if let Some(nd) = state.next_draw() {
+                nd < std::time::Instant::now()
+            } else {
+                false
+            };
+            if state.is_queue_empty() && !pending_update {
                 return;
             }
 
@@ -266,6 +271,9 @@ where
                 }
             }
 
+            if let Some(next_draw) = state.next_draw() {
+                *control_flow = winit::event_loop::ControlFlow::WaitUntil(next_draw);
+            };
             window.request_redraw();
         }
         event::Event::UserEvent(message) => {
@@ -307,6 +315,9 @@ where
 
             // TODO: Handle animations!
             // Maybe we can use `ControlFlow::WaitUntil` for this.
+            if let Some(next_draw) = state.next_draw() {
+                *control_flow = winit::event_loop::ControlFlow::WaitUntil(next_draw);
+            };
         }
         event::Event::WindowEvent {
             event: window_event,
@@ -331,10 +342,20 @@ where
             ) {
                 state.queue_event(event.clone());
                 runtime.broadcast(event);
-            }
+            };
+
+            if *control_flow == ControlFlow::Wait {
+                if let Some(next_draw) = state.next_draw() {
+                    *control_flow = winit::event_loop::ControlFlow::WaitUntil(next_draw);
+                };
+            };
         }
         _ => {
-            *control_flow = ControlFlow::Wait;
+            *control_flow = if let Some(next_draw) = state.next_draw() {
+                ControlFlow::WaitUntil(next_draw)
+            } else {
+                ControlFlow::Wait
+            }
         }
     })
 }

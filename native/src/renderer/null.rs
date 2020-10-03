@@ -133,6 +133,7 @@ impl text_input::Renderer for Null {
         _bounds: Rectangle,
         _text_bounds: Rectangle,
         _cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
         _font: Font,
         _size: u16,
         _placeholder: &str,

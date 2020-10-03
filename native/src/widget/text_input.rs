@@ -280,6 +280,9 @@ where
 
                 self.state.is_dragging = is_clicked;
                 self.state.is_focused = is_clicked;
+                if is_clicked {
+                    self.state.cursor.on_click();
+                };
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 self.state.is_dragging = false;
@@ -493,7 +496,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-        _draw_at: &mut Option<std::time::Instant>,
+        draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
         let text_bounds = layout.children().next().unwrap().bounds();
@@ -504,6 +507,7 @@ where
                 bounds,
                 text_bounds,
                 cursor_position,
+                draw_at,
                 self.font,
                 self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
@@ -517,6 +521,7 @@ where
                 bounds,
                 text_bounds,
                 cursor_position,
+                draw_at,
                 self.font,
                 self.size.unwrap_or(renderer.default_size()),
                 &self.placeholder,
@@ -590,6 +595,7 @@ pub trait Renderer: text::Renderer + Sized {
         bounds: Rectangle,
         text_bounds: Rectangle,
         cursor_position: Point,
+        draw_at: &mut Option<std::time::Instant>,
         font: Self::Font,
         size: u16,
         placeholder: &str,

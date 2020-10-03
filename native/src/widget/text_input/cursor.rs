@@ -1,10 +1,16 @@
 //! Track the cursor of a text input.
 use crate::widget::text_input::Value;
 
+use std::time::{Instant, Duration};
+
+
+const BLINK_MAX: Duration = Duration::from_secs(5);
+
 /// The cursor of a text input.
 #[derive(Debug, Copy, Clone)]
 pub struct Cursor {
     state: State,
+    updated_at: Instant,
 }
 
 /// The state of a [`Cursor`].
@@ -28,6 +34,7 @@ impl Default for Cursor {
     fn default() -> Self {
         Cursor {
             state: State::Index(0),
+            updated_at: Instant::now(),
         }
     }
 }
@@ -53,7 +60,37 @@ impl Cursor {
         }
     }
 
+    /// Returns true if the cursor should be visible. Conversely, a false
+    /// value indicates that the cursor should be hidden, as it is at the
+    /// invisible phase of blinking.
+    pub fn blink_visible(&self) -> bool {
+        let since = self.updated_at.elapsed();
+
+        if since > BLINK_MAX {
+            true
+        } else {
+            (since.subsec_millis() / 500) == 0
+        }
+    }
+
+    /// Returns the earliest time at which the cursor should next be drawn,
+    /// (assuming no update occurs), or None if the cursor does not need
+    /// animating.
+    pub fn next_draw(&self) -> Option<Instant> {
+        if self.updated_at.elapsed() > BLINK_MAX {
+            None
+        } else {
+            Instant::now().checked_add(Duration::from_millis(500))
+        }
+    }
+
+    /// Updates the updated_at time, which is used to blink the cursor.
+    pub fn on_click(&mut self) {
+        self.updated_at = Instant::now();
+    }
+
     pub(crate) fn move_to(&mut self, position: usize) {
+        self.updated_at = Instant::now();
         self.state = State::Index(position);
     }
 
@@ -96,6 +133,7 @@ impl Cursor {
         } else {
             self.state = State::Selection { start, end };
         }
+        self.updated_at = Instant::now();
     }
 
     pub(crate) fn select_left(&mut self, value: &Value) {

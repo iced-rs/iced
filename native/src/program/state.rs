@@ -17,6 +17,7 @@ where
     primitive: <P::Renderer as Renderer>::Output,
     queued_events: Vec<Event>,
     queued_messages: Vec<P::Message>,
+    next_draw: Option<std::time::Instant>,
 }
 
 impl<P> State<P>
@@ -55,7 +56,14 @@ where
             primitive,
             queued_events: Vec::new(),
             queued_messages: Vec::new(),
+            next_draw: None,
         }
+    }
+
+    /// Returns the latest moment that the screen should be drawn again in the absence of
+    /// any events.
+    pub fn next_draw(&mut self) -> Option<std::time::Instant> {
+        self.next_draw
     }
 
     /// Returns a reference to the [`Program`] of the [`State`].
@@ -111,6 +119,7 @@ where
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
+        let mut next_draw = None;
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
@@ -133,10 +142,11 @@ where
 
         if messages.is_empty() {
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer, cursor_position, &mut None);
+            self.primitive = user_interface.draw(renderer, cursor_position, &mut next_draw);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
+            self.next_draw = next_draw;
 
             None
         } else {
@@ -164,10 +174,11 @@ where
             );
 
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer, cursor_position, &mut None);
+            self.primitive = user_interface.draw(renderer, cursor_position, &mut next_draw);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
+            self.next_draw = next_draw;
 
             Some(commands)
         }
