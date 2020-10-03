@@ -291,6 +291,7 @@ where
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
     /// let mut events = Vec::new();
+    /// let mut draw_at = None;
     ///
     /// loop {
     ///     // Process system events...
@@ -310,7 +311,7 @@ where
     ///     );
     ///
     ///     // Draw the user interface
-    ///     let mouse_cursor = user_interface.draw(&mut renderer, cursor_position);
+    ///     let mouse_cursor = user_interface.draw(&mut renderer, cursor_position, &mut draw_at);
     ///
     ///     cache = user_interface.into_cache();
     ///
