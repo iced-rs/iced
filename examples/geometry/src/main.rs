@@ -57,6 +57,7 @@ mod rainbow {
             _defaults: &Defaults,
             layout: Layout<'_>,
             cursor_position: Point,
+            _draw_at: &mut Option<std::time::Instant>,
         ) -> (Primitive, mouse::Interaction) {
             let b = layout.bounds();
 

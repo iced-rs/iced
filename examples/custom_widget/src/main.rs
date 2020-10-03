@@ -60,6 +60,7 @@ mod circle {
             _defaults: &Defaults,
             layout: Layout<'_>,
             _cursor_position: Point,
+            _draw_at: &mut Option<std::time::Instant>,
         ) -> (Primitive, mouse::Interaction) {
             (
                 Primitive::Quad {
