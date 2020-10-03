@@ -196,6 +196,7 @@ where
         _defaults: &Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _draw_at: &mut Option<std::time::Instant>,
     ) -> (Primitive, mouse::Interaction) {
         let bounds = layout.bounds();
         let translation = Vector::new(bounds.x, bounds.y);
