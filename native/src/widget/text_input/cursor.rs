@@ -1,8 +1,7 @@
 //! Track the cursor of a text input.
 use crate::widget::text_input::Value;
 
-use std::time::{Instant, Duration};
-
+use std::time::{Duration, Instant};
 
 const BLINK_MAX: Duration = Duration::from_secs(5);
 

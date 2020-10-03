@@ -272,7 +272,8 @@ where
             }
 
             if let Some(next_draw) = state.next_draw() {
-                *control_flow = winit::event_loop::ControlFlow::WaitUntil(next_draw);
+                *control_flow =
+                    winit::event_loop::ControlFlow::WaitUntil(next_draw);
             };
             window.request_redraw();
         }
@@ -316,7 +317,8 @@ where
             // TODO: Handle animations!
             // Maybe we can use `ControlFlow::WaitUntil` for this.
             if let Some(next_draw) = state.next_draw() {
-                *control_flow = winit::event_loop::ControlFlow::WaitUntil(next_draw);
+                *control_flow =
+                    winit::event_loop::ControlFlow::WaitUntil(next_draw);
             };
         }
         event::Event::WindowEvent {
@@ -346,7 +348,8 @@ where
 
             if *control_flow == ControlFlow::Wait {
                 if let Some(next_draw) = state.next_draw() {
-                    *control_flow = winit::event_loop::ControlFlow::WaitUntil(next_draw);
+                    *control_flow =
+                        winit::event_loop::ControlFlow::WaitUntil(next_draw);
                 };
             };
         }

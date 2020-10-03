@@ -254,9 +254,13 @@ where
         cursor_position: Point,
         draw_at: &mut Option<std::time::Instant>,
     ) -> Renderer::Output {
-        let primitives =
-            self.container
-                .draw(renderer, defaults, layout, cursor_position, draw_at);
+        let primitives = self.container.draw(
+            renderer,
+            defaults,
+            layout,
+            cursor_position,
+            draw_at,
+        );
 
         renderer.decorate(
             layout.bounds(),

@@ -63,8 +63,13 @@ where
             .zip(layout.children())
             .enumerate()
             .map(|(i, ((id, pane), layout))| {
-                let (primitive, new_mouse_interaction) =
-                    pane.draw(self, defaults, layout, pane_cursor_position, draw_at);
+                let (primitive, new_mouse_interaction) = pane.draw(
+                    self,
+                    defaults,
+                    layout,
+                    pane_cursor_position,
+                    draw_at,
+                );
 
                 if new_mouse_interaction > mouse_interaction {
                     mouse_interaction = new_mouse_interaction;

@@ -37,8 +37,13 @@ where
             },
         };
 
-        let (content, mouse_interaction) =
-            content.draw(self, &defaults, content_layout, cursor_position, draw_at);
+        let (content, mouse_interaction) = content.draw(
+            self,
+            &defaults,
+            content_layout,
+            cursor_position,
+            draw_at,
+        );
 
         if let Some(background) = background(bounds, &style) {
             (

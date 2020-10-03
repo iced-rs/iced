@@ -129,97 +129,97 @@ where
             *draw_at = Some(next_draw);
         };
 
-        let (contents_primitive, offset) = if state.is_focused() && cursor.blink_visible() {
+        let (contents_primitive, offset) =
+            if state.is_focused() && cursor.blink_visible() {
+                let (cursor_primitive, offset) = match cursor.state(value) {
+                    cursor::State::Index(position) => {
+                        let (text_value_width, offset) =
+                            measure_cursor_and_scroll_offset(
+                                self,
+                                text_bounds,
+                                value,
+                                size,
+                                position,
+                                font,
+                            );
 
-            let (cursor_primitive, offset) = match cursor.state(value) {
-                cursor::State::Index(position) => {
-                    let (text_value_width, offset) =
-                        measure_cursor_and_scroll_offset(
-                            self,
-                            text_bounds,
-                            value,
-                            size,
-                            position,
-                            font,
-                        );
-
-                    (
-                        Primitive::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + text_value_width,
-                                y: text_bounds.y,
-                                width: 1.0,
-                                height: text_bounds.height,
+                        (
+                            Primitive::Quad {
+                                bounds: Rectangle {
+                                    x: text_bounds.x + text_value_width,
+                                    y: text_bounds.y,
+                                    width: 1.0,
+                                    height: text_bounds.height,
+                                },
+                                background: Background::Color(
+                                    style_sheet.value_color(),
+                                ),
+                                border_radius: 0,
+                                border_width: 0,
+                                border_color: Color::TRANSPARENT,
                             },
-                            background: Background::Color(
-                                style_sheet.value_color(),
-                            ),
-                            border_radius: 0,
-                            border_width: 0,
-                            border_color: Color::TRANSPARENT,
-                        },
-                        offset,
-                    )
-                }
-                cursor::State::Selection { start, end } => {
-                    let left = start.min(end);
-                    let right = end.max(start);
+                            offset,
+                        )
+                    }
+                    cursor::State::Selection { start, end } => {
+                        let left = start.min(end);
+                        let right = end.max(start);
 
-                    let (left_position, left_offset) =
-                        measure_cursor_and_scroll_offset(
-                            self,
-                            text_bounds,
-                            value,
-                            size,
-                            left,
-                            font,
-                        );
+                        let (left_position, left_offset) =
+                            measure_cursor_and_scroll_offset(
+                                self,
+                                text_bounds,
+                                value,
+                                size,
+                                left,
+                                font,
+                            );
 
-                    let (right_position, right_offset) =
-                        measure_cursor_and_scroll_offset(
-                            self,
-                            text_bounds,
-                            value,
-                            size,
-                            right,
-                            font,
-                        );
+                        let (right_position, right_offset) =
+                            measure_cursor_and_scroll_offset(
+                                self,
+                                text_bounds,
+                                value,
+                                size,
+                                right,
+                                font,
+                            );
 
-                    let width = right_position - left_position;
+                        let width = right_position - left_position;
 
-                    (
-                        Primitive::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + left_position,
-                                y: text_bounds.y,
-                                width,
-                                height: text_bounds.height,
+                        (
+                            Primitive::Quad {
+                                bounds: Rectangle {
+                                    x: text_bounds.x + left_position,
+                                    y: text_bounds.y,
+                                    width,
+                                    height: text_bounds.height,
+                                },
+                                background: Background::Color(
+                                    style_sheet.selection_color(),
+                                ),
+                                border_radius: 0,
+                                border_width: 0,
+                                border_color: Color::TRANSPARENT,
                             },
-                            background: Background::Color(
-                                style_sheet.selection_color(),
-                            ),
-                            border_radius: 0,
-                            border_width: 0,
-                            border_color: Color::TRANSPARENT,
-                        },
-                        if end == right {
-                            right_offset
-                        } else {
-                            left_offset
-                        },
-                    )
-                }
+                            if end == right {
+                                right_offset
+                            } else {
+                                left_offset
+                            },
+                        )
+                    }
+                };
+
+                (
+                    Primitive::Group {
+                        primitives: vec![cursor_primitive, text_value],
+                    },
+                    Vector::new(offset as u32, 0),
+                )
+            } else {
+                (text_value, Vector::new(0, 0))
             };
-
-            (
-                Primitive::Group {
-                    primitives: vec![cursor_primitive, text_value],
-                },
-                Vector::new(offset as u32, 0),
-            )
-        } else {
-            (text_value, Vector::new(0, 0))
-        };
 
         let text_width = self.measure_value(
             if text.is_empty() { placeholder } else { &text },
