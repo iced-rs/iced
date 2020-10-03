@@ -10,9 +10,10 @@ use std::u32;
 
 /// A container that distributes its contents vertically.
 ///
-/// A [`Column`] will try to fill the horizontal space of its container.
+/// A [`Column`] will not fill the horizontal space of its container. (set to [`Length::shrink`] by defualt)
 ///
 /// [`Column`]: struct.Column.html
+/// [`Length::shrink`]: ../../enum.Length.html
 #[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Renderer> {
     spacing: u16,
@@ -42,7 +43,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         Column {
             spacing: 0,
             padding: 0,
-            width: Length::Fill,
+            width: Length::Shrink,
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
