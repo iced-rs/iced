@@ -14,6 +14,9 @@ pub enum Rule {
 
     /// Spacing between elements
     Spacing(u16),
+
+    /// Toggler input for a specific size
+    Toggler(u16),
 }
 
 impl Rule {
@@ -23,6 +26,7 @@ impl Rule {
             Rule::Column => String::from("c"),
             Rule::Row => String::from("r"),
             Rule::Spacing(spacing) => format!("s-{}", spacing),
+            Rule::Toggler(size) => format!("toggler-{}", size),
         }
     }
 
@@ -53,6 +57,46 @@ impl Rule {
                 spacing,
                 class,
                 class
+            )
+            .into_bump_str(),
+            Rule::Toggler(size) => bumpalo::format!(
+                in bump,
+                ".toggler-{} {{ display: flex; cursor: pointer; justify-content: space-between; }} \
+                 .toggler-{} input {{ display:none; }} \
+                 .toggler-{} span {{ background-color: #b1b1b1; position: relative; display: inline-flex; width:{}px; height: {}px; border-radius: {}px;}} \
+                 .toggler-{} span > span {{ background-color: #FFFFFF; width: {}px; height: {}px; border-radius: 50%; top: 1px; left: 1px;}} \
+                 .toggler-{}:hover span > span {{ background-color: #f1f1f1 !important; }} \
+                 .toggler-{} input:checked + span {{ background-color: #00FF00; }} \
+                 .toggler-{} input:checked + span > span {{ -webkit-transform: translateX({}px); -ms-transform:translateX({}px); transform: translateX({}px); }}
+                ",
+                // toggler
+                size,
+
+                // toggler input
+                size,
+
+                // toggler span
+                size,
+                size*2,
+                size,
+                size,
+
+                // toggler span > span
+                size,
+                size-2,
+                size-2,
+
+                // toggler: hover + span > span
+                size,
+
+                // toggler input:checked + span
+                size,
+
+                // toggler input:checked + span > span
+                size,
+                size,
+                size,
+                size
             )
             .into_bump_str(),
         }
