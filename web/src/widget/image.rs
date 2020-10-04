@@ -17,7 +17,7 @@ use std::{
 ///
 /// let image = Image::new("resources/ferris.png");
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Image {
     /// The image path
     pub handle: Handle,

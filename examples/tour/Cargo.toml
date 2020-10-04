@@ -8,3 +8,4 @@ publish = false
 [dependencies]
 iced = { path = "../..", features = ["image", "debug"] }
 env_logger = "0.7"
+lazy_static = "1.4.0"

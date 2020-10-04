@@ -14,6 +14,7 @@ debug = []
 twox-hash = "1.5"
 unicode-segmentation = "1.6"
 num-traits = "0.2"
+image = "0.23"
 
 [dependencies.iced_core]
 version = "0.2"

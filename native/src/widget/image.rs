@@ -18,7 +18,7 @@ use std::{
 /// ```
 ///
 /// <img src="https://github.com/hecrj/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
-#[derive(Debug, Hash)]
+#[derive(Debug, Hash, Clone)]
 pub struct Image {
     handle: Handle,
     width: Length,
@@ -50,6 +50,12 @@ impl Image {
     /// [`Image`]: struct.Image.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
+        self
+    }
+
+    /// Pre-initializes as much as possible ahead of time.
+    pub fn preload(mut self) -> Self {
+        self.handle = self.handle.preload();
         self
     }
 }
@@ -179,6 +185,27 @@ impl Handle {
     /// [`Data`]: enum.Data.html
     pub fn data(&self) -> &Data {
         &self.data
+    }
+
+    /// Returns a handle which has completed as much pre-processing as possible.
+    /// Use this to perform parsing of the image into BRGA format upfront.
+    fn preload(self) -> Handle {
+        if let Ok(data) = match &*self.data {
+            Data::Path(path) => ::image::open(path),
+            Data::Bytes(bytes) => ::image::load_from_memory(&bytes),
+            _ => return self,
+        } {
+            let img = data.to_bgra();
+            let dims = img.dimensions();
+
+            Handle::from_data(Data::Pixels {
+                width: dims.0,
+                height: dims.1,
+                pixels: img.into_raw(),
+            })
+        } else {
+            self
+        }
     }
 }
 

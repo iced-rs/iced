@@ -39,6 +39,8 @@ pub mod text;
 pub mod text_input;
 
 #[doc(no_inline)]
+pub use self::image::Image;
+#[doc(no_inline)]
 pub use button::Button;
 #[doc(no_inline)]
 pub use checkbox::Checkbox;
@@ -46,8 +48,6 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 #[doc(no_inline)]
 pub use container::Container;
-#[doc(no_inline)]
-pub use image::Image;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]

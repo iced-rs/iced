@@ -4,8 +4,16 @@ use iced::{
     Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput,
 };
 
+#[macro_use]
+extern crate lazy_static;
+
 pub fn main() -> iced::Result {
     env_logger::init();
+
+    // ferris() returns the rust logo image. We call this now, before we
+    // start our UI, to pre-warm the image. Doing it ahead of time like this
+    // avoids jank due to the long (~1s) decode time of such images.
+    ferris(32);
 
     Tour::run(Settings::default())
 }
@@ -671,22 +679,31 @@ impl<'a> Step {
     }
 }
 
-fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
-    Container::new(
-        // This should go away once we unify resource loading on native
-        // platforms
-        if cfg!(target_arch = "wasm32") {
-            Image::new("images/ferris.png")
-        } else {
-            Image::new(format!(
-                "{}/images/ferris.png",
-                env!("CARGO_MANIFEST_DIR")
-            ))
+lazy_static! {
+    static ref FERRIS: Image = {
+        {
+            // This should go away once we unify resource loading on native
+            // platforms
+            #[cfg(target_arch = "wasm32")]
+            {
+                Image::new("images/ferris.png")
+            }
+
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Image::new(format!(
+                    "{}/images/ferris.png",
+                    env!("CARGO_MANIFEST_DIR")
+                )).preload()
+            }
         }
-        .width(Length::Units(width)),
-    )
-    .width(Length::Fill)
-    .center_x()
+    };
+}
+
+fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
+    Container::new((*FERRIS).clone().width(Length::Units(width)))
+        .width(Length::Fill)
+        .center_x()
 }
 
 fn button<'a, Message>(
