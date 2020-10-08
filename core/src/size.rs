@@ -56,3 +56,9 @@ impl From<[u16; 2]> for Size {
         Size::new(width.into(), height.into())
     }
 }
+
+impl From<Size> for [f32; 2] {
+    fn from(size: Size) -> [f32; 2] {
+        [size.width, size.height]
+    }
+}
