@@ -64,7 +64,7 @@ impl Window {
         self,
         title: &str,
         mode: Mode,
-        primary_monitor: MonitorHandle,
+        primary_monitor: Option<MonitorHandle>,
     ) -> WindowBuilder {
         let mut window_builder = WindowBuilder::new();
 
