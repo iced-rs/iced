@@ -1,5 +1,7 @@
 //! Create interactive, native cross-platform applications.
 
+use std::sync::{Arc, Mutex};
+
 use crate::{mouse, Executor, Runtime, Size};
 use iced_graphics::window;
 use iced_graphics::Viewport;
@@ -15,7 +17,7 @@ pub use iced_winit::{program, Program};
 ///
 /// [`Application`]: trait.Application.html
 pub fn run<A, E, C>(
-    settings: Settings<A::Flags>,
+    mut settings: Settings<A::Flags>,
     compositor_settings: C::Settings,
 ) where
     A: Application + 'static,
@@ -51,26 +53,33 @@ pub fn run<A, E, C>(
     let mut background_color = application.background_color();
     let mut scale_factor = application.scale_factor();
 
+    let web_window = web_sys::window().unwrap();
+    let initial_width = web_window.inner_width().unwrap().as_f64().unwrap() as u32;
+    let initial_height = web_window.inner_height().unwrap().as_f64().unwrap() as u32;
+
+    settings.window.size = (initial_width, initial_height);
+
     let window = settings
         .window
         .into_builder(&title, mode, event_loop.primary_monitor())
         .build(&event_loop)
         .expect("Open window");
+    let window = Arc::new(window);
+
+    let mut new_viewport = Arc::new(Mutex::new(None));
 
     {
         use wasm_bindgen::JsCast;
 
+        let window = window.clone();
+        let new_viewport = new_viewport.clone();
         let canvas = window.canvas();
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
+        let document = web_window.document().unwrap();
         let body = document.body().unwrap();
 
-        let width = window.inner_width().unwrap().as_f64().unwrap() as u32;
-        let height = window.inner_height().unwrap().as_f64().unwrap() as u32;
-
         canvas.set_id("iced-is-good-gui");
-        canvas.set_width(width);
-        canvas.set_height(height);
+        canvas.set_width(initial_width);
+        canvas.set_height(initial_height);
 
         let _ = body
             .append_child(&canvas)
@@ -78,19 +87,26 @@ pub fn run<A, E, C>(
 
         let onresize_callback = {
             wasm_bindgen::closure::Closure::wrap(Box::new(move || {
-                let window = web_sys::window().unwrap();
+                let web_window = web_sys::window().unwrap();
 
                 let width =
-                    window.inner_width().unwrap().as_f64().unwrap() as u32;
+                    web_window.inner_width().unwrap().as_f64().unwrap() as u32;
                 let height =
-                    window.inner_height().unwrap().as_f64().unwrap() as u32;
+                    web_window.inner_height().unwrap().as_f64().unwrap() as u32;
 
                 canvas.set_width(width);
                 canvas.set_height(height);
+
+                *new_viewport.lock().unwrap() = Some(Viewport::with_physical_size(
+                    Size::new(width, height),
+                    window.scale_factor(),
+                ));
+
+                window.request_redraw();
             })
                 as Box<dyn FnMut()>)
         };
-        window.set_onresize(Some(onresize_callback.as_ref().unchecked_ref()));
+        web_window.set_onresize(Some(onresize_callback.as_ref().unchecked_ref()));
         onresize_callback.forget();
     }
 
@@ -99,9 +115,8 @@ pub fn run<A, E, C>(
     let mut mouse_interaction = mouse::Interaction::default();
     let mut modifiers = winit::event::ModifiersState::default();
 
-    let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
-        Size::new(physical_size.width, physical_size.height),
+        Size::new(initial_width, initial_height),
         window.scale_factor() * scale_factor,
     );
     let mut resized = false;
@@ -213,10 +228,27 @@ pub fn run<A, E, C>(
             event::Event::RedrawRequested(_) => {
                 debug.render_started();
 
+                if let Some(new_viewport) = new_viewport.lock().unwrap().take() {
+                    viewport = new_viewport;
+                    resized = true;
+                }
+
                 if resized {
                     let physical_size = viewport.physical_size();
 
                     compositor.resize_viewport(physical_size);
+
+                    // We relayout the UI with the new logical size.
+                    let _ = state.update(
+                        viewport.logical_size(),
+                        conversion::cursor_position(
+                            cursor_position,
+                            viewport.scale_factor(),
+                        ),
+                        clipboard.as_ref().map(|c| c as _),
+                        &mut renderer,
+                        &mut debug,
+                    );
 
                     resized = false;
                 }
