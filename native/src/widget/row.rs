@@ -200,7 +200,7 @@ where
         self.max_height.hash(state);
         self.align_items.hash(state);
         self.spacing.hash(state);
-        self.spacing.hash(state);
+        self.padding.hash(state);
 
         for child in &self.children {
             child.widget.hash_layout(state);
