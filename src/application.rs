@@ -65,7 +65,7 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 /// struct Hello;
 ///
 /// impl Application for Hello {
-///     type Executor = executor::Null;
+///     type Executor = executor::Default;
 ///     type Message = ();
 ///     type Flags = ();
 ///

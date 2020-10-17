@@ -1,4 +1,3 @@
-use crate::executor;
 use crate::{
     Application, Color, Command, Element, Error, Settings, Subscription,
 };
@@ -172,7 +171,7 @@ impl<T> Application for T
 where
     T: Sandbox,
 {
-    type Executor = executor::Null;
+    type Executor = crate::runtime::executor::Null;
     type Flags = ();
     type Message = T::Message;
 
