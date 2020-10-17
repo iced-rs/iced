@@ -9,10 +9,6 @@ use crate::{
 use std::u32;
 
 /// A container that distributes its contents horizontally.
-///
-/// A [`Row`] will try to fill the horizontal space of its container.
-///
-/// [`Row`]: struct.Row.html
 #[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Renderer> {
     spacing: u16,
