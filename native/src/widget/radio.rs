@@ -47,6 +47,8 @@ pub struct Radio<Message, Renderer: self::Renderer + text::Renderer> {
 
 impl<Message, Renderer: self::Renderer + text::Renderer>
     Radio<Message, Renderer>
+where
+    Message: Clone,
 {
     /// Creates a new [`Radio`] button.
     ///
@@ -123,8 +125,8 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
 
 impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer + row::Renderer,
     Message: Clone,
+    Renderer: self::Renderer + text::Renderer + row::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -264,8 +266,8 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + row::Renderer + text::Renderer,
     Message: 'a + Clone,
+    Renderer: 'a + self::Renderer + row::Renderer + text::Renderer,
 {
     fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(radio)
