@@ -63,7 +63,11 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     style: Renderer::Style,
 }
 
-impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
+impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: self::Renderer,
+{
     /// Creates a new [`TextInput`].
     ///
     /// It expects:
@@ -175,8 +179,8 @@ impl<'a, Message, Renderer: self::Renderer> TextInput<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for TextInput<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
     Message: Clone,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -629,8 +633,8 @@ pub trait Renderer: text::Renderer + Sized {
 impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
     Message: 'a + Clone,
+    Renderer: 'a + self::Renderer,
 {
     fn from(
         text_input: TextInput<'a, Message, Renderer>,

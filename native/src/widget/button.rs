@@ -18,6 +18,7 @@ use std::hash::Hash;
 /// # type Button<'a, Message> =
 /// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
 /// #
+/// #[derive(Clone)]
 /// enum Message {
 ///     ButtonPressed,
 /// }
@@ -41,6 +42,7 @@ pub struct Button<'a, Message, Renderer: self::Renderer> {
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
+    Message: Clone,
     Renderer: self::Renderer,
 {
     /// Creates a new [`Button`] with some local [`State`] and the given
@@ -142,8 +144,8 @@ impl State {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
     Message: Clone,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -272,8 +274,8 @@ pub trait Renderer: crate::Renderer + Sized {
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
     Message: 'a + Clone,
+    Renderer: 'a + self::Renderer,
 {
     fn from(
         button: Button<'a, Message, Renderer>,

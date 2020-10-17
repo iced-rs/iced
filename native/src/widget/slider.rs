@@ -26,6 +26,7 @@ use std::{hash::Hash, ops::RangeInclusive};
 /// # use iced_native::{slider, renderer::Null};
 /// #
 /// # pub type Slider<'a, T, Message> = iced_native::Slider<'a, T, Message, Null>;
+/// #[derive(Clone)]
 /// pub enum Message {
 ///     SliderChanged(f32),
 /// }
@@ -53,6 +54,7 @@ pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
 impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
+    Message: Clone,
     Renderer: self::Renderer,
 {
     /// Creates a new [`Slider`].
@@ -168,8 +170,8 @@ impl<'a, T, Message, Renderer> Widget<Message, Renderer>
     for Slider<'a, T, Message, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
-    Renderer: self::Renderer,
     Message: Clone,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -322,8 +324,8 @@ impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
-    Renderer: 'a + self::Renderer,
     Message: 'a + Clone,
+    Renderer: 'a + self::Renderer,
 {
     fn from(
         slider: Slider<'a, T, Message, Renderer>,

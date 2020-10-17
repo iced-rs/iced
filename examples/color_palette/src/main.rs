@@ -284,7 +284,7 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
         let [s1, s2, s3] = &mut self.sliders;
         let [cr1, cr2, cr3] = C::COMPONENT_RANGES;
 
-        fn slider<C>(
+        fn slider<C: Clone>(
             state: &mut slider::State,
             range: RangeInclusive<f64>,
             component: f32,

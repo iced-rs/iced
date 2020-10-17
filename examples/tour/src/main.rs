@@ -689,7 +689,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
     .center_x()
 }
 
-fn button<'a, Message>(
+fn button<'a, Message: Clone>(
     state: &'a mut button::State,
     label: &str,
 ) -> Button<'a, Message> {
