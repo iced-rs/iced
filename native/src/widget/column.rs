@@ -9,11 +9,6 @@ use crate::{
 use std::u32;
 
 /// A container that distributes its contents vertically.
-///
-/// A [`Column`] will not fill the horizontal space of its container. (set to [`Length::shrink`] by defualt)
-///
-/// [`Column`]: struct.Column.html
-/// [`Length::shrink`]: ../../enum.Length.html
 #[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Renderer> {
     spacing: u16,
