@@ -28,29 +28,41 @@ where
         offset: u32,
         scrollbar_width: u16,
         scrollbar_margin: u16,
-        _scroller_width: u16,
+        scroller_width: u16,
     ) -> Option<scrollable::Scrollbar> {
         if content_bounds.height > bounds.height {
+            let outer_width =
+                scrollbar_width.max(scroller_width) + 2 * scrollbar_margin;
+
+            let outer_bounds = Rectangle {
+                x: bounds.x + bounds.width - outer_width as f32,
+                y: bounds.y,
+                width: outer_width as f32,
+                height: bounds.height,
+            };
+
             let scrollbar_bounds = Rectangle {
                 x: bounds.x + bounds.width
-                    - f32::from(scrollbar_width + 2 * scrollbar_margin),
+                    - f32::from(outer_width / 2 + scrollbar_width / 2),
                 y: bounds.y,
-                width: f32::from(scrollbar_width + 2 * scrollbar_margin),
+                width: scrollbar_width as f32,
                 height: bounds.height,
             };
 
             let ratio = bounds.height / content_bounds.height;
-            let scrollbar_height = bounds.height * ratio;
+            let scroller_height = bounds.height * ratio;
             let y_offset = offset as f32 * ratio;
 
             let scroller_bounds = Rectangle {
-                x: scrollbar_bounds.x + f32::from(scrollbar_margin),
+                x: bounds.x + bounds.width
+                    - f32::from(outer_width / 2 + scroller_width / 2),
                 y: scrollbar_bounds.y + y_offset,
-                width: scrollbar_bounds.width - f32::from(2 * scrollbar_margin),
-                height: scrollbar_height,
+                width: scroller_width as f32,
+                height: scroller_height,
             };
 
             Some(scrollable::Scrollbar {
+                outer_bounds,
                 bounds: scrollbar_bounds,
                 margin: scrollbar_margin,
                 scroller: scrollable::Scroller {
@@ -110,12 +122,7 @@ where
 
                 let scrollbar = if is_scrollbar_visible {
                     Primitive::Quad {
-                        bounds: Rectangle {
-                            x: scrollbar.bounds.x + f32::from(scrollbar.margin),
-                            width: scrollbar.bounds.width
-                                - f32::from(2 * scrollbar.margin),
-                            ..scrollbar.bounds
-                        },
+                        bounds: scrollbar.bounds,
                         background: style
                             .background
                             .unwrap_or(Background::Color(Color::TRANSPARENT)),

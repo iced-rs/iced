@@ -31,7 +31,7 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
             height: Length::Shrink,
             max_height: u32::MAX,
             scrollbar_width: 10,
-            scrollbar_margin: 2,
+            scrollbar_margin: 0,
             scroller_width: 10,
             content: Column::new(),
             style: Renderer::Style::default(),
@@ -459,6 +459,13 @@ impl State {
 /// [`Scrollable`]: struct.Scrollable.html
 #[derive(Debug)]
 pub struct Scrollbar {
+    /// The outer bounds of the scrollable, including the [`Scrollbar`] and
+    /// [`Scroller`].
+    ///
+    /// [`Scrollbar`]: struct.Scrollbar.html
+    /// [`Scroller`]: struct.Scroller.html
+    pub outer_bounds: Rectangle,
+
     /// The bounds of the [`Scrollbar`].
     ///
     /// [`Scrollbar`]: struct.Scrollbar.html
@@ -477,11 +484,11 @@ pub struct Scrollbar {
 
 impl Scrollbar {
     fn is_mouse_over(&self, cursor_position: Point) -> bool {
-        self.bounds.contains(cursor_position)
+        self.outer_bounds.contains(cursor_position)
     }
 
     fn grab_scroller(&self, cursor_position: Point) -> Option<f32> {
-        if self.bounds.contains(cursor_position) {
+        if self.outer_bounds.contains(cursor_position) {
             Some(if self.scroller.bounds.contains(cursor_position) {
                 (cursor_position.y - self.scroller.bounds.y)
                     / self.scroller.bounds.height
