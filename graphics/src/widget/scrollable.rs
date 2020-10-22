@@ -15,9 +15,6 @@ pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
 pub type Scrollable<'a, Message, Backend> =
     iced_native::Scrollable<'a, Message, Renderer<Backend>>;
 
-const SCROLLBAR_WIDTH: u16 = 10;
-const SCROLLBAR_MARGIN: u16 = 2;
-
 impl<B> scrollable::Renderer for Renderer<B>
 where
     B: Backend,
@@ -29,13 +26,16 @@ where
         bounds: Rectangle,
         content_bounds: Rectangle,
         offset: u32,
+        scrollbar_width: u16,
+        scrollbar_margin: u16,
+        _scroller_width: u16,
     ) -> Option<scrollable::Scrollbar> {
         if content_bounds.height > bounds.height {
             let scrollbar_bounds = Rectangle {
                 x: bounds.x + bounds.width
-                    - f32::from(SCROLLBAR_WIDTH + 2 * SCROLLBAR_MARGIN),
+                    - f32::from(scrollbar_width + 2 * scrollbar_margin),
                 y: bounds.y,
-                width: f32::from(SCROLLBAR_WIDTH + 2 * SCROLLBAR_MARGIN),
+                width: f32::from(scrollbar_width + 2 * scrollbar_margin),
                 height: bounds.height,
             };
 
@@ -44,14 +44,15 @@ where
             let y_offset = offset as f32 * ratio;
 
             let scroller_bounds = Rectangle {
-                x: scrollbar_bounds.x + f32::from(SCROLLBAR_MARGIN),
+                x: scrollbar_bounds.x + f32::from(scrollbar_margin),
                 y: scrollbar_bounds.y + y_offset,
-                width: scrollbar_bounds.width - f32::from(2 * SCROLLBAR_MARGIN),
+                width: scrollbar_bounds.width - f32::from(2 * scrollbar_margin),
                 height: scrollbar_height,
             };
 
             Some(scrollable::Scrollbar {
                 bounds: scrollbar_bounds,
+                margin: scrollbar_margin,
                 scroller: scrollable::Scroller {
                     bounds: scroller_bounds,
                 },
@@ -110,9 +111,9 @@ where
                 let scrollbar = if is_scrollbar_visible {
                     Primitive::Quad {
                         bounds: Rectangle {
-                            x: scrollbar.bounds.x + f32::from(SCROLLBAR_MARGIN),
+                            x: scrollbar.bounds.x + f32::from(scrollbar.margin),
                             width: scrollbar.bounds.width
-                                - f32::from(2 * SCROLLBAR_MARGIN),
+                                - f32::from(2 * scrollbar.margin),
                             ..scrollbar.bounds
                         },
                         background: style
