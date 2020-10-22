@@ -20,7 +20,7 @@ zerocopy = "0.3"
 bytemuck = "1.2"
 raw-window-handle = "0.3"
 log = "0.4"
-guillotiere = "0.5"
+guillotiere = "0.6"
 futures = "0.3"
 
 [dependencies.iced_native]
@@ -37,8 +37,7 @@ version = "0.23"
 optional = true
 
 [dependencies.resvg]
-version = "0.9"
-features = ["raqote-backend"]
+version = "0.11"
 optional = true
 
 [package.metadata.docs.rs]
