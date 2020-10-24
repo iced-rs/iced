@@ -52,7 +52,7 @@ impl<T> Default for State<T> {
 impl<'a, T: 'a, Message, Renderer: self::Renderer>
     PickList<'a, T, Message, Renderer>
 where
-    T: ToString,
+    T: ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
 {
     /// Creates a new [`PickList`] with the given [`State`], a list of options,
