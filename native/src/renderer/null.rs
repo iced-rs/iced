@@ -89,6 +89,9 @@ impl scrollable::Renderer for Null {
         _bounds: Rectangle,
         _content_bounds: Rectangle,
         _offset: u32,
+        _scrollbar_width: u16,
+        _scrollbar_margin: u16,
+        _scroller_width: u16,
     ) -> Option<scrollable::Scrollbar> {
         None
     }

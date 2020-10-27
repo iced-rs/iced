@@ -13,6 +13,9 @@ pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     height: Length,
     max_height: u32,
+    scrollbar_width: u16,
+    scrollbar_margin: u16,
+    scroller_width: u16,
     content: Column<'a, Message, Renderer>,
     style: Renderer::Style,
 }
@@ -27,6 +30,9 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
             state,
             height: Length::Shrink,
             max_height: u32::MAX,
+            scrollbar_width: 10,
+            scrollbar_margin: 0,
+            scroller_width: 10,
             content: Column::new(),
             style: Renderer::Style::default(),
         }
@@ -87,6 +93,32 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     /// [`Scrollable`]: struct.Scrollable.html
     pub fn align_items(mut self, align_items: Align) -> Self {
         self.content = self.content.align_items(align_items);
+        self
+    }
+
+    /// Sets the scrollbar width of the [`Scrollable`] .
+    /// Silently enforces a minimum value of 1.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn scrollbar_width(mut self, scrollbar_width: u16) -> Self {
+        self.scrollbar_width = scrollbar_width.max(1);
+        self
+    }
+
+    /// Sets the scrollbar margin of the [`Scrollable`] .
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn scrollbar_margin(mut self, scrollbar_margin: u16) -> Self {
+        self.scrollbar_margin = scrollbar_margin;
+        self
+    }
+
+    /// Sets the scroller width of the [`Scrollable`] .
+    /// Silently enforces a minimum value of 1.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn scroller_width(mut self, scroller_width: u16) -> Self {
+        self.scroller_width = scroller_width.max(1);
         self
     }
 
@@ -178,7 +210,14 @@ where
         }
 
         let offset = self.state.offset(bounds, content_bounds);
-        let scrollbar = renderer.scrollbar(bounds, content_bounds, offset);
+        let scrollbar = renderer.scrollbar(
+            bounds,
+            content_bounds,
+            offset,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+        );
         let is_mouse_over_scrollbar = scrollbar
             .as_ref()
             .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
@@ -269,7 +308,14 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
         let offset = self.state.offset(bounds, content_bounds);
-        let scrollbar = renderer.scrollbar(bounds, content_bounds, offset);
+        let scrollbar = renderer.scrollbar(
+            bounds,
+            content_bounds,
+            offset,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+        );
 
         let is_mouse_over = bounds.contains(cursor_position);
         let is_mouse_over_scrollbar = scrollbar
@@ -413,10 +459,22 @@ impl State {
 /// [`Scrollable`]: struct.Scrollable.html
 #[derive(Debug)]
 pub struct Scrollbar {
+    /// The outer bounds of the scrollable, including the [`Scrollbar`] and
+    /// [`Scroller`].
+    ///
+    /// [`Scrollbar`]: struct.Scrollbar.html
+    /// [`Scroller`]: struct.Scroller.html
+    pub outer_bounds: Rectangle,
+
     /// The bounds of the [`Scrollbar`].
     ///
     /// [`Scrollbar`]: struct.Scrollbar.html
     pub bounds: Rectangle,
+
+    /// The margin within the [`Scrollbar`].
+    ///
+    /// [`Scrollbar`]: struct.Scrollbar.html
+    pub margin: u16,
 
     /// The bounds of the [`Scroller`].
     ///
@@ -426,11 +484,11 @@ pub struct Scrollbar {
 
 impl Scrollbar {
     fn is_mouse_over(&self, cursor_position: Point) -> bool {
-        self.bounds.contains(cursor_position)
+        self.outer_bounds.contains(cursor_position)
     }
 
     fn grab_scroller(&self, cursor_position: Point) -> Option<f32> {
-        if self.bounds.contains(cursor_position) {
+        if self.outer_bounds.contains(cursor_position) {
             Some(if self.scroller.bounds.contains(cursor_position) {
                 (cursor_position.y - self.scroller.bounds.y)
                     / self.scroller.bounds.height
@@ -486,6 +544,9 @@ pub trait Renderer: column::Renderer + Sized {
         bounds: Rectangle,
         content_bounds: Rectangle,
         offset: u32,
+        scrollbar_width: u16,
+        scrollbar_margin: u16,
+        scroller_width: u16,
     ) -> Option<Scrollbar>;
 
     /// Draws the [`Scrollable`].
