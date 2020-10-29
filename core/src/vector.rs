@@ -1,5 +1,3 @@
-use super::size::Size;
-
 /// A 2D vector.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector<T = f32> {
@@ -80,11 +78,5 @@ where
 {
     fn from(other: Vector<T>) -> Self {
         [other.x, other.y]
-    }
-}
-
-impl From<Size> for Vector<f32> {
-    fn from(size: Size) -> Self {
-        Vector::new(size.width, size.height)
     }
 }

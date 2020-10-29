@@ -1,4 +1,4 @@
-use super::vector::Vector;
+use crate::Vector;
 use std::f32;
 
 /// An amount of space in 2 dimensions.
@@ -70,5 +70,11 @@ impl From<Vector<f32>> for Size {
 impl From<Size> for [f32; 2] {
     fn from(size: Size) -> [f32; 2] {
         [size.width, size.height]
+    }
+}
+
+impl From<Size> for Vector<f32> {
+    fn from(size: Size) -> Self {
+        Vector::new(size.width, size.height)
     }
 }
