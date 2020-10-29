@@ -259,6 +259,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         let start = *self.range.start();
         let end = *self.range.end();

@@ -180,6 +180,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
         let mut children = layout.children();

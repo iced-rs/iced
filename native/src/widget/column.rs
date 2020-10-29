@@ -1,9 +1,11 @@
 //! Distribute content vertically.
 use std::hash::Hash;
 
+use crate::layout;
+use crate::overlay;
 use crate::{
-    layout, overlay, Align, Clipboard, Element, Event, Hasher, Layout, Length,
-    Point, Widget,
+    Align, Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle,
+    Widget,
 };
 
 use std::u32;
@@ -181,8 +183,15 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
-        renderer.draw(defaults, &self.children, layout, cursor_position)
+        renderer.draw(
+            defaults,
+            &self.children,
+            layout,
+            cursor_position,
+            viewport,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -237,6 +246,7 @@ pub trait Renderer: crate::Renderer + Sized {
         content: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output;
 }
 

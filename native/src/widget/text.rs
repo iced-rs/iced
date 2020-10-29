@@ -149,6 +149,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         renderer.draw(
             defaults,

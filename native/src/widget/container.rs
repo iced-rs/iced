@@ -191,11 +191,13 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         renderer.draw(
             defaults,
             layout.bounds(),
             cursor_position,
+            viewport,
             &self.style,
             &self.content,
             layout.children().next().unwrap(),
@@ -242,6 +244,7 @@ pub trait Renderer: crate::Renderer {
         defaults: &Self::Defaults,
         bounds: Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
         style: &Self::Style,
         content: &Element<'_, Message, Self>,
         content_layout: Layout<'_>,

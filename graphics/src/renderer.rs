@@ -96,10 +96,11 @@ where
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
         color: Color,
     ) -> Self::Output {
         let (primitive, cursor) =
-            widget.draw(self, defaults, layout, cursor_position);
+            widget.draw(self, defaults, layout, cursor_position, viewport);
 
         let mut primitives = Vec::new();
 

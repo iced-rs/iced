@@ -497,6 +497,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
         let text_bounds = layout.children().next().unwrap().bounds();

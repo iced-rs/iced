@@ -253,9 +253,13 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) -> Renderer::Output {
-        let primitives =
-            self.container
-                .draw(renderer, defaults, layout, cursor_position);
+        let primitives = self.container.draw(
+            renderer,
+            defaults,
+            layout,
+            cursor_position,
+            &layout.bounds(),
+        );
 
         renderer.decorate(
             layout.bounds(),
@@ -368,11 +372,13 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         self::Renderer::draw(
             renderer,
             layout.bounds(),
             cursor_position,
+            viewport,
             self.options,
             *self.hovered_option,
             self.padding,
@@ -418,6 +424,7 @@ pub trait Renderer:
         &mut self,
         bounds: Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
         options: &[T],
         hovered_option: Option<usize>,
         padding: u16,

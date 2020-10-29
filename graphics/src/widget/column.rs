@@ -1,7 +1,7 @@
 use crate::{Backend, Primitive, Renderer};
 use iced_native::column;
 use iced_native::mouse;
-use iced_native::{Element, Layout, Point};
+use iced_native::{Element, Layout, Point, Rectangle};
 
 /// A container that distributes its contents vertically.
 pub type Column<'a, Message, Backend> =
@@ -17,6 +17,7 @@ where
         content: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output {
         let mut mouse_interaction = mouse::Interaction::default();
 
@@ -26,8 +27,13 @@ where
                     .iter()
                     .zip(layout.children())
                     .map(|(child, layout)| {
-                        let (primitive, new_mouse_interaction) =
-                            child.draw(self, defaults, layout, cursor_position);
+                        let (primitive, new_mouse_interaction) = child.draw(
+                            self,
+                            defaults,
+                            layout,
+                            cursor_position,
+                            viewport,
+                        );
 
                         if new_mouse_interaction > mouse_interaction {
                             mouse_interaction = new_mouse_interaction;

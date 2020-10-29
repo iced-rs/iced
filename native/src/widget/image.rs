@@ -1,5 +1,6 @@
 //! Display images in your user interface.
-use crate::{layout, Element, Hasher, Layout, Length, Point, Size, Widget};
+use crate::layout;
+use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
 
 use std::{
     hash::{Hash, Hasher as _},
@@ -97,6 +98,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         renderer.draw(self.handle.clone(), layout)
     }

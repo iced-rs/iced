@@ -137,7 +137,7 @@ where
         let (body, body_layout) = body;
 
         let (body_primitive, body_interaction) =
-            body.draw(self, defaults, body_layout, cursor_position);
+            body.draw(self, defaults, body_layout, cursor_position, &bounds);
 
         let background = crate::widget::container::background(bounds, &style);
 
@@ -224,6 +224,7 @@ where
                 &defaults,
                 controls_layout,
                 cursor_position,
+                &bounds,
             );
 
             (

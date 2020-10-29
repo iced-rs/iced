@@ -35,6 +35,7 @@ impl column::Renderer for Null {
         _content: &[Element<'_, Message, Self>],
         _layout: Layout<'_>,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 }
@@ -46,6 +47,7 @@ impl row::Renderer for Null {
         _content: &[Element<'_, Message, Self>],
         _layout: Layout<'_>,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 }
@@ -237,6 +239,7 @@ impl container::Renderer for Null {
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
         _cursor_position: Point,
+        _viewport: &Rectangle,
         _style: &Self::Style,
         _content: &Element<'_, Message, Self>,
         _content_layout: Layout<'_>,
