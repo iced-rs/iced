@@ -76,10 +76,6 @@ where
     ///
     /// The value will be part of the identity of a [`Subscription`].
     ///
-    /// This is necessary if you want to use multiple instances of the same
-    /// [`Subscription`] to produce different kinds of messages based on some
-    /// external data.
-    ///
     /// [`Subscription`]: struct.Subscription.html
     pub fn with<T>(mut self, value: T) -> Subscription<H, E, (T, O)>
     where
@@ -103,24 +99,19 @@ where
     /// Transforms the [`Subscription`] output with the given function.
     ///
     /// [`Subscription`]: struct.Subscription.html
-    pub fn map<A>(
-        mut self,
-        f: impl Fn(O) -> A + Send + Sync + 'static,
-    ) -> Subscription<H, E, A>
+    pub fn map<A>(mut self, f: fn(O) -> A) -> Subscription<H, E, A>
     where
         H: 'static,
         E: 'static,
         O: 'static,
         A: 'static,
     {
-        let function = std::sync::Arc::new(f);
-
         Subscription {
             recipes: self
                 .recipes
                 .drain(..)
                 .map(|recipe| {
-                    Box::new(Map::new(recipe, function.clone()))
+                    Box::new(Map::new(recipe, f))
                         as Box<dyn Recipe<H, E, Output = A>>
                 })
                 .collect(),
@@ -186,13 +177,13 @@ pub trait Recipe<Hasher: std::hash::Hasher, Event> {
 
 struct Map<Hasher, Event, A, B> {
     recipe: Box<dyn Recipe<Hasher, Event, Output = A>>,
-    mapper: std::sync::Arc<dyn Fn(A) -> B + Send + Sync>,
+    mapper: fn(A) -> B,
 }
 
 impl<H, E, A, B> Map<H, E, A, B> {
     fn new(
         recipe: Box<dyn Recipe<H, E, Output = A>>,
-        mapper: std::sync::Arc<dyn Fn(A) -> B + Send + Sync + 'static>,
+        mapper: fn(A) -> B,
     ) -> Self {
         Map { recipe, mapper }
     }
@@ -209,8 +200,8 @@ where
     fn hash(&self, state: &mut H) {
         use std::hash::Hash;
 
-        std::any::TypeId::of::<B>().hash(state);
         self.recipe.hash(state);
+        self.mapper.hash(state);
     }
 
     fn stream(self: Box<Self>, input: BoxStream<E>) -> BoxStream<Self::Output> {
