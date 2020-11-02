@@ -64,7 +64,7 @@ impl<'a> Layout<'a> {
     ///
     /// [`Layout`]: struct.Layout.html
     /// [`Node`]: struct.Node.html
-    pub fn children(&self) -> impl Iterator<Item = Layout<'a>> + '_ {
+    pub fn children(self) -> impl Iterator<Item = Layout<'a>> {
         self.node.children().iter().map(move |node| {
             Layout::with_offset(
                 Vector::new(self.position.x, self.position.y),
