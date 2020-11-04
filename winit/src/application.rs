@@ -121,35 +121,54 @@ where
     C: window::Compositor<Renderer = A::Renderer> + 'static,
 {
     use futures::task::Poll;
-    use futures::{Future, FutureExt};
+    use futures::Future;
     use winit::event_loop::EventLoop;
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let event_loop: EventLoop<A::Message> = EventLoop::with_user_event();
+    let (compositor, renderer) = C::new(compositor_settings)?;
+
+    let event_loop = EventLoop::with_user_event();
+
+    let mut runtime = {
+        let proxy = Proxy::new(event_loop.create_proxy());
+        let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
+
+        Runtime::new(executor, proxy)
+    };
+
+    let (application, init_command) = {
+        let flags = settings.flags;
+        runtime.enter(|| A::new(flags))
+    };
+
+    let subscription = application.subscription();
+
+    runtime.spawn(init_command);
+    runtime.track(subscription);
 
     let window = settings
         .window
-        .into_builder("", Mode::Windowed, event_loop.primary_monitor())
+        .into_builder(
+            &application.title(),
+            application.mode(),
+            event_loop.primary_monitor(),
+        )
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
     let (mut sender, receiver) = mpsc::unbounded();
-    let proxy = Proxy::new(event_loop.create_proxy());
-    let flags = settings.flags;
 
-    let mut event_logic = Box::pin(
-        process_events::<A, E, C>(
-            window,
-            proxy,
-            debug,
-            flags,
-            compositor_settings,
-            receiver,
-        )
-        .map(|_| ()),
-    );
+    let mut event_logic = Box::pin(process_events::<A, E, C>(
+        application,
+        compositor,
+        renderer,
+        window,
+        runtime,
+        debug,
+        receiver,
+    ));
 
     let mut context =
         futures::task::Context::from_waker(futures::task::noop_waker_ref());
@@ -181,14 +200,14 @@ where
 ///
 /// [`Application`]: trait.Application.html
 async fn process_events<A, E, C>(
+    mut application: A,
+    mut compositor: C,
+    mut renderer: A::Renderer,
     window: winit::window::Window,
-    proxy: Proxy<A::Message>,
+    mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut debug: Debug,
-    flags: A::Flags,
-    compositor_settings: C::Settings,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
-) -> Result<(), Error>
-where
+) where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
@@ -196,28 +215,10 @@ where
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    let mut runtime = {
-        let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
-
-        Runtime::new(executor, proxy)
-    };
-
-    let (mut application, init_command) = runtime.enter(|| A::new(flags));
-    runtime.spawn(init_command);
-
-    let subscription = application.subscription();
-    runtime.track(subscription);
-
     let mut title = application.title();
     let mut mode = application.mode();
     let mut background_color = application.background_color();
     let mut scale_factor = application.scale_factor();
-
-    let clipboard = Clipboard::new(&window);
-    // TODO: Encode cursor availability in the type-system
-    let mut cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
-    let mut mouse_interaction = mouse::Interaction::default();
-    let mut modifiers = winit::event::ModifiersState::default();
 
     let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
@@ -226,15 +227,18 @@ where
     );
     let mut resized = false;
 
-    let (mut compositor, mut renderer) = C::new(compositor_settings)?;
-
     let surface = compositor.create_surface(&window);
-
     let mut swap_chain = compositor.create_swap_chain(
         &surface,
         physical_size.width,
         physical_size.height,
     );
+
+    let clipboard = Clipboard::new(&window);
+    // TODO: Encode cursor availability in the type-system
+    let mut cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
+    let mut mouse_interaction = mouse::Interaction::default();
+    let mut modifiers = winit::event::ModifiersState::default();
 
     let mut user_interface = std::mem::ManuallyDrop::new(build_user_interface(
         &mut application,
@@ -432,8 +436,6 @@ where
             _ => {}
         }
     }
-
-    Ok(())
 }
 
 /// Handles a `WindowEvent` and mutates the provided control flow to exit
