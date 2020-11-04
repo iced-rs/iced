@@ -239,11 +239,12 @@ where
             event: window_event,
             ..
         } => {
+            application::handle_control_flow(&window_event, control_flow);
+
             application::handle_window_event(
                 &window_event,
                 context.window(),
                 scale_factor,
-                control_flow,
                 &mut cursor_position,
                 &mut modifiers,
                 &mut viewport,

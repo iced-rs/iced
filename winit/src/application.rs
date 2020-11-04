@@ -7,7 +7,11 @@ use crate::{
 };
 use iced_graphics::window;
 use iced_graphics::Viewport;
-use iced_native::program::{self, Program};
+use iced_native::program::Program;
+use iced_native::{Cache, UserInterface};
+
+use iced_futures::futures;
+use iced_futures::futures::channel::mpsc;
 
 /// An interactive, native cross-platform application.
 ///
@@ -116,24 +120,86 @@ where
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
 {
-    use winit::{
-        event,
-        event_loop::{ControlFlow, EventLoop},
-    };
+    use futures::{Future, FutureExt};
+    use winit::event_loop::EventLoop;
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let event_loop = EventLoop::with_user_event();
+    let event_loop: EventLoop<A::Message> = EventLoop::with_user_event();
+
+    let window = settings
+        .window
+        .into_builder("", Mode::Windowed, event_loop.primary_monitor())
+        .build(&event_loop)
+        .map_err(Error::WindowCreationFailed)?;
+
+    let (mut sender, receiver) = mpsc::unbounded();
+    let proxy = Proxy::new(event_loop.create_proxy());
+    let flags = settings.flags;
+
+    let mut event_logic = Box::pin(
+        process_events::<A, E, C>(
+            window,
+            proxy,
+            debug,
+            flags,
+            compositor_settings,
+            receiver,
+        )
+        .map(|_| ()),
+    );
+
+    let waker = futures::task::noop_waker();
+
+    event_loop.run(move |event, _, control_flow| {
+        use winit::event_loop::ControlFlow;
+
+        match event {
+            winit::event::Event::WindowEvent { ref event, .. } => {
+                handle_control_flow(event, control_flow);
+            }
+            _ => {
+                *control_flow = ControlFlow::Wait;
+            }
+        }
+
+        if let Some(event) = event.to_static() {
+            sender.start_send(event).expect("Send event");
+
+            let mut context = futures::task::Context::from_waker(&waker);
+            let _ = event_logic.as_mut().poll(&mut context);
+        }
+    });
+}
+
+/// Runs an [`Application`] with an executor, compositor, and the provided
+/// settings.
+///
+/// [`Application`]: trait.Application.html
+pub async fn process_events<A, E, C>(
+    window: winit::window::Window,
+    proxy: Proxy<A::Message>,
+    mut debug: Debug,
+    flags: A::Flags,
+    compositor_settings: C::Settings,
+    mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
+) -> Result<(), Error>
+where
+    A: Application + 'static,
+    E: Executor + 'static,
+    C: window::Compositor<Renderer = A::Renderer> + 'static,
+{
+    use iced_futures::futures::stream::StreamExt;
+    use winit::event;
+
     let mut runtime = {
         let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
-        let proxy = Proxy::new(event_loop.create_proxy());
 
         Runtime::new(executor, proxy)
     };
 
-    let flags = settings.flags;
-    let (application, init_command) = runtime.enter(|| A::new(flags));
+    let (mut application, init_command) = runtime.enter(|| A::new(flags));
     runtime.spawn(init_command);
 
     let subscription = application.subscription();
@@ -143,12 +209,6 @@ where
     let mut mode = application.mode();
     let mut background_color = application.background_color();
     let mut scale_factor = application.scale_factor();
-
-    let window = settings
-        .window
-        .into_builder(&title, mode, event_loop.primary_monitor())
-        .build(&event_loop)
-        .map_err(Error::WindowCreationFailed)?;
 
     let clipboard = Clipboard::new(&window);
     // TODO: Encode cursor availability in the type-system
@@ -173,186 +233,248 @@ where
         physical_size.height,
     );
 
-    let mut state = program::State::new(
-        application,
-        viewport.logical_size(),
-        conversion::cursor_position(cursor_position, viewport.scale_factor()),
+    let mut user_interface = std::mem::ManuallyDrop::new(build_user_interface(
+        &mut application,
+        Cache::default(),
         &mut renderer,
+        viewport.logical_size(),
         &mut debug,
+    ));
+
+    let mut primitive = user_interface.draw(
+        &mut renderer,
+        conversion::cursor_position(cursor_position, viewport.scale_factor()),
     );
+    let mut events = Vec::new();
+    let mut external_messages = Vec::new();
+
     debug.startup_finished();
 
-    event_loop.run(move |event, _, control_flow| match event {
-        event::Event::MainEventsCleared => {
-            if state.is_queue_empty() {
-                return;
-            }
+    while let Some(event) = receiver.next().await {
+        match event {
+            event::Event::MainEventsCleared => {
+                if events.is_empty() && external_messages.is_empty() {
+                    continue;
+                }
 
-            let command = runtime.enter(|| {
-                state.update(
-                    viewport.logical_size(),
+                debug.event_processing_started();
+                let mut messages = user_interface.update(
+                    &events,
                     conversion::cursor_position(
                         cursor_position,
                         viewport.scale_factor(),
                     ),
                     clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
-                    &mut debug,
-                )
-            });
+                );
 
-            // If the application was updated
-            if let Some(command) = command {
-                runtime.spawn(command);
+                messages.extend(external_messages.drain(..));
+                events.clear();
+                debug.event_processing_finished();
 
-                let program = state.program();
-
-                // Update subscriptions
-                let subscription = program.subscription();
-                runtime.track(subscription);
-
-                // Update window title
-                let new_title = program.title();
-
-                if title != new_title {
-                    window.set_title(&new_title);
-
-                    title = new_title;
-                }
-
-                // Update window mode
-                let new_mode = program.mode();
-
-                if mode != new_mode {
-                    window.set_fullscreen(conversion::fullscreen(
-                        window.current_monitor(),
-                        new_mode,
-                    ));
-
-                    mode = new_mode;
-                }
-
-                // Update background color
-                background_color = program.background_color();
-
-                // Update scale factor
-                let new_scale_factor = program.scale_factor();
-
-                if scale_factor != new_scale_factor {
-                    let size = window.inner_size();
-
-                    viewport = Viewport::with_physical_size(
-                        Size::new(size.width, size.height),
-                        window.scale_factor() * new_scale_factor,
-                    );
-
-                    // We relayout the UI with the new logical size.
-                    // The queue is empty, therefore this will never produce
-                    // a `Command`.
-                    //
-                    // TODO: Properly queue `WindowResized`
-                    let _ = state.update(
-                        viewport.logical_size(),
+                if messages.is_empty() {
+                    debug.draw_started();
+                    primitive = user_interface.draw(
+                        &mut renderer,
                         conversion::cursor_position(
                             cursor_position,
                             viewport.scale_factor(),
                         ),
-                        clipboard.as_ref().map(|c| c as _),
+                    );
+                    debug.draw_finished();
+                } else {
+                    let cache =
+                        std::mem::ManuallyDrop::into_inner(user_interface)
+                            .into_cache();
+
+                    for message in messages.drain(..) {
+                        debug.log_message(&message);
+
+                        debug.update_started();
+                        let command =
+                            runtime.enter(|| application.update(message));
+                        debug.update_finished();
+
+                        runtime.spawn(command);
+                    }
+
+                    // Update subscriptions
+                    let subscription = application.subscription();
+                    runtime.track(subscription);
+
+                    // Update window title
+                    let new_title = application.title();
+
+                    if title != new_title {
+                        window.set_title(&new_title);
+
+                        title = new_title;
+                    }
+
+                    // Update window mode
+                    let new_mode = application.mode();
+
+                    if mode != new_mode {
+                        window.set_fullscreen(conversion::fullscreen(
+                            window.current_monitor(),
+                            new_mode,
+                        ));
+
+                        mode = new_mode;
+                    }
+
+                    // Update background color
+                    background_color = application.background_color();
+
+                    // Update scale factor
+                    let new_scale_factor = application.scale_factor();
+
+                    if scale_factor != new_scale_factor {
+                        let size = window.inner_size();
+
+                        viewport = Viewport::with_physical_size(
+                            Size::new(size.width, size.height),
+                            window.scale_factor() * new_scale_factor,
+                        );
+
+                        scale_factor = new_scale_factor;
+                    }
+
+                    user_interface =
+                        std::mem::ManuallyDrop::new(build_user_interface(
+                            &mut application,
+                            cache,
+                            &mut renderer,
+                            viewport.logical_size(),
+                            &mut debug,
+                        ));
+
+                    debug.draw_started();
+                    primitive = user_interface.draw(
                         &mut renderer,
-                        &mut debug,
+                        conversion::cursor_position(
+                            cursor_position,
+                            viewport.scale_factor(),
+                        ),
+                    );
+                    debug.draw_finished();
+                }
+
+                window.request_redraw();
+            }
+            event::Event::UserEvent(message) => {
+                external_messages.push(message);
+            }
+            event::Event::RedrawRequested(_) => {
+                debug.render_started();
+
+                if resized {
+                    let physical_size = viewport.physical_size();
+
+                    swap_chain = compositor.create_swap_chain(
+                        &surface,
+                        physical_size.width,
+                        physical_size.height,
                     );
 
-                    scale_factor = new_scale_factor;
+                    resized = false;
                 }
-            }
 
-            window.request_redraw();
-        }
-        event::Event::UserEvent(message) => {
-            state.queue_message(message);
-        }
-        event::Event::RedrawRequested(_) => {
-            debug.render_started();
-
-            if resized {
-                let physical_size = viewport.physical_size();
-
-                swap_chain = compositor.create_swap_chain(
-                    &surface,
-                    physical_size.width,
-                    physical_size.height,
+                let new_mouse_interaction = compositor.draw(
+                    &mut renderer,
+                    &mut swap_chain,
+                    &viewport,
+                    background_color,
+                    &primitive,
+                    &debug.overlay(),
                 );
 
-                resized = false;
+                debug.render_finished();
+
+                if new_mouse_interaction != mouse_interaction {
+                    window.set_cursor_icon(conversion::mouse_interaction(
+                        new_mouse_interaction,
+                    ));
+
+                    mouse_interaction = new_mouse_interaction;
+                }
+
+                // TODO: Handle animations!
+                // Maybe we can use `ControlFlow::WaitUntil` for this.
             }
+            event::Event::WindowEvent {
+                event: window_event,
+                ..
+            } => {
+                handle_window_event(
+                    &window_event,
+                    &window,
+                    scale_factor,
+                    &mut cursor_position,
+                    &mut modifiers,
+                    &mut viewport,
+                    &mut resized,
+                    &mut debug,
+                );
 
-            let new_mouse_interaction = compositor.draw(
-                &mut renderer,
-                &mut swap_chain,
-                &viewport,
-                background_color,
-                state.primitive(),
-                &debug.overlay(),
-            );
-
-            debug.render_finished();
-
-            if new_mouse_interaction != mouse_interaction {
-                window.set_cursor_icon(conversion::mouse_interaction(
-                    new_mouse_interaction,
-                ));
-
-                mouse_interaction = new_mouse_interaction;
+                if let Some(event) = conversion::window_event(
+                    &window_event,
+                    viewport.scale_factor(),
+                    modifiers,
+                ) {
+                    events.push(event.clone());
+                    runtime.broadcast(event);
+                }
             }
+            _ => {}
+        }
+    }
 
-            // TODO: Handle animations!
-            // Maybe we can use `ControlFlow::WaitUntil` for this.
-        }
-        event::Event::WindowEvent {
-            event: window_event,
-            ..
-        } => {
-            handle_window_event(
-                &window_event,
-                &window,
-                scale_factor,
-                control_flow,
-                &mut cursor_position,
-                &mut modifiers,
-                &mut viewport,
-                &mut resized,
-                &mut debug,
-            );
-
-            if let Some(event) = conversion::window_event(
-                &window_event,
-                viewport.scale_factor(),
-                modifiers,
-            ) {
-                state.queue_event(event.clone());
-                runtime.broadcast(event);
-            }
-        }
-        _ => {
-            *control_flow = ControlFlow::Wait;
-        }
-    })
+    Ok(())
 }
 
-/// Handles a `WindowEvent` and mutates the provided control flow, keyboard
-/// modifiers, viewport, and resized flag accordingly.
+/// Handles a `WindowEvent` and mutates the provided control flow to exit
+/// if necessary.
+pub fn handle_control_flow(
+    event: &winit::event::WindowEvent<'_>,
+    control_flow: &mut winit::event_loop::ControlFlow,
+) {
+    use winit::event::WindowEvent;
+    use winit::event_loop::ControlFlow;
+
+    match event {
+        WindowEvent::CloseRequested => {
+            *control_flow = ControlFlow::Exit;
+        }
+        #[cfg(target_os = "macos")]
+        WindowEvent::KeyboardInput {
+            input:
+                winit::event::KeyboardInput {
+                    virtual_keycode: Some(winit::event::VirtualKeyCode::Q),
+                    state: winit::event::ElementState::Pressed,
+                    ..
+                },
+            ..
+        } if modifiers.logo() => {
+            *control_flow = ControlFlow::Exit;
+        }
+        _ => {}
+    }
+}
+
+/// Handles a `WindowEvent` and mutates the keyboard modifiers, viewport, and
+/// resized flag accordingly.
 pub fn handle_window_event(
     event: &winit::event::WindowEvent<'_>,
     window: &winit::window::Window,
     scale_factor: f64,
-    control_flow: &mut winit::event_loop::ControlFlow,
     cursor_position: &mut winit::dpi::PhysicalPosition<f64>,
     modifiers: &mut winit::event::ModifiersState,
     viewport: &mut Viewport,
     resized: &mut bool,
     _debug: &mut Debug,
 ) {
-    use winit::{event::WindowEvent, event_loop::ControlFlow};
+    use winit::event::WindowEvent;
 
     match event {
         WindowEvent::Resized(new_size) => {
@@ -376,9 +498,6 @@ pub fn handle_window_event(
             );
             *resized = true;
         }
-        WindowEvent::CloseRequested => {
-            *control_flow = ControlFlow::Exit;
-        }
         WindowEvent::CursorMoved { position, .. } => {
             *cursor_position = *position;
         }
@@ -388,18 +507,6 @@ pub fn handle_window_event(
         }
         WindowEvent::ModifiersChanged(new_modifiers) => {
             *modifiers = *new_modifiers;
-        }
-        #[cfg(target_os = "macos")]
-        WindowEvent::KeyboardInput {
-            input:
-                winit::event::KeyboardInput {
-                    virtual_keycode: Some(winit::event::VirtualKeyCode::Q),
-                    state: winit::event::ElementState::Pressed,
-                    ..
-                },
-            ..
-        } if modifiers.logo() => {
-            *control_flow = ControlFlow::Exit;
         }
         #[cfg(feature = "debug")]
         WindowEvent::KeyboardInput {
@@ -413,4 +520,22 @@ pub fn handle_window_event(
         } => _debug.toggle(),
         _ => {}
     }
+}
+
+fn build_user_interface<'a, A: Application>(
+    application: &'a mut A,
+    cache: Cache,
+    renderer: &mut A::Renderer,
+    size: Size,
+    debug: &mut Debug,
+) -> UserInterface<'a, A::Message, A::Renderer> {
+    debug.view_started();
+    let view = application.view();
+    debug.view_finished();
+
+    debug.layout_started();
+    let user_interface = UserInterface::build(view, size, cache, renderer);
+    debug.layout_finished();
+
+    user_interface
 }
