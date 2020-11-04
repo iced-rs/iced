@@ -120,6 +120,7 @@ where
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
 {
+    use futures::task::Poll;
     use futures::{Future, FutureExt};
     use winit::event_loop::EventLoop;
 
@@ -150,7 +151,8 @@ where
         .map(|_| ()),
     );
 
-    let waker = futures::task::noop_waker();
+    let mut context =
+        futures::task::Context::from_waker(futures::task::noop_waker_ref());
 
     event_loop.run(move |event, _, control_flow| {
         use winit::event_loop::ControlFlow;
@@ -167,8 +169,9 @@ where
         if let Some(event) = event.to_static() {
             sender.start_send(event).expect("Send event");
 
-            let mut context = futures::task::Context::from_waker(&waker);
-            let _ = event_logic.as_mut().poll(&mut context);
+            if let Poll::Ready(_) = event_logic.as_mut().poll(&mut context) {
+                panic!("Event logic has stopped running!");
+            }
         }
     });
 }
@@ -177,7 +180,7 @@ where
 /// settings.
 ///
 /// [`Application`]: trait.Application.html
-pub async fn process_events<A, E, C>(
+async fn process_events<A, E, C>(
     window: winit::window::Window,
     proxy: Proxy<A::Message>,
     mut debug: Debug,
