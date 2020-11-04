@@ -1,4 +1,8 @@
 //! Create interactive, native cross-platform applications.
+mod state;
+
+pub use state::State;
+
 use crate::conversion;
 use crate::mouse;
 use crate::{
@@ -6,7 +10,6 @@ use crate::{
     Settings, Size, Subscription,
 };
 use iced_graphics::window;
-use iced_graphics::Viewport;
 use iced_native::program::Program;
 use iced_native::{Cache, UserInterface};
 
@@ -215,19 +218,11 @@ async fn process_events<A, E, C>(
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    let mut title = application.title();
-    let mut mode = application.mode();
-    let mut background_color = application.background_color();
-    let mut scale_factor = application.scale_factor();
-
-    let physical_size = window.inner_size();
-    let mut viewport = Viewport::with_physical_size(
-        Size::new(physical_size.width, physical_size.height),
-        window.scale_factor() * scale_factor,
-    );
-    let mut resized = false;
+    let mut state = State::new(&application, &window);
 
     let surface = compositor.create_surface(&window);
+    let mut physical_size = state.physical_size();
+
     let mut swap_chain = compositor.create_swap_chain(
         &surface,
         physical_size.width,
@@ -235,23 +230,19 @@ async fn process_events<A, E, C>(
     );
 
     let clipboard = Clipboard::new(&window);
-    // TODO: Encode cursor availability in the type-system
-    let mut cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
-    let mut mouse_interaction = mouse::Interaction::default();
-    let mut modifiers = winit::event::ModifiersState::default();
 
     let mut user_interface = std::mem::ManuallyDrop::new(build_user_interface(
         &mut application,
         Cache::default(),
         &mut renderer,
-        viewport.logical_size(),
+        state.logical_size(),
         &mut debug,
     ));
 
-    let mut primitive = user_interface.draw(
-        &mut renderer,
-        conversion::cursor_position(cursor_position, viewport.scale_factor()),
-    );
+    let mut primitive =
+        user_interface.draw(&mut renderer, state.cursor_position());
+    let mut mouse_interaction = mouse::Interaction::default();
+
     let mut events = Vec::new();
     let mut external_messages = Vec::new();
 
@@ -267,10 +258,7 @@ async fn process_events<A, E, C>(
                 debug.event_processing_started();
                 let mut messages = user_interface.update(
                     &events,
-                    conversion::cursor_position(
-                        cursor_position,
-                        viewport.scale_factor(),
-                    ),
+                    state.cursor_position(),
                     clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
                 );
@@ -281,13 +269,8 @@ async fn process_events<A, E, C>(
 
                 if messages.is_empty() {
                     debug.draw_started();
-                    primitive = user_interface.draw(
-                        &mut renderer,
-                        conversion::cursor_position(
-                            cursor_position,
-                            viewport.scale_factor(),
-                        ),
-                    );
+                    primitive = user_interface
+                        .draw(&mut renderer, state.cursor_position());
                     debug.draw_finished();
                 } else {
                     let cache =
@@ -309,61 +292,21 @@ async fn process_events<A, E, C>(
                     let subscription = application.subscription();
                     runtime.track(subscription);
 
-                    // Update window title
-                    let new_title = application.title();
-
-                    if title != new_title {
-                        window.set_title(&new_title);
-
-                        title = new_title;
-                    }
-
-                    // Update window mode
-                    let new_mode = application.mode();
-
-                    if mode != new_mode {
-                        window.set_fullscreen(conversion::fullscreen(
-                            window.current_monitor(),
-                            new_mode,
-                        ));
-
-                        mode = new_mode;
-                    }
-
-                    // Update background color
-                    background_color = application.background_color();
-
-                    // Update scale factor
-                    let new_scale_factor = application.scale_factor();
-
-                    if scale_factor != new_scale_factor {
-                        let size = window.inner_size();
-
-                        viewport = Viewport::with_physical_size(
-                            Size::new(size.width, size.height),
-                            window.scale_factor() * new_scale_factor,
-                        );
-
-                        scale_factor = new_scale_factor;
-                    }
+                    // Update window
+                    state.synchronize(&application, &window);
 
                     user_interface =
                         std::mem::ManuallyDrop::new(build_user_interface(
                             &mut application,
                             cache,
                             &mut renderer,
-                            viewport.logical_size(),
+                            state.logical_size(),
                             &mut debug,
                         ));
 
                     debug.draw_started();
-                    primitive = user_interface.draw(
-                        &mut renderer,
-                        conversion::cursor_position(
-                            cursor_position,
-                            viewport.scale_factor(),
-                        ),
-                    );
+                    primitive = user_interface
+                        .draw(&mut renderer, state.cursor_position());
                     debug.draw_finished();
                 }
 
@@ -375,23 +318,23 @@ async fn process_events<A, E, C>(
             event::Event::RedrawRequested(_) => {
                 debug.render_started();
 
-                if resized {
-                    let physical_size = viewport.physical_size();
+                let current_physical_size = state.physical_size();
 
+                if physical_size != current_physical_size {
                     swap_chain = compositor.create_swap_chain(
                         &surface,
                         physical_size.width,
                         physical_size.height,
                     );
 
-                    resized = false;
+                    physical_size = current_physical_size;
                 }
 
                 let new_mouse_interaction = compositor.draw(
                     &mut renderer,
                     &mut swap_chain,
-                    &viewport,
-                    background_color,
+                    state.viewport(),
+                    state.background_color(),
                     &primitive,
                     &debug.overlay(),
                 );
@@ -413,21 +356,12 @@ async fn process_events<A, E, C>(
                 event: window_event,
                 ..
             } => {
-                handle_window_event(
-                    &window_event,
-                    &window,
-                    scale_factor,
-                    &mut cursor_position,
-                    &mut modifiers,
-                    &mut viewport,
-                    &mut resized,
-                    &mut debug,
-                );
+                state.update(&window, &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(
                     &window_event,
-                    viewport.scale_factor(),
-                    modifiers,
+                    state.scale_factor(),
+                    state.modifiers(),
                 ) {
                     events.push(event.clone());
                     runtime.broadcast(event);
@@ -469,64 +403,6 @@ pub fn handle_control_flow(
 
 /// Handles a `WindowEvent` and mutates the keyboard modifiers, viewport, and
 /// resized flag accordingly.
-pub fn handle_window_event(
-    event: &winit::event::WindowEvent<'_>,
-    window: &winit::window::Window,
-    scale_factor: f64,
-    cursor_position: &mut winit::dpi::PhysicalPosition<f64>,
-    modifiers: &mut winit::event::ModifiersState,
-    viewport: &mut Viewport,
-    resized: &mut bool,
-    _debug: &mut Debug,
-) {
-    use winit::event::WindowEvent;
-
-    match event {
-        WindowEvent::Resized(new_size) => {
-            let size = Size::new(new_size.width, new_size.height);
-
-            *viewport = Viewport::with_physical_size(
-                size,
-                window.scale_factor() * scale_factor,
-            );
-            *resized = true;
-        }
-        WindowEvent::ScaleFactorChanged {
-            scale_factor: new_scale_factor,
-            new_inner_size,
-        } => {
-            let size = Size::new(new_inner_size.width, new_inner_size.height);
-
-            *viewport = Viewport::with_physical_size(
-                size,
-                new_scale_factor * scale_factor,
-            );
-            *resized = true;
-        }
-        WindowEvent::CursorMoved { position, .. } => {
-            *cursor_position = *position;
-        }
-        WindowEvent::CursorLeft { .. } => {
-            // TODO: Encode cursor availability in the type-system
-            *cursor_position = winit::dpi::PhysicalPosition::new(-1.0, -1.0);
-        }
-        WindowEvent::ModifiersChanged(new_modifiers) => {
-            *modifiers = *new_modifiers;
-        }
-        #[cfg(feature = "debug")]
-        WindowEvent::KeyboardInput {
-            input:
-                winit::event::KeyboardInput {
-                    virtual_keycode: Some(winit::event::VirtualKeyCode::F12),
-                    state: winit::event::ElementState::Pressed,
-                    ..
-                },
-            ..
-        } => _debug.toggle(),
-        _ => {}
-    }
-}
-
 fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
