@@ -123,7 +123,7 @@ where
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
 {
-    use futures::task::Poll;
+    use futures::task;
     use futures::Future;
     use winit::event_loop::EventLoop;
 
@@ -163,7 +163,7 @@ where
 
     let (mut sender, receiver) = mpsc::unbounded();
 
-    let mut event_logic = Box::pin(process_events::<A, E, C>(
+    let mut instance = Box::pin(run_instance::<A, E, C>(
         application,
         compositor,
         renderer,
@@ -173,36 +173,29 @@ where
         receiver,
     ));
 
-    let mut context =
-        futures::task::Context::from_waker(futures::task::noop_waker_ref());
+    let mut context = task::Context::from_waker(task::noop_waker_ref());
 
     event_loop.run(move |event, _, control_flow| {
         use winit::event_loop::ControlFlow;
 
-        match event {
-            winit::event::Event::WindowEvent { ref event, .. } => {
-                handle_control_flow(event, control_flow);
-            }
-            _ => {
-                *control_flow = ControlFlow::Wait;
-            }
+        if let ControlFlow::Exit = control_flow {
+            return;
         }
 
         if let Some(event) = event.to_static() {
             sender.start_send(event).expect("Send event");
 
-            if let Poll::Ready(_) = event_logic.as_mut().poll(&mut context) {
-                panic!("Event logic has stopped running!");
-            }
+            let poll = instance.as_mut().poll(&mut context);
+
+            *control_flow = match poll {
+                task::Poll::Pending => ControlFlow::Wait,
+                task::Poll::Ready(_) => ControlFlow::Exit,
+            };
         }
     });
 }
 
-/// Runs an [`Application`] with an executor, compositor, and the provided
-/// settings.
-///
-/// [`Application`]: trait.Application.html
-async fn process_events<A, E, C>(
+async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
     mut renderer: A::Renderer,
@@ -356,6 +349,10 @@ async fn process_events<A, E, C>(
                 event: window_event,
                 ..
             } => {
+                if requests_exit(&window_event, state.modifiers()) {
+                    break;
+                }
+
                 state.update(&window, &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(
@@ -372,19 +369,16 @@ async fn process_events<A, E, C>(
     }
 }
 
-/// Handles a `WindowEvent` and mutates the provided control flow to exit
-/// if necessary.
-pub fn handle_control_flow(
+/// Returns true if the provided event should cause the [`Application`] to
+/// exit.
+pub fn requests_exit(
     event: &winit::event::WindowEvent<'_>,
-    control_flow: &mut winit::event_loop::ControlFlow,
-) {
+    _modifiers: winit::event::ModifiersState,
+) -> bool {
     use winit::event::WindowEvent;
-    use winit::event_loop::ControlFlow;
 
     match event {
-        WindowEvent::CloseRequested => {
-            *control_flow = ControlFlow::Exit;
-        }
+        WindowEvent::CloseRequested => true,
         #[cfg(target_os = "macos")]
         WindowEvent::KeyboardInput {
             input:
@@ -394,10 +388,8 @@ pub fn handle_control_flow(
                     ..
                 },
             ..
-        } if modifiers.logo() => {
-            *control_flow = ControlFlow::Exit;
-        }
-        _ => {}
+        } if _modifiers.logo() => true,
+        _ => false,
     }
 }
 
