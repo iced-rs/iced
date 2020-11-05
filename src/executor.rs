@@ -40,7 +40,8 @@ mod platform {
         }
 
         fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
-            self.0.enter(f)
+            let _guard = self.0.enter();
+            f()
         }
     }
 }
