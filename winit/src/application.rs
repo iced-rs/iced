@@ -145,6 +145,7 @@ where
 
     let (application, init_command) = {
         let flags = settings.flags;
+
         runtime.enter(|| A::new(flags))
     };
 
@@ -408,8 +409,6 @@ pub fn requests_exit(
     }
 }
 
-/// Handles a `WindowEvent` and mutates the keyboard modifiers, viewport, and
-/// resized flag accordingly.
 fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
