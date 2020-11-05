@@ -9,12 +9,14 @@ use crate::{
     Clipboard, Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime,
     Settings, Size, Subscription,
 };
+
+use iced_futures::futures;
+use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::{Cache, UserInterface};
 
-use iced_futures::futures;
-use iced_futures::futures::channel::mpsc;
+use std::mem::ManuallyDrop;
 
 /// An interactive, native cross-platform application.
 ///
@@ -214,8 +216,9 @@ async fn run_instance<A, E, C>(
     let mut state = State::new(&application, &window);
 
     let surface = compositor.create_surface(&window);
-    let mut physical_size = state.physical_size();
+    let physical_size = state.physical_size();
 
+    let mut viewport_version = state.viewport_version();
     let mut swap_chain = compositor.create_swap_chain(
         &surface,
         physical_size.width,
@@ -224,7 +227,7 @@ async fn run_instance<A, E, C>(
 
     let clipboard = Clipboard::new(&window);
 
-    let mut user_interface = std::mem::ManuallyDrop::new(build_user_interface(
+    let mut user_interface = ManuallyDrop::new(build_user_interface(
         &mut application,
         Cache::default(),
         &mut renderer,
@@ -267,8 +270,7 @@ async fn run_instance<A, E, C>(
                     debug.draw_finished();
                 } else {
                     let cache =
-                        std::mem::ManuallyDrop::into_inner(user_interface)
-                            .into_cache();
+                        ManuallyDrop::into_inner(user_interface).into_cache();
 
                     for message in messages.drain(..) {
                         debug.log_message(&message);
@@ -288,14 +290,13 @@ async fn run_instance<A, E, C>(
                     // Update window
                     state.synchronize(&application, &window);
 
-                    user_interface =
-                        std::mem::ManuallyDrop::new(build_user_interface(
-                            &mut application,
-                            cache,
-                            &mut renderer,
-                            state.logical_size(),
-                            &mut debug,
-                        ));
+                    user_interface = ManuallyDrop::new(build_user_interface(
+                        &mut application,
+                        cache,
+                        &mut renderer,
+                        state.logical_size(),
+                        &mut debug,
+                    ));
 
                     debug.draw_started();
                     primitive = user_interface
@@ -310,17 +311,31 @@ async fn run_instance<A, E, C>(
             }
             event::Event::RedrawRequested(_) => {
                 debug.render_started();
+                let current_viewport_version = state.viewport_version();
 
-                let current_physical_size = state.physical_size();
+                if viewport_version != current_viewport_version {
+                    let physical_size = state.physical_size();
+                    let logical_size = state.logical_size();
 
-                if physical_size != current_physical_size {
+                    debug.layout_started();
+                    user_interface = ManuallyDrop::new(
+                        ManuallyDrop::into_inner(user_interface)
+                            .relayout(logical_size, &mut renderer),
+                    );
+                    debug.layout_finished();
+
+                    debug.draw_started();
+                    primitive = user_interface
+                        .draw(&mut renderer, state.cursor_position());
+                    debug.draw_finished();
+
                     swap_chain = compositor.create_swap_chain(
                         &surface,
                         physical_size.width,
                         physical_size.height,
                     );
 
-                    physical_size = current_physical_size;
+                    viewport_version = current_viewport_version;
                 }
 
                 let new_mouse_interaction = compositor.draw(

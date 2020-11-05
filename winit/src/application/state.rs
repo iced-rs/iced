@@ -12,6 +12,7 @@ pub struct State<A: Application> {
     background_color: Color,
     scale_factor: f64,
     viewport: Viewport,
+    viewport_version: usize,
     cursor_position: winit::dpi::PhysicalPosition<f64>,
     modifiers: winit::event::ModifiersState,
     application: PhantomData<A>,
@@ -39,6 +40,7 @@ impl<A: Application> State<A> {
             background_color,
             scale_factor,
             viewport,
+            viewport_version: 0,
             // TODO: Encode cursor availability in the type-system
             cursor_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
             modifiers: winit::event::ModifiersState::default(),
@@ -52,6 +54,10 @@ impl<A: Application> State<A> {
 
     pub fn viewport(&self) -> &Viewport {
         &self.viewport
+    }
+
+    pub fn viewport_version(&self) -> usize {
+        self.viewport_version
     }
 
     pub fn physical_size(&self) -> Size<u32> {
@@ -91,6 +97,8 @@ impl<A: Application> State<A> {
                     size,
                     window.scale_factor() * self.scale_factor,
                 );
+
+                self.viewport_version = self.viewport_version.wrapping_add(1);
             }
             WindowEvent::ScaleFactorChanged {
                 scale_factor: new_scale_factor,
@@ -103,6 +111,8 @@ impl<A: Application> State<A> {
                     size,
                     new_scale_factor * self.scale_factor,
                 );
+
+                self.viewport_version = self.viewport_version.wrapping_add(1);
             }
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor_position = *position;
