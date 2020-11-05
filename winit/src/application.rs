@@ -383,6 +383,9 @@ async fn run_instance<A, E, C>(
             _ => {}
         }
     }
+
+    // Manually drop the user interface
+    drop(ManuallyDrop::into_inner(user_interface));
 }
 
 /// Returns true if the provided event should cause the [`Application`] to

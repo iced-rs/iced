@@ -300,6 +300,9 @@ async fn run_instance<A, E, C>(
             _ => {}
         }
     }
+
+    // Manually drop the user interface
+    drop(ManuallyDrop::into_inner(user_interface));
 }
 
 fn build_user_interface<'a, A: Application>(
