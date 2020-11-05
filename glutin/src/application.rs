@@ -1,5 +1,5 @@
 //! Create interactive, native cross-platform applications.
-use crate::{mouse, Error, Executor, Runtime, Size};
+use crate::{mouse, Error, Executor, Runtime};
 
 pub use iced_winit::application::{self, Application};
 
@@ -7,7 +7,7 @@ use iced_graphics::window;
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
-use iced_winit::{Cache, Clipboard, Debug, Proxy, Settings, UserInterface};
+use iced_winit::{Cache, Clipboard, Debug, Proxy, Settings};
 
 use glutin::window::Window;
 use std::mem::ManuallyDrop;
@@ -137,18 +137,18 @@ async fn run_instance<A, E, C>(
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
 
-    let mut state = application::State::new(&application, context.window());
-    let mut viewport_version = state.viewport_version();
-
     let clipboard = Clipboard::new(context.window());
 
-    let mut user_interface = ManuallyDrop::new(build_user_interface(
-        &mut application,
-        Cache::default(),
-        &mut renderer,
-        state.logical_size(),
-        &mut debug,
-    ));
+    let mut state = application::State::new(&application, context.window());
+    let mut viewport_version = state.viewport_version();
+    let mut user_interface =
+        ManuallyDrop::new(application::build_user_interface(
+            &mut application,
+            Cache::default(),
+            &mut renderer,
+            state.logical_size(),
+            &mut debug,
+        ));
 
     let mut primitive =
         user_interface.draw(&mut renderer, state.cursor_position());
@@ -178,46 +178,35 @@ async fn run_instance<A, E, C>(
                 events.clear();
                 debug.event_processing_finished();
 
-                if messages.is_empty() {
-                    debug.draw_started();
-                    primitive = user_interface
-                        .draw(&mut renderer, state.cursor_position());
-                    debug.draw_finished();
-                } else {
+                if !messages.is_empty() {
                     let cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
 
-                    for message in messages.drain(..) {
-                        debug.log_message(&message);
-
-                        debug.update_started();
-                        let command =
-                            runtime.enter(|| application.update(message));
-                        debug.update_finished();
-
-                        runtime.spawn(command);
-                    }
-
-                    // Update subscriptions
-                    let subscription = application.subscription();
-                    runtime.track(subscription);
+                    // Update application
+                    application::update(
+                        &mut application,
+                        &mut runtime,
+                        &mut debug,
+                        messages,
+                    );
 
                     // Update window
                     state.synchronize(&application, context.window());
 
-                    user_interface = ManuallyDrop::new(build_user_interface(
-                        &mut application,
-                        cache,
-                        &mut renderer,
-                        state.logical_size(),
-                        &mut debug,
-                    ));
-
-                    debug.draw_started();
-                    primitive = user_interface
-                        .draw(&mut renderer, state.cursor_position());
-                    debug.draw_finished();
+                    user_interface =
+                        ManuallyDrop::new(application::build_user_interface(
+                            &mut application,
+                            cache,
+                            &mut renderer,
+                            state.logical_size(),
+                            &mut debug,
+                        ));
                 }
+
+                debug.draw_started();
+                primitive =
+                    user_interface.draw(&mut renderer, state.cursor_position());
+                debug.draw_finished();
 
                 context.window().request_redraw();
             }
@@ -303,22 +292,4 @@ async fn run_instance<A, E, C>(
 
     // Manually drop the user interface
     drop(ManuallyDrop::into_inner(user_interface));
-}
-
-fn build_user_interface<'a, A: Application>(
-    application: &'a mut A,
-    cache: Cache,
-    renderer: &mut A::Renderer,
-    size: Size,
-    debug: &mut Debug,
-) -> UserInterface<'a, A::Message, A::Renderer> {
-    debug.view_started();
-    let view = application.view();
-    debug.view_finished();
-
-    debug.layout_started();
-    let user_interface = UserInterface::build(view, size, cache, renderer);
-    debug.layout_finished();
-
-    user_interface
 }

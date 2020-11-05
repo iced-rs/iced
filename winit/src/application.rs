@@ -214,19 +214,20 @@ async fn run_instance<A, E, C>(
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    let mut state = State::new(&application, &window);
-
     let surface = compositor.create_surface(&window);
-    let physical_size = state.physical_size();
-
-    let mut viewport_version = state.viewport_version();
-    let mut swap_chain = compositor.create_swap_chain(
-        &surface,
-        physical_size.width,
-        physical_size.height,
-    );
-
     let clipboard = Clipboard::new(&window);
+
+    let mut state = State::new(&application, &window);
+    let mut viewport_version = state.viewport_version();
+    let mut swap_chain = {
+        let physical_size = state.physical_size();
+
+        compositor.create_swap_chain(
+            &surface,
+            physical_size.width,
+            physical_size.height,
+        )
+    };
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &mut application,
@@ -264,29 +265,17 @@ async fn run_instance<A, E, C>(
                 events.clear();
                 debug.event_processing_finished();
 
-                if messages.is_empty() {
-                    debug.draw_started();
-                    primitive = user_interface
-                        .draw(&mut renderer, state.cursor_position());
-                    debug.draw_finished();
-                } else {
+                if !messages.is_empty() {
                     let cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
 
-                    for message in messages.drain(..) {
-                        debug.log_message(&message);
-
-                        debug.update_started();
-                        let command =
-                            runtime.enter(|| application.update(message));
-                        debug.update_finished();
-
-                        runtime.spawn(command);
-                    }
-
-                    // Update subscriptions
-                    let subscription = application.subscription();
-                    runtime.track(subscription);
+                    // Update application
+                    update(
+                        &mut application,
+                        &mut runtime,
+                        &mut debug,
+                        messages,
+                    );
 
                     // Update window
                     state.synchronize(&application, &window);
@@ -298,12 +287,12 @@ async fn run_instance<A, E, C>(
                         state.logical_size(),
                         &mut debug,
                     ));
-
-                    debug.draw_started();
-                    primitive = user_interface
-                        .draw(&mut renderer, state.cursor_position());
-                    debug.draw_finished();
                 }
+
+                debug.draw_started();
+                primitive =
+                    user_interface.draw(&mut renderer, state.cursor_position());
+                debug.draw_finished();
 
                 window.request_redraw();
             }
@@ -412,7 +401,7 @@ pub fn requests_exit(
     }
 }
 
-fn build_user_interface<'a, A: Application>(
+pub fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
     renderer: &mut A::Renderer,
@@ -428,4 +417,24 @@ fn build_user_interface<'a, A: Application>(
     debug.layout_finished();
 
     user_interface
+}
+
+pub fn update<A: Application, E: Executor>(
+    application: &mut A,
+    runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
+    debug: &mut Debug,
+    messages: Vec<A::Message>,
+) {
+    for message in messages {
+        debug.log_message(&message);
+
+        debug.update_started();
+        let command = runtime.enter(|| application.update(message));
+        debug.update_finished();
+
+        runtime.spawn(command);
+    }
+
+    let subscription = application.subscription();
+    runtime.track(subscription);
 }
