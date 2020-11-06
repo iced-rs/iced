@@ -377,8 +377,10 @@ async fn run_instance<A, E, C>(
     drop(ManuallyDrop::into_inner(user_interface));
 }
 
-/// Returns true if the provided event should cause the [`Application`] to
+/// Returns true if the provided event should cause an [`Application`] to
 /// exit.
+///
+/// [`Application`]: trait.Application.html
 pub fn requests_exit(
     event: &winit::event::WindowEvent<'_>,
     _modifiers: winit::event::ModifiersState,
@@ -401,6 +403,12 @@ pub fn requests_exit(
     }
 }
 
+/// Builds a [`UserInterface`] for the provided [`Application`], logging
+/// [`Debug`] information accordingly.
+///
+/// [`UserInterface`]: struct.UserInterface.html
+/// [`Application`]: trait.Application.html
+/// [`Debug`]: struct.Debug.html
 pub fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
@@ -419,6 +427,12 @@ pub fn build_user_interface<'a, A: Application>(
     user_interface
 }
 
+/// Updates an [`Application`] by feeding it the provided messages, spawning any
+/// resulting [`Command`], and tracking its [`Subscription`].
+///
+/// [`Application`]: trait.Application.html
+/// [`Command`]: struct.Command.html
+/// [`Subscription`]: struct.Subscription.html
 pub fn update<A: Application, E: Executor>(
     application: &mut A,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,

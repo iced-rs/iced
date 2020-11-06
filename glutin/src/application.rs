@@ -1,9 +1,10 @@
 //! Create interactive, native cross-platform applications.
 use crate::{mouse, Error, Executor, Runtime};
 
-pub use iced_winit::application::{self, Application};
+pub use iced_winit::Application;
 
 use iced_graphics::window;
+use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
