@@ -716,6 +716,12 @@ impl State {
     pub fn move_cursor_to(&mut self, position: usize) {
         self.cursor.move_to(position);
     }
+
+    /// Change the focus of the [`TextInput`] state.
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn focus(&mut self, state: bool) {
+        self.is_focused = state
+    }
 }
 
 // TODO: Reduce allocations
