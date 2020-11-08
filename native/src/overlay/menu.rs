@@ -114,7 +114,7 @@ where
 /// The local state of a [`Menu`].
 ///
 /// [`Menu`]: struct.Menu.html
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct State {
     scrollable: scrollable::State,
 }

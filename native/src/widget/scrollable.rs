@@ -4,7 +4,7 @@ use crate::{
     Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
-use std::{f32, hash::Hash, u32};
+use std::{cell::RefCell, f32, hash::Hash, u32};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -18,6 +18,7 @@ pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
     scroller_width: u16,
     content: Column<'a, Message, Renderer>,
     style: Renderer::Style,
+    on_scroll: Option<Box<dyn Fn(f32) -> Message>>,
 }
 
 impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
@@ -35,7 +36,24 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
             scroller_width: 10,
             content: Column::new(),
             style: Renderer::Style::default(),
+            on_scroll: None,
         }
+    }
+
+    /// Sets a function to call when the [`Scrollable`] is scrolled.
+    ///
+    /// The function takes an `f32` as argument. This is the (normalized)
+    /// percentage of how much the scrollable is scrolled (from top, to bottom).
+    /// This value gets invalidated if the contents of the scrollable change
+    /// or when the scrollable is scrolled.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn on_scroll<F>(mut self, message_constructor: F) -> Self
+    where
+        F: 'static + Fn(f32) -> Message,
+    {
+        self.on_scroll = Some(Box::new(message_constructor));
+        self
     }
 
     /// Sets the vertical spacing _between_ elements.
@@ -191,6 +209,8 @@ where
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
+        self.state.prev_offset = self.state.offset(bounds, content_bounds);
+
         // TODO: Event capture. Nested scrollables should capture scroll events.
         if is_mouse_over {
             match event {
@@ -204,6 +224,7 @@ where
                             self.state.scroll(y, bounds, content_bounds);
                         }
                     }
+                    *self.state.did_scroll.borrow_mut() = true;
                 }
                 _ => {}
             }
@@ -232,7 +253,7 @@ where
                 }
                 Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                     if let (Some(scrollbar), Some(scroller_grabbed_at)) =
-                        (scrollbar, self.state.scroller_grabbed_at)
+                        (&scrollbar, self.state.scroller_grabbed_at)
                     {
                         self.state.scroll_to(
                             scrollbar.scroll_percentage(
@@ -242,6 +263,7 @@ where
                             bounds,
                             content_bounds,
                         );
+                        *self.state.did_scroll.borrow_mut() = true;
                     }
                 }
                 _ => {}
@@ -251,7 +273,7 @@ where
                 Event::Mouse(mouse::Event::ButtonPressed(
                     mouse::Button::Left,
                 )) => {
-                    if let Some(scrollbar) = scrollbar {
+                    if let Some(scrollbar) = &scrollbar {
                         if let Some(scroller_grabbed_at) =
                             scrollbar.grab_scroller(cursor_position)
                         {
@@ -264,12 +286,23 @@ where
                                 content_bounds,
                             );
 
+                            *self.state.did_scroll.borrow_mut() = true;
+
                             self.state.scroller_grabbed_at =
                                 Some(scroller_grabbed_at);
                         }
                     }
                 }
                 _ => {}
+            }
+        }
+
+        if *self.state.did_scroll.borrow() {
+            if let Some(on_scroll) = &self.on_scroll {
+                messages.push(on_scroll(
+                    self.state.offset(bounds, content_bounds) as f32
+                        / (content_bounds.height - bounds.height),
+                ));
             }
         }
 
@@ -308,6 +341,30 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
+
+        if *self.state.did_scroll.borrow() {
+            let new_offset = self.state.offset(bounds, content_bounds);
+
+            if new_offset < self.state.prev_offset {
+                *self.state.snap_to_bottom.borrow_mut() = false;
+            } else {
+                let scroll_perc =
+                    new_offset as f32 / (content_bounds.height - bounds.height);
+
+                if scroll_perc >= 1.0 - f32::EPSILON {
+                    *self.state.snap_to_bottom.borrow_mut() = true;
+                }
+            }
+            *self.state.did_scroll.borrow_mut() = false;
+        } else if *self.state.snap_to_bottom.borrow() {
+            self.state.scroll_to(1.0, bounds, content_bounds);
+        }
+
+        if self.state.scroll_to.borrow().is_some() {
+            self.state.scroll_to(self.state.scroll_to.borrow().unwrap(), bounds, content_bounds);
+            *self.state.scroll_to.borrow_mut() = None;
+        }
+
         let offset = self.state.offset(bounds, content_bounds);
         let scrollbar = renderer.scrollbar(
             bounds,
@@ -389,10 +446,14 @@ where
 /// The local state of a [`Scrollable`].
 ///
 /// [`Scrollable`]: struct.Scrollable.html
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct State {
     scroller_grabbed_at: Option<f32>,
-    offset: f32,
+    prev_offset: u32,
+    offset: RefCell<f32>,
+    snap_to_bottom: RefCell<bool>,
+    scroll_to: RefCell<Option<f32>>,
+    did_scroll: RefCell<bool>,
 }
 
 impl State {
@@ -418,7 +479,8 @@ impl State {
             return;
         }
 
-        self.offset = (self.offset - delta_y)
+        let offset_val = *self.offset.borrow();
+        *self.offset.borrow_mut() = (offset_val - delta_y)
             .max(0.0)
             .min((content_bounds.height - bounds.height) as f32);
     }
@@ -432,13 +494,29 @@ impl State {
     /// [`Scrollable`]: struct.Scrollable.html
     /// [`State`]: struct.State.html
     pub fn scroll_to(
-        &mut self,
+        &self,
         percentage: f32,
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
-        self.offset =
+        *self.offset.borrow_mut() =
             ((content_bounds.height - bounds.height) * percentage).max(0.0);
+    }
+
+    /// Marks the scrollable to scroll to `offset` in the next `draw` call.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    /// [`State`]: struct.State.html
+    pub fn scroll_to_offset(&mut self, offset: f32) {
+        *self.scroll_to.borrow_mut() = Some(offset.max(0.0).min(1.0));
+    }
+
+    /// Marks the scrollable to scroll to bottom in the next `draw` call.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    /// [`State`]: struct.State.html
+    pub fn scroll_to_bottom(&mut self) {
+        self.scroll_to_offset(1.0);
     }
 
     /// Returns the current scrolling offset of the [`State`], given the bounds
@@ -450,7 +528,7 @@ impl State {
         let hidden_content =
             (content_bounds.height - bounds.height).max(0.0).round() as u32;
 
-        self.offset.min(hidden_content as f32) as u32
+        self.offset.borrow().min(hidden_content as f32) as u32
     }
 
     /// Returns whether the scroller is currently grabbed or not.
