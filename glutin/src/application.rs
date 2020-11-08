@@ -1,13 +1,17 @@
 //! Create interactive, native cross-platform applications.
-use crate::{mouse, Error, Executor, Runtime, Size};
-use iced_graphics::window;
-use iced_graphics::Viewport;
-use iced_winit::application;
-use iced_winit::conversion;
-use iced_winit::{Clipboard, Debug, Proxy, Settings};
+use crate::{mouse, Error, Executor, Runtime};
 
 pub use iced_winit::Application;
-pub use iced_winit::{program, Program};
+
+use iced_graphics::window;
+use iced_winit::application;
+use iced_winit::conversion;
+use iced_winit::futures;
+use iced_winit::futures::channel::mpsc;
+use iced_winit::{Cache, Clipboard, Debug, Proxy, Settings};
+
+use glutin::window::Window;
+use std::mem::ManuallyDrop;
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
@@ -22,11 +26,10 @@ where
     E: Executor + 'static,
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
 {
-    use glutin::{
-        event,
-        event_loop::{ControlFlow, EventLoop},
-        ContextBuilder,
-    };
+    use futures::task;
+    use futures::Future;
+    use glutin::event_loop::EventLoop;
+    use glutin::ContextBuilder;
 
     let mut debug = Debug::new();
     debug.startup_started();
@@ -39,22 +42,21 @@ where
         Runtime::new(executor, proxy)
     };
 
-    let flags = settings.flags;
-    let (application, init_command) = runtime.enter(|| A::new(flags));
-    runtime.spawn(init_command);
+    let (application, init_command) = {
+        let flags = settings.flags;
+
+        runtime.enter(|| A::new(flags))
+    };
 
     let subscription = application.subscription();
-    runtime.track(subscription);
 
-    let mut title = application.title();
-    let mut mode = application.mode();
-    let mut background_color = application.background_color();
-    let mut scale_factor = application.scale_factor();
+    runtime.spawn(init_command);
+    runtime.track(subscription);
 
     let context = {
         let builder = settings.window.into_builder(
-            &title,
-            mode,
+            &application.title(),
+            application.mode(),
             event_loop.primary_monitor(),
         );
 
@@ -79,189 +81,216 @@ where
         }
     };
 
-    let clipboard = Clipboard::new(&context.window());
-    let mut cursor_position = glutin::dpi::PhysicalPosition::new(-1.0, -1.0);
-    let mut mouse_interaction = mouse::Interaction::default();
-    let mut modifiers = glutin::event::ModifiersState::default();
-
-    let physical_size = context.window().inner_size();
-    let mut viewport = Viewport::with_physical_size(
-        Size::new(physical_size.width, physical_size.height),
-        context.window().scale_factor() * scale_factor,
-    );
-    let mut resized = false;
-
     #[allow(unsafe_code)]
-    let (mut compositor, mut renderer) = unsafe {
+    let (compositor, renderer) = unsafe {
         C::new(compositor_settings, |address| {
             context.get_proc_address(address)
         })?
     };
 
-    let mut state = program::State::new(
+    let (mut sender, receiver) = mpsc::unbounded();
+
+    let mut instance = Box::pin(run_instance::<A, E, C>(
         application,
-        viewport.logical_size(),
-        conversion::cursor_position(cursor_position, viewport.scale_factor()),
-        &mut renderer,
-        &mut debug,
-    );
+        compositor,
+        renderer,
+        context,
+        runtime,
+        debug,
+        receiver,
+    ));
+
+    let mut context = task::Context::from_waker(task::noop_waker_ref());
+
+    event_loop.run(move |event, _, control_flow| {
+        use glutin::event_loop::ControlFlow;
+
+        if let ControlFlow::Exit = control_flow {
+            return;
+        }
+
+        if let Some(event) = event.to_static() {
+            sender.start_send(event).expect("Send event");
+
+            let poll = instance.as_mut().poll(&mut context);
+
+            *control_flow = match poll {
+                task::Poll::Pending => ControlFlow::Wait,
+                task::Poll::Ready(_) => ControlFlow::Exit,
+            };
+        }
+    });
+}
+
+async fn run_instance<A, E, C>(
+    mut application: A,
+    mut compositor: C,
+    mut renderer: A::Renderer,
+    context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
+    mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
+    mut debug: Debug,
+    mut receiver: mpsc::UnboundedReceiver<glutin::event::Event<'_, A::Message>>,
+) where
+    A: Application + 'static,
+    E: Executor + 'static,
+    C: window::GLCompositor<Renderer = A::Renderer> + 'static,
+{
+    use glutin::event;
+    use iced_winit::futures::stream::StreamExt;
+
+    let clipboard = Clipboard::new(context.window());
+
+    let mut state = application::State::new(&application, context.window());
+    let mut viewport_version = state.viewport_version();
+    let mut user_interface =
+        ManuallyDrop::new(application::build_user_interface(
+            &mut application,
+            Cache::default(),
+            &mut renderer,
+            state.logical_size(),
+            &mut debug,
+        ));
+
+    let mut primitive =
+        user_interface.draw(&mut renderer, state.cursor_position());
+    let mut mouse_interaction = mouse::Interaction::default();
+
+    let mut events = Vec::new();
+    let mut external_messages = Vec::new();
+
     debug.startup_finished();
 
-    event_loop.run(move |event, _, control_flow| match event {
-        event::Event::MainEventsCleared => {
-            if state.is_queue_empty() {
-                return;
-            }
+    while let Some(event) = receiver.next().await {
+        match event {
+            event::Event::MainEventsCleared => {
+                if events.is_empty() && external_messages.is_empty() {
+                    continue;
+                }
 
-            let command = runtime.enter(|| {
-                state.update(
-                    viewport.logical_size(),
-                    conversion::cursor_position(
-                        cursor_position,
-                        viewport.scale_factor(),
-                    ),
+                debug.event_processing_started();
+                let mut messages = user_interface.update(
+                    &events,
+                    state.cursor_position(),
                     clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
-                    &mut debug,
-                )
-            });
-
-            // If the application was updated
-            if let Some(command) = command {
-                runtime.spawn(command);
-
-                let program = state.program();
-
-                // Update subscriptions
-                let subscription = program.subscription();
-                runtime.track(subscription);
-
-                // Update window title
-                let new_title = program.title();
-
-                if title != new_title {
-                    context.window().set_title(&new_title);
-
-                    title = new_title;
-                }
-
-                // Update window mode
-                let new_mode = program.mode();
-
-                if mode != new_mode {
-                    context.window().set_fullscreen(conversion::fullscreen(
-                        context.window().current_monitor(),
-                        new_mode,
-                    ));
-
-                    mode = new_mode;
-                }
-
-                // Update background color
-                background_color = program.background_color();
-
-                // Update scale factor
-                let new_scale_factor = program.scale_factor();
-
-                if scale_factor != new_scale_factor {
-                    let size = context.window().inner_size();
-
-                    viewport = Viewport::with_physical_size(
-                        Size::new(size.width, size.height),
-                        context.window().scale_factor() * new_scale_factor,
-                    );
-
-                    // We relayout the UI with the new logical size.
-                    // The queue is empty, therefore this will never produce
-                    // a `Command`.
-                    //
-                    // TODO: Properly queue `WindowResized`
-                    let _ = state.update(
-                        viewport.logical_size(),
-                        conversion::cursor_position(
-                            cursor_position,
-                            viewport.scale_factor(),
-                        ),
-                        clipboard.as_ref().map(|c| c as _),
-                        &mut renderer,
-                        &mut debug,
-                    );
-
-                    scale_factor = new_scale_factor;
-                }
-            }
-
-            context.window().request_redraw();
-        }
-        event::Event::UserEvent(message) => {
-            state.queue_message(message);
-        }
-        event::Event::RedrawRequested(_) => {
-            debug.render_started();
-
-            if resized {
-                let physical_size = viewport.physical_size();
-
-                context.resize(glutin::dpi::PhysicalSize::new(
-                    physical_size.width,
-                    physical_size.height,
-                ));
-
-                compositor.resize_viewport(physical_size);
-
-                resized = false;
-            }
-
-            let new_mouse_interaction = compositor.draw(
-                &mut renderer,
-                &viewport,
-                background_color,
-                state.primitive(),
-                &debug.overlay(),
-            );
-
-            context.swap_buffers().expect("Swap buffers");
-
-            debug.render_finished();
-
-            if new_mouse_interaction != mouse_interaction {
-                context.window().set_cursor_icon(
-                    conversion::mouse_interaction(new_mouse_interaction),
                 );
 
-                mouse_interaction = new_mouse_interaction;
-            }
+                messages.extend(external_messages.drain(..));
+                events.clear();
+                debug.event_processing_finished();
 
-            // TODO: Handle animations!
-            // Maybe we can use `ControlFlow::WaitUntil` for this.
-        }
-        event::Event::WindowEvent {
-            event: window_event,
-            ..
-        } => {
-            application::handle_window_event(
-                &window_event,
-                context.window(),
-                scale_factor,
-                control_flow,
-                &mut cursor_position,
-                &mut modifiers,
-                &mut viewport,
-                &mut resized,
-                &mut debug,
-            );
+                if !messages.is_empty() {
+                    let cache =
+                        ManuallyDrop::into_inner(user_interface).into_cache();
 
-            if let Some(event) = conversion::window_event(
-                &window_event,
-                viewport.scale_factor(),
-                modifiers,
-            ) {
-                state.queue_event(event.clone());
-                runtime.broadcast(event);
+                    // Update application
+                    application::update(
+                        &mut application,
+                        &mut runtime,
+                        &mut debug,
+                        messages,
+                    );
+
+                    // Update window
+                    state.synchronize(&application, context.window());
+
+                    user_interface =
+                        ManuallyDrop::new(application::build_user_interface(
+                            &mut application,
+                            cache,
+                            &mut renderer,
+                            state.logical_size(),
+                            &mut debug,
+                        ));
+                }
+
+                debug.draw_started();
+                primitive =
+                    user_interface.draw(&mut renderer, state.cursor_position());
+                debug.draw_finished();
+
+                context.window().request_redraw();
             }
+            event::Event::UserEvent(message) => {
+                external_messages.push(message);
+            }
+            event::Event::RedrawRequested(_) => {
+                debug.render_started();
+                let current_viewport_version = state.viewport_version();
+
+                if viewport_version != current_viewport_version {
+                    let physical_size = state.physical_size();
+                    let logical_size = state.logical_size();
+
+                    debug.layout_started();
+                    user_interface = ManuallyDrop::new(
+                        ManuallyDrop::into_inner(user_interface)
+                            .relayout(logical_size, &mut renderer),
+                    );
+                    debug.layout_finished();
+
+                    debug.draw_started();
+                    primitive = user_interface
+                        .draw(&mut renderer, state.cursor_position());
+                    debug.draw_finished();
+
+                    context.resize(glutin::dpi::PhysicalSize::new(
+                        physical_size.width,
+                        physical_size.height,
+                    ));
+
+                    compositor.resize_viewport(physical_size);
+
+                    viewport_version = current_viewport_version;
+                }
+
+                let new_mouse_interaction = compositor.draw(
+                    &mut renderer,
+                    state.viewport(),
+                    state.background_color(),
+                    &primitive,
+                    &debug.overlay(),
+                );
+
+                context.swap_buffers().expect("Swap buffers");
+
+                debug.render_finished();
+
+                if new_mouse_interaction != mouse_interaction {
+                    context.window().set_cursor_icon(
+                        conversion::mouse_interaction(new_mouse_interaction),
+                    );
+
+                    mouse_interaction = new_mouse_interaction;
+                }
+
+                // TODO: Handle animations!
+                // Maybe we can use `ControlFlow::WaitUntil` for this.
+            }
+            event::Event::WindowEvent {
+                event: window_event,
+                ..
+            } => {
+                if application::requests_exit(&window_event, state.modifiers())
+                {
+                    break;
+                }
+
+                state.update(context.window(), &window_event, &mut debug);
+
+                if let Some(event) = conversion::window_event(
+                    &window_event,
+                    state.scale_factor(),
+                    state.modifiers(),
+                ) {
+                    events.push(event.clone());
+                    runtime.broadcast(event);
+                }
+            }
+            _ => {}
         }
-        _ => {
-            *control_flow = ControlFlow::Wait;
-        }
-    })
+    }
+
+    // Manually drop the user interface
+    drop(ManuallyDrop::into_inner(user_interface));
 }

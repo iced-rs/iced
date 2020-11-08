@@ -388,6 +388,23 @@ where
         }
     }
 
+    /// Relayouts and returns a new  [`UserInterface`] using the provided
+    /// bounds.
+    ///
+    /// [`UserInterface`]: struct.UserInterface.html
+    pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
+        Self::build(
+            self.root,
+            bounds,
+            Cache {
+                base: self.base,
+                overlay: self.overlay,
+                bounds: self.bounds,
+            },
+            renderer,
+        )
+    }
+
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
     ///
