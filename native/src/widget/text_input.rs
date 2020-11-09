@@ -382,6 +382,7 @@ where
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
                     && self.state.is_pasting.is_none()
+                    && !self.state.is_logo_pressed
                     && !c.is_control() =>
             {
                 let mut editor =
@@ -398,6 +399,10 @@ where
                 key_code,
                 modifiers,
             }) if self.state.is_focused => {
+                if platform::is_copy_paste_modifier_pressed(modifiers) {
+                    self.state.is_logo_pressed = true;
+                }
+
                 match key_code {
                     keyboard::KeyCode::Enter => {
                         if let Some(on_submit) = self.on_submit.clone() {
@@ -523,7 +528,7 @@ where
                         }
                     }
                     keyboard::KeyCode::V => {
-                        if platform::is_copy_paste_modifier_pressed(modifiers) {
+                        if self.state.is_logo_pressed {
                             if let Some(clipboard) = clipboard {
                                 let content = match self.state.is_pasting.take()
                                 {
@@ -558,13 +563,14 @@ where
                         }
                     }
                     keyboard::KeyCode::A => {
-                        if platform::is_copy_paste_modifier_pressed(modifiers) {
+                        if self.state.is_logo_pressed {
                             self.state.cursor.select_all(&self.value);
                         }
                     }
                     keyboard::KeyCode::Escape => {
                         self.state.is_focused = false;
                         self.state.is_dragging = false;
+                        self.state.is_logo_pressed = false;
                         self.state.is_pasting = None;
                     }
                     _ => {}
@@ -579,7 +585,9 @@ where
                     keyboard::KeyCode::V => {
                         self.state.is_pasting = None;
                     }
-                    _ => {}
+                    _ => {
+                        self.state.is_logo_pressed = false;
+                    }
                 }
 
                 return event::Status::Captured;
@@ -721,6 +729,7 @@ where
 pub struct State {
     is_focused: bool,
     is_dragging: bool,
+    is_logo_pressed: bool,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
@@ -742,6 +751,7 @@ impl State {
         Self {
             is_focused: true,
             is_dragging: false,
+            is_logo_pressed: false,
             is_pasting: None,
             last_click: None,
             cursor: Cursor::default(),
