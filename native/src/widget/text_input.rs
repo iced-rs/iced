@@ -693,6 +693,20 @@ impl State {
         self.cursor
     }
 
+    /// Focuses the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    /// Unfocuses the [`TextInput`].
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    pub fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
+
     /// Moves the [`Cursor`] of the [`TextInput`] to the front of the input text.
     ///
     /// [`Cursor`]: struct.Cursor.html
@@ -715,12 +729,6 @@ impl State {
     /// [`TextInput`]: struct.TextInput.html
     pub fn move_cursor_to(&mut self, position: usize) {
         self.cursor.move_to(position);
-    }
-
-    /// Change the focus of the [`TextInput`] state.
-    /// [`TextInput`]: struct.TextInput.html
-    pub fn focus(&mut self, state: bool) {
-        self.is_focused = state
     }
 }
 
