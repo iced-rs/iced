@@ -19,6 +19,7 @@ enum Message {
     Split(pane_grid::Axis, pane_grid::Pane),
     SplitFocused(pane_grid::Axis),
     FocusAdjacent(pane_grid::Direction),
+    Clicked(pane_grid::Pane),
     Dragged(pane_grid::DragEvent),
     Resized(pane_grid::ResizeEvent),
     Close(pane_grid::Pane),
@@ -45,21 +46,29 @@ impl Sandbox for Example {
     fn update(&mut self, message: Message) {
         match message {
             Message::Split(axis, pane) => {
-                let _ = self.panes.split(
+                let result = self.panes.split(
                     axis,
                     &pane,
                     Content::new(self.panes_created),
                 );
 
+                if let Some((pane, _)) = result {
+                    self.focus = Some(pane);
+                }
+
                 self.panes_created += 1;
             }
             Message::SplitFocused(axis) => {
                 if let Some(pane) = self.focus {
-                    let _ = self.panes.split(
+                    let result = self.panes.split(
                         axis,
                         &pane,
                         Content::new(self.panes_created),
                     );
+
+                    if let Some((pane, _)) = result {
+                        self.focus = Some(pane);
+                    }
 
                     self.panes_created += 1;
                 }
@@ -72,6 +81,9 @@ impl Sandbox for Example {
                         self.focus = Some(adjacent);
                     }
                 }
+            }
+            Message::Clicked(pane) => {
+                self.focus = Some(pane);
             }
             Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
                 self.panes.resize(&split, ratio);
@@ -113,6 +125,7 @@ impl Sandbox for Example {
         .width(Length::Fill)
         .height(Length::Fill)
         .spacing(10)
+        .on_click(Message::Clicked)
         .on_drag(Message::Dragged)
         .on_resize(10, Message::Resized);
 

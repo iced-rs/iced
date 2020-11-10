@@ -92,6 +92,7 @@ pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     width: Length,
     height: Length,
     spacing: u16,
+    on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
 }
@@ -126,6 +127,7 @@ where
             width: Length::Fill,
             height: Length::Fill,
             spacing: 0,
+            on_click: None,
             on_drag: None,
             on_resize: None,
         }
@@ -152,6 +154,19 @@ where
     /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn spacing(mut self, units: u16) -> Self {
         self.spacing = units;
+        self
+    }
+
+    /// Sets the message that will be produced when a [`Pane`] of the
+    /// [`PaneGrid`] is clicked.
+    ///
+    /// [`Pane`]: struct.Pane.html
+    /// [`PaneGrid`]: struct.PaneGrid.html
+    pub fn on_click<F>(mut self, f: F) -> Self
+    where
+        F: 'a + Fn(Pane) -> Message,
+    {
+        self.on_click = Some(Box::new(f));
         self
     }
 
@@ -203,21 +218,21 @@ where
             );
 
         if let Some(((pane, content), layout)) = clicked_region.next() {
-            match &self.on_drag {
-                Some(on_drag) => {
-                    if content.can_be_picked_at(layout, cursor_position) {
-                        let pane_position = layout.position();
+            if let Some(on_click) = &self.on_click {
+                messages.push(on_click(*pane));
+            }
 
-                        let origin = cursor_position
-                            - Vector::new(pane_position.x, pane_position.y);
+            if let Some(on_drag) = &self.on_drag {
+                if content.can_be_picked_at(layout, cursor_position) {
+                    let pane_position = layout.position();
 
-                        self.state.pick_pane(pane, origin);
+                    let origin = cursor_position
+                        - Vector::new(pane_position.x, pane_position.y);
 
-                        messages
-                            .push(on_drag(DragEvent::Picked { pane: *pane }));
-                    }
+                    self.state.pick_pane(pane, origin);
+
+                    messages.push(on_drag(DragEvent::Picked { pane: *pane }));
                 }
-                None => {}
             }
         }
     }
