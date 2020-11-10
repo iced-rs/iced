@@ -10,7 +10,7 @@ use crate::{
     Rectangle, Size, Vector, Widget,
 };
 
-use std::{f32, hash::Hash, u32};
+use std::{cell::RefCell, f32, hash::Hash, u32};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -24,6 +24,8 @@ pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
     scroller_width: u16,
     content: Column<'a, Message, Renderer>,
     style: Renderer::Style,
+    on_scroll: Option<Box<dyn Fn(f32, f32) -> Message>>,
+    snap_to_bottom: bool,
 }
 
 impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
@@ -38,7 +40,34 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
             scroller_width: 10,
             content: Column::new(),
             style: Renderer::Style::default(),
+            on_scroll: None,
+            snap_to_bottom: false,
         }
+    }
+
+    /// Whether to set the [`Scrollable`] to snap to bottom when the user
+    /// scrolls to bottom or not. This will keep the scrollable at the bottom
+    /// even if new content is added to the scrollable.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn snap_to_bottom(mut self, snap: bool) -> Self {
+        self.snap_to_bottom = snap;
+        self
+    }
+
+    /// Sets a function to call when the [`Scrollable`] is scrolled.
+    ///
+    /// The function takes two `f32` as arguments. First is the percentage of
+    /// where the scrollable is at right now. Second is the percentage of where
+    /// the scrollable was *before*. `0.0` means top and `1.0` means bottom.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    pub fn on_scroll<F>(mut self, message_constructor: F) -> Self
+    where
+        F: 'static + Fn(f32, f32) -> Message,
+    {
+        self.on_scroll = Some(Box::new(message_constructor));
+        self
     }
 
     /// Sets the vertical spacing _between_ elements.
@@ -186,7 +215,7 @@ where
             .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
             .unwrap_or(false);
 
-        let event_status = {
+        let mut event_status = {
             let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
                 Point::new(
                     cursor_position.x,
@@ -211,99 +240,78 @@ where
             )
         };
 
-        if let event::Status::Captured = event_status {
-            return event::Status::Captured;
-        }
+        if let event::Status::Ignored = event_status {
+            self.state.prev_offset = self.state.offset(bounds, content_bounds);
 
-        if is_mouse_over {
-            match event {
-                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                    match delta {
-                        mouse::ScrollDelta::Lines { y, .. } => {
-                            // TODO: Configurable speed (?)
-                            self.state.scroll(y * 60.0, bounds, content_bounds);
-                        }
-                        mouse::ScrollDelta::Pixels { y, .. } => {
-                            self.state.scroll(y, bounds, content_bounds);
-                        }
-                    }
-
-                    return event::Status::Captured;
-                }
-                Event::Touch(event) => {
-                    match event {
-                        touch::Event::FingerPressed { .. } => {
-                            self.state.scroll_box_touched_at =
-                                Some(cursor_position);
-                        }
-                        touch::Event::FingerMoved { .. } => {
-                            if let Some(scroll_box_touched_at) =
-                                self.state.scroll_box_touched_at
-                            {
-                                let delta =
-                                    cursor_position.y - scroll_box_touched_at.y;
-
+            if is_mouse_over {
+                match event {
+                    Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                        match delta {
+                            mouse::ScrollDelta::Lines { y, .. } => {
+                                // TODO: Configurable speed (?)
                                 self.state.scroll(
-                                    delta,
+                                    y * 60.0,
                                     bounds,
                                     content_bounds,
                                 );
+                            }
+                            mouse::ScrollDelta::Pixels { y, .. } => {
+                                self.state.scroll(y, bounds, content_bounds);
+                            }
+                        }
 
+                        event_status = event::Status::Captured;
+                    }
+                    Event::Touch(event) => {
+                        match event {
+                            touch::Event::FingerPressed { .. } => {
                                 self.state.scroll_box_touched_at =
                                     Some(cursor_position);
                             }
+                            touch::Event::FingerMoved { .. } => {
+                                if let Some(scroll_box_touched_at) =
+                                    self.state.scroll_box_touched_at
+                                {
+                                    let delta = cursor_position.y
+                                        - scroll_box_touched_at.y;
+
+                                    self.state.scroll(
+                                        delta,
+                                        bounds,
+                                        content_bounds,
+                                    );
+
+                                    self.state.scroll_box_touched_at =
+                                        Some(cursor_position);
+                                }
+                            }
+                            touch::Event::FingerLifted { .. }
+                            | touch::Event::FingerLost { .. } => {
+                                self.state.scroll_box_touched_at = None;
+                            }
                         }
-                        touch::Event::FingerLifted { .. }
-                        | touch::Event::FingerLost { .. } => {
-                            self.state.scroll_box_touched_at = None;
-                        }
+
+                        event_status = event::Status::Captured;
                     }
-
-                    return event::Status::Captured;
+                    _ => {}
                 }
-                _ => {}
             }
-        }
 
-        if self.state.is_scroller_grabbed() {
-            match event {
-                Event::Mouse(mouse::Event::ButtonReleased(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerLifted { .. })
-                | Event::Touch(touch::Event::FingerLost { .. }) => {
-                    self.state.scroller_grabbed_at = None;
+            if self.state.is_scroller_grabbed() {
+                match event {
+                    Event::Mouse(mouse::Event::ButtonReleased(
+                        mouse::Button::Left,
+                    ))
+                    | Event::Touch(touch::Event::FingerLifted { .. })
+                    | Event::Touch(touch::Event::FingerLost { .. }) => {
+                        self.state.scroller_grabbed_at = None;
 
-                    return event::Status::Captured;
-                }
-                Event::Mouse(mouse::Event::CursorMoved { .. })
-                | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                    if let (Some(scrollbar), Some(scroller_grabbed_at)) =
-                        (scrollbar, self.state.scroller_grabbed_at)
-                    {
-                        self.state.scroll_to(
-                            scrollbar.scroll_percentage(
-                                scroller_grabbed_at,
-                                cursor_position,
-                            ),
-                            bounds,
-                            content_bounds,
-                        );
-
-                        return event::Status::Captured;
+                        event_status = event::Status::Captured;
                     }
-                }
-                _ => {}
-            }
-        } else if is_mouse_over_scrollbar {
-            match event {
-                Event::Mouse(mouse::Event::ButtonPressed(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                    if let Some(scrollbar) = scrollbar {
-                        if let Some(scroller_grabbed_at) =
-                            scrollbar.grab_scroller(cursor_position)
+                    Event::Mouse(mouse::Event::CursorMoved { .. })
+                    | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                        if let (Some(scrollbar), Some(scroller_grabbed_at)) =
+                            (scrollbar, self.state.scroller_grabbed_at)
                         {
                             self.state.scroll_to(
                                 scrollbar.scroll_percentage(
@@ -314,18 +322,71 @@ where
                                 content_bounds,
                             );
 
-                            self.state.scroller_grabbed_at =
-                                Some(scroller_grabbed_at);
-
-                            return event::Status::Captured;
+                            event_status = event::Status::Captured;
                         }
                     }
+                    _ => {}
                 }
-                _ => {}
+            } else if is_mouse_over_scrollbar {
+                match event {
+                    Event::Mouse(mouse::Event::ButtonPressed(
+                        mouse::Button::Left,
+                    ))
+                    | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                        if let Some(scrollbar) = scrollbar {
+                            if let Some(scroller_grabbed_at) =
+                                scrollbar.grab_scroller(cursor_position)
+                            {
+                                self.state.scroll_to(
+                                    scrollbar.scroll_percentage(
+                                        scroller_grabbed_at,
+                                        cursor_position,
+                                    ),
+                                    bounds,
+                                    content_bounds,
+                                );
+
+                                self.state.scroller_grabbed_at =
+                                    Some(scroller_grabbed_at);
+
+                                event_status = event::Status::Captured;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
 
-        event::Status::Ignored
+        if let event::Status::Captured = event_status {
+            if self.snap_to_bottom {
+                let new_offset = self.state.offset(bounds, content_bounds);
+
+                if new_offset < self.state.prev_offset {
+                    self.state.snap_to_bottom = false;
+                } else {
+                    let scroll_perc = new_offset as f32
+                        / (content_bounds.height - bounds.height);
+
+                    if scroll_perc >= 1.0 - f32::EPSILON {
+                        self.state.snap_to_bottom = true;
+                    }
+                }
+            }
+
+            if let Some(on_scroll) = &self.on_scroll {
+                messages.push(on_scroll(
+                    self.state.offset(bounds, content_bounds) as f32
+                        / (content_bounds.height - bounds.height),
+                    self.state.prev_offset as f32
+                        / (content_bounds.height - bounds.height),
+                ));
+            }
+
+            event::Status::Captured
+        } else {
+            event::Status::Ignored
+        }
     }
 
     fn draw(
@@ -339,6 +400,15 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
+
+        if self.state.snap_to_bottom {
+            self.state.scroll_to(1.0, bounds, content_bounds);
+        }
+
+        if let Some(scroll_to) = self.state.scroll_to.borrow_mut().take() {
+            self.state.scroll_to(scroll_to, bounds, content_bounds);
+        }
+
         let offset = self.state.offset(bounds, content_bounds);
         let scrollbar = renderer.scrollbar(
             bounds,
@@ -418,11 +488,14 @@ where
 }
 
 /// The local state of a [`Scrollable`].
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct State {
     scroller_grabbed_at: Option<f32>,
     scroll_box_touched_at: Option<Point>,
-    offset: f32,
+    prev_offset: u32,
+    snap_to_bottom: bool,
+    offset: RefCell<f32>,
+    scroll_to: RefCell<Option<f32>>,
 }
 
 impl State {
@@ -443,7 +516,8 @@ impl State {
             return;
         }
 
-        self.offset = (self.offset - delta_y)
+        let offset_val = *self.offset.borrow();
+        *self.offset.borrow_mut() = (offset_val - delta_y)
             .max(0.0)
             .min((content_bounds.height - bounds.height) as f32);
     }
@@ -454,13 +528,30 @@ impl State {
     /// `0` represents scrollbar at the top, while `1` represents scrollbar at
     /// the bottom.
     pub fn scroll_to(
-        &mut self,
+        &self,
         percentage: f32,
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
-        self.offset =
+        *self.offset.borrow_mut() =
             ((content_bounds.height - bounds.height) * percentage).max(0.0);
+    }
+
+    /// Marks the scrollable to scroll to `perc` percentage (between 0.0 and 1.0)
+    /// in the next `draw` call.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    /// [`State`]: struct.State.html
+    pub fn scroll_to_percentage(&mut self, perc: f32) {
+        *self.scroll_to.borrow_mut() = Some(perc.max(0.0).min(1.0));
+    }
+
+    /// Marks the scrollable to scroll to bottom in the next `draw` call.
+    ///
+    /// [`Scrollable`]: struct.Scrollable.html
+    /// [`State`]: struct.State.html
+    pub fn scroll_to_bottom(&mut self) {
+        self.scroll_to_percentage(1.0);
     }
 
     /// Returns the current scrolling offset of the [`State`], given the bounds
@@ -469,7 +560,7 @@ impl State {
         let hidden_content =
             (content_bounds.height - bounds.height).max(0.0).round() as u32;
 
-        self.offset.min(hidden_content as f32) as u32
+        self.offset.borrow().min(hidden_content as f32) as u32
     }
 
     /// Returns whether the scroller is currently grabbed or not.
