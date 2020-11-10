@@ -33,7 +33,7 @@ version = "0.16"
 optional = true
 
 [dependencies.font-kit]
-version = "0.6"
+version = "0.8"
 optional = true
 
 [package.metadata.docs.rs]
