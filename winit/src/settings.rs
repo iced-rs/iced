@@ -103,7 +103,13 @@ impl Window {
                 .with_max_inner_size(winit::dpi::LogicalSize { width, height });
         }
 
-        #[cfg(target_os = "linux")]
+        #[cfg(any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "openbsd"
+        ))]
         {
             use ::winit::platform::unix::WindowBuilderExtUnix;
             window_builder = window_builder.with_app_id(title.to_string());
