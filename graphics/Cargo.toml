@@ -29,7 +29,7 @@ version = "0.1"
 path = "../style"
 
 [dependencies.lyon]
-version = "0.15"
+version = "0.16"
 optional = true
 
 [dependencies.font-kit]
