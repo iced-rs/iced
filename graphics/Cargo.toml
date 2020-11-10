@@ -12,7 +12,7 @@ font-icons = []
 opengl = []
 
 [dependencies]
-glam = "0.9"
+glam = "0.10"
 raw-window-handle = "0.3"
 thiserror = "1.0"
 
