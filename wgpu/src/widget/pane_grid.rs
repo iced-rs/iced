@@ -11,8 +11,8 @@
 use crate::Renderer;
 
 pub use iced_native::pane_grid::{
-    Axis, Configuration, Direction, DragEvent, Focus, KeyPressEvent, Node,
-    Pane, ResizeEvent, Split, State,
+    Axis, Configuration, Direction, DragEvent, Focus, Node, Pane, ResizeEvent,
+    Split, State,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits

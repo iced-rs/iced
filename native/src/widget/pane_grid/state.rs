@@ -227,12 +227,13 @@ impl<T> State<T> {
         let _ = self.internal.layout.resize(split, ratio);
     }
 
-    /// Closes the given [`Pane`] and returns its internal state, if it exists.
+    /// Closes the given [`Pane`] and returns its internal state and its closest
+    /// sibling, if it exists.
     ///
     /// [`Pane`]: struct.Pane.html
-    pub fn close(&mut self, pane: &Pane) -> Option<T> {
-        if let Some(_) = self.internal.layout.remove(pane) {
-            self.panes.remove(pane)
+    pub fn close(&mut self, pane: &Pane) -> Option<(T, Pane)> {
+        if let Some(sibling) = self.internal.layout.remove(pane) {
+            self.panes.remove(pane).map(|state| (state, sibling))
         } else {
             None
         }

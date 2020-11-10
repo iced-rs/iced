@@ -29,8 +29,8 @@ pub use state::{Focus, State};
 pub use title_bar::TitleBar;
 
 use crate::{
-    container, keyboard, layout, mouse, overlay, row, text, Clipboard, Element,
-    Event, Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    container, layout, mouse, overlay, row, text, Clipboard, Element, Event,
+    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -334,18 +334,6 @@ pub struct ResizeEvent {
     ///
     /// [`Split`]: struct.Split.html
     pub ratio: f32,
-}
-
-/// An event produced during a key press interaction of a [`PaneGrid`].
-///
-/// [`PaneGrid`]: struct.PaneGrid.html
-#[derive(Debug, Clone, Copy)]
-pub struct KeyPressEvent {
-    /// The key that was pressed.
-    pub key_code: keyboard::KeyCode,
-
-    /// The state of the modifier keys when the key was pressed.
-    pub modifiers: keyboard::ModifiersState,
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>

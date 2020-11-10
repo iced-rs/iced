@@ -20,8 +20,8 @@ use iced_native::{
 };
 
 pub use iced_native::pane_grid::{
-    Axis, Configuration, Content, Direction, DragEvent, Focus, KeyPressEvent,
-    Pane, ResizeEvent, Split, State, TitleBar,
+    Axis, Configuration, Content, Direction, DragEvent, Focus, Pane,
+    ResizeEvent, Split, State, TitleBar,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
