@@ -2,9 +2,9 @@ use crate::Transformation;
 use iced_graphics::layer;
 use iced_native::Rectangle;
 
+use bytemuck::{Pod, Zeroable};
 use std::mem;
 use wgpu::util::DeviceExt;
-use zerocopy::AsBytes;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -156,14 +156,14 @@ impl Pipeline {
         let vertices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::quad vertex buffer"),
-                contents: QUAD_VERTS.as_bytes(),
+                contents: bytemuck::cast_slice(&QUAD_VERTS),
                 usage: wgpu::BufferUsage::VERTEX,
             });
 
         let indices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::quad index buffer"),
-                contents: QUAD_INDICES.as_bytes(),
+                contents: bytemuck::cast_slice(&QUAD_INDICES),
                 usage: wgpu::BufferUsage::INDEX,
             });
 
@@ -207,7 +207,7 @@ impl Pipeline {
                 device,
             );
 
-            constants_buffer.copy_from_slice(uniforms.as_bytes());
+            constants_buffer.copy_from_slice(bytemuck::bytes_of(&uniforms));
         }
 
         let mut i = 0;
@@ -271,7 +271,7 @@ impl Pipeline {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, AsBytes)]
+#[derive(Clone, Copy, Zeroable, Pod)]
 pub struct Vertex {
     _position: [f32; 2],
 }
@@ -296,7 +296,7 @@ const QUAD_VERTS: [Vertex; 4] = [
 const MAX_INSTANCES: usize = 100_000;
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, AsBytes)]
+#[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Uniforms {
     transform: [f32; 16],
     scale: f32,
