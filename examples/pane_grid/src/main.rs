@@ -11,6 +11,7 @@ pub fn main() -> iced::Result {
 struct Example {
     panes: pane_grid::State<Content>,
     panes_created: usize,
+    focus: Option<pane_grid::Pane>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -33,6 +34,7 @@ impl Sandbox for Example {
         Example {
             panes,
             panes_created: 1,
+            focus: None,
         }
     }
 
@@ -52,7 +54,7 @@ impl Sandbox for Example {
                 self.panes_created += 1;
             }
             Message::SplitFocused(axis) => {
-                if let Some(pane) = self.panes.active() {
+                if let Some(pane) = self.focus {
                     let _ = self.panes.split(
                         axis,
                         &pane,
@@ -63,11 +65,11 @@ impl Sandbox for Example {
                 }
             }
             Message::FocusAdjacent(direction) => {
-                if let Some(pane) = self.panes.active() {
+                if let Some(pane) = self.focus {
                     if let Some(adjacent) =
                         self.panes.adjacent(&pane, direction)
                     {
-                        self.panes.focus(&adjacent);
+                        self.focus = Some(adjacent);
                     }
                 }
             }
@@ -85,7 +87,7 @@ impl Sandbox for Example {
                 let _ = self.panes.close(&pane);
             }
             Message::CloseFocused => {
-                if let Some(pane) = self.panes.active() {
+                if let Some(pane) = self.focus {
                     let _ = self.panes.close(&pane);
                 }
             }
@@ -93,26 +95,26 @@ impl Sandbox for Example {
     }
 
     fn view(&mut self) -> Element<Message> {
+        let focus = self.focus;
         let total_panes = self.panes.len();
 
-        let pane_grid =
-            PaneGrid::new(&mut self.panes, |pane, content, focus| {
-                let is_focused = focus.is_some();
-                let title_bar =
-                    pane_grid::TitleBar::new(format!("Pane {}", content.id))
-                        .padding(10)
-                        .style(style::TitleBar { is_focused });
+        let pane_grid = PaneGrid::new(&mut self.panes, |pane, content| {
+            let is_focused = focus == Some(pane);
 
-                pane_grid::Content::new(content.view(pane, total_panes))
-                    .title_bar(title_bar)
-                    .style(style::Pane { is_focused })
-            })
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .spacing(10)
-            .on_drag(Message::Dragged)
-            .on_resize(10, Message::Resized)
-            .on_key_press(handle_hotkey);
+            let title_bar =
+                pane_grid::TitleBar::new(format!("Pane {}", content.id))
+                    .padding(10)
+                    .style(style::TitleBar { is_focused });
+
+            pane_grid::Content::new(content.view(pane, total_panes))
+                .title_bar(title_bar)
+                .style(style::Pane { is_focused })
+        })
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .spacing(10)
+        .on_drag(Message::Dragged)
+        .on_resize(10, Message::Resized);
 
         Container::new(pane_grid)
             .width(Length::Fill)
