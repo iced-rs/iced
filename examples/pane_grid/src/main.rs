@@ -123,7 +123,7 @@ impl Application for Example {
             Event::Keyboard(keyboard::Event::KeyPressed {
                 modifiers,
                 key_code,
-            }) if modifiers.control => handle_hotkey(key_code),
+            }) if modifiers.is_command_pressed() => handle_hotkey(key_code),
             _ => None,
         })
     }

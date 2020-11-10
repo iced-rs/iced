@@ -15,6 +15,26 @@ pub struct ModifiersState {
 }
 
 impl ModifiersState {
+    /// Returns true if the current [`ModifiersState`] has a "command key"
+    /// pressed.
+    ///
+    /// The "command key" is the main modifier key used to issue commands in the
+    /// current platform. Specifically:
+    ///
+    /// - It is the `logo` or command key (⌘) on macOS
+    /// - It is the `control` key on other platforms
+    ///
+    /// [`ModifiersState`]: struct.ModifiersState.html
+    pub fn is_command_pressed(self) -> bool {
+        #[cfg(target_os = "macos")]
+        let is_pressed = self.logo;
+
+        #[cfg(not(target_os = "macos"))]
+        let is_pressed = self.control;
+
+        is_pressed
+    }
+
     /// Returns true if the current [`ModifiersState`] has at least the same
     /// modifiers enabled as the given value, and false otherwise.
     ///
