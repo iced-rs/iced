@@ -117,7 +117,7 @@ where
             state
                 .panes
                 .iter_mut()
-                .map(move |(pane, pane_state)| (*pane, view(*pane, pane_state)))
+                .map(|(pane, pane_state)| (*pane, view(*pane, pane_state)))
                 .collect()
         };
 
