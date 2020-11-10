@@ -72,7 +72,7 @@ impl<T> State<T> {
             internal: Internal {
                 layout,
                 last_id,
-                action: Action::Idle { focus: None },
+                action: Action::Idle,
             },
         }
     }
@@ -122,45 +122,10 @@ impl<T> State<T> {
         &self.internal.layout
     }
 
-    /// Returns the focused [`Pane`] of the [`State`], if there is one.
-    ///
-    /// [`Pane`]: struct.Pane.html
-    /// [`State`]: struct.State.html
-    pub fn focused(&self) -> Option<Pane> {
-        self.internal.focused_pane()
-    }
-
-    /// Returns the active [`Pane`] of the [`State`], if there is one.
-    ///
-    /// A [`Pane`] is active if it is focused and is __not__ being dragged.
-    ///
-    /// [`Pane`]: struct.Pane.html
-    /// [`State`]: struct.State.html
-    pub fn active(&self) -> Option<Pane> {
-        self.internal.active_pane()
-    }
-
     /// Returns the adjacent [`Pane`] of another [`Pane`] in the given
     /// direction, if there is one.
     ///
-    /// ## Example
-    /// You can combine this with [`State::active`] to find the pane that is
-    /// adjacent to the current active one, and then swap them. For instance:
-    ///
-    /// ```
-    /// # use iced_native::pane_grid;
-    /// #
-    /// # let (mut state, _) = pane_grid::State::new(());
-    /// #
-    /// if let Some(active) = state.active() {
-    ///     if let Some(adjacent) = state.adjacent(&active, pane_grid::Direction::Right) {
-    ///         state.swap(&active, &adjacent);
-    ///     }
-    /// }
-    /// ```
-    ///
     /// [`Pane`]: struct.Pane.html
-    /// [`State::active`]: struct.State.html#method.active
     pub fn adjacent(&self, pane: &Pane, direction: Direction) -> Option<Pane> {
         let regions = self
             .internal
@@ -194,20 +159,6 @@ impl<T> State<T> {
         Some(*pane)
     }
 
-    /// Focuses the given [`Pane`].
-    ///
-    /// [`Pane`]: struct.Pane.html
-    pub fn focus(&mut self, pane: &Pane) {
-        self.internal.focus(pane);
-    }
-
-    /// Unfocuses the current focused [`Pane`].
-    ///
-    /// [`Pane`]: struct.Pane.html
-    pub fn unfocus(&mut self) {
-        self.internal.unfocus();
-    }
-
     /// Splits the given [`Pane`] into two in the given [`Axis`] and
     /// initializing the new [`Pane`] with the provided internal state.
     ///
@@ -236,7 +187,6 @@ impl<T> State<T> {
         node.split(new_split, axis, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
-        self.focus(&new_pane);
 
         Some((new_pane, new_split))
     }
@@ -277,13 +227,13 @@ impl<T> State<T> {
         let _ = self.internal.layout.resize(split, ratio);
     }
 
-    /// Closes the given [`Pane`] and returns its internal state, if it exists.
+    /// Closes the given [`Pane`] and returns its internal state and its closest
+    /// sibling, if it exists.
     ///
     /// [`Pane`]: struct.Pane.html
-    pub fn close(&mut self, pane: &Pane) -> Option<T> {
+    pub fn close(&mut self, pane: &Pane) -> Option<(T, Pane)> {
         if let Some(sibling) = self.internal.layout.remove(pane) {
-            self.focus(&sibling);
-            self.panes.remove(pane)
+            self.panes.remove(pane).map(|state| (state, sibling))
         } else {
             None
         }
@@ -329,52 +279,12 @@ pub struct Internal {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Action {
-    Idle {
-        focus: Option<Pane>,
-    },
-    Dragging {
-        pane: Pane,
-        origin: Point,
-        focus: Option<Pane>,
-    },
-    Resizing {
-        split: Split,
-        axis: Axis,
-        focus: Option<Pane>,
-    },
-}
-
-impl Action {
-    pub fn focus(&self) -> Option<(Pane, Focus)> {
-        match self {
-            Action::Idle { focus } | Action::Resizing { focus, .. } => {
-                focus.map(|pane| (pane, Focus::Idle))
-            }
-            Action::Dragging { pane, .. } => Some((*pane, Focus::Dragging)),
-        }
-    }
+    Idle,
+    Dragging { pane: Pane, origin: Point },
+    Resizing { split: Split, axis: Axis },
 }
 
 impl Internal {
-    pub fn action(&self) -> Action {
-        self.action
-    }
-
-    pub fn focused_pane(&self) -> Option<Pane> {
-        match self.action {
-            Action::Idle { focus } => focus,
-            Action::Dragging { focus, .. } => focus,
-            Action::Resizing { focus, .. } => focus,
-        }
-    }
-
-    pub fn active_pane(&self) -> Option<Pane> {
-        match self.action {
-            Action::Idle { focus } => focus,
-            _ => None,
-        }
-    }
-
     pub fn picked_pane(&self) -> Option<(Pane, Point)> {
         match self.action {
             Action::Dragging { pane, origin, .. } => Some((pane, origin)),
@@ -405,17 +315,10 @@ impl Internal {
         self.layout.split_regions(spacing, size)
     }
 
-    pub fn focus(&mut self, pane: &Pane) {
-        self.action = Action::Idle { focus: Some(*pane) };
-    }
-
     pub fn pick_pane(&mut self, pane: &Pane, origin: Point) {
-        let focus = self.focused_pane();
-
         self.action = Action::Dragging {
             pane: *pane,
             origin,
-            focus,
         };
     }
 
@@ -426,26 +329,14 @@ impl Internal {
             return;
         }
 
-        let focus = self.action.focus().map(|(pane, _)| pane);
-
         self.action = Action::Resizing {
             split: *split,
             axis,
-            focus,
         };
     }
 
-    pub fn drop_split(&mut self) {
-        match self.action {
-            Action::Resizing { focus, .. } => {
-                self.action = Action::Idle { focus };
-            }
-            _ => {}
-        }
-    }
-
-    pub fn unfocus(&mut self) {
-        self.action = Action::Idle { focus: None };
+    pub fn idle(&mut self) {
+        self.action = Action::Idle;
     }
 
     pub fn hash_layout(&self, hasher: &mut Hasher) {

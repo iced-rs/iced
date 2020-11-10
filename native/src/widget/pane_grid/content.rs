@@ -41,9 +41,9 @@ where
         self
     }
 
-    /// Sets the style of the [`TitleBar`].
+    /// Sets the style of the [`Content`].
     ///
-    /// [`TitleBar`]: struct.TitleBar.html
+    /// [`Content`]: struct.Content.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self

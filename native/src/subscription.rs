@@ -43,5 +43,25 @@ use events::Events;
 /// [`Subscription`]: type.Subscription.html
 /// [`Event`]: ../enum.Event.html
 pub fn events() -> Subscription<Event> {
-    Subscription::from_recipe(Events)
+    Subscription::from_recipe(Events { f: Some })
+}
+
+/// Returns a [`Subscription`] that filters all the runtime events with the
+/// provided function, producing messages accordingly.
+///
+/// This subscription will call the provided function for every [`Event`]
+/// handled by the runtime. If the function:
+///
+/// - Returns `None`, the [`Event`] will be discarded.
+/// - Returns `Some` message, the `Message` will be produced.
+///
+/// [`Subscription`]: type.Subscription.html
+/// [`Event`]: ../enum.Event.html
+pub fn events_with<Message>(
+    f: fn(Event) -> Option<Message>,
+) -> Subscription<Message>
+where
+    Message: 'static + Send,
+{
+    Subscription::from_recipe(Events { f })
 }

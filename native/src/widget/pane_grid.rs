@@ -29,8 +29,8 @@ pub use state::{Focus, State};
 pub use title_bar::TitleBar;
 
 use crate::{
-    container, keyboard, layout, mouse, overlay, row, text, Clipboard, Element,
-    Event, Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    container, layout, mouse, overlay, row, text, Clipboard, Element, Event,
+    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -73,7 +73,7 @@ use crate::{
 /// let (mut state, _) = pane_grid::State::new(PaneState::SomePane);
 ///
 /// let pane_grid =
-///     PaneGrid::new(&mut state, |pane, state, focus| {
+///     PaneGrid::new(&mut state, |pane, state| {
 ///         pane_grid::Content::new(match state {
 ///             PaneState::SomePane => Text::new("This is some pane"),
 ///             PaneState::AnotherKindOfPane => Text::new("This is another kind of pane"),
@@ -92,10 +92,9 @@ pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     width: Length,
     height: Length,
     spacing: u16,
-    modifier_keys: keyboard::ModifiersState,
+    on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    on_key_press: Option<Box<dyn Fn(KeyPressEvent) -> Option<Message> + 'a>>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
@@ -112,31 +111,13 @@ where
     /// [`Pane`]: struct.Pane.html
     pub fn new<T>(
         state: &'a mut State<T>,
-        view: impl Fn(
-            Pane,
-            &'a mut T,
-            Option<Focus>,
-        ) -> Content<'a, Message, Renderer>,
+        view: impl Fn(Pane, &'a mut T) -> Content<'a, Message, Renderer>,
     ) -> Self {
         let elements = {
-            let action = state.internal.action();
-            let current_focus = action.focus();
-
             state
                 .panes
                 .iter_mut()
-                .map(move |(pane, pane_state)| {
-                    let focus = match current_focus {
-                        Some((focused_pane, focus))
-                            if *pane == focused_pane =>
-                        {
-                            Some(focus)
-                        }
-                        _ => None,
-                    };
-
-                    (*pane, view(*pane, pane_state, focus))
-                })
+                .map(|(pane, pane_state)| (*pane, view(*pane, pane_state)))
                 .collect()
         };
 
@@ -146,13 +127,9 @@ where
             width: Length::Fill,
             height: Length::Fill,
             spacing: 0,
-            modifier_keys: keyboard::ModifiersState {
-                control: true,
-                ..Default::default()
-            },
+            on_click: None,
             on_drag: None,
             on_resize: None,
-            on_key_press: None,
         }
     }
 
@@ -180,18 +157,16 @@ where
         self
     }
 
-    /// Sets the modifier keys of the [`PaneGrid`].
+    /// Sets the message that will be produced when a [`Pane`] of the
+    /// [`PaneGrid`] is clicked.
     ///
-    /// The modifier keys will need to be pressed to trigger key events.
-    ///
-    /// The default modifier key is `Ctrl`.
-    ///
+    /// [`Pane`]: struct.Pane.html
     /// [`PaneGrid`]: struct.PaneGrid.html
-    pub fn modifier_keys(
-        mut self,
-        modifier_keys: keyboard::ModifiersState,
-    ) -> Self {
-        self.modifier_keys = modifier_keys;
+    pub fn on_click<F>(mut self, f: F) -> Self
+    where
+        F: 'a + Fn(Pane) -> Message,
+    {
+        self.on_click = Some(Box::new(f));
         self
     }
 
@@ -225,31 +200,6 @@ where
         self.on_resize = Some((leeway, Box::new(f)));
         self
     }
-
-    /// Captures hotkey interactions with the [`PaneGrid`], using the provided
-    /// function to produce messages.
-    ///
-    /// The function will be called when:
-    ///   - a [`Pane`] is focused
-    ///   - a key is pressed
-    ///   - all the modifier keys are pressed
-    ///
-    /// If the function returns `None`, the key press event will be discarded
-    /// without producing any message.
-    ///
-    /// This method is particularly useful to implement hotkey interactions.
-    /// For instance, you can use it to enable splitting, swapping, or resizing
-    /// panes by pressing combinations of keys.
-    ///
-    /// [`PaneGrid`]: struct.PaneGrid.html
-    /// [`Pane`]: struct.Pane.html
-    pub fn on_key_press<F>(mut self, f: F) -> Self
-    where
-        F: 'a + Fn(KeyPressEvent) -> Option<Message>,
-    {
-        self.on_key_press = Some(Box::new(f));
-        self
-    }
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
@@ -268,24 +218,20 @@ where
             );
 
         if let Some(((pane, content), layout)) = clicked_region.next() {
-            match &self.on_drag {
-                Some(on_drag) => {
-                    if content.can_be_picked_at(layout, cursor_position) {
-                        let pane_position = layout.position();
+            if let Some(on_click) = &self.on_click {
+                messages.push(on_click(*pane));
+            }
 
-                        let origin = cursor_position
-                            - Vector::new(pane_position.x, pane_position.y);
+            if let Some(on_drag) = &self.on_drag {
+                if content.can_be_picked_at(layout, cursor_position) {
+                    let pane_position = layout.position();
 
-                        self.state.pick_pane(pane, origin);
+                    let origin = cursor_position
+                        - Vector::new(pane_position.x, pane_position.y);
 
-                        messages
-                            .push(on_drag(DragEvent::Picked { pane: *pane }));
-                    } else {
-                        self.state.focus(pane);
-                    }
-                }
-                None => {
-                    self.state.focus(pane);
+                    self.state.pick_pane(pane, origin);
+
+                    messages.push(on_drag(DragEvent::Picked { pane: *pane }));
                 }
             }
         }
@@ -390,18 +336,6 @@ pub struct ResizeEvent {
     pub ratio: f32,
 }
 
-/// An event produced during a key press interaction of a [`PaneGrid`].
-///
-/// [`PaneGrid`]: struct.PaneGrid.html
-#[derive(Debug, Clone, Copy)]
-pub struct KeyPressEvent {
-    /// The key that was pressed.
-    pub key_code: keyboard::KeyCode,
-
-    /// The state of the modifier keys when the key was pressed.
-    pub modifiers: keyboard::ModifiersState,
-}
-
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
@@ -495,17 +429,10 @@ where
                                 );
                             }
                         }
-                    } else {
-                        // TODO: Encode cursor availability in the type system
-                        if cursor_position.x > 0.0 && cursor_position.y > 0.0 {
-                            self.state.unfocus();
-                        }
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
                     if let Some((pane, _)) = self.state.picked_pane() {
-                        self.state.focus(&pane);
-
                         if let Some(on_drag) = &self.on_drag {
                             let mut dropped_region = self
                                 .elements
@@ -527,8 +454,10 @@ where
 
                             messages.push(on_drag(event));
                         }
+
+                        self.state.idle();
                     } else if self.state.picked_split().is_some() {
-                        self.state.drop_split();
+                        self.state.idle();
                     }
                 }
                 mouse::Event::CursorMoved { .. } => {
@@ -536,31 +465,6 @@ where
                 }
                 _ => {}
             },
-            Event::Keyboard(keyboard_event) => {
-                match keyboard_event {
-                    keyboard::Event::KeyPressed {
-                        modifiers,
-                        key_code,
-                    } => {
-                        if let Some(on_key_press) = &self.on_key_press {
-                            // TODO: Discard when event is captured
-                            if let Some(_) = self.state.active_pane() {
-                                if modifiers.matches(self.modifier_keys) {
-                                    if let Some(message) =
-                                        on_key_press(KeyPressEvent {
-                                            key_code,
-                                            modifiers,
-                                        })
-                                    {
-                                        messages.push(message);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
             _ => {}
         }
 

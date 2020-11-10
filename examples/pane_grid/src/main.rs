@@ -1,8 +1,9 @@
 use iced::{
-    button, keyboard, pane_grid, scrollable, Align, Button, Column, Container,
-    Element, HorizontalAlignment, Length, PaneGrid, Sandbox, Scrollable,
-    Settings, Text,
+    button, executor, keyboard, pane_grid, scrollable, Align, Application,
+    Button, Column, Command, Container, Element, HorizontalAlignment, Length,
+    PaneGrid, Scrollable, Settings, Subscription, Text,
 };
+use iced_native::{subscription, Event};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -11,6 +12,7 @@ pub fn main() -> iced::Result {
 struct Example {
     panes: pane_grid::State<Content>,
     panes_created: usize,
+    focus: Option<pane_grid::Pane>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -18,58 +20,76 @@ enum Message {
     Split(pane_grid::Axis, pane_grid::Pane),
     SplitFocused(pane_grid::Axis),
     FocusAdjacent(pane_grid::Direction),
+    Clicked(pane_grid::Pane),
     Dragged(pane_grid::DragEvent),
     Resized(pane_grid::ResizeEvent),
     Close(pane_grid::Pane),
     CloseFocused,
 }
 
-impl Sandbox for Example {
+impl Application for Example {
     type Message = Message;
+    type Executor = executor::Default;
+    type Flags = ();
 
-    fn new() -> Self {
+    fn new(_flags: ()) -> (Self, Command<Message>) {
         let (panes, _) = pane_grid::State::new(Content::new(0));
 
-        Example {
-            panes,
-            panes_created: 1,
-        }
+        (
+            Example {
+                panes,
+                panes_created: 1,
+                focus: None,
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
         String::from("Pane grid - Iced")
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Split(axis, pane) => {
-                let _ = self.panes.split(
+                let result = self.panes.split(
                     axis,
                     &pane,
                     Content::new(self.panes_created),
                 );
 
+                if let Some((pane, _)) = result {
+                    self.focus = Some(pane);
+                }
+
                 self.panes_created += 1;
             }
             Message::SplitFocused(axis) => {
-                if let Some(pane) = self.panes.active() {
-                    let _ = self.panes.split(
+                if let Some(pane) = self.focus {
+                    let result = self.panes.split(
                         axis,
                         &pane,
                         Content::new(self.panes_created),
                     );
 
+                    if let Some((pane, _)) = result {
+                        self.focus = Some(pane);
+                    }
+
                     self.panes_created += 1;
                 }
             }
             Message::FocusAdjacent(direction) => {
-                if let Some(pane) = self.panes.active() {
+                if let Some(pane) = self.focus {
                     if let Some(adjacent) =
                         self.panes.adjacent(&pane, direction)
                     {
-                        self.panes.focus(&adjacent);
+                        self.focus = Some(adjacent);
                     }
                 }
+            }
+            Message::Clicked(pane) => {
+                self.focus = Some(pane);
             }
             Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
                 self.panes.resize(&split, ratio);
@@ -82,37 +102,54 @@ impl Sandbox for Example {
             }
             Message::Dragged(_) => {}
             Message::Close(pane) => {
-                let _ = self.panes.close(&pane);
+                if let Some((_, sibling)) = self.panes.close(&pane) {
+                    self.focus = Some(sibling);
+                }
             }
             Message::CloseFocused => {
-                if let Some(pane) = self.panes.active() {
-                    let _ = self.panes.close(&pane);
+                if let Some(pane) = self.focus {
+                    if let Some((_, sibling)) = self.panes.close(&pane) {
+                        self.focus = Some(sibling);
+                    }
                 }
             }
         }
+
+        Command::none()
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        subscription::events_with(|event| match event {
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                modifiers,
+                key_code,
+            }) if modifiers.is_command_pressed() => handle_hotkey(key_code),
+            _ => None,
+        })
     }
 
     fn view(&mut self) -> Element<Message> {
+        let focus = self.focus;
         let total_panes = self.panes.len();
 
-        let pane_grid =
-            PaneGrid::new(&mut self.panes, |pane, content, focus| {
-                let is_focused = focus.is_some();
-                let title_bar =
-                    pane_grid::TitleBar::new(format!("Pane {}", content.id))
-                        .padding(10)
-                        .style(style::TitleBar { is_focused });
+        let pane_grid = PaneGrid::new(&mut self.panes, |pane, content| {
+            let is_focused = focus == Some(pane);
 
-                pane_grid::Content::new(content.view(pane, total_panes))
-                    .title_bar(title_bar)
-                    .style(style::Pane { is_focused })
-            })
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .spacing(10)
-            .on_drag(Message::Dragged)
-            .on_resize(10, Message::Resized)
-            .on_key_press(handle_hotkey);
+            let title_bar =
+                pane_grid::TitleBar::new(format!("Pane {}", content.id))
+                    .padding(10)
+                    .style(style::TitleBar { is_focused });
+
+            pane_grid::Content::new(content.view(pane, total_panes))
+                .title_bar(title_bar)
+                .style(style::Pane { is_focused })
+        })
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .spacing(10)
+        .on_click(Message::Clicked)
+        .on_drag(Message::Dragged)
+        .on_resize(10, Message::Resized);
 
         Container::new(pane_grid)
             .width(Length::Fill)
@@ -122,11 +159,11 @@ impl Sandbox for Example {
     }
 }
 
-fn handle_hotkey(event: pane_grid::KeyPressEvent) -> Option<Message> {
+fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     use keyboard::KeyCode;
     use pane_grid::{Axis, Direction};
 
-    let direction = match event.key_code {
+    let direction = match key_code {
         KeyCode::Up => Some(Direction::Up),
         KeyCode::Down => Some(Direction::Down),
         KeyCode::Left => Some(Direction::Left),
@@ -134,7 +171,7 @@ fn handle_hotkey(event: pane_grid::KeyPressEvent) -> Option<Message> {
         _ => None,
     };
 
-    match event.key_code {
+    match key_code {
         KeyCode::V => Some(Message::SplitFocused(Axis::Vertical)),
         KeyCode::H => Some(Message::SplitFocused(Axis::Horizontal)),
         KeyCode::W => Some(Message::CloseFocused),
