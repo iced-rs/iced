@@ -172,6 +172,8 @@ where
 
                 if mouse_over {
                     messages.push((self.on_toggle)(!self.is_checked));
+
+                    return event::Status::Captured;
                 }
             }
             _ => {}
