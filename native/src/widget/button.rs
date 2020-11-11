@@ -192,20 +192,25 @@ where
                 if self.on_press.is_some() {
                     let bounds = layout.bounds();
 
-                    self.state.is_pressed = bounds.contains(cursor_position);
+                    if bounds.contains(cursor_position) {
+                        self.state.is_pressed = true;
+
+                        return event::Status::Captured;
+                    }
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let Some(on_press) = self.on_press.clone() {
                     let bounds = layout.bounds();
 
-                    let is_clicked = self.state.is_pressed
-                        && bounds.contains(cursor_position);
+                    if self.state.is_pressed {
+                        self.state.is_pressed = false;
 
-                    self.state.is_pressed = false;
+                        if bounds.contains(cursor_position) {
+                            messages.push(on_press);
+                        }
 
-                    if is_clicked {
-                        messages.push(on_press);
+                        return event::Status::Captured;
                     }
                 }
             }

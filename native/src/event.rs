@@ -25,7 +25,7 @@ pub enum Event {
 /// [`UserInterface`]: ../struct.UserInterface.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
-    /// The [`Event`] was _NOT_ handled by any widget.
+    /// The [`Event`] was **NOT** handled by any widget.
     ///
     /// [`Event`]: enum.Event.html
     Ignored,
