@@ -1,8 +1,7 @@
+use crate::event::{self, Event};
 use crate::layout;
 use crate::pane_grid;
-use crate::{
-    Clipboard, Element, Event, Hasher, Layout, Point, Rectangle, Size,
-};
+use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The title bar of a [`Pane`].
 ///
@@ -245,7 +244,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         if let Some(controls) = &mut self.controls {
             let mut children = layout.children();
             let padded = children.next().unwrap();
@@ -254,14 +253,16 @@ where
             let _ = children.next();
             let controls_layout = children.next().unwrap();
 
-            let _ = controls.on_event(
+            controls.on_event(
                 event,
                 controls_layout,
                 cursor_position,
                 messages,
                 renderer,
                 clipboard,
-            );
+            )
+        } else {
+            event::Status::Ignored
         }
     }
 }
