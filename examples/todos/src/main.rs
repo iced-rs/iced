@@ -499,7 +499,7 @@ enum SaveError {
 impl SavedState {
     fn path() -> std::path::PathBuf {
         let mut path = if let Some(project_dirs) =
-            directories::ProjectDirs::from("rs", "Iced", "Todos")
+            directories_next::ProjectDirs::from("rs", "Iced", "Todos")
         {
             project_dirs.data_dir().into()
         } else {

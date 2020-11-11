@@ -15,11 +15,11 @@ image = []
 svg = []
 
 [dependencies]
-glow = "0.5"
-glow_glyph = "0.3"
+glow = "0.6"
+glow_glyph = "0.4"
 glyph_brush = "0.7"
-euclid = "0.20"
-bytemuck = "1.2"
+euclid = "0.22"
+bytemuck = "1.4"
 log = "0.4"
 
 [dependencies.iced_native]

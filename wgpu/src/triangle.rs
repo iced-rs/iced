@@ -1,8 +1,9 @@
 //! Draw meshes of triangles.
 use crate::{settings, Transformation};
 use iced_graphics::layer;
+
+use bytemuck::{Pod, Zeroable};
 use std::mem;
-use zerocopy::AsBytes;
 
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
@@ -322,7 +323,7 @@ impl Pipeline {
             }
         }
 
-        let uniforms = uniforms.as_bytes();
+        let uniforms = bytemuck::cast_slice(&uniforms);
 
         if let Some(uniforms_size) =
             wgpu::BufferSize::new(uniforms.len() as u64)
@@ -409,7 +410,7 @@ impl Pipeline {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, AsBytes)]
+#[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Uniforms {
     transform: [f32; 16],
     // We need to align this to 256 bytes to please `wgpu`...

@@ -12,10 +12,13 @@ font-icons = []
 opengl = []
 
 [dependencies]
-bytemuck = "1.2"
-glam = "0.9"
+glam = "0.10"
 raw-window-handle = "0.3"
 thiserror = "1.0"
+
+[dependencies.bytemuck]
+version = "1.4"
+features = ["derive"]
 
 [dependencies.iced_native]
 version = "0.2"
@@ -26,11 +29,11 @@ version = "0.1"
 path = "../style"
 
 [dependencies.lyon]
-version = "0.15"
+version = "0.16"
 optional = true
 
 [dependencies.font-kit]
-version = "0.6"
+version = "0.8"
 optional = true
 
 [package.metadata.docs.rs]

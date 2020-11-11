@@ -2,8 +2,6 @@ use crate::image::atlas::{self, Atlas};
 use iced_native::svg;
 use std::collections::{HashMap, HashSet};
 
-use zerocopy::AsBytes;
-
 pub enum Svg {
     Loaded(resvg::usvg::Tree),
     NotFound,
@@ -119,7 +117,7 @@ impl Cache {
                 let allocation = texture_atlas.upload(
                     width,
                     height,
-                    canvas.get_data().as_bytes(),
+                    bytemuck::cast_slice(canvas.get_data()),
                     device,
                     encoder,
                 )?;

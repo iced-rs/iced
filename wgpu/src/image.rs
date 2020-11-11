@@ -13,7 +13,8 @@ use iced_graphics::layer;
 use iced_native::Rectangle;
 use std::cell::RefCell;
 use std::mem;
-use zerocopy::AsBytes;
+
+use bytemuck::{Pod, Zeroable};
 
 #[cfg(feature = "image")]
 use iced_native::image;
@@ -219,14 +220,14 @@ impl Pipeline {
         let vertices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image vertex buffer"),
-                contents: QUAD_VERTS.as_bytes(),
+                contents: bytemuck::cast_slice(&QUAD_VERTS),
                 usage: wgpu::BufferUsage::VERTEX,
             });
 
         let indices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image index buffer"),
-                contents: QUAD_INDICES.as_bytes(),
+                contents: bytemuck::cast_slice(&QUAD_INDICES),
                 usage: wgpu::BufferUsage::INDEX,
             });
 
@@ -385,12 +386,9 @@ impl Pipeline {
                 device,
             );
 
-            uniforms_buffer.copy_from_slice(
-                Uniforms {
-                    transform: transformation.into(),
-                }
-                .as_bytes(),
-            );
+            uniforms_buffer.copy_from_slice(bytemuck::bytes_of(&Uniforms {
+                transform: transformation.into(),
+            }));
         }
 
         let mut i = 0;
@@ -411,8 +409,9 @@ impl Pipeline {
                 device,
             );
 
-            instances_buffer
-                .copy_from_slice(instances[i..i + amount].as_bytes());
+            instances_buffer.copy_from_slice(bytemuck::cast_slice(
+                &instances[i..i + amount],
+            ));
 
             let mut render_pass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -463,7 +462,7 @@ impl Pipeline {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, AsBytes)]
+#[derive(Clone, Copy, Zeroable, Pod)]
 pub struct Vertex {
     _position: [f32; 2],
 }
@@ -486,7 +485,7 @@ const QUAD_VERTS: [Vertex; 4] = [
 ];
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, AsBytes)]
+#[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Instance {
     _position: [f32; 2],
     _size: [f32; 2],
@@ -500,7 +499,7 @@ impl Instance {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, AsBytes)]
+#[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Uniforms {
     transform: [f32; 16],
 }
