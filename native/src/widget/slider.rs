@@ -234,6 +234,8 @@ where
                     if layout.bounds().contains(cursor_position) {
                         change();
                         self.state.is_dragging = true;
+
+                        return event::Status::Captured;
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
@@ -242,11 +244,15 @@ where
                             messages.push(on_release);
                         }
                         self.state.is_dragging = false;
+
+                        return event::Status::Captured;
                     }
                 }
                 mouse::Event::CursorMoved { .. } => {
                     if self.state.is_dragging {
                         change();
+
+                        return event::Status::Captured;
                     }
                 }
                 _ => {}
