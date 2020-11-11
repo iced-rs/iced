@@ -175,6 +175,8 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if layout.bounds().contains(cursor_position) {
                     messages.push(self.on_click.clone());
+
+                    return event::Status::Captured;
                 }
             }
             _ => {}
