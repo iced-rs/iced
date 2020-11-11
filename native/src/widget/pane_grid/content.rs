@@ -172,7 +172,7 @@ where
             layout
         };
 
-        self.body.on_event(
+        let _ = self.body.on_event(
             event,
             body_layout,
             cursor_position,

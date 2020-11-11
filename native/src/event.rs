@@ -19,22 +19,19 @@ pub enum Event {
     Window(window::Event),
 }
 
-/// The status of an [`Event`] after being processed by a [`UserInterface`].
+/// The status of an [`Event`] after being processed.
 ///
 /// [`Event`]: enum.Event.html
 /// [`UserInterface`]: ../struct.UserInterface.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
-    /// The [`Event`] was _NOT_ handled by any widget in the [`UserInterface`].
+    /// The [`Event`] was _NOT_ handled by any widget.
     ///
     /// [`Event`]: enum.Event.html
-    /// [`UserInterface`]: ../struct.UserInterface.html
     Ignored,
 
-    /// The [`Event`] was handled and processed by a widget in the
-    /// [`UserInterface`].
+    /// The [`Event`] was handled and processed by a widget.
     ///
     /// [`Event`]: enum.Event.html
-    /// [`UserInterface`]: ../struct.UserInterface.html
     Captured,
 }

@@ -4,9 +4,11 @@
 //!
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
 use crate::{
-    layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 use std::hash::Hash;
 
@@ -184,7 +186,7 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if self.on_press.is_some() {
@@ -209,6 +211,8 @@ where
             }
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

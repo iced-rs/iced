@@ -1,10 +1,14 @@
 //! Show toggle controls using checkboxes.
 use std::hash::Hash;
 
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::row;
+use crate::text;
 use crate::{
-    layout, mouse, row, text, Align, Clipboard, Element, Event, Hasher,
-    HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
-    VerticalAlignment, Widget,
+    Align, Clipboard, Element, Hasher, HorizontalAlignment, Layout, Length,
+    Point, Rectangle, Row, Text, VerticalAlignment, Widget,
 };
 
 /// A box that can be checked.
@@ -161,7 +165,7 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
@@ -172,6 +176,8 @@ where
             }
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

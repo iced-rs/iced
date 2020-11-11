@@ -73,9 +73,10 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{
-    layout, overlay, Clipboard, Event, Hasher, Layout, Length, Point, Rectangle,
-};
+use crate::event::{self, Event};
+use crate::layout;
+use crate::overlay;
+use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle};
 
 /// A component that displays information and allows interaction.
 ///
@@ -182,7 +183,8 @@ where
         _messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
+        event::Status::Ignored
     }
 
     /// Returns the overlay of the [`Element`], if there is any.

@@ -1,7 +1,12 @@
 //! Navigate an endless amount of content with a scrollbar.
+use crate::column;
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::overlay;
 use crate::{
-    column, layout, mouse, overlay, Align, Clipboard, Column, Element, Event,
-    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    Align, Clipboard, Column, Element, Hasher, Layout, Length, Point,
+    Rectangle, Size, Vector, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -184,7 +189,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
 

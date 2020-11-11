@@ -1,7 +1,8 @@
+use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Clipboard, Color, Event, Hasher, Layout, Length, Point, Rectangle, Widget,
+    Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 /// A generic [`Widget`].
@@ -240,7 +241,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         self.widget.on_event(
             event,
             layout,
@@ -248,7 +249,7 @@ where
             messages,
             renderer,
             clipboard,
-        );
+        )
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].
@@ -335,10 +336,10 @@ where
         messages: &mut Vec<B>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         let mut original_messages = Vec::new();
 
-        self.widget.on_event(
+        let status = self.widget.on_event(
             event,
             layout,
             cursor_position,
@@ -350,6 +351,8 @@ where
         original_messages
             .drain(..)
             .for_each(|message| messages.push((self.mapper)(message)));
+
+        status
     }
 
     fn draw(
@@ -423,7 +426,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         self.element.widget.on_event(
             event,
             layout,

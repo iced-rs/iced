@@ -28,9 +28,16 @@ pub use split::Split;
 pub use state::{Focus, State};
 pub use title_bar::TitleBar;
 
+use crate::container;
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::overlay;
+use crate::row;
+use crate::text;
 use crate::{
-    container, layout, mouse, overlay, row, text, Clipboard, Element, Event,
-    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
+    Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -386,7 +393,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse_event) => match mouse_event {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
@@ -484,6 +491,8 @@ where
                 );
             }
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

@@ -14,11 +14,13 @@ pub use value::Value;
 
 use editor::Editor;
 
+use crate::event::{self, Event};
+use crate::keyboard;
+use crate::layout;
+use crate::mouse::{self, click};
+use crate::text;
 use crate::{
-    keyboard, layout,
-    mouse::{self, click},
-    text, Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle,
-    Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 use std::u32;
@@ -218,7 +220,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
@@ -489,6 +491,8 @@ where
             },
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

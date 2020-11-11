@@ -1,9 +1,13 @@
 //! Display a dropdown list of selectable values.
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::overlay;
+use crate::overlay::menu::{self, Menu};
+use crate::scrollable;
+use crate::text;
 use crate::{
-    layout, mouse, overlay,
-    overlay::menu::{self, Menu},
-    scrollable, text, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -223,7 +227,7 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if *self.is_open {
@@ -248,6 +252,8 @@ where
             }
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

@@ -1,9 +1,11 @@
 //! Decorate content and apply alignment.
 use std::hash::Hash;
 
+use crate::event::{self, Event};
+use crate::layout;
+use crate::overlay;
 use crate::{
-    layout, overlay, Align, Clipboard, Element, Event, Hasher, Layout, Length,
-    Point, Rectangle, Widget,
+    Align, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 use std::u32;
@@ -174,7 +176,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         self.content.widget.on_event(
             event,
             layout.children().next().unwrap(),

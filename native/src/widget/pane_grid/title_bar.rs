@@ -254,7 +254,7 @@ where
             let _ = children.next();
             let controls_layout = children.next().unwrap();
 
-            controls.on_event(
+            let _ = controls.on_event(
                 event,
                 controls_layout,
                 cursor_position,

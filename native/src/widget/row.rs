@@ -1,9 +1,9 @@
 //! Distribute content horizontally.
+use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Align, Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle,
-    Widget,
+    Align, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 use std::hash::Hash;
@@ -162,19 +162,21 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         self.children.iter_mut().zip(layout.children()).for_each(
             |(child, layout)| {
-                child.widget.on_event(
+                let _ = child.widget.on_event(
                     event.clone(),
                     layout,
                     cursor_position,
                     messages,
                     renderer,
                     clipboard,
-                )
+                );
             },
         );
+
+        event::Status::Ignored
     }
 
     fn draw(

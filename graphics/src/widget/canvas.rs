@@ -7,9 +7,11 @@
 //! [`Canvas`]: struct.Canvas.html
 //! [`Frame`]: struct.Frame.html
 use crate::{Backend, Defaults, Primitive, Renderer};
+use iced_native::layout;
+use iced_native::mouse;
 use iced_native::{
-    layout, mouse, Clipboard, Element, Hasher, Layout, Length, Point,
-    Rectangle, Size, Vector, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
+    Widget,
 };
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -166,7 +168,7 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer<B>,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         let bounds = layout.bounds();
 
         let canvas_event = match event {
@@ -188,6 +190,8 @@ where
                 messages.push(message);
             }
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

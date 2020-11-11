@@ -242,7 +242,7 @@ where
         };
 
         for event in events {
-            self.root.widget.on_event(
+            let _ = self.root.widget.on_event(
                 event.clone(),
                 Layout::new(&self.base.layout),
                 base_cursor,
