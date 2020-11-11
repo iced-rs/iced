@@ -163,20 +163,20 @@ where
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
     ) -> event::Status {
-        self.children.iter_mut().zip(layout.children()).for_each(
-            |(child, layout)| {
-                let _ = child.widget.on_event(
+        self.children
+            .iter_mut()
+            .zip(layout.children())
+            .map(|(child, layout)| {
+                child.widget.on_event(
                     event.clone(),
                     layout,
                     cursor_position,
                     messages,
                     renderer,
                     clipboard,
-                );
-            },
-        );
-
-        event::Status::Ignored
+                )
+            })
+            .fold(event::Status::Ignored, event::Status::merge)
     }
 
     fn draw(
