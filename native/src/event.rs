@@ -35,3 +35,24 @@ pub enum Status {
     /// [`Event`]: enum.Event.html
     Captured,
 }
+
+impl Status {
+    /// Merges two [`Status`] into one.
+    ///
+    /// `Captured` takes precedence over `Ignored`:
+    ///
+    /// ```
+    /// use iced_native::event::Status;
+    ///
+    /// assert_eq!(Status::Ignored.merge(Status::Ignored), Status::Ignored);
+    /// assert_eq!(Status::Ignored.merge(Status::Captured), Status::Captured);
+    /// assert_eq!(Status::Captured.merge(Status::Ignored), Status::Captured);
+    /// assert_eq!(Status::Captured.merge(Status::Captured), Status::Captured);
+    /// ```
+    pub fn merge(self, b: Self) -> Self {
+        match self {
+            Status::Ignored => b,
+            Status::Captured => Status::Captured,
+        }
+    }
+}
