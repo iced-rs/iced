@@ -1,16 +1,15 @@
-use crate::{
-    subscription::{EventStream, Recipe},
-    Event, Hasher,
-};
+use crate::event::{self, Event};
+use crate::subscription::{EventStream, Recipe};
+use crate::Hasher;
 use iced_futures::futures::future;
 use iced_futures::futures::StreamExt;
 use iced_futures::BoxStream;
 
 pub struct Events<Message> {
-    pub(super) f: fn(Event) -> Option<Message>,
+    pub(super) f: fn(Event, event::Status) -> Option<Message>,
 }
 
-impl<Message> Recipe<Hasher, Event> for Events<Message>
+impl<Message> Recipe<Hasher, (Event, event::Status)> for Events<Message>
 where
     Message: 'static + Send,
 {
@@ -29,7 +28,9 @@ where
         event_stream: EventStream,
     ) -> BoxStream<Self::Output> {
         event_stream
-            .filter_map(move |event| future::ready((self.f)(event)))
+            .filter_map(move |(event, status)| {
+                future::ready((self.f)(event, status))
+            })
             .boxed()
     }
 }

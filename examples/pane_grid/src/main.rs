@@ -3,7 +3,7 @@ use iced::{
     Button, Column, Command, Container, Element, HorizontalAlignment, Length,
     PaneGrid, Scrollable, Settings, Subscription, Text,
 };
-use iced_native::{subscription, Event};
+use iced_native::{event, subscription, Event};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -119,12 +119,18 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event| match event {
-            Event::Keyboard(keyboard::Event::KeyPressed {
-                modifiers,
-                key_code,
-            }) if modifiers.is_command_pressed() => handle_hotkey(key_code),
-            _ => None,
+        subscription::events_with(|event, status| {
+            if let event::Status::Captured = status {
+                return None;
+            }
+
+            match event {
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    modifiers,
+                    key_code,
+                }) if modifiers.is_command_pressed() => handle_hotkey(key_code),
+                _ => None,
+            }
         })
     }
 

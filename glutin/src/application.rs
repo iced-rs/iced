@@ -277,7 +277,7 @@ async fn run_instance<A, E, C>(
                     state.scale_factor(),
                     state.modifiers(),
                 ) {
-                    let _ = user_interface.update(
+                    let event_status = user_interface.update(
                         event.clone(),
                         state.cursor_position(),
                         clipboard.as_ref().map(|c| c as _),
@@ -285,7 +285,7 @@ async fn run_instance<A, E, C>(
                         &mut messages,
                     );
 
-                    runtime.broadcast(event);
+                    runtime.broadcast((event, event_status));
 
                     is_clean = false;
                 }
