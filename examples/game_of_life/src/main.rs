@@ -153,9 +153,8 @@ impl Application for GameOfLife {
 mod grid {
     use crate::Preset;
     use iced::{
-        canvas::{
-            self, Cache, Canvas, Cursor, Event, Frame, Geometry, Path, Text,
-        },
+        canvas::event::{self, Event},
+        canvas::{self, Cache, Canvas, Cursor, Frame, Geometry, Path, Text},
         mouse, Color, Element, HorizontalAlignment, Length, Point, Rectangle,
         Size, Vector, VerticalAlignment,
     };
@@ -328,12 +327,18 @@ mod grid {
             event: Event,
             bounds: Rectangle,
             cursor: Cursor,
-        ) -> Option<Message> {
+        ) -> (event::Status, Option<Message>) {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 self.interaction = Interaction::None;
             }
 
-            let cursor_position = cursor.position_in(&bounds)?;
+            let cursor_position =
+                if let Some(position) = cursor.position_in(&bounds) {
+                    position
+                } else {
+                    return (event::Status::Ignored, None);
+                };
+
             let cell = Cell::at(self.project(cursor_position, bounds.size()));
             let is_populated = self.state.contains(&cell);
 
@@ -345,28 +350,32 @@ mod grid {
 
             match event {
                 Event::Mouse(mouse_event) => match mouse_event {
-                    mouse::Event::ButtonPressed(button) => match button {
-                        mouse::Button::Left => {
-                            self.interaction = if is_populated {
-                                Interaction::Erasing
-                            } else {
-                                Interaction::Drawing
-                            };
+                    mouse::Event::ButtonPressed(button) => {
+                        let message = match button {
+                            mouse::Button::Left => {
+                                self.interaction = if is_populated {
+                                    Interaction::Erasing
+                                } else {
+                                    Interaction::Drawing
+                                };
 
-                            populate.or(unpopulate)
-                        }
-                        mouse::Button::Right => {
-                            self.interaction = Interaction::Panning {
-                                translation: self.translation,
-                                start: cursor_position,
-                            };
+                                populate.or(unpopulate)
+                            }
+                            mouse::Button::Right => {
+                                self.interaction = Interaction::Panning {
+                                    translation: self.translation,
+                                    start: cursor_position,
+                                };
 
-                            None
-                        }
-                        _ => None,
-                    },
+                                None
+                            }
+                            _ => None,
+                        };
+
+                        (event::Status::Captured, message)
+                    }
                     mouse::Event::CursorMoved { .. } => {
-                        match self.interaction {
+                        let message = match self.interaction {
                             Interaction::Drawing => populate,
                             Interaction::Erasing => unpopulate,
                             Interaction::Panning { translation, start } => {
@@ -380,7 +389,14 @@ mod grid {
                                 None
                             }
                             _ => None,
-                        }
+                        };
+
+                        let event_status = match self.interaction {
+                            Interaction::None => event::Status::Ignored,
+                            _ => event::Status::Captured,
+                        };
+
+                        (event_status, message)
                     }
                     mouse::Event::WheelScrolled { delta } => match delta {
                         mouse::ScrollDelta::Lines { y, .. }
@@ -413,12 +429,12 @@ mod grid {
                                 self.grid_cache.clear();
                             }
 
-                            None
+                            (event::Status::Captured, None)
                         }
                     },
-                    _ => None,
+                    _ => (event::Status::Ignored, None),
                 },
-                _ => None,
+                _ => (event::Status::Ignored, None),
             }
         }
 

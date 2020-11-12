@@ -16,11 +16,11 @@ use iced_native::{
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+pub mod event;
 pub mod path;
 
 mod cache;
 mod cursor;
-mod event;
 mod fill;
 mod frame;
 mod geometry;
@@ -184,11 +184,14 @@ where
         let cursor = Cursor::from_window_position(cursor_position);
 
         if let Some(canvas_event) = canvas_event {
-            if let Some(message) =
-                self.program.update(canvas_event, bounds, cursor)
-            {
+            let (event_status, message) =
+                self.program.update(canvas_event, bounds, cursor);
+
+            if let Some(message) = message {
                 messages.push(message);
             }
+
+            return event_status;
         }
 
         event::Status::Ignored

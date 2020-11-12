@@ -1,3 +1,4 @@
+//! Handle events of a canvas.
 use iced_native::keyboard;
 use iced_native::mouse;
 
