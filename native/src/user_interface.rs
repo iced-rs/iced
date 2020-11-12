@@ -1,6 +1,7 @@
+use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
-use crate::{Clipboard, Element, Event, Layout, Point, Rectangle, Size};
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Size};
 
 use std::hash::Hasher;
 
@@ -169,9 +170,10 @@ where
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
+    /// let mut messages = Vec::new();
     ///
     /// loop {
-    ///     // Process system events...
+    ///     // Obtain system events...
     ///
     ///     let mut user_interface = UserInterface::build(
     ///         counter.view(),
@@ -180,32 +182,34 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     // Update the user interface
-    ///     let messages = user_interface.update(
-    ///         &events,
-    ///         cursor_position,
-    ///         None,
-    ///         &renderer,
-    ///     );
+    ///     for event in events.drain(..) {
+    ///         // Update the user interface
+    ///         let _event_status = user_interface.update(
+    ///             event,
+    ///             cursor_position,
+    ///             None,
+    ///             &renderer,
+    ///             &mut messages
+    ///         );
+    ///     }
     ///
     ///     cache = user_interface.into_cache();
     ///
     ///     // Process the produced messages
-    ///     for message in messages {
+    ///     for message in messages.drain(..) {
     ///         counter.update(message);
     ///     }
     /// }
     /// ```
     pub fn update(
         &mut self,
-        events: &[Event],
+        event: Event,
         cursor_position: Point,
         clipboard: Option<&dyn Clipboard>,
         renderer: &Renderer,
-    ) -> Vec<Message> {
-        let mut messages = Vec::new();
-
-        let base_cursor = if let Some(mut overlay) =
+        messages: &mut Vec<Message>,
+    ) -> event::Status {
+        let (base_cursor, overlay_status) = if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
         {
             let layer = Self::overlay_layer(
@@ -215,16 +219,14 @@ where
                 renderer,
             );
 
-            for event in events {
-                let _ = overlay.on_event(
-                    event.clone(),
-                    Layout::new(&layer.layout),
-                    cursor_position,
-                    &mut messages,
-                    renderer,
-                    clipboard,
-                );
-            }
+            let event_status = overlay.on_event(
+                event.clone(),
+                Layout::new(&layer.layout),
+                cursor_position,
+                messages,
+                renderer,
+                clipboard,
+            );
 
             let base_cursor = if layer.layout.bounds().contains(cursor_position)
             {
@@ -236,23 +238,21 @@ where
 
             self.overlay = Some(layer);
 
-            base_cursor
+            (base_cursor, event_status)
         } else {
-            cursor_position
+            (cursor_position, event::Status::Ignored)
         };
 
-        for event in events {
-            let _ = self.root.widget.on_event(
-                event.clone(),
-                Layout::new(&self.base.layout),
-                base_cursor,
-                &mut messages,
-                renderer,
-                clipboard,
-            );
-        }
+        let event_status = self.root.widget.on_event(
+            event,
+            Layout::new(&self.base.layout),
+            base_cursor,
+            messages,
+            renderer,
+            clipboard,
+        );
 
-        messages
+        event_status.merge(overlay_status)
     }
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
@@ -293,9 +293,10 @@ where
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
     /// let mut events = Vec::new();
+    /// let mut messages = Vec::new();
     ///
     /// loop {
-    ///     // Process system events...
+    ///     // Obtain system events...
     ///
     ///     let mut user_interface = UserInterface::build(
     ///         counter.view(),
@@ -304,19 +305,23 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     let messages = user_interface.update(
-    ///         &events,
-    ///         cursor_position,
-    ///         None,
-    ///         &renderer,
-    ///     );
+    ///     for event in events.drain(..) {
+    ///         // Update the user interface
+    ///         let _event_status = user_interface.update(
+    ///             event,
+    ///             cursor_position,
+    ///             None,
+    ///             &renderer,
+    ///             &mut messages
+    ///         );
+    ///     }
     ///
     ///     // Draw the user interface
     ///     let mouse_cursor = user_interface.draw(&mut renderer, cursor_position);
     ///
     ///     cache = user_interface.into_cache();
     ///
-    ///     for message in messages {
+    ///     for message in messages.drain(..) {
     ///         counter.update(message);
     ///     }
     ///
