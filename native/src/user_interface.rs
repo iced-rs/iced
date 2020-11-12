@@ -216,7 +216,7 @@ where
             );
 
             for event in events {
-                overlay.on_event(
+                let _ = overlay.on_event(
                     event.clone(),
                     Layout::new(&layer.layout),
                     cursor_position,

@@ -241,15 +241,15 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
-        let _ = self.container.on_event(
+    ) -> event::Status {
+        self.container.on_event(
             event.clone(),
             layout,
             cursor_position,
             messages,
             renderer,
             clipboard,
-        );
+        )
     }
 
     fn draw(
