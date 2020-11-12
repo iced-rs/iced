@@ -122,17 +122,16 @@ where
         debug.event_processing_started();
         let mut messages = Vec::new();
 
-        for event in self.queued_events.drain(..) {
-            let _ = user_interface.update(
-                event,
-                cursor_position,
-                clipboard,
-                renderer,
-                &mut messages,
-            );
-        }
+        let _ = user_interface.update(
+            &self.queued_events,
+            cursor_position,
+            clipboard,
+            renderer,
+            &mut messages,
+        );
 
         messages.extend(self.queued_messages.drain(..));
+        self.queued_events.clear();
         debug.event_processing_finished();
 
         if messages.is_empty() {

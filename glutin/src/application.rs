@@ -155,21 +155,32 @@ async fn run_instance<A, E, C>(
         user_interface.draw(&mut renderer, state.cursor_position());
     let mut mouse_interaction = mouse::Interaction::default();
 
+    let mut events = Vec::new();
     let mut messages = Vec::new();
-    let mut is_clean = true;
 
     debug.startup_finished();
 
     while let Some(event) = receiver.next().await {
         match event {
-            event::Event::NewEvents(_) => {
-                debug.event_processing_started();
-            }
             event::Event::MainEventsCleared => {
+                if events.is_empty() && messages.is_empty() {
+                    continue;
+                }
+
+                debug.event_processing_started();
+
+                let statuses = user_interface.update(
+                    &events,
+                    state.cursor_position(),
+                    clipboard.as_ref().map(|c| c as _),
+                    &mut renderer,
+                    &mut messages,
+                );
+
                 debug.event_processing_finished();
 
-                if is_clean && messages.is_empty() {
-                    continue;
+                for event in events.drain(..).zip(statuses.into_iter()) {
+                    runtime.broadcast(event);
                 }
 
                 if !messages.is_empty() {
@@ -203,7 +214,6 @@ async fn run_instance<A, E, C>(
                 debug.draw_finished();
 
                 context.window().request_redraw();
-                is_clean = true;
             }
             event::Event::UserEvent(message) => {
                 messages.push(message);
@@ -277,17 +287,7 @@ async fn run_instance<A, E, C>(
                     state.scale_factor(),
                     state.modifiers(),
                 ) {
-                    let event_status = user_interface.update(
-                        event.clone(),
-                        state.cursor_position(),
-                        clipboard.as_ref().map(|c| c as _),
-                        &mut renderer,
-                        &mut messages,
-                    );
-
-                    runtime.broadcast((event, event_status));
-
-                    is_clean = false;
+                    events.push(event);
                 }
             }
             _ => {}

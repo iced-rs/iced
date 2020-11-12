@@ -182,16 +182,14 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     for event in events.drain(..) {
-    ///         // Update the user interface
-    ///         let _event_status = user_interface.update(
-    ///             event,
-    ///             cursor_position,
-    ///             None,
-    ///             &renderer,
-    ///             &mut messages
-    ///         );
-    ///     }
+    ///     // Update the user interface
+    ///     let event_statuses = user_interface.update(
+    ///         &events,
+    ///         cursor_position,
+    ///         None,
+    ///         &renderer,
+    ///         &mut messages
+    ///     );
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -203,13 +201,13 @@ where
     /// ```
     pub fn update(
         &mut self,
-        event: Event,
+        events: &[Event],
         cursor_position: Point,
         clipboard: Option<&dyn Clipboard>,
         renderer: &Renderer,
         messages: &mut Vec<Message>,
-    ) -> event::Status {
-        let (base_cursor, overlay_status) = if let Some(mut overlay) =
+    ) -> Vec<event::Status> {
+        let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
         {
             let layer = Self::overlay_layer(
@@ -219,14 +217,20 @@ where
                 renderer,
             );
 
-            let event_status = overlay.on_event(
-                event.clone(),
-                Layout::new(&layer.layout),
-                cursor_position,
-                messages,
-                renderer,
-                clipboard,
-            );
+            let event_statuses = events
+                .iter()
+                .cloned()
+                .map(|event| {
+                    overlay.on_event(
+                        event,
+                        Layout::new(&layer.layout),
+                        cursor_position,
+                        messages,
+                        renderer,
+                        clipboard,
+                    )
+                })
+                .collect();
 
             let base_cursor = if layer.layout.bounds().contains(cursor_position)
             {
@@ -238,21 +242,28 @@ where
 
             self.overlay = Some(layer);
 
-            (base_cursor, event_status)
+            (base_cursor, event_statuses)
         } else {
-            (cursor_position, event::Status::Ignored)
+            (cursor_position, vec![event::Status::Ignored; events.len()])
         };
 
-        let event_status = self.root.widget.on_event(
-            event,
-            Layout::new(&self.base.layout),
-            base_cursor,
-            messages,
-            renderer,
-            clipboard,
-        );
+        events
+            .iter()
+            .cloned()
+            .zip(overlay_statuses.into_iter())
+            .map(|(event, overlay_status)| {
+                let event_status = self.root.widget.on_event(
+                    event,
+                    Layout::new(&self.base.layout),
+                    base_cursor,
+                    messages,
+                    renderer,
+                    clipboard,
+                );
 
-        event_status.merge(overlay_status)
+                event_status.merge(overlay_status)
+            })
+            .collect()
     }
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
@@ -305,16 +316,14 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     for event in events.drain(..) {
-    ///         // Update the user interface
-    ///         let _event_status = user_interface.update(
-    ///             event,
-    ///             cursor_position,
-    ///             None,
-    ///             &renderer,
-    ///             &mut messages
-    ///         );
-    ///     }
+    ///     // Update the user interface
+    ///     let event_statuses = user_interface.update(
+    ///         &events,
+    ///         cursor_position,
+    ///         None,
+    ///         &renderer,
+    ///         &mut messages
+    ///     );
     ///
     ///     // Draw the user interface
     ///     let mouse_cursor = user_interface.draw(&mut renderer, cursor_position);
