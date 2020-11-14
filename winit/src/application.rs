@@ -242,28 +242,32 @@ async fn run_instance<A, E, C>(
     let mut mouse_interaction = mouse::Interaction::default();
 
     let mut events = Vec::new();
-    let mut external_messages = Vec::new();
+    let mut messages = Vec::new();
 
     debug.startup_finished();
 
     while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
-                if events.is_empty() && external_messages.is_empty() {
+                if events.is_empty() && messages.is_empty() {
                     continue;
                 }
 
                 debug.event_processing_started();
-                let mut messages = user_interface.update(
+
+                let statuses = user_interface.update(
                     &events,
                     state.cursor_position(),
                     clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
+                    &mut messages,
                 );
 
-                messages.extend(external_messages.drain(..));
-                events.clear();
                 debug.event_processing_finished();
+
+                for event in events.drain(..).zip(statuses.into_iter()) {
+                    runtime.broadcast(event);
+                }
 
                 if !messages.is_empty() {
                     let cache =
@@ -274,7 +278,7 @@ async fn run_instance<A, E, C>(
                         &mut application,
                         &mut runtime,
                         &mut debug,
-                        messages,
+                        &mut messages,
                     );
 
                     // Update window
@@ -297,7 +301,7 @@ async fn run_instance<A, E, C>(
                 window.request_redraw();
             }
             event::Event::UserEvent(message) => {
-                external_messages.push(message);
+                messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
                 debug.render_started();
@@ -365,8 +369,7 @@ async fn run_instance<A, E, C>(
                     state.scale_factor(),
                     state.modifiers(),
                 ) {
-                    events.push(event.clone());
-                    runtime.broadcast(event);
+                    events.push(event);
                 }
             }
             _ => {}
@@ -437,9 +440,9 @@ pub fn update<A: Application, E: Executor>(
     application: &mut A,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     debug: &mut Debug,
-    messages: Vec<A::Message>,
+    messages: &mut Vec<A::Message>,
 ) {
-    for message in messages {
+    for message in messages.drain(..) {
         debug.log_message(&message);
 
         debug.update_started();

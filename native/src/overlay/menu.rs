@@ -1,8 +1,14 @@
 //! Build and show dropdown menus.
+use crate::container;
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::overlay;
+use crate::scrollable;
+use crate::text;
 use crate::{
-    container, layout, mouse, overlay, scrollable, text, Clipboard, Container,
-    Element, Event, Hasher, Layout, Length, Point, Rectangle, Scrollable, Size,
-    Vector, Widget,
+    Clipboard, Container, Element, Hasher, Layout, Length, Point, Rectangle,
+    Scrollable, Size, Vector, Widget,
 };
 
 /// A list of selectable options.
@@ -235,7 +241,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         self.container.on_event(
             event.clone(),
             layout,
@@ -243,7 +249,7 @@ where
             messages,
             renderer,
             clipboard,
-        );
+        )
     }
 
     fn draw(
@@ -336,7 +342,7 @@ where
         _messages: &mut Vec<Message>,
         renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let bounds = layout.bounds();
@@ -364,6 +370,8 @@ where
             }
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

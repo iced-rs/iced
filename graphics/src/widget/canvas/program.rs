@@ -1,4 +1,5 @@
-use crate::canvas::{Cursor, Event, Geometry};
+use crate::canvas::event::{self, Event};
+use crate::canvas::{Cursor, Geometry};
 use iced_native::{mouse, Rectangle};
 
 /// The state and logic of a [`Canvas`].
@@ -27,8 +28,8 @@ pub trait Program<Message> {
         _event: Event,
         _bounds: Rectangle,
         _cursor: Cursor,
-    ) -> Option<Message> {
-        None
+    ) -> (event::Status, Option<Message>) {
+        (event::Status::Ignored, None)
     }
 
     /// Draws the state of the [`Program`], producing a bunch of [`Geometry`].
@@ -67,7 +68,7 @@ where
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> Option<Message> {
+    ) -> (event::Status, Option<Message>) {
         T::update(self, event, bounds, cursor)
     }
 

@@ -6,7 +6,9 @@ pub mod menu;
 pub use element::Element;
 pub use menu::Menu;
 
-use crate::{layout, Clipboard, Event, Hasher, Layout, Point, Size};
+use crate::event::{self, Event};
+use crate::layout;
+use crate::{Clipboard, Hasher, Layout, Point, Size};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Renderer>
@@ -79,6 +81,7 @@ where
         _messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
+        event::Status::Ignored
     }
 }

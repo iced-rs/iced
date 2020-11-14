@@ -28,9 +28,16 @@ pub use split::Split;
 pub use state::{Focus, State};
 pub use title_bar::TitleBar;
 
+use crate::container;
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::overlay;
+use crate::row;
+use crate::text;
 use crate::{
-    container, layout, mouse, overlay, row, text, Clipboard, Element, Event,
-    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
+    Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -242,7 +249,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
-    ) {
+    ) -> event::Status {
         if let Some((_, on_resize)) = &self.on_resize {
             if let Some((split, _)) = self.state.picked_split() {
                 let bounds = layout.bounds();
@@ -269,9 +276,13 @@ where
                     };
 
                     messages.push(on_resize(ResizeEvent { split, ratio }));
+
+                    return event::Status::Captured;
                 }
             }
         }
+
+        event::Status::Ignored
     }
 }
 
@@ -386,13 +397,17 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
+        let mut event_status = event::Status::Ignored;
+
         match event {
             Event::Mouse(mouse_event) => match mouse_event {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
                     let bounds = layout.bounds();
 
                     if bounds.contains(cursor_position) {
+                        event_status = event::Status::Captured;
+
                         match self.on_resize {
                             Some((leeway, _)) => {
                                 let relative_cursor = Point::new(
@@ -456,12 +471,17 @@ where
                         }
 
                         self.state.idle();
+
+                        event_status = event::Status::Captured;
                     } else if self.state.picked_split().is_some() {
                         self.state.idle();
+
+                        event_status = event::Status::Captured;
                     }
                 }
                 mouse::Event::CursorMoved { .. } => {
-                    self.trigger_resize(layout, cursor_position, messages);
+                    event_status =
+                        self.trigger_resize(layout, cursor_position, messages);
                 }
                 _ => {}
             },
@@ -469,20 +489,22 @@ where
         }
 
         if self.state.picked_pane().is_none() {
-            {
-                self.elements.iter_mut().zip(layout.children()).for_each(
-                    |((_, pane), layout)| {
-                        pane.on_event(
-                            event.clone(),
-                            layout,
-                            cursor_position,
-                            messages,
-                            renderer,
-                            clipboard,
-                        )
-                    },
-                );
-            }
+            self.elements
+                .iter_mut()
+                .zip(layout.children())
+                .map(|((_, pane), layout)| {
+                    pane.on_event(
+                        event.clone(),
+                        layout,
+                        cursor_position,
+                        messages,
+                        renderer,
+                        clipboard,
+                    )
+                })
+                .fold(event_status, event::Status::merge)
+        } else {
+            event::Status::Captured
         }
     }
 

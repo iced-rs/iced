@@ -4,9 +4,11 @@
 //!
 //! [`Button`]: struct.Button.html
 //! [`State`]: struct.State.html
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
 use crate::{
-    layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 use std::hash::Hash;
 
@@ -184,31 +186,38 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if self.on_press.is_some() {
                     let bounds = layout.bounds();
 
-                    self.state.is_pressed = bounds.contains(cursor_position);
+                    if bounds.contains(cursor_position) {
+                        self.state.is_pressed = true;
+
+                        return event::Status::Captured;
+                    }
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 if let Some(on_press) = self.on_press.clone() {
                     let bounds = layout.bounds();
 
-                    let is_clicked = self.state.is_pressed
-                        && bounds.contains(cursor_position);
+                    if self.state.is_pressed {
+                        self.state.is_pressed = false;
 
-                    self.state.is_pressed = false;
+                        if bounds.contains(cursor_position) {
+                            messages.push(on_press);
+                        }
 
-                    if is_clicked {
-                        messages.push(on_press);
+                        return event::Status::Captured;
                     }
                 }
             }
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

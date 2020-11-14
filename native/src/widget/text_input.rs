@@ -14,11 +14,13 @@ pub use value::Value;
 
 use editor::Editor;
 
+use crate::event::{self, Event};
+use crate::keyboard;
+use crate::layout;
+use crate::mouse::{self, click};
+use crate::text;
 use crate::{
-    keyboard, layout,
-    mouse::{self, click},
-    text, Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle,
-    Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 use std::u32;
@@ -218,10 +220,13 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
+
+                self.state.is_dragging = is_clicked;
+                self.state.is_focused = is_clicked;
 
                 if is_clicked {
                     let text_layout = layout.children().next().unwrap();
@@ -280,10 +285,9 @@ where
                     }
 
                     self.state.last_click = Some(click);
-                }
 
-                self.state.is_dragging = is_clicked;
-                self.state.is_focused = is_clicked;
+                    return event::Status::Captured;
+                }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 self.state.is_dragging = false;
@@ -314,6 +318,8 @@ where
                             position,
                         );
                     }
+
+                    return event::Status::Captured;
                 }
             }
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
@@ -328,167 +334,203 @@ where
 
                 let message = (self.on_change)(editor.contents());
                 messages.push(message);
+
+                return event::Status::Captured;
             }
             Event::Keyboard(keyboard::Event::KeyPressed {
                 key_code,
                 modifiers,
-            }) if self.state.is_focused => match key_code {
-                keyboard::KeyCode::Enter => {
-                    if let Some(on_submit) = self.on_submit.clone() {
-                        messages.push(on_submit);
-                    }
-                }
-                keyboard::KeyCode::Backspace => {
-                    if platform::is_jump_modifier_pressed(modifiers)
-                        && self.state.cursor.selection(&self.value).is_none()
-                    {
-                        if self.is_secure {
-                            let cursor_pos = self.state.cursor.end(&self.value);
-                            self.state.cursor.select_range(0, cursor_pos);
-                        } else {
-                            self.state.cursor.select_left_by_words(&self.value);
+            }) if self.state.is_focused => {
+                match key_code {
+                    keyboard::KeyCode::Enter => {
+                        if let Some(on_submit) = self.on_submit.clone() {
+                            messages.push(on_submit);
                         }
                     }
-
-                    let mut editor =
-                        Editor::new(&mut self.value, &mut self.state.cursor);
-
-                    editor.backspace();
-
-                    let message = (self.on_change)(editor.contents());
-                    messages.push(message);
-                }
-                keyboard::KeyCode::Delete => {
-                    if platform::is_jump_modifier_pressed(modifiers)
-                        && self.state.cursor.selection(&self.value).is_none()
-                    {
-                        if self.is_secure {
-                            let cursor_pos = self.state.cursor.end(&self.value);
-                            self.state
+                    keyboard::KeyCode::Backspace => {
+                        if platform::is_jump_modifier_pressed(modifiers)
+                            && self
+                                .state
                                 .cursor
-                                .select_range(cursor_pos, self.value.len());
-                        } else {
-                            self.state
-                                .cursor
-                                .select_right_by_words(&self.value);
+                                .selection(&self.value)
+                                .is_none()
+                        {
+                            if self.is_secure {
+                                let cursor_pos =
+                                    self.state.cursor.end(&self.value);
+                                self.state.cursor.select_range(0, cursor_pos);
+                            } else {
+                                self.state
+                                    .cursor
+                                    .select_left_by_words(&self.value);
+                            }
                         }
-                    }
 
-                    let mut editor =
-                        Editor::new(&mut self.value, &mut self.state.cursor);
-
-                    editor.delete();
-
-                    let message = (self.on_change)(editor.contents());
-                    messages.push(message);
-                }
-                keyboard::KeyCode::Left => {
-                    if platform::is_jump_modifier_pressed(modifiers)
-                        && !self.is_secure
-                    {
-                        if modifiers.shift {
-                            self.state.cursor.select_left_by_words(&self.value);
-                        } else {
-                            self.state.cursor.move_left_by_words(&self.value);
-                        }
-                    } else if modifiers.shift {
-                        self.state.cursor.select_left(&self.value)
-                    } else {
-                        self.state.cursor.move_left(&self.value);
-                    }
-                }
-                keyboard::KeyCode::Right => {
-                    if platform::is_jump_modifier_pressed(modifiers)
-                        && !self.is_secure
-                    {
-                        if modifiers.shift {
-                            self.state
-                                .cursor
-                                .select_right_by_words(&self.value);
-                        } else {
-                            self.state.cursor.move_right_by_words(&self.value);
-                        }
-                    } else if modifiers.shift {
-                        self.state.cursor.select_right(&self.value)
-                    } else {
-                        self.state.cursor.move_right(&self.value);
-                    }
-                }
-                keyboard::KeyCode::Home => {
-                    if modifiers.shift {
-                        self.state.cursor.select_range(
-                            self.state.cursor.start(&self.value),
-                            0,
+                        let mut editor = Editor::new(
+                            &mut self.value,
+                            &mut self.state.cursor,
                         );
-                    } else {
-                        self.state.cursor.move_to(0);
+
+                        editor.backspace();
+
+                        let message = (self.on_change)(editor.contents());
+                        messages.push(message);
                     }
-                }
-                keyboard::KeyCode::End => {
-                    if modifiers.shift {
-                        self.state.cursor.select_range(
-                            self.state.cursor.start(&self.value),
-                            self.value.len(),
+                    keyboard::KeyCode::Delete => {
+                        if platform::is_jump_modifier_pressed(modifiers)
+                            && self
+                                .state
+                                .cursor
+                                .selection(&self.value)
+                                .is_none()
+                        {
+                            if self.is_secure {
+                                let cursor_pos =
+                                    self.state.cursor.end(&self.value);
+                                self.state
+                                    .cursor
+                                    .select_range(cursor_pos, self.value.len());
+                            } else {
+                                self.state
+                                    .cursor
+                                    .select_right_by_words(&self.value);
+                            }
+                        }
+
+                        let mut editor = Editor::new(
+                            &mut self.value,
+                            &mut self.state.cursor,
                         );
-                    } else {
-                        self.state.cursor.move_to(self.value.len());
+
+                        editor.delete();
+
+                        let message = (self.on_change)(editor.contents());
+                        messages.push(message);
                     }
-                }
-                keyboard::KeyCode::V => {
-                    if platform::is_copy_paste_modifier_pressed(modifiers) {
-                        if let Some(clipboard) = clipboard {
-                            let content = match self.state.is_pasting.take() {
-                                Some(content) => content,
-                                None => {
-                                    let content: String = clipboard
-                                        .content()
-                                        .unwrap_or(String::new())
-                                        .chars()
-                                        .filter(|c| !c.is_control())
-                                        .collect();
-
-                                    Value::new(&content)
-                                }
-                            };
-
-                            let mut editor = Editor::new(
-                                &mut self.value,
-                                &mut self.state.cursor,
+                    keyboard::KeyCode::Left => {
+                        if platform::is_jump_modifier_pressed(modifiers)
+                            && !self.is_secure
+                        {
+                            if modifiers.shift {
+                                self.state
+                                    .cursor
+                                    .select_left_by_words(&self.value);
+                            } else {
+                                self.state
+                                    .cursor
+                                    .move_left_by_words(&self.value);
+                            }
+                        } else if modifiers.shift {
+                            self.state.cursor.select_left(&self.value)
+                        } else {
+                            self.state.cursor.move_left(&self.value);
+                        }
+                    }
+                    keyboard::KeyCode::Right => {
+                        if platform::is_jump_modifier_pressed(modifiers)
+                            && !self.is_secure
+                        {
+                            if modifiers.shift {
+                                self.state
+                                    .cursor
+                                    .select_right_by_words(&self.value);
+                            } else {
+                                self.state
+                                    .cursor
+                                    .move_right_by_words(&self.value);
+                            }
+                        } else if modifiers.shift {
+                            self.state.cursor.select_right(&self.value)
+                        } else {
+                            self.state.cursor.move_right(&self.value);
+                        }
+                    }
+                    keyboard::KeyCode::Home => {
+                        if modifiers.shift {
+                            self.state.cursor.select_range(
+                                self.state.cursor.start(&self.value),
+                                0,
                             );
-
-                            editor.paste(content.clone());
-
-                            let message = (self.on_change)(editor.contents());
-                            messages.push(message);
-
-                            self.state.is_pasting = Some(content);
+                        } else {
+                            self.state.cursor.move_to(0);
                         }
-                    } else {
+                    }
+                    keyboard::KeyCode::End => {
+                        if modifiers.shift {
+                            self.state.cursor.select_range(
+                                self.state.cursor.start(&self.value),
+                                self.value.len(),
+                            );
+                        } else {
+                            self.state.cursor.move_to(self.value.len());
+                        }
+                    }
+                    keyboard::KeyCode::V => {
+                        if platform::is_copy_paste_modifier_pressed(modifiers) {
+                            if let Some(clipboard) = clipboard {
+                                let content = match self.state.is_pasting.take()
+                                {
+                                    Some(content) => content,
+                                    None => {
+                                        let content: String = clipboard
+                                            .content()
+                                            .unwrap_or(String::new())
+                                            .chars()
+                                            .filter(|c| !c.is_control())
+                                            .collect();
+
+                                        Value::new(&content)
+                                    }
+                                };
+
+                                let mut editor = Editor::new(
+                                    &mut self.value,
+                                    &mut self.state.cursor,
+                                );
+
+                                editor.paste(content.clone());
+
+                                let message =
+                                    (self.on_change)(editor.contents());
+                                messages.push(message);
+
+                                self.state.is_pasting = Some(content);
+                            }
+                        } else {
+                            self.state.is_pasting = None;
+                        }
+                    }
+                    keyboard::KeyCode::A => {
+                        if platform::is_copy_paste_modifier_pressed(modifiers) {
+                            self.state.cursor.select_all(&self.value);
+                        }
+                    }
+                    keyboard::KeyCode::Escape => {
+                        self.state.is_focused = false;
+                        self.state.is_dragging = false;
                         self.state.is_pasting = None;
                     }
+                    _ => {}
                 }
-                keyboard::KeyCode::A => {
-                    if platform::is_copy_paste_modifier_pressed(modifiers) {
-                        self.state.cursor.select_all(&self.value);
-                    }
-                }
-                keyboard::KeyCode::Escape => {
-                    self.state.is_focused = false;
-                    self.state.is_dragging = false;
-                    self.state.is_pasting = None;
-                }
-                _ => {}
-            },
+
+                return event::Status::Captured;
+            }
             Event::Keyboard(keyboard::Event::KeyReleased {
                 key_code, ..
-            }) => match key_code {
-                keyboard::KeyCode::V => {
-                    self.state.is_pasting = None;
+            }) if self.state.is_focused => {
+                match key_code {
+                    keyboard::KeyCode::V => {
+                        self.state.is_pasting = None;
+                    }
+                    _ => {}
                 }
-                _ => {}
-            },
+
+                return event::Status::Captured;
+            }
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

@@ -1,7 +1,12 @@
 //! Navigate an endless amount of content with a scrollbar.
+use crate::column;
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::overlay;
 use crate::{
-    column, layout, mouse, overlay, Align, Clipboard, Column, Element, Event,
-    Hasher, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    Align, Clipboard, Column, Element, Hasher, Layout, Length, Point,
+    Rectangle, Size, Vector, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -184,30 +189,12 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
 
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
-
-        // TODO: Event capture. Nested scrollables should capture scroll events.
-        if is_mouse_over {
-            match event {
-                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                    match delta {
-                        mouse::ScrollDelta::Lines { y, .. } => {
-                            // TODO: Configurable speed (?)
-                            self.state.scroll(y * 60.0, bounds, content_bounds);
-                        }
-                        mouse::ScrollDelta::Pixels { y, .. } => {
-                            self.state.scroll(y, bounds, content_bounds);
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
 
         let offset = self.state.offset(bounds, content_bounds);
         let scrollbar = renderer.scrollbar(
@@ -223,12 +210,62 @@ where
             .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
             .unwrap_or(false);
 
+        let event_status = {
+            let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
+                Point::new(
+                    cursor_position.x,
+                    cursor_position.y
+                        + self.state.offset(bounds, content_bounds) as f32,
+                )
+            } else {
+                // TODO: Make `cursor_position` an `Option<Point>` so we can encode
+                // cursor availability.
+                // This will probably happen naturally once we add multi-window
+                // support.
+                Point::new(cursor_position.x, -1.0)
+            };
+
+            self.content.on_event(
+                event.clone(),
+                content,
+                cursor_position,
+                messages,
+                renderer,
+                clipboard,
+            )
+        };
+
+        if let event::Status::Captured = event_status {
+            return event::Status::Captured;
+        }
+
+        if is_mouse_over {
+            match event {
+                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                    match delta {
+                        mouse::ScrollDelta::Lines { y, .. } => {
+                            // TODO: Configurable speed (?)
+                            self.state.scroll(y * 60.0, bounds, content_bounds);
+                        }
+                        mouse::ScrollDelta::Pixels { y, .. } => {
+                            self.state.scroll(y, bounds, content_bounds);
+                        }
+                    }
+
+                    return event::Status::Captured;
+                }
+                _ => {}
+            }
+        }
+
         if self.state.is_scroller_grabbed() {
             match event {
                 Event::Mouse(mouse::Event::ButtonReleased(
                     mouse::Button::Left,
                 )) => {
                     self.state.scroller_grabbed_at = None;
+
+                    return event::Status::Captured;
                 }
                 Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                     if let (Some(scrollbar), Some(scroller_grabbed_at)) =
@@ -242,6 +279,8 @@ where
                             bounds,
                             content_bounds,
                         );
+
+                        return event::Status::Captured;
                     }
                 }
                 _ => {}
@@ -266,6 +305,8 @@ where
 
                             self.state.scroller_grabbed_at =
                                 Some(scroller_grabbed_at);
+
+                            return event::Status::Captured;
                         }
                     }
                 }
@@ -273,28 +314,7 @@ where
             }
         }
 
-        let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
-            Point::new(
-                cursor_position.x,
-                cursor_position.y
-                    + self.state.offset(bounds, content_bounds) as f32,
-            )
-        } else {
-            // TODO: Make `cursor_position` an `Option<Point>` so we can encode
-            // cursor availability.
-            // This will probably happen naturally once we add multi-window
-            // support.
-            Point::new(cursor_position.x, -1.0)
-        };
-
-        self.content.on_event(
-            event,
-            content,
-            cursor_position,
-            messages,
-            renderer,
-            clipboard,
-        )
+        event::Status::Ignored
     }
 
     fn draw(

@@ -4,9 +4,11 @@
 //!
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
 use crate::{
-    layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 use std::{hash::Hash, ops::RangeInclusive};
@@ -202,7 +204,7 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         let mut change = || {
             let bounds = layout.bounds();
             if cursor_position.x <= bounds.x {
@@ -232,6 +234,8 @@ where
                     if layout.bounds().contains(cursor_position) {
                         change();
                         self.state.is_dragging = true;
+
+                        return event::Status::Captured;
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
@@ -240,17 +244,23 @@ where
                             messages.push(on_release);
                         }
                         self.state.is_dragging = false;
+
+                        return event::Status::Captured;
                     }
                 }
                 mouse::Event::CursorMoved { .. } => {
                     if self.state.is_dragging {
                         change();
+
+                        return event::Status::Captured;
                     }
                 }
                 _ => {}
             },
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(

@@ -1,11 +1,11 @@
 //! Distribute content vertically.
 use std::hash::Hash;
 
+use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Align, Clipboard, Element, Event, Hasher, Layout, Length, Point, Rectangle,
-    Widget,
+    Align, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 use std::u32;
@@ -162,9 +162,11 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
-        self.children.iter_mut().zip(layout.children()).for_each(
-            |(child, layout)| {
+    ) -> event::Status {
+        self.children
+            .iter_mut()
+            .zip(layout.children())
+            .map(|(child, layout)| {
                 child.widget.on_event(
                     event.clone(),
                     layout,
@@ -173,8 +175,8 @@ where
                     renderer,
                     clipboard,
                 )
-            },
-        );
+            })
+            .fold(event::Status::Ignored, event::Status::merge)
     }
 
     fn draw(

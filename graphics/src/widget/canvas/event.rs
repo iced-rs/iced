@@ -1,5 +1,8 @@
+//! Handle events of a canvas.
 use iced_native::keyboard;
 use iced_native::mouse;
+
+pub use iced_native::event::Status;
 
 /// A [`Canvas`] event.
 ///

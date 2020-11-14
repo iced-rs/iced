@@ -1,5 +1,6 @@
 //! Listen to external events in your application.
-use crate::{Event, Hasher};
+use crate::event::{self, Event};
+use crate::Hasher;
 use iced_futures::futures::stream::BoxStream;
 
 /// A request to listen to external events.
@@ -15,19 +16,21 @@ use iced_futures::futures::stream::BoxStream;
 ///
 /// [`Command`]: ../struct.Command.html
 /// [`Subscription`]: struct.Subscription.html
-pub type Subscription<T> = iced_futures::Subscription<Hasher, Event, T>;
+pub type Subscription<T> =
+    iced_futures::Subscription<Hasher, (Event, event::Status), T>;
 
 /// A stream of runtime events.
 ///
 /// It is the input of a [`Subscription`] in the native runtime.
 ///
 /// [`Subscription`]: type.Subscription.html
-pub type EventStream = BoxStream<'static, Event>;
+pub type EventStream = BoxStream<'static, (Event, event::Status)>;
 
 /// A native [`Subscription`] tracker.
 ///
 /// [`Subscription`]: type.Subscription.html
-pub type Tracker = iced_futures::subscription::Tracker<Hasher, Event>;
+pub type Tracker =
+    iced_futures::subscription::Tracker<Hasher, (Event, event::Status)>;
 
 pub use iced_futures::subscription::Recipe;
 
@@ -37,13 +40,18 @@ use events::Events;
 
 /// Returns a [`Subscription`] to all the runtime events.
 ///
-/// This subscription will notify your application of any [`Event`] handled by
-/// the runtime.
+/// This subscription will notify your application of any [`Event`] that was
+/// not captured by any widget.
 ///
 /// [`Subscription`]: type.Subscription.html
 /// [`Event`]: ../enum.Event.html
 pub fn events() -> Subscription<Event> {
-    Subscription::from_recipe(Events { f: Some })
+    Subscription::from_recipe(Events {
+        f: |event, status| match status {
+            event::Status::Ignored => Some(event),
+            event::Status::Captured => None,
+        },
+    })
 }
 
 /// Returns a [`Subscription`] that filters all the runtime events with the
@@ -58,7 +66,7 @@ pub fn events() -> Subscription<Event> {
 /// [`Subscription`]: type.Subscription.html
 /// [`Event`]: ../enum.Event.html
 pub fn events_with<Message>(
-    f: fn(Event) -> Option<Message>,
+    f: fn(Event, event::Status) -> Option<Message>,
 ) -> Subscription<Message>
 where
     Message: 'static + Send,
