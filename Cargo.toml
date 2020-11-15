@@ -86,6 +86,7 @@ members = [
     "examples/tooltip",
     "examples/url_handler",
     "examples/menu",
+    "examples/integration_gl",
 ]
 
 [dependencies]
