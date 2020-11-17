@@ -165,6 +165,7 @@ where
     /// Sets the style of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
+    /// [`State`]: struct.State.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -173,8 +174,60 @@ where
     /// Returns the current [`State`] of the [`TextInput`].
     ///
     /// [`TextInput`]: struct.TextInput.html
+    /// [`State`]: struct.State.html
     pub fn state(&self) -> &State {
         self.state
+    }
+}
+
+impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
+where
+    Renderer: self::Renderer,
+{
+    /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
+    /// [`Value`] if provided.
+    ///
+    /// [`TextInput`]: struct.TextInput.html
+    /// [`Renderer`]: trait.Render.html
+    /// [`Value`]: struct.Value.html
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        value: Option<&Value>,
+    ) -> Renderer::Output {
+        let value = value.unwrap_or(&self.value);
+        let bounds = layout.bounds();
+        let text_bounds = layout.children().next().unwrap().bounds();
+
+        if self.is_secure {
+            self::Renderer::draw(
+                renderer,
+                bounds,
+                text_bounds,
+                cursor_position,
+                self.font,
+                self.size.unwrap_or(renderer.default_size()),
+                &self.placeholder,
+                &value.secure(),
+                &self.state,
+                &self.style,
+            )
+        } else {
+            self::Renderer::draw(
+                renderer,
+                bounds,
+                text_bounds,
+                cursor_position,
+                self.font,
+                self.size.unwrap_or(renderer.default_size()),
+                &self.placeholder,
+                value,
+                &self.state,
+                &self.style,
+            )
+        }
     }
 }
 
@@ -541,36 +594,7 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) -> Renderer::Output {
-        let bounds = layout.bounds();
-        let text_bounds = layout.children().next().unwrap().bounds();
-
-        if self.is_secure {
-            self::Renderer::draw(
-                renderer,
-                bounds,
-                text_bounds,
-                cursor_position,
-                self.font,
-                self.size.unwrap_or(renderer.default_size()),
-                &self.placeholder,
-                &self.value.secure(),
-                &self.state,
-                &self.style,
-            )
-        } else {
-            self::Renderer::draw(
-                renderer,
-                bounds,
-                text_bounds,
-                cursor_position,
-                self.font,
-                self.size.unwrap_or(renderer.default_size()),
-                &self.placeholder,
-                &self.value,
-                &self.state,
-                &self.style,
-            )
-        }
+        self.draw(renderer, layout, cursor_position, None)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

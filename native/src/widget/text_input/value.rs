@@ -21,6 +21,15 @@ impl Value {
         Self { graphemes }
     }
 
+    /// Returns whether the [`Value`] is empty or not.
+    ///
+    /// A [`Value`] is empty when it contains no graphemes.
+    ///
+    /// [`Value`]: struct.Value.html
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the total amount of graphemes in the [`Value`].
     ///
     /// [`Value`]: struct.Value.html
