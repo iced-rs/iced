@@ -25,7 +25,7 @@ pub use direction::Direction;
 pub use node::Node;
 pub use pane::Pane;
 pub use split::Split;
-pub use state::{Focus, State};
+pub use state::State;
 pub use title_bar::TitleBar;
 
 use crate::container;

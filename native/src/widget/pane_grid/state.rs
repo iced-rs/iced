@@ -26,22 +26,6 @@ pub struct State<T> {
     pub(super) internal: Internal,
 }
 
-/// The current focus of a [`Pane`].
-///
-/// [`Pane`]: struct.Pane.html
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Focus {
-    /// The [`Pane`] is just focused.
-    ///
-    /// [`Pane`]: struct.Pane.html
-    Idle,
-
-    /// The [`Pane`] is being dragged.
-    ///
-    /// [`Pane`]: struct.Pane.html
-    Dragging,
-}
-
 impl<T> State<T> {
     /// Creates a new [`State`], initializing the first pane with the provided
     /// state.
