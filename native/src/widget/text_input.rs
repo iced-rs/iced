@@ -278,7 +278,6 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
 
-                self.state.is_dragging = is_clicked;
                 self.state.is_focused = is_clicked;
 
                 if is_clicked {
@@ -312,6 +311,8 @@ where
                             } else {
                                 self.state.cursor.move_to(0);
                             }
+
+                            self.state.is_dragging = true;
                         }
                         click::Kind::Double => {
                             if self.is_secure {
@@ -331,9 +332,12 @@ where
                                     self.value.next_end_of_word(position),
                                 );
                             }
+
+                            self.state.is_dragging = false;
                         }
                         click::Kind::Triple => {
                             self.state.cursor.select_all(&self.value);
+                            self.state.is_dragging = false;
                         }
                     }
 
