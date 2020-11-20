@@ -6,6 +6,7 @@ edition = "2018"
 
 [features]
 canvas = ["lyon"]
+qr_code = ["qrcode", "canvas"]
 font-source = ["font-kit"]
 font-fallback = []
 font-icons = []
@@ -30,6 +31,10 @@ path = "../style"
 
 [dependencies.lyon]
 version = "0.16"
+optional = true
+
+[dependencies.qrcode]
+version = "0.12"
 optional = true
 
 [dependencies.font-kit]

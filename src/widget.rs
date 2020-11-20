@@ -30,6 +30,13 @@ mod platform {
     )]
     pub use crate::renderer::widget::canvas;
 
+    #[cfg(any(feature = "qr_code", feature = "glow_qr_code"))]
+    #[cfg_attr(
+        docsrs,
+        doc(cfg(any(feature = "qr_code", feature = "glow_qr_code")))
+    )]
+    pub use crate::renderer::widget::qr_code;
+
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
@@ -53,6 +60,10 @@ mod platform {
     #[cfg(any(feature = "canvas", feature = "glow_canvas"))]
     #[doc(no_inline)]
     pub use canvas::Canvas;
+
+    #[cfg(any(feature = "qr_code", feature = "glow_qr_code"))]
+    #[doc(no_inline)]
+    pub use qr_code::QRCode;
 }
 
 #[cfg(target_arch = "wasm32")]
