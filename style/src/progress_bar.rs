@@ -6,7 +6,7 @@ use iced_core::{Background, Color};
 pub struct Style {
     pub background: Background,
     pub bar: Background,
-    pub border_radius: u16,
+    pub border_radius: f32,
 }
 
 /// A set of rules that dictate the style of a progress bar.
@@ -21,7 +21,7 @@ impl StyleSheet for Default {
         Style {
             background: Background::Color(Color::from_rgb(0.6, 0.6, 0.6)),
             bar: Background::Color(Color::from_rgb(0.3, 0.9, 0.3)),
-            border_radius: 5,
+            border_radius: 5.0,
         }
     }
 }

@@ -42,7 +42,7 @@ where
         let radio = Primitive::Quad {
             bounds,
             background: style.background,
-            border_radius: (size / 2.0) as u16,
+            border_radius: size / 2.0,
             border_width: style.border_width,
             border_color: style.border_color,
         };
@@ -58,8 +58,8 @@ where
                             height: bounds.height - dot_size,
                         },
                         background: Background::Color(style.dot_color),
-                        border_radius: (dot_size / 2.0) as u16,
-                        border_width: 0,
+                        border_radius: dot_size / 2.0,
+                        border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     };
 

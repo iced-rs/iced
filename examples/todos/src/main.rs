@@ -611,7 +611,7 @@ mod style {
                             background: Some(Background::Color(
                                 Color::from_rgb(0.2, 0.2, 0.7),
                             )),
-                            border_radius: 10,
+                            border_radius: 10.0,
                             text_color: Color::WHITE,
                             ..button::Style::default()
                         }
@@ -627,7 +627,7 @@ mod style {
                     background: Some(Background::Color(Color::from_rgb(
                         0.8, 0.2, 0.2,
                     ))),
-                    border_radius: 5,
+                    border_radius: 5.0,
                     text_color: Color::WHITE,
                     shadow_offset: Vector::new(1.0, 1.0),
                     ..button::Style::default()

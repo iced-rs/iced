@@ -249,7 +249,7 @@ mod style {
             fn active(&self) -> button::Style {
                 button::Style {
                     background: Color::from_rgb(0.11, 0.42, 0.87).into(),
-                    border_radius: 12,
+                    border_radius: 12.0,
                     shadow_offset: Vector::new(1.0, 1.0),
                     text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
                     ..button::Style::default()
@@ -315,7 +315,7 @@ mod style {
                 radio::Style {
                     background: SURFACE.into(),
                     dot_color: ACTIVE,
-                    border_width: 1,
+                    border_width: 1.0,
                     border_color: ACTIVE,
                 }
             }
@@ -334,15 +334,15 @@ mod style {
             fn active(&self) -> text_input::Style {
                 text_input::Style {
                     background: SURFACE.into(),
-                    border_radius: 2,
-                    border_width: 0,
+                    border_radius: 2.0,
+                    border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 }
             }
 
             fn focused(&self) -> text_input::Style {
                 text_input::Style {
-                    border_width: 1,
+                    border_width: 1.0,
                     border_color: ACCENT,
                     ..self.active()
                 }
@@ -350,7 +350,7 @@ mod style {
 
             fn hovered(&self) -> text_input::Style {
                 text_input::Style {
-                    border_width: 1,
+                    border_width: 1.0,
                     border_color: Color { a: 0.3, ..ACCENT },
                     ..self.focused()
                 }
@@ -375,7 +375,7 @@ mod style {
             fn active(&self) -> button::Style {
                 button::Style {
                     background: ACTIVE.into(),
-                    border_radius: 3,
+                    border_radius: 3.0,
                     text_color: Color::WHITE,
                     ..button::Style::default()
                 }
@@ -391,7 +391,7 @@ mod style {
 
             fn pressed(&self) -> button::Style {
                 button::Style {
-                    border_width: 1,
+                    border_width: 1.0,
                     border_color: Color::WHITE,
                     ..self.hovered()
                 }
@@ -404,13 +404,13 @@ mod style {
             fn active(&self) -> scrollable::Scrollbar {
                 scrollable::Scrollbar {
                     background: SURFACE.into(),
-                    border_radius: 2,
-                    border_width: 0,
+                    border_radius: 2.0,
+                    border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                     scroller: scrollable::Scroller {
                         color: ACTIVE,
-                        border_radius: 2,
-                        border_width: 0,
+                        border_radius: 2.0,
+                        border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
                 }
@@ -449,9 +449,9 @@ mod style {
                 slider::Style {
                     rail_colors: (ACTIVE, Color { a: 0.1, ..ACTIVE }),
                     handle: slider::Handle {
-                        shape: slider::HandleShape::Circle { radius: 9 },
+                        shape: slider::HandleShape::Circle { radius: 9.0 },
                         color: ACTIVE,
-                        border_width: 0,
+                        border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
                 }
@@ -489,7 +489,7 @@ mod style {
                 progress_bar::Style {
                     background: SURFACE.into(),
                     bar: ACTIVE.into(),
-                    border_radius: 10,
+                    border_radius: 10.0,
                 }
             }
         }
@@ -502,8 +502,8 @@ mod style {
                     background: if is_checked { ACTIVE } else { SURFACE }
                         .into(),
                     checkmark_color: Color::WHITE,
-                    border_radius: 2,
-                    border_width: 1,
+                    border_radius: 2.0,
+                    border_width: 1.0,
                     border_color: ACTIVE,
                 }
             }
@@ -527,7 +527,7 @@ mod style {
                 rule::Style {
                     color: SURFACE,
                     width: 2,
-                    radius: 1,
+                    radius: 1.0,
                     fill_mode: rule::FillMode::Padded(15),
                 }
             }

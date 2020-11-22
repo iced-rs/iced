@@ -6,8 +6,8 @@ use iced_core::{Background, Color, Vector};
 pub struct Style {
     pub shadow_offset: Vector,
     pub background: Option<Background>,
-    pub border_radius: u16,
-    pub border_width: u16,
+    pub border_radius: f32,
+    pub border_width: f32,
     pub border_color: Color,
     pub text_color: Color,
 }
@@ -17,8 +17,8 @@ impl std::default::Default for Style {
         Self {
             shadow_offset: Vector::default(),
             background: None,
-            border_radius: 0,
-            border_width: 0,
+            border_radius: 0.0,
+            border_width: 0.0,
             border_color: Color::TRANSPARENT,
             text_color: Color::BLACK,
         }
@@ -72,8 +72,8 @@ impl StyleSheet for Default {
         Style {
             shadow_offset: Vector::new(0.0, 0.0),
             background: Some(Background::Color([0.87, 0.87, 0.87].into())),
-            border_radius: 2,
-            border_width: 1,
+            border_radius: 2.0,
+            border_width: 1.0,
             border_color: [0.7, 0.7, 0.7].into(),
             text_color: Color::BLACK,
         }

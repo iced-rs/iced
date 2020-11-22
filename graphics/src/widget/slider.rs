@@ -57,8 +57,8 @@ where
                     height: 2.0,
                 },
                 background: Background::Color(style.rail_colors.0),
-                border_radius: 0,
-                border_width: 0,
+                border_radius: 0.0,
+                border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },
             Primitive::Quad {
@@ -69,8 +69,8 @@ where
                     height: 2.0,
                 },
                 background: Background::Color(style.rail_colors.1),
-                border_radius: 0,
-                border_width: 0,
+                border_radius: 0.0,
+                border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },
         );
@@ -82,7 +82,7 @@ where
             .shape
         {
             HandleShape::Circle { radius } => {
-                (f32::from(radius * 2), f32::from(radius * 2), radius)
+                (radius * 2.0, radius * 2.0, radius)
             }
             HandleShape::Rectangle {
                 width,

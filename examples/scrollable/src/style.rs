@@ -114,7 +114,7 @@ mod dark {
             radio::Style {
                 background: SURFACE.into(),
                 dot_color: ACTIVE,
-                border_width: 1,
+                border_width: 1.0,
                 border_color: ACTIVE,
             }
         }
@@ -137,13 +137,13 @@ mod dark {
                     ..SCROLLBAR
                 }
                 .into(),
-                border_radius: 2,
-                border_width: 0,
+                border_radius: 2.0,
+                border_width: 0.0,
                 border_color: Color::TRANSPARENT,
                 scroller: scrollable::Scroller {
                     color: Color { a: 0.7, ..SCROLLER },
-                    border_radius: 2,
-                    border_width: 0,
+                    border_radius: 2.0,
+                    border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
             }
@@ -182,7 +182,7 @@ mod dark {
             rule::Style {
                 color: SURFACE,
                 width: 2,
-                radius: 1,
+                radius: 1.0,
                 fill_mode: rule::FillMode::Percent(30.0),
             }
         }

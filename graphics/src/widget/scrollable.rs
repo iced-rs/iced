@@ -103,7 +103,7 @@ where
                 };
 
                 let is_scrollbar_visible =
-                    style.background.is_some() || style.border_width > 0;
+                    style.background.is_some() || style.border_width > 0.0;
 
                 let scroller = if is_mouse_over
                     || state.is_scroller_grabbed()
