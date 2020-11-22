@@ -29,6 +29,11 @@ void main() {
     vec2 p_Pos = i_Pos * u_Scale;
     vec2 p_Scale = i_Scale  * u_Scale;
 
+    float i_BorderRadius = min(
+        i_BorderRadius,
+        min(i_Scale.x, i_Scale.y) / 2.0
+    );
+
     mat4 i_Transform = mat4(
         vec4(p_Scale.x + 1.0, 0.0, 0.0, 0.0),
         vec4(0.0, p_Scale.y + 1.0, 0.0, 0.0),
