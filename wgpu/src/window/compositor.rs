@@ -111,9 +111,9 @@ impl iced_graphics::window::Compositor for Compositor {
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
                 format: self.settings.format,
+                present_mode: self.settings.present_mode,
                 width,
                 height,
-                present_mode: wgpu::PresentMode::Mailbox,
             },
         )
     }

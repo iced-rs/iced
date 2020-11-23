@@ -11,6 +11,11 @@ pub struct Settings {
     /// [`Renderer`]: ../struct.Renderer.html
     pub format: wgpu::TextureFormat,
 
+    /// The present mode of the [`Renderer`].
+    ///
+    /// [`Renderer`]: ../struct.Renderer.html
+    pub present_mode: wgpu::PresentMode,
+
     /// The bytes of the font that will be used by default.
     ///
     /// If `None` is provided, a default system font will be chosen.
@@ -29,6 +34,7 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            present_mode: wgpu::PresentMode::Mailbox,
             default_font: None,
             default_text_size: 20,
             antialiasing: None,
