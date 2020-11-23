@@ -6,8 +6,8 @@ use iced_core::{Background, Color};
 pub struct Style {
     pub text_color: Option<Color>,
     pub background: Option<Background>,
-    pub border_radius: u16,
-    pub border_width: u16,
+    pub border_radius: f32,
+    pub border_width: f32,
     pub border_color: Color,
 }
 
@@ -16,8 +16,8 @@ impl std::default::Default for Style {
         Self {
             text_color: None,
             background: None,
-            border_radius: 0,
-            border_width: 0,
+            border_radius: 0.0,
+            border_width: 0.0,
             border_color: Color::TRANSPARENT,
         }
     }
@@ -36,8 +36,8 @@ impl StyleSheet for Default {
         Style {
             text_color: None,
             background: None,
-            border_radius: 0,
-            border_width: 0,
+            border_radius: 0.0,
+            border_width: 0.0,
             border_color: Color::TRANSPARENT,
         }
     }

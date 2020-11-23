@@ -43,7 +43,7 @@ where
                 },
                 background: Background::Color(style.color),
                 border_radius: style.radius,
-                border_width: 0,
+                border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             }
         } else {
@@ -63,7 +63,7 @@ where
                 },
                 background: Background::Color(style.color),
                 border_radius: style.radius,
-                border_width: 0,
+                border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             }
         };

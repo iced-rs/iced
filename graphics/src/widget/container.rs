@@ -62,7 +62,7 @@ pub(crate) fn background(
     bounds: Rectangle,
     style: &container::Style,
 ) -> Option<Primitive> {
-    if style.background.is_some() || style.border_width > 0 {
+    if style.background.is_some() || style.border_width > 0.0 {
         Some(Primitive::Quad {
             bounds,
             background: style

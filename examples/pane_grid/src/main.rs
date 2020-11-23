@@ -318,7 +318,7 @@ mod style {
         fn style(&self) -> container::Style {
             container::Style {
                 background: Some(Background::Color(SURFACE)),
-                border_width: 2,
+                border_width: 2.0,
                 border_color: if self.is_focused {
                     Color::BLACK
                 } else {
@@ -346,7 +346,7 @@ mod style {
             button::Style {
                 text_color,
                 background: background.map(Background::Color),
-                border_radius: 5,
+                border_radius: 5.0,
                 shadow_offset: Vector::new(0.0, 0.0),
                 ..button::Style::default()
             }

@@ -29,7 +29,7 @@ where
                         background: style.background,
                         border_color: style.border_color,
                         border_width: style.border_width,
-                        border_radius: 0,
+                        border_radius: 0.0,
                     },
                     primitives,
                 ],
@@ -80,8 +80,8 @@ where
                     bounds,
                     background: style.selected_background,
                     border_color: Color::TRANSPARENT,
-                    border_width: 0,
-                    border_radius: 0,
+                    border_width: 0.0,
+                    border_radius: 0.0,
                 });
             }
 

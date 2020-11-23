@@ -5,8 +5,8 @@ use iced_core::{Background, Color};
 #[derive(Debug, Clone, Copy)]
 pub struct Scrollbar {
     pub background: Option<Background>,
-    pub border_radius: u16,
-    pub border_width: u16,
+    pub border_radius: f32,
+    pub border_width: f32,
     pub border_color: Color,
     pub scroller: Scroller,
 }
@@ -15,8 +15,8 @@ pub struct Scrollbar {
 #[derive(Debug, Clone, Copy)]
 pub struct Scroller {
     pub color: Color,
-    pub border_radius: u16,
-    pub border_width: u16,
+    pub border_radius: f32,
+    pub border_width: f32,
     pub border_color: Color,
 }
 
@@ -40,13 +40,13 @@ impl StyleSheet for Default {
     fn active(&self) -> Scrollbar {
         Scrollbar {
             background: None,
-            border_radius: 5,
-            border_width: 0,
+            border_radius: 5.0,
+            border_width: 0.0,
             border_color: Color::TRANSPARENT,
             scroller: Scroller {
                 color: [0.0, 0.0, 0.0, 0.7].into(),
-                border_radius: 5,
-                border_width: 0,
+                border_radius: 5.0,
+                border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },
         }

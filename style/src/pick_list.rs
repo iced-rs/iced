@@ -6,8 +6,8 @@ use iced_core::{Background, Color};
 pub struct Style {
     pub text_color: Color,
     pub background: Background,
-    pub border_radius: u16,
-    pub border_width: u16,
+    pub border_radius: f32,
+    pub border_width: f32,
     pub border_color: Color,
     pub icon_size: f32,
 }
@@ -17,8 +17,8 @@ impl std::default::Default for Style {
         Self {
             text_color: Color::BLACK,
             background: Background::Color([0.87, 0.87, 0.87].into()),
-            border_radius: 0,
-            border_width: 1,
+            border_radius: 0.0,
+            border_width: 1.0,
             border_color: [0.7, 0.7, 0.7].into(),
             icon_size: 0.7,
         }

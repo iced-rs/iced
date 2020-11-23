@@ -156,8 +156,8 @@ impl<'a> Layer<'a> {
                     color: match background {
                         Background::Color(color) => color.into_linear(),
                     },
-                    border_radius: *border_radius as f32,
-                    border_width: *border_width as f32,
+                    border_radius: *border_radius,
+                    border_width: *border_width,
                     border_color: border_color.into_linear(),
                 });
             }

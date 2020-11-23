@@ -13,15 +13,15 @@ pub struct Style {
 pub struct Handle {
     pub shape: HandleShape,
     pub color: Color,
-    pub border_width: u16,
+    pub border_width: f32,
     pub border_color: Color,
 }
 
 /// The shape of the handle of a slider.
 #[derive(Debug, Clone, Copy)]
 pub enum HandleShape {
-    Circle { radius: u16 },
-    Rectangle { width: u16, border_radius: u16 },
+    Circle { radius: f32 },
+    Rectangle { width: u16, border_radius: f32 },
 }
 
 /// A set of rules that dictate the style of a slider.
@@ -45,11 +45,11 @@ impl StyleSheet for Default {
             handle: Handle {
                 shape: HandleShape::Rectangle {
                     width: 8,
-                    border_radius: 4,
+                    border_radius: 4.0,
                 },
                 color: Color::from_rgb(0.95, 0.95, 0.95),
                 border_color: Color::from_rgb(0.6, 0.6, 0.6),
-                border_width: 1,
+                border_width: 1.0,
             },
         }
     }
