@@ -1,7 +1,7 @@
 use crate::{
     button, checkbox, column, container, pane_grid, progress_bar, radio, row,
     scrollable, slider, text, text_input, Color, Element, Font,
-    HorizontalAlignment, Layout, Point, Rectangle, Renderer, Size,
+    HorizontalAlignment, Layout, Padding, Point, Rectangle, Renderer, Size,
     VerticalAlignment,
 };
 
@@ -145,7 +145,7 @@ impl text_input::Renderer for Null {
 }
 
 impl button::Renderer for Null {
-    const DEFAULT_PADDING: u16 = 0;
+    const DEFAULT_PADDING: Padding = Padding::ZERO;
 
     type Style = ();
 

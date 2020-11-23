@@ -1,5 +1,5 @@
 //! Style your widgets.
-use crate::{bumpalo, Align, Background, Color, Length};
+use crate::{bumpalo, Align, Background, Color, Length, Padding};
 
 use std::collections::BTreeMap;
 
@@ -12,9 +12,6 @@ pub enum Rule {
     /// Container with horizonal distribution
     Row,
 
-    /// Padding of the container
-    Padding(u16),
-
     /// Spacing between elements
     Spacing(u16),
 }
@@ -25,7 +22,6 @@ impl Rule {
         match self {
             Rule::Column => String::from("c"),
             Rule::Row => String::from("r"),
-            Rule::Padding(padding) => format!("p-{}", padding),
             Rule::Spacing(spacing) => format!("s-{}", spacing),
         }
     }
@@ -45,13 +41,6 @@ impl Rule {
 
                 bumpalo::format!(in bump, ".{} {}", class, body).into_bump_str()
             }
-            Rule::Padding(padding) => bumpalo::format!(
-                in bump,
-                ".{} {{ box-sizing: border-box; padding: {}px }}",
-                class,
-                padding
-            )
-            .into_bump_str(),
             Rule::Spacing(spacing) => bumpalo::format!(
                 in bump,
                 ".c.{} > * {{ margin-bottom: {}px }} \
@@ -169,4 +158,14 @@ pub fn align(align: Align) -> &'static str {
         Align::Center => "center",
         Align::End => "flex-end",
     }
+}
+
+/// Returns the style value for the given [`Padding`].
+///
+/// [`Padding`]: struct.Padding.html
+pub fn padding(padding: Padding) -> String {
+    format!(
+        "{}px {}px {}px {}px",
+        padding.top, padding.right, padding.bottom, padding.left
+    )
 }
