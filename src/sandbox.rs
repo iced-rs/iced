@@ -1,5 +1,5 @@
 use crate::{
-    executor, Application, Color, Command, Element, Settings, Subscription,
+    Application, Color, Command, Element, Error, Settings, Subscription,
 };
 
 /// A sandboxed [`Application`].
@@ -64,7 +64,7 @@ use crate::{
 /// ```no_run
 /// use iced::{Element, Sandbox, Settings, Text};
 ///
-/// pub fn main() {
+/// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
 /// }
 ///
@@ -159,7 +159,7 @@ pub trait Sandbox {
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Sandbox`]: trait.Sandbox.html
-    fn run(settings: Settings<()>)
+    fn run(settings: Settings<()>) -> Result<(), Error>
     where
         Self: 'static + Sized,
     {
@@ -171,7 +171,7 @@ impl<T> Application for T
 where
     T: Sandbox,
 {
-    type Executor = executor::Null;
+    type Executor = crate::runtime::executor::Null;
     type Flags = ();
     type Message = T::Message;
 

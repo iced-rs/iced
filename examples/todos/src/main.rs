@@ -5,7 +5,7 @@ use iced::{
 };
 use serde::{Deserialize, Serialize};
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Todos::run(Settings::default())
 }
 
@@ -499,7 +499,7 @@ enum SaveError {
 impl SavedState {
     fn path() -> std::path::PathBuf {
         let mut path = if let Some(project_dirs) =
-            directories::ProjectDirs::from("rs", "Iced", "Todos")
+            directories_next::ProjectDirs::from("rs", "Iced", "Todos")
         {
             project_dirs.data_dir().into()
         } else {
@@ -611,7 +611,7 @@ mod style {
                             background: Some(Background::Color(
                                 Color::from_rgb(0.2, 0.2, 0.7),
                             )),
-                            border_radius: 10,
+                            border_radius: 10.0,
                             text_color: Color::WHITE,
                             ..button::Style::default()
                         }
@@ -627,7 +627,7 @@ mod style {
                     background: Some(Background::Color(Color::from_rgb(
                         0.8, 0.2, 0.2,
                     ))),
-                    border_radius: 5,
+                    border_radius: 5.0,
                     text_color: Color::WHITE,
                     shadow_offset: Vector::new(1.0, 1.0),
                     ..button::Style::default()

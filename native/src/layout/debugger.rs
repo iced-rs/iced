@@ -1,4 +1,4 @@
-use crate::{Color, Layout, Point, Renderer, Widget};
+use crate::{Color, Layout, Point, Rectangle, Renderer, Widget};
 
 /// A renderer able to graphically explain a [`Layout`].
 ///
@@ -21,6 +21,7 @@ pub trait Debugger: Renderer {
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
         color: Color,
     ) -> Self::Output;
 }

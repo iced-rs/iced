@@ -24,6 +24,7 @@ where
         defaults: &Defaults,
         bounds: Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
         style_sheet: &Self::Style,
         content: &Element<'_, Message, Self>,
         content_layout: Layout<'_>,
@@ -36,8 +37,13 @@ where
             },
         };
 
-        let (content, mouse_interaction) =
-            content.draw(self, &defaults, content_layout, cursor_position);
+        let (content, mouse_interaction) = content.draw(
+            self,
+            &defaults,
+            content_layout,
+            cursor_position,
+            viewport,
+        );
 
         if let Some(background) = background(bounds, &style) {
             (
@@ -56,7 +62,7 @@ pub(crate) fn background(
     bounds: Rectangle,
     style: &container::Style,
 ) -> Option<Primitive> {
-    if style.background.is_some() || style.border_width > 0 {
+    if style.background.is_some() || style.border_width > 0.0 {
         Some(Primitive::Quad {
             bounds,
             background: style

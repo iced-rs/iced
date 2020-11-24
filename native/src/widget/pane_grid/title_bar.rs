@@ -1,6 +1,7 @@
+use crate::event::{self, Event};
 use crate::layout;
 use crate::pane_grid;
-use crate::{Clipboard, Element, Event, Layout, Point, Rectangle, Size};
+use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The title bar of a [`Pane`].
 ///
@@ -176,6 +177,14 @@ where
         }
     }
 
+    pub(crate) fn hash_layout(&self, hasher: &mut Hasher) {
+        use std::hash::Hash;
+
+        self.title.hash(hasher);
+        self.title_size.hash(hasher);
+        self.padding.hash(hasher);
+    }
+
     pub(crate) fn layout(
         &self,
         renderer: &Renderer,
@@ -235,7 +244,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         if let Some(controls) = &mut self.controls {
             let mut children = layout.children();
             let padded = children.next().unwrap();
@@ -251,7 +260,9 @@ where
                 messages,
                 renderer,
                 clipboard,
-            );
+            )
+        } else {
+            event::Status::Ignored
         }
     }
 }

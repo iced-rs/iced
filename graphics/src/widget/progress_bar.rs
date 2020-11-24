@@ -43,7 +43,7 @@ where
                 bounds: Rectangle { ..bounds },
                 background: style.background,
                 border_radius: style.border_radius,
-                border_width: 0,
+                border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             }],
         };
@@ -57,7 +57,7 @@ where
                     },
                     background: style.bar,
                     border_radius: style.border_radius,
-                    border_width: 0,
+                    border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 };
 

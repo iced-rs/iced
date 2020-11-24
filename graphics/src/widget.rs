@@ -15,6 +15,7 @@ pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
 pub mod radio;
+pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod svg;
@@ -40,6 +41,8 @@ pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
 pub use radio::Radio;
 #[doc(no_inline)]
+pub use rule::Rule;
+#[doc(no_inline)]
 pub use scrollable::Scrollable;
 #[doc(no_inline)]
 pub use slider::Slider;
@@ -60,3 +63,11 @@ pub mod canvas;
 #[cfg(feature = "canvas")]
 #[doc(no_inline)]
 pub use canvas::Canvas;
+
+#[cfg(feature = "qr_code")]
+#[cfg_attr(docsrs, doc(cfg(feature = "qr_code")))]
+pub mod qr_code;
+
+#[cfg(feature = "qr_code")]
+#[doc(no_inline)]
+pub use qr_code::QRCode;

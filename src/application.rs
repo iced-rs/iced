@@ -1,6 +1,5 @@
-use crate::{
-    window, Color, Command, Element, Executor, Settings, Subscription,
-};
+use crate::window;
+use crate::{Color, Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -59,14 +58,14 @@ use crate::{
 /// ```no_run
 /// use iced::{executor, Application, Command, Element, Settings, Text};
 ///
-/// pub fn main() {
+/// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
 /// }
 ///
 /// struct Hello;
 ///
 /// impl Application for Hello {
-///     type Executor = executor::Null;
+///     type Executor = executor::Default;
 ///     type Message = ();
 ///     type Flags = ();
 ///
@@ -204,16 +203,17 @@ pub trait Application: Sized {
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
-    /// and __will NOT return__.
+    /// and __will NOT return__ unless there is an [`Error`] during startup.
     ///
     /// It should probably be that last thing you call in your `main` function.
     ///
     /// [`Application`]: trait.Application.html
-    fn run(settings: Settings<Self::Flags>)
+    /// [`Error`]: enum.Error.html
+    fn run(settings: Settings<Self::Flags>) -> crate::Result
     where
         Self: 'static,
     {
-        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))]
+        #[cfg(not(target_arch = "wasm32"))]
         {
             let renderer_settings = crate::renderer::Settings {
                 default_font: settings.default_font,
@@ -226,24 +226,31 @@ pub trait Application: Sized {
                 ..crate::renderer::Settings::default()
             };
 
-            crate::runtime::application::run::<
+            Ok(crate::runtime::application::run::<
                 Instance<Self>,
                 Self::Executor,
                 crate::renderer::window::Compositor,
-            >(settings.into(), renderer_settings);
+            >(settings.into(), renderer_settings)?)
         }
 
-        #[cfg(target_arch = "wasm32")]
-        <Instance<Self> as iced_web::Application>::run(settings.flags);
 
         #[cfg(target_os = "ios")]
-        <Instance<Self> as iced_ios::Application>::run(settings.flags);
+        {
+            <Instance<Self> as iced_ios::Application>::run(settings.flags);
+            Ok(())
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            <Instance<Self> as iced_web::Application>::run(settings.flags);
+
+            Ok(())
+        }
     }
 }
 
 struct Instance<A: Application>(A);
 
-#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))]
+#[cfg(not(target_arch = "wasm32"))]
 impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
@@ -260,7 +267,7 @@ where
     }
 }
 
-#[cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))]
+#[cfg(not(target_arch = "wasm32"))]
 impl<A> crate::runtime::Application for Instance<A>
 where
     A: Application,
@@ -299,38 +306,6 @@ where
 
 #[cfg(target_arch = "wasm32")]
 impl<A> iced_web::Application for Instance<A>
-where
-    A: Application,
-{
-    type Executor = A::Executor;
-    type Message = A::Message;
-    type Flags = A::Flags;
-
-    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
-        let (app, command) = A::new(flags);
-
-        (Instance(app), command)
-    }
-
-    fn title(&self) -> String {
-        self.0.title()
-    }
-
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
-    }
-
-    fn subscription(&self) -> Subscription<Self::Message> {
-        self.0.subscription()
-    }
-
-    fn view(&mut self) -> Element<'_, Self::Message> {
-        self.0.view()
-    }
-}
-
-#[cfg(target_os = "ios")]
-impl<A> iced_ios::Application for Instance<A>
 where
     A: Application,
 {

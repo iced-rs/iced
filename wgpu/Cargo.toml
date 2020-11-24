@@ -10,21 +10,21 @@ repository = "https://github.com/hecrj/iced"
 [features]
 svg = ["resvg"]
 canvas = ["iced_graphics/canvas"]
+qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
 
 [dependencies]
-wgpu = "0.5"
-wgpu_glyph = "0.9"
+wgpu = "0.6"
+wgpu_glyph = "0.10"
 glyph_brush = "0.7"
-zerocopy = "0.3"
-bytemuck = "1.2"
 raw-window-handle = "0.3"
-glam = "0.8"
 log = "0.4"
-guillotiere = "0.5"
-# Pin `gfx-memory` until https://github.com/gfx-rs/wgpu-rs/issues/261 is
-# resolved
-gfx-memory = "=0.1.1"
+guillotiere = "0.6"
+futures = "0.3"
+
+[dependencies.bytemuck]
+version = "1.4"
+features = ["derive"]
 
 [dependencies.iced_native]
 version = "0.2"

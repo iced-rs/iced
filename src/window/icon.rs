@@ -112,7 +112,7 @@ impl fmt::Display for Error {
                 write!(f,
                 "The number of RGBA pixels ({:?}) does not match the provided \
                 dimensions ({:?}x{:?}).",
-                width, height, pixel_count,
+                pixel_count, width, height,
             )
             }
             Error::OsError(e) => write!(

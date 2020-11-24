@@ -65,3 +65,18 @@ where
         }
     }
 }
+
+impl<T> From<[T; 2]> for Vector<T> {
+    fn from([x, y]: [T; 2]) -> Self {
+        Self::new(x, y)
+    }
+}
+
+impl<T> From<Vector<T>> for [T; 2]
+where
+    T: Copy,
+{
+    fn from(other: Vector<T>) -> Self {
+        [other.x, other.y]
+    }
+}

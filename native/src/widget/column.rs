@@ -1,18 +1,16 @@
 //! Distribute content vertically.
 use std::hash::Hash;
 
+use crate::event::{self, Event};
+use crate::layout;
+use crate::overlay;
 use crate::{
-    layout, overlay, Align, Clipboard, Element, Event, Hasher, Layout, Length,
-    Point, Widget,
+    Align, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 use std::u32;
 
 /// A container that distributes its contents vertically.
-///
-/// A [`Column`] will try to fill the horizontal space of its container.
-///
-/// [`Column`]: struct.Column.html
 #[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Renderer> {
     spacing: u16,
@@ -164,9 +162,11 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
-        self.children.iter_mut().zip(layout.children()).for_each(
-            |(child, layout)| {
+    ) -> event::Status {
+        self.children
+            .iter_mut()
+            .zip(layout.children())
+            .map(|(child, layout)| {
                 child.widget.on_event(
                     event.clone(),
                     layout,
@@ -175,8 +175,8 @@ where
                     renderer,
                     clipboard,
                 )
-            },
-        );
+            })
+            .fold(event::Status::Ignored, event::Status::merge)
     }
 
     fn draw(
@@ -185,8 +185,15 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
-        renderer.draw(defaults, &self.children, layout, cursor_position)
+        renderer.draw(
+            defaults,
+            &self.children,
+            layout,
+            cursor_position,
+            viewport,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -199,6 +206,7 @@ where
         self.max_height.hash(state);
         self.align_items.hash(state);
         self.spacing.hash(state);
+        self.padding.hash(state);
 
         for child in &self.children {
             child.widget.hash_layout(state);
@@ -240,6 +248,7 @@ pub trait Renderer: crate::Renderer + Sized {
         content: &[Element<'_, Message, Self>],
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output;
 }
 

@@ -4,7 +4,7 @@ use iced::{
     Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     env_logger::init();
 
     Tour::run(Settings::default())
@@ -689,7 +689,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
     .center_x()
 }
 
-fn button<'a, Message>(
+fn button<'a, Message: Clone>(
     state: &'a mut button::State,
     label: &str,
 ) -> Button<'a, Message> {
@@ -769,7 +769,7 @@ mod style {
                     Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
                     Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
                 })),
-                border_radius: 12,
+                border_radius: 12.0,
                 shadow_offset: Vector::new(1.0, 1.0),
                 text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
                 ..button::Style::default()

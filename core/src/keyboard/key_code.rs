@@ -55,7 +55,7 @@ pub enum KeyCode {
     Y,
     Z,
 
-    /// The Escape key, next to F1
+    /// The Escape key, next to F1.
     Escape,
 
     F1,
@@ -83,14 +83,14 @@ pub enum KeyCode {
     F23,
     F24,
 
-    /// Print Screen/SysRq
+    /// Print Screen/SysRq.
     Snapshot,
-    /// Scroll Lock
+    /// Scroll Lock.
     Scroll,
-    /// Pause/Break key, next to Scroll lock
+    /// Pause/Break key, next to Scroll lock.
     Pause,
 
-    /// `Insert`, next to Backspace
+    /// `Insert`, next to Backspace.
     Insert,
     Home,
     Delete,
@@ -103,11 +103,14 @@ pub enum KeyCode {
     Right,
     Down,
 
+    /// The Backspace key, right over Enter.
     Backspace,
+    /// The Enter key.
     Enter,
+    /// The space bar.
     Space,
 
-    /// The "Compose" key on Linux
+    /// The "Compose" key on Linux.
     Compose,
 
     Caret,
@@ -123,12 +126,20 @@ pub enum KeyCode {
     Numpad7,
     Numpad8,
     Numpad9,
+    NumpadAdd,
+    NumpadDivide,
+    NumpadDecimal,
+    NumpadComma,
+    NumpadEnter,
+    NumpadEquals,
+    NumpadMultiply,
+    NumpadSubtract,
 
     AbntC1,
     AbntC2,
-    Add,
     Apostrophe,
     Apps,
+    Asterisk,
     At,
     Ax,
     Backslash,
@@ -137,8 +148,6 @@ pub enum KeyCode {
     Colon,
     Comma,
     Convert,
-    Decimal,
-    Divide,
     Equals,
     Grave,
     Kana,
@@ -152,19 +161,16 @@ pub enum KeyCode {
     MediaSelect,
     MediaStop,
     Minus,
-    Multiply,
     Mute,
     MyComputer,
-    NavigateForward,  // also called "Prior"
-    NavigateBackward, // also called "Next"
+    NavigateForward,  // also called "Next"
+    NavigateBackward, // also called "Prior"
     NextTrack,
     NoConvert,
-    NumpadComma,
-    NumpadEnter,
-    NumpadEquals,
     OEM102,
     Period,
     PlayPause,
+    Plus,
     Power,
     PrevTrack,
     RAlt,
@@ -176,7 +182,6 @@ pub enum KeyCode {
     Slash,
     Sleep,
     Stop,
-    Subtract,
     Sysrq,
     Tab,
     Underline,

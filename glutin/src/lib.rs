@@ -15,7 +15,7 @@ pub use iced_native::*;
 pub mod application;
 
 pub use iced_winit::settings;
-pub use iced_winit::Mode;
+pub use iced_winit::{Error, Mode};
 
 #[doc(no_inline)]
 pub use application::Application;

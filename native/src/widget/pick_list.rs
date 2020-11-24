@@ -1,9 +1,13 @@
 //! Display a dropdown list of selectable values.
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::overlay;
+use crate::overlay::menu::{self, Menu};
+use crate::scrollable;
+use crate::text;
 use crate::{
-    layout, mouse, overlay,
-    overlay::menu::{self, Menu},
-    scrollable, text, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -52,7 +56,7 @@ impl<T> Default for State<T> {
 impl<'a, T: 'a, Message, Renderer: self::Renderer>
     PickList<'a, T, Message, Renderer>
 where
-    T: ToString,
+    T: ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
 {
     /// Creates a new [`PickList`] with the given [`State`], a list of options,
@@ -223,13 +227,15 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if *self.is_open {
+                let event_status = if *self.is_open {
                     // TODO: Encode cursor availability in the type system
                     *self.is_open =
                         cursor_position.x < 0.0 || cursor_position.y < 0.0;
+
+                    event::Status::Captured
                 } else if layout.bounds().contains(cursor_position) {
                     let selected = self.selected.as_ref();
 
@@ -238,15 +244,23 @@ where
                         .options
                         .iter()
                         .position(|option| Some(option) == selected);
-                }
+
+                    event::Status::Captured
+                } else {
+                    event::Status::Ignored
+                };
 
                 if let Some(last_selection) = self.last_selection.take() {
                     messages.push((self.on_selected)(last_selection));
 
                     *self.is_open = false;
+
+                    event::Status::Captured
+                } else {
+                    event_status
                 }
             }
-            _ => {}
+            _ => event::Status::Ignored,
         }
     }
 
@@ -256,6 +270,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         self::Renderer::draw(
             renderer,

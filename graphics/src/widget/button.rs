@@ -62,10 +62,11 @@ where
             },
             content_layout,
             cursor_position,
+            &bounds,
         );
 
         (
-            if styling.background.is_some() || styling.border_width > 0 {
+            if styling.background.is_some() || styling.border_width > 0.0 {
                 let background = Primitive::Quad {
                     bounds,
                     background: styling
@@ -92,7 +93,7 @@ where
                             [0.0, 0.0, 0.0, 0.5].into(),
                         ),
                         border_radius: styling.border_radius,
-                        border_width: 0,
+                        border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     };
 

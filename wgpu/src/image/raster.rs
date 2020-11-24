@@ -43,14 +43,14 @@ impl Cache {
         let memory = match handle.data() {
             image::Data::Path(path) => {
                 if let Ok(image) = ::image::open(path) {
-                    Memory::Host(image.to_bgra())
+                    Memory::Host(image.to_bgra8())
                 } else {
                     Memory::NotFound
                 }
             }
             image::Data::Bytes(bytes) => {
                 if let Ok(image) = ::image::load_from_memory(&bytes) {
-                    Memory::Host(image.to_bgra())
+                    Memory::Host(image.to_bgra8())
                 } else {
                     Memory::Invalid
                 }

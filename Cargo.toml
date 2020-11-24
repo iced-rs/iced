@@ -21,13 +21,17 @@ image = ["iced_wgpu/image"]
 svg = ["iced_wgpu/svg"]
 # Enables the `Canvas` widget
 canvas = ["iced_wgpu/canvas"]
-# Enables using system fonts.
+# Enables the `QRCode` widget
+qr_code = ["iced_wgpu/qr_code"]
+# Enables using system fonts
 default_system_font = ["iced_wgpu/default_system_font"]
 # Enables the `iced_glow` renderer. Overrides `iced_wgpu`
 glow = ["iced_glow", "iced_glutin"]
 # Enables the `Canvas` widget for `iced_glow`
 glow_canvas = ["iced_glow/canvas"]
-# Enables using system fonts for `iced_glow`.
+# Enables the `QRCode` widget for `iced_glow`
+glow_qr_code = ["iced_glow/qr_code"]
+# Enables using system fonts for `iced_glow`
 glow_default_system_font = ["iced_glow/default_system_font"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
@@ -68,6 +72,8 @@ members = [
     "examples/pick_list",
     "examples/pokedex",
     "examples/progress_bar",
+    "examples/qr_code",
+    "examples/scrollable",
     "examples/solar_system",
     "examples/stopwatch",
     "examples/styling",
@@ -79,6 +85,7 @@ members = [
 [dependencies]
 iced_core = { version = "0.2", path = "core" }
 iced_futures = { version = "0.1", path = "futures" }
+thiserror = "1.0"
 
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "ios")))'.dependencies]
 iced_winit = { version = "0.1", path = "winit" }

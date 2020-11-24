@@ -5,8 +5,8 @@ use iced_core::{Background, Color};
 #[derive(Debug, Clone, Copy)]
 pub struct Style {
     pub background: Background,
-    pub border_radius: u16,
-    pub border_width: u16,
+    pub border_radius: f32,
+    pub border_width: f32,
     pub border_color: Color,
 }
 
@@ -14,8 +14,8 @@ impl std::default::Default for Style {
     fn default() -> Self {
         Self {
             background: Background::Color(Color::WHITE),
-            border_radius: 0,
-            border_width: 0,
+            border_radius: 0.0,
+            border_width: 0.0,
             border_color: Color::TRANSPARENT,
         }
     }
@@ -47,8 +47,8 @@ impl StyleSheet for Default {
     fn active(&self) -> Style {
         Style {
             background: Background::Color(Color::WHITE),
-            border_radius: 5,
-            border_width: 1,
+            border_radius: 5.0,
+            border_width: 1.0,
             border_color: Color::from_rgb(0.7, 0.7, 0.7),
         }
     }

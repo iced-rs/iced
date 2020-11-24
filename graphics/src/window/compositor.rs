@@ -1,4 +1,4 @@
-use crate::{Color, Viewport};
+use crate::{Color, Error, Viewport};
 use iced_native::mouse;
 use raw_window_handle::HasRawWindowHandle;
 
@@ -19,7 +19,7 @@ pub trait Compositor: Sized {
     /// Creates a new [`Backend`].
     ///
     /// [`Backend`]: trait.Backend.html
-    fn new(settings: Self::Settings) -> (Self, Self::Renderer);
+    fn new(settings: Self::Settings) -> Result<(Self, Self::Renderer), Error>;
 
     /// Crates a new [`Surface`] for the given window.
     ///

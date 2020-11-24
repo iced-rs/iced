@@ -14,7 +14,7 @@ use iced::{
 
 use std::time::Instant;
 
-pub fn main() {
+pub fn main() -> iced::Result {
     SolarSystem::run(Settings {
         antialiasing: true,
         ..Settings::default()

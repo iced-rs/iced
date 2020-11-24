@@ -16,7 +16,7 @@ use iced::{
 use preset::Preset;
 use std::time::{Duration, Instant};
 
-pub fn main() {
+pub fn main() -> iced::Result {
     GameOfLife::run(Settings {
         antialiasing: true,
         ..Settings::default()
@@ -31,11 +31,12 @@ struct GameOfLife {
     queued_ticks: usize,
     speed: usize,
     next_speed: Option<usize>,
+    version: usize,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    Grid(grid::Message),
+    Grid(grid::Message, usize),
     Tick(Instant),
     TogglePlayback,
     ToggleGrid(bool),
@@ -66,8 +67,10 @@ impl Application for GameOfLife {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Grid(message) => {
-                self.grid.update(message);
+            Message::Grid(message, version) => {
+                if version == self.version {
+                    self.grid.update(message);
+                }
             }
             Message::Tick(_) | Message::Next => {
                 self.queued_ticks = (self.queued_ticks + 1).min(self.speed);
@@ -79,7 +82,11 @@ impl Application for GameOfLife {
 
                     self.queued_ticks = 0;
 
-                    return Command::perform(task, Message::Grid);
+                    let version = self.version;
+
+                    return Command::perform(task, move |message| {
+                        Message::Grid(message, version)
+                    });
                 }
             }
             Message::TogglePlayback => {
@@ -90,6 +97,7 @@ impl Application for GameOfLife {
             }
             Message::Clear => {
                 self.grid.clear();
+                self.version += 1;
             }
             Message::SpeedChanged(speed) => {
                 if self.is_playing {
@@ -100,6 +108,7 @@ impl Application for GameOfLife {
             }
             Message::PresetPicked(new_preset) => {
                 self.grid = Grid::from_preset(new_preset);
+                self.version += 1;
             }
         }
 
@@ -116,6 +125,7 @@ impl Application for GameOfLife {
     }
 
     fn view(&mut self) -> Element<Message> {
+        let version = self.version;
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let controls = self.controls.view(
             self.is_playing,
@@ -125,7 +135,11 @@ impl Application for GameOfLife {
         );
 
         let content = Column::new()
-            .push(self.grid.view().map(Message::Grid))
+            .push(
+                self.grid
+                    .view()
+                    .map(move |message| Message::Grid(message, version)),
+            )
             .push(controls);
 
         Container::new(content)
@@ -139,9 +153,8 @@ impl Application for GameOfLife {
 mod grid {
     use crate::Preset;
     use iced::{
-        canvas::{
-            self, Cache, Canvas, Cursor, Event, Frame, Geometry, Path, Text,
-        },
+        canvas::event::{self, Event},
+        canvas::{self, Cache, Canvas, Cursor, Frame, Geometry, Path, Text},
         mouse, Color, Element, HorizontalAlignment, Length, Point, Rectangle,
         Size, Vector, VerticalAlignment,
     };
@@ -161,7 +174,6 @@ mod grid {
         show_lines: bool,
         last_tick_duration: Duration,
         last_queued_ticks: usize,
-        version: usize,
     }
 
     #[derive(Debug, Clone)]
@@ -171,7 +183,6 @@ mod grid {
         Ticked {
             result: Result<Life, TickError>,
             tick_duration: Duration,
-            version: usize,
         },
     }
 
@@ -208,7 +219,6 @@ mod grid {
                 show_lines: true,
                 last_tick_duration: Duration::default(),
                 last_queued_ticks: 0,
-                version: 0,
             }
         }
 
@@ -216,7 +226,6 @@ mod grid {
             &mut self,
             amount: usize,
         ) -> Option<impl Future<Output = Message>> {
-            let version = self.version;
             let tick = self.state.tick(amount)?;
 
             self.last_queued_ticks = amount;
@@ -228,7 +237,6 @@ mod grid {
 
                 Message::Ticked {
                     result,
-                    version,
                     tick_duration,
                 }
             })
@@ -250,13 +258,11 @@ mod grid {
                 }
                 Message::Ticked {
                     result: Ok(life),
-                    version,
                     tick_duration,
-                } if version == self.version => {
+                } => {
                     self.state.update(life);
                     self.life_cache.clear();
 
-                    self.version += 1;
                     self.last_tick_duration = tick_duration;
                 }
                 Message::Ticked {
@@ -264,7 +270,6 @@ mod grid {
                 } => {
                     dbg!(error);
                 }
-                Message::Ticked { .. } => {}
             }
         }
 
@@ -278,7 +283,6 @@ mod grid {
         pub fn clear(&mut self) {
             self.state = State::default();
             self.preset = Preset::Custom;
-            self.version += 1;
 
             self.life_cache.clear();
         }
@@ -323,12 +327,18 @@ mod grid {
             event: Event,
             bounds: Rectangle,
             cursor: Cursor,
-        ) -> Option<Message> {
+        ) -> (event::Status, Option<Message>) {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 self.interaction = Interaction::None;
             }
 
-            let cursor_position = cursor.position_in(&bounds)?;
+            let cursor_position =
+                if let Some(position) = cursor.position_in(&bounds) {
+                    position
+                } else {
+                    return (event::Status::Ignored, None);
+                };
+
             let cell = Cell::at(self.project(cursor_position, bounds.size()));
             let is_populated = self.state.contains(&cell);
 
@@ -340,28 +350,32 @@ mod grid {
 
             match event {
                 Event::Mouse(mouse_event) => match mouse_event {
-                    mouse::Event::ButtonPressed(button) => match button {
-                        mouse::Button::Left => {
-                            self.interaction = if is_populated {
-                                Interaction::Erasing
-                            } else {
-                                Interaction::Drawing
-                            };
+                    mouse::Event::ButtonPressed(button) => {
+                        let message = match button {
+                            mouse::Button::Left => {
+                                self.interaction = if is_populated {
+                                    Interaction::Erasing
+                                } else {
+                                    Interaction::Drawing
+                                };
 
-                            populate.or(unpopulate)
-                        }
-                        mouse::Button::Right => {
-                            self.interaction = Interaction::Panning {
-                                translation: self.translation,
-                                start: cursor_position,
-                            };
+                                populate.or(unpopulate)
+                            }
+                            mouse::Button::Right => {
+                                self.interaction = Interaction::Panning {
+                                    translation: self.translation,
+                                    start: cursor_position,
+                                };
 
-                            None
-                        }
-                        _ => None,
-                    },
+                                None
+                            }
+                            _ => None,
+                        };
+
+                        (event::Status::Captured, message)
+                    }
                     mouse::Event::CursorMoved { .. } => {
-                        match self.interaction {
+                        let message = match self.interaction {
                             Interaction::Drawing => populate,
                             Interaction::Erasing => unpopulate,
                             Interaction::Panning { translation, start } => {
@@ -375,7 +389,14 @@ mod grid {
                                 None
                             }
                             _ => None,
-                        }
+                        };
+
+                        let event_status = match self.interaction {
+                            Interaction::None => event::Status::Ignored,
+                            _ => event::Status::Captured,
+                        };
+
+                        (event_status, message)
                     }
                     mouse::Event::WheelScrolled { delta } => match delta {
                         mouse::ScrollDelta::Lines { y, .. }
@@ -408,11 +429,12 @@ mod grid {
                                 self.grid_cache.clear();
                             }
 
-                            None
+                            (event::Status::Captured, None)
                         }
                     },
-                    _ => None,
+                    _ => (event::Status::Ignored, None),
                 },
+                _ => (event::Status::Ignored, None),
             }
         }
 

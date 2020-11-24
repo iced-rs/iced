@@ -45,6 +45,12 @@ pub struct Window {
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
 
+    /// Whether the window should be transparent.
+    pub transparent: bool,
+
+    /// Whether the window will always be on top of other windows.
+    pub always_on_top: bool,
+
     /// The window icon, which is also usually used in the taskbar
     pub icon: Option<winit::window::Icon>,
 
@@ -58,7 +64,7 @@ impl Window {
         self,
         title: &str,
         mode: Mode,
-        primary_monitor: MonitorHandle,
+        primary_monitor: Option<MonitorHandle>,
     ) -> WindowBuilder {
         let mut window_builder = WindowBuilder::new();
 
@@ -69,7 +75,9 @@ impl Window {
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
+            .with_transparent(self.transparent)
             .with_window_icon(self.icon)
+            .with_always_on_top(self.always_on_top)
             .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
 
         if let Some((width, height)) = self.min_size {
@@ -103,6 +111,8 @@ impl Default for Window {
             max_size: None,
             resizable: true,
             decorations: true,
+            transparent: false,
+            always_on_top: false,
             icon: None,
             platform_specific: Default::default(),
         }

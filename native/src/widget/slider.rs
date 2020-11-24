@@ -4,9 +4,11 @@
 //!
 //! [`Slider`]: struct.Slider.html
 //! [`State`]: struct.State.html
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
 use crate::{
-    layout, mouse, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 use std::{hash::Hash, ops::RangeInclusive};
@@ -26,6 +28,7 @@ use std::{hash::Hash, ops::RangeInclusive};
 /// # use iced_native::{slider, renderer::Null};
 /// #
 /// # pub type Slider<'a, T, Message> = iced_native::Slider<'a, T, Message, Null>;
+/// #[derive(Clone)]
 /// pub enum Message {
 ///     SliderChanged(f32),
 /// }
@@ -53,6 +56,7 @@ pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
 impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
+    Message: Clone,
     Renderer: self::Renderer,
 {
     /// Creates a new [`Slider`].
@@ -168,8 +172,8 @@ impl<'a, T, Message, Renderer> Widget<Message, Renderer>
     for Slider<'a, T, Message, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
-    Renderer: self::Renderer,
     Message: Clone,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -200,7 +204,7 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         let mut change = || {
             let bounds = layout.bounds();
             if cursor_position.x <= bounds.x {
@@ -230,6 +234,8 @@ where
                     if layout.bounds().contains(cursor_position) {
                         change();
                         self.state.is_dragging = true;
+
+                        return event::Status::Captured;
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
@@ -238,17 +244,23 @@ where
                             messages.push(on_release);
                         }
                         self.state.is_dragging = false;
+
+                        return event::Status::Captured;
                     }
                 }
                 mouse::Event::CursorMoved { .. } => {
                     if self.state.is_dragging {
                         change();
+
+                        return event::Status::Captured;
                     }
                 }
                 _ => {}
             },
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(
@@ -257,6 +269,7 @@ where
         _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         let start = *self.range.start();
         let end = *self.range.end();
@@ -322,8 +335,8 @@ impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
-    Renderer: 'a + self::Renderer,
     Message: 'a + Clone,
+    Renderer: 'a + self::Renderer,
 {
     fn from(
         slider: Slider<'a, T, Message, Renderer>,

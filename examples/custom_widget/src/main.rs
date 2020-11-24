@@ -12,15 +12,15 @@ mod circle {
     use iced_graphics::{Backend, Defaults, Primitive, Renderer};
     use iced_native::{
         layout, mouse, Background, Color, Element, Hasher, Layout, Length,
-        Point, Size, Widget,
+        Point, Rectangle, Size, Widget,
     };
 
     pub struct Circle {
-        radius: u16,
+        radius: f32,
     }
 
     impl Circle {
-        pub fn new(radius: u16) -> Self {
+        pub fn new(radius: f32) -> Self {
             Self { radius }
         }
     }
@@ -42,16 +42,13 @@ mod circle {
             _renderer: &Renderer<B>,
             _limits: &layout::Limits,
         ) -> layout::Node {
-            layout::Node::new(Size::new(
-                f32::from(self.radius) * 2.0,
-                f32::from(self.radius) * 2.0,
-            ))
+            layout::Node::new(Size::new(self.radius * 2.0, self.radius * 2.0))
         }
 
         fn hash_layout(&self, state: &mut Hasher) {
             use std::hash::Hash;
 
-            self.radius.hash(state);
+            self.radius.to_bits().hash(state);
         }
 
         fn draw(
@@ -60,13 +57,14 @@ mod circle {
             _defaults: &Defaults,
             layout: Layout<'_>,
             _cursor_position: Point,
+            _viewport: &Rectangle,
         ) -> (Primitive, mouse::Interaction) {
             (
                 Primitive::Quad {
                     bounds: layout.bounds(),
                     background: Background::Color(Color::BLACK),
                     border_radius: self.radius,
-                    border_width: 0,
+                    border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
                 mouse::Interaction::default(),
@@ -90,12 +88,12 @@ use iced::{
     Slider, Text,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Example::run(Settings::default())
 }
 
 struct Example {
-    radius: u16,
+    radius: f32,
     slider: slider::State,
 }
 
@@ -109,7 +107,7 @@ impl Sandbox for Example {
 
     fn new() -> Self {
         Example {
-            radius: 50,
+            radius: 50.0,
             slider: slider::State::new(),
         }
     }
@@ -121,7 +119,7 @@ impl Sandbox for Example {
     fn update(&mut self, message: Message) {
         match message {
             Message::RadiusChanged(radius) => {
-                self.radius = radius.round() as u16;
+                self.radius = radius;
             }
         }
     }
@@ -133,13 +131,16 @@ impl Sandbox for Example {
             .max_width(500)
             .align_items(Align::Center)
             .push(Circle::new(self.radius))
-            .push(Text::new(format!("Radius: {}", self.radius.to_string())))
-            .push(Slider::new(
-                &mut self.slider,
-                1.0..=100.0,
-                f32::from(self.radius),
-                Message::RadiusChanged,
-            ));
+            .push(Text::new(format!("Radius: {:.2}", self.radius)))
+            .push(
+                Slider::new(
+                    &mut self.slider,
+                    1.0..=100.0,
+                    self.radius,
+                    Message::RadiusChanged,
+                )
+                .step(0.01),
+            );
 
         Container::new(content)
             .width(Length::Fill)

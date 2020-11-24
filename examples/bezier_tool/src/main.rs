@@ -3,11 +3,11 @@ use iced::{
     button, Align, Button, Column, Element, Length, Sandbox, Settings, Text,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Example::run(Settings {
         antialiasing: true,
         ..Settings::default()
-    });
+    })
 }
 
 #[derive(Default)]
@@ -69,7 +69,8 @@ impl Sandbox for Example {
 
 mod bezier {
     use iced::{
-        canvas::{self, Canvas, Cursor, Event, Frame, Geometry, Path, Stroke},
+        canvas::event::{self, Event},
+        canvas::{self, Canvas, Cursor, Frame, Geometry, Path, Stroke},
         mouse, Element, Length, Point, Rectangle,
     };
 
@@ -109,40 +110,51 @@ mod bezier {
             event: Event,
             bounds: Rectangle,
             cursor: Cursor,
-        ) -> Option<Curve> {
-            let cursor_position = cursor.position_in(&bounds)?;
+        ) -> (event::Status, Option<Curve>) {
+            let cursor_position =
+                if let Some(position) = cursor.position_in(&bounds) {
+                    position
+                } else {
+                    return (event::Status::Ignored, None);
+                };
 
             match event {
-                Event::Mouse(mouse_event) => match mouse_event {
-                    mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                        match self.state.pending {
-                            None => {
-                                self.state.pending = Some(Pending::One {
-                                    from: cursor_position,
-                                });
-                                None
-                            }
-                            Some(Pending::One { from }) => {
-                                self.state.pending = Some(Pending::Two {
-                                    from,
-                                    to: cursor_position,
-                                });
+                Event::Mouse(mouse_event) => {
+                    let message = match mouse_event {
+                        mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                            match self.state.pending {
+                                None => {
+                                    self.state.pending = Some(Pending::One {
+                                        from: cursor_position,
+                                    });
 
-                                None
-                            }
-                            Some(Pending::Two { from, to }) => {
-                                self.state.pending = None;
+                                    None
+                                }
+                                Some(Pending::One { from }) => {
+                                    self.state.pending = Some(Pending::Two {
+                                        from,
+                                        to: cursor_position,
+                                    });
 
-                                Some(Curve {
-                                    from,
-                                    to,
-                                    control: cursor_position,
-                                })
+                                    None
+                                }
+                                Some(Pending::Two { from, to }) => {
+                                    self.state.pending = None;
+
+                                    Some(Curve {
+                                        from,
+                                        to,
+                                        control: cursor_position,
+                                    })
+                                }
                             }
                         }
-                    }
-                    _ => None,
-                },
+                        _ => None,
+                    };
+
+                    (event::Status::Captured, message)
+                }
+                _ => (event::Status::Ignored, None),
             }
         }
 

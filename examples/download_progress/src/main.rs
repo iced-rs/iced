@@ -5,7 +5,7 @@ use iced::{
 
 mod download;
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Example::run(Settings::default())
 }
 

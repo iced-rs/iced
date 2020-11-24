@@ -1,4 +1,7 @@
-use crate::{layout, overlay, Clipboard, Element, Event, Layout, Point, Size};
+use crate::event::{self, Event};
+use crate::layout;
+use crate::overlay;
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Size};
 
 use std::hash::Hasher;
 
@@ -167,9 +170,10 @@ where
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
+    /// let mut messages = Vec::new();
     ///
     /// loop {
-    ///     // Process system events...
+    ///     // Obtain system events...
     ///
     ///     let mut user_interface = UserInterface::build(
     ///         counter.view(),
@@ -179,17 +183,18 @@ where
     ///     );
     ///
     ///     // Update the user interface
-    ///     let messages = user_interface.update(
+    ///     let event_statuses = user_interface.update(
     ///         &events,
     ///         cursor_position,
     ///         None,
     ///         &renderer,
+    ///         &mut messages
     ///     );
     ///
     ///     cache = user_interface.into_cache();
     ///
     ///     // Process the produced messages
-    ///     for message in messages {
+    ///     for message in messages.drain(..) {
     ///         counter.update(message);
     ///     }
     /// }
@@ -200,10 +205,9 @@ where
         cursor_position: Point,
         clipboard: Option<&dyn Clipboard>,
         renderer: &Renderer,
-    ) -> Vec<Message> {
-        let mut messages = Vec::new();
-
-        let base_cursor = if let Some(mut overlay) =
+        messages: &mut Vec<Message>,
+    ) -> Vec<event::Status> {
+        let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
         {
             let layer = Self::overlay_layer(
@@ -213,16 +217,20 @@ where
                 renderer,
             );
 
-            for event in events {
-                overlay.on_event(
-                    event.clone(),
-                    Layout::new(&layer.layout),
-                    cursor_position,
-                    &mut messages,
-                    renderer,
-                    clipboard,
-                );
-            }
+            let event_statuses = events
+                .iter()
+                .cloned()
+                .map(|event| {
+                    overlay.on_event(
+                        event,
+                        Layout::new(&layer.layout),
+                        cursor_position,
+                        messages,
+                        renderer,
+                        clipboard,
+                    )
+                })
+                .collect();
 
             let base_cursor = if layer.layout.bounds().contains(cursor_position)
             {
@@ -234,23 +242,28 @@ where
 
             self.overlay = Some(layer);
 
-            base_cursor
+            (base_cursor, event_statuses)
         } else {
-            cursor_position
+            (cursor_position, vec![event::Status::Ignored; events.len()])
         };
 
-        for event in events {
-            self.root.widget.on_event(
-                event.clone(),
-                Layout::new(&self.base.layout),
-                base_cursor,
-                &mut messages,
-                renderer,
-                clipboard,
-            );
-        }
+        events
+            .iter()
+            .cloned()
+            .zip(overlay_statuses.into_iter())
+            .map(|(event, overlay_status)| {
+                let event_status = self.root.widget.on_event(
+                    event,
+                    Layout::new(&self.base.layout),
+                    base_cursor,
+                    messages,
+                    renderer,
+                    clipboard,
+                );
 
-        messages
+                event_status.merge(overlay_status)
+            })
+            .collect()
     }
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
@@ -291,9 +304,10 @@ where
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
     /// let mut events = Vec::new();
+    /// let mut messages = Vec::new();
     ///
     /// loop {
-    ///     // Process system events...
+    ///     // Obtain system events...
     ///
     ///     let mut user_interface = UserInterface::build(
     ///         counter.view(),
@@ -302,11 +316,13 @@ where
     ///         &mut renderer,
     ///     );
     ///
-    ///     let messages = user_interface.update(
+    ///     // Update the user interface
+    ///     let event_statuses = user_interface.update(
     ///         &events,
     ///         cursor_position,
     ///         None,
     ///         &renderer,
+    ///         &mut messages
     ///     );
     ///
     ///     // Draw the user interface
@@ -314,7 +330,7 @@ where
     ///
     ///     cache = user_interface.into_cache();
     ///
-    ///     for message in messages {
+    ///     for message in messages.drain(..) {
     ///         counter.update(message);
     ///     }
     ///
@@ -327,6 +343,8 @@ where
         renderer: &mut Renderer,
         cursor_position: Point,
     ) -> Renderer::Output {
+        let viewport = Rectangle::with_size(self.bounds);
+
         let overlay = if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
         {
@@ -365,6 +383,7 @@ where
                 &Renderer::Defaults::default(),
                 Layout::new(&self.base.layout),
                 base_cursor,
+                &viewport,
             );
 
             renderer.overlay(
@@ -378,8 +397,26 @@ where
                 &Renderer::Defaults::default(),
                 Layout::new(&self.base.layout),
                 cursor_position,
+                &viewport,
             )
         }
+    }
+
+    /// Relayouts and returns a new  [`UserInterface`] using the provided
+    /// bounds.
+    ///
+    /// [`UserInterface`]: struct.UserInterface.html
+    pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
+        Self::build(
+            self.root,
+            bounds,
+            Cache {
+                base: self.base,
+                overlay: self.overlay,
+                bounds: self.bounds,
+            },
+            renderer,
+        )
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the

@@ -5,7 +5,7 @@ use iced::{
 };
 use std::time::{Duration, Instant};
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Stopwatch::run(Settings::default())
 }
 
@@ -161,7 +161,7 @@ mod style {
                     Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
                     Button::Destructive => Color::from_rgb(0.8, 0.2, 0.2),
                 })),
-                border_radius: 12,
+                border_radius: 12.0,
                 shadow_offset: Vector::new(1.0, 1.0),
                 text_color: Color::WHITE,
                 ..button::Style::default()

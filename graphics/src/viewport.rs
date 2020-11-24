@@ -1,7 +1,7 @@
 use crate::{Size, Transformation};
 
 /// A viewing region for displaying computer graphics.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Viewport {
     physical_size: Size<u32>,
     logical_size: Size<f32>,

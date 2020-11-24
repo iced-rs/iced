@@ -3,7 +3,7 @@ use iced::{
     Container, Element, Image, Length, Row, Settings, Text,
 };
 
-pub fn main() {
+pub fn main() -> iced::Result {
     Pokedex::run(Settings::default())
 }
 
@@ -251,7 +251,7 @@ mod style {
                 background: Some(Background::Color(match self {
                     Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
                 })),
-                border_radius: 12,
+                border_radius: 12.0,
                 shadow_offset: Vector::new(1.0, 1.0),
                 text_color: Color::WHITE,
                 ..button::Style::default()

@@ -1,6 +1,8 @@
+use crate::event::{self, Event};
+use crate::layout;
+use crate::overlay;
 use crate::{
-    layout, overlay, Clipboard, Color, Event, Hasher, Layout, Length, Point,
-    Widget,
+    Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 /// A generic [`Widget`].
@@ -239,7 +241,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         self.widget.on_event(
             event,
             layout,
@@ -247,7 +249,7 @@ where
             messages,
             renderer,
             clipboard,
-        );
+        )
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].
@@ -260,9 +262,10 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         self.widget
-            .draw(renderer, defaults, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position, viewport)
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -333,10 +336,10 @@ where
         messages: &mut Vec<B>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         let mut original_messages = Vec::new();
 
-        self.widget.on_event(
+        let status = self.widget.on_event(
             event,
             layout,
             cursor_position,
@@ -348,6 +351,8 @@ where
         original_messages
             .drain(..)
             .for_each(|message| messages.push((self.mapper)(message)));
+
+        status
     }
 
     fn draw(
@@ -356,9 +361,10 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         self.widget
-            .draw(renderer, defaults, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position, viewport)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -420,7 +426,7 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         self.element.widget.on_event(
             event,
             layout,
@@ -437,12 +443,14 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         renderer.explain(
             defaults,
             self.element.widget.as_ref(),
             layout,
             cursor_position,
+            viewport,
             self.color,
         )
     }

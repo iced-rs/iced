@@ -20,8 +20,8 @@ use iced_native::{
 };
 
 pub use iced_native::pane_grid::{
-    Axis, Configuration, Content, Direction, DragEvent, Focus, KeyPressEvent,
-    Pane, ResizeEvent, Split, State, TitleBar,
+    Axis, Configuration, Content, Direction, DragEvent, Pane, ResizeEvent,
+    Split, State, TitleBar,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -137,7 +137,7 @@ where
         let (body, body_layout) = body;
 
         let (body_primitive, body_interaction) =
-            body.draw(self, defaults, body_layout, cursor_position);
+            body.draw(self, defaults, body_layout, cursor_position, &bounds);
 
         let background = crate::widget::container::background(bounds, &style);
 
@@ -224,6 +224,7 @@ where
                 &defaults,
                 controls_layout,
                 cursor_position,
+                &bounds,
             );
 
             (

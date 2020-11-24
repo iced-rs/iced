@@ -96,10 +96,11 @@ where
         widget: &dyn Widget<Message, Self>,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
         color: Color,
     ) -> Self::Output {
         let (primitive, cursor) =
-            widget.draw(self, defaults, layout, cursor_position);
+            widget.draw(self, defaults, layout, cursor_position, viewport);
 
         let mut primitives = Vec::new();
 
@@ -118,8 +119,8 @@ fn explain_layout(
     primitives.push(Primitive::Quad {
         bounds: layout.bounds(),
         background: Background::Color(Color::TRANSPARENT),
-        border_radius: 0,
-        border_width: 1,
+        border_radius: 0.0,
+        border_width: 1.0,
         border_color: [0.6, 0.6, 0.6, 0.5].into(),
     });
 

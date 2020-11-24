@@ -35,6 +35,7 @@ impl column::Renderer for Null {
         _content: &[Element<'_, Message, Self>],
         _layout: Layout<'_>,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 }
@@ -46,6 +47,7 @@ impl row::Renderer for Null {
         _content: &[Element<'_, Message, Self>],
         _layout: Layout<'_>,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 }
@@ -89,6 +91,9 @@ impl scrollable::Renderer for Null {
         _bounds: Rectangle,
         _content_bounds: Rectangle,
         _offset: u32,
+        _scrollbar_width: u16,
+        _scrollbar_margin: u16,
+        _scroller_width: u16,
     ) -> Option<scrollable::Scrollbar> {
         None
     }
@@ -234,6 +239,7 @@ impl container::Renderer for Null {
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
         _cursor_position: Point,
+        _viewport: &Rectangle,
         _style: &Self::Style,
         _content: &Element<'_, Message, Self>,
         _content_layout: Layout<'_>,

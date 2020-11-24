@@ -30,6 +30,7 @@ pub mod pick_list;
 pub mod progress_bar;
 pub mod radio;
 pub mod row;
+pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod space;
@@ -58,6 +59,8 @@ pub use radio::Radio;
 #[doc(no_inline)]
 pub use row::Row;
 #[doc(no_inline)]
+pub use rule::Rule;
+#[doc(no_inline)]
 pub use scrollable::Scrollable;
 #[doc(no_inline)]
 pub use slider::Slider;
@@ -70,7 +73,10 @@ pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 
-use crate::{layout, overlay, Clipboard, Event, Hasher, Layout, Length, Point};
+use crate::event::{self, Event};
+use crate::layout;
+use crate::overlay;
+use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle};
 
 /// A component that displays information and allows interaction.
 ///
@@ -134,6 +140,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output;
 
     /// Computes the _layout_ hash of the [`Widget`].
@@ -176,7 +183,8 @@ where
         _messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
+        event::Status::Ignored
     }
 
     /// Returns the overlay of the [`Element`], if there is any.

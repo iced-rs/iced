@@ -1,8 +1,12 @@
 //! Create choices using radio buttons.
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::row;
+use crate::text;
 use crate::{
-    layout, mouse, row, text, Align, Clipboard, Element, Event, Hasher,
-    HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
-    VerticalAlignment, Widget,
+    Align, Clipboard, Element, Hasher, HorizontalAlignment, Layout, Length,
+    Point, Rectangle, Row, Text, VerticalAlignment, Widget,
 };
 
 use std::hash::Hash;
@@ -47,6 +51,8 @@ pub struct Radio<Message, Renderer: self::Renderer + text::Renderer> {
 
 impl<Message, Renderer: self::Renderer + text::Renderer>
     Radio<Message, Renderer>
+where
+    Message: Clone,
 {
     /// Creates a new [`Radio`] button.
     ///
@@ -123,8 +129,8 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
 
 impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer + row::Renderer,
     Message: Clone,
+    Renderer: self::Renderer + text::Renderer + row::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -164,15 +170,19 @@ where
         messages: &mut Vec<Message>,
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if layout.bounds().contains(cursor_position) {
                     messages.push(self.on_click.clone());
+
+                    return event::Status::Captured;
                 }
             }
             _ => {}
         }
+
+        event::Status::Ignored
     }
 
     fn draw(
@@ -181,6 +191,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> Renderer::Output {
         let bounds = layout.bounds();
         let mut children = layout.children();
@@ -264,8 +275,8 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + row::Renderer + text::Renderer,
     Message: 'a + Clone,
+    Renderer: 'a + self::Renderer + row::Renderer + text::Renderer,
 {
     fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(radio)

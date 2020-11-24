@@ -181,6 +181,8 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod application;
 mod element;
+mod error;
+mod result;
 mod sandbox;
 
 pub mod executor;
@@ -225,7 +227,9 @@ pub use widget::*;
 
 pub use application::Application;
 pub use element::Element;
+pub use error::Error;
 pub use executor::Executor;
+pub use result::Result;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
 

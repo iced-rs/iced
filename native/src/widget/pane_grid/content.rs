@@ -1,8 +1,9 @@
 use crate::container;
+use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::pane_grid::{self, TitleBar};
-use crate::{Clipboard, Element, Event, Hasher, Layout, Point, Size};
+use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
 
 /// The content of a [`Pane`].
 ///
@@ -41,9 +42,9 @@ where
         self
     }
 
-    /// Sets the style of the [`TitleBar`].
+    /// Sets the style of the [`Content`].
     ///
-    /// [`TitleBar`]: struct.TitleBar.html
+    /// [`Content`]: struct.Content.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -154,11 +155,13 @@ where
         messages: &mut Vec<Message>,
         renderer: &Renderer,
         clipboard: Option<&dyn Clipboard>,
-    ) {
+    ) -> event::Status {
+        let mut event_status = event::Status::Ignored;
+
         let body_layout = if let Some(title_bar) = &mut self.title_bar {
             let mut children = layout.children();
 
-            title_bar.on_event(
+            event_status = title_bar.on_event(
                 event.clone(),
                 children.next().unwrap(),
                 cursor_position,
@@ -172,7 +175,7 @@ where
             layout
         };
 
-        self.body.on_event(
+        let body_status = self.body.on_event(
             event,
             body_layout,
             cursor_position,
@@ -180,9 +183,15 @@ where
             renderer,
             clipboard,
         );
+
+        event_status.merge(body_status)
     }
 
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {
+        if let Some(title_bar) = &self.title_bar {
+            title_bar.hash_layout(state);
+        }
+
         self.body.hash_layout(state);
     }
 
