@@ -232,17 +232,15 @@ pub trait Application: Sized {
                 crate::renderer::window::Compositor,
             >(settings.into(), renderer_settings)?)
         }
-
-
-        #[cfg(target_os = "ios")]
-        {
-            <Instance<Self> as iced_ios::Application>::run(settings.flags);
-            Ok(())
-        }
         #[cfg(target_arch = "wasm32")]
         {
             <Instance<Self> as iced_web::Application>::run(settings.flags);
 
+            Ok(())
+        }
+        #[cfg(target_os = "ios")]
+        {
+            <Instance<Self> as iced_ios::Application>::run(settings.flags);
             Ok(())
         }
     }

@@ -16,41 +16,20 @@ use crate::{
 pub use iced_style::text_input::{Style, StyleSheet};
 
 use std::{
+    ffi::CStr,
     rc::Rc,
     u32
 };
 
-use std::convert::TryInto;
 use uikit_sys::{
-    id, CGPoint, CGRect, CGSize, INSNotificationCenter, INSObject, IUITextView,
+    id, INSNotificationCenter, INSObject, IUITextView,
     NSNotificationCenter, NSString, NSString_NSStringExtensionMethods,
     UITextView, UITextViewTextDidChangeNotification, UIView, IUIView,
     UIView_UIViewHierarchy,
     UIView_UIViewGeometry,
-    CALayer,
+    ICALayer,
     UIScreen, IUIScreen,
 };
-
-/// A field that can be filled with text.
-///
-/// # Example
-/// ```
-/// # use iced_web::{text_input, TextInput};
-/// #
-/// enum Message {
-///     TextInputChanged(String),
-/// }
-///
-/// let mut state = text_input::State::new();
-/// let value = "Some text";
-///
-/// let input = TextInput::new(
-///     &mut state,
-///     "This is the placeholder...",
-///     value,
-///     Message::TextInputChanged,
-/// );
-/// ```
 #[allow(missing_debug_implementations)]
 pub struct TextInput<'a, Message> {
     _state: &'a mut State,
@@ -181,6 +160,7 @@ where
     fn update(&self, current_node: &mut WidgetNode, root_view: Option<UIView>) {
         match &current_node.widget_type {
             WidgetType::TextInput => {
+                // TODO: check/update the styles of the input box.
             },
             other => {
                 debug!("Updating from {:?}, to {:?}", other, self.get_widget_type());
@@ -196,27 +176,33 @@ where
     }
 
     fn build_uiview(&self, is_root: bool) -> WidgetNode {
+        info!("Building text input uiview");
         let mut ids_to_drop : Vec<id> = Vec::new();
-        let textview = unsafe {
+        let textview = {
             let ui_textview = {
-                let view = UITextView(UITextView::alloc().init());
+                let view = unsafe {UITextView(UITextView::alloc().init())};
                 if is_root {
-                    let screen = UIScreen::mainScreen();
-                    let frame = screen.bounds();
-                    view.setFrame_(frame);
+                    unsafe {
+                        let frame = UIScreen::mainScreen().bounds();
+                        view.setFrame_(frame);
+                    }
                 }
                 view
             };
+
             let on_change = EventHandler::new(ui_textview.0);
             // https://developer.apple.com/documentation/foundation/nsnotificationcenter/1415360-addobserver?language=objc
-            let center = NSNotificationCenter::defaultCenter();
-            center.addObserver_selector_name_object_(
-                on_change.id,
-                sel!(sendEvent),
-                UITextViewTextDidChangeNotification,
-                ui_textview.0,
-            );
+            unsafe {
+                NSNotificationCenter::defaultCenter().addObserver_selector_name_object_(
+                    on_change.id,
+                    sel!(sendEvent),
+                    UITextViewTextDidChangeNotification.clone(),
+                    ui_textview.0,
+                );
+            }
             ids_to_drop.push(on_change.id);
+            // TODO: Make this a debug feature
+            unsafe { ui_textview.layer().setBorderWidth_(3.0); }
             ui_textview
         };
 
@@ -232,7 +218,6 @@ where
         node
     }
 
-
     fn on_widget_event(
         &mut self,
         widget_event: WidgetEvent,
@@ -247,24 +232,29 @@ where
             );
         if widget_event.id as id == widget_node.view_id {
             let ui_textview = UITextView(widget_event.id as id);
-            let value = unsafe {
-                let value = ui_textview.text();
-                let len = value
-                    .lengthOfBytesUsingEncoding_(uikit_sys::NSUTF8StringEncoding);
-                let bytes = value.UTF8String() as *const u8;
-                String::from_utf8(
-                    std::slice::from_raw_parts(bytes, len.try_into().unwrap())
-                    .to_vec(),
-                )
-                    .unwrap()
+            let value = {
+                // This is only unsafe due to the FFI of bindgen.
+                // This copies the NSString and so we will be taking ownership of it.
+                let value = unsafe {ui_textview.text()};
+
+                // The documentation on weather this is nullable is unclear. Best to check anyway.
+                if value.0 == 0 as id {
+                    return;
+                }
+                let bytes = unsafe { value.UTF8String() };
+                if bytes.is_null() {
+                    return;
+                }
+                let cstr = unsafe { CStr::from_ptr(bytes) };
+                cstr.to_string_lossy().to_owned().to_string()
             };
             if value.ends_with("\n") {
                 if let Some(on_submit) = self.on_submit.take() {
                     messages.push(on_submit);
                 }
             } else {
-                self.value = value;
                 messages.push((self.on_change)(self.value.clone()));
+                self.value = value;
             }
         }
     }
@@ -274,7 +264,7 @@ where
     }
 
     fn height(&self) -> Length {
-        todo!()
+        Length::Shrink
     }
 }
 

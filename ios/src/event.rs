@@ -9,7 +9,7 @@ use objc::{
 };
 
 use uikit_sys::id;
-use std::sync::atomic::{AtomicU64, Ordering};
+
 
 
 #[derive(PartialEq, Clone, Debug)]
@@ -36,6 +36,7 @@ impl EventHandler {
     pub fn new(objc_id: id) -> Self
     {
         let mut widget_id = 0;
+        // TODO: Figure out how to make this unsafe block much smaller.
         let obj = unsafe {
             let obj: id = objc::msg_send![Self::class(), alloc];
             let obj: id = objc::msg_send![obj, init];
@@ -54,6 +55,8 @@ impl EventHandler {
     }
     extern "C" fn event(this: &Object, _cmd: objc::runtime::Sel)
     {
+
+        // TODO: Figure out how to make this unsafe block smaller.
         unsafe {
             if let Some(ref proxy) = PROXY {
                 let widget_id = *this.get_ivar::<u64>("widget_id");

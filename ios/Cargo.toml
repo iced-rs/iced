@@ -5,29 +5,17 @@ authors = ["Sebastian Imlay <sebastian.imlay@gmail.com>"]
 edition = "2018"
 description = "iOS backend for iced"
 
-[package.metadata.bundle.example.ios-example]
-name = "ios-example"
-identifier = "com.github.iced.simple"
-category = "Utility"
-icon = ["examples/icon32x32.png"]
-short_description = "An example of a bundled application"
-long_description = """
-A trivial application that just displays a blank window with
-a title bar.  It serves as an example of an application that
-can be bundled with cargo-bundle, as well as a test-case for
-cargo-bundle's support for bundling crate examples.
-"""
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 twox-hash = "1.5"
 raw-window-handle = "^0.3"
-winit = { git = "https://github.com/simlay/winit", branch = "ios-rename-nsstring"}
+winit = { git = "https://github.com/rust-windowing/winit", branch = "master"}
 objc = "0.2.7"
 log = "0.4"
 num-traits = "0.2"
-uikit-sys = { git = "https://github.com/simlay/uikit-sys", branch = "bindgen-categories-and-better-return-types" }
+uikit-sys = { git = "https://github.com/simlay/uikit-sys", branch = "bindgen-category-and-no-copy" }
+dispatch = "0.2.0"
 
 [dependencies.iced_core]
 version = "0.2"
@@ -41,8 +29,3 @@ path = "../style"
 version = "0.1"
 path = "../futures"
 features = ["thread-pool"]
-
-[dev-dependencies]
-iced = { path = "../", features = ["image", "debug"] }
-pretty_env_logger = "0.3"
-color-backtrace = { version = "0.4.2", features = ["failure-bt"] }

@@ -139,6 +139,10 @@ pub trait Application: Sized {
         };
 
         let root_view: UIView = UIView(window.ui_view() as id);
+        // TODO: Make this a debug feature
+        unsafe {
+            root_view.setBackgroundColor_(UIColor::redColor());
+        }
         let mut widget_tree: WidgetNode = WidgetNode::new(0 as id, crate::widget::WidgetType::BaseElement, 0);
 
         event_loop.run(
@@ -170,7 +174,7 @@ pub trait Application: Sized {
                         }
                         let element = app.view();
 
-                        element.update(&mut widget_tree, Some(root_view));
+                        element.update(&mut widget_tree, Some(root_view.clone()));
                         trace!("Root widget after: {:#?}", widget_tree);
                     }
                     event::Event::RedrawRequested(_) => {}
