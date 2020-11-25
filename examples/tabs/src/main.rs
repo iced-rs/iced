@@ -51,7 +51,7 @@ impl Sandbox for Tabs {
 
     fn view(&mut self) -> Element<Message> {
         let page_tabs = Page::all().iter().cloned().fold(
-            Row::new().padding(0).spacing(9),
+            Row::new().padding(0).spacing(10),
             |choices, page| {
                 choices.push(Tab::new(
                     page,
