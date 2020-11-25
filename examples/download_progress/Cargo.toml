@@ -6,7 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["tokio"] }
+iced = { path = "../..", features = ["tokio_old"] }
 iced_native = { path = "../../native" }
 iced_futures = { path = "../../futures" }
 reqwest = "0.10"

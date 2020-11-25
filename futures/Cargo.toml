@@ -19,6 +19,12 @@ log = "0.4"
 [dependencies.futures]
 version = "0.3"
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.tokio_old]
+package = "tokio"
+version = "0.2"
+optional = true
+features = ["rt-core", "rt-threaded", "time", "stream"]
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.tokio]
 version = "0.3"
 optional = true
