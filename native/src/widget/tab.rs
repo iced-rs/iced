@@ -12,6 +12,8 @@ use std::hash::Hash;
 ///
 /// # Example
 /// ```
+/// # use iced_native::{tab, Text};
+/// #
 /// # type Tab<Message> =
 /// #     iced_native::Tab<Message, iced_native::renderer::Null>;
 /// #
