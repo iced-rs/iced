@@ -37,6 +37,8 @@ glow_default_system_font = ["iced_glow/default_system_font"]
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
+# Enables old `tokio` (0.2) as the `executor::Default` on native platforms
+tokio_old = ["iced_futures/tokio_old"]
 # Enables `async-std` as the `executor::Default` on native platforms
 async-std = ["iced_futures/async-std"]
 # Enables advanced color conversion via `palette`

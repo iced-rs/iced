@@ -7,13 +7,23 @@ pub use platform::Default;
 mod platform {
     use iced_futures::{executor, futures};
 
-    #[cfg(feature = "tokio")]
+    #[cfg(feature = "tokio_old")]
+    type Executor = executor::TokioOld;
+
+    #[cfg(all(not(feature = "tokio_old"), feature = "tokio"))]
     type Executor = executor::Tokio;
 
-    #[cfg(all(not(feature = "tokio"), feature = "async-std"))]
+    #[cfg(all(
+        not(any(feature = "tokio_old", feature = "tokio")),
+        feature = "async-std"
+    ))]
     type Executor = executor::AsyncStd;
 
-    #[cfg(not(any(feature = "tokio", feature = "async-std")))]
+    #[cfg(not(any(
+        feature = "tokio_old",
+        feature = "tokio",
+        feature = "async-std"
+    )))]
     type Executor = executor::ThreadPool;
 
     /// A default cross-platform executor.
@@ -40,7 +50,7 @@ mod platform {
         }
 
         fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
-            self.0.enter(f)
+            super::Executor::enter(&self.0, f)
         }
     }
 }

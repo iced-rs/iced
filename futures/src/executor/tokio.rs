@@ -16,6 +16,7 @@ impl Executor for Tokio {
     }
 
     fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
-        tokio::runtime::Runtime::enter(self, f)
+        let _guard = tokio::runtime::Runtime::enter(self);
+        f()
     }
 }
