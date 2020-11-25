@@ -64,7 +64,7 @@ impl std::default::Default for Indicator {
     fn default() -> Self {
         Indicator {
             color: Color::from_rgb(0.36, 0.36, 0.36),
-            thickness: 3.0,
+            thickness: 2.0,
             border_radius: 0.0,
             length: None,
             position: Position::Bottom,

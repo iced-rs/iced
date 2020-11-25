@@ -94,6 +94,7 @@ impl Sandbox for Tabs {
                                             .width(Length::Fill),
                                     )
                                     .width(Length::Fill)
+                                    .padding(5)
                                     .style(tab::StyleDefaultVertical),
                                 )
                                 .push(Rule::horizontal(0))
