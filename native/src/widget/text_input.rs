@@ -570,7 +570,7 @@ where
                         self.state.is_pasting = None;
 
                         self.state.keyboard_modifiers =
-                            keyboard::ModifiersState::default();
+                            keyboard::Modifiers::default();
                     }
                     _ => {}
                 }
@@ -734,7 +734,7 @@ pub struct State {
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
-    keyboard_modifiers: keyboard::ModifiersState,
+    keyboard_modifiers: keyboard::Modifiers,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -756,7 +756,7 @@ impl State {
             is_pasting: None,
             last_click: None,
             cursor: Cursor::default(),
-            keyboard_modifiers: keyboard::ModifiersState::default(),
+            keyboard_modifiers: keyboard::Modifiers::default(),
         }
     }
 
@@ -873,9 +873,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
 mod platform {
     use crate::keyboard;
 
-    pub fn is_jump_modifier_pressed(
-        modifiers: keyboard::ModifiersState,
-    ) -> bool {
+    pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
         if cfg!(target_os = "macos") {
             modifiers.alt
         } else {
