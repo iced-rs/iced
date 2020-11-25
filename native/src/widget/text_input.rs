@@ -382,7 +382,7 @@ where
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
                     && self.state.is_pasting.is_none()
-                    && !self.state.is_logo_pressed
+                    && !self.state.keyboard_modifiers.is_command_pressed()
                     && !c.is_control() =>
             {
                 let mut editor =
@@ -396,12 +396,9 @@ where
                 return event::Status::Captured;
             }
             Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code,
-                modifiers,
+                key_code, ..
             }) if self.state.is_focused => {
-                if platform::is_copy_paste_modifier_pressed(modifiers) {
-                    self.state.is_logo_pressed = true;
-                }
+                let modifiers = self.state.keyboard_modifiers;
 
                 match key_code {
                     keyboard::KeyCode::Enter => {
@@ -528,7 +525,7 @@ where
                         }
                     }
                     keyboard::KeyCode::V => {
-                        if self.state.is_logo_pressed {
+                        if self.state.keyboard_modifiers.is_command_pressed() {
                             if let Some(clipboard) = clipboard {
                                 let content = match self.state.is_pasting.take()
                                 {
@@ -563,15 +560,17 @@ where
                         }
                     }
                     keyboard::KeyCode::A => {
-                        if self.state.is_logo_pressed {
+                        if self.state.keyboard_modifiers.is_command_pressed() {
                             self.state.cursor.select_all(&self.value);
                         }
                     }
                     keyboard::KeyCode::Escape => {
                         self.state.is_focused = false;
                         self.state.is_dragging = false;
-                        self.state.is_logo_pressed = false;
                         self.state.is_pasting = None;
+
+                        self.state.keyboard_modifiers =
+                            keyboard::ModifiersState::default();
                     }
                     _ => {}
                 }
@@ -585,12 +584,15 @@ where
                     keyboard::KeyCode::V => {
                         self.state.is_pasting = None;
                     }
-                    _ => {
-                        self.state.is_logo_pressed = false;
-                    }
+                    _ => {}
                 }
 
                 return event::Status::Captured;
+            }
+            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers))
+                if self.state.is_focused =>
+            {
+                self.state.keyboard_modifiers = modifiers;
             }
             _ => {}
         }
@@ -729,10 +731,10 @@ where
 pub struct State {
     is_focused: bool,
     is_dragging: bool,
-    is_logo_pressed: bool,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
+    keyboard_modifiers: keyboard::ModifiersState,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -751,10 +753,10 @@ impl State {
         Self {
             is_focused: true,
             is_dragging: false,
-            is_logo_pressed: false,
             is_pasting: None,
             last_click: None,
             cursor: Cursor::default(),
+            keyboard_modifiers: keyboard::ModifiersState::default(),
         }
     }
 
@@ -876,16 +878,6 @@ mod platform {
     ) -> bool {
         if cfg!(target_os = "macos") {
             modifiers.alt
-        } else {
-            modifiers.control
-        }
-    }
-
-    pub fn is_copy_paste_modifier_pressed(
-        modifiers: keyboard::ModifiersState,
-    ) -> bool {
-        if cfg!(target_os = "macos") {
-            modifiers.logo
         } else {
             modifiers.control
         }
