@@ -97,8 +97,6 @@ pub use executor::Executor;
 pub trait Application {
     /// The [`Executor`] that will run commands and subscriptions.
     ///
-    /// The [`executor::WasmBindgen`] can be a good choice for the Web.
-    ///
     /// [`Executor`]: trait.Executor.html
     /// [`executor::Default`]: executor/struct.Default.html
     type Executor: Executor;
