@@ -41,7 +41,10 @@ where
     }
 }
 
-#[cfg(all(feature = "tokio", not(feature = "async-std")))]
+#[cfg(all(
+    any(feature = "tokio", feature = "tokio_old"),
+    not(feature = "async-std")
+))]
 impl<H, E> subscription::Recipe<H, E> for Every
 where
     H: std::hash::Hasher,
@@ -60,6 +63,9 @@ where
         _input: futures::stream::BoxStream<'static, E>,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         use futures::stream::StreamExt;
+
+        #[cfg(feature = "tokio_old")]
+        use tokio_old as tokio;
 
         let start = tokio::time::Instant::now() + self.0;
 

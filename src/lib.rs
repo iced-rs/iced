@@ -193,10 +193,17 @@ pub mod widget;
 pub mod window;
 
 #[cfg(all(
-    any(feature = "tokio", feature = "async-std"),
+    any(feature = "tokio", feature = "tokio_old", feature = "async-std"),
     not(target_arch = "wasm32")
 ))]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "tokio", feature = "async-std"))))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(
+        feature = "tokio",
+        feature = "tokio_old",
+        feature = "async-std"
+    )))
+)]
 pub mod time;
 
 #[cfg(all(

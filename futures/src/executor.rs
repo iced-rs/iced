@@ -7,6 +7,9 @@ mod thread_pool;
 #[cfg(all(not(target_arch = "wasm32"), feature = "tokio"))]
 mod tokio;
 
+#[cfg(all(not(target_arch = "wasm32"), feature = "tokio_old"))]
+mod tokio_old;
+
 #[cfg(all(not(target_arch = "wasm32"), feature = "async-std"))]
 mod async_std;
 
@@ -20,6 +23,9 @@ pub use thread_pool::ThreadPool;
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "tokio"))]
 pub use self::tokio::Tokio;
+
+#[cfg(all(not(target_arch = "wasm32"), feature = "tokio_old"))]
+pub use self::tokio_old::TokioOld;
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "async-std"))]
 pub use self::async_std::AsyncStd;
