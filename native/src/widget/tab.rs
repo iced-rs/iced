@@ -14,8 +14,8 @@ use std::hash::Hash;
 /// ```
 /// # use iced_native::{tab, Text};
 /// #
-/// # type Tab<Message> =
-/// #     iced_native::Tab<Message, iced_native::renderer::Null>;
+/// # type Tab<'a, Message> =
+/// #     iced_native::Tab<'a, Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {
