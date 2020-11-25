@@ -19,6 +19,7 @@ pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod svg;
+pub mod tab;
 pub mod text_input;
 
 mod column;
@@ -46,6 +47,8 @@ pub use rule::Rule;
 pub use scrollable::Scrollable;
 #[doc(no_inline)]
 pub use slider::Slider;
+#[doc(no_inline)]
+pub use tab::Tab;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 

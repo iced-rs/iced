@@ -5,7 +5,7 @@ use iced_native::mouse;
 use iced_native::rule;
 use iced_native::{Background, Color, Rectangle};
 
-pub use iced_style::rule::{FillMode, Style, StyleSheet};
+pub use iced_style::rule::{FillMode, Style, StyleDefaultPadded, StyleSheet};
 
 /// Display a horizontal or vertical rule for dividing content.
 ///

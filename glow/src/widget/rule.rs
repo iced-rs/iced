@@ -2,7 +2,9 @@
 
 use crate::Renderer;
 
-pub use iced_graphics::rule::{FillMode, Style, StyleSheet};
+pub use iced_graphics::rule::{
+    FillMode, Style, StyleDefaultPadded, StyleSheet,
+};
 
 /// Display a horizontal or vertical rule for dividing content.
 ///

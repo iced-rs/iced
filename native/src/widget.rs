@@ -35,6 +35,7 @@ pub mod scrollable;
 pub mod slider;
 pub mod space;
 pub mod svg;
+pub mod tab;
 pub mod text;
 pub mod text_input;
 
@@ -68,6 +69,8 @@ pub use slider::Slider;
 pub use space::Space;
 #[doc(no_inline)]
 pub use svg::Svg;
+#[doc(no_inline)]
+pub use tab::Tab;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
