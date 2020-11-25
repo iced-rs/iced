@@ -12,15 +12,11 @@ pub struct Space {
 
 impl Space {
     /// Creates an amount of empty [`Space`] with the given width and height.
-    ///
-    /// [`Space`]: struct.Space.html
     pub fn new(width: Length, height: Length) -> Self {
         Space { width, height }
     }
 
     /// Creates an amount of horizontal [`Space`].
-    ///
-    /// [`Space`]: struct.Space.html
     pub fn with_width(width: Length) -> Self {
         Space {
             width,
@@ -29,8 +25,6 @@ impl Space {
     }
 
     /// Creates an amount of vertical [`Space`].
-    ///
-    /// [`Space`]: struct.Space.html
     pub fn with_height(height: Length) -> Self {
         Space {
             width: Length::Shrink,

@@ -1,9 +1,6 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
-//!
-//! [`Button`]: type.Button.html
-//! [`State`]: struct.State.html
 use crate::defaults::{self, Defaults};
 use crate::{Backend, Primitive, Renderer};
 use iced_native::mouse;

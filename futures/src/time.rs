@@ -5,8 +5,6 @@ use crate::subscription::{self, Subscription};
 ///
 /// The first message is produced after a `duration`, and then continues to
 /// produce more messages every `duration` after that.
-///
-/// [`Subscription`]: ../subscription/struct.Subscription.html
 pub fn every<H: std::hash::Hasher, E>(
     duration: std::time::Duration,
 ) -> Subscription<H, E, std::time::Instant> {

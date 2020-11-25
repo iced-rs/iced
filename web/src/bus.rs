@@ -5,7 +5,7 @@ use std::rc::Rc;
 ///
 /// It can be used to route messages back to the [`Application`].
 ///
-/// [`Application`]: trait.Application.html
+/// [`Application`]: crate::Application
 #[allow(missing_debug_implementations)]
 pub struct Bus<Message> {
     publish: Rc<Box<dyn Fn(Message) -> ()>>,
@@ -33,15 +33,13 @@ where
 
     /// Publishes a new message for the [`Application`].
     ///
-    /// [`Application`]: trait.Application.html
+    /// [`Application`]: crate::Application
     pub fn publish(&self, message: Message) {
         (self.publish)(message)
     }
 
     /// Creates a new [`Bus`] that applies the given function to the messages
     /// before publishing.
-    ///
-    /// [`Bus`]: struct.Bus.html
     pub fn map<B>(&self, mapper: Rc<Box<dyn Fn(B) -> Message>>) -> Bus<B>
     where
         B: 'static,

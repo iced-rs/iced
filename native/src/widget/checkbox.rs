@@ -52,8 +52,6 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     ///   * a function that will be called when the [`Checkbox`] is toggled. It
     ///     will receive the new state of the [`Checkbox`] and must produce a
     ///     `Message`.
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn new<F>(is_checked: bool, label: impl Into<String>, f: F) -> Self
     where
         F: 'static + Fn(bool) -> Message,
@@ -72,32 +70,24 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     }
 
     /// Sets the size of the [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn size(mut self, size: u16) -> Self {
         self.size = size;
         self
     }
 
     /// Sets the width of the [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the spacing between the [`Checkbox`] and the text.
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn spacing(mut self, spacing: u16) -> Self {
         self.spacing = spacing;
         self
     }
 
     /// Sets the text size of the [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
         self
@@ -105,16 +95,13 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
 
     /// Sets the [`Font`] of the text of the [`Checkbox`].
     ///
-    /// [`Checkbox`]: struct.Checkbox.html
-    /// [`Font`]: ../../struct.Font.html
+    /// [`Font`]: crate::widget::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
     }
 
     /// Sets the style of the [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -234,20 +221,15 @@ where
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`Checkbox`] in your user interface.
 ///
-/// [`Checkbox`]: struct.Checkbox.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::Renderer
 pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
 
     /// The default size of a [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     const DEFAULT_SIZE: u16;
 
     /// The default spacing of a [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     const DEFAULT_SPACING: u16;
 
     /// Draws a [`Checkbox`].
@@ -257,8 +239,6 @@ pub trait Renderer: crate::Renderer {
     ///   * whether the [`Checkbox`] is selected or not
     ///   * whether the mouse is over the [`Checkbox`] or not
     ///   * the drawn label of the [`Checkbox`]
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     fn draw(
         &mut self,
         bounds: Rectangle,

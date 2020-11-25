@@ -26,8 +26,6 @@ impl Length {
     /// The _fill factor_ is a relative unit describing how much of the
     /// remaining space should be filled when compared to other elements. It
     /// is only meant to be used by layout engines.
-    ///
-    /// [`Length`]: enum.Length.html
     pub fn fill_factor(&self) -> u16 {
         match self {
             Length::Fill => 1,

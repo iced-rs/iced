@@ -12,8 +12,7 @@ use crate::Hasher;
 /// For instance, you can use a [`Subscription`] to listen to a WebSocket
 /// connection, keyboard presses, mouse events, time ticks, etc.
 ///
-/// [`Command`]: ../struct.Command.html
-/// [`Subscription`]: struct.Subscription.html
+/// [`Command`]: crate::Command
 pub type Subscription<T> = iced_futures::Subscription<Hasher, (), T>;
 
 pub use iced_futures::subscription::Recipe;

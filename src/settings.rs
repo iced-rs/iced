@@ -7,13 +7,11 @@ pub struct Settings<Flags> {
     /// The window settings.
     ///
     /// They will be ignored on the Web.
-    ///
-    /// [`Window`]: struct.Window.html
     pub window: window::Settings,
 
     /// The data needed to initialize an [`Application`].
     ///
-    /// [`Application`]: ../trait.Application.html
+    /// [`Application`]: crate::Application
     pub flags: Flags,
 
     /// The bytes of the font that will be used by default.
@@ -35,14 +33,14 @@ pub struct Settings<Flags> {
     ///
     /// By default, it is disabled.
     ///
-    /// [`Canvas`]: ../widget/canvas/struct.Canvas.html
+    /// [`Canvas`]: crate::widget::Canvas
     pub antialiasing: bool,
 }
 
 impl<Flags> Settings<Flags> {
-    /// Initialize application settings using the given data.
+    /// Initialize [`Application`] settings using the given data.
     ///
-    /// [`Application`]: ../trait.Application.html
+    /// [`Application`]: crate::Application
     pub fn with_flags(flags: Flags) -> Self {
         let default_settings = Settings::<()>::default();
 

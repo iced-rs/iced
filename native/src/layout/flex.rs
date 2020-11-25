@@ -58,8 +58,6 @@ impl Axis {
 /// padding and alignment to the items as needed.
 ///
 /// It returns a new layout [`Node`].
-///
-/// [`Node`]: ../struct.Node.html
 pub fn resolve<Message, Renderer>(
     axis: Axis,
     renderer: &Renderer,

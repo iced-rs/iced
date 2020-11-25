@@ -5,7 +5,7 @@ use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The title bar of a [`Pane`].
 ///
-/// [`Pane`]: struct.Pane.html
+/// [`Pane`]: crate::widget::pane_grid::Pane
 #[allow(missing_debug_implementations)]
 pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
     title: String,
@@ -21,8 +21,6 @@ where
     Renderer: pane_grid::Renderer,
 {
     /// Creates a new [`TitleBar`] with the given title.
-    ///
-    /// [`TitleBar`]: struct.TitleBar.html
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             title: title.into(),
@@ -35,16 +33,12 @@ where
     }
 
     /// Sets the size of the title of the [`TitleBar`].
-    ///
-    /// [`TitleBar`]: struct.TitleBar.html
     pub fn title_size(mut self, size: u16) -> Self {
         self.title_size = Some(size);
         self
     }
 
     /// Sets the controls of the [`TitleBar`].
-    ///
-    /// [`TitleBar`]: struct.TitleBar.html
     pub fn controls(
         mut self,
         controls: impl Into<Element<'a, Message, Renderer>>,
@@ -54,16 +48,12 @@ where
     }
 
     /// Sets the padding of the [`TitleBar`].
-    ///
-    /// [`TitleBar`]: struct.TitleBar.html
     pub fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self
     }
 
     /// Sets the style of the [`TitleBar`].
-    ///
-    /// [`TitleBar`]: struct.TitleBar.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -75,9 +65,8 @@ where
     /// By default, the controls are only visible when the [`Pane`] of this
     /// [`TitleBar`] is hovered.
     ///
-    /// [`TitleBar`]: struct.TitleBar.html
-    /// [`controls`]: struct.TitleBar.html#method.controls
-    /// [`Pane`]: struct.Pane.html
+    /// [`controls`]: Self::controls
+    /// [`Pane`]: crate::widget::pane_grid::Pane
     pub fn always_show_controls(mut self) -> Self {
         self.always_show_controls = true;
         self
@@ -90,9 +79,7 @@ where
 {
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`TitleBar`]: struct.TitleBar.html
-    /// [`Renderer`]: trait.Renderer.html
-    /// [`Layout`]: ../layout/struct.Layout.html
+    /// [`Renderer`]: crate::widget::pane_grid::Renderer
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -152,8 +139,6 @@ where
     /// [`TitleBar`] or not.
     ///
     /// The whole [`TitleBar`] is a pick area, except its controls.
-    ///
-    /// [`TitleBar`]: struct.TitleBar.html
     pub fn is_over_pick_area(
         &self,
         layout: Layout<'_>,

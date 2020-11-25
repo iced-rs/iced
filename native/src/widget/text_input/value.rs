@@ -2,7 +2,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 /// The value of a [`TextInput`].
 ///
-/// [`TextInput`]: struct.TextInput.html
+/// [`TextInput`]: crate::widget::TextInput
 // TODO: Reduce allocations, cache results (?)
 #[derive(Debug, Clone)]
 pub struct Value {
@@ -11,8 +11,6 @@ pub struct Value {
 
 impl Value {
     /// Creates a new [`Value`] from a string slice.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn new(string: &str) -> Self {
         let graphemes = UnicodeSegmentation::graphemes(string, true)
             .map(String::from)
@@ -24,23 +22,17 @@ impl Value {
     /// Returns whether the [`Value`] is empty or not.
     ///
     /// A [`Value`] is empty when it contains no graphemes.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Returns the total amount of graphemes in the [`Value`].
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn len(&self) -> usize {
         self.graphemes.len()
     }
 
     /// Returns the position of the previous start of a word from the given
     /// grapheme `index`.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn previous_start_of_word(&self, index: usize) -> usize {
         let previous_string =
             &self.graphemes[..index.min(self.graphemes.len())].concat();
@@ -63,8 +55,6 @@ impl Value {
 
     /// Returns the position of the next end of a word from the given grapheme
     /// `index`.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn next_end_of_word(&self, index: usize) -> usize {
         let next_string = &self.graphemes[index..].concat();
 
@@ -85,8 +75,6 @@ impl Value {
 
     /// Returns a new [`Value`] containing the graphemes until the given
     /// `index`.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn until(&self, index: usize) -> Self {
         let graphemes = self.graphemes[..index.min(self.len())].to_vec();
 
@@ -94,8 +82,6 @@ impl Value {
     }
 
     /// Converts the [`Value`] into a `String`.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn to_string(&self) -> String {
         self.graphemes.concat()
     }
@@ -118,8 +104,6 @@ impl Value {
     }
 
     /// Removes the grapheme at the given `index`.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn remove(&mut self, index: usize) {
         let _ = self.graphemes.remove(index);
     }
@@ -131,8 +115,6 @@ impl Value {
 
     /// Returns a new [`Value`] with all its graphemes replaced with the
     /// dot ('•') character.
-    ///
-    /// [`Value`]: struct.Value.html
     pub fn secure(&self) -> Self {
         Self {
             graphemes: std::iter::repeat(String::from("•"))

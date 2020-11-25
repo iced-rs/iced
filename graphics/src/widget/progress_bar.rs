@@ -2,8 +2,6 @@
 //!
 //! A [`ProgressBar`] has a range of possible values and a current value,
 //! as well as a length, height and style.
-//!
-//! [`ProgressBar`]: type.ProgressBar.html
 use crate::{Backend, Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::progress_bar;

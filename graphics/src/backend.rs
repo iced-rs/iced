@@ -5,7 +5,7 @@ use iced_native::{Font, Size};
 
 /// The graphics backend of a [`Renderer`].
 ///
-/// [`Renderer`]: ../struct.Renderer.html
+/// [`Renderer`]: crate::Renderer
 pub trait Backend {
     /// Trims the measurements cache.
     ///

@@ -13,8 +13,6 @@ pub struct Null;
 
 impl Null {
     /// Creates a new [`Null`] renderer.
-    ///
-    /// [`Null`]: struct.Null.html
     pub fn new() -> Null {
         Null
     }

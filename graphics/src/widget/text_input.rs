@@ -1,9 +1,6 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
-//!
-//! [`TextInput`]: struct.TextInput.html
-//! [`State`]: struct.State.html
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::mouse;

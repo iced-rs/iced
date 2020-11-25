@@ -7,8 +7,7 @@ use iced_native::{mouse, Rectangle};
 /// A [`Program`] can mutate internal state and produce messages for an
 /// application.
 ///
-/// [`Canvas`]: struct.Canvas.html
-/// [`Program`]: trait.Program.html
+/// [`Canvas`]: crate::widget::Canvas
 pub trait Program<Message> {
     /// Updates the state of the [`Program`].
     ///
@@ -20,9 +19,7 @@ pub trait Program<Message> {
     ///
     /// By default, this method does and returns nothing.
     ///
-    /// [`Program`]: trait.Program.html
-    /// [`Canvas`]: struct.Canvas.html
-    /// [`Event`]: enum.Event.html
+    /// [`Canvas`]: crate::widget::Canvas
     fn update(
         &mut self,
         _event: Event,
@@ -37,10 +34,8 @@ pub trait Program<Message> {
     /// [`Geometry`] can be easily generated with a [`Frame`] or stored in a
     /// [`Cache`].
     ///
-    /// [`Program`]: trait.Program.html
-    /// [`Geometry`]: struct.Geometry.html
-    /// [`Frame`]: struct.Frame.html
-    /// [`Cache`]: struct.Cache.html
+    /// [`Frame`]: crate::widget::canvas::Cache
+    /// [`Cache`]: crate::widget::canvas::Cache
     fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry>;
 
     /// Returns the current mouse interaction of the [`Program`].
@@ -48,8 +43,7 @@ pub trait Program<Message> {
     /// The interaction returned will be in effect even if the cursor position
     /// is out of bounds of the program's [`Canvas`].
     ///
-    /// [`Program`]: trait.Program.html
-    /// [`Canvas`]: struct.Canvas.html
+    /// [`Canvas`]: crate::widget::Canvas
     fn mouse_interaction(
         &self,
         _bounds: Rectangle,

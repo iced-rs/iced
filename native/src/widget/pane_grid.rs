@@ -6,8 +6,7 @@
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
 //! drag and drop, and hotkey support.
 //!
-//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
-//! [`PaneGrid`]: struct.PaneGrid.html
+//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
 mod axis;
 mod configuration;
 mod content;
@@ -89,9 +88,6 @@ use crate::{
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(10, Message::PaneResized);
 /// ```
-///
-/// [`PaneGrid`]: struct.PaneGrid.html
-/// [`State`]: struct.State.html
 #[allow(missing_debug_implementations)]
 pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     state: &'a mut state::Internal,
@@ -112,10 +108,6 @@ where
     ///
     /// The view function will be called to display each [`Pane`] present in the
     /// [`State`].
-    ///
-    /// [`PaneGrid`]: struct.PaneGrid.html
-    /// [`State`]: struct.State.html
-    /// [`Pane`]: struct.Pane.html
     pub fn new<T>(
         state: &'a mut State<T>,
         view: impl Fn(Pane, &'a mut T) -> Content<'a, Message, Renderer>,
@@ -141,24 +133,18 @@ where
     }
 
     /// Sets the width of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
     /// Sets the spacing _between_ the panes of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn spacing(mut self, units: u16) -> Self {
         self.spacing = units;
         self
@@ -166,9 +152,6 @@ where
 
     /// Sets the message that will be produced when a [`Pane`] of the
     /// [`PaneGrid`] is clicked.
-    ///
-    /// [`Pane`]: struct.Pane.html
-    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn on_click<F>(mut self, f: F) -> Self
     where
         F: 'a + Fn(Pane) -> Message,
@@ -179,8 +162,6 @@ where
 
     /// Enables the drag and drop interactions of the [`PaneGrid`], which will
     /// use the provided function to produce messages.
-    ///
-    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn on_drag<F>(mut self, f: F) -> Self
     where
         F: 'a + Fn(DragEvent) -> Message,
@@ -198,8 +179,6 @@ where
     /// The grabbable area of a split will have a length of `spacing + leeway`,
     /// properly centered. In other words, a length of
     /// `(spacing + leeway) / 2.0` on either side of the split line.
-    ///
-    /// [`PaneGrid`]: struct.PaneGrid.html
     pub fn on_resize<F>(mut self, leeway: u16, f: F) -> Self
     where
         F: 'a + Fn(ResizeEvent) -> Message,
@@ -287,63 +266,41 @@ where
 }
 
 /// An event produced during a drag and drop interaction of a [`PaneGrid`].
-///
-/// [`PaneGrid`]: struct.PaneGrid.html
 #[derive(Debug, Clone, Copy)]
 pub enum DragEvent {
     /// A [`Pane`] was picked for dragging.
-    ///
-    /// [`Pane`]: struct.Pane.html
     Picked {
         /// The picked [`Pane`].
-        ///
-        /// [`Pane`]: struct.Pane.html
         pane: Pane,
     },
 
     /// A [`Pane`] was dropped on top of another [`Pane`].
-    ///
-    /// [`Pane`]: struct.Pane.html
     Dropped {
         /// The picked [`Pane`].
-        ///
-        /// [`Pane`]: struct.Pane.html
         pane: Pane,
 
         /// The [`Pane`] where the picked one was dropped on.
-        ///
-        /// [`Pane`]: struct.Pane.html
         target: Pane,
     },
 
     /// A [`Pane`] was picked and then dropped outside of other [`Pane`]
     /// boundaries.
-    ///
-    /// [`Pane`]: struct.Pane.html
     Canceled {
         /// The picked [`Pane`].
-        ///
-        /// [`Pane`]: struct.Pane.html
         pane: Pane,
     },
 }
 
 /// An event produced during a resize interaction of a [`PaneGrid`].
-///
-/// [`PaneGrid`]: struct.PaneGrid.html
 #[derive(Debug, Clone, Copy)]
 pub struct ResizeEvent {
     /// The [`Split`] that is being dragged for resizing.
-    ///
-    /// [`Split`]: struct.Split.html
     pub split: Split,
 
     /// The new ratio of the [`Split`].
     ///
     /// The ratio is a value in [0, 1], representing the exact position of a
     /// [`Split`] between two panes.
-    ///
-    /// [`Split`]: struct.Split.html
     pub ratio: f32,
 }
 
@@ -585,8 +542,7 @@ where
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`PaneGrid`] in your user interface.
 ///
-/// [`PaneGrid`]: struct.PaneGrid.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer:
     crate::Renderer + container::Renderer + text::Renderer + Sized
 {
@@ -598,10 +554,6 @@ pub trait Renderer:
     /// - the [`Axis`] that is currently being resized
     /// - the [`Layout`] of the [`PaneGrid`] and its elements
     /// - the cursor position
-    ///
-    /// [`PaneGrid`]: struct.PaneGrid.html
-    /// [`Pane`]: struct.Pane.html
-    /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
@@ -619,9 +571,6 @@ pub trait Renderer:
     /// - the [`Content`] of the [`Pane`]
     /// - the [`Layout`] of the [`Pane`] and its elements
     /// - the cursor position
-    ///
-    /// [`Pane`]: struct.Pane.html
-    /// [`Layout`]: ../layout/struct.Layout.html
     fn draw_pane<Message>(
         &mut self,
         defaults: &Self::Defaults,
@@ -640,9 +589,6 @@ pub trait Renderer:
     /// - the title of the [`TitleBar`] with its size, font, and bounds
     /// - the controls of the [`TitleBar`] with their [`Layout`+, if any
     /// - the cursor position
-    ///
-    /// [`TitleBar`]: struct.TitleBar.html
-    /// [`Layout`]: ../layout/struct.Layout.html
     fn draw_title_bar<Message>(
         &mut self,
         defaults: &Self::Defaults,

@@ -1,9 +1,6 @@
 //! Display an interactive selector of a single value from a range of values.
 //!
 //! A [`Slider`] has some local [`State`].
-//!
-//! [`Slider`]: struct.Slider.html
-//! [`State`]: struct.State.html
 use crate::Renderer;
 
 pub use iced_graphics::slider::{Handle, HandleShape, Style, StyleSheet};

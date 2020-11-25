@@ -21,8 +21,6 @@ impl<Message: 'static> Clone for Proxy<Message> {
 
 impl<Message: 'static> Proxy<Message> {
     /// Creates a new [`Proxy`] from an `EventLoopProxy`.
-    ///
-    /// [`Proxy`]: struct.Proxy.html
     pub fn new(raw: winit::event_loop::EventLoopProxy<Message>) -> Self {
         Self { raw }
     }

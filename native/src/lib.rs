@@ -27,9 +27,7 @@
 //! [`iced_winit`]: https://github.com/hecrj/iced/tree/master/winit
 //! [`druid`]: https://github.com/xi-editor/druid
 //! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
-//! [`Widget`]: widget/trait.Widget.html
-//! [`UserInterface`]: struct.UserInterface.html
-//! [renderer]: renderer/index.html
+//! [renderer]: crate::renderer
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]

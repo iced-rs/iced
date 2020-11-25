@@ -3,9 +3,6 @@
 //! A [`Canvas`] widget can be used to draw different kinds of 2D shapes in a
 //! [`Frame`]. It can be used for animation, data visualization, game graphics,
 //! and more!
-//!
-//! [`Canvas`]: struct.Canvas.html
-//! [`Frame`]: struct.Frame.html
 use crate::{Backend, Defaults, Primitive, Renderer};
 use iced_native::layout;
 use iced_native::mouse;
@@ -40,8 +37,6 @@ pub use stroke::{LineCap, LineJoin, Stroke};
 pub use text::Text;
 
 /// A widget capable of drawing 2D graphics.
-///
-/// [`Canvas`]: struct.Canvas.html
 ///
 /// # Examples
 /// The repository has a couple of [examples] showcasing how to use a
@@ -108,8 +103,6 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
     const DEFAULT_SIZE: u16 = 100;
 
     /// Creates a new [`Canvas`].
-    ///
-    /// [`Canvas`]: struct.Canvas.html
     pub fn new(program: P) -> Self {
         Canvas {
             width: Length::Units(Self::DEFAULT_SIZE),
@@ -120,16 +113,12 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
     }
 
     /// Sets the width of the [`Canvas`].
-    ///
-    /// [`Canvas`]: struct.Canvas.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`Canvas`].
-    ///
-    /// [`Canvas`]: struct.Canvas.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self

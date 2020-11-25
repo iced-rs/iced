@@ -32,8 +32,6 @@ where
 }
 
 /// The local state of a [`PickList`].
-///
-/// [`PickList`]: struct.PickList.html
 #[derive(Debug, Clone)]
 pub struct State<T> {
     menu: menu::State,
@@ -62,9 +60,6 @@ where
     /// Creates a new [`PickList`] with the given [`State`], a list of options,
     /// the current selected value, and the message to produce when an option is
     /// selected.
-    ///
-    /// [`PickList`]: struct.PickList.html
-    /// [`State`]: struct.State.html
     pub fn new(
         state: &'a mut State<T>,
         options: impl Into<Cow<'a, [T]>>,
@@ -95,40 +90,30 @@ where
     }
 
     /// Sets the width of the [`PickList`].
-    ///
-    /// [`PickList`]: struct.PickList.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the padding of the [`PickList`].
-    ///
-    /// [`PickList`]: struct.PickList.html
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
         self
     }
 
     /// Sets the text size of the [`PickList`].
-    ///
-    /// [`PickList`]: struct.PickList.html
     pub fn text_size(mut self, size: u16) -> Self {
         self.text_size = Some(size);
         self
     }
 
     /// Sets the font of the [`PickList`].
-    ///
-    /// [`PickList`]: struct.PickList.html
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
     }
 
     /// Sets the style of the [`PickList`].
-    ///
-    /// [`PickList`]: struct.PickList.html
     pub fn style(
         mut self,
         style: impl Into<<Renderer as self::Renderer>::Style>,
@@ -318,30 +303,20 @@ where
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`PickList`] in your user interface.
 ///
-/// [`PickList`]: struct.PickList.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: text::Renderer + menu::Renderer {
     /// The default padding of a [`PickList`].
-    ///
-    /// [`PickList`]: struct.PickList.html
     const DEFAULT_PADDING: u16;
 
     /// The [`PickList`] style supported by this renderer.
-    ///
-    /// [`PickList`]: struct.PickList.html
     type Style: Default;
 
     /// Returns the style of the [`Menu`] of the [`PickList`].
-    ///
-    /// [`Menu`]: ../../overlay/menu/struct.Menu.html
-    /// [`PickList`]: struct.PickList.html
     fn menu_style(
         style: &<Self as Renderer>::Style,
     ) -> <Self as menu::Renderer>::Style;
 
     /// Draws a [`PickList`].
-    ///
-    /// [`PickList`]: struct.PickList.html
     fn draw(
         &mut self,
         bounds: Rectangle,

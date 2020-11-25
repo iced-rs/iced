@@ -76,8 +76,6 @@ pub struct Style {
     /// The radius of the line corners.
     pub radius: f32,
     /// The [`FillMode`] of the rule.
-    ///
-    /// [`FillMode`]: enum.FillMode.html
     pub fill_mode: FillMode,
 }
 

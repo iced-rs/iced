@@ -38,21 +38,15 @@ use futures::Future;
 /// A type that can run futures.
 pub trait Executor: Sized {
     /// Creates a new [`Executor`].
-    ///
-    /// [`Executor`]: trait.Executor.html
     fn new() -> Result<Self, futures::io::Error>
     where
         Self: Sized;
 
     /// Spawns a future in the [`Executor`].
-    ///
-    /// [`Executor`]: trait.Executor.html
     #[cfg(not(target_arch = "wasm32"))]
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static);
 
     /// Spawns a local future in the [`Executor`].
-    ///
-    /// [`Executor`]: trait.Executor.html
     #[cfg(target_arch = "wasm32")]
     fn spawn(&self, future: impl Future<Output = ()> + 'static);
 
@@ -62,8 +56,6 @@ pub trait Executor: Sized {
     /// before creating futures. This method can be leveraged to set up this
     /// global state, call a function, restore the state, and obtain the result
     /// of the call.
-    ///
-    /// [`Executor`]: trait.Executor.html
     fn enter<R>(&self, f: impl FnOnce() -> R) -> R {
         f()
     }

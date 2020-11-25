@@ -14,21 +14,16 @@ use iced_futures::futures::stream::BoxStream;
 /// For instance, you can use a [`Subscription`] to listen to a WebSocket
 /// connection, keyboard presses, mouse events, time ticks, etc.
 ///
-/// [`Command`]: ../struct.Command.html
-/// [`Subscription`]: struct.Subscription.html
+/// [`Command`]: crate::Command
 pub type Subscription<T> =
     iced_futures::Subscription<Hasher, (Event, event::Status), T>;
 
 /// A stream of runtime events.
 ///
 /// It is the input of a [`Subscription`] in the native runtime.
-///
-/// [`Subscription`]: type.Subscription.html
 pub type EventStream = BoxStream<'static, (Event, event::Status)>;
 
 /// A native [`Subscription`] tracker.
-///
-/// [`Subscription`]: type.Subscription.html
 pub type Tracker =
     iced_futures::subscription::Tracker<Hasher, (Event, event::Status)>;
 
@@ -42,9 +37,6 @@ use events::Events;
 ///
 /// This subscription will notify your application of any [`Event`] that was
 /// not captured by any widget.
-///
-/// [`Subscription`]: type.Subscription.html
-/// [`Event`]: ../enum.Event.html
 pub fn events() -> Subscription<Event> {
     Subscription::from_recipe(Events {
         f: |event, status| match status {
@@ -62,9 +54,6 @@ pub fn events() -> Subscription<Event> {
 ///
 /// - Returns `None`, the [`Event`] will be discarded.
 /// - Returns `Some` message, the `Message` will be produced.
-///
-/// [`Subscription`]: type.Subscription.html
-/// [`Event`]: ../enum.Event.html
 pub fn events_with<Message>(
     f: fn(Event, event::Status) -> Option<Message>,
 ) -> Subscription<Message>

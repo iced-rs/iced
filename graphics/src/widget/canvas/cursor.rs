@@ -22,8 +22,6 @@ impl Cursor {
     }
 
     /// Returns the absolute position of the [`Cursor`], if available.
-    ///
-    /// [`Cursor`]: enum.Cursor.html
     pub fn position(&self) -> Option<Point> {
         match self {
             Cursor::Available(position) => Some(*position),
@@ -36,8 +34,6 @@ impl Cursor {
     ///
     /// If the [`Cursor`] is not over the provided bounds, this method will
     /// return `None`.
-    ///
-    /// [`Cursor`]: enum.Cursor.html
     pub fn position_in(&self, bounds: &Rectangle) -> Option<Point> {
         if self.is_over(bounds) {
             self.position_from(bounds.position())
@@ -48,8 +44,6 @@ impl Cursor {
 
     /// Returns the relative position of the [`Cursor`] from the given origin,
     /// if available.
-    ///
-    /// [`Cursor`]: enum.Cursor.html
     pub fn position_from(&self, origin: Point) -> Option<Point> {
         match self {
             Cursor::Available(position) => {
@@ -61,8 +55,6 @@ impl Cursor {
 
     /// Returns whether the [`Cursor`] is currently over the provided bounds
     /// or not.
-    ///
-    /// [`Cursor`]: enum.Cursor.html
     pub fn is_over(&self, bounds: &Rectangle) -> bool {
         match self {
             Cursor::Available(position) => bounds.contains(*position),
