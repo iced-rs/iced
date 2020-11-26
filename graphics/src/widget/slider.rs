@@ -72,8 +72,6 @@ where
             },
         );
 
-        let (range_start, range_end) = range.into_inner();
-
         let (handle_width, handle_height, handle_border_radius) = match style
             .handle
             .shape
@@ -87,8 +85,14 @@ where
             } => (f32::from(width), f32::from(bounds.height), border_radius),
         };
 
-        let handle_offset = (bounds.width - handle_width)
-            * ((value - range_start) / (range_end - range_start).max(1.0));
+        let (range_start, range_end) = range.into_inner();
+
+        let handle_offset = if range_start >= range_end {
+            0.0
+        } else {
+            (bounds.width - handle_width) * (value - range_start)
+                / (range_end - range_start)
+        };
 
         let handle = Primitive::Quad {
             bounds: Rectangle {
