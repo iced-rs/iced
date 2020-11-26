@@ -24,7 +24,7 @@ bytemuck = "1.4"
 log = "0.4"
 
 [dependencies.iced_native]
-version = "0.2"
+version = "0.3"
 path = "../native"
 
 [dependencies.iced_graphics]

@@ -35,19 +35,19 @@ use crate::{
 /// - [`tour`], a simple UI tour that can run both on native platforms and the
 /// web!
 ///
-/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.1/examples
-/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.1/examples/bezier_tool
-/// [`counter`]: https://github.com/hecrj/iced/tree/0.1/examples/counter
-/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.1/examples/custom_widget
-/// [`geometry`]: https://github.com/hecrj/iced/tree/0.1/examples/geometry
-/// [`pane_grid`]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
-/// [`progress_bar`]: https://github.com/hecrj/iced/tree/0.1/examples/progress_bar
-/// [`styling`]: https://github.com/hecrj/iced/tree/0.1/examples/styling
-/// [`svg`]: https://github.com/hecrj/iced/tree/0.1/examples/svg
-/// [`tour`]: https://github.com/hecrj/iced/tree/0.1/examples/tour
+/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.2/examples
+/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.2/examples/bezier_tool
+/// [`counter`]: https://github.com/hecrj/iced/tree/0.2/examples/counter
+/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.2/examples/custom_widget
+/// [`geometry`]: https://github.com/hecrj/iced/tree/0.2/examples/geometry
+/// [`pane_grid`]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
+/// [`progress_bar`]: https://github.com/hecrj/iced/tree/0.2/examples/progress_bar
+/// [`styling`]: https://github.com/hecrj/iced/tree/0.2/examples/styling
+/// [`svg`]: https://github.com/hecrj/iced/tree/0.2/examples/svg
+/// [`tour`]: https://github.com/hecrj/iced/tree/0.2/examples/tour
 /// [`lyon`]: https://github.com/nical/lyon
 /// [the overview]: index.html#overview
-/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.1/wgpu
+/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.2/wgpu
 /// [`Svg` widget]: crate::widget::Svg
 /// [Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
 ///

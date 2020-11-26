@@ -29,7 +29,7 @@ Currently, `iced_wgpu` supports the following primitives:
 Add `iced_wgpu` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_wgpu = "0.2"
+iced_wgpu = "0.3"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
