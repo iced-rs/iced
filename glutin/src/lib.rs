@@ -1,5 +1,7 @@
 //! A windowing shell for [`iced`], on top of [`glutin`].
 //!
+//! ![The native path of the Iced ecosystem](https://github.com/hecrj/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
+//!
 //! [`iced`]: https://github.com/hecrj/iced
 //! [`glutin`]: https://github.com/rust-windowing/glutin
 #![deny(missing_docs)]

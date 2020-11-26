@@ -1,6 +1,6 @@
 //! A [`wgpu`] renderer for [`iced_native`].
 //!
-//! ![`iced_wgpu` crate graph](https://github.com/hecrj/iced/blob/cae26cb7bc627f4a5b3bcf1cd023a0c552e8c65e/docs/graphs/wgpu.png?raw=true)
+//! ![The native path of the Iced ecosystem](https://github.com/hecrj/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
 //!
 //! For now, it is the default renderer of [Iced] in native platforms.
 //!

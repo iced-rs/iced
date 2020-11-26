@@ -1,7 +1,5 @@
 //! A web runtime for Iced, targetting the DOM.
 //!
-//! ![`iced_web` crate graph](https://github.com/hecrj/iced/blob/cae26cb7bc627f4a5b3bcf1cd023a0c552e8c65e/docs/graphs/web.png?raw=true)
-//!
 //! `iced_web` takes [`iced_core`] and builds a WebAssembly runtime on top. It
 //! achieves this by introducing a `Widget` trait that can be used to produce
 //! VDOM nodes.
