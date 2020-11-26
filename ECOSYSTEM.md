@@ -29,7 +29,7 @@ There are a bunch of concepts that permeate the whole ecosystem. These concepts 
 - [`iced_style`] defines the default styling capabilities of built-in widgets.
 
 <p align="center">
-  <img alt="The foundations" src="docs/graphs/foundations.png" width="80%">
+  <img alt="The foundations" src="docs/graphs/foundations.png" width="50%">
 </p>
 
 ## The native target
