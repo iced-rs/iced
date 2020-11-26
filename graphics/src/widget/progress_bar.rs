@@ -31,10 +31,13 @@ where
         style_sheet: &Self::Style,
     ) -> Self::Output {
         let style = style_sheet.style();
-
         let (range_start, range_end) = range.into_inner();
-        let active_progress_width = bounds.width
-            * ((value - range_start) / (range_end - range_start).max(f32::EPSILON)).max(0.0).min(1.0);
+
+        let active_progress_width = if range_start >= range_end {
+            0.0
+        } else {
+            bounds.width * (value - range_start) / (range_end - range_start)
+        };
 
         let background = Primitive::Group {
             primitives: vec![Primitive::Quad {
