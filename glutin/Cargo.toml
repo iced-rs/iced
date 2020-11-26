@@ -17,11 +17,11 @@ debug = ["iced_winit/debug"]
 glutin = "0.25"
 
 [dependencies.iced_native]
-version = "0.2"
+version = "0.3"
 path = "../native"
 
 [dependencies.iced_winit]
-version = "0.1"
+version = "0.2"
 path = "../winit"
 
 [dependencies.iced_graphics]

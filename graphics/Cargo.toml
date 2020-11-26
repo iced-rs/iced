@@ -28,11 +28,11 @@ version = "1.4"
 features = ["derive"]
 
 [dependencies.iced_native]
-version = "0.2"
+version = "0.3"
 path = "../native"
 
 [dependencies.iced_style]
-version = "0.1"
+version = "0.2"
 path = "../style"
 
 [dependencies.lyon]
