@@ -3,7 +3,12 @@ name = "iced_graphics"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
+description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
 license = "MIT"
+repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced_graphics"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
 
 [features]
 canvas = ["lyon"]
