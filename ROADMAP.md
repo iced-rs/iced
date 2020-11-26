@@ -6,7 +6,7 @@ Before diving into the roadmap, check out [the ecosystem overview] to get an ide
 [the ecosystem overview]: ECOSYSTEM.md
 
 ## Next steps
-Most of the work related to these features needs to happen in the `iced_native` path of the ecosystem, as the web already supports many of them.
+Most of the work related to these features needs to happen in the __native__ path of the ecosystem, as the web already supports many of them.
 
 Once a step is completed, it is collapsed and added to this list:
 
@@ -17,6 +17,8 @@ Once a step is completed, it is collapsed and added to this list:
   * [x] Custom layout engine ([#52])
   * [x] Event subscriptions ([#122])
   * [x] Custom styling ([#146])
+  * [x] Canvas for 2D graphics ([#193])
+  * [x] Basic overlay support ([#444])
 
 [#24]: https://github.com/hecrj/iced/issues/24
 [#25]: https://github.com/hecrj/iced/issues/25
@@ -25,6 +27,8 @@ Once a step is completed, it is collapsed and added to this list:
 [#52]: https://github.com/hecrj/iced/pull/52
 [#122]: https://github.com/hecrj/iced/pull/122
 [#146]: https://github.com/hecrj/iced/pull/146
+[#193]: https://github.com/hecrj/iced/pull/193
+[#444]: https://github.com/hecrj/iced/pull/444
 
 ### Multi-window support ([#27])
 Open and control multiple windows at runtime.
@@ -35,17 +39,6 @@ This approach should also allow us to perform custom optimizations for this part
 
 [#27]: https://github.com/hecrj/iced/issues/27
 
-### Layers ([#30])
-Currently, Iced assumes widgets cannot be laid out on top of each other. We should implement support for multiple layers of widgets.
-
-This is a necessary feature to implement many kinds of interactables, like dropdown menus, select fields, etc.
-
-`iced_native` will need to group widgets to perform layouting and process some events first for widgets positioned on top.
-
-`iced_wgpu` will also need to process the scene graph and sort draw calls based on the different layers.
-
-[#30]: https://github.com/hecrj/iced/issues/30
-
 ### Animations ([#31])
 Allow widgets to request a redraw at a specific time.
 
@@ -55,8 +48,8 @@ This is a necessary feature to render loading spinners, a blinking text cursor, 
 
 [#31]: https://github.com/hecrj/iced/issues/31
 
-### Canvas widget ([#32])
-A widget to draw freely in 2D or 3D. It could be used to draw charts, implement a Paint clone, a CAD application, etc.
+### Canvas widget for 3D graphics ([#32])
+A widget to draw freely in 3D. It could be used to draw charts, implement a Paint clone, a CAD application, etc.
 
 As a first approach, we could expose the underlying renderer directly here, and couple this widget with it ([`wgpu`] for now). Once [`wgpu`] gets WebGL or WebGPU support, this widget will be able to run on the web too. The renderer primitive could be a simple texture that the widget draws to.
 

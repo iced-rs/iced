@@ -8,8 +8,6 @@
 
 The crate is currently a __very experimental__, simple abstraction layer over [`dodrio`].
 
-![iced_core](../docs/graphs/web.png)
-
 [documentation]: https://docs.rs/iced_web
 [`iced_core`]: ../core
 [`dodrio`]: https://github.com/fitzgen/dodrio

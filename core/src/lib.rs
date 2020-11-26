@@ -1,10 +1,10 @@
 //! The core library of [Iced].
 //!
-//! ![`iced_core` crate graph](https://github.com/hecrj/iced/blob/cae26cb7bc627f4a5b3bcf1cd023a0c552e8c65e/docs/graphs/core.png?raw=true)
-//!
 //! This library holds basic types that can be reused and re-exported in
 //! different runtime implementations. For instance, both [`iced_native`] and
 //! [`iced_web`] are built on top of `iced_core`.
+//!
+//! ![The foundations of the Iced ecosystem](https://github.com/hecrj/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/foundations.png?raw=true)
 //!
 //! [Iced]: https://github.com/hecrj/iced
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native

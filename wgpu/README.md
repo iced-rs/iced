@@ -15,7 +15,9 @@ Currently, `iced_wgpu` supports the following primitives:
 - Images and SVG, loaded from memory or the file system.
 - Meshes of triangles, useful to draw geometry freely.
 
-![iced_wgpu](../docs/graphs/wgpu.png)
+<p align="center">
+  <img alt="The native target" src="../docs/graphs/native.png" width="80%">
+</p>
 
 [documentation]: https://docs.rs/iced_wgpu
 [`iced_native`]: ../native

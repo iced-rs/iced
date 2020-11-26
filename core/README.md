@@ -8,7 +8,9 @@
 
 This crate is meant to be a starting point for an Iced runtime.
 
-![iced_core](../docs/graphs/core.png)
+<p align="center">
+  <img alt="The foundations" src="../docs/graphs/foundations.png" width="50%">
+</p>
 
 [documentation]: https://docs.rs/iced_core
 
