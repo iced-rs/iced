@@ -13,9 +13,6 @@
 //!
 //! These widgets have their own module with a `State` type. For instance, a
 //! [`TextInput`] has some [`text_input::State`].
-//!
-//! [`TextInput`]: text_input/struct.TextInput.html
-//! [`text_input::State`]: text_input/struct.State.html
 #[cfg(not(target_arch = "wasm32"))]
 mod platform {
     pub use crate::renderer::widget::{

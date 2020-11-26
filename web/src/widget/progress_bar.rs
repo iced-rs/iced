@@ -32,8 +32,6 @@ impl ProgressBar {
     /// It expects:
     ///   * an inclusive range of possible values
     ///   * the current value of the [`ProgressBar`]
-    ///
-    /// [`ProgressBar`]: struct.ProgressBar.html
     pub fn new(range: RangeInclusive<f32>, value: f32) -> Self {
         ProgressBar {
             value: value.max(*range.start()).min(*range.end()),
@@ -45,24 +43,18 @@ impl ProgressBar {
     }
 
     /// Sets the width of the [`ProgressBar`].
-    ///
-    /// [`ProgressBar`]: struct.ProgressBar.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`ProgressBar`].
-    ///
-    /// [`ProgressBar`]: struct.ProgressBar.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = Some(height);
         self
     }
 
     /// Sets the style of the [`ProgressBar`].
-    ///
-    /// [`ProgressBar`]: struct.ProgressBar.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style = style.into();
         self

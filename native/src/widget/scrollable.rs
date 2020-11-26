@@ -27,9 +27,6 @@ pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
 
 impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     /// Creates a new [`Scrollable`] with the given [`State`].
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
-    /// [`State`]: struct.State.html
     pub fn new(state: &'a mut State) -> Self {
         Scrollable {
             state,
@@ -54,48 +51,36 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     }
 
     /// Sets the padding of the [`Scrollable`].
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn padding(mut self, units: u16) -> Self {
         self.content = self.content.padding(units);
         self
     }
 
     /// Sets the width of the [`Scrollable`].
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn width(mut self, width: Length) -> Self {
         self.content = self.content.width(width);
         self
     }
 
     /// Sets the height of the [`Scrollable`].
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
     /// Sets the maximum width of the [`Scrollable`].
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.content = self.content.max_width(max_width);
         self
     }
 
     /// Sets the maximum height of the [`Scrollable`] in pixels.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
         self
     }
 
     /// Sets the horizontal alignment of the contents of the [`Scrollable`] .
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn align_items(mut self, align_items: Align) -> Self {
         self.content = self.content.align_items(align_items);
         self
@@ -103,16 +88,12 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
 
     /// Sets the scrollbar width of the [`Scrollable`] .
     /// Silently enforces a minimum value of 1.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn scrollbar_width(mut self, scrollbar_width: u16) -> Self {
         self.scrollbar_width = scrollbar_width.max(1);
         self
     }
 
     /// Sets the scrollbar margin of the [`Scrollable`] .
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn scrollbar_margin(mut self, scrollbar_margin: u16) -> Self {
         self.scrollbar_margin = scrollbar_margin;
         self
@@ -120,24 +101,18 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
 
     /// Sets the scroller width of the [`Scrollable`] .
     /// Silently enforces a minimum value of 1.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn scroller_width(mut self, scroller_width: u16) -> Self {
         self.scroller_width = scroller_width.max(1);
         self
     }
 
     /// Sets the style of the [`Scrollable`] .
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
     }
 
     /// Adds an element to the [`Scrollable`].
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
     pub fn push<E>(mut self, child: E) -> Self
     where
         E: Into<Element<'a, Message, Renderer>>,
@@ -407,8 +382,6 @@ where
 }
 
 /// The local state of a [`Scrollable`].
-///
-/// [`Scrollable`]: struct.Scrollable.html
 #[derive(Debug, Clone, Copy, Default)]
 pub struct State {
     scroller_grabbed_at: Option<f32>,
@@ -417,17 +390,12 @@ pub struct State {
 
 impl State {
     /// Creates a new [`State`] with the scrollbar located at the top.
-    ///
-    /// [`State`]: struct.State.html
     pub fn new() -> Self {
         State::default()
     }
 
     /// Apply a scrolling offset to the current [`State`], given the bounds of
     /// the [`Scrollable`] and its contents.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
-    /// [`State`]: struct.State.html
     pub fn scroll(
         &mut self,
         delta_y: f32,
@@ -448,9 +416,6 @@ impl State {
     ///
     /// `0` represents scrollbar at the top, while `1` represents scrollbar at
     /// the bottom.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
-    /// [`State`]: struct.State.html
     pub fn scroll_to(
         &mut self,
         percentage: f32,
@@ -463,9 +428,6 @@ impl State {
 
     /// Returns the current scrolling offset of the [`State`], given the bounds
     /// of the [`Scrollable`] and its contents.
-    ///
-    /// [`Scrollable`]: struct.Scrollable.html
-    /// [`State`]: struct.State.html
     pub fn offset(&self, bounds: Rectangle, content_bounds: Rectangle) -> u32 {
         let hidden_content =
             (content_bounds.height - bounds.height).max(0.0).round() as u32;
@@ -480,30 +442,19 @@ impl State {
 }
 
 /// The scrollbar of a [`Scrollable`].
-///
-/// [`Scrollable`]: struct.Scrollable.html
 #[derive(Debug)]
 pub struct Scrollbar {
     /// The outer bounds of the scrollable, including the [`Scrollbar`] and
     /// [`Scroller`].
-    ///
-    /// [`Scrollbar`]: struct.Scrollbar.html
-    /// [`Scroller`]: struct.Scroller.html
     pub outer_bounds: Rectangle,
 
     /// The bounds of the [`Scrollbar`].
-    ///
-    /// [`Scrollbar`]: struct.Scrollbar.html
     pub bounds: Rectangle,
 
     /// The margin within the [`Scrollbar`].
-    ///
-    /// [`Scrollbar`]: struct.Scrollbar.html
     pub margin: u16,
 
     /// The bounds of the [`Scroller`].
-    ///
-    /// [`Scroller`]: struct.Scroller.html
     pub scroller: Scroller,
 }
 
@@ -538,13 +489,9 @@ impl Scrollbar {
 }
 
 /// The handle of a [`Scrollbar`].
-///
-/// [`Scrollbar`]: struct.Scrollbar.html
 #[derive(Debug, Clone, Copy)]
 pub struct Scroller {
     /// The bounds of the [`Scroller`].
-    ///
-    /// [`Scroller`]: struct.Scrollbar.html
     pub bounds: Rectangle,
 }
 
@@ -553,17 +500,13 @@ pub struct Scroller {
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`Scrollable`] in your user interface.
 ///
-/// [`Scrollable`]: struct.Scrollable.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: column::Renderer + Sized {
     /// The style supported by this renderer.
     type Style: Default;
 
     /// Returns the [`Scrollbar`] given the bounds and content bounds of a
     /// [`Scrollable`].
-    ///
-    /// [`Scrollbar`]: struct.Scrollbar.html
-    /// [`Scrollable`]: struct.Scrollable.html
     fn scrollbar(
         &self,
         bounds: Rectangle,
@@ -585,10 +528,6 @@ pub trait Renderer: column::Renderer + Sized {
     /// - a optional [`Scrollbar`] to be rendered
     /// - the scrolling offset
     /// - the drawn content
-    ///
-    /// [`Scrollbar`]: struct.Scrollbar.html
-    /// [`Scrollable`]: struct.Scrollable.html
-    /// [`State`]: struct.State.html
     fn draw(
         &mut self,
         scrollable: &State,

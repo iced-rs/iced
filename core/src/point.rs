@@ -12,20 +12,14 @@ pub struct Point {
 
 impl Point {
     /// The origin (i.e. a [`Point`] at (0, 0)).
-    ///
-    /// [`Point`]: struct.Point.html
     pub const ORIGIN: Point = Point::new(0.0, 0.0);
 
     /// Creates a new [`Point`] with the given coordinates.
-    ///
-    /// [`Point`]: struct.Point.html
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 
     /// Computes the distance to another [`Point`].
-    ///
-    /// [`Point`]: struct.Point.html
     pub fn distance(&self, to: Point) -> f32 {
         let a = self.x - to.x;
         let b = self.y - to.y;

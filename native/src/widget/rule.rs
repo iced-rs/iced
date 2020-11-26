@@ -17,8 +17,6 @@ pub struct Rule<Renderer: self::Renderer> {
 
 impl<Renderer: self::Renderer> Rule<Renderer> {
     /// Creates a horizontal [`Rule`] for dividing content by the given vertical spacing.
-    ///
-    /// [`Rule`]: struct.Rule.html
     pub fn horizontal(spacing: u16) -> Self {
         Rule {
             width: Length::Fill,
@@ -29,8 +27,6 @@ impl<Renderer: self::Renderer> Rule<Renderer> {
     }
 
     /// Creates a vertical [`Rule`] for dividing content by the given horizontal spacing.
-    ///
-    /// [`Rule`]: struct.Rule.html
     pub fn vertical(spacing: u16) -> Self {
         Rule {
             width: Length::from(Length::Units(spacing)),
@@ -41,8 +37,6 @@ impl<Renderer: self::Renderer> Rule<Renderer> {
     }
 
     /// Sets the style of the [`Rule`].
-    ///
-    /// [`Rule`]: struct.Rule.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -92,8 +86,6 @@ where
 }
 
 /// The renderer of a [`Rule`].
-///
-/// [`Rule`]: struct.Rule.html
 pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
@@ -104,8 +96,6 @@ pub trait Renderer: crate::Renderer {
     ///   * the bounds of the [`Rule`]
     ///   * the style of the [`Rule`]
     ///   * whether the [`Rule`] is horizontal (true) or vertical (false)
-    ///
-    /// [`Rule`]: struct.Rule.html
     fn draw(
         &mut self,
         bounds: Rectangle,

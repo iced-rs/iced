@@ -14,8 +14,6 @@ use crate::{
 /// to turn it into an [`Element`].
 ///
 /// [built-in widget]: widget/index.html#built-in-widgets
-/// [`Widget`]: widget/trait.Widget.html
-/// [`Element`]: struct.Element.html
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Renderer> {
     pub(crate) widget: Box<dyn Widget<Message, Renderer> + 'a>,
@@ -26,9 +24,6 @@ where
     Renderer: crate::Renderer,
 {
     /// Creates a new [`Element`] containing the given [`Widget`].
-    ///
-    /// [`Element`]: struct.Element.html
-    /// [`Widget`]: widget/trait.Widget.html
     pub fn new(
         widget: impl Widget<Message, Renderer> + 'a,
     ) -> Element<'a, Message, Renderer> {
@@ -41,8 +36,6 @@ where
     ///
     /// This method is useful when you want to decouple different parts of your
     /// UI and make them __composable__.
-    ///
-    /// [`Element`]: struct.Element.html
     ///
     /// # Example
     /// Imagine we want to use [our counter](index.html#usage). But instead of
@@ -189,8 +182,7 @@ where
     /// The [`Renderer`] will explain the layout of the [`Element`] graphically.
     /// This can be very useful for debugging your layout!
     ///
-    /// [`Element`]: struct.Element.html
-    /// [`Renderer`]: trait.Renderer.html
+    /// [`Renderer`]: crate::Renderer
     pub fn explain<C: Into<Color>>(
         self,
         color: C,
@@ -205,23 +197,18 @@ where
     }
 
     /// Returns the width of the [`Element`].
-    ///
-    /// [`Element`]: struct.Element.html
     pub fn width(&self) -> Length {
         self.widget.width()
     }
 
     /// Returns the height of the [`Element`].
-    ///
-    /// [`Element`]: struct.Element.html
     pub fn height(&self) -> Length {
         self.widget.height()
     }
 
     /// Computes the layout of the [`Element`] in the given [`Limits`].
     ///
-    /// [`Element`]: struct.Element.html
-    /// [`Limits`]: layout/struct.Limits.html
+    /// [`Limits`]: layout::Limits
     pub fn layout(
         &self,
         renderer: &Renderer,
@@ -231,8 +218,6 @@ where
     }
 
     /// Processes a runtime [`Event`].
-    ///
-    /// [`Event`]: enum.Event.html
     pub fn on_event(
         &mut self,
         event: Event,
@@ -253,9 +238,6 @@ where
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].
-    ///
-    /// [`Element`]: struct.Element.html
-    /// [`Layout`]: layout/struct.Layout.html
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -269,15 +251,11 @@ where
     }
 
     /// Computes the _layout_ hash of the [`Element`].
-    ///
-    /// [`Element`]: struct.Element.html
     pub fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
 
     /// Returns the overlay of the [`Element`], if there is any.
-    ///
-    /// [`Element`]: struct.Element.html
     pub fn overlay<'b>(
         &'b mut self,
         layout: Layout<'_>,

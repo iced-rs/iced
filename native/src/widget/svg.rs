@@ -14,8 +14,6 @@ use std::{
 ///
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
-///
-/// [`Svg`]: struct.Svg.html
 #[derive(Debug, Clone)]
 pub struct Svg {
     handle: Handle,
@@ -25,9 +23,6 @@ pub struct Svg {
 
 impl Svg {
     /// Creates a new [`Svg`] from the given [`Handle`].
-    ///
-    /// [`Svg`]: struct.Svg.html
-    /// [`Handle`]: struct.Handle.html
     pub fn new(handle: impl Into<Handle>) -> Self {
         Svg {
             handle: handle.into(),
@@ -38,23 +33,17 @@ impl Svg {
 
     /// Creates a new [`Svg`] that will display the contents of the file at the
     /// provided path.
-    ///
-    /// [`Svg`]: struct.Svg.html
     pub fn from_path(path: impl Into<PathBuf>) -> Self {
         Self::new(Handle::from_path(path))
     }
 
     /// Sets the width of the [`Svg`].
-    ///
-    /// [`Svg`]: struct.Svg.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`Svg`].
-    ///
-    /// [`Svg`]: struct.Svg.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
@@ -119,8 +108,6 @@ where
 }
 
 /// An [`Svg`] handle.
-///
-/// [`Svg`]: struct.Svg.html
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
@@ -130,8 +117,6 @@ pub struct Handle {
 impl Handle {
     /// Creates an SVG [`Handle`] pointing to the vector image of the given
     /// path.
-    ///
-    /// [`Handle`]: struct.Handle.html
     pub fn from_path(path: impl Into<PathBuf>) -> Handle {
         Self::from_data(Data::Path(path.into()))
     }
@@ -141,8 +126,6 @@ impl Handle {
     ///
     /// This is useful if you already have your SVG data in-memory, maybe
     /// because you downloaded or generated it procedurally.
-    ///
-    /// [`Handle`]: struct.Handle.html
     pub fn from_memory(bytes: impl Into<Vec<u8>>) -> Handle {
         Self::from_data(Data::Bytes(bytes.into()))
     }
@@ -158,15 +141,11 @@ impl Handle {
     }
 
     /// Returns the unique identifier of the [`Handle`].
-    ///
-    /// [`Handle`]: struct.Handle.html
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Returns a reference to the SVG [`Data`].
-    ///
-    /// [`Data`]: enum.Data.html
     pub fn data(&self) -> &Data {
         &self.data
     }
@@ -179,8 +158,6 @@ impl Hash for Handle {
 }
 
 /// The data of an [`Svg`].
-///
-/// [`Svg`]: struct.Svg.html
 #[derive(Clone, Hash)]
 pub enum Data {
     /// File data
@@ -206,18 +183,12 @@ impl std::fmt::Debug for Data {
 /// Your [renderer] will need to implement this trait before being able to use
 /// an [`Svg`] in your user interface.
 ///
-/// [`Svg`]: struct.Svg.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer {
     /// Returns the default dimensions of an [`Svg`] for the given [`Handle`].
-    ///
-    /// [`Svg`]: struct.Svg.html
-    /// [`Handle`]: struct.Handle.html
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
 
     /// Draws an [`Svg`].
-    ///
-    /// [`Svg`]: struct.Svg.html
     fn draw(&mut self, handle: Handle, layout: Layout<'_>) -> Self::Output;
 }
 

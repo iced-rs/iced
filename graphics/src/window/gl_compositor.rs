@@ -15,28 +15,27 @@ use core::ffi::c_void;
 /// If you implement an OpenGL renderer, you can implement this trait to ease
 /// integration with existing windowing shells, like `iced_glutin`.
 pub trait GLCompositor: Sized {
-    /// The renderer of the [`Compositor`].
+    /// The renderer of the [`GLCompositor`].
     ///
     /// This should point to your renderer type, which could be a type alias
     /// of the [`Renderer`] provided in this crate with with a specific
     /// [`Backend`].
     ///
-    /// [`Compositor`]: trait.Compositor.html
-    /// [`Renderer`]: ../struct.Renderer.html
-    /// [`Backend`]: ../backend/trait.Backend.html
+    /// [`Renderer`]: crate::Renderer
+    /// [`Backend`]: crate::Backend
     type Renderer: iced_native::Renderer;
 
-    /// The settings of the [`Compositor`].
+    /// The settings of the [`GLCompositor`].
     ///
     /// It's up to you to decide the configuration supported by your renderer!
     type Settings: Default;
 
-    /// Creates a new [`Compositor`] and [`Renderer`] with the given
+    /// Creates a new [`GLCompositor`] and [`Renderer`] with the given
     /// [`Settings`] and an OpenGL address loader function.
     ///
-    /// [`Compositor`]: trait.Compositor.html
-    /// [`Renderer`]: #associatedtype.Renderer
-    /// [`Backend`]: ../backend/trait.Backend.html
+    /// [`Renderer`]: crate::Renderer
+    /// [`Backend`]: crate::Backend
+    /// [`Settings`]: Self::Settings
     #[allow(unsafe_code)]
     unsafe fn new(
         settings: Self::Settings,
@@ -44,19 +43,15 @@ pub trait GLCompositor: Sized {
     ) -> Result<(Self, Self::Renderer), Error>;
 
     /// Returns the amount of samples that should be used when configuring
-    /// an OpenGL context for this [`Compositor`].
-    ///
-    /// [`Compositor`]: trait.Compositor.html
+    /// an OpenGL context for this [`GLCompositor`].
     fn sample_count(settings: &Self::Settings) -> u32;
 
-    /// Resizes the viewport of the [`Compositor`].
-    ///
-    /// [`Compositor`]: trait.Compositor.html
+    /// Resizes the viewport of the [`GLCompositor`].
     fn resize_viewport(&mut self, physical_size: Size<u32>);
 
     /// Draws the provided output with the given [`Renderer`].
     ///
-    /// [`Compositor`]: trait.Compositor.html
+    /// [`Renderer`]: crate::Renderer
     fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,

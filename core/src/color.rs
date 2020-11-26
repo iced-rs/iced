@@ -43,8 +43,6 @@ impl Color {
     ///
     /// In debug mode, it will panic if the values are not in the correct
     /// range: 0.0 - 1.0
-    ///
-    /// [`Color`]: struct.Color.html
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         debug_assert!(
             (0.0..=1.0).contains(&r),
@@ -67,29 +65,21 @@ impl Color {
     }
 
     /// Creates a [`Color`] from its RGB components.
-    ///
-    /// [`Color`]: struct.Color.html
     pub const fn from_rgb(r: f32, g: f32, b: f32) -> Color {
         Color::from_rgba(r, g, b, 1.0f32)
     }
 
     /// Creates a [`Color`] from its RGBA components.
-    ///
-    /// [`Color`]: struct.Color.html
     pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
         Color { r, g, b, a }
     }
 
     /// Creates a [`Color`] from its RGB8 components.
-    ///
-    /// [`Color`]: struct.Color.html
     pub fn from_rgb8(r: u8, g: u8, b: u8) -> Color {
         Color::from_rgba8(r, g, b, 1.0)
     }
 
     /// Creates a [`Color`] from its RGB8 components and an alpha value.
-    ///
-    /// [`Color`]: struct.Color.html
     pub fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Color {
         Color {
             r: f32::from(r) / 255.0,
@@ -100,8 +90,6 @@ impl Color {
     }
 
     /// Converts the [`Color`] into its linear values.
-    ///
-    /// [`Color`]: struct.Color.html
     pub fn into_linear(self) -> [f32; 4] {
         // As described in:
         // https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation
@@ -122,8 +110,6 @@ impl Color {
     }
 
     /// Inverts the [`Color`] in-place.
-    ///
-    /// [`Color`]: struct.Color.html
     pub fn invert(&mut self) {
         self.r = 1.0f32 - self.r;
         self.b = 1.0f32 - self.g;
@@ -131,8 +117,6 @@ impl Color {
     }
 
     /// Returns the inverted [`Color`].
-    ///
-    /// [`Color`]: struct.Color.html
     pub fn inverse(self) -> Color {
         Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
     }
@@ -152,8 +136,6 @@ impl From<[f32; 4]> for Color {
 
 #[cfg(feature = "palette")]
 /// Converts from palette's `Srgba` type to a [`Color`].
-///
-/// [`Color`]: struct.Color.html
 impl From<Srgba> for Color {
     fn from(srgba: Srgba) -> Self {
         Color::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
@@ -162,8 +144,6 @@ impl From<Srgba> for Color {
 
 #[cfg(feature = "palette")]
 /// Converts from [`Color`] to palette's `Srgba` type.
-///
-/// [`Color`]: struct.Color.html
 impl From<Color> for Srgba {
     fn from(c: Color) -> Self {
         Srgba::new(c.r, c.g, c.b, c.a)
@@ -172,8 +152,6 @@ impl From<Color> for Srgba {
 
 #[cfg(feature = "palette")]
 /// Converts from palette's `Srgb` type to a [`Color`].
-///
-/// [`Color`]: struct.Color.html
 impl From<Srgb> for Color {
     fn from(srgb: Srgb) -> Self {
         Color::new(srgb.red, srgb.green, srgb.blue, 1.0)
@@ -182,9 +160,6 @@ impl From<Srgb> for Color {
 
 #[cfg(feature = "palette")]
 /// Converts from [`Color`] to palette's `Srgb` type.
-///
-/// [`Color`]: struct.Color.html
-/// [`Srgb`]: ../palette/rgb/type.Srgb.html
 impl From<Color> for Srgb {
     fn from(c: Color) -> Self {
         Srgb::new(c.r, c.g, c.b)

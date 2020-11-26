@@ -36,8 +36,6 @@ impl Kind {
 impl Click {
     /// Creates a new [`Click`] with the given position and previous last
     /// [`Click`].
-    ///
-    /// [`Click`]: struct.Click.html
     pub fn new(position: Point, previous: Option<Click>) -> Click {
         let time = Instant::now();
 
@@ -59,9 +57,6 @@ impl Click {
     }
 
     /// Returns the [`Kind`] of [`Click`].
-    ///
-    /// [`Kind`]: enum.Kind.html
-    /// [`Click`]: struct.Click.html
     pub fn kind(&self) -> Kind {
         self.kind
     }

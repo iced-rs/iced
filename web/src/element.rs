@@ -11,9 +11,7 @@ use std::rc::Rc;
 /// If you have a [built-in widget], you should be able to use `Into<Element>`
 /// to turn it into an [`Element`].
 ///
-/// [built-in widget]: widget/index.html
-/// [`Widget`]: widget/trait.Widget.html
-/// [`Element`]: struct.Element.html
+/// [built-in widget]: mod@crate::widget
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message> {
     pub(crate) widget: Box<dyn Widget<Message> + 'a>,
@@ -21,9 +19,6 @@ pub struct Element<'a, Message> {
 
 impl<'a, Message> Element<'a, Message> {
     /// Create a new [`Element`] containing the given [`Widget`].
-    ///
-    /// [`Element`]: struct.Element.html
-    /// [`Widget`]: widget/trait.Widget.html
     pub fn new(widget: impl Widget<Message> + 'a) -> Self {
         Self {
             widget: Box::new(widget),
@@ -34,8 +29,6 @@ impl<'a, Message> Element<'a, Message> {
     ///
     /// This method is useful when you want to decouple different parts of your
     /// UI and make them __composable__.
-    ///
-    /// [`Element`]: struct.Element.html
     pub fn map<F, B>(self, f: F) -> Element<'a, B>
     where
         Message: 'static,

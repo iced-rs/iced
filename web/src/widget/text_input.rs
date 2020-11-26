@@ -1,9 +1,6 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
-//!
-//! [`TextInput`]: struct.TextInput.html
-//! [`State`]: struct.State.html
 use crate::{bumpalo, css, Bus, Css, Element, Length, Widget};
 
 pub use iced_style::text_input::{Style, StyleSheet};
@@ -53,9 +50,6 @@ impl<'a, Message> TextInput<'a, Message> {
     /// - a placeholder
     /// - the current value
     /// - a function that produces a message when the [`TextInput`] changes
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    /// [`State`]: struct.State.html
     pub fn new<F>(
         state: &'a mut State,
         placeholder: &str,
@@ -81,40 +75,30 @@ impl<'a, Message> TextInput<'a, Message> {
     }
 
     /// Converts the [`TextInput`] into a secure password input.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn password(mut self) -> Self {
         self.is_secure = true;
         self
     }
 
     /// Sets the width of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the maximum width of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
 
     /// Sets the padding of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self
     }
 
     /// Sets the text size of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn size(mut self, size: u16) -> Self {
         self.size = Some(size);
         self
@@ -122,16 +106,12 @@ impl<'a, Message> TextInput<'a, Message> {
 
     /// Sets the message that should be produced when the [`TextInput`] is
     /// focused and the enter key is pressed.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn on_submit(mut self, message: Message) -> Self {
         self.on_submit = Some(message);
         self
     }
 
     /// Sets the style of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style_sheet = style.into();
         self
@@ -238,22 +218,16 @@ where
 }
 
 /// The state of a [`TextInput`].
-///
-/// [`TextInput`]: struct.TextInput.html
 #[derive(Debug, Clone, Copy, Default)]
 pub struct State;
 
 impl State {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Creates a new [`State`], representing a focused [`TextInput`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn focused() -> Self {
         // TODO
         Self::default()

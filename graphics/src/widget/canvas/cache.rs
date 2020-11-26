@@ -23,10 +23,6 @@ impl Default for State {
 ///
 /// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
 /// change or it is explicitly cleared.
-///
-/// [`Layer`]: ../trait.Layer.html
-/// [`Cache`]: struct.Cache.html
-/// [`Geometry`]: struct.Geometry.html
 #[derive(Debug, Default)]
 pub struct Cache {
     state: RefCell<State>,
@@ -34,8 +30,6 @@ pub struct Cache {
 
 impl Cache {
     /// Creates a new empty [`Cache`].
-    ///
-    /// [`Cache`]: struct.Cache.html
     pub fn new() -> Self {
         Cache {
             state: Default::default(),
@@ -43,8 +37,6 @@ impl Cache {
     }
 
     /// Clears the [`Cache`], forcing a redraw the next time it is used.
-    ///
-    /// [`Cache`]: struct.Cache.html
     pub fn clear(&mut self) {
         *self.state.borrow_mut() = State::Empty;
     }
@@ -59,8 +51,6 @@ impl Cache {
     /// Otherwise, the previously stored [`Geometry`] will be returned. The
     /// [`Cache`] is not cleared in this case. In other words, it will keep
     /// returning the stored [`Geometry`] if needed.
-    ///
-    /// [`Cache`]: struct.Cache.html
     pub fn draw(&self, bounds: Size, draw_fn: impl Fn(&mut Frame)) -> Geometry {
         use std::ops::Deref;
 

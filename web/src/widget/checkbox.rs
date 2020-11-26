@@ -42,8 +42,6 @@ impl<Message> Checkbox<Message> {
     ///   * a function that will be called when the [`Checkbox`] is toggled. It
     ///     will receive the new state of the [`Checkbox`] and must produce a
     ///     `Message`.
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn new<F>(is_checked: bool, label: impl Into<String>, f: F) -> Self
     where
         F: 'static + Fn(bool) -> Message,
@@ -59,24 +57,18 @@ impl<Message> Checkbox<Message> {
     }
 
     /// Sets the width of the [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the style of the [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style = style.into();
         self
     }
 
     /// Sets the id of the [`Checkbox`].
-    ///
-    /// [`Checkbox`]: struct.Checkbox.html
     pub fn id(mut self, id: impl Into<String>) -> Self {
         self.id = Some(id.into());
         self

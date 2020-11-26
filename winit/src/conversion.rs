@@ -3,7 +3,7 @@
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::{
-    keyboard::{self, KeyCode, ModifiersState},
+    keyboard::{self, KeyCode, Modifiers},
     mouse, window, Event, Mode, Point,
 };
 
@@ -89,7 +89,7 @@ pub fn window_event(
             ..
         } => Some(Event::Keyboard({
             let key_code = key_code(*virtual_keycode);
-            let modifiers = modifiers_state(modifiers);
+            let modifiers = self::modifiers(modifiers);
 
             match state {
                 winit::event::ElementState::Pressed => {
@@ -107,7 +107,7 @@ pub fn window_event(
             }
         })),
         WindowEvent::ModifiersChanged(new_modifiers) => Some(Event::Keyboard(
-            keyboard::Event::ModifiersChanged(modifiers_state(*new_modifiers)),
+            keyboard::Event::ModifiersChanged(self::modifiers(*new_modifiers)),
         )),
         WindowEvent::HoveredFile(path) => {
             Some(Event::Window(window::Event::FileHovered(path.clone())))
@@ -124,7 +124,6 @@ pub fn window_event(
 
 /// Converts a [`Mode`] to a [`winit`] fullscreen mode.
 ///
-/// [`Mode`]: ../enum.Mode.html
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn fullscreen(
     monitor: Option<winit::monitor::MonitorHandle>,
@@ -180,10 +179,8 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn modifiers_state(
-    modifiers: winit::event::ModifiersState,
-) -> ModifiersState {
-    ModifiersState {
+pub fn modifiers(modifiers: winit::event::ModifiersState) -> Modifiers {
+    Modifiers {
         shift: modifiers.shift(),
         control: modifiers.ctrl(),
         alt: modifiers.alt(),

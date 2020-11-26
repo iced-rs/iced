@@ -1,2 +1,2 @@
 //! Listen and react to keyboard events.
-pub use crate::runtime::keyboard::{Event, KeyCode, ModifiersState};
+pub use crate::runtime::keyboard::{Event, KeyCode, Modifiers};

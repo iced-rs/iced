@@ -20,9 +20,7 @@ pub enum Rule {
 }
 
 impl Rule {
-    /// Returns the class name of the [`Style`].
-    ///
-    /// [`Style`]: enum.Style.html
+    /// Returns the class name of the [`Rule`].
     pub fn class<'a>(&self) -> String {
         match self {
             Rule::Column => String::from("c"),
@@ -32,9 +30,7 @@ impl Rule {
         }
     }
 
-    /// Returns the declaration of the [`Style`].
-    ///
-    /// [`Style`]: enum.Style.html
+    /// Returns the declaration of the [`Rule`].
     pub fn declaration<'a>(&self, bump: &'a bumpalo::Bump) -> &'a str {
         let class = self.class();
 
@@ -81,22 +77,17 @@ pub struct Css<'a> {
 }
 
 impl<'a> Css<'a> {
-    /// Creates an empty style [`Sheet`].
-    ///
-    /// [`Sheet`]: struct.Sheet.html
+    /// Creates an empty [`Css`].
     pub fn new() -> Self {
         Css {
             rules: BTreeMap::new(),
         }
     }
 
-    /// Inserts the [`rule`] in the [`Sheet`], if it was not previously
+    /// Inserts the [`Rule`] in the [`Css`], if it was not previously
     /// inserted.
     ///
     /// It returns the class name of the provided [`Rule`].
-    ///
-    /// [`Sheet`]: struct.Sheet.html
-    /// [`Rule`]: enum.Rule.html
     pub fn insert(&mut self, bump: &'a bumpalo::Bump, rule: Rule) -> String {
         let class = rule.class();
 
@@ -107,9 +98,7 @@ impl<'a> Css<'a> {
         class
     }
 
-    /// Produces the VDOM node of the style [`Sheet`].
-    ///
-    /// [`Sheet`]: struct.Sheet.html
+    /// Produces the VDOM node of the [`Css`].
     pub fn node(self, bump: &'a bumpalo::Bump) -> dodrio::Node<'a> {
         use dodrio::builder::*;
 
@@ -133,8 +122,6 @@ impl<'a> Css<'a> {
 }
 
 /// Returns the style value for the given [`Length`].
-///
-/// [`Length`]: ../enum.Length.html
 pub fn length(length: Length) -> String {
     match length {
         Length::Shrink => String::from("auto"),
@@ -164,15 +151,11 @@ pub fn min_length(units: u32) -> String {
 }
 
 /// Returns the style value for the given [`Color`].
-///
-/// [`Color`]: ../struct.Color.html
 pub fn color(Color { r, g, b, a }: Color) -> String {
     format!("rgba({}, {}, {}, {})", 255.0 * r, 255.0 * g, 255.0 * b, a)
 }
 
 /// Returns the style value for the given [`Background`].
-///
-/// [`Background`]: ../struct.Background.html
 pub fn background(background: Background) -> String {
     match background {
         Background::Color(c) => color(c),
@@ -180,8 +163,6 @@ pub fn background(background: Background) -> String {
 }
 
 /// Returns the style value for the given [`Align`].
-///
-/// [`Align`]: ../enum.Align.html
 pub fn align(align: Align) -> &'static str {
     match align {
         Align::Start => "flex-start",

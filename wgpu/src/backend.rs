@@ -30,8 +30,6 @@ pub struct Backend {
 
 impl Backend {
     /// Creates a new [`Backend`].
-    ///
-    /// [`Backend`]: struct.Backend.html
     pub fn new(device: &wgpu::Device, settings: Settings) -> Self {
         let text_pipeline =
             text::Pipeline::new(device, settings.format, settings.default_font);

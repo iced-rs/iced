@@ -32,9 +32,7 @@ pub struct Debug {
 }
 
 impl Debug {
-    /// Creates a new [`Debug`].
-    ///
-    /// [`Debug`]: struct.Debug.html
+    /// Creates a new [`struct@Debug`].
     pub fn new() -> Self {
         let now = time::Instant::now();
 

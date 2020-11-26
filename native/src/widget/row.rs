@@ -24,15 +24,11 @@ pub struct Row<'a, Message, Renderer> {
 
 impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Creates an empty [`Row`].
-    ///
-    /// [`Row`]: struct.Row.html
     pub fn new() -> Self {
         Self::with_children(Vec::new())
     }
 
     /// Creates a [`Row`] with the given elements.
-    ///
-    /// [`Row`]: struct.Row.html
     pub fn with_children(
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
@@ -59,57 +55,42 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     }
 
     /// Sets the padding of the [`Row`].
-    ///
-    /// [`Row`]: struct.Row.html
     pub fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self
     }
 
     /// Sets the width of the [`Row`].
-    ///
-    /// [`Row`]: struct.Row.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`Row`].
-    ///
-    /// [`Row`]: struct.Row.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
     /// Sets the maximum width of the [`Row`].
-    ///
-    /// [`Row`]: struct.Row.html
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
 
     /// Sets the maximum height of the [`Row`].
-    ///
-    /// [`Row`]: struct.Row.html
     pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
         self
     }
 
     /// Sets the vertical alignment of the contents of the [`Row`] .
-    ///
-    /// [`Row`]: struct.Row.html
     pub fn align_items(mut self, align: Align) -> Self {
         self.align_items = align;
         self
     }
 
     /// Adds an [`Element`] to the [`Row`].
-    ///
-    /// [`Element`]: ../struct.Element.html
-    /// [`Row`]: struct.Row.html
     pub fn push<E>(mut self, child: E) -> Self
     where
         E: Into<Element<'a, Message, Renderer>>,
@@ -230,8 +211,7 @@ where
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`Row`] in your user interface.
 ///
-/// [`Row`]: struct.Row.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer + Sized {
     /// Draws a [`Row`].
     ///
@@ -239,9 +219,6 @@ pub trait Renderer: crate::Renderer + Sized {
     /// - the children of the [`Row`]
     /// - the [`Layout`] of the [`Row`] and its children
     /// - the cursor position
-    ///
-    /// [`Row`]: struct.Row.html
-    /// [`Layout`]: ../layout/struct.Layout.html
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,

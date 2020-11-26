@@ -1,9 +1,6 @@
 //! Display an interactive selector of a single value from a range of values.
 //!
 //! A [`Slider`] has some local [`State`].
-//!
-//! [`Slider`]: struct.Slider.html
-//! [`State`]: struct.State.html
 use crate::{Bus, Css, Element, Length, Widget};
 
 pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
@@ -18,8 +15,6 @@ use std::{ops::RangeInclusive, rc::Rc};
 ///
 /// The [`Slider`] range of numeric values is generic and its step size defaults
 /// to 1 unit.
-///
-/// [`Slider`]: struct.Slider.html
 ///
 /// # Example
 /// ```
@@ -60,9 +55,6 @@ where
     ///   * a function that will be called when the [`Slider`] is dragged.
     ///   It receives the new value of the [`Slider`] and must produce a
     ///   `Message`.
-    ///
-    /// [`Slider`]: struct.Slider.html
-    /// [`State`]: struct.State.html
     pub fn new<F>(
         state: &'a mut State,
         range: RangeInclusive<T>,
@@ -96,24 +88,18 @@ where
     }
 
     /// Sets the width of the [`Slider`].
-    ///
-    /// [`Slider`]: struct.Slider.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the style of the [`Slider`].
-    ///
-    /// [`Slider`]: struct.Slider.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style = style.into();
         self
     }
 
     /// Sets the step size of the [`Slider`].
-    ///
-    /// [`Slider`]: struct.Slider.html
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
         self
@@ -181,15 +167,11 @@ where
 }
 
 /// The local state of a [`Slider`].
-///
-/// [`Slider`]: struct.Slider.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State;
 
 impl State {
     /// Creates a new [`State`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn new() -> Self {
         Self
     }

@@ -13,8 +13,7 @@
 //!
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 //! [`winit`]: https://github.com/rust-windowing/winit
-//! [`Application`]: trait.Application.html
-//! [`conversion`]: conversion
+//! [`conversion`]: crate::conversion
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]

@@ -12,8 +12,6 @@ pub struct Size<T = f32> {
 
 impl<T> Size<T> {
     /// Creates a new  [`Size`] with the given width and height.
-    ///
-    /// [`Size`]: struct.Size.html
     pub const fn new(width: T, height: T) -> Self {
         Size { width, height }
     }
@@ -21,23 +19,15 @@ impl<T> Size<T> {
 
 impl Size {
     /// A [`Size`] with zero width and height.
-    ///
-    /// [`Size`]: struct.Size.html
     pub const ZERO: Size = Size::new(0., 0.);
 
     /// A [`Size`] with a width and height of 1 unit.
-    ///
-    /// [`Size`]: struct.Size.html
     pub const UNIT: Size = Size::new(1., 1.);
 
     /// A [`Size`] with infinite width and height.
-    ///
-    /// [`Size`]: struct.Size.html
     pub const INFINITY: Size = Size::new(f32::INFINITY, f32::INFINITY);
 
     /// Increments the [`Size`] to account for the given padding.
-    ///
-    /// [`Size`]: struct.Size.html
     pub fn pad(&self, padding: f32) -> Self {
         Size {
             width: self.width + padding * 2.0,

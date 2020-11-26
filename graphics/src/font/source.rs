@@ -8,8 +8,6 @@ pub struct Source {
 
 impl Source {
     /// Creates a new [`Source`].
-    ///
-    /// [`Source`]: struct.Source.html
     pub fn new() -> Self {
         Source {
             raw: font_kit::source::SystemSource::new(),
@@ -17,8 +15,6 @@ impl Source {
     }
 
     /// Finds and loads a font matching the set of provided family priorities.
-    ///
-    /// [`Source`]: struct.Source.html
     pub fn load(&self, families: &[Family]) -> Result<Vec<u8>, LoadError> {
         let font = self.raw.select_best_match(
             families,

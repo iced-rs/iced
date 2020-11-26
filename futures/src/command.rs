@@ -5,9 +5,6 @@ use futures::future::{Future, FutureExt};
 ///
 /// You should be able to turn a future easily into a [`Command`], either by
 /// using the `From` trait or [`Command::perform`].
-///
-/// [`Command`]: struct.Command.html
-/// [`Command::perform`]: #method.perform
 pub struct Command<T> {
     futures: Vec<BoxFuture<T>>,
 }
@@ -16,8 +13,6 @@ impl<T> Command<T> {
     /// Creates an empty [`Command`].
     ///
     /// In other words, a [`Command`] that does nothing.
-    ///
-    /// [`Command`]: struct.Command.html
     pub fn none() -> Self {
         Self {
             futures: Vec::new(),
@@ -25,8 +20,6 @@ impl<T> Command<T> {
     }
 
     /// Creates a [`Command`] that performs the action of the given future.
-    ///
-    /// [`Command`]: struct.Command.html
     #[cfg(not(target_arch = "wasm32"))]
     pub fn perform<A>(
         future: impl Future<Output = T> + 'static + Send,
@@ -38,8 +31,6 @@ impl<T> Command<T> {
     }
 
     /// Creates a [`Command`] that performs the action of the given future.
-    ///
-    /// [`Command`]: struct.Command.html
     #[cfg(target_arch = "wasm32")]
     pub fn perform<A>(
         future: impl Future<Output = T> + 'static,
@@ -51,8 +42,6 @@ impl<T> Command<T> {
     }
 
     /// Applies a transformation to the result of a [`Command`].
-    ///
-    /// [`Command`]: struct.Command.html
     #[cfg(not(target_arch = "wasm32"))]
     pub fn map<A>(
         mut self,
@@ -78,8 +67,6 @@ impl<T> Command<T> {
     }
 
     /// Applies a transformation to the result of a [`Command`].
-    ///
-    /// [`Command`]: struct.Command.html
     #[cfg(target_arch = "wasm32")]
     pub fn map<A>(mut self, f: impl Fn(T) -> A + 'static) -> Command<A>
     where
@@ -105,8 +92,6 @@ impl<T> Command<T> {
     /// commands.
     ///
     /// Once this command is run, all the commands will be executed at once.
-    ///
-    /// [`Command`]: struct.Command.html
     pub fn batch(commands: impl IntoIterator<Item = Command<T>>) -> Self {
         Self {
             futures: commands
@@ -117,8 +102,6 @@ impl<T> Command<T> {
     }
 
     /// Converts a [`Command`] into its underlying list of futures.
-    ///
-    /// [`Command`]: struct.Command.html
     pub fn futures(self) -> Vec<BoxFuture<T>> {
         self.futures
     }

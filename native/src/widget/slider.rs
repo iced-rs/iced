@@ -1,9 +1,6 @@
 //! Display an interactive selector of a single value from a range of values.
 //!
 //! A [`Slider`] has some local [`State`].
-//!
-//! [`Slider`]: struct.Slider.html
-//! [`State`]: struct.State.html
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -20,8 +17,6 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// The [`Slider`] range of numeric values is generic and its step size defaults
 /// to 1 unit.
-///
-/// [`Slider`]: struct.Slider.html
 ///
 /// # Example
 /// ```
@@ -68,9 +63,6 @@ where
     ///   * a function that will be called when the [`Slider`] is dragged.
     ///   It receives the new value of the [`Slider`] and must produce a
     ///   `Message`.
-    ///
-    /// [`Slider`]: struct.Slider.html
-    /// [`State`]: struct.State.html
     pub fn new<F>(
         state: &'a mut State,
         range: RangeInclusive<T>,
@@ -111,40 +103,30 @@ where
     /// Typically, the user's interaction with the slider is finished when this message is produced.
     /// This is useful if you need to spawn a long-running task from the slider's result, where
     /// the default on_change message could create too many events.
-    ///
-    /// [`Slider`]: struct.Slider.html
     pub fn on_release(mut self, on_release: Message) -> Self {
         self.on_release = Some(on_release);
         self
     }
 
     /// Sets the width of the [`Slider`].
-    ///
-    /// [`Slider`]: struct.Slider.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`Slider`].
-    ///
-    /// [`Slider`]: struct.Slider.html
     pub fn height(mut self, height: u16) -> Self {
         self.height = height;
         self
     }
 
     /// Sets the style of the [`Slider`].
-    ///
-    /// [`Slider`]: struct.Slider.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
     }
 
     /// Sets the step size of the [`Slider`].
-    ///
-    /// [`Slider`]: struct.Slider.html
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
         self
@@ -152,8 +134,6 @@ where
 }
 
 /// The local state of a [`Slider`].
-///
-/// [`Slider`]: struct.Slider.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_dragging: bool,
@@ -161,8 +141,6 @@ pub struct State {
 
 impl State {
     /// Creates a new [`State`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn new() -> State {
         State::default()
     }
@@ -297,15 +275,12 @@ where
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`Slider`] in your user interface.
 ///
-/// [`Slider`]: struct.Slider.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
 
     /// The default height of a [`Slider`].
-    ///
-    /// [`Slider`]: struct.Slider.html
     const DEFAULT_HEIGHT: u16;
 
     /// Draws a [`Slider`].
@@ -316,10 +291,6 @@ pub trait Renderer: crate::Renderer {
     ///   * the local state of the [`Slider`]
     ///   * the range of values of the [`Slider`]
     ///   * the current value of the [`Slider`]
-    ///
-    /// [`Slider`]: struct.Slider.html
-    /// [`State`]: struct.State.html
-    /// [`Class`]: enum.Class.html
     fn draw(
         &mut self,
         bounds: Rectangle,

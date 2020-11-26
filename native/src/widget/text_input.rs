@@ -1,9 +1,6 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
-//!
-//! [`TextInput`]: struct.TextInput.html
-//! [`State`]: struct.State.html
 mod editor;
 mod value;
 
@@ -77,9 +74,6 @@ where
     /// - a placeholder
     /// - the current value
     /// - a function that produces a message when the [`TextInput`] changes
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    /// [`State`]: struct.State.html
     pub fn new<F>(
         state: &'a mut State,
         placeholder: &str,
@@ -106,8 +100,6 @@ where
     }
 
     /// Converts the [`TextInput`] into a secure password input.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn password(mut self) -> Self {
         self.is_secure = true;
         self
@@ -115,39 +107,31 @@ where
 
     /// Sets the [`Font`] of the [`Text`].
     ///
-    /// [`Text`]: struct.Text.html
-    /// [`Font`]: ../../struct.Font.html
+    /// [`Font`]: crate::widget::text::Renderer::Font
+    /// [`Text`]: crate::widget::Text
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
     }
     /// Sets the width of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the maximum width of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
 
     /// Sets the padding of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self
     }
 
     /// Sets the text size of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn size(mut self, size: u16) -> Self {
         self.size = Some(size);
         self
@@ -155,26 +139,18 @@ where
 
     /// Sets the message that should be produced when the [`TextInput`] is
     /// focused and the enter key is pressed.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn on_submit(mut self, message: Message) -> Self {
         self.on_submit = Some(message);
         self
     }
 
     /// Sets the style of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    /// [`State`]: struct.State.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
     }
 
     /// Returns the current [`State`] of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    /// [`State`]: struct.State.html
     pub fn state(&self) -> &State {
         self.state
     }
@@ -186,10 +162,6 @@ where
 {
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
     /// [`Value`] if provided.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    /// [`Renderer`]: trait.Render.html
-    /// [`Value`]: struct.Value.html
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -570,7 +542,7 @@ where
                         self.state.is_pasting = None;
 
                         self.state.keyboard_modifiers =
-                            keyboard::ModifiersState::default();
+                            keyboard::Modifiers::default();
                     }
                     _ => {}
                 }
@@ -628,15 +600,12 @@ where
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`TextInput`] in your user interface.
 ///
-/// [`TextInput`]: struct.TextInput.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: text::Renderer + Sized {
     /// The style supported by this renderer.
     type Style: Default;
 
     /// Returns the width of the value of the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     fn measure_value(&self, value: &str, size: u16, font: Self::Font) -> f32;
 
     /// Returns the current horizontal offset of the value of the
@@ -644,9 +613,6 @@ pub trait Renderer: text::Renderer + Sized {
     ///
     /// This is the amount of horizontal scrolling applied when the [`Value`]
     /// does not fit the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    /// [`Value`]: struct.Value.html
     fn offset(
         &self,
         text_bounds: Rectangle,
@@ -665,10 +631,6 @@ pub trait Renderer: text::Renderer + Sized {
     /// - the placeholder to show when the value is empty
     /// - the current [`Value`]
     /// - the current [`State`]
-    ///
-    /// [`TextInput`]: struct.TextInput.html
-    /// [`Value`]: struct.Value.html
-    /// [`State`]: struct.State.html
     fn draw(
         &mut self,
         bounds: Rectangle,
@@ -684,8 +646,6 @@ pub trait Renderer: text::Renderer + Sized {
 
     /// Computes the position of the text cursor at the given X coordinate of
     /// a [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     fn find_cursor_position(
         &self,
         text_bounds: Rectangle,
@@ -725,8 +685,6 @@ where
 }
 
 /// The state of a [`TextInput`].
-///
-/// [`TextInput`]: struct.TextInput.html
 #[derive(Debug, Default, Clone)]
 pub struct State {
     is_focused: bool,
@@ -734,21 +692,17 @@ pub struct State {
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
-    keyboard_modifiers: keyboard::ModifiersState,
+    keyboard_modifiers: keyboard::Modifiers,
     // TODO: Add stateful horizontal scrolling offset
 }
 
 impl State {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Creates a new [`State`], representing a focused [`TextInput`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn focused() -> Self {
         Self {
             is_focused: true,
@@ -756,59 +710,41 @@ impl State {
             is_pasting: None,
             last_click: None,
             cursor: Cursor::default(),
-            keyboard_modifiers: keyboard::ModifiersState::default(),
+            keyboard_modifiers: keyboard::Modifiers::default(),
         }
     }
 
     /// Returns whether the [`TextInput`] is currently focused or not.
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn is_focused(&self) -> bool {
         self.is_focused
     }
 
     /// Returns the [`Cursor`] of the [`TextInput`].
-    ///
-    /// [`Cursor`]: struct.Cursor.html
-    /// [`TextInput`]: struct.TextInput.html
     pub fn cursor(&self) -> Cursor {
         self.cursor
     }
 
     /// Focuses the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn focus(&mut self) {
         self.is_focused = true;
     }
 
     /// Unfocuses the [`TextInput`].
-    ///
-    /// [`TextInput`]: struct.TextInput.html
     pub fn unfocus(&mut self) {
         self.is_focused = false;
     }
 
     /// Moves the [`Cursor`] of the [`TextInput`] to the front of the input text.
-    ///
-    /// [`Cursor`]: struct.Cursor.html
-    /// [`TextInput`]: struct.TextInput.html
     pub fn move_cursor_to_front(&mut self) {
         self.cursor.move_to(0);
     }
 
     /// Moves the [`Cursor`] of the [`TextInput`] to the end of the input text.
-    ///
-    /// [`Cursor`]: struct.Cursor.html
-    /// [`TextInput`]: struct.TextInput.html
     pub fn move_cursor_to_end(&mut self) {
         self.cursor.move_to(usize::MAX);
     }
 
     /// Moves the [`Cursor`] of the [`TextInput`] to an arbitrary location.
-    ///
-    /// [`Cursor`]: struct.Cursor.html
-    /// [`TextInput`]: struct.TextInput.html
     pub fn move_cursor_to(&mut self, position: usize) {
         self.cursor.move_to(position);
     }
@@ -873,9 +809,7 @@ fn find_cursor_position<Renderer: self::Renderer>(
 mod platform {
     use crate::keyboard;
 
-    pub fn is_jump_modifier_pressed(
-        modifiers: keyboard::ModifiersState,
-    ) -> bool {
+    pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
         if cfg!(target_os = "macos") {
             modifiers.alt
         } else {

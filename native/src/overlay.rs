@@ -20,9 +20,7 @@ where
     /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
     ///
-    /// [`Node`]: ../layout/struct.Node.html
-    /// [`Widget`]: trait.Overlay.html
-    /// [`Layout`]: ../layout/struct.Layout.html
+    /// [`Node`]: layout::Node
     fn layout(
         &self,
         renderer: &Renderer,
@@ -31,8 +29,6 @@ where
     ) -> layout::Node;
 
     /// Draws the [`Overlay`] using the associated `Renderer`.
-    ///
-    /// [`Overlay`]: trait.Overlay.html
     fn draw(
         &self,
         renderer: &mut Renderer,
@@ -51,9 +47,7 @@ where
     /// For example, the [`Text`] widget does not hash its color property, as
     /// its value cannot affect the overall [`Layout`] of the user interface.
     ///
-    /// [`Overlay`]: trait.Overlay.html
-    /// [`Layout`]: ../layout/struct.Layout.html
-    /// [`Text`]: text/struct.Text.html
+    /// [`Text`]: crate::widget::Text
     fn hash_layout(&self, state: &mut Hasher, position: Point);
 
     /// Processes a runtime [`Event`].
@@ -68,11 +62,6 @@ where
     ///   * a [`Clipboard`], if available
     ///
     /// By default, it does nothing.
-    ///
-    /// [`Event`]: ../enum.Event.html
-    /// [`Overlay`]: trait.Widget.html
-    /// [`Layout`]: ../layout/struct.Layout.html
-    /// [`Clipboard`]: ../trait.Clipboard.html
     fn on_event(
         &mut self,
         _event: Event,

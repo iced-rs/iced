@@ -6,8 +6,6 @@ use lyon::path::builder::{Build, FlatPathBuilder, PathBuilder, SvgBuilder};
 /// A [`Path`] builder.
 ///
 /// Once a [`Path`] is built, it can no longer be mutated.
-///
-/// [`Path`]: struct.Path.html
 #[allow(missing_debug_implementations)]
 pub struct Builder {
     raw: lyon::path::builder::SvgPathBuilder<lyon::path::Builder>,
@@ -15,8 +13,6 @@ pub struct Builder {
 
 impl Builder {
     /// Creates a new [`Builder`].
-    ///
-    /// [`Builder`]: struct.Builder.html
     pub fn new() -> Builder {
         Builder {
             raw: lyon::path::Path::builder().with_svg(),
@@ -31,8 +27,6 @@ impl Builder {
 
     /// Connects the last point in the [`Path`] to the given `Point` with a
     /// straight line.
-    ///
-    /// [`Path`]: struct.Path.html
     #[inline]
     pub fn line_to(&mut self, point: Point) {
         let _ = self.raw.line_to(lyon::math::Point::new(point.x, point.y));
@@ -40,9 +34,6 @@ impl Builder {
 
     /// Adds an [`Arc`] to the [`Path`] from `start_angle` to `end_angle` in
     /// a clockwise direction.
-    ///
-    /// [`Arc`]: struct.Arc.html
-    /// [`Path`]: struct.Path.html
     #[inline]
     pub fn arc(&mut self, arc: Arc) {
         self.ellipse(arc.into());
@@ -53,8 +44,6 @@ impl Builder {
     ///
     /// The arc is connected to the previous point by a straight line, if
     /// necessary.
-    ///
-    /// [`Path`]: struct.Path.html
     pub fn arc_to(&mut self, a: Point, b: Point, radius: f32) {
         use lyon::{math, path};
 
@@ -72,10 +61,7 @@ impl Builder {
         );
     }
 
-    /// Adds an [`Ellipse`] to the [`Path`] using a clockwise direction.
-    ///
-    /// [`Ellipse`]: struct.Arc.html
-    /// [`Path`]: struct.Path.html
+    /// Adds an ellipse to the [`Path`] using a clockwise direction.
     pub fn ellipse(&mut self, arc: arc::Elliptical) {
         use lyon::{geom, math};
 
@@ -96,8 +82,6 @@ impl Builder {
 
     /// Adds a cubic Bézier curve to the [`Path`] given its two control points
     /// and its end point.
-    ///
-    /// [`Path`]: struct.Path.html
     #[inline]
     pub fn bezier_curve_to(
         &mut self,
@@ -116,8 +100,6 @@ impl Builder {
 
     /// Adds a quadratic Bézier curve to the [`Path`] given its control point
     /// and its end point.
-    ///
-    /// [`Path`]: struct.Path.html
     #[inline]
     pub fn quadratic_curve_to(&mut self, control: Point, to: Point) {
         use lyon::math;
@@ -130,8 +112,6 @@ impl Builder {
 
     /// Adds a rectangle to the [`Path`] given its top-left corner coordinate
     /// and its `Size`.
-    ///
-    /// [`Path`]: struct.Path.html
     #[inline]
     pub fn rectangle(&mut self, top_left: Point, size: Size) {
         self.move_to(top_left);
@@ -146,8 +126,6 @@ impl Builder {
 
     /// Adds a circle to the [`Path`] given its center coordinate and its
     /// radius.
-    ///
-    /// [`Path`]: struct.Path.html
     #[inline]
     pub fn circle(&mut self, center: Point, radius: f32) {
         self.arc(Arc {
@@ -160,17 +138,12 @@ impl Builder {
 
     /// Closes the current sub-path in the [`Path`] with a straight line to
     /// the starting point.
-    ///
-    /// [`Path`]: struct.Path.html
     #[inline]
     pub fn close(&mut self) {
         self.raw.close()
     }
 
     /// Builds the [`Path`] of this [`Builder`].
-    ///
-    /// [`Path`]: struct.Path.html
-    /// [`Builder`]: struct.Builder.html
     #[inline]
     pub fn build(self) -> Path {
         Path {

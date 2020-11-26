@@ -7,7 +7,7 @@ use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
 
 /// The content of a [`Pane`].
 ///
-/// [`Pane`]: struct.Pane.html
+/// [`Pane`]: crate::widget::pane_grid::Pane
 #[allow(missing_debug_implementations)]
 pub struct Content<'a, Message, Renderer: pane_grid::Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
@@ -20,8 +20,6 @@ where
     Renderer: pane_grid::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
-    ///
-    /// [`Content`]: struct.Content.html
     pub fn new(body: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Self {
             title_bar: None,
@@ -31,9 +29,6 @@ where
     }
 
     /// Sets the [`TitleBar`] of this [`Content`].
-    ///
-    /// [`TitleBar`]: struct.TitleBar.html
-    /// [`Content`]: struct.Content.html
     pub fn title_bar(
         mut self,
         title_bar: TitleBar<'a, Message, Renderer>,
@@ -43,8 +38,6 @@ where
     }
 
     /// Sets the style of the [`Content`].
-    ///
-    /// [`Content`]: struct.Content.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -57,9 +50,7 @@ where
 {
     /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Content`]: struct.Content.html
-    /// [`Renderer`]: trait.Renderer.html
-    /// [`Layout`]: ../layout/struct.Layout.html
+    /// [`Renderer`]: crate::widget::pane_grid::Renderer
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -94,9 +85,6 @@ where
 
     /// Returns whether the [`Content`] with the given [`Layout`] can be picked
     /// at the provided cursor position.
-    ///
-    /// [`Content`]: struct.Content.html
-    /// [`Layout`]: ../layout/struct.Layout.html
     pub fn can_be_picked_at(
         &self,
         layout: Layout<'_>,

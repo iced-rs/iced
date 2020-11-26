@@ -1,8 +1,6 @@
 use crate::{Color, Layout, Point, Rectangle, Renderer, Widget};
 
 /// A renderer able to graphically explain a [`Layout`].
-///
-/// [`Layout`]: struct.Layout.html
 pub trait Debugger: Renderer {
     /// Explains the [`Layout`] of an [`Element`] for debugging purposes.
     ///
@@ -12,9 +10,8 @@ pub trait Debugger: Renderer {
     /// A common approach consists in recursively rendering the bounds of the
     /// [`Layout`] and its children.
     ///
-    /// [`Layout`]: struct.Layout.html
-    /// [`Element`]: ../struct.Element.html
-    /// [`Element::explain`]: ../struct.Element.html#method.explain
+    /// [`Element`]: crate::Element
+    /// [`Element::explain`]: crate::Element::explain
     fn explain<Message>(
         &mut self,
         defaults: &Self::Defaults,

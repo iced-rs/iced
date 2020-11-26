@@ -171,8 +171,6 @@
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-//! [`Application`]: trait.Application.html
-//! [`Sandbox`]: trait.Sandbox.html
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]

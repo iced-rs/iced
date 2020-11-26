@@ -6,8 +6,7 @@
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
 //! drag and drop, and hotkey support.
 //!
-//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
-//! [`PaneGrid`]: type.PaneGrid.html
+//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
 use crate::Renderer;
 
 pub use iced_native::pane_grid::{
@@ -24,13 +23,9 @@ pub use iced_native::pane_grid::{
 pub type PaneGrid<'a, Message> = iced_native::PaneGrid<'a, Message, Renderer>;
 
 /// The content of a [`Pane`].
-///
-/// [`Pane`]: struct.Pane.html
 pub type Content<'a, Message> =
     iced_native::pane_grid::Content<'a, Message, Renderer>;
 
 /// The title bar of a [`Pane`].
-///
-/// [`Pane`]: struct.Pane.html
 pub type TitleBar<'a, Message> =
     iced_native::pane_grid::TitleBar<'a, Message, Renderer>;

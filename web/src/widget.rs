@@ -12,8 +12,6 @@
 //! ```
 //! use iced_web::{button, Button, Widget};
 //! ```
-//!
-//! [`Widget`]: trait.Widget.html
 use crate::{Bus, Css};
 use dodrio::bumpalo;
 
@@ -56,12 +54,8 @@ pub use space::Space;
 ///
 /// If you want to build your own widgets, you will need to implement this
 /// trait.
-///
-/// [`Widget`]: trait.Widget.html
 pub trait Widget<Message> {
     /// Produces a VDOM node for the [`Widget`].
-    ///
-    /// [`Widget`]: trait.Widget.html
     fn node<'b>(
         &self,
         bump: &'b bumpalo::Bump,

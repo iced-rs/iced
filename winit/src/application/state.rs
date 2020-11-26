@@ -6,8 +6,6 @@ use winit::event::WindowEvent;
 use winit::window::Window;
 
 /// The state of a windowed [`Application`].
-///
-/// [`Application`]: ../trait.Application.html
 #[derive(Debug, Clone)]
 pub struct State<A: Application> {
     title: String,
@@ -23,9 +21,6 @@ pub struct State<A: Application> {
 
 impl<A: Application> State<A> {
     /// Creates a new [`State`] for the provided [`Application`] and window.
-    ///
-    /// [`State`]: struct.State.html
-    /// [`Application`]: ../trait.Application.html
     pub fn new(application: &A, window: &Window) -> Self {
         let title = application.title();
         let mode = application.mode();
@@ -56,17 +51,11 @@ impl<A: Application> State<A> {
     }
 
     /// Returns the current background [`Color`] of the [`State`].
-    ///
-    /// [`Color`]: ../struct.Color.html
-    /// [`State`]: struct.State.html
     pub fn background_color(&self) -> Color {
         self.background_color
     }
 
     /// Returns the current [`Viewport`] of the [`State`].
-    ///
-    /// [`Viewport`]: ../struct.Viewport.html
-    /// [`State`]: struct.State.html
     pub fn viewport(&self) -> &Viewport {
         &self.viewport
     }
@@ -74,42 +63,26 @@ impl<A: Application> State<A> {
     /// Returns the version of the [`Viewport`] of the [`State`].
     ///
     /// The version is incremented every time the [`Viewport`] changes.
-    ///
-    /// [`Viewport`]: ../struct.Viewport.html
-    /// [`State`]: struct.State.html
     pub fn viewport_version(&self) -> usize {
         self.viewport_version
     }
 
     /// Returns the physical [`Size`] of the [`Viewport`] of the [`State`].
-    ///
-    /// [`Size`]: ../struct.Size.html
-    /// [`Viewport`]: ../struct.Viewport.html
-    /// [`State`]: struct.State.html
     pub fn physical_size(&self) -> Size<u32> {
         self.viewport.physical_size()
     }
 
     /// Returns the logical [`Size`] of the [`Viewport`] of the [`State`].
-    ///
-    /// [`Size`]: ../struct.Size.html
-    /// [`Viewport`]: ../struct.Viewport.html
-    /// [`State`]: struct.State.html
     pub fn logical_size(&self) -> Size<f32> {
         self.viewport.logical_size()
     }
 
     /// Returns the current scale factor of the [`Viewport`] of the [`State`].
-    ///
-    /// [`Viewport`]: ../struct.Viewport.html
-    /// [`State`]: struct.State.html
     pub fn scale_factor(&self) -> f64 {
         self.viewport.scale_factor()
     }
 
     /// Returns the current cursor position of the [`State`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn cursor_position(&self) -> Point {
         conversion::cursor_position(
             self.cursor_position,
@@ -118,16 +91,12 @@ impl<A: Application> State<A> {
     }
 
     /// Returns the current keyboard modifiers of the [`State`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn modifiers(&self) -> winit::event::ModifiersState {
         self.modifiers
     }
 
     /// Processes the provided window event and updates the [`State`]
     /// accordingly.
-    ///
-    /// [`State`]: struct.State.html
     pub fn update(
         &mut self,
         window: &Window,
@@ -190,9 +159,7 @@ impl<A: Application> State<A> {
     /// Normally an [`Application`] should be synchronized with its [`State`]
     /// and window after calling [`Application::update`].
     ///
-    /// [`State`]: struct.State.html
-    /// [`Application`]: ../trait.Application.html
-    /// [`Application::update`]: ../trait.Application.html#tymethod.update
+    /// [`Application::update`]: crate::Program::update
     pub fn synchronize(&mut self, application: &A, window: &Window) {
         // Update window title
         let new_title = application.title();

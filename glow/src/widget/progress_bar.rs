@@ -2,8 +2,6 @@
 //!
 //! A [`ProgressBar`] has a range of possible values and a current value,
 //! as well as a length, height and style.
-//!
-//! [`ProgressBar`]: type.ProgressBar.html
 use crate::Renderer;
 
 pub use iced_graphics::progress_bar::{Style, StyleSheet};

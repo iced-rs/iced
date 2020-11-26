@@ -18,8 +18,7 @@
 //! use iced_native::{button, Button, Widget};
 //! ```
 //!
-//! [`Widget`]: trait.Widget.html
-//! [renderer]: ../renderer/index.html
+//! [renderer]: crate::renderer
 pub mod button;
 pub mod checkbox;
 pub mod column;
@@ -83,9 +82,6 @@ use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle};
 /// If you want to build your own widgets, you will need to implement this
 /// trait.
 ///
-/// [`Widget`]: trait.Widget.html
-/// [`Element`]: ../struct.Element.html
-///
 /// # Examples
 /// The repository has some [examples] showcasing how to implement a custom
 /// widget:
@@ -108,13 +104,9 @@ where
     Renderer: crate::Renderer,
 {
     /// Returns the width of the [`Widget`].
-    ///
-    /// [`Widget`]: trait.Widget.html
     fn width(&self) -> Length;
 
     /// Returns the height of the [`Widget`].
-    ///
-    /// [`Widget`]: trait.Widget.html
     fn height(&self) -> Length;
 
     /// Returns the [`Node`] of the [`Widget`].
@@ -122,9 +114,7 @@ where
     /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
     ///
-    /// [`Node`]: ../layout/struct.Node.html
-    /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../layout/struct.Layout.html
+    /// [`Node`]: layout::Node
     fn layout(
         &self,
         renderer: &Renderer,
@@ -132,8 +122,6 @@ where
     ) -> layout::Node;
 
     /// Draws the [`Widget`] using the associated `Renderer`.
-    ///
-    /// [`Widget`]: trait.Widget.html
     fn draw(
         &self,
         renderer: &mut Renderer,
@@ -153,9 +141,7 @@ where
     /// For example, the [`Text`] widget does not hash its color property, as
     /// its value cannot affect the overall [`Layout`] of the user interface.
     ///
-    /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../layout/struct.Layout.html
-    /// [`Text`]: text/struct.Text.html
+    /// [`Text`]: crate::widget::Text
     fn hash_layout(&self, state: &mut Hasher);
 
     /// Processes a runtime [`Event`].
@@ -170,11 +156,6 @@ where
     ///   * a [`Clipboard`], if available
     ///
     /// By default, it does nothing.
-    ///
-    /// [`Event`]: ../enum.Event.html
-    /// [`Widget`]: trait.Widget.html
-    /// [`Layout`]: ../layout/struct.Layout.html
-    /// [`Clipboard`]: ../trait.Clipboard.html
     fn on_event(
         &mut self,
         _event: Event,
@@ -187,9 +168,7 @@ where
         event::Status::Ignored
     }
 
-    /// Returns the overlay of the [`Element`], if there is any.
-    ///
-    /// [`Element`]: struct.Element.html
+    /// Returns the overlay of the [`Widget`], if there is any.
     fn overlay(
         &mut self,
         _layout: Layout<'_>,
