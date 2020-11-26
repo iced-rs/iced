@@ -176,7 +176,11 @@ implemented the current [tour example] on top of [`ggez`], a game library.
 Since then, the focus has shifted towards providing a batteries-included,
 end-user-oriented GUI library, while keeping [the ecosystem] modular:
 
-[![Iced ecosystem](docs/graphs/ecosystem.png)](https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md)
+<p align="center">
+  <a href="https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md">
+    <img alt="Iced Ecosystem" src="docs/graphs/ecosystem.png" width="80%">
+  </a>
+</p>
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
 [The first alpha version]: https://github.com/hecrj/iced/tree/0.1.0-alpha

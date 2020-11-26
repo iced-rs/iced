@@ -1,7 +1,7 @@
 # Ecosystem
 This document describes the Iced ecosystem and explains how the different crates relate to each other.
 
-## Overview 
+## Overview
 Iced is meant to be used by 2 different types of users:
 
 - __End-users__. They should be able to:
@@ -17,21 +17,27 @@ Iced is meant to be used by 2 different types of users:
 
 Iced consists of different crates which offer different layers of abstractions for our users. This modular architecture helps us keep implementation details hidden and decoupled, which should allow us to rewrite or change strategies in the future.
 
-![The Iced Ecosystem](docs/graphs/ecosystem.png)
+<p align="center">
+  <img alt="The Iced Ecosystem" src="docs/graphs/ecosystem.png" width="60%">
+</p>
 
 ## The foundations
 There are a bunch of concepts that permeate the whole ecosystem. These concepts are considered __the foundations__, and they are provided by three different crates:
 
-- [`iced_core`] contains many lightweight, reusable primitives (e.g. `Point`, `Rectangle`, `Color`). 
+- [`iced_core`] contains many lightweight, reusable primitives (e.g. `Point`, `Rectangle`, `Color`).
 - [`iced_futures`] implements the concurrent concepts of [The Elm Architecture] on top of the [`futures`] ecosystem.
 - [`iced_style`] defines the default styling capabilities of built-in widgets.
 
-![Foundations](docs/graphs/foundations.png)
+<p align="center">
+  <img alt="The foundations" src="docs/graphs/foundations.png" width="80%">
+</p>
 
 ## The native target
 The native side of the ecosystem is split into two different groups: __renderers__ and __shells__.
 
-![The native target](docs/graphs/native.png)
+<p align="center">
+  <img alt="The native target" src="docs/graphs/native.png" width="80%">
+</p>
 
 ### Renderers
 The widgets of a _graphical_ user interface produce some primitives that eventually need to be drawn on screen. __Renderers__ take care of this task, potentially leveraging GPU acceleration.
@@ -64,7 +70,9 @@ Finally, [`iced`] unifies everything into a simple abstraction to create cross-p
 - On native, it uses __[shells](#shells)__ and __[renderers](#renderers)__.
 - On the web, it uses [`iced_web`].
 
-![Iced](docs/graphs/iced.png)
+<p align="center">
+  <img alt="Iced" src="docs/graphs/iced.png" width="80%">
+</p>
 
 [`iced_core`]: core
 [`iced_futures`]: futures
