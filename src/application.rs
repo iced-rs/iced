@@ -27,6 +27,8 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 /// a dummy file of 100 MB and tracks the download progress.
 /// - [`events`], a log of native events displayed using a conditional
 /// [`Subscription`].
+/// - [`game_of_life`], an interactive version of the [Game of Life], invented
+/// by [John Horton Conway].
 /// - [`pokedex`], an application that displays a random Pokédex entry (sprite
 /// included!) by using the [PokéAPI].
 /// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
@@ -35,14 +37,15 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 /// to listen to time.
 /// - [`todos`], a todos tracker inspired by [TodoMVC].
 ///
-/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.1/examples
-/// [`clock`]: https://github.com/hecrj/iced/tree/0.1/examples/clock
-/// [`download_progress`]: https://github.com/hecrj/iced/tree/0.1/examples/download_progress
-/// [`events`]: https://github.com/hecrj/iced/tree/0.1/examples/events
-/// [`pokedex`]: https://github.com/hecrj/iced/tree/0.1/examples/pokedex
-/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.1/examples/solar_system
-/// [`stopwatch`]: https://github.com/hecrj/iced/tree/0.1/examples/stopwatch
-/// [`todos`]: https://github.com/hecrj/iced/tree/0.1/examples/todos
+/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.2/examples
+/// [`clock`]: https://github.com/hecrj/iced/tree/0.2/examples/clock
+/// [`download_progress`]: https://github.com/hecrj/iced/tree/0.2/examples/download_progress
+/// [`events`]: https://github.com/hecrj/iced/tree/0.2/examples/events
+/// [`game_of_life`]: https://github.com/hecrj/iced/tree/0.2/examples/game_of_life
+/// [`pokedex`]: https://github.com/hecrj/iced/tree/0.2/examples/pokedex
+/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.2/examples/solar_system
+/// [`stopwatch`]: https://github.com/hecrj/iced/tree/0.2/examples/stopwatch
+/// [`todos`]: https://github.com/hecrj/iced/tree/0.2/examples/todos
 /// [`Sandbox`]: crate::Sandbox
 /// [`Canvas`]: crate::widget::Canvas
 /// [PokéAPI]: https://pokeapi.co/
