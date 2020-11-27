@@ -14,11 +14,6 @@ use crate::{
 /// Therefore, it is recommended to always start by implementing this trait and
 /// upgrade only once necessary.
 ///
-/// [`Application`]: trait.Application.html
-/// [`Sandbox`]: trait.Sandbox.html
-/// [`Command`]: struct.Command.html
-/// [`Command::none`]: struct.Command.html#method.none
-///
 /// # Examples
 /// [The repository has a bunch of examples] that use the [`Sandbox`] trait:
 ///
@@ -40,20 +35,20 @@ use crate::{
 /// - [`tour`], a simple UI tour that can run both on native platforms and the
 /// web!
 ///
-/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.1/examples
-/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.1/examples/bezier_tool
-/// [`counter`]: https://github.com/hecrj/iced/tree/0.1/examples/counter
-/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.1/examples/custom_widget
-/// [`geometry`]: https://github.com/hecrj/iced/tree/0.1/examples/geometry
-/// [`pane_grid`]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
-/// [`progress_bar`]: https://github.com/hecrj/iced/tree/0.1/examples/progress_bar
-/// [`styling`]: https://github.com/hecrj/iced/tree/0.1/examples/styling
-/// [`svg`]: https://github.com/hecrj/iced/tree/0.1/examples/svg
-/// [`tour`]: https://github.com/hecrj/iced/tree/0.1/examples/tour
+/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.2/examples
+/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.2/examples/bezier_tool
+/// [`counter`]: https://github.com/hecrj/iced/tree/0.2/examples/counter
+/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.2/examples/custom_widget
+/// [`geometry`]: https://github.com/hecrj/iced/tree/0.2/examples/geometry
+/// [`pane_grid`]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
+/// [`progress_bar`]: https://github.com/hecrj/iced/tree/0.2/examples/progress_bar
+/// [`styling`]: https://github.com/hecrj/iced/tree/0.2/examples/styling
+/// [`svg`]: https://github.com/hecrj/iced/tree/0.2/examples/svg
+/// [`tour`]: https://github.com/hecrj/iced/tree/0.2/examples/tour
 /// [`lyon`]: https://github.com/nical/lyon
 /// [the overview]: index.html#overview
-/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.1/wgpu
-/// [`Svg` widget]: widget/svg/struct.Svg.html
+/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.2/wgpu
+/// [`Svg` widget]: crate::widget::Svg
 /// [Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
 ///
 /// ## A simple "Hello, world!"
@@ -92,46 +87,33 @@ use crate::{
 /// ```
 pub trait Sandbox {
     /// The type of __messages__ your [`Sandbox`] will produce.
-    ///
-    /// [`Sandbox`]: trait.Sandbox.html
     type Message: std::fmt::Debug + Send;
 
     /// Initializes the [`Sandbox`].
     ///
     /// Here is where you should return the initial state of your app.
-    ///
-    /// [`Sandbox`]: trait.Sandbox.html
     fn new() -> Self;
 
     /// Returns the current title of the [`Sandbox`].
     ///
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
-    ///
-    /// [`Sandbox`]: trait.Sandbox.html
     fn title(&self) -> String;
 
     /// Handles a __message__ and updates the state of the [`Sandbox`].
     ///
     /// This is where you define your __update logic__. All the __messages__,
     /// produced by user interactions, will be handled by this method.
-    ///
-    /// [`Sandbox`]: trait.Sandbox.html
     fn update(&mut self, message: Self::Message);
 
     /// Returns the widgets to display in the [`Sandbox`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    ///
-    /// [`Sandbox`]: trait.Sandbox.html
     fn view(&mut self) -> Element<'_, Self::Message>;
 
     /// Returns the background color of the [`Sandbox`].
     ///
     /// By default, it returns [`Color::WHITE`].
-    ///
-    /// [`Sandbox`]: trait.Sandbox.html
-    /// [`Color::WHITE`]: struct.Color.html#const.WHITE
     fn background_color(&self) -> Color {
         Color::WHITE
     }
@@ -145,8 +127,6 @@ pub trait Sandbox {
     /// while a scale factor of `0.5` will shrink them to half their size.
     ///
     /// By default, it returns `1.0`.
-    ///
-    /// [`Sandbox`]: trait.Sandbox.html
     fn scale_factor(&self) -> f64 {
         1.0
     }
@@ -157,8 +137,6 @@ pub trait Sandbox {
     /// and __will NOT return__.
     ///
     /// It should probably be that last thing you call in your `main` function.
-    ///
-    /// [`Sandbox`]: trait.Sandbox.html
     fn run(settings: Settings<()>) -> Result<(), Error>
     where
         Self: 'static + Sized,

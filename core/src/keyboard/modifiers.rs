@@ -1,6 +1,6 @@
 /// The current state of the keyboard modifiers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct ModifiersState {
+pub struct Modifiers {
     /// Whether a shift key is pressed
     pub shift: bool,
 
@@ -14,17 +14,14 @@ pub struct ModifiersState {
     pub logo: bool,
 }
 
-impl ModifiersState {
-    /// Returns true if the current [`ModifiersState`] has a "command key"
-    /// pressed.
+impl Modifiers {
+    /// Returns true if a "command key" is pressed in the [`Modifiers`].
     ///
     /// The "command key" is the main modifier key used to issue commands in the
     /// current platform. Specifically:
     ///
     /// - It is the `logo` or command key (⌘) on macOS
     /// - It is the `control` key on other platforms
-    ///
-    /// [`ModifiersState`]: struct.ModifiersState.html
     pub fn is_command_pressed(self) -> bool {
         #[cfg(target_os = "macos")]
         let is_pressed = self.logo;
@@ -35,11 +32,9 @@ impl ModifiersState {
         is_pressed
     }
 
-    /// Returns true if the current [`ModifiersState`] has at least the same
-    /// modifiers enabled as the given value, and false otherwise.
-    ///
-    /// [`ModifiersState`]: struct.ModifiersState.html
-    pub fn matches(&self, modifiers: ModifiersState) -> bool {
+    /// Returns true if the current [`Modifiers`] have at least the same
+    /// keys pressed as the provided ones, and false otherwise.
+    pub fn matches(&self, modifiers: Self) -> bool {
         let shift = !modifiers.shift || self.shift;
         let control = !modifiers.control || self.control;
         let alt = !modifiers.alt || self.alt;

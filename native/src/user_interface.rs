@@ -12,14 +12,11 @@ use std::hash::Hasher;
 /// Iced tries to avoid dictating how to write your event loop. You are in
 /// charge of using this type in your system in any way you want.
 ///
-/// [`Layout`]: struct.Layout.html
-///
 /// # Example
 /// The [`integration` example] uses a [`UserInterface`] to integrate Iced in
 /// an existing graphical application.
 ///
-/// [`integration` example]: https://github.com/hecrj/iced/tree/0.1/examples/integration
-/// [`UserInterface`]: struct.UserInterface.html
+/// [`integration` example]: https://github.com/hecrj/iced/tree/0.2/examples/integration
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
@@ -36,10 +33,6 @@ where
     ///
     /// It is able to avoid expensive computations when using a [`Cache`]
     /// obtained from a previous instance of a [`UserInterface`].
-    ///
-    /// [`Element`]: struct.Element.html
-    /// [`Cache`]: struct.Cache.html
-    /// [`UserInterface`]: struct.UserInterface.html
     ///
     /// # Example
     /// Imagine we want to build a [`UserInterface`] for
@@ -135,9 +128,6 @@ where
     ///
     /// It returns __messages__ that may have been produced as a result of user
     /// interactions. You should feed these to your __update logic__.
-    ///
-    /// [`UserInterface`]: struct.UserInterface.html
-    /// [`Event`]: enum.Event.html
     ///
     /// # Example
     /// Let's allow our [counter](index.html#usage) to change state by
@@ -268,12 +258,11 @@ where
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
     ///
-    /// It returns the current state of the [`MouseCursor`]. You should update
-    /// the icon of the mouse cursor accordingly in your system.
+    /// It returns the some [`Renderer::Output`]. You should update the icon of
+    /// the mouse cursor accordingly in your system.
     ///
-    /// [`UserInterface`]: struct.UserInterface.html
-    /// [`Renderer`]: trait.Renderer.html
-    /// [`MouseCursor`]: enum.MouseCursor.html
+    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer::Output`]: crate::Renderer::Output
     ///
     /// # Example
     /// We can finally draw our [counter](index.html#usage) by
@@ -404,8 +393,6 @@ where
 
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
-    ///
-    /// [`UserInterface`]: struct.UserInterface.html
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
         Self::build(
             self.root,
@@ -421,9 +408,6 @@ where
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
-    ///
-    /// [`Cache`]: struct.Cache.html
-    /// [`UserInterface`]: struct.UserInterface.html
     pub fn into_cache(self) -> Cache {
         Cache {
             base: self.base,
@@ -464,8 +448,6 @@ struct Layer {
 }
 
 /// Reusable data of a specific [`UserInterface`].
-///
-/// [`UserInterface`]: struct.UserInterface.html
 #[derive(Debug, Clone)]
 pub struct Cache {
     base: Layer,
@@ -478,9 +460,6 @@ impl Cache {
     ///
     /// You should use this to initialize a [`Cache`] before building your first
     /// [`UserInterface`].
-    ///
-    /// [`Cache`]: struct.Cache.html
-    /// [`UserInterface`]: struct.UserInterface.html
     pub fn new() -> Cache {
         Cache {
             base: Layer {

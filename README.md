@@ -55,7 +55,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.1"
+iced = "0.2"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
@@ -174,20 +174,13 @@ The core of the library was implemented during May in [this pull request].
 implemented the current [tour example] on top of [`ggez`], a game library.
 
 Since then, the focus has shifted towards providing a batteries-included,
-end-user-oriented GUI library, while keeping [the ecosystem] modular.
+end-user-oriented GUI library, while keeping [the ecosystem] modular:
 
-Currently, Iced is a cross-platform GUI library built on top of smaller crates:
-
-  - [`iced_core`], a bunch of basic types that can be reused in different runtimes.
-  - [`iced_native`], a renderer-agnostic native runtime implementing widget
-    logic and a layout engine inspired by [`druid`].
-  - [`iced_web`], an experimental web runtime that targets the DOM thanks to
-    [`dodrio`].
-  - [`iced_wgpu`], a renderer leveraging [`wgpu`], [`wgpu_glyph`], and
-    [`font-kit`].
-  - [`iced_winit`], a windowing shell on top of [`winit`].
-
-[![Iced ecosystem](docs/graphs/ecosystem.png)](https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md)
+<p align="center">
+  <a href="https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md">
+    <img alt="Iced Ecosystem" src="docs/graphs/ecosystem.png" width="80%">
+  </a>
+</p>
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
 [The first alpha version]: https://github.com/hecrj/iced/tree/0.1.0-alpha
@@ -195,15 +188,6 @@ Currently, Iced is a cross-platform GUI library built on top of smaller crates:
 [tour example]: https://github.com/hecrj/iced/blob/master/examples/README.md#tour
 [`ggez`]: https://github.com/ggez/ggez
 [the ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
-[`iced_core`]: https://github.com/hecrj/iced/tree/master/core
-[`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-[`iced_web`]: https://github.com/hecrj/iced/tree/master/web
-[`iced_wgpu`]: https://github.com/hecrj/iced/tree/master/wgpu
-[`iced_winit`]: https://github.com/hecrj/iced/tree/master/winit
-[`druid`]: https://github.com/xi-editor/druid
-[`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
-[`font-kit`]: https://github.com/servo/font-kit
-[`winit`]: https://github.com/rust-windowing/winit
 
 ## Contributing / Feedback
 Contributions are greatly appreciated! If you want to contribute, please

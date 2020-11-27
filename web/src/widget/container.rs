@@ -21,8 +21,6 @@ pub struct Container<'a, Message> {
 
 impl<'a, Message> Container<'a, Message> {
     /// Creates an empty [`Container`].
-    ///
-    /// [`Container`]: struct.Container.html
     pub fn new<T>(content: T) -> Self
     where
         T: Into<Element<'a, Message>>,
@@ -43,48 +41,36 @@ impl<'a, Message> Container<'a, Message> {
     }
 
     /// Sets the padding of the [`Container`].
-    ///
-    /// [`Container`]: struct.Column.html
     pub fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self
     }
 
     /// Sets the width of the [`Container`].
-    ///
-    /// [`Container`]: struct.Container.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`Container`].
-    ///
-    /// [`Container`]: struct.Container.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
     /// Sets the maximum width of the [`Container`].
-    ///
-    /// [`Container`]: struct.Container.html
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
 
     /// Sets the maximum height of the [`Container`] in pixels.
-    ///
-    /// [`Container`]: struct.Container.html
     pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
         self
     }
 
     /// Centers the contents in the horizontal axis of the [`Container`].
-    ///
-    /// [`Container`]: struct.Container.html
     pub fn center_x(mut self) -> Self {
         self.horizontal_alignment = Align::Center;
 
@@ -92,8 +78,6 @@ impl<'a, Message> Container<'a, Message> {
     }
 
     /// Centers the contents in the vertical axis of the [`Container`].
-    ///
-    /// [`Container`]: struct.Container.html
     pub fn center_y(mut self) -> Self {
         self.vertical_alignment = Align::Center;
 
@@ -101,8 +85,6 @@ impl<'a, Message> Container<'a, Message> {
     }
 
     /// Sets the style of the [`Container`].
-    ///
-    /// [`Container`]: struct.Container.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style_sheet = style.into();
         self

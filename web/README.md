@@ -8,8 +8,6 @@
 
 The crate is currently a __very experimental__, simple abstraction layer over [`dodrio`].
 
-![iced_core](../docs/graphs/web.png)
-
 [documentation]: https://docs.rs/iced_web
 [`iced_core`]: ../core
 [`dodrio`]: https://github.com/fitzgen/dodrio
@@ -18,7 +16,7 @@ The crate is currently a __very experimental__, simple abstraction layer over [`
 Add `iced_web` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_web = "0.2"
+iced_web = "0.3"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

@@ -16,31 +16,21 @@ pub struct Stroke {
 
 impl Stroke {
     /// Sets the color of the [`Stroke`].
-    ///
-    /// [`Stroke`]: struct.Stroke.html
     pub fn with_color(self, color: Color) -> Stroke {
         Stroke { color, ..self }
     }
 
     /// Sets the width of the [`Stroke`].
-    ///
-    /// [`Stroke`]: struct.Stroke.html
     pub fn with_width(self, width: f32) -> Stroke {
         Stroke { width, ..self }
     }
 
     /// Sets the [`LineCap`] of the [`Stroke`].
-    ///
-    /// [`LineCap`]: enum.LineCap.html
-    /// [`Stroke`]: struct.Stroke.html
     pub fn with_line_cap(self, line_cap: LineCap) -> Stroke {
         Stroke { line_cap, ..self }
     }
 
     /// Sets the [`LineJoin`] of the [`Stroke`].
-    ///
-    /// [`LineJoin`]: enum.LineJoin.html
-    /// [`Stroke`]: struct.Stroke.html
     pub fn with_line_join(self, line_join: LineJoin) -> Stroke {
         Stroke { line_join, ..self }
     }

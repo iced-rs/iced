@@ -15,11 +15,8 @@ use std::collections::HashMap;
 /// provided to the view function of [`PaneGrid::new`] for displaying each
 /// [`Pane`].
 ///
-/// [`PaneGrid`]: struct.PaneGrid.html
-/// [`PaneGrid::new`]: struct.PaneGrid.html#method.new
-/// [`Pane`]: struct.Pane.html
-/// [`Split`]: struct.Split.html
-/// [`State`]: struct.State.html
+/// [`PaneGrid`]: crate::widget::PaneGrid
+/// [`PaneGrid::new`]: crate::widget::PaneGrid::new
 #[derive(Debug, Clone)]
 pub struct State<T> {
     pub(super) panes: HashMap<Pane, T>,
@@ -31,9 +28,6 @@ impl<T> State<T> {
     /// state.
     ///
     /// Alongside the [`State`], it returns the first [`Pane`] identifier.
-    ///
-    /// [`State`]: struct.State.html
-    /// [`Pane`]: struct.Pane.html
     pub fn new(first_pane_state: T) -> (Self, Pane) {
         (
             Self::with_configuration(Configuration::Pane(first_pane_state)),
@@ -42,9 +36,6 @@ impl<T> State<T> {
     }
 
     /// Creates a new [`State`] with the given [`Configuration`].
-    ///
-    /// [`State`]: struct.State.html
-    /// [`Configuration`]: enum.Configuration.html
     pub fn with_configuration(config: impl Into<Configuration<T>>) -> Self {
         let mut panes = HashMap::new();
 
@@ -62,54 +53,40 @@ impl<T> State<T> {
     }
 
     /// Returns the total amount of panes in the [`State`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn len(&self) -> usize {
         self.panes.len()
     }
 
     /// Returns the internal state of the given [`Pane`], if it exists.
-    ///
-    /// [`Pane`]: struct.Pane.html
     pub fn get(&self, pane: &Pane) -> Option<&T> {
         self.panes.get(pane)
     }
 
     /// Returns the internal state of the given [`Pane`] with mutability, if it
     /// exists.
-    ///
-    /// [`Pane`]: struct.Pane.html
     pub fn get_mut(&mut self, pane: &Pane) -> Option<&mut T> {
         self.panes.get_mut(pane)
     }
 
     /// Returns an iterator over all the panes of the [`State`], alongside its
     /// internal state.
-    ///
-    /// [`State`]: struct.State.html
     pub fn iter(&self) -> impl Iterator<Item = (&Pane, &T)> {
         self.panes.iter()
     }
 
     /// Returns a mutable iterator over all the panes of the [`State`],
     /// alongside its internal state.
-    ///
-    /// [`State`]: struct.State.html
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Pane, &mut T)> {
         self.panes.iter_mut()
     }
 
     /// Returns the layout of the [`State`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn layout(&self) -> &Node {
         &self.internal.layout
     }
 
     /// Returns the adjacent [`Pane`] of another [`Pane`] in the given
     /// direction, if there is one.
-    ///
-    /// [`Pane`]: struct.Pane.html
     pub fn adjacent(&self, pane: &Pane, direction: Direction) -> Option<Pane> {
         let regions = self
             .internal
@@ -145,9 +122,6 @@ impl<T> State<T> {
 
     /// Splits the given [`Pane`] into two in the given [`Axis`] and
     /// initializing the new [`Pane`] with the provided internal state.
-    ///
-    /// [`Pane`]: struct.Pane.html
-    /// [`Axis`]: enum.Axis.html
     pub fn split(
         &mut self,
         axis: Axis,
@@ -180,9 +154,8 @@ impl<T> State<T> {
     /// If you want to swap panes on drag and drop in your [`PaneGrid`], you
     /// will need to call this method when handling a [`DragEvent`].
     ///
-    /// [`State`]: struct.State.html
-    /// [`PaneGrid`]: struct.PaneGrid.html
-    /// [`DragEvent`]: struct.DragEvent.html
+    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`DragEvent`]: crate::widget::pane_grid::DragEvent
     pub fn swap(&mut self, a: &Pane, b: &Pane) {
         self.internal.layout.update(&|node| match node {
             Node::Split { .. } => {}
@@ -204,17 +177,14 @@ impl<T> State<T> {
     /// If you want to enable resize interactions in your [`PaneGrid`], you will
     /// need to call this method when handling a [`ResizeEvent`].
     ///
-    /// [`Split`]: struct.Split.html
-    /// [`PaneGrid`]: struct.PaneGrid.html
-    /// [`ResizeEvent`]: struct.ResizeEvent.html
+    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`ResizeEvent`]: crate::widget::pane_grid::ResizeEvent
     pub fn resize(&mut self, split: &Split, ratio: f32) {
         let _ = self.internal.layout.resize(split, ratio);
     }
 
     /// Closes the given [`Pane`] and returns its internal state and its closest
     /// sibling, if it exists.
-    ///
-    /// [`Pane`]: struct.Pane.html
     pub fn close(&mut self, pane: &Pane) -> Option<(T, Pane)> {
         if let Some(sibling) = self.internal.layout.remove(pane) {
             self.panes.remove(pane).map(|state| (state, sibling))

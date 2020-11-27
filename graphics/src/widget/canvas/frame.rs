@@ -7,7 +7,7 @@ use crate::{
 
 /// The frame of a [`Canvas`].
 ///
-/// [`Canvas`]: struct.Canvas.html
+/// [`Canvas`]: crate::widget::Canvas
 #[derive(Debug)]
 pub struct Frame {
     size: Size,
@@ -33,8 +33,6 @@ impl Frame {
     ///
     /// The default coordinate system of a [`Frame`] has its origin at the
     /// top-left corner of its bounds.
-    ///
-    /// [`Frame`]: struct.Frame.html
     pub fn new(size: Size) -> Frame {
         Frame {
             size,
@@ -51,32 +49,24 @@ impl Frame {
     }
 
     /// Returns the width of the [`Frame`].
-    ///
-    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn width(&self) -> f32 {
         self.size.width
     }
 
     /// Returns the width of the [`Frame`].
-    ///
-    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn height(&self) -> f32 {
         self.size.height
     }
 
     /// Returns the dimensions of the [`Frame`].
-    ///
-    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn size(&self) -> Size {
         self.size
     }
 
     /// Returns the coordinate of the center of the [`Frame`].
-    ///
-    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn center(&self) -> Point {
         Point::new(self.size.width / 2.0, self.size.height / 2.0)
@@ -84,9 +74,6 @@ impl Frame {
 
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
-    ///
-    /// [`Path`]: path/struct.Path.html
-    /// [`Frame`]: struct.Frame.html
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
         use lyon::tessellation::{
             BuffersBuilder, FillOptions, FillTessellator,
@@ -115,8 +102,6 @@ impl Frame {
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
     /// its `Size` on the [`Frame`] by filling it with the provided style.
-    ///
-    /// [`Frame`]: struct.Frame.html
     pub fn fill_rectangle(
         &mut self,
         top_left: Point,
@@ -152,9 +137,6 @@ impl Frame {
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
-    ///
-    /// [`Path`]: path/struct.Path.html
-    /// [`Frame`]: struct.Frame.html
     pub fn stroke(&mut self, path: &Path, stroke: impl Into<Stroke>) {
         use lyon::tessellation::{
             BuffersBuilder, StrokeOptions, StrokeTessellator,
@@ -200,9 +182,7 @@ impl Frame {
     /// Support for vectorial text is planned, and should address all these
     /// limitations.
     ///
-    /// [`Text`]: struct.Text.html
-    /// [`Frame`]: struct.Frame.html
-    /// [`Canvas`]: struct.Canvas.html
+    /// [`Canvas`]: crate::widget::Canvas
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         use std::f32;
 
@@ -240,8 +220,6 @@ impl Frame {
     ///
     /// This method is useful to compose transforms and perform drawing
     /// operations in different coordinate systems.
-    ///
-    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn with_save(&mut self, f: impl FnOnce(&mut Frame)) {
         self.transforms.previous.push(self.transforms.current);
@@ -252,8 +230,6 @@ impl Frame {
     }
 
     /// Applies a translation to the current transform of the [`Frame`].
-    ///
-    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn translate(&mut self, translation: Vector) {
         self.transforms.current.raw = self
@@ -268,8 +244,6 @@ impl Frame {
     }
 
     /// Applies a rotation to the current transform of the [`Frame`].
-    ///
-    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn rotate(&mut self, angle: f32) {
         self.transforms.current.raw = self
@@ -281,8 +255,6 @@ impl Frame {
     }
 
     /// Applies a scaling to the current transform of the [`Frame`].
-    ///
-    /// [`Frame`]: struct.Frame.html
     #[inline]
     pub fn scale(&mut self, scale: f32) {
         self.transforms.current.raw =
@@ -291,9 +263,6 @@ impl Frame {
     }
 
     /// Produces the [`Geometry`] representing everything drawn on the [`Frame`].
-    ///
-    /// [`Frame`]: struct.Frame.html
-    /// [`Geometry`]: struct.Geometry.html
     pub fn into_geometry(mut self) -> Geometry {
         if !self.buffers.indices.is_empty() {
             self.primitives.push(Primitive::Mesh2D {

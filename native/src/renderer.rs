@@ -13,12 +13,12 @@
 //! In the end, a __renderer__ satisfying all the constraints is
 //! needed to build a [`UserInterface`].
 //!
-//! [`Widget`]: ../widget/trait.Widget.html
-//! [`UserInterface`]: ../struct.UserInterface.html
-//! [`Text`]: ../widget/text/struct.Text.html
-//! [`text::Renderer`]: ../widget/text/trait.Renderer.html
-//! [`Checkbox`]: ../widget/checkbox/struct.Checkbox.html
-//! [`checkbox::Renderer`]: ../widget/checkbox/trait.Renderer.html
+//! [`Widget`]: crate::Widget
+//! [`UserInterface`]: crate::UserInterface
+//! [`Text`]: crate::widget::Text
+//! [`text::Renderer`]: crate::widget::text::Renderer
+//! [`Checkbox`]: crate::widget::Checkbox
+//! [`checkbox::Renderer`]: crate::widget::checkbox::Renderer
 
 #[cfg(debug_assertions)]
 mod null;
@@ -34,15 +34,11 @@ pub trait Renderer: Sized {
     ///
     /// If you are implementing a graphical renderer, your output will most
     /// likely be a tree of visual primitives.
-    ///
-    /// [`Renderer`]: trait.Renderer.html
     type Output;
 
     /// The default styling attributes of the [`Renderer`].
     ///
     /// This type can be leveraged to implement style inheritance.
-    ///
-    /// [`Renderer`]: trait.Renderer.html
     type Defaults: Default;
 
     /// Lays out the elements of a user interface.

@@ -1,5 +1,7 @@
 //! A [`glow`] renderer for [`iced_native`].
 //!
+//! ![The native path of the Iced ecosystem](https://github.com/hecrj/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
+//!
 //! [`glow`]: https://github.com/grovesNL/glow
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 #![deny(missing_docs)]

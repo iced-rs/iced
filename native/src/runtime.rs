@@ -7,8 +7,8 @@ use crate::Hasher;
 /// It can be used by shells to easily spawn a [`Command`] or track a
 /// [`Subscription`].
 ///
-/// [`Command`]: ../struct.Command.html
-/// [`Subscription`]: ../struct.Subscription.html
+/// [`Command`]: crate::Command
+/// [`Subscription`]: crate::Subscription
 pub type Runtime<Executor, Receiver, Message> = iced_futures::Runtime<
     Hasher,
     (Event, event::Status),

@@ -15,8 +15,6 @@ pub struct Arc {
 }
 
 /// An elliptical [`Arc`].
-///
-/// [`Arc`]: struct.Arc.html
 #[derive(Debug, Clone, Copy)]
 pub struct Elliptical {
     /// The center of the arc.

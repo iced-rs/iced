@@ -14,7 +14,9 @@ To achieve this, it introduces a bunch of reusable interfaces:
 - A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
 - A `Windowed` trait, leveraging [`raw-window-handle`], which can be implemented by graphical renderers that target _windows_. Window-based shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
 
-![iced_native](../docs/graphs/native.png)
+<p align="center">
+  <img alt="The native target" src="../docs/graphs/native.png" width="80%">
+</p>
 
 [documentation]: https://docs.rs/iced_native
 [`iced_core`]: ../core
@@ -26,7 +28,7 @@ To achieve this, it introduces a bunch of reusable interfaces:
 Add `iced_native` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_native = "0.2"
+iced_native = "0.3"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

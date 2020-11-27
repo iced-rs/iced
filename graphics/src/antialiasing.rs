@@ -13,8 +13,6 @@ pub enum Antialiasing {
 
 impl Antialiasing {
     /// Returns the amount of samples of the [`Antialiasing`].
-    ///
-    /// [`Antialiasing`]: enum.Antialiasing.html
     pub fn sample_count(self) -> u32 {
         match self {
             Antialiasing::MSAAx2 => 2,

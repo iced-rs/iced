@@ -21,9 +21,6 @@ impl Compositor {
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
-    ///
-    /// [`Compositor`]: struct.Compositor.html
-    /// [`Settings`]: struct.Settings.html
     pub async fn request(settings: Settings) -> Option<Self> {
         let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
 
@@ -67,9 +64,6 @@ impl Compositor {
     }
 
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
-    ///
-    /// [`Compositor`]: struct.Compositor.html
-    /// [`Backend`]: struct.Backend.html
     pub fn create_backend(&self) -> Backend {
         Backend::new(&self.device, self.settings)
     }

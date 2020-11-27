@@ -1,4 +1,4 @@
-use super::{KeyCode, ModifiersState};
+use super::{KeyCode, Modifiers};
 
 /// A keyboard event.
 ///
@@ -14,7 +14,7 @@ pub enum Event {
         key_code: KeyCode,
 
         /// The state of the modifier keys
-        modifiers: ModifiersState,
+        modifiers: Modifiers,
     },
 
     /// A keyboard key was released.
@@ -23,12 +23,12 @@ pub enum Event {
         key_code: KeyCode,
 
         /// The state of the modifier keys
-        modifiers: ModifiersState,
+        modifiers: Modifiers,
     },
 
     /// A unicode character was received.
     CharacterReceived(char),
 
     /// The keyboard modifiers have changed.
-    ModifiersChanged(ModifiersState),
+    ModifiersChanged(Modifiers),
 }

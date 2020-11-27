@@ -15,8 +15,6 @@ use std::mem::ManuallyDrop;
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
-///
-/// [`Application`]: trait.Application.html
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     compositor_settings: C::Settings,

@@ -49,8 +49,6 @@ impl<Message> Radio<Message> {
     ///   * the current selected value
     ///   * a function that will be called when the [`Radio`] is selected. It
     ///   receives the value of the radio and must produce a `Message`.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn new<F, V>(
         value: V,
         label: impl Into<String>,
@@ -72,24 +70,18 @@ impl<Message> Radio<Message> {
     }
 
     /// Sets the style of the [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
         self.style = style.into();
         self
     }
 
     /// Sets the name attribute of the [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
     }
 
     /// Sets the id of the [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn id(mut self, id: impl Into<String>) -> Self {
         self.id = Some(id.into());
         self

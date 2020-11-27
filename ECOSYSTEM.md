@@ -1,10 +1,7 @@
 # Ecosystem
-This document describes the Iced ecosystem.
+This document describes the Iced ecosystem and explains how the different crates relate to each other.
 
-It quickly lists the different audiences of the library and explains how the different crates relate to each other.
-
-## Users
-
+## Overview
 Iced is meant to be used by 2 different types of users:
 
 - __End-users__. They should be able to:
@@ -18,71 +15,81 @@ Iced is meant to be used by 2 different types of users:
   - integrate existing runtimes in their own system (like game engines),
   - and create their own custom renderers.
 
-## Crates
 Iced consists of different crates which offer different layers of abstractions for our users. This modular architecture helps us keep implementation details hidden and decoupled, which should allow us to rewrite or change strategies in the future.
 
-![Ecosystem graph](docs/graphs/ecosystem.png)
+<p align="center">
+  <img alt="The Iced Ecosystem" src="docs/graphs/ecosystem.png" width="60%">
+</p>
 
-### [`iced_core`]
-[`iced_core`] holds basic reusable types of the public API. For instance, basic data types like `Point`, `Rectangle`, `Length`, etc.
+## The foundations
+There are a bunch of concepts that permeate the whole ecosystem. These concepts are considered __the foundations__, and they are provided by three different crates:
 
-This crate is meant to be a starting point for an Iced runtime.
+- [`iced_core`] contains many lightweight, reusable primitives (e.g. `Point`, `Rectangle`, `Color`).
+- [`iced_futures`] implements the concurrent concepts of [The Elm Architecture] on top of the [`futures`] ecosystem.
+- [`iced_style`] defines the default styling capabilities of built-in widgets.
 
-### [`iced_native`]
-[`iced_native`] takes [`iced_core`] and builds a native runtime on top of it, featuring:
-- A custom layout engine, greatly inspired by [`druid`]
-- Event handling for all the built-in widgets
-- A renderer-agnostic API
+<p align="center">
+  <img alt="The foundations" src="docs/graphs/foundations.png" width="50%">
+</p>
 
-To achieve this, it introduces a bunch of reusable interfaces:
-- A `Widget` trait, which is used to implement new widgets: from layout requirements to event and drawing logic.
-- A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
-- A `Backend` trait, leveraging [`raw-window-handle`], which can be implemented by graphical renderers that target _windows_. Window-based shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
+## The native target
+The native side of the ecosystem is split into two different groups: __renderers__ and __shells__.
 
-[`druid`]: https://github.com/xi-editor/druid
-[`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
+<p align="center">
+  <img alt="The native target" src="docs/graphs/native.png" width="80%">
+</p>
 
-### [`iced_web`]
-[`iced_web`] takes [`iced_core`] and builds a WebAssembly runtime on top. It achieves this by introducing a `Widget` trait that can be used to produce VDOM nodes.
+### Renderers
+The widgets of a _graphical_ user interface produce some primitives that eventually need to be drawn on screen. __Renderers__ take care of this task, potentially leveraging GPU acceleration.
 
-The crate is currently a simple abstraction layer over [`dodrio`].
+Currently, there are two different official renderers:
 
-[`dodrio`]: https://github.com/fitzgen/dodrio
+- [`iced_wgpu`] is powered by [`wgpu`] and supports Vulkan, DirectX 12, and Metal.
+- [`iced_glow`] is powered by [`glow`] and supports OpenGL 3.3+.
 
-### [`iced_wgpu`]
-[`iced_wgpu`] is a [`wgpu`] renderer for [`iced_native`]. For now, it is the default renderer of Iced in native platforms.
+Additionally, the [`iced_graphics`] subcrate contains a bunch of backend-agnostic types that can be leveraged to build renderers. Both of the renderers rely on the graphical foundations provided by this crate.
 
-[`wgpu`] supports most modern graphics backends: Vulkan, Metal, DX11, and DX12 (OpenGL and WebGL are still WIP). Additionally, it will support the incoming [WebGPU API].
+### Shells
+The widgets of a graphical user _interface_ are interactive. __Shells__ gather and process user interactions in an event loop.
 
-Currently, [`iced_wgpu`] supports the following primitives:
-- Text, which is rendered using [`wgpu_glyph`]. No shaping at all.
-- Quads or rectangles, with rounded borders and a solid background color.
-- Clip areas, useful to implement scrollables or hide overflowing content.
-- Images and SVG, loaded from memory or the file system.
-- Meshes of triangles, useful to draw geometry freely.
+Normally, a shell will be responsible of creating a window and managing the lifecycle of a user interface, implementing a runtime of [The Elm Architecture].
 
-[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-[WebGPU API]: https://gpuweb.github.io/gpuweb/
-[`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
+As of now, there are two official shells:
 
-### [`iced_winit`]
-[`iced_winit`] offers some convenient abstractions on top of [`iced_native`] to quickstart development when using [`winit`].
+- [`iced_winit`] implements a shell runtime on top of [`winit`].
+- [`iced_glutin`] is similar to [`iced_winit`], but it also deals with [OpenGL context creation].
 
-It exposes a renderer-agnostic `Application` trait that can be implemented and then run with a simple call. The use of this trait is optional. A `conversion` module is provided for users that decide to implement a custom event loop.
+## The web target
+The Web platform provides all the abstractions necessary to draw widgets and gather users interactions.
 
-[`winit`]: https://github.com/rust-windowing/winit
+Therefore, unlike the native path, the web side of the ecosystem does not need to split renderers and shells. Instead, [`iced_web`] leverages [`dodrio`] to both render widgets and implement a proper runtime.
 
-### [`iced`]
+## Iced
 Finally, [`iced`] unifies everything into a simple abstraction to create cross-platform applications:
 
-- On native, it uses [`iced_winit`] and [`iced_wgpu`].
+- On native, it uses __[shells](#shells)__ and __[renderers](#renderers)__.
 - On the web, it uses [`iced_web`].
 
-This is the crate meant to be used by __end-users__.
+<p align="center">
+  <img alt="Iced" src="docs/graphs/iced.png" width="80%">
+</p>
 
 [`iced_core`]: core
+[`iced_futures`]: futures
+[`iced_style`]: style
 [`iced_native`]: native
 [`iced_web`]: web
+[`iced_graphics`]: graphics
 [`iced_wgpu`]: wgpu
+[`iced_glow`]: glow
 [`iced_winit`]: winit
+[`iced_glutin`]: glutin
 [`iced`]: ..
+[`futures`]: https://github.com/rust-lang/futures-rs
+[`glow`]: https://github.com/grovesNL/glow
+[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[`winit`]: https://github.com/rust-windowing/winit
+[`glutin`]: https://github.com/rust-windowing/glutin
+[`dodrio`]: https://github.com/fitzgen/dodrio
+[OpenGL context creation]: https://www.khronos.org/opengl/wiki/Creating_an_OpenGL_Context
+[The Elm Architecture]: https://guide.elm-lang.org/architecture/

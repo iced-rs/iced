@@ -2,8 +2,6 @@
 use bytemuck::{Pod, Zeroable};
 
 /// A set of [`Vertex2D`] and indices representing a list of triangles.
-///
-/// [`Vertex2D`]: struct.Vertex2D.html
 #[derive(Clone, Debug)]
 pub struct Mesh2D {
     /// The vertices of the mesh

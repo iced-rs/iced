@@ -17,13 +17,11 @@ use winit::window::WindowBuilder;
 #[derive(Debug, Clone, Default)]
 pub struct Settings<Flags> {
     /// The [`Window`] settings
-    ///
-    /// [`Window`]: struct.Window.html
     pub window: Window,
 
     /// The data needed to initialize an [`Application`].
     ///
-    /// [`Application`]: trait.Application.html
+    /// [`Application`]: crate::Application
     pub flags: Flags,
 }
 

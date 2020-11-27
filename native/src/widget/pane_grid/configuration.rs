@@ -2,7 +2,7 @@ use crate::pane_grid::Axis;
 
 /// The arrangement of a [`PaneGrid`].
 ///
-/// [`PaneGrid`]: struct.PaneGrid.html
+/// [`PaneGrid`]: crate::pane_grid::PaneGrid
 #[derive(Debug, Clone)]
 pub enum Configuration<T> {
     /// A split of the available space.
@@ -13,18 +13,14 @@ pub enum Configuration<T> {
         /// The ratio of the split in [0.0, 1.0].
         ratio: f32,
 
-        /// The left/top [`Content`] of the split.
-        ///
-        /// [`Configuration`]: enum.Node.html
+        /// The left/top [`Configuration`] of the split.
         a: Box<Configuration<T>>,
 
-        /// The right/bottom [`Content`] of the split.
-        ///
-        /// [`Configuration`]: enum.Node.html
+        /// The right/bottom [`Configuration`] of the split.
         b: Box<Configuration<T>>,
     },
     /// A [`Pane`].
     ///
-    /// [`Pane`]: struct.Pane.html
+    /// [`Pane`]: crate::pane_grid::Pane
     Pane(T),
 }

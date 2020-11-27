@@ -6,8 +6,7 @@
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
 //! drag and drop, and hotkey support.
 //!
-//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.1/examples/pane_grid
-//! [`PaneGrid`]: type.PaneGrid.html
+//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
 use crate::backend::{self, Backend};
 use crate::defaults;
 use crate::{Primitive, Renderer};

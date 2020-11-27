@@ -62,8 +62,6 @@ where
     ///   * the current selected value
     ///   * a function that will be called when the [`Radio`] is selected. It
     ///   receives the value of the radio and must produce a `Message`.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn new<F, V>(
         value: V,
         label: impl Into<String>,
@@ -87,40 +85,30 @@ where
     }
 
     /// Sets the size of the [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn size(mut self, size: u16) -> Self {
         self.size = size;
         self
     }
 
     /// Sets the width of the [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the spacing between the [`Radio`] button and the text.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn spacing(mut self, spacing: u16) -> Self {
         self.spacing = spacing;
         self
     }
 
     /// Sets the text size of the [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
         self
     }
 
     /// Sets the style of the [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -237,20 +225,15 @@ where
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`Radio`] button in your user interface.
 ///
-/// [`Radio`]: struct.Radio.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
 
     /// The default size of a [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     const DEFAULT_SIZE: u16;
 
     /// The default spacing of a [`Radio`] button.
-    ///
-    /// [`Radio`]: struct.Radio.html
     const DEFAULT_SPACING: u16;
 
     /// Draws a [`Radio`] button.
@@ -260,8 +243,6 @@ pub trait Renderer: crate::Renderer {
     ///   * whether the [`Radio`] is selected or not
     ///   * whether the mouse is over the [`Radio`] or not
     ///   * the drawn label of the [`Radio`]
-    ///
-    /// [`Radio`]: struct.Radio.html
     fn draw(
         &mut self,
         bounds: Rectangle,

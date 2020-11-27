@@ -6,7 +6,7 @@ pub use iced_native::event::Status;
 
 /// A [`Canvas`] event.
 ///
-/// [`Canvas`]: struct.Event.html
+/// [`Canvas`]: crate::widget::Canvas
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
     /// A mouse event.

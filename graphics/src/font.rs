@@ -26,14 +26,10 @@ pub const ICONS: iced_native::Font = iced_native::Font::External {
 };
 
 /// The `char` representing a ✔ icon in the built-in [`ICONS`] font.
-///
-/// [`ICONS`]: const.ICONS.html
 #[cfg(feature = "font-icons")]
 #[cfg_attr(docsrs, doc(cfg(feature = "font-icons")))]
 pub const CHECKMARK_ICON: char = '\u{F00C}';
 
 /// The `char` representing a ▼ icon in the built-in [`ICONS`] font.
-///
-/// [`ICONS`]: const.ICONS.html
 #[cfg(feature = "font-icons")]
 pub const ARROW_DOWN_ICON: char = '\u{E800}';

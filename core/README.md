@@ -8,7 +8,9 @@
 
 This crate is meant to be a starting point for an Iced runtime.
 
-![iced_core](../docs/graphs/core.png)
+<p align="center">
+  <img alt="The foundations" src="../docs/graphs/foundations.png" width="50%">
+</p>
 
 [documentation]: https://docs.rs/iced_core
 
@@ -16,7 +18,7 @@ This crate is meant to be a starting point for an Iced runtime.
 Add `iced_core` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_core = "0.2"
+iced_core = "0.3"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

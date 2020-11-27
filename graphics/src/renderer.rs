@@ -13,25 +13,16 @@ pub struct Renderer<B: Backend> {
 
 impl<B: Backend> Renderer<B> {
     /// Creates a new [`Renderer`] from the given [`Backend`].
-    ///
-    /// [`Renderer`]: struct.Renderer.html
-    /// [`Backend`]: backend/trait.Backend.html
     pub fn new(backend: B) -> Self {
         Self { backend }
     }
 
     /// Returns a reference to the [`Backend`] of the [`Renderer`].
-    ///
-    /// [`Renderer`]: struct.Renderer.html
-    /// [`Backend`]: backend/trait.Backend.html
     pub fn backend(&self) -> &B {
         &self.backend
     }
 
     /// Returns a mutable reference to the [`Backend`] of the [`Renderer`].
-    ///
-    /// [`Renderer`]: struct.Renderer.html
-    /// [`Backend`]: backend/trait.Backend.html
     pub fn backend_mut(&mut self) -> &mut B {
         &mut self.backend
     }

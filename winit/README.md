@@ -8,7 +8,9 @@
 
 It exposes a renderer-agnostic `Application` trait that can be implemented and then run with a simple call. The use of this trait is optional. A `conversion` module is provided for users that decide to implement a custom event loop.
 
-![iced_winit](../docs/graphs/winit.png)
+<p align="center">
+  <img alt="The native target" src="../docs/graphs/native.png" width="80%">
+</p>
 
 [documentation]: https://docs.rs/iced_winit
 [`iced_native`]: ../native
@@ -18,7 +20,7 @@ It exposes a renderer-agnostic `Application` trait that can be implemented and t
 Add `iced_winit` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_winit = "0.1"
+iced_winit = "0.2"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

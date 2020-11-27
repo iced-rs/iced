@@ -24,17 +24,13 @@ use std::mem::ManuallyDrop;
 /// your GUI application by simply calling [`run`](#method.run). It will run in
 /// its own window.
 ///
-/// An [`Application`](trait.Application.html) can execute asynchronous actions
-/// by returning a [`Command`](struct.Command.html) in some of its methods.
+/// An [`Application`] can execute asynchronous actions by returning a
+/// [`Command`] in some of its methods.
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-///
-/// [`Application`]: trait.Application.html
 pub trait Application: Program {
     /// The data needed to initialize your [`Application`].
-    ///
-    /// [`Application`]: trait.Application.html
     type Flags;
 
     /// Initializes the [`Application`] with the flags provided to
@@ -42,22 +38,15 @@ pub trait Application: Program {
     ///
     /// Here is where you should return the initial state of your app.
     ///
-    /// Additionally, you can return a [`Command`](struct.Command.html) if you
-    /// need to perform some async action in the background on startup. This is
-    /// useful if you want to load state from a file, perform an initial HTTP
-    /// request, etc.
-    ///
-    /// [`Application`]: trait.Application.html
-    /// [`run`]: #method.run.html
-    /// [`Settings`]: ../settings/struct.Settings.html
+    /// Additionally, you can return a [`Command`] if you need to perform some
+    /// async action in the background on startup. This is useful if you want to
+    /// load state from a file, perform an initial HTTP request, etc.
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
     /// Returns the current title of the [`Application`].
     ///
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
-    ///
-    /// [`Application`]: trait.Application.html
     fn title(&self) -> String;
 
     /// Returns the event `Subscription` for the current state of the
@@ -79,8 +68,6 @@ pub trait Application: Program {
     /// is returned.
     ///
     /// By default, an application will run in windowed mode.
-    ///
-    /// [`Application`]: trait.Application.html
     fn mode(&self) -> Mode {
         Mode::Windowed
     }
@@ -88,10 +75,6 @@ pub trait Application: Program {
     /// Returns the background [`Color`] of the [`Application`].
     ///
     /// By default, it returns [`Color::WHITE`].
-    ///
-    /// [`Color`]: struct.Color.html
-    /// [`Application`]: trait.Application.html
-    /// [`Color::WHITE`]: struct.Color.html#const.WHITE
     fn background_color(&self) -> Color {
         Color::WHITE
     }
@@ -105,8 +88,6 @@ pub trait Application: Program {
     /// while a scale factor of `0.5` will shrink them to half their size.
     ///
     /// By default, it returns `1.0`.
-    ///
-    /// [`Application`]: trait.Application.html
     fn scale_factor(&self) -> f64 {
         1.0
     }
@@ -114,8 +95,6 @@ pub trait Application: Program {
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
-///
-/// [`Application`]: trait.Application.html
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     compositor_settings: C::Settings,
@@ -382,8 +361,6 @@ async fn run_instance<A, E, C>(
 
 /// Returns true if the provided event should cause an [`Application`] to
 /// exit.
-///
-/// [`Application`]: trait.Application.html
 pub fn requests_exit(
     event: &winit::event::WindowEvent<'_>,
     _modifiers: winit::event::ModifiersState,
@@ -407,11 +384,7 @@ pub fn requests_exit(
 }
 
 /// Builds a [`UserInterface`] for the provided [`Application`], logging
-/// [`Debug`] information accordingly.
-///
-/// [`UserInterface`]: struct.UserInterface.html
-/// [`Application`]: trait.Application.html
-/// [`Debug`]: struct.Debug.html
+/// [`struct@Debug`] information accordingly.
 pub fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
     cache: Cache,
@@ -432,10 +405,6 @@ pub fn build_user_interface<'a, A: Application>(
 
 /// Updates an [`Application`] by feeding it the provided messages, spawning any
 /// resulting [`Command`], and tracking its [`Subscription`].
-///
-/// [`Application`]: trait.Application.html
-/// [`Command`]: struct.Command.html
-/// [`Subscription`]: struct.Subscription.html
 pub fn update<A: Application, E: Executor>(
     application: &mut A,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,

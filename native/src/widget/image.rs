@@ -28,8 +28,6 @@ pub struct Image {
 
 impl Image {
     /// Creates a new [`Image`] with the given path.
-    ///
-    /// [`Image`]: struct.Image.html
     pub fn new<T: Into<Handle>>(handle: T) -> Self {
         Image {
             handle: handle.into(),
@@ -39,16 +37,12 @@ impl Image {
     }
 
     /// Sets the width of the [`Image`] boundaries.
-    ///
-    /// [`Image`]: struct.Image.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`Image`] boundaries.
-    ///
-    /// [`Image`]: struct.Image.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
@@ -114,8 +108,6 @@ where
 }
 
 /// An [`Image`] handle.
-///
-/// [`Image`]: struct.Image.html
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
@@ -126,8 +118,6 @@ impl Handle {
     /// Creates an image [`Handle`] pointing to the image of the given path.
     ///
     /// Makes an educated guess about the image format by examining the data in the file.
-    ///
-    /// [`Handle`]: struct.Handle.html
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
         Self::from_data(Data::Path(path.into()))
     }
@@ -137,8 +127,6 @@ impl Handle {
     /// pixels.
     ///
     /// This is useful if you have already decoded your image.
-    ///
-    /// [`Handle`]: struct.Handle.html
     pub fn from_pixels(width: u32, height: u32, pixels: Vec<u8>) -> Handle {
         Self::from_data(Data::Pixels {
             width,
@@ -153,8 +141,6 @@ impl Handle {
     ///
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
-    ///
-    /// [`Handle`]: struct.Handle.html
     pub fn from_memory(bytes: Vec<u8>) -> Handle {
         Self::from_data(Data::Bytes(bytes))
     }
@@ -170,15 +156,11 @@ impl Handle {
     }
 
     /// Returns the unique identifier of the [`Handle`].
-    ///
-    /// [`Handle`]: struct.Handle.html
     pub fn id(&self) -> u64 {
         self.id
     }
 
     /// Returns a reference to the image [`Data`].
-    ///
-    /// [`Data`]: enum.Data.html
     pub fn data(&self) -> &Data {
         &self.data
     }
@@ -200,8 +182,6 @@ impl Hash for Handle {
 }
 
 /// The data of an [`Image`].
-///
-/// [`Image`]: struct.Image.html
 #[derive(Clone, Hash)]
 pub enum Data {
     /// File data
@@ -238,17 +218,12 @@ impl std::fmt::Debug for Data {
 /// Your [renderer] will need to implement this trait before being able to use
 /// an [`Image`] in your user interface.
 ///
-/// [`Image`]: struct.Image.html
-/// [renderer]: ../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer {
     /// Returns the dimensions of an [`Image`] located on the given path.
-    ///
-    /// [`Image`]: struct.Image.html
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
 
     /// Draws an [`Image`].
-    ///
-    /// [`Image`]: struct.Image.html
     fn draw(&mut self, handle: Handle, layout: Layout<'_>) -> Self::Output;
 }
 

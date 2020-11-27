@@ -20,19 +20,12 @@ pub enum Event {
 }
 
 /// The status of an [`Event`] after being processed.
-///
-/// [`Event`]: enum.Event.html
-/// [`UserInterface`]: ../struct.UserInterface.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     /// The [`Event`] was **NOT** handled by any widget.
-    ///
-    /// [`Event`]: enum.Event.html
     Ignored,
 
     /// The [`Event`] was handled and processed by a widget.
-    ///
-    /// [`Event`]: enum.Event.html
     Captured,
 }
 

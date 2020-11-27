@@ -33,8 +33,6 @@ pub struct Text<Renderer: self::Renderer> {
 
 impl<Renderer: self::Renderer> Text<Renderer> {
     /// Create a new fragment of [`Text`] with the given contents.
-    ///
-    /// [`Text`]: struct.Text.html
     pub fn new<T: Into<String>>(label: T) -> Self {
         Text {
             content: label.into(),
@@ -49,17 +47,12 @@ impl<Renderer: self::Renderer> Text<Renderer> {
     }
 
     /// Sets the size of the [`Text`].
-    ///
-    /// [`Text`]: struct.Text.html
     pub fn size(mut self, size: u16) -> Self {
         self.size = Some(size);
         self
     }
 
     /// Sets the [`Color`] of the [`Text`].
-    ///
-    /// [`Text`]: struct.Text.html
-    /// [`Color`]: ../../struct.Color.html
     pub fn color<C: Into<Color>>(mut self, color: C) -> Self {
         self.color = Some(color.into());
         self
@@ -67,33 +60,25 @@ impl<Renderer: self::Renderer> Text<Renderer> {
 
     /// Sets the [`Font`] of the [`Text`].
     ///
-    /// [`Text`]: struct.Text.html
-    /// [`Font`]: ../../struct.Font.html
+    /// [`Font`]: Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = font.into();
         self
     }
 
     /// Sets the width of the [`Text`] boundaries.
-    ///
-    /// [`Text`]: struct.Text.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`Text`] boundaries.
-    ///
-    /// [`Text`]: struct.Text.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
     /// Sets the [`HorizontalAlignment`] of the [`Text`].
-    ///
-    /// [`Text`]: struct.Text.html
-    /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
     pub fn horizontal_alignment(
         mut self,
         alignment: HorizontalAlignment,
@@ -103,9 +88,6 @@ impl<Renderer: self::Renderer> Text<Renderer> {
     }
 
     /// Sets the [`VerticalAlignment`] of the [`Text`].
-    ///
-    /// [`Text`]: struct.Text.html
-    /// [`VerticalAlignment`]: enum.VerticalAlignment.html
     pub fn vertical_alignment(mut self, alignment: VerticalAlignment) -> Self {
         self.vertical_alignment = alignment;
         self
@@ -177,26 +159,18 @@ where
 /// The renderer of a [`Text`] fragment.
 ///
 /// Your [renderer] will need to implement this trait before being
-/// able to use [`Text`] in your [`UserInterface`].
+/// able to use [`Text`] in your user interface.
 ///
-/// [`Text`]: struct.Text.html
-/// [renderer]: ../../renderer/index.html
-/// [`UserInterface`]: ../../struct.UserInterface.html
+/// [renderer]: crate::Renderer
 pub trait Renderer: crate::Renderer {
     /// The font type used for [`Text`].
-    ///
-    /// [`Text`]: struct.Text.html
     type Font: Default + Copy;
 
     /// Returns the default size of [`Text`].
-    ///
-    /// [`Text`]: struct.Text.html
     fn default_size(&self) -> u16;
 
     /// Measures the [`Text`] in the given bounds and returns the minimum
     /// boundaries that can fit the contents.
-    ///
-    /// [`Text`]: struct.Text.html
     fn measure(
         &self,
         content: &str,
@@ -214,10 +188,6 @@ pub trait Renderer: crate::Renderer {
     ///   * the color of the [`Text`]
     ///   * the [`HorizontalAlignment`] of the [`Text`]
     ///   * the [`VerticalAlignment`] of the [`Text`]
-    ///
-    /// [`Text`]: struct.Text.html
-    /// [`HorizontalAlignment`]: enum.HorizontalAlignment.html
-    /// [`VerticalAlignment`]: enum.VerticalAlignment.html
     fn draw(
         &mut self,
         defaults: &Self::Defaults,

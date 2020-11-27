@@ -8,13 +8,9 @@ pub use state::State;
 /// The core of a user interface application following The Elm Architecture.
 pub trait Program: Sized {
     /// The graphics backend to use to draw the [`Program`].
-    ///
-    /// [`Program`]: trait.Program.html
     type Renderer: Renderer;
 
     /// The type of __messages__ your [`Program`] will produce.
-    ///
-    /// [`Program`]: trait.Program.html
     type Message: std::fmt::Debug + Send;
 
     /// Handles a __message__ and updates the state of the [`Program`].
@@ -25,15 +21,10 @@ pub trait Program: Sized {
     ///
     /// Any [`Command`] returned will be executed immediately in the
     /// background by shells.
-    ///
-    /// [`Program`]: trait.Application.html
-    /// [`Command`]: struct.Command.html
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    ///
-    /// [`Program`]: trait.Program.html
     fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer>;
 }
