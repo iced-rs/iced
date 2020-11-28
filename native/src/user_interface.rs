@@ -206,7 +206,6 @@ where
                 &mut overlay,
                 renderer,
             );
-
             let event_statuses = events
                 .iter()
                 .cloned()
