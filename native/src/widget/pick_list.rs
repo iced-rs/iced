@@ -6,6 +6,7 @@ use crate::overlay;
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
 use crate::text;
+use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
@@ -214,7 +215,8 @@ where
         _clipboard: Option<&dyn Clipboard>,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let event_status = if *self.is_open {
                     // TODO: Encode cursor availability in the type system
                     *self.is_open =
