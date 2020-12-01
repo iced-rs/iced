@@ -20,6 +20,14 @@ use dodrio::bumpalo;
 /// let button = Button::new(&mut state, Text::new("Press me!"))
 ///     .on_press(Message::ButtonPressed);
 /// ```
+///
+/// Buttons can be disabled by not having an on_press.
+///
+/// ```
+/// let mut state = button::State::new();
+/// let disabled_button = Button::new(&mut state, Text::new("I'm disabled!"));
+/// ```
+
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message> {
     content: Element<'a, Message>,
@@ -90,6 +98,7 @@ impl<'a, Message> Button<'a, Message> {
     }
 
     /// Sets the message that will be produced when the [`Button`] is pressed.
+    /// If on_press isn't set, button will be disabled.
     pub fn on_press(mut self, msg: Message) -> Self {
         self.on_press = Some(msg);
         self
@@ -153,6 +162,8 @@ where
             node = node.on("click", move |_root, _vdom, _event| {
                 event_bus.publish(on_press.clone());
             });
+        } else {
+            node = node.attr("disabled", "");
         }
 
         node.finish()
