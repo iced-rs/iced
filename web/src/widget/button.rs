@@ -24,8 +24,14 @@ use dodrio::bumpalo;
 /// Buttons can be disabled by not having an on_press.
 ///
 /// ```
+/// # use iced_web::{button, Button, Text};
+/// #
+/// # enum Message {
+/// #     ButtonPressed,
+/// # }
+/// #
 /// let mut state = button::State::new();
-/// let disabled_button = Button::new(&mut state, Text::new("I'm disabled!"));
+/// let disabled_button = Button::<Message>::new(&mut state, Text::new("I'm disabled!"));
 /// ```
 
 #[allow(missing_debug_implementations)]
