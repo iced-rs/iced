@@ -36,6 +36,7 @@ pub struct Button<'a, Message, Renderer: self::Renderer> {
     min_width: u32,
     min_height: u32,
     padding: u16,
+    pass_event: bool,
     style: Renderer::Style,
 }
 
@@ -59,6 +60,7 @@ where
             min_width: 0,
             min_height: 0,
             padding: Renderer::DEFAULT_PADDING,
+            pass_event: false,
             style: Renderer::Style::default(),
         }
     }
@@ -90,6 +92,13 @@ where
     /// Sets the padding of the [`Button`].
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
+        self
+    }
+
+    /// Sets the pass event to content of the [`Button`]
+    /// The [`Button`] will process event if content return [`event::Status::Ignored`]
+    pub fn pass_event(mut self, pass: bool) -> Self {
+        self.pass_event = pass;
         self
     }
 
@@ -163,6 +172,19 @@ where
         _renderer: &Renderer,
         _clipboard: Option<&dyn Clipboard>,
     ) -> event::Status {
+        if self.pass_event {
+            if let event::Status::Captured = self.content.widget.on_event(
+                event.clone(),
+                layout.children().next().unwrap(),
+                cursor_position,
+                messages,
+                _renderer,
+                _clipboard,
+            ) {
+                return event::Status::Captured;
+            }
+        }
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if self.on_press.is_some() {
