@@ -36,7 +36,6 @@ impl<B> pane_grid::Renderer for Renderer<B>
 where
     B: Backend + backend::Text,
 {
-    // TODO Touch bugs here
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
