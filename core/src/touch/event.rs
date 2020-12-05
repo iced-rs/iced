@@ -1,6 +1,4 @@
-//! Build touch events.
 use crate::Point;
-
 use super::{Phase, Finger};
 
 /// A touch event.
