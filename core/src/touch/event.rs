@@ -1,5 +1,5 @@
-use crate::Point;
 use super::{Finger, Phase};
+use crate::Point;
 
 /// A touch event.
 #[derive(Debug, Clone, Copy, PartialEq)]
