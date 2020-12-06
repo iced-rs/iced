@@ -2,10 +2,12 @@
 #[cfg(target_os = "windows")]
 #[path = "settings/windows.rs"]
 mod platform;
-#[cfg(not(target_os = "windows"))]
-#[path = "settings/not_windows.rs"]
+#[cfg(target_os = "macos")]
+#[path = "settings/macos.rs"]
 mod platform;
-
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+#[path = "settings/other.rs"]
+mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
@@ -135,6 +137,20 @@ impl Window {
 
             window_builder = window_builder
                 .with_drag_and_drop(self.platform_specific.drag_and_drop);
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            use winit::platform::macos::WindowBuilderExtMacOS;
+
+            window_builder = window_builder
+                .with_title_hidden(self.platform_specific.title_hidden)
+                .with_titlebar_transparent(
+                    self.platform_specific.titlebar_transparent,
+                )
+                .with_fullsize_content_view(
+                    self.platform_specific.fullsize_content_view,
+                );
         }
 
         window_builder = window_builder
