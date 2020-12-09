@@ -12,11 +12,7 @@ use crate::defaults;
 use crate::{Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::pane_grid;
-use iced_native::text;
-use iced_native::{
-    Element, HorizontalAlignment, Layout, Point, Rectangle, Vector,
-    VerticalAlignment,
-};
+use iced_native::{Element, Layout, Point, Rectangle, Vector};
 
 pub use iced_native::pane_grid::{
     Axis, Configuration, Content, Direction, DragEvent, Pane, ResizeEvent,
@@ -188,14 +184,12 @@ where
         defaults: &Self::Defaults,
         bounds: Rectangle,
         style_sheet: &Self::Style,
-        title: &str,
-        title_size: u16,
-        title_font: Self::Font,
-        title_bounds: Rectangle,
+        content: (&Element<'_, Message, Self>, Layout<'_>),
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
     ) -> Self::Output {
         let style = style_sheet.style();
+        let (title_content, title_layout) = content;
 
         let defaults = Self::Defaults {
             text: defaults::Text {
@@ -205,16 +199,12 @@ where
 
         let background = crate::widget::container::background(bounds, &style);
 
-        let (title_primitive, _) = text::Renderer::draw(
+        let (title_primitive, title_interaction) = title_content.draw(
             self,
             &defaults,
-            title_bounds,
-            title,
-            title_size,
-            title_font,
-            None,
-            HorizontalAlignment::Left,
-            VerticalAlignment::Top,
+            title_layout,
+            cursor_position,
+            &bounds,
         );
 
         if let Some((controls, controls_layout)) = controls {
@@ -234,7 +224,7 @@ where
                         controls_primitive,
                     ],
                 },
-                controls_interaction,
+                controls_interaction.max(title_interaction),
             )
         } else {
             (
@@ -245,7 +235,7 @@ where
                 } else {
                     title_primitive
                 },
-                mouse::Interaction::default(),
+                title_interaction,
             )
         }
     }
