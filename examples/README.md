@@ -128,6 +128,6 @@ Since [Iced was born in May], it has been powering the user interfaces in
   </a>
 </div>
 
-[Iced was born in May]: https://github.com/hecrj/coffee/pull/35
+[Iced was born in May 2019]: https://github.com/hecrj/coffee/pull/35
 [`ui` module]: https://docs.rs/coffee/0.3.2/coffee/ui/index.html
 [Coffee]: https://github.com/hecrj/coffee
