@@ -168,7 +168,7 @@ Browse the [documentation] and the [examples] to learn more!
 Iced was originally born as an attempt at bringing the simplicity of [Elm] and
 [The Elm Architecture] into [Coffee], a 2D game engine I am working on.
 
-The core of the library was implemented during May in [this pull request].
+The core of the library was implemented during May 2019 in [this pull request].
 [The first alpha version] was eventually released as
 [a renderer-agnostic GUI library]. The library did not provide a renderer and
 implemented the current [tour example] on top of [`ggez`], a game library.
