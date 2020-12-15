@@ -4,6 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::row;
 use crate::text;
+use crate::touch::{self, Touch};
 use crate::{
     Align, Clipboard, Element, Hasher, HorizontalAlignment, Layout, Length,
     Point, Rectangle, Row, Text, VerticalAlignment, Widget,
@@ -160,7 +161,11 @@ where
         _clipboard: Option<&dyn Clipboard>,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(Touch {
+                phase: touch::Phase::Started,
+                ..
+            }) => {
                 if layout.bounds().contains(cursor_position) {
                     messages.push(self.on_click.clone());
 

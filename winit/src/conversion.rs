@@ -4,7 +4,9 @@
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::{
     keyboard::{self, KeyCode, Modifiers},
-    mouse, window, Event, Mode, Point,
+    mouse,
+    touch::{self, Touch},
+    window, Event, Mode, Point,
 };
 
 /// Converts a winit window event into an iced event.
@@ -36,8 +38,7 @@ pub fn window_event(
             let position = position.to_logical::<f64>(scale_factor);
 
             Some(Event::Mouse(mouse::Event::CursorMoved {
-                x: position.x as f32,
-                y: position.y as f32,
+                position: Point::new(position.x as f32, position.y as f32),
             }))
         }
         WindowEvent::CursorEntered { .. } => {
@@ -118,6 +119,7 @@ pub fn window_event(
         WindowEvent::HoveredFileCancelled => {
             Some(Event::Window(window::Event::FilesHoveredLeft))
         }
+        WindowEvent::Touch(touch) => Some(Event::Touch(touch_event(*touch))),
         _ => None,
     }
 }
@@ -198,6 +200,25 @@ pub fn cursor_position(
     let logical_position = position.to_logical(scale_factor);
 
     Point::new(logical_position.x, logical_position.y)
+}
+
+/// Converts a `Touch` from [`winit`] to an [`iced_native`] touch event.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+pub fn touch_event(touch: winit::event::Touch) -> Touch {
+    let phase = match touch.phase {
+        winit::event::TouchPhase::Started => touch::Phase::Started,
+        winit::event::TouchPhase::Moved => touch::Phase::Moved,
+        winit::event::TouchPhase::Ended => touch::Phase::Ended,
+        winit::event::TouchPhase::Cancelled => touch::Phase::Canceled,
+    };
+
+    Touch {
+        finger: touch::Finger(touch.id),
+        position: Point::new(touch.location.x as f32, touch.location.y as f32),
+        phase,
+    }
 }
 
 /// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
