@@ -118,7 +118,9 @@ pub fn window_event(
         WindowEvent::HoveredFileCancelled => {
             Some(Event::Window(window::Event::FilesHoveredLeft))
         }
-        WindowEvent::Touch(touch) => Some(Event::Touch(touch_event(*touch))),
+        WindowEvent::Touch(touch) => {
+            Some(Event::Touch(touch_event(*touch, scale_factor)))
+        }
         _ => None,
     }
 }
@@ -207,9 +209,16 @@ pub fn cursor_position(
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn touch_event(touch: winit::event::Touch) -> touch::Event {
+pub fn touch_event(
+    touch: winit::event::Touch,
+    scale_factor: f64,
+) -> touch::Event {
     let id = touch::Finger(touch.id);
-    let position = Point::new(touch.location.x as f32, touch.location.y as f32);
+    let position = {
+        let location = touch.location.to_logical::<f64>(scale_factor);
+
+        Point::new(location.x as f32, location.y as f32)
+    };
 
     match touch.phase {
         winit::event::TouchPhase::Started => {
