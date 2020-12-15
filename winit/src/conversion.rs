@@ -170,7 +170,9 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
         winit::event::MouseButton::Left => mouse::Button::Left,
         winit::event::MouseButton::Right => mouse::Button::Right,
         winit::event::MouseButton::Middle => mouse::Button::Middle,
-        winit::event::MouseButton::Other(other) => mouse::Button::Other(other),
+        winit::event::MouseButton::Other(other) => {
+            mouse::Button::Other(other as u8)
+        }
     }
 }
 
