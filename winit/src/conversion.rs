@@ -2,12 +2,11 @@
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-use crate::{
-    keyboard::{self, KeyCode, Modifiers},
-    mouse,
-    touch::{self, Touch},
-    window, Event, Mode, Point,
-};
+use crate::keyboard;
+use crate::mouse;
+use crate::touch;
+use crate::window;
+use crate::{Event, Mode, Point};
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -183,8 +182,10 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn modifiers(modifiers: winit::event::ModifiersState) -> Modifiers {
-    Modifiers {
+pub fn modifiers(
+    modifiers: winit::event::ModifiersState,
+) -> keyboard::Modifiers {
+    keyboard::Modifiers {
         shift: modifiers.shift(),
         control: modifiers.ctrl(),
         alt: modifiers.alt(),
@@ -206,18 +207,23 @@ pub fn cursor_position(
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn touch_event(touch: winit::event::Touch) -> Touch {
-    let phase = match touch.phase {
-        winit::event::TouchPhase::Started => touch::Phase::Started,
-        winit::event::TouchPhase::Moved => touch::Phase::Moved,
-        winit::event::TouchPhase::Ended => touch::Phase::Ended,
-        winit::event::TouchPhase::Cancelled => touch::Phase::Canceled,
-    };
+pub fn touch_event(touch: winit::event::Touch) -> touch::Event {
+    let id = touch::Finger(touch.id);
+    let position = Point::new(touch.location.x as f32, touch.location.y as f32);
 
-    Touch {
-        finger: touch::Finger(touch.id),
-        position: Point::new(touch.location.x as f32, touch.location.y as f32),
-        phase,
+    match touch.phase {
+        winit::event::TouchPhase::Started => {
+            touch::Event::FingerPressed { id, position }
+        }
+        winit::event::TouchPhase::Moved => {
+            touch::Event::FingerMoved { id, position }
+        }
+        winit::event::TouchPhase::Ended => {
+            touch::Event::FingerLifted { id, position }
+        }
+        winit::event::TouchPhase::Cancelled => {
+            touch::Event::FingerLost { id, position }
+        }
     }
 }
 
@@ -225,7 +231,11 @@ pub fn touch_event(touch: winit::event::Touch) -> Touch {
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn key_code(virtual_keycode: winit::event::VirtualKeyCode) -> KeyCode {
+pub fn key_code(
+    virtual_keycode: winit::event::VirtualKeyCode,
+) -> keyboard::KeyCode {
+    use keyboard::KeyCode;
+
     match virtual_keycode {
         winit::event::VirtualKeyCode::Key1 => KeyCode::Key1,
         winit::event::VirtualKeyCode::Key2 => KeyCode::Key2,

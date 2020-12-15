@@ -4,7 +4,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::touch::{self, Touch};
+use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
@@ -209,10 +209,7 @@ where
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(Touch {
-                phase: touch::Phase::Started,
-                ..
-            }) => {
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if layout.bounds().contains(cursor_position) {
                     change();
                     self.state.is_dragging = true;
@@ -221,10 +218,8 @@ where
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(Touch {
-                phase: touch::Phase::Ended,
-                ..
-            }) => {
+            | Event::Touch(touch::Event::FingerLifted { .. })
+            | Event::Touch(touch::Event::FingerLost { .. }) => {
                 if self.state.is_dragging {
                     if let Some(on_release) = self.on_release.clone() {
                         messages.push(on_release);
@@ -235,10 +230,7 @@ where
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. })
-            | Event::Touch(Touch {
-                phase: touch::Phase::Moved,
-                ..
-            }) => {
+            | Event::Touch(touch::Event::FingerMoved { .. }) => {
                 if self.state.is_dragging {
                     change();
 

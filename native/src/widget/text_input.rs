@@ -16,7 +16,7 @@ use crate::keyboard;
 use crate::layout;
 use crate::mouse::{self, click};
 use crate::text;
-use crate::touch::{self, Touch};
+use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
@@ -249,10 +249,7 @@ where
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(Touch {
-                phase: touch::Phase::Started,
-                ..
-            }) => {
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
 
                 self.state.is_focused = is_clicked;

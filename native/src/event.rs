@@ -22,7 +22,7 @@ pub enum Event {
     Window(window::Event),
 
     /// A touch event
-    Touch(touch::Touch),
+    Touch(touch::Event),
 }
 
 /// The status of an [`Event`] after being processed.

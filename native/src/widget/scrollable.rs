@@ -4,7 +4,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::touch::{self, Touch};
+use crate::touch;
 use crate::{
     Align, Clipboard, Column, Element, Hasher, Layout, Length, Point,
     Rectangle, Size, Vector, Widget,
@@ -230,26 +230,37 @@ where
 
                     return event::Status::Captured;
                 }
-                Event::Touch(Touch { phase, .. }) => match phase {
-                    touch::Phase::Started => {
-                        self.state.scroll_box_touched_at =
-                            Some(cursor_position);
-                    }
-                    touch::Phase::Moved => {
-                        if let Some(scroll_box_touched_at) =
-                            self.state.scroll_box_touched_at
-                        {
-                            let delta =
-                                cursor_position.y - scroll_box_touched_at.y;
-                            self.state.scroll(delta, bounds, content_bounds);
+                Event::Touch(event) => {
+                    match event {
+                        touch::Event::FingerPressed { .. } => {
                             self.state.scroll_box_touched_at =
                                 Some(cursor_position);
                         }
+                        touch::Event::FingerMoved { .. } => {
+                            if let Some(scroll_box_touched_at) =
+                                self.state.scroll_box_touched_at
+                            {
+                                let delta =
+                                    cursor_position.y - scroll_box_touched_at.y;
+
+                                self.state.scroll(
+                                    delta,
+                                    bounds,
+                                    content_bounds,
+                                );
+
+                                self.state.scroll_box_touched_at =
+                                    Some(cursor_position);
+                            }
+                        }
+                        touch::Event::FingerLifted { .. }
+                        | touch::Event::FingerLost { .. } => {
+                            self.state.scroll_box_touched_at = None;
+                        }
                     }
-                    touch::Phase::Ended | touch::Phase::Canceled => {
-                        self.state.scroll_box_touched_at = None;
-                    }
-                },
+
+                    return event::Status::Captured;
+                }
                 _ => {}
             }
         }
@@ -259,23 +270,14 @@ where
                 Event::Mouse(mouse::Event::ButtonReleased(
                     mouse::Button::Left,
                 ))
-                | Event::Touch(Touch {
-                    phase: touch::Phase::Ended,
-                    ..
-                })
-                | Event::Touch(Touch {
-                    phase: touch::Phase::Canceled,
-                    ..
-                }) => {
+                | Event::Touch(touch::Event::FingerLifted { .. })
+                | Event::Touch(touch::Event::FingerLost { .. }) => {
                     self.state.scroller_grabbed_at = None;
 
                     return event::Status::Captured;
                 }
                 Event::Mouse(mouse::Event::CursorMoved { .. })
-                | Event::Touch(Touch {
-                    phase: touch::Phase::Moved,
-                    ..
-                }) => {
+                | Event::Touch(touch::Event::FingerMoved { .. }) => {
                     if let (Some(scrollbar), Some(scroller_grabbed_at)) =
                         (scrollbar, self.state.scroller_grabbed_at)
                     {
@@ -298,10 +300,7 @@ where
                 Event::Mouse(mouse::Event::ButtonPressed(
                     mouse::Button::Left,
                 ))
-                | Event::Touch(Touch {
-                    phase: touch::Phase::Started,
-                    ..
-                }) => {
+                | Event::Touch(touch::Event::FingerPressed { .. }) => {
                     if let Some(scrollbar) = scrollbar {
                         if let Some(scroller_grabbed_at) =
                             scrollbar.grab_scroller(cursor_position)
