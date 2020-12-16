@@ -93,7 +93,7 @@ impl StyleSheet for Default {
             color: [0.6, 0.6, 0.6, 0.51].into(),
             width: 1,
             radius: 0.0,
-            fill_mode: FillMode::Percent(90.0),
+            fill_mode: FillMode::Full,
         }
     }
 }
