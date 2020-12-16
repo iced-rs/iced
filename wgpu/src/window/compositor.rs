@@ -100,7 +100,7 @@ impl iced_graphics::window::Compositor for Compositor {
         width: u32,
         height: u32,
     ) -> Self::SwapChain {
-        let swap_chain = self.device.create_swap_chain(
+        self.device.create_swap_chain(
             surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
@@ -109,9 +109,7 @@ impl iced_graphics::window::Compositor for Compositor {
                 width,
                 height,
             },
-        );
-
-        swap_chain
+        )
     }
 
     fn draw<T: AsRef<str>>(
