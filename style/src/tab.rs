@@ -147,7 +147,7 @@ impl StyleSheet for StyleDefaultVertical {
 
     fn unselected(&self) -> Style {
         Style {
-            text_color: Color::from_rgb(0.34, 0.34, 0.34),
+            text_color: Color::from_rgb(0.25, 0.25, 0.25),
             indicator: None,
             ..self.selected()
         }
@@ -167,7 +167,7 @@ impl StyleSheet for StyleDefaultVertical {
             background: Some(Background::Color(Color::from_rgba(
                 0.9, 0.9, 0.9, 0.9,
             ))),
-            text_color: Color::from_rgb(0.34, 0.34, 0.34),
+            text_color: Color::from_rgb(0.25, 0.25, 0.25),
             indicator: None,
             ..self.selected()
         }
