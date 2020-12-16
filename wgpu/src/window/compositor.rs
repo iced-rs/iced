@@ -100,7 +100,7 @@ impl iced_graphics::window::Compositor for Compositor {
         width: u32,
         height: u32,
     ) -> Self::SwapChain {
-        self.device.create_swap_chain(
+        let swap_chain = self.device.create_swap_chain(
             surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
@@ -109,7 +109,9 @@ impl iced_graphics::window::Compositor for Compositor {
                 width,
                 height,
             },
-        )
+        );
+
+        swap_chain
     }
 
     fn draw<T: AsRef<str>>(
@@ -120,58 +122,71 @@ impl iced_graphics::window::Compositor for Compositor {
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> mouse::Interaction {
-        let frame = swap_chain.get_current_frame().expect("Next frame");
+    ) -> Result<mouse::Interaction, ()> {
+        match swap_chain.get_current_frame() {
+            Ok(frame) => {
+                let mut encoder = self.device.create_command_encoder(
+                    &wgpu::CommandEncoderDescriptor {
+                        label: Some("iced_wgpu encoder"),
+                    },
+                );
 
-        let mut encoder = self.device.create_command_encoder(
-            &wgpu::CommandEncoderDescriptor {
-                label: Some("iced_wgpu encoder"),
+                let _ =
+                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        color_attachments: &[
+                            wgpu::RenderPassColorAttachmentDescriptor {
+                                attachment: &frame.output.view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear({
+                                        let [r, g, b, a] =
+                                            background_color.into_linear();
+
+                                        wgpu::Color {
+                                            r: f64::from(r),
+                                            g: f64::from(g),
+                                            b: f64::from(b),
+                                            a: f64::from(a),
+                                        }
+                                    }),
+                                    store: true,
+                                },
+                            },
+                        ],
+                        depth_stencil_attachment: None,
+                    });
+
+                let mouse_interaction = renderer.backend_mut().draw(
+                    &mut self.device,
+                    &mut self.staging_belt,
+                    &mut encoder,
+                    &frame.output.view,
+                    viewport,
+                    output,
+                    overlay,
+                );
+
+                // Submit work
+                self.staging_belt.finish();
+                self.queue.submit(Some(encoder.finish()));
+
+                // Recall staging buffers
+                self.local_pool
+                    .spawner()
+                    .spawn(self.staging_belt.recall())
+                    .expect("Recall staging belt");
+
+                self.local_pool.run_until_stalled();
+
+                Ok(mouse_interaction)
+            }
+            Err(error) => match error {
+                wgpu::SwapChainError::Outdated => {
+                    // Try again next frame.
+                    Err(())
+                }
+                _ => panic!("Swapchain error: {:?}", error),
             },
-        );
-
-        let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: &frame.output.view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear({
-                        let [r, g, b, a] = background_color.into_linear();
-
-                        wgpu::Color {
-                            r: f64::from(r),
-                            g: f64::from(g),
-                            b: f64::from(b),
-                            a: f64::from(a),
-                        }
-                    }),
-                    store: true,
-                },
-            }],
-            depth_stencil_attachment: None,
-        });
-
-        let mouse_interaction = renderer.backend_mut().draw(
-            &mut self.device,
-            &mut self.staging_belt,
-            &mut encoder,
-            &frame.output.view,
-            viewport,
-            output,
-            overlay,
-        );
-
-        // Submit work
-        self.staging_belt.finish();
-        self.queue.submit(Some(encoder.finish()));
-
-        // Recall staging buffers
-        self.local_pool
-            .spawner()
-            .spawn(self.staging_belt.recall())
-            .expect("Recall staging belt");
-
-        self.local_pool.run_until_stalled();
-
-        mouse_interaction
+        }
     }
 }

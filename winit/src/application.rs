@@ -311,27 +311,32 @@ async fn run_instance<A, E, C>(
                     viewport_version = current_viewport_version;
                 }
 
-                let new_mouse_interaction = compositor.draw(
+                if let Ok(new_mouse_interaction) = compositor.draw(
                     &mut renderer,
                     &mut swap_chain,
                     state.viewport(),
                     state.background_color(),
                     &primitive,
                     &debug.overlay(),
-                );
+                ) {
+                    debug.render_finished();
 
-                debug.render_finished();
+                    if new_mouse_interaction != mouse_interaction {
+                        window.set_cursor_icon(conversion::mouse_interaction(
+                            new_mouse_interaction,
+                        ));
 
-                if new_mouse_interaction != mouse_interaction {
-                    window.set_cursor_icon(conversion::mouse_interaction(
-                        new_mouse_interaction,
-                    ));
-
-                    mouse_interaction = new_mouse_interaction;
-                }
+                        mouse_interaction = new_mouse_interaction;
+                    }
 
                 // TODO: Handle animations!
                 // Maybe we can use `ControlFlow::WaitUntil` for this.
+                } else {
+                    debug.render_finished();
+
+                    // Rendering could not complete, try again next frame.
+                    window.request_redraw();
+                }
             }
             event::Event::WindowEvent {
                 event: window_event,

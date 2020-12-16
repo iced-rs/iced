@@ -168,55 +168,64 @@ pub fn main() {
                     resized = false;
                 }
 
-                let frame = swap_chain.get_current_frame().expect("Next frame");
+                match swap_chain.get_current_frame() {
+                    Ok(frame) => {
+                        let mut encoder = device.create_command_encoder(
+                            &wgpu::CommandEncoderDescriptor { label: None },
+                        );
 
-                let mut encoder = device.create_command_encoder(
-                    &wgpu::CommandEncoderDescriptor { label: None },
-                );
+                        let program = state.program();
 
-                let program = state.program();
+                        {
+                            // We clear the frame
+                            let mut render_pass = scene.clear(
+                                &frame.output.view,
+                                &mut encoder,
+                                program.background_color(),
+                            );
 
-                {
-                    // We clear the frame
-                    let mut render_pass = scene.clear(
-                        &frame.output.view,
-                        &mut encoder,
-                        program.background_color(),
-                    );
+                            // Draw the scene
+                            scene.draw(&mut render_pass);
+                        }
 
-                    // Draw the scene
-                    scene.draw(&mut render_pass);
+                        // And then iced on top
+                        let mouse_interaction = renderer.backend_mut().draw(
+                            &mut device,
+                            &mut staging_belt,
+                            &mut encoder,
+                            &frame.output.view,
+                            &viewport,
+                            state.primitive(),
+                            &debug.overlay(),
+                        );
+
+                        // Then we submit the work
+                        staging_belt.finish();
+                        queue.submit(Some(encoder.finish()));
+
+                        // Update the mouse cursor
+                        window.set_cursor_icon(
+                            iced_winit::conversion::mouse_interaction(
+                                mouse_interaction,
+                            ),
+                        );
+
+                        // And recall staging buffers
+                        local_pool
+                            .spawner()
+                            .spawn(staging_belt.recall())
+                            .expect("Recall staging buffers");
+
+                        local_pool.run_until_stalled();
+                    }
+                    Err(error) => match error {
+                        wgpu::SwapChainError::Outdated => {
+                            // Try rendering again next frame.
+                            window.request_redraw();
+                        }
+                        _ => panic!("Swapchain error: {:?}", error),
+                    },
                 }
-
-                // And then iced on top
-                let mouse_interaction = renderer.backend_mut().draw(
-                    &mut device,
-                    &mut staging_belt,
-                    &mut encoder,
-                    &frame.output.view,
-                    &viewport,
-                    state.primitive(),
-                    &debug.overlay(),
-                );
-
-                // Then we submit the work
-                staging_belt.finish();
-                queue.submit(Some(encoder.finish()));
-
-                // Update the mouse cursor
-                window.set_cursor_icon(
-                    iced_winit::conversion::mouse_interaction(
-                        mouse_interaction,
-                    ),
-                );
-
-                // And recall staging buffers
-                local_pool
-                    .spawner()
-                    .spawn(staging_belt.recall())
-                    .expect("Recall staging buffers");
-
-                local_pool.run_until_stalled();
             }
             _ => {}
         }

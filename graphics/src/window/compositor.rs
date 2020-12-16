@@ -40,6 +40,9 @@ pub trait Compositor: Sized {
 
     /// Draws the output primitives to the next frame of the given [`SwapChain`].
     ///
+    /// This will return an error if drawing could not be completed on this frame.
+    /// If an error occurs, try calling this again on the next frame.
+    ///
     /// [`SwapChain`]: Self::SwapChain
     fn draw<T: AsRef<str>>(
         &mut self,
@@ -49,5 +52,5 @@ pub trait Compositor: Sized {
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> mouse::Interaction;
+    ) -> Result<mouse::Interaction, ()>;
 }
