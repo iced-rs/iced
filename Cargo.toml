@@ -79,6 +79,7 @@ members = [
     "examples/stopwatch",
     "examples/styling",
     "examples/svg",
+    "examples/tabs",
     "examples/todos",
     "examples/tour",
 ]
