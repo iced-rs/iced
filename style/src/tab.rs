@@ -63,7 +63,7 @@ pub struct Indicator {
 impl std::default::Default for Indicator {
     fn default() -> Self {
         Indicator {
-            color: Color::from_rgb(0.36, 0.36, 0.36),
+            color: Color::from_rgb(0.3, 0.3, 0.3),
             thickness: 2.0,
             border_radius: 0.0,
             length: None,
@@ -100,7 +100,7 @@ impl StyleSheet for Default {
 
     fn unselected(&self) -> Style {
         Style {
-            text_color: Color::from_rgb(0.34, 0.34, 0.34),
+            text_color: Color::from_rgb(0.25, 0.25, 0.25),
             indicator: None,
             ..self.selected()
         }
@@ -120,7 +120,7 @@ impl StyleSheet for Default {
             background: Some(Background::Color(Color::from_rgba(
                 0.9, 0.9, 0.9, 0.9,
             ))),
-            text_color: Color::from_rgb(0.34, 0.34, 0.34),
+            text_color: Color::from_rgb(0.25, 0.25, 0.25),
             indicator: None,
             ..self.selected()
         }
