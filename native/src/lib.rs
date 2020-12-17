@@ -41,6 +41,7 @@ pub mod overlay;
 pub mod program;
 pub mod renderer;
 pub mod subscription;
+pub mod touch;
 pub mod widget;
 pub mod window;
 

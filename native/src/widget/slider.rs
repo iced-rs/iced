@@ -4,6 +4,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
+use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
@@ -207,34 +208,35 @@ where
         };
 
         match event {
-            Event::Mouse(mouse_event) => match mouse_event {
-                mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                    if layout.bounds().contains(cursor_position) {
-                        change();
-                        self.state.is_dragging = true;
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                if layout.bounds().contains(cursor_position) {
+                    change();
+                    self.state.is_dragging = true;
 
-                        return event::Status::Captured;
-                    }
+                    return event::Status::Captured;
                 }
-                mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                    if self.state.is_dragging {
-                        if let Some(on_release) = self.on_release.clone() {
-                            messages.push(on_release);
-                        }
-                        self.state.is_dragging = false;
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. })
+            | Event::Touch(touch::Event::FingerLost { .. }) => {
+                if self.state.is_dragging {
+                    if let Some(on_release) = self.on_release.clone() {
+                        messages.push(on_release);
+                    }
+                    self.state.is_dragging = false;
 
-                        return event::Status::Captured;
-                    }
+                    return event::Status::Captured;
                 }
-                mouse::Event::CursorMoved { .. } => {
-                    if self.state.is_dragging {
-                        change();
+            }
+            Event::Mouse(mouse::Event::CursorMoved { .. })
+            | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                if self.state.is_dragging {
+                    change();
 
-                        return event::Status::Captured;
-                    }
+                    return event::Status::Captured;
                 }
-                _ => {}
-            },
+            }
             _ => {}
         }
 

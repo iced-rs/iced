@@ -4,6 +4,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
+use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
@@ -164,7 +165,8 @@ where
         _clipboard: Option<&dyn Clipboard>,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if self.on_press.is_some() {
                     let bounds = layout.bounds();
 
@@ -175,7 +177,8 @@ where
                     }
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. }) => {
                 if let Some(on_press) = self.on_press.clone() {
                     let bounds = layout.bounds();
 
@@ -189,6 +192,9 @@ where
                         return event::Status::Captured;
                     }
                 }
+            }
+            Event::Touch(touch::Event::FingerLost { .. }) => {
+                self.state.is_pressed = false;
             }
             _ => {}
         }

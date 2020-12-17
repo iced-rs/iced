@@ -1,5 +1,8 @@
 //! Handle events of a user interface.
-use crate::{keyboard, mouse, window};
+use crate::keyboard;
+use crate::mouse;
+use crate::touch;
+use crate::window;
 
 /// A user interface event.
 ///
@@ -17,6 +20,9 @@ pub enum Event {
 
     /// A window event
     Window(window::Event),
+
+    /// A touch event
+    Touch(touch::Event),
 }
 
 /// The status of an [`Event`] after being processed.

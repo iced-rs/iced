@@ -16,6 +16,7 @@ use crate::keyboard;
 use crate::layout;
 use crate::mouse::{self, click};
 use crate::text;
+use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
@@ -247,7 +248,8 @@ where
         clipboard: Option<&dyn Clipboard>,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
 
                 self.state.is_focused = is_clicked;
@@ -318,13 +320,16 @@ where
                     return event::Status::Captured;
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. })
+            | Event::Touch(touch::Event::FingerLost { .. }) => {
                 self.state.is_dragging = false;
             }
-            Event::Mouse(mouse::Event::CursorMoved { x, .. }) => {
+            Event::Mouse(mouse::Event::CursorMoved { position })
+            | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
                 if self.state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
-                    let target = x - text_layout.bounds().x;
+                    let target = position.x - text_layout.bounds().x;
 
                     if target > 0.0 {
                         let value = if self.is_secure {

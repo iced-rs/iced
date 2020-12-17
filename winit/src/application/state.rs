@@ -2,7 +2,7 @@ use crate::conversion;
 use crate::{Application, Color, Debug, Mode, Point, Size, Viewport};
 
 use std::marker::PhantomData;
-use winit::event::WindowEvent;
+use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
 /// The state of a windowed [`Application`].
@@ -128,7 +128,10 @@ impl<A: Application> State<A> {
 
                 self.viewport_version = self.viewport_version.wrapping_add(1);
             }
-            WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { position, .. }
+            | WindowEvent::Touch(Touch {
+                location: position, ..
+            }) => {
                 self.cursor_position = *position;
             }
             WindowEvent::CursorLeft { .. } => {
