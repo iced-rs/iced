@@ -371,12 +371,11 @@ impl State {
     /// [`Viewer`]: struct.Viewer.html
     /// [`State`]: struct.State.html
     fn pan(&mut self, x: f32, y: f32, bounds: Rectangle, image_size: Size) {
-        let hidden_width = ((image_size.width - bounds.width) as f32 / 2.0)
-            .max(0.0)
-            .round();
-        let hidden_height = ((image_size.height - bounds.height) as f32 / 2.0)
-            .max(0.0)
-            .round();
+        let hidden_width =
+            (image_size.width - bounds.width / 2.0).max(0.0).round();
+
+        let hidden_height =
+            (image_size.height - bounds.height / 2.0).max(0.0).round();
 
         let delta_x = x - self.starting_cursor_pos.unwrap().x;
         let delta_y = y - self.starting_cursor_pos.unwrap().y;
@@ -400,12 +399,11 @@ impl State {
     /// [`Viewer`]: struct.Viewer.html
     /// [`State`]: struct.State.html
     fn offset(&self, bounds: Rectangle, image_size: Size) -> Vector {
-        let hidden_width = ((image_size.width - bounds.width) as f32 / 2.0)
-            .max(0.0)
-            .round();
-        let hidden_height = ((image_size.height - bounds.height) as f32 / 2.0)
-            .max(0.0)
-            .round();
+        let hidden_width =
+            (image_size.width - bounds.width / 2.0).max(0.0).round();
+
+        let hidden_height =
+            (image_size.height - bounds.height / 2.0).max(0.0).round();
 
         Vector::new(
             self.current_offset
