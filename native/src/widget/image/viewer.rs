@@ -215,92 +215,83 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
 
-        if is_mouse_over {
-            match event {
-                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                    match delta {
-                        mouse::ScrollDelta::Lines { y, .. }
-                        | mouse::ScrollDelta::Pixels { y, .. } => {
-                            let previous_scale =
-                                self.state.scale.unwrap_or(1.0);
+        match event {
+            Event::Mouse(mouse::Event::WheelScrolled { delta })
+                if is_mouse_over =>
+            {
+                match delta {
+                    mouse::ScrollDelta::Lines { y, .. }
+                    | mouse::ScrollDelta::Pixels { y, .. } => {
+                        let previous_scale = self.state.scale.unwrap_or(1.0);
 
-                            if y < 0.0 && previous_scale > self.min_scale
-                                || y > 0.0 && previous_scale < self.max_scale
-                            {
-                                self.state.scale = Some(
-                                    (if y > 0.0 {
-                                        self.state.scale.unwrap_or(1.0)
-                                            * (1.0 + self.scale_pct)
-                                    } else {
-                                        self.state.scale.unwrap_or(1.0)
-                                            / (1.0 + self.scale_pct)
-                                    })
-                                    .max(self.min_scale)
-                                    .min(self.max_scale),
-                                );
+                        if y < 0.0 && previous_scale > self.min_scale
+                            || y > 0.0 && previous_scale < self.max_scale
+                        {
+                            self.state.scale = Some(
+                                (if y > 0.0 {
+                                    self.state.scale.unwrap_or(1.0)
+                                        * (1.0 + self.scale_pct)
+                                } else {
+                                    self.state.scale.unwrap_or(1.0)
+                                        / (1.0 + self.scale_pct)
+                                })
+                                .max(self.min_scale)
+                                .min(self.max_scale),
+                            );
 
-                                let image_size =
-                                    self.image_size(renderer, bounds.size());
+                            let image_size =
+                                self.image_size(renderer, bounds.size());
 
-                                let factor = self.state.scale.unwrap()
-                                    / previous_scale
-                                    - 1.0;
+                            let factor = self.state.scale.unwrap()
+                                / previous_scale
+                                - 1.0;
 
-                                let cursor_to_center =
-                                    relative_cursor_position(
-                                        cursor_position,
-                                        bounds,
-                                    ) - relative_center(bounds);
+                            let cursor_to_center = relative_cursor_position(
+                                cursor_position,
+                                bounds,
+                            ) - relative_center(bounds);
 
-                                let adjustment = cursor_to_center * factor
-                                    + self.state.current_offset * factor;
+                            let adjustment = cursor_to_center * factor
+                                + self.state.current_offset * factor;
 
-                                self.state.current_offset = Vector::new(
-                                    if image_size.width > bounds.width {
-                                        self.state.current_offset.x
-                                            + adjustment.x
-                                    } else {
-                                        0.0
-                                    },
-                                    if image_size.height > bounds.height {
-                                        self.state.current_offset.y
-                                            + adjustment.y
-                                    } else {
-                                        0.0
-                                    },
-                                );
-                            }
+                            self.state.current_offset = Vector::new(
+                                if image_size.width > bounds.width {
+                                    self.state.current_offset.x + adjustment.x
+                                } else {
+                                    0.0
+                                },
+                                if image_size.height > bounds.height {
+                                    self.state.current_offset.y + adjustment.y
+                                } else {
+                                    0.0
+                                },
+                            );
                         }
                     }
                 }
-                Event::Mouse(mouse::Event::ButtonPressed(button)) => {
-                    if button == mouse::Button::Left {
-                        self.state.starting_cursor_pos = Some(cursor_position);
-
-                        self.state.starting_offset = self.state.current_offset;
-                    }
-                }
-                Event::Mouse(mouse::Event::ButtonReleased(button)) => {
-                    if button == mouse::Button::Left {
-                        self.state.starting_cursor_pos = None
-                    }
-                }
-                Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                    if self.state.is_cursor_clicked() {
-                        let image_size =
-                            self.image_size(renderer, bounds.size());
-
-                        self.state
-                            .pan(position.x, position.y, bounds, image_size);
-                    }
-                }
-                _ => {}
             }
-        } else if let Event::Mouse(mouse::Event::ButtonReleased(button)) = event
-        {
-            if button == mouse::Button::Left {
-                self.state.starting_cursor_pos = None;
+            Event::Mouse(mouse::Event::ButtonPressed(button))
+                if is_mouse_over =>
+            {
+                if button == mouse::Button::Left {
+                    self.state.starting_cursor_pos = Some(cursor_position);
+
+                    self.state.starting_offset = self.state.current_offset;
+                }
             }
+            Event::Mouse(mouse::Event::ButtonReleased(button)) => {
+                if button == mouse::Button::Left {
+                    self.state.starting_cursor_pos = None
+                }
+            }
+            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+                if self.state.is_cursor_clicked() {
+                    let image_size = self.image_size(renderer, bounds.size());
+
+                    self.state.pan(position.x, position.y, bounds, image_size);
+                }
+            }
+            _ => {}
         }
 
         event::Status::Ignored
