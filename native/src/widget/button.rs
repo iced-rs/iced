@@ -161,9 +161,20 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         messages: &mut Vec<Message>,
-        _renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
     ) -> event::Status {
+        if let event::Status::Captured = self.content.on_event(
+            event.clone(),
+            layout.children().next().unwrap(),
+            cursor_position,
+            messages,
+            renderer,
+            clipboard,
+        ) {
+            return event::Status::Captured;
+        }
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
