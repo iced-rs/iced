@@ -21,7 +21,7 @@ pub struct Viewer<'a> {
     max_height: u32,
     min_scale: f32,
     max_scale: f32,
-    scale_pct: f32,
+    scale_step: f32,
     handle: image::Handle,
 }
 
@@ -41,7 +41,7 @@ impl<'a> Viewer<'a> {
             max_height: u32::MAX,
             min_scale: 0.25,
             max_scale: 10.0,
-            scale_pct: 0.10,
+            scale_step: 0.10,
             handle,
         }
     }
@@ -112,8 +112,8 @@ impl<'a> Viewer<'a> {
     /// Default is `0.10`
     ///
     /// [`Viewer`]: struct.Viewer.html
-    pub fn scale_pct(mut self, scale_pct: f32) -> Self {
-        self.scale_pct = scale_pct;
+    pub fn scale_step(mut self, scale_step: f32) -> Self {
+        self.scale_step = scale_step;
         self
     }
 
@@ -230,10 +230,10 @@ where
                             self.state.scale = Some(
                                 (if y > 0.0 {
                                     self.state.scale.unwrap_or(1.0)
-                                        * (1.0 + self.scale_pct)
+                                        * (1.0 + self.scale_step)
                                 } else {
                                     self.state.scale.unwrap_or(1.0)
-                                        / (1.0 + self.scale_pct)
+                                        / (1.0 + self.scale_step)
                                 })
                                 .max(self.min_scale)
                                 .min(self.max_scale),
