@@ -2,10 +2,10 @@
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 
-use iced_native::{
-    image::{self, viewer},
-    mouse, Rectangle, Vector,
-};
+use iced_native::image;
+use iced_native::image::viewer;
+use iced_native::mouse;
+use iced_native::{Rectangle, Vector};
 
 impl<B> viewer::Renderer for Renderer<B>
 where
