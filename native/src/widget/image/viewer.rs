@@ -383,13 +383,13 @@ impl State {
         if bounds.width < image_size.width {
             self.current_offset.x = (self.starting_offset.x - delta_x)
                 .min(hidden_width)
-                .max(-1.0 * hidden_width);
+                .max(-hidden_width);
         }
 
         if bounds.height < image_size.height {
             self.current_offset.y = (self.starting_offset.y - delta_y)
                 .min(hidden_height)
-                .max(-1.0 * hidden_height);
+                .max(-hidden_height);
         }
     }
 
@@ -406,14 +406,8 @@ impl State {
             (image_size.height - bounds.height / 2.0).max(0.0).round();
 
         Vector::new(
-            self.current_offset
-                .x
-                .min(hidden_width)
-                .max(-1.0 * hidden_width),
-            self.current_offset
-                .y
-                .min(hidden_height)
-                .max(-1.0 * hidden_height),
+            self.current_offset.x.min(hidden_width).max(-hidden_width),
+            self.current_offset.y.min(hidden_height).max(-hidden_height),
         )
     }
 
