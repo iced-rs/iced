@@ -270,26 +270,21 @@ where
                     }
                 }
             }
-            Event::Mouse(mouse::Event::ButtonPressed(button))
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                 if is_mouse_over =>
             {
-                if button == mouse::Button::Left {
-                    self.state.starting_cursor_pos = Some(cursor_position);
-
-                    self.state.starting_offset = self.state.current_offset;
-                }
+                self.state.starting_cursor_pos = Some(cursor_position);
+                self.state.starting_offset = self.state.current_offset;
             }
-            Event::Mouse(mouse::Event::ButtonReleased(button)) => {
-                if button == mouse::Button::Left {
-                    self.state.starting_cursor_pos = None
-                }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                self.state.starting_cursor_pos = None
             }
-            Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                if self.state.is_cursor_clicked() {
-                    let image_size = self.image_size(renderer, bounds.size());
+            Event::Mouse(mouse::Event::CursorMoved { position })
+                if self.state.is_cursor_clicked() =>
+            {
+                let image_size = self.image_size(renderer, bounds.size());
 
-                    self.state.pan(position.x, position.y, bounds, image_size);
-                }
+                self.state.pan(position.x, position.y, bounds, image_size);
             }
             _ => {}
         }
