@@ -37,7 +37,8 @@ mod platform {
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
-        pub use crate::runtime::image::{Handle, Image};
+        pub use crate::runtime::image::viewer;
+        pub use crate::runtime::image::{Handle, Image, Viewer};
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]

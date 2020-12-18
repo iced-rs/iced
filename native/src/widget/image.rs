@@ -1,4 +1,7 @@
 //! Display images in your user interface.
+pub mod viewer;
+pub use viewer::Viewer;
+
 use crate::layout;
 use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
 
