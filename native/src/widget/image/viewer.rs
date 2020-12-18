@@ -136,7 +136,7 @@ impl<'a> Viewer<'a> {
 
             let ratio = width_ratio.min(height_ratio);
 
-            let scale = self.state.scale.unwrap_or(1.0);
+            let scale = self.state.scale;
 
             if ratio < 1.0 {
                 (dimensions.0 * ratio * scale, dimensions.1 * ratio * scale)
@@ -222,29 +222,24 @@ where
                 match delta {
                     mouse::ScrollDelta::Lines { y, .. }
                     | mouse::ScrollDelta::Pixels { y, .. } => {
-                        let previous_scale = self.state.scale.unwrap_or(1.0);
+                        let previous_scale = self.state.scale;
 
                         if y < 0.0 && previous_scale > self.min_scale
                             || y > 0.0 && previous_scale < self.max_scale
                         {
-                            self.state.scale = Some(
-                                (if y > 0.0 {
-                                    self.state.scale.unwrap_or(1.0)
-                                        * (1.0 + self.scale_step)
-                                } else {
-                                    self.state.scale.unwrap_or(1.0)
-                                        / (1.0 + self.scale_step)
-                                })
-                                .max(self.min_scale)
-                                .min(self.max_scale),
-                            );
+                            self.state.scale = (if y > 0.0 {
+                                self.state.scale * (1.0 + self.scale_step)
+                            } else {
+                                self.state.scale / (1.0 + self.scale_step)
+                            })
+                            .max(self.min_scale)
+                            .min(self.max_scale);
 
                             let image_size =
                                 self.image_size(renderer, bounds.size());
 
-                            let factor = self.state.scale.unwrap()
-                                / previous_scale
-                                - 1.0;
+                            let factor =
+                                self.state.scale / previous_scale - 1.0;
 
                             let cursor_to_center = relative_cursor_position(
                                 cursor_position,
@@ -343,12 +338,23 @@ where
 /// The local state of a [`Viewer`].
 ///
 /// [`Viewer`]: struct.Viewer.html
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct State {
-    scale: Option<f32>,
+    scale: f32,
     starting_offset: Vector,
     current_offset: Vector,
     starting_cursor_pos: Option<Point>,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            scale: 1.0,
+            starting_offset: Vector::default(),
+            current_offset: Vector::default(),
+            starting_cursor_pos: None,
+        }
+    }
 }
 
 impl State {
