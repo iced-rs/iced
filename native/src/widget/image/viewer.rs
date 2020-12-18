@@ -28,9 +28,7 @@ pub struct Viewer<'a> {
 impl<'a> Viewer<'a> {
     /// Creates a new [`Viewer`] with the given [`State`] and [`Handle`].
     ///
-    /// [`Viewer`]: struct.Viewer.html
-    /// [`State`]: struct.State.html
-    /// [`Handle`]: ../../image/struct.Handle.html
+    /// [`Handle`]: image::Handle
     pub fn new(state: &'a mut State, handle: image::Handle) -> Self {
         Viewer {
             state,
@@ -47,40 +45,30 @@ impl<'a> Viewer<'a> {
     }
 
     /// Sets the padding of the [`Viewer`].
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     pub fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self
     }
 
     /// Sets the width of the [`Viewer`].
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the height of the [`Viewer`].
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
     /// Sets the max width of the [`Viewer`].
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
         self
     }
 
     /// Sets the max height of the [`Viewer`].
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     pub fn max_height(mut self, max_height: u32) -> Self {
         self.max_height = max_height;
         self
@@ -89,8 +77,6 @@ impl<'a> Viewer<'a> {
     /// Sets the max scale applied to the image of the [`Viewer`].
     ///
     /// Default is `10.0`
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     pub fn max_scale(mut self, max_scale: f32) -> Self {
         self.max_scale = max_scale;
         self
@@ -99,8 +85,6 @@ impl<'a> Viewer<'a> {
     /// Sets the min scale applied to the image of the [`Viewer`].
     ///
     /// Default is `0.25`
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     pub fn min_scale(mut self, min_scale: f32) -> Self {
         self.min_scale = min_scale;
         self
@@ -110,8 +94,6 @@ impl<'a> Viewer<'a> {
     /// when zoomed in / out.
     ///
     /// Default is `0.10`
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     pub fn scale_step(mut self, scale_step: f32) -> Self {
         self.scale_step = scale_step;
         self
@@ -120,8 +102,6 @@ impl<'a> Viewer<'a> {
     /// Returns the bounds of the underlying image, given the bounds of
     /// the [`Viewer`]. Scaling will be applied and original aspect ratio
     /// will be respected.
-    ///
-    /// [`Viewer`]: struct.Viewer.html
     fn image_size<Renderer>(&self, renderer: &Renderer, bounds: Size) -> Size
     where
         Renderer: self::Renderer + image::Renderer,
@@ -344,8 +324,6 @@ where
 }
 
 /// The local state of a [`Viewer`].
-///
-/// [`Viewer`]: struct.Viewer.html
 #[derive(Debug, Clone, Copy)]
 pub struct State {
     scale: f32,
@@ -367,17 +345,12 @@ impl Default for State {
 
 impl State {
     /// Creates a new [`State`].
-    ///
-    /// [`State`]: struct.State.html
     pub fn new() -> Self {
         State::default()
     }
 
     /// Returns the current offset of the [`State`], given the bounds
     /// of the [`Viewer`] and its image.
-    ///
-    /// [`Viewer`]: struct.Viewer.html
-    /// [`State`]: struct.State.html
     fn offset(&self, bounds: Rectangle, image_size: Size) -> Vector {
         let hidden_width =
             (image_size.width - bounds.width / 2.0).max(0.0).round();
@@ -392,9 +365,6 @@ impl State {
     }
 
     /// Returns if the cursor is currently grabbed by the [`Viewer`].
-    ///
-    /// [`Viewer`]: struct.Viewer.html
-    /// [`State`]: struct.State.html
     pub fn is_cursor_grabbed(&self) -> bool {
         self.cursor_grabbed_at.is_some()
     }
@@ -405,22 +375,19 @@ impl State {
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`Viewer`] in your user interface.
 ///
-/// [`Viewer`]: struct.Viewer.html
-/// [renderer]: ../../../renderer/index.html
+/// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer + Sized {
     /// Draws the [`Viewer`].
     ///
     /// It receives:
     /// - the [`State`] of the [`Viewer`]
     /// - the bounds of the [`Viewer`] widget
-    /// - the bounds of the scaled [`Viewer`] image
+    /// - the [`Size`] of the scaled [`Viewer`] image
     /// - the translation of the clipped image
     /// - the [`Handle`] to the underlying image
     /// - whether the mouse is over the [`Viewer`] or not
     ///
-    /// [`Viewer`]: struct.Viewer.html
-    /// [`State`]: struct.State.html
-    /// [`Handle`]: ../../image/struct.Handle.html
+    /// [`Handle`]: image::Handle
     fn draw(
         &mut self,
         state: &State,
