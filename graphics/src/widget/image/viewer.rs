@@ -39,7 +39,7 @@ where
                 }
             },
             {
-                if state.is_cursor_clicked() {
+                if state.is_cursor_grabbed() {
                     mouse::Interaction::Grabbing
                 } else if is_mouse_over
                     && (image_size.width > bounds.width

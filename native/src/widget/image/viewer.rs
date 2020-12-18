@@ -268,14 +268,14 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                 if is_mouse_over =>
             {
-                self.state.starting_cursor_pos = Some(cursor_position);
+                self.state.cursor_grabbed_at = Some(cursor_position);
                 self.state.starting_offset = self.state.current_offset;
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                self.state.starting_cursor_pos = None
+                self.state.cursor_grabbed_at = None
             }
             Event::Mouse(mouse::Event::CursorMoved { position })
-                if self.state.is_cursor_clicked() =>
+                if self.state.is_cursor_grabbed() =>
             {
                 let image_size = self.image_size(renderer, bounds.size());
 
@@ -343,7 +343,7 @@ pub struct State {
     scale: f32,
     starting_offset: Vector,
     current_offset: Vector,
-    starting_cursor_pos: Option<Point>,
+    cursor_grabbed_at: Option<Point>,
 }
 
 impl Default for State {
@@ -352,7 +352,7 @@ impl Default for State {
             scale: 1.0,
             starting_offset: Vector::default(),
             current_offset: Vector::default(),
-            starting_cursor_pos: None,
+            cursor_grabbed_at: None,
         }
     }
 }
@@ -377,8 +377,8 @@ impl State {
         let hidden_height =
             (image_size.height - bounds.height / 2.0).max(0.0).round();
 
-        let delta_x = x - self.starting_cursor_pos.unwrap().x;
-        let delta_y = y - self.starting_cursor_pos.unwrap().y;
+        let delta_x = x - self.cursor_grabbed_at.unwrap().x;
+        let delta_y = y - self.cursor_grabbed_at.unwrap().y;
 
         if bounds.width < image_size.width {
             self.current_offset.x = (self.starting_offset.x - delta_x)
@@ -411,13 +411,12 @@ impl State {
         )
     }
 
-    /// Returns if the left mouse button is still held down since clicking inside
-    /// the [`Viewer`].
+    /// Returns if the cursor is currently grabbed by the [`Viewer`].
     ///
     /// [`Viewer`]: struct.Viewer.html
     /// [`State`]: struct.State.html
-    pub fn is_cursor_clicked(&self) -> bool {
-        self.starting_cursor_pos.is_some()
+    pub fn is_cursor_grabbed(&self) -> bool {
+        self.cursor_grabbed_at.is_some()
     }
 }
 
