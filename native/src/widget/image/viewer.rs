@@ -149,23 +149,6 @@ impl<'a> Viewer<'a> {
     }
 }
 
-/// Cursor position relative to the [`Viewer`] bounds.
-///
-/// [`Viewer`]: struct.Viewer.html
-fn relative_cursor_position(
-    absolute_position: Point,
-    bounds: Rectangle,
-) -> Point {
-    absolute_position - Vector::new(bounds.x, bounds.y)
-}
-
-/// Center point relative to the [`Viewer`] bounds.
-///
-/// [`Viewer`]: struct.Viewer.html
-fn relative_center(bounds: Rectangle) -> Point {
-    bounds.center() - Vector::new(bounds.x, bounds.y)
-}
-
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Viewer<'a>
 where
     Renderer: self::Renderer + image::Renderer,
@@ -241,10 +224,8 @@ where
                             let factor =
                                 self.state.scale / previous_scale - 1.0;
 
-                            let cursor_to_center = relative_cursor_position(
-                                cursor_position,
-                                bounds,
-                            ) - relative_center(bounds);
+                            let cursor_to_center =
+                                cursor_position - bounds.center();
 
                             let adjustment = cursor_to_center * factor
                                 + self.state.current_offset * factor;
