@@ -274,12 +274,39 @@ where
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 self.state.cursor_grabbed_at = None
             }
-            Event::Mouse(mouse::Event::CursorMoved { position })
-                if self.state.is_cursor_grabbed() =>
-            {
-                let image_size = self.image_size(renderer, bounds.size());
+            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+                if let Some(origin) = self.state.cursor_grabbed_at {
+                    let image_size = self.image_size(renderer, bounds.size());
 
-                self.state.pan(position.x, position.y, bounds, image_size);
+                    let hidden_width = (image_size.width - bounds.width / 2.0)
+                        .max(0.0)
+                        .round();
+
+                    let hidden_height = (image_size.height
+                        - bounds.height / 2.0)
+                        .max(0.0)
+                        .round();
+
+                    let delta = position - origin;
+
+                    let x = if bounds.width < image_size.width {
+                        (self.state.starting_offset.x - delta.x)
+                            .min(hidden_width)
+                            .max(-hidden_width)
+                    } else {
+                        0.0
+                    };
+
+                    let y = if bounds.height < image_size.height {
+                        (self.state.starting_offset.y - delta.y)
+                            .min(hidden_height)
+                            .max(-hidden_height)
+                    } else {
+                        0.0
+                    };
+
+                    self.state.current_offset = Vector::new(x, y);
+                }
             }
             _ => {}
         }
@@ -363,34 +390,6 @@ impl State {
     /// [`State`]: struct.State.html
     pub fn new() -> Self {
         State::default()
-    }
-
-    /// Apply a panning offset to the current [`State`], given the bounds of
-    /// the [`Viewer`] and its image.
-    ///
-    /// [`Viewer`]: struct.Viewer.html
-    /// [`State`]: struct.State.html
-    fn pan(&mut self, x: f32, y: f32, bounds: Rectangle, image_size: Size) {
-        let hidden_width =
-            (image_size.width - bounds.width / 2.0).max(0.0).round();
-
-        let hidden_height =
-            (image_size.height - bounds.height / 2.0).max(0.0).round();
-
-        let delta_x = x - self.cursor_grabbed_at.unwrap().x;
-        let delta_y = y - self.cursor_grabbed_at.unwrap().y;
-
-        if bounds.width < image_size.width {
-            self.current_offset.x = (self.starting_offset.x - delta_x)
-                .min(hidden_width)
-                .max(-hidden_width);
-        }
-
-        if bounds.height < image_size.height {
-            self.current_offset.y = (self.starting_offset.y - delta_y)
-                .min(hidden_height)
-                .max(-hidden_height);
-        }
     }
 
     /// Returns the current offset of the [`State`], given the bounds
