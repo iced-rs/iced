@@ -122,11 +122,7 @@ impl<'a> Viewer<'a> {
     /// will be respected.
     ///
     /// [`Viewer`]: struct.Viewer.html
-    fn image_bounds<Renderer>(
-        &self,
-        renderer: &Renderer,
-        bounds: Rectangle,
-    ) -> Rectangle
+    fn image_size<Renderer>(&self, renderer: &Renderer, bounds: Size) -> Size
     where
         Renderer: self::Renderer + image::Renderer,
     {
@@ -149,12 +145,7 @@ impl<'a> Viewer<'a> {
             }
         };
 
-        Rectangle {
-            x: bounds.x,
-            y: bounds.y,
-            width,
-            height,
-        }
+        Size::new(width, height)
     }
 }
 
@@ -189,19 +180,25 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer,
+        renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let padding = f32::from(self.padding);
+        let (width, height) = renderer.dimensions(&self.handle);
 
-        let limits = limits
-            .max_width(self.max_width)
-            .max_height(self.max_height)
+        let aspect_ratio = width as f32 / height as f32;
+
+        let mut size = limits
             .width(self.width)
             .height(self.height)
-            .pad(padding);
+            .resolve(Size::new(width as f32, height as f32));
 
-        let size = limits.resolve(Size::INFINITY);
+        let viewport_aspect_ratio = size.width / size.height;
+
+        if viewport_aspect_ratio > aspect_ratio {
+            size.width = width as f32 * size.height / height as f32;
+        } else {
+            size.height = height as f32 * size.width / width as f32;
+        }
 
         layout::Node::new(size)
     }
@@ -242,8 +239,8 @@ where
                                     .min(self.max_scale),
                                 );
 
-                                let image_bounds =
-                                    self.image_bounds(renderer, bounds);
+                                let image_size =
+                                    self.image_size(renderer, bounds.size());
 
                                 let factor = self.state.scale.unwrap()
                                     / previous_scale
@@ -259,13 +256,13 @@ where
                                     + self.state.current_offset * factor;
 
                                 self.state.current_offset = Vector::new(
-                                    if image_bounds.width > bounds.width {
+                                    if image_size.width > bounds.width {
                                         self.state.current_offset.x
                                             + adjustment.x
                                     } else {
                                         0.0
                                     },
-                                    if image_bounds.height > bounds.height {
+                                    if image_size.height > bounds.height {
                                         self.state.current_offset.y
                                             + adjustment.y
                                     } else {
@@ -290,14 +287,11 @@ where
                 }
                 Event::Mouse(mouse::Event::CursorMoved { position }) => {
                     if self.state.is_cursor_clicked() {
-                        let image_bounds = self.image_bounds(renderer, bounds);
+                        let image_size =
+                            self.image_size(renderer, bounds.size());
 
-                        self.state.pan(
-                            position.x,
-                            position.y,
-                            bounds,
-                            image_bounds,
-                        );
+                        self.state
+                            .pan(position.x, position.y, bounds, image_size);
                     }
                 }
                 _ => {}
@@ -322,15 +316,15 @@ where
     ) -> Renderer::Output {
         let bounds = layout.bounds();
 
-        let image_bounds = self.image_bounds(renderer, bounds);
+        let image_size = self.image_size(renderer, bounds.size());
 
         let translation = {
             let image_top_left = Vector::new(
-                bounds.width / 2.0 - image_bounds.width / 2.0,
-                bounds.height / 2.0 - image_bounds.height / 2.0,
+                bounds.width / 2.0 - image_size.width / 2.0,
+                bounds.height / 2.0 - image_size.height / 2.0,
             );
 
-            image_top_left - self.state.offset(bounds, image_bounds)
+            image_top_left - self.state.offset(bounds, image_size)
         };
 
         let is_mouse_over = bounds.contains(cursor_position);
@@ -339,7 +333,7 @@ where
             renderer,
             &self.state,
             bounds,
-            image_bounds,
+            image_size,
             translation,
             self.handle.clone(),
             is_mouse_over,
@@ -384,31 +378,24 @@ impl State {
     ///
     /// [`Viewer`]: struct.Viewer.html
     /// [`State`]: struct.State.html
-    fn pan(
-        &mut self,
-        x: f32,
-        y: f32,
-        bounds: Rectangle,
-        image_bounds: Rectangle,
-    ) {
-        let hidden_width = ((image_bounds.width - bounds.width) as f32 / 2.0)
+    fn pan(&mut self, x: f32, y: f32, bounds: Rectangle, image_size: Size) {
+        let hidden_width = ((image_size.width - bounds.width) as f32 / 2.0)
             .max(0.0)
             .round();
-        let hidden_height = ((image_bounds.height - bounds.height) as f32
-            / 2.0)
+        let hidden_height = ((image_size.height - bounds.height) as f32 / 2.0)
             .max(0.0)
             .round();
 
         let delta_x = x - self.starting_cursor_pos.unwrap().x;
         let delta_y = y - self.starting_cursor_pos.unwrap().y;
 
-        if bounds.width < image_bounds.width {
+        if bounds.width < image_size.width {
             self.current_offset.x = (self.starting_offset.x - delta_x)
                 .min(hidden_width)
                 .max(-1.0 * hidden_width);
         }
 
-        if bounds.height < image_bounds.height {
+        if bounds.height < image_size.height {
             self.current_offset.y = (self.starting_offset.y - delta_y)
                 .min(hidden_height)
                 .max(-1.0 * hidden_height);
@@ -420,12 +407,11 @@ impl State {
     ///
     /// [`Viewer`]: struct.Viewer.html
     /// [`State`]: struct.State.html
-    fn offset(&self, bounds: Rectangle, image_bounds: Rectangle) -> Vector {
-        let hidden_width = ((image_bounds.width - bounds.width) as f32 / 2.0)
+    fn offset(&self, bounds: Rectangle, image_size: Size) -> Vector {
+        let hidden_width = ((image_size.width - bounds.width) as f32 / 2.0)
             .max(0.0)
             .round();
-        let hidden_height = ((image_bounds.height - bounds.height) as f32
-            / 2.0)
+        let hidden_height = ((image_size.height - bounds.height) as f32 / 2.0)
             .max(0.0)
             .round();
 
@@ -476,7 +462,7 @@ pub trait Renderer: crate::Renderer + Sized {
         &mut self,
         state: &State,
         bounds: Rectangle,
-        image_bounds: Rectangle,
+        image_size: Size,
         translation: Vector,
         handle: image::Handle,
         is_mouse_over: bool,

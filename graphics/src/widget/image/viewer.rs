@@ -5,7 +5,7 @@ use crate::{Primitive, Renderer};
 use iced_native::image;
 use iced_native::image::viewer;
 use iced_native::mouse;
-use iced_native::{Rectangle, Vector};
+use iced_native::{Rectangle, Size, Vector};
 
 impl<B> viewer::Renderer for Renderer<B>
 where
@@ -15,7 +15,7 @@ where
         &mut self,
         state: &viewer::State,
         bounds: Rectangle,
-        image_bounds: Rectangle,
+        image_size: Size,
         translation: Vector,
         handle: image::Handle,
         is_mouse_over: bool,
@@ -28,7 +28,11 @@ where
                         translation,
                         content: Box::new(Primitive::Image {
                             handle,
-                            bounds: image_bounds,
+                            bounds: Rectangle {
+                                x: bounds.x,
+                                y: bounds.y,
+                                ..Rectangle::with_size(image_size)
+                            },
                         }),
                     }),
                     offset: Vector::new(0, 0),
@@ -38,8 +42,8 @@ where
                 if state.is_cursor_clicked() {
                     mouse::Interaction::Grabbing
                 } else if is_mouse_over
-                    && (image_bounds.width > bounds.width
-                        || image_bounds.height > bounds.height)
+                    && (image_size.width > bounds.width
+                        || image_size.height > bounds.height)
                 {
                     mouse::Interaction::Grab
                 } else {
