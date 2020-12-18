@@ -8,7 +8,7 @@ use crate::{
     Widget,
 };
 
-use std::{f32, hash::Hash, u32};
+use std::hash::Hash;
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
 #[allow(missing_debug_implementations)]
@@ -17,8 +17,6 @@ pub struct Viewer<'a> {
     padding: u16,
     width: Length,
     height: Length,
-    max_width: u32,
-    max_height: u32,
     min_scale: f32,
     max_scale: f32,
     scale_step: f32,
@@ -35,8 +33,6 @@ impl<'a> Viewer<'a> {
             padding: 0,
             width: Length::Shrink,
             height: Length::Shrink,
-            max_width: u32::MAX,
-            max_height: u32::MAX,
             min_scale: 0.25,
             max_scale: 10.0,
             scale_step: 0.10,
@@ -59,18 +55,6 @@ impl<'a> Viewer<'a> {
     /// Sets the height of the [`Viewer`].
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
-        self
-    }
-
-    /// Sets the max width of the [`Viewer`].
-    pub fn max_width(mut self, max_width: u32) -> Self {
-        self.max_width = max_width;
-        self
-    }
-
-    /// Sets the max height of the [`Viewer`].
-    pub fn max_height(mut self, max_height: u32) -> Self {
-        self.max_height = max_height;
         self
     }
 
@@ -315,8 +299,6 @@ where
 
         self.width.hash(state);
         self.height.hash(state);
-        self.max_width.hash(state);
-        self.max_height.hash(state);
         self.padding.hash(state);
 
         self.handle.hash(state);
