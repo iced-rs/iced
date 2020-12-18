@@ -132,7 +132,7 @@ impl<'a> Viewer<'a> {
     {
         let (width, height) = renderer.dimensions(&self.handle);
 
-        let dimensions = {
+        let (width, height) = {
             let dimensions = (width as f32, height as f32);
 
             let width_ratio = bounds.width / dimensions.0;
@@ -152,33 +152,27 @@ impl<'a> Viewer<'a> {
         Rectangle {
             x: bounds.x,
             y: bounds.y,
-            width: dimensions.0,
-            height: dimensions.1,
+            width,
+            height,
         }
     }
+}
 
-    /// Cursor position relative to the [`Viewer`] bounds.
-    ///
-    /// [`Viewer`]: struct.Viewer.html
-    fn relative_cursor_position(
-        &self,
-        mut absolute_position: Point,
-        bounds: Rectangle,
-    ) -> Point {
-        absolute_position.x -= bounds.x;
-        absolute_position.y -= bounds.y;
-        absolute_position
-    }
+/// Cursor position relative to the [`Viewer`] bounds.
+///
+/// [`Viewer`]: struct.Viewer.html
+fn relative_cursor_position(
+    absolute_position: Point,
+    bounds: Rectangle,
+) -> Point {
+    absolute_position - Vector::new(bounds.x, bounds.y)
+}
 
-    /// Center point relative to the [`Viewer`] bounds.
-    ///
-    /// [`Viewer`]: struct.Viewer.html
-    fn relative_center(&self, bounds: Rectangle) -> Point {
-        let mut center = bounds.center();
-        center.x -= bounds.x;
-        center.y -= bounds.y;
-        center
-    }
+/// Center point relative to the [`Viewer`] bounds.
+///
+/// [`Viewer`]: struct.Viewer.html
+fn relative_center(bounds: Rectangle) -> Point {
+    bounds.center() - Vector::new(bounds.x, bounds.y)
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Viewer<'a>
@@ -256,10 +250,10 @@ where
                                     - 1.0;
 
                                 let cursor_to_center =
-                                    self.relative_cursor_position(
+                                    relative_cursor_position(
                                         cursor_position,
                                         bounds,
-                                    ) - self.relative_center(bounds);
+                                    ) - relative_center(bounds);
 
                                 let adjustment = cursor_to_center * factor
                                     + self.state.current_offset * factor;
