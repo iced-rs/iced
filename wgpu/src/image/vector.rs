@@ -3,7 +3,7 @@ use iced_native::svg;
 use std::collections::{HashMap, HashSet};
 
 pub enum Svg {
-    Loaded(resvg::usvg::Tree),
+    Loaded(usvg::Tree),
     NotFound,
 }
 
@@ -43,17 +43,15 @@ impl Cache {
             return self.svgs.get(&handle.id()).unwrap();
         }
 
-        let opt = resvg::Options::default();
-
         let svg = match handle.data() {
             svg::Data::Path(path) => {
-                match resvg::usvg::Tree::from_file(path, &opt.usvg) {
+                match usvg::Tree::from_file(path, &Default::default()) {
                     Ok(tree) => Svg::Loaded(tree),
                     Err(_) => Svg::NotFound,
                 }
             }
             svg::Data::Bytes(bytes) => {
-                match resvg::usvg::Tree::from_data(&bytes, &opt.usvg) {
+                match usvg::Tree::from_data(&bytes, &Default::default()) {
                     Ok(tree) => Svg::Loaded(tree),
                     Err(_) => Svg::NotFound,
                 }
@@ -101,23 +99,38 @@ impl Cache {
                 // We currently rerasterize the SVG when its size changes. This is slow
                 // as heck. A GPU rasterizer like `pathfinder` may perform better.
                 // It would be cool to be able to smooth resize the `svg` example.
-                let screen_size =
-                    resvg::ScreenSize::new(width, height).unwrap();
-
-                let mut canvas =
-                    resvg::raqote::DrawTarget::new(width as i32, height as i32);
-
-                resvg::backend_raqote::render_to_canvas(
+                let img = resvg::render(
                     tree,
-                    &resvg::Options::default(),
-                    screen_size,
-                    &mut canvas,
-                );
+                    if width > height {
+                        usvg::FitTo::Width(width)
+                    } else {
+                        usvg::FitTo::Height(height)
+                    },
+                    None,
+                )?;
+                let width = img.width();
+                let height = img.height();
+
+                let mut rgba = img.take().into_iter();
+
+                // TODO: Perform conversion in the GPU
+                let bgra: Vec<u8> = std::iter::from_fn(move || {
+                    use std::iter::once;
+
+                    let r = rgba.next()?;
+                    let g = rgba.next()?;
+                    let b = rgba.next()?;
+                    let a = rgba.next()?;
+
+                    Some(once(b).chain(once(g)).chain(once(r)).chain(once(a)))
+                })
+                .flatten()
+                .collect();
 
                 let allocation = texture_atlas.upload(
                     width,
                     height,
-                    bytemuck::cast_slice(canvas.get_data()),
+                    bytemuck::cast_slice(bgra.as_slice()),
                     device,
                     encoder,
                 )?;
