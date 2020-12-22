@@ -15,7 +15,7 @@ pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
     style: Renderer::Style,
 }
 
-impl<'a, Message, Renderer: 'a> TitleBar<'a, Message, Renderer>
+impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: pane_grid::Renderer,
 {
