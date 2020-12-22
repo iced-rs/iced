@@ -1,15 +1,14 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::pane_grid;
-use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
+use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
 
 /// The title bar of a [`Pane`].
 ///
 /// [`Pane`]: crate::widget::pane_grid::Pane
 #[allow(missing_debug_implementations)]
 pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
-    title: String,
-    title_size: Option<u16>,
+    content: Element<'a, Message, Renderer>,
     controls: Option<Element<'a, Message, Renderer>>,
     padding: u16,
     always_show_controls: bool,
@@ -20,22 +19,18 @@ impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: pane_grid::Renderer,
 {
-    /// Creates a new [`TitleBar`] with the given title.
-    pub fn new(title: impl Into<String>) -> Self {
+    /// Creates a new [`TitleBar`] with the given content.
+    pub fn new<E>(content: E) -> Self
+    where
+        E: Into<Element<'a, Message, Renderer>>,
+    {
         Self {
-            title: title.into(),
-            title_size: None,
+            content: content.into(),
             controls: None,
             padding: 0,
             always_show_controls: false,
             style: Renderer::Style::default(),
         }
-    }
-
-    /// Sets the size of the title of the [`TitleBar`].
-    pub fn title_size(mut self, size: u16) -> Self {
-        self.title_size = Some(size);
-        self
     }
 
     /// Sets the controls of the [`TitleBar`].
@@ -91,48 +86,29 @@ where
         let mut children = layout.children();
         let padded = children.next().unwrap();
 
-        if let Some(controls) = &self.controls {
-            let mut children = padded.children();
-            let title_layout = children.next().unwrap();
+        let mut children = padded.children();
+        let title_layout = children.next().unwrap();
+
+        let controls = if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
 
-            let (title_bounds, controls) =
-                if show_controls || self.always_show_controls {
-                    (title_layout.bounds(), Some((controls, controls_layout)))
-                } else {
-                    (
-                        Rectangle {
-                            width: padded.bounds().width,
-                            ..title_layout.bounds()
-                        },
-                        None,
-                    )
-                };
-
-            renderer.draw_title_bar(
-                defaults,
-                layout.bounds(),
-                &self.style,
-                &self.title,
-                self.title_size.unwrap_or(renderer.default_size()),
-                Renderer::Font::default(),
-                title_bounds,
-                controls,
-                cursor_position,
-            )
+            if show_controls || self.always_show_controls {
+                Some((controls, controls_layout))
+            } else {
+                None
+            }
         } else {
-            renderer.draw_title_bar::<()>(
-                defaults,
-                layout.bounds(),
-                &self.style,
-                &self.title,
-                self.title_size.unwrap_or(renderer.default_size()),
-                Renderer::Font::default(),
-                padded.bounds(),
-                None,
-                cursor_position,
-            )
-        }
+            None
+        };
+
+        renderer.draw_title_bar(
+            defaults,
+            layout.bounds(),
+            &self.style,
+            (&self.content, title_layout),
+            controls,
+            cursor_position,
+        )
     }
 
     /// Returns whether the mouse cursor is over the pick area of the
@@ -165,8 +141,7 @@ where
     pub(crate) fn hash_layout(&self, hasher: &mut Hasher) {
         use std::hash::Hash;
 
-        self.title.hash(hasher);
-        self.title_size.hash(hasher);
+        self.content.hash_layout(hasher);
         self.padding.hash(hasher);
     }
 
@@ -179,15 +154,10 @@ where
         let limits = limits.pad(padding);
         let max_size = limits.max();
 
-        let title_size = self.title_size.unwrap_or(renderer.default_size());
-        let title_font = Renderer::Font::default();
-
-        let (title_width, title_height) = renderer.measure(
-            &self.title,
-            title_size,
-            title_font,
-            Size::new(f32::INFINITY, max_size.height),
-        );
+        let title_layout = self
+            .content
+            .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
+        let title_size = title_layout.size();
 
         let mut node = if let Some(controls) = &self.controls {
             let mut controls_layout = controls
@@ -196,16 +166,8 @@ where
             let controls_size = controls_layout.size();
             let space_before_controls = max_size.width - controls_size.width;
 
-            let mut title_layout = layout::Node::new(Size::new(
-                title_width.min(space_before_controls),
-                title_height,
-            ));
-
-            let title_size = title_layout.size();
             let height = title_size.height.max(controls_size.height);
 
-            title_layout
-                .move_to(Point::new(0.0, (height - title_size.height) / 2.0));
             controls_layout.move_to(Point::new(space_before_controls, 0.0));
 
             layout::Node::with_children(
@@ -213,7 +175,10 @@ where
                 vec![title_layout, controls_layout],
             )
         } else {
-            layout::Node::new(Size::new(max_size.width, title_height))
+            layout::Node::with_children(
+                Size::new(max_size.width, title_size.height),
+                vec![title_layout],
+            )
         };
 
         node.move_to(Point::new(padding, padding));

@@ -276,10 +276,7 @@ impl pane_grid::Renderer for Null {
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
         _style: &Self::Style,
-        _title: &str,
-        _title_size: u16,
-        _title_font: Self::Font,
-        _title_bounds: Rectangle,
+        _content: (&Element<'_, Message, Self>, Layout<'_>),
         _controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         _cursor_position: Point,
     ) {

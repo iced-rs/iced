@@ -33,7 +33,6 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::row;
-use crate::text;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
     Widget,
@@ -543,9 +542,7 @@ where
 /// able to use a [`PaneGrid`] in your user interface.
 ///
 /// [renderer]: crate::renderer
-pub trait Renderer:
-    crate::Renderer + container::Renderer + text::Renderer + Sized
-{
+pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     /// Draws a [`PaneGrid`].
     ///
     /// It receives:
@@ -586,18 +583,15 @@ pub trait Renderer:
     /// It receives:
     /// - the bounds, style of the [`TitleBar`]
     /// - the style of the [`TitleBar`]
-    /// - the title of the [`TitleBar`] with its size, font, and bounds
-    /// - the controls of the [`TitleBar`] with their [`Layout`+, if any
+    /// - the content of the [`TitleBar`] with its layout
+    /// - the controls of the [`TitleBar`] with their [`Layout`], if any
     /// - the cursor position
     fn draw_title_bar<Message>(
         &mut self,
         defaults: &Self::Defaults,
         bounds: Rectangle,
         style: &Self::Style,
-        title: &str,
-        title_size: u16,
-        title_font: Self::Font,
-        title_bounds: Rectangle,
+        content: (&Element<'_, Message, Self>, Layout<'_>),
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
     ) -> Self::Output;
