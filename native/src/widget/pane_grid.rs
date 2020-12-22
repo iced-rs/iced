@@ -33,7 +33,6 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::row;
-use crate::text;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
     Widget,
@@ -543,9 +542,7 @@ where
 /// able to use a [`PaneGrid`] in your user interface.
 ///
 /// [renderer]: crate::renderer
-pub trait Renderer:
-    crate::Renderer + container::Renderer + text::Renderer + Sized
-{
+pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     /// Draws a [`PaneGrid`].
     ///
     /// It receives:

@@ -7,9 +7,8 @@
 //! drag and drop, and hotkey support.
 //!
 //! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
-use crate::backend::{self, Backend};
 use crate::defaults;
-use crate::{Primitive, Renderer};
+use crate::{Backend, Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::pane_grid;
 use iced_native::{Element, Layout, Point, Rectangle, Vector};
@@ -30,7 +29,7 @@ pub type PaneGrid<'a, Message, Backend> =
 
 impl<B> pane_grid::Renderer for Renderer<B>
 where
-    B: Backend + backend::Text,
+    B: Backend,
 {
     fn draw<Message>(
         &mut self,
