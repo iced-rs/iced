@@ -10,6 +10,7 @@ pub mod button;
 pub mod checkbox;
 pub mod container;
 pub mod menu;
+pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
 pub mod radio;

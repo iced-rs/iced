@@ -1,3 +1,4 @@
+use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::pane_grid;
@@ -12,7 +13,7 @@ pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
     controls: Option<Element<'a, Message, Renderer>>,
     padding: u16,
     always_show_controls: bool,
-    style: Renderer::Style,
+    style: <Renderer as container::Renderer>::Style,
 }
 
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
@@ -29,7 +30,7 @@ where
             controls: None,
             padding: 0,
             always_show_controls: false,
-            style: Renderer::Style::default(),
+            style: Default::default(),
         }
     }
 
@@ -49,7 +50,10 @@ where
     }
 
     /// Sets the style of the [`TitleBar`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as container::Renderer>::Style>,
+    ) -> Self {
         self.style = style.into();
         self
     }

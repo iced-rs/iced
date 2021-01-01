@@ -97,6 +97,7 @@ pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
+    style: <Renderer as self::Renderer>::Style,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
@@ -128,6 +129,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
+            style: Default::default(),
         }
     }
 
@@ -183,6 +185,15 @@ where
         F: 'a + Fn(ResizeEvent) -> Message,
     {
         self.on_resize = Some((leeway, Box::new(f)));
+        self
+    }
+
+    /// Sets the style of the [`PaneGrid`].
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as self::Renderer>::Style>,
+    ) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -382,7 +393,7 @@ where
                                     relative_cursor,
                                 );
 
-                                if let Some((split, axis)) = clicked_split {
+                                if let Some((split, axis, _)) = clicked_split {
                                     self.state.pick_split(&split, axis);
                                 } else {
                                     self.click_pane(
@@ -475,6 +486,23 @@ where
         let picked_split = self
             .state
             .picked_split()
+            .and_then(|(split, axis)| {
+                let bounds = layout.bounds();
+
+                let splits = self
+                    .state
+                    .split_regions(f32::from(self.spacing), bounds.size());
+
+                let (_axis, region, ratio) = splits.get(&split)?;
+
+                let region = axis.split_line_bounds(
+                    *region,
+                    *ratio,
+                    f32::from(self.spacing),
+                );
+
+                Some((axis, region + Vector::new(bounds.x, bounds.y), true))
+            })
             .or_else(|| match self.on_resize {
                 Some((leeway, _)) => {
                     let bounds = layout.bounds();
@@ -488,15 +516,20 @@ where
                         .state
                         .split_regions(f32::from(self.spacing), bounds.size());
 
-                    hovered_split(
+                    let (_split, axis, region) = hovered_split(
                         splits.iter(),
                         f32::from(self.spacing + leeway),
                         relative_cursor,
-                    )
+                    )?;
+
+                    Some((
+                        axis,
+                        region + Vector::new(bounds.x, bounds.y),
+                        false,
+                    ))
                 }
                 None => None,
-            })
-            .map(|(_, axis)| axis);
+            });
 
         self::Renderer::draw(
             renderer,
@@ -505,6 +538,7 @@ where
             self.state.picked_pane(),
             picked_split,
             layout,
+            &self.style,
             cursor_position,
         )
     }
@@ -543,6 +577,9 @@ where
 ///
 /// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer + container::Renderer + Sized {
+    /// The style supported by this renderer.
+    type Style: Default;
+
     /// Draws a [`PaneGrid`].
     ///
     /// It receives:
@@ -556,8 +593,9 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
         defaults: &Self::Defaults,
         content: &[(Pane, Content<'_, Message, Self>)],
         dragging: Option<(Pane, Point)>,
-        resizing: Option<Axis>,
+        resizing: Option<(Axis, Rectangle, bool)>,
         layout: Layout<'_>,
+        style: &<Self as self::Renderer>::Style,
         cursor_position: Point,
     ) -> Self::Output;
 
@@ -572,7 +610,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
         &mut self,
         defaults: &Self::Defaults,
         bounds: Rectangle,
-        style: &Self::Style,
+        style: &<Self as container::Renderer>::Style,
         title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
         body: (&Element<'_, Message, Self>, Layout<'_>),
         cursor_position: Point,
@@ -590,7 +628,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
         &mut self,
         defaults: &Self::Defaults,
         bounds: Rectangle,
-        style: &Self::Style,
+        style: &<Self as container::Renderer>::Style,
         content: (&Element<'_, Message, Self>, Layout<'_>),
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
@@ -617,14 +655,14 @@ fn hovered_split<'a>(
     splits: impl Iterator<Item = (&'a Split, &'a (Axis, Rectangle, f32))>,
     spacing: f32,
     cursor_position: Point,
-) -> Option<(Split, Axis)> {
+) -> Option<(Split, Axis, Rectangle)> {
     splits
         .filter_map(|(split, (axis, region, ratio))| {
             let bounds =
                 axis.split_line_bounds(*region, *ratio, f32::from(spacing));
 
             if bounds.contains(cursor_position) {
-                Some((*split, *axis))
+                Some((*split, *axis, bounds))
             } else {
                 None
             }
