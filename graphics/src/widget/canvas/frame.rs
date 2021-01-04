@@ -108,7 +108,10 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        use lyon::tessellation::{BuffersBuilder, FillOptions};
+        use lyon::path::builder::PathBuilder;
+        use lyon::tessellation::{
+            BuffersBuilder, FillOptions, FillTessellator,
+        };
 
         let Fill { color, rule } = fill.into();
 
@@ -127,12 +130,17 @@ impl Frame {
                 lyon::math::Vector::new(size.width, size.height),
             );
 
-        let _ = lyon::tessellation::basic_shapes::fill_rectangle(
+        let mut tessellator = FillTessellator::new();
+        let options = FillOptions::default().with_fill_rule(rule.into());
+
+        let mut builder = tessellator.builder(&options, &mut buffers);
+
+        builder.add_rectangle(
             &lyon::math::Rect::new(top_left, size.into()),
-            &FillOptions::default().with_fill_rule(rule.into()),
-            &mut buffers,
-        )
-        .expect("Fill rectangle");
+            lyon::path::Winding::Positive,
+        );
+
+        let _ = builder.build().expect("Fill rectangle");
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
@@ -282,28 +290,15 @@ impl Frame {
 
 struct FillVertex([f32; 4]);
 
-impl lyon::tessellation::BasicVertexConstructor<triangle::Vertex2D>
-    for FillVertex
-{
-    fn new_vertex(
-        &mut self,
-        position: lyon::math::Point,
-    ) -> triangle::Vertex2D {
-        triangle::Vertex2D {
-            position: [position.x, position.y],
-            color: self.0,
-        }
-    }
-}
-
 impl lyon::tessellation::FillVertexConstructor<triangle::Vertex2D>
     for FillVertex
 {
     fn new_vertex(
         &mut self,
-        position: lyon::math::Point,
-        _attributes: lyon::tessellation::FillAttributes<'_>,
+        vertex: lyon::tessellation::FillVertex<'_>,
     ) -> triangle::Vertex2D {
+        let position = vertex.position();
+
         triangle::Vertex2D {
             position: [position.x, position.y],
             color: self.0,
@@ -318,9 +313,10 @@ impl lyon::tessellation::StrokeVertexConstructor<triangle::Vertex2D>
 {
     fn new_vertex(
         &mut self,
-        position: lyon::math::Point,
-        _attributes: lyon::tessellation::StrokeAttributes<'_, '_>,
+        vertex: lyon::tessellation::StrokeVertex<'_, '_>,
     ) -> triangle::Vertex2D {
+        let position = vertex.position();
+
         triangle::Vertex2D {
             position: [position.x, position.y],
             color: self.0,
