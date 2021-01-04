@@ -489,7 +489,6 @@ enum LoadError {
 
 #[derive(Debug, Clone)]
 enum SaveError {
-    DirectoryError,
     FileError,
     WriteError,
     FormatError,
@@ -538,7 +537,7 @@ impl SavedState {
         if let Some(dir) = path.parent() {
             async_std::fs::create_dir_all(dir)
                 .await
-                .map_err(|_| SaveError::DirectoryError)?;
+                .map_err(|_| SaveError::FileError)?;
         }
 
         {
