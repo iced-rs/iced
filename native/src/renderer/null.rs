@@ -246,13 +246,16 @@ impl container::Renderer for Null {
 }
 
 impl pane_grid::Renderer for Null {
+    type Style = ();
+
     fn draw<Message>(
         &mut self,
         _defaults: &Self::Defaults,
         _content: &[(pane_grid::Pane, pane_grid::Content<'_, Message, Self>)],
         _dragging: Option<(pane_grid::Pane, Point)>,
-        _resizing: Option<pane_grid::Axis>,
+        _resizing: Option<(pane_grid::Axis, Rectangle, bool)>,
         _layout: Layout<'_>,
+        _style: &<Self as pane_grid::Renderer>::Style,
         _cursor_position: Point,
     ) {
     }
@@ -261,7 +264,7 @@ impl pane_grid::Renderer for Null {
         &mut self,
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
-        _style: &Self::Style,
+        _style: &<Self as container::Renderer>::Style,
         _title_bar: Option<(
             &pane_grid::TitleBar<'_, Message, Self>,
             Layout<'_>,
@@ -275,7 +278,7 @@ impl pane_grid::Renderer for Null {
         &mut self,
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
-        _style: &Self::Style,
+        _style: &<Self as container::Renderer>::Style,
         _content: (&Element<'_, Message, Self>, Layout<'_>),
         _controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         _cursor_position: Point,
