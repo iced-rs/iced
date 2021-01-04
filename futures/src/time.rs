@@ -67,8 +67,20 @@ where
 
         let start = tokio::time::Instant::now() + self.0;
 
-        tokio::time::interval_at(start, self.0)
-            .map(|_| std::time::Instant::now())
-            .boxed()
+        let stream = {
+            #[cfg(feature = "tokio")]
+            {
+                futures::stream::unfold(
+                    tokio::time::interval_at(start, self.0),
+                    |mut interval| async move {
+                        Some((interval.tick().await, interval))
+                    },
+                )
+            }
+            #[cfg(feature = "tokio_old")]
+            tokio::time::interval_at(start, self.0)
+        };
+
+        stream.map(tokio::time::Instant::into_std).boxed()
     }
 }
