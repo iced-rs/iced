@@ -81,6 +81,6 @@ where
             tokio::time::interval_at(start, self.0)
         };
 
-        stream.map(|_| std::time::Instant::now()).boxed()
+        stream.map(tokio::time::Instant::into_std).boxed()
     }
 }
