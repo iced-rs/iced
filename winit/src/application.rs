@@ -194,9 +194,9 @@ async fn run_instance<A, E, C>(
     use winit::event;
 
     let surface = compositor.create_surface(&window);
-    let clipboard = Clipboard::new(&window);
 
     let mut state = State::new(&application, &window);
+    let mut clipboard = Clipboard::new(&window, state.viewport().clone());
     let mut viewport_version = state.viewport_version();
     let mut swap_chain = {
         let physical_size = state.physical_size();
@@ -307,6 +307,10 @@ async fn run_instance<A, E, C>(
                         physical_size.width,
                         physical_size.height,
                     );
+
+                    if let Some(clipboard) = clipboard.as_mut() {
+                        clipboard.2 = state.viewport().clone();
+                    }
 
                     viewport_version = current_viewport_version;
                 }

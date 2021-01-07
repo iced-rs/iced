@@ -17,7 +17,7 @@
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
-#![forbid(unsafe_code)]
+// #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 
 #[doc(no_inline)]
