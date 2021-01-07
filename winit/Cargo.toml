@@ -15,7 +15,6 @@ debug = ["iced_native/debug"]
 
 [dependencies]
 winit = "0.24"
-raw-window-handle = "0.3.3"
 window_clipboard = "0.1"
 log = "0.4"
 thiserror = "1.0"

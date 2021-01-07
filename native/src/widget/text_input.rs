@@ -590,7 +590,7 @@ where
                     self.size.unwrap_or(renderer.default_size()),
                     self.font,
                 );
-                clipboard.set_input_method_position(Point::new(
+                clipboard.set_ime_position(Point::new(
                     (text_layout.bounds().x + text_value_width).min(
                         text_layout.bounds().x + text_layout.bounds().width,
                     ),

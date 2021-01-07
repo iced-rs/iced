@@ -136,10 +136,10 @@ async fn run_instance<A, E, C>(
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
 
+    let clipboard = Clipboard::new(context.window());
+
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
-    let mut clipboard =
-        Clipboard::new(context.window(), state.viewport().clone());
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
             &mut application,
@@ -242,10 +242,6 @@ async fn run_instance<A, E, C>(
                     ));
 
                     compositor.resize_viewport(physical_size);
-
-                    if let Some(clipboard) = clipboard.as_mut() {
-                        clipboard.2 = state.viewport().clone();
-                    }
 
                     viewport_version = current_viewport_version;
                 }
