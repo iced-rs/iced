@@ -56,6 +56,10 @@ impl iced_native::Clipboard for Clipboard {
                         &mut composition_form as _,
                     )
                 };
+
+                let _ = unsafe {
+                    winapi::um::imm::ImmReleaseContext(handle.hwnd as _, himc)
+                };
             }
         }
     }
