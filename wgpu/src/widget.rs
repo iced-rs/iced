@@ -18,6 +18,7 @@ pub mod progress_bar;
 pub mod radio;
 pub mod rule;
 pub mod scrollable;
+pub mod scrollable_hor;
 pub mod slider;
 pub mod text_input;
 
@@ -39,6 +40,8 @@ pub use radio::Radio;
 pub use rule::Rule;
 #[doc(no_inline)]
 pub use scrollable::Scrollable;
+#[doc(no_inline)]
+pub use scrollable_hor::ScrollableHor;
 #[doc(no_inline)]
 pub use slider::Slider;
 #[doc(no_inline)]
