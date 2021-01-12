@@ -2,7 +2,7 @@
 use crate::{Backend, Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::scrollable;
-use iced_native::{Background, Color, Rectangle, Vector};
+use iced_native::{layout::flex::Axis, Background, Color, Point, Rectangle, Size, Vector};
 
 pub use iced_native::scrollable::State;
 pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
@@ -29,37 +29,106 @@ where
         scrollbar_width: u16,
         scrollbar_margin: u16,
         scroller_width: u16,
+        axis: Axis,
     ) -> Option<scrollable::Scrollbar> {
-        if content_bounds.height > bounds.height {
+        let scrollbar_necessary = match axis {
+            Axis::Horizontal => content_bounds.width > bounds.width,
+            Axis::Vertical => content_bounds.height > bounds.height,
+        };
+        if scrollbar_necessary {
             let outer_width =
                 scrollbar_width.max(scroller_width) + 2 * scrollbar_margin;
 
-            let outer_bounds = Rectangle {
-                x: bounds.x + bounds.width - outer_width as f32,
-                y: bounds.y,
-                width: outer_width as f32,
-                height: bounds.height,
+            let outer_bounds_top_left = match axis {
+                Axis::Horizontal => Point {
+                    x: bounds.x,
+                    y: bounds.y + bounds.height - outer_width as f32,
+                },
+                Axis::Vertical => Point {
+                    x: bounds.x + bounds.width - outer_width as f32,
+                    y: bounds.y,
+                },
             };
 
-            let scrollbar_bounds = Rectangle {
-                x: bounds.x + bounds.width
+            let outer_bounds_size = match axis {
+                Axis::Horizontal => Size {
+                    width: bounds.width,
+                    height: outer_width as f32,
+                },
+                Axis::Vertical => Size {
+                    width: outer_width as f32,
+                    height: bounds.height,
+                },
+            };
+
+            let outer_bounds =
+                Rectangle::new(outer_bounds_top_left, outer_bounds_size);
+
+            let scrollbar_bounds_top_left = match axis {
+                Axis::Horizontal => Point {
+                    x: bounds.x,
+                    y: bounds.y + bounds.height
                     - f32::from(outer_width / 2 + scrollbar_width / 2),
-                y: bounds.y,
-                width: scrollbar_width as f32,
-                height: bounds.height,
+                },
+                Axis::Vertical => Point {
+                    x: bounds.x + bounds.width
+                            - f32::from(outer_width / 2 + scrollbar_width / 2),
+                    y: bounds.y,
+                },
             };
 
-            let ratio = bounds.height / content_bounds.height;
-            let scroller_height = bounds.height * ratio;
-            let y_offset = offset as f32 * ratio;
+            let scrollbar_bounds_size = match axis {
+                Axis::Horizontal => Size {
+                    width: bounds.width,
+                    height: scrollbar_width as f32,
+                },
+                Axis::Vertical => Size {
+                    width: scrollbar_width as f32,
+                    height: bounds.height,
+                },
+            };
+            let scrollbar_bounds = Rectangle::new(
+                scrollbar_bounds_top_left,
+                scrollbar_bounds_size,
+            );
 
-            let scroller_bounds = Rectangle {
-                x: bounds.x + bounds.width
+            let ratio = match axis {
+                Axis::Horizontal => bounds.width / content_bounds.width,
+                Axis::Vertical => bounds.height / content_bounds.height,
+            };
+
+            let scroller_height = match axis {
+                Axis::Horizontal => bounds.width * ratio,
+                Axis::Vertical => bounds.height * ratio,
+            };
+
+            let offset = offset as f32 * ratio;
+
+            let scroller_bounds_top_left = match axis {
+                Axis::Horizontal => Point {
+                    x: scrollbar_bounds.x + offset,
+                    y: bounds.y + bounds.height
                     - f32::from(outer_width / 2 + scroller_width / 2),
-                y: scrollbar_bounds.y + y_offset,
-                width: scroller_width as f32,
-                height: scroller_height,
+                },
+                Axis::Vertical => Point {
+                    x: bounds.x + bounds.width
+                        - f32::from(outer_width / 2 + scroller_width / 2),
+                    y: scrollbar_bounds.y + offset,
+                },
             };
+
+            let scroller_bounds_size = match axis {
+                Axis::Horizontal => Size {
+                    width: scroller_height,
+                    height: scroller_width as f32,
+                },
+                Axis::Vertical => Size {
+                    width: scroller_width as f32,
+                    height: scroller_height,
+                },
+            };
+            let scroller_bounds =
+                Rectangle::new(scroller_bounds_top_left, scroller_bounds_size);
 
             Some(scrollable::Scrollbar {
                 outer_bounds,
@@ -68,6 +137,7 @@ where
                 scroller: scrollable::Scroller {
                     bounds: scroller_bounds,
                 },
+                axis,
             })
         } else {
             None
@@ -90,7 +160,10 @@ where
             if let Some(scrollbar) = scrollbar {
                 let clip = Primitive::Clip {
                     bounds,
-                    offset: Vector::new(0, offset),
+                    offset: match scrollbar.axis {
+                        Axis::Vertical => Vector::new(0, offset),
+                        Axis::Horizontal => Vector::new(offset, 0),
+                    },
                     content: Box::new(content),
                 };
 

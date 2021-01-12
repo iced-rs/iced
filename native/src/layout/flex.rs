@@ -22,7 +22,7 @@ use crate::{
 };
 
 /// The main axis of a flex layout.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Axis {
     /// The horizontal axis
     Horizontal,

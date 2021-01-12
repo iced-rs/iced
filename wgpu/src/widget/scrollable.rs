@@ -3,6 +3,7 @@ use crate::Renderer;
 
 pub use iced_graphics::scrollable::{Scrollbar, Scroller, StyleSheet};
 pub use iced_native::scrollable::State;
+pub use iced_native::layout::flex::Axis;
 
 /// A widget that can vertically display an infinite amount of content
 /// with a scrollbar.
