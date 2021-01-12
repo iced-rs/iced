@@ -92,8 +92,8 @@ impl Sandbox for Tour {
             content
         };
 
-        let scrollable = Scrollable::new(scroll)
-            .push(Container::new(content).width(Length::Fill).center_x());
+        let scrollable = Scrollable::new(scroll,
+            Container::new(content).width(Length::Fill).center_x());
 
         Container::new(scrollable)
             .height(Length::Fill)

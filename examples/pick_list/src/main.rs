@@ -1,7 +1,4 @@
-use iced::{
-    pick_list, scrollable, Align, Container, Element, Length, PickList,
-    Sandbox, Scrollable, Settings, Space, Text,
-};
+use iced::{Align ,Text ,Space ,Settings ,Scrollable ,Sandbox ,PickList ,Length ,Element ,Container ,Column ,pick_list, scrollable};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -46,15 +43,14 @@ impl Sandbox for Example {
             Message::LanguageSelected,
         );
 
-        let mut content = Scrollable::new(&mut self.scroll)
+        let content = Scrollable::new(&mut self.scroll, Column::new()
             .width(Length::Fill)
             .align_items(Align::Center)
             .spacing(10)
             .push(Space::with_height(Length::Units(600)))
             .push(Text::new("Which is your favorite language?"))
-            .push(pick_list);
-
-        content = content.push(Space::with_height(Length::Units(600)));
+            .push(pick_list)
+            .push(Space::with_height(Length::Units(600))));
 
         Container::new(content)
             .width(Length::Fill)

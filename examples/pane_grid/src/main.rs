@@ -277,17 +277,15 @@ impl Content {
             ));
         }
 
-        let content = Scrollable::new(scroll)
-            .width(Length::Fill)
-            .spacing(10)
-            .align_items(Align::Center)
-            .push(controls);
+        let content = Scrollable::new(scroll, controls.align_items(Align::Center))
+            .width(Length::Fill);
 
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(5)
             .center_y()
+            .center_x()
             .into()
     }
 }

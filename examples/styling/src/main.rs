@@ -92,13 +92,15 @@ impl Sandbox for Styling {
         let progress_bar =
             ProgressBar::new(0.0..=100.0, self.slider_value).style(self.theme);
 
-        let scrollable = Scrollable::new(&mut self.scroll)
+        let scrollable = Scrollable::new(&mut self.scroll,
+                Column::new()
+                .push(Text::new("Scroll me!"))
+                .push(Space::with_height(Length::Units(800)))
+                .push(Text::new("You did it!")))
             .width(Length::Fill)
             .height(Length::Units(100))
-            .style(self.theme)
-            .push(Text::new("Scroll me!"))
-            .push(Space::with_height(Length::Units(800)))
-            .push(Text::new("You did it!"));
+            .style(self.theme);
+
 
         let checkbox = Checkbox::new(
             self.toggle_value,

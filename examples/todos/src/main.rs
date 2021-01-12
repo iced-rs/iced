@@ -196,12 +196,12 @@ impl Application for Todos {
                     .push(controls)
                     .push(tasks);
 
-                Scrollable::new(scroll)
+                Scrollable::new(scroll,
+                    Container::new(content)
+                    .width(Length::Fill)
+                    .center_x()
                     .padding(40)
-                    .push(
-                        Container::new(content).width(Length::Fill).center_x(),
-                    )
-                    .into()
+                    ).into()
             }
         }
     }

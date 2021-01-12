@@ -211,8 +211,8 @@ impl Sandbox for Example {
                  geometry for your widget.",
             ));
 
-        let scrollable = Scrollable::new(&mut self.scroll)
-            .push(Container::new(content).width(Length::Fill).center_x());
+        let scrollable = Scrollable::new(&mut self.scroll,
+            Container::new(content).width(Length::Fill).center_x());
 
         Container::new(scrollable)
             .width(Length::Fill)
