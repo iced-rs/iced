@@ -1,7 +1,7 @@
 mod style;
 
 use iced::{
-    scrollable, Column, Container, Element, Length, Radio, Row, Rule, Sandbox,
+    scrollable, scrollable::Axis, Column, Container, Element, Length, Radio, Row, Rule, Sandbox,
     Scrollable, Settings, Space, Text,
 };
 
@@ -63,41 +63,50 @@ impl Sandbox for ScrollableDemo {
             variants
                 .iter_mut()
                 .map(|variant| {
-                    let mut scrollable = Scrollable::new(&mut variant.state)
-                        .padding(10)
-                        .width(Length::Fill)
-                        .height(Length::Fill)
-                        .style(*theme)
-                        .push(Text::new(variant.title));
+                    let mut content = Column::new();
+                    content = content.push(Text::new(variant.title));
 
                     if let Some(scrollbar_width) = variant.scrollbar_width {
-                        scrollable = scrollable
-                            .scrollbar_width(scrollbar_width)
-                            .push(Text::new(format!(
+                        content = content.push(Text::new(format!(
                                 "scrollbar_width: {:?}",
                                 scrollbar_width
                             )));
                     }
 
                     if let Some(scrollbar_margin) = variant.scrollbar_margin {
-                        scrollable = scrollable
-                            .scrollbar_margin(scrollbar_margin)
-                            .push(Text::new(format!(
+                        content = content.push(Text::new(format!(
                                 "scrollbar_margin: {:?}",
                                 scrollbar_margin
                             )));
                     }
 
                     if let Some(scroller_width) = variant.scroller_width {
-                        scrollable = scrollable
-                            .scroller_width(scroller_width)
-                            .push(Text::new(format!(
+                        content = content.push(Text::new(format!(
                                 "scroller_width: {:?}",
                                 scroller_width
                             )));
                     }
 
-                    scrollable = scrollable
+                    if let Some(inner_variant) = &mut variant.inner_variant {
+                        let iv = &mut (**inner_variant);
+                        content = content
+                            .push(Scrollable::new(&mut iv.state,
+                                    Row::new()
+                                    .padding(10)
+                                    .spacing(20)
+                                    .push(Text::new(iv.title))
+                                    .push(Text::new(
+                                        "Some content that should NOT wrap within the top scrollable \
+                                        because it is in a horizontal scrollable. Let's output a lot \
+                                        of short words, so that we'll make sure to see how that it \
+                                        works as expected with this horizontal scrollbar.",
+                                    ))).axis(Axis::Horizontal)
+                                .width(Length::Fill)
+                                .height(Length::Shrink)
+                                .style(*theme));
+                    }
+
+                    content = content
                         .push(Space::with_height(Length::Units(100)))
                         .push(Text::new(
                             "Some content that should wrap within the \
@@ -109,6 +118,28 @@ impl Sandbox for ScrollableDemo {
                         .push(Text::new("Middle"))
                         .push(Space::with_height(Length::Units(1200)))
                         .push(Text::new("The End."));
+
+                    let content_container = Container::new(content).padding(10);
+
+                    let mut scrollable = Scrollable::new(&mut variant.state, content_container)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .style(*theme);
+
+                    if let Some(scrollbar_width) = variant.scrollbar_width {
+                        scrollable = scrollable
+                            .scrollbar_width(scrollbar_width);
+                    }
+
+                    if let Some(scrollbar_margin) = variant.scrollbar_margin {
+                        scrollable = scrollable
+                            .scrollbar_margin(scrollbar_margin);
+                    }
+
+                    if let Some(scroller_width) = variant.scroller_width {
+                        scrollable = scrollable
+                            .scroller_width(scroller_width);
+                    }
 
                     Container::new(scrollable)
                         .width(Length::Fill)
@@ -146,6 +177,7 @@ struct Variant {
     scrollbar_width: Option<u16>,
     scrollbar_margin: Option<u16>,
     scroller_width: Option<u16>,
+    inner_variant: Option<Box<Variant>>,
 }
 
 impl Variant {
@@ -157,6 +189,14 @@ impl Variant {
                 scrollbar_width: None,
                 scrollbar_margin: None,
                 scroller_width: None,
+                inner_variant: Some(Box::new(Self {
+                    title: "Horizontal Scrollbar",
+                    state: scrollable::State::new(),
+                    scrollbar_width: None,
+                    scrollbar_margin: None,
+                    scroller_width: None,
+                    inner_variant: None,
+                })),
             },
             Self {
                 title: "Slimmed & Margin",
@@ -164,6 +204,7 @@ impl Variant {
                 scrollbar_width: Some(4),
                 scrollbar_margin: Some(3),
                 scroller_width: Some(4),
+                inner_variant: None,
             },
             Self {
                 title: "Wide Scroller",
@@ -171,6 +212,7 @@ impl Variant {
                 scrollbar_width: Some(4),
                 scrollbar_margin: None,
                 scroller_width: Some(10),
+                inner_variant: None,
             },
             Self {
                 title: "Narrow Scroller",
@@ -178,6 +220,7 @@ impl Variant {
                 scrollbar_width: Some(10),
                 scrollbar_margin: None,
                 scroller_width: Some(4),
+                inner_variant: None,
             },
         ]
     }
