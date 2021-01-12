@@ -279,7 +279,6 @@ where
                         }
                     }
 
-                    return event::Status::Captured;
                 }
                 Event::Touch(event) => {
                     match event {
