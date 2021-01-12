@@ -209,15 +209,23 @@ where
                         }
                     }
                 }
+
+                event::Status::Captured
             }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                 if is_mouse_over =>
             {
                 self.state.cursor_grabbed_at = Some(cursor_position);
                 self.state.starting_offset = self.state.current_offset;
+
+                event::Status::Captured
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
-                self.state.cursor_grabbed_at = None
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+                if self.state.cursor_grabbed_at.is_some() =>
+            {
+                self.state.cursor_grabbed_at = None;
+
+                event::Status::Captured
             }
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 if let Some(origin) = self.state.cursor_grabbed_at {
@@ -251,12 +259,14 @@ where
                     };
 
                     self.state.current_offset = Vector::new(x, y);
+
+                    event::Status::Captured
+                } else {
+                    event::Status::Ignored
                 }
             }
-            _ => {}
+            _ => event::Status::Ignored,
         }
-
-        event::Status::Ignored
     }
 
     fn draw(
