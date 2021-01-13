@@ -13,6 +13,33 @@ pub fn every<H: std::hash::Hasher, E>(
 
 struct Every(std::time::Duration);
 
+#[cfg(all(
+    not(any(feature = "tokio_old", feature = "tokio", feature = "async-std")),
+    feature = "smol"
+))]
+impl<H, E> subscription::Recipe<H, E> for Every
+where
+    H: std::hash::Hasher,
+{
+    type Output = std::time::Instant;
+
+    fn hash(&self, state: &mut H) {
+        use std::hash::Hash;
+
+        std::any::TypeId::of::<Self>().hash(state);
+        self.0.hash(state);
+    }
+
+    fn stream(
+        self: Box<Self>,
+        _input: futures::stream::BoxStream<'static, E>,
+    ) -> futures::stream::BoxStream<'static, Self::Output> {
+        use futures::stream::StreamExt;
+
+        smol::Timer::interval(self.0).boxed()
+    }
+}
+
 #[cfg(feature = "async-std")]
 impl<H, E> subscription::Recipe<H, E> for Every
 where
@@ -41,7 +68,7 @@ where
 
 #[cfg(all(
     any(feature = "tokio", feature = "tokio_old"),
-    not(feature = "async-std")
+    not(any(feature = "async-std", feature = "smol"))
 ))]
 impl<H, E> subscription::Recipe<H, E> for Every
 where

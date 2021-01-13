@@ -41,6 +41,8 @@ tokio = ["iced_futures/tokio"]
 tokio_old = ["iced_futures/tokio_old"]
 # Enables `async-std` as the `executor::Default` on native platforms
 async-std = ["iced_futures/async-std"]
+# Enables `smol` as the `executor::Default` on native platforms
+smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
 
