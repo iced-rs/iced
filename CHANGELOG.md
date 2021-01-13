@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - `"system_font"` feature gates reading system fonts. [#370]
+- Support for the [`smol`] async runtime. [#699]
 
 [#370]: https://github.com/hecrj/iced/pull/370
+[#699]: https://github.com/hecrj/iced/pull/699
+[`smol`]: https://github.com/smol-rs/smol
 
 ## [0.1.1] - 2020-04-15
 ### Added
