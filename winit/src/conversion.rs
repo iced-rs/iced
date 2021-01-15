@@ -121,6 +121,9 @@ pub fn window_event(
         WindowEvent::Touch(touch) => {
             Some(Event::Touch(touch_event(*touch, scale_factor)))
         }
+        WindowEvent::Focused(focused) => {
+            Some(Event::Window(window::Event::Focused(*focused)))
+        }
         _ => None,
     }
 }

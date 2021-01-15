@@ -29,4 +29,7 @@ pub enum Event {
     /// There will be a single `FilesHoveredLeft` event triggered even if
     /// multiple files were hovered.
     FilesHoveredLeft,
+
+    /// A window was focused or not
+    Focused(bool),
 }
