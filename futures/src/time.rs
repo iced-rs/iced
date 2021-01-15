@@ -35,8 +35,16 @@ where
         _input: futures::stream::BoxStream<'static, E>,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         use futures::stream::StreamExt;
+        use std::time::Instant;
 
-        smol::Timer::interval(self.0).boxed()
+        let duration = self.0;
+
+        futures::stream::unfold(Instant::now(), move |last_tick| async move {
+            let last_tick = smol::Timer::at(last_tick + duration).await;
+
+            Some((last_tick, last_tick))
+        })
+        .boxed()
     }
 }
 

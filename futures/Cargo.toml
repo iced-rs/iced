@@ -37,7 +37,7 @@ optional = true
 features = ["unstable"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.smol]
-version = "1.0"
+version = "1.2"
 optional = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
