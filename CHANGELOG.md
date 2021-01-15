@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [`smol`]: https://github.com/smol-rs/smol
 
 ## [0.2.0] - 2020-11-26
+### Added
 - __[`Canvas` interactivity][canvas]__ (#325)  
   A trait-based approach to react to mouse and keyboard interactions in [the `Canvas` widget][#193].
 
