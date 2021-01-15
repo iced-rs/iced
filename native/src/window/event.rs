@@ -3,7 +3,7 @@ use std::path::PathBuf;
 /// A window-related event.
 #[derive(PartialEq, Clone, Debug)]
 pub enum Event {
-    /// A window was resized
+    /// A window was resized.
     Resized {
         /// The new width of the window (in units)
         width: u32,
@@ -11,6 +11,12 @@ pub enum Event {
         /// The new height of the window (in units)
         height: u32,
     },
+
+    /// A window was focused.
+    Focused,
+
+    /// A window was unfocused.
+    Unfocused,
 
     /// A file is being hovered over the window.
     ///
@@ -29,7 +35,4 @@ pub enum Event {
     /// There will be a single `FilesHoveredLeft` event triggered even if
     /// multiple files were hovered.
     FilesHoveredLeft,
-
-    /// A window was focused or not
-    Focused(bool),
 }
