@@ -6,9 +6,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- `"system_font"` feature gates reading system fonts. [#370]
+- Support for the [`smol`] async runtime. [#699]
 
-[#370]: https://github.com/hecrj/iced/pull/370
+[#699]: https://github.com/hecrj/iced/pull/699
+[`smol`]: https://github.com/smol-rs/smol
+
+## [0.2.0] - 2020-11-26
+### Added
+- __[`Canvas` interactivity][canvas]__ (#325)  
+  A trait-based approach to react to mouse and keyboard interactions in [the `Canvas` widget][#193].
+
+- __[`iced_graphics` subcrate][opengl]__ (#354)  
+  A backend-agnostic graphics subcrate that can be leveraged to build new renderers.
+
+- __[OpenGL renderer][opengl]__ (#354)  
+  An OpenGL renderer powered by [`iced_graphics`], [`glow`], and [`glutin`]. It is an alternative to the default [`wgpu`] renderer.
+
+- __[Overlay support][pick_list]__ (#444)  
+  Basic support for superpositioning interactive widgets on top of other widgets.
+
+- __[Faster event loop][view]__ (#597)  
+  The event loop now takes advantage of the data dependencies in [The Elm Architecture] and leverages the borrow checker to keep the widget tree alive between iterations, avoiding unnecessary rebuilds.
+
+- __[Event capturing][event]__ (#614)  
+  The runtime now can tell whether a widget has handled an event or not, easing [integration with existing applications].
+
+- __[`PickList` widget][pick_list]__ (#444)  
+  A drop-down selector widget built on top of the new overlay support.
+
+- __[`QRCode` widget][qr_code]__ (#622)  
+  A widget that displays a QR code, powered by [the `qrcode` crate].
+
+[canvas]: https://github.com/hecrj/iced/pull/325
+[opengl]: https://github.com/hecrj/iced/pull/354
+[`iced_graphics`]: https://github.com/hecrj/iced/pull/354
+[pane_grid]: https://github.com/hecrj/iced/pull/397
+[pick_list]: https://github.com/hecrj/iced/pull/444
+[error]: https://github.com/hecrj/iced/pull/514
+[view]: https://github.com/hecrj/iced/pull/597
+[event]: https://github.com/hecrj/iced/pull/614
+[color]: https://github.com/hecrj/iced/pull/200
+[qr_code]: https://github.com/hecrj/iced/pull/622
+[#193]: https://github.com/hecrj/iced/pull/193
+[`glutin`]: https://github.com/rust-windowing/glutin
+[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[`glow`]: https://github.com/grovesNL/glow
+[the `qrcode` crate]: https://docs.rs/qrcode/0.12.0/qrcode/
+[integration with existing applications]: https://github.com/hecrj/iced/pull/183
+[The Elm Architecture]: https://guide.elm-lang.org/architecture/
+
 
 ## [0.1.1] - 2020-04-15
 ### Added
@@ -114,7 +160,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/hecrj/iced/compare/0.1.1...HEAD
+[Unreleased]: https://github.com/hecrj/iced/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/hecrj/iced/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/hecrj/iced/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/hecrj/iced/compare/0.1.0-beta...0.1.0
 [0.1.0-beta]: https://github.com/hecrj/iced/compare/0.1.0-alpha...0.1.0-beta
