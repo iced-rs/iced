@@ -17,8 +17,8 @@ use crate::{
 /// # Examples
 /// [The repository has a bunch of examples] that use the [`Sandbox`] trait:
 ///
-/// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using
-/// [`lyon`].
+/// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using the 
+/// [`Canvas`] widget.
 /// - [`counter`], the classic counter example explained in [the overview].
 /// - [`custom_widget`], a demonstration of how to build a custom widget that
 /// draws a circle.
