@@ -1,7 +1,7 @@
 //! Create interactive, native cross-platform applications.
 use crate::{mouse, Error, Executor, Runtime};
 
-pub use iced_winit::Application;
+pub use iced_winit::{Application, Mode};
 
 use iced_graphics::window;
 use iced_winit::application;
@@ -40,7 +40,7 @@ where
         Runtime::new(executor, proxy)
     };
 
-    let (application, init_command) = {
+    let (mut application, init_command) = {
         let flags = settings.flags;
 
         runtime.enter(|| A::new(flags))
@@ -54,7 +54,7 @@ where
     let context = {
         let builder = settings.window.into_builder(
             &application.title(),
-            application.mode(),
+            application.mode().unwrap_or(Mode::Windowed),
             event_loop.primary_monitor(),
         );
 
@@ -138,7 +138,7 @@ async fn run_instance<A, E, C>(
 
     let clipboard = Clipboard::new(context.window());
 
-    let mut state = application::State::new(&application, context.window());
+    let mut state = application::State::new(&mut application, context.window());
     let mut viewport_version = state.viewport_version();
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
@@ -194,7 +194,7 @@ async fn run_instance<A, E, C>(
                     );
 
                     // Update window
-                    state.synchronize(&application, context.window());
+                    state.synchronize(&mut application, context.window());
 
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(
