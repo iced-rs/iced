@@ -154,8 +154,8 @@ pub trait Application: Sized {
     /// Currently, the mode only has an effect in native platforms.
     ///
     /// By default, an application will run in windowed mode.
-    fn mode(&self) -> window::Mode {
-        window::Mode::Windowed
+    fn mode(&mut self) -> Option<window::Mode> {
+        None
     }
 
     /// Returns the background color of the [`Application`].
@@ -255,11 +255,11 @@ where
         self.0.title()
     }
 
-    fn mode(&self) -> iced_winit::Mode {
-        match self.0.mode() {
+    fn mode(&mut self) -> Option<iced_winit::Mode> {
+        self.0.mode().map(|e| match e {
             window::Mode::Windowed => iced_winit::Mode::Windowed,
             window::Mode::Fullscreen => iced_winit::Mode::Fullscreen,
-        }
+        })
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {

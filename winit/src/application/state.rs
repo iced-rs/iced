@@ -1,5 +1,5 @@
 use crate::conversion;
-use crate::{Application, Color, Debug, Mode, Point, Size, Viewport};
+use crate::{Application, Color, Debug, Point, Size, Viewport};
 
 use std::marker::PhantomData;
 use winit::event::{Touch, WindowEvent};
@@ -9,7 +9,6 @@ use winit::window::Window;
 #[derive(Debug, Clone)]
 pub struct State<A: Application> {
     title: String,
-    mode: Mode,
     background_color: Color,
     scale_factor: f64,
     viewport: Viewport,
@@ -21,9 +20,8 @@ pub struct State<A: Application> {
 
 impl<A: Application> State<A> {
     /// Creates a new [`State`] for the provided [`Application`] and window.
-    pub fn new(application: &A, window: &Window) -> Self {
+    pub fn new(application: &mut A, window: &Window) -> Self {
         let title = application.title();
-        let mode = application.mode();
         let background_color = application.background_color();
         let scale_factor = application.scale_factor();
 
@@ -38,7 +36,6 @@ impl<A: Application> State<A> {
 
         Self {
             title,
-            mode,
             background_color,
             scale_factor,
             viewport,
@@ -163,7 +160,7 @@ impl<A: Application> State<A> {
     /// and window after calling [`Application::update`].
     ///
     /// [`Application::update`]: crate::Program::update
-    pub fn synchronize(&mut self, application: &A, window: &Window) {
+    pub fn synchronize(&mut self, application: &mut A, window: &Window) {
         // Update window title
         let new_title = application.title();
 
@@ -174,15 +171,11 @@ impl<A: Application> State<A> {
         }
 
         // Update window mode
-        let new_mode = application.mode();
-
-        if self.mode != new_mode {
+        if let Some(mode) = application.mode() {
             window.set_fullscreen(conversion::fullscreen(
                 window.current_monitor(),
-                new_mode,
+                mode,
             ));
-
-            self.mode = new_mode;
         }
 
         // Update background color

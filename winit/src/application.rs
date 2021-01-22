@@ -68,8 +68,8 @@ pub trait Application: Program {
     /// is returned.
     ///
     /// By default, an application will run in windowed mode.
-    fn mode(&self) -> Mode {
-        Mode::Windowed
+    fn mode(&mut self) -> Option<Mode> {
+        None
     }
 
     /// Returns the background [`Color`] of the [`Application`].
@@ -122,7 +122,7 @@ where
         Runtime::new(executor, proxy)
     };
 
-    let (application, init_command) = {
+    let (mut application, init_command) = {
         let flags = settings.flags;
 
         runtime.enter(|| A::new(flags))
@@ -137,7 +137,7 @@ where
         .window
         .into_builder(
             &application.title(),
-            application.mode(),
+            application.mode().unwrap_or(Mode::Windowed),
             event_loop.primary_monitor(),
         )
         .build(&event_loop)
@@ -196,7 +196,7 @@ async fn run_instance<A, E, C>(
     let surface = compositor.create_surface(&window);
     let clipboard = Clipboard::new(&window);
 
-    let mut state = State::new(&application, &window);
+    let mut state = State::new(&mut application, &window);
     let mut viewport_version = state.viewport_version();
     let mut swap_chain = {
         let physical_size = state.physical_size();
@@ -261,7 +261,7 @@ async fn run_instance<A, E, C>(
                     );
 
                     // Update window
-                    state.synchronize(&application, &window);
+                    state.synchronize(&mut application, &window);
 
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &mut application,
