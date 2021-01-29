@@ -2,7 +2,7 @@
 use iced_core::{Background, Color};
 
 /// The appearance of a progress bar.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Style {
     pub background: Background,
     pub bar: Background,
