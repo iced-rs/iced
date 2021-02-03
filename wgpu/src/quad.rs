@@ -258,12 +258,13 @@ impl Pipeline {
                 );
                 render_pass.set_vertex_buffer(0, self.vertices.slice(..));
                 render_pass.set_vertex_buffer(1, self.instances.slice(..));
+
                 render_pass.set_scissor_rect(
                     bounds.x,
                     bounds.y,
                     bounds.width,
                     // TODO: Address anti-aliasing adjustments properly
-                    bounds.height + 1,
+                    bounds.height,
                 );
 
                 render_pass.draw_indexed(
