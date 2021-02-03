@@ -34,7 +34,7 @@ impl Blit {
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Sampler {
                         comparison: false,
-                        filtering: true,
+                        filtering: false,
                     },
                     count: None,
                 }],
@@ -58,7 +58,7 @@ impl Blit {
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float {
-                            filterable: true,
+                            filterable: false,
                         },
                         view_dimension: wgpu::TextureViewDimension::D2,
                         multisampled: false,
