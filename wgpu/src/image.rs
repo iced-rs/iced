@@ -120,7 +120,7 @@ impl Pipeline {
                         sample_type: wgpu::TextureSampleType::Float {
                             filterable: false,
                         },
-                        view_dimension: wgpu::TextureViewDimension::D2,
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
                         multisampled: false,
                     },
                     count: None,
