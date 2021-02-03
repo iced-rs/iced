@@ -27,7 +27,7 @@ impl Compositor {
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: if settings.antialiasing.is_none() {
-                    wgpu::PowerPreference::default()
+                    wgpu::PowerPreference::LowPower
                 } else {
                     wgpu::PowerPreference::HighPerformance
                 },
