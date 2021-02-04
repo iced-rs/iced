@@ -52,6 +52,8 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
     placeholder: String,
     value: Value,
+    on_scroll_up: Option<Message>,
+    on_scroll_down: Option<Message>,
     is_secure: bool,
     font: Renderer::Font,
     width: Length,
@@ -88,6 +90,8 @@ where
             state,
             placeholder: String::from(placeholder),
             value: Value::new(value),
+            on_scroll_up: None,
+            on_scroll_down: None,
             is_secure: false,
             font: Default::default(),
             width: Length::Fill,
@@ -142,6 +146,20 @@ where
     /// focused and the enter key is pressed.
     pub fn on_submit(mut self, message: Message) -> Self {
         self.on_submit = Some(message);
+        self
+    }
+
+    /// Sets the message that will be produced when [`TextInput`] is
+    /// scrolled up on
+    pub fn on_scroll_up(mut self, message: Message) -> Self {
+        self.on_scroll_up = Some(message);
+        self
+    }
+
+    /// Sets the message that will be produced when [`TextInput`] is
+    /// scrolled down on
+    pub fn on_scroll_down(mut self, msg: Message) -> Self {
+        self.on_scroll_down = Some(msg);
         self
     }
 
@@ -570,6 +588,27 @@ where
                 if self.state.is_focused =>
             {
                 self.state.keyboard_modifiers = modifiers;
+            }
+            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                if layout.bounds().contains(cursor_position) {
+                    let negative: bool;
+                    match delta {
+                        mouse::ScrollDelta::Lines { y, .. } => negative = y.is_sign_negative(),
+                        mouse::ScrollDelta::Pixels { y, .. } => negative = y.is_sign_negative(),
+                    }
+                    if negative {
+                        if let Some(on_scroll_down) = self.on_scroll_down.clone() {
+                            messages.push(on_scroll_down)
+                        }
+                    } else {
+                        if let Some(on_scroll_up) = self.on_scroll_up.clone() {
+                            messages.push(on_scroll_up)
+                        }
+                    }
+                    return event::Status::Captured;
+                } else {
+                    return event::Status::Ignored;
+                }
             }
             _ => {}
         }
