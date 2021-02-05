@@ -593,11 +593,17 @@ where
                 if layout.bounds().contains(cursor_position) {
                     let negative: bool;
                     match delta {
-                        mouse::ScrollDelta::Lines { y, .. } => negative = y.is_sign_negative(),
-                        mouse::ScrollDelta::Pixels { y, .. } => negative = y.is_sign_negative(),
+                        mouse::ScrollDelta::Lines { y, .. } => {
+                            negative = y.is_sign_negative()
+                        }
+                        mouse::ScrollDelta::Pixels { y, .. } => {
+                            negative = y.is_sign_negative()
+                        }
                     }
                     if negative {
-                        if let Some(on_scroll_down) = self.on_scroll_down.clone() {
+                        if let Some(on_scroll_down) =
+                            self.on_scroll_down.clone()
+                        {
                             messages.push(on_scroll_down)
                         }
                     } else {

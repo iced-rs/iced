@@ -244,9 +244,11 @@ where
                 } else {
                     event_status
                 }
-            },
+            }
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                if layout.bounds().contains(cursor_position) && *self.is_open == false {
+                if layout.bounds().contains(cursor_position)
+                    && *self.is_open == false
+                {
                     let negative: bool;
                     match delta {
                         mouse::ScrollDelta::Lines { y, .. } => {
@@ -258,30 +260,41 @@ where
                     };
                     if negative {
                         if let Some(selected) = self.selected.as_ref() {
-                            let i = self.options.iter().position(|option| option == selected).unwrap() + 1;
+                            let i = self
+                                .options
+                                .iter()
+                                .position(|option| option == selected)
+                                .unwrap()
+                                + 1;
                             if i < self.options.len() {
-                                messages.push((self.on_selected)
-                                    (self.options[i].clone()));
+                                messages.push((self.on_selected)(
+                                    self.options[i].clone(),
+                                ));
                             }
                         } else {
-                            messages.push((self.on_selected)
-                            (self.options[0].clone()))
+                            messages.push((self.on_selected)(
+                                self.options[0].clone(),
+                            ))
                         }
                     } else {
                         if let Some(selected) = self.selected.as_ref() {
-                            let i = self.options.iter().position(|option| option == selected).unwrap();
+                            let i = self
+                                .options
+                                .iter()
+                                .position(|option| option == selected)
+                                .unwrap();
                             if i != 0 {
-                                messages.push((self.on_selected)
-                                    (self.options[i - 1].clone()));
+                                messages.push((self.on_selected)(
+                                    self.options[i - 1].clone(),
+                                ));
                             }
-
                         } else {
-                            messages.push((self.on_selected)
-                            (self.options[self.options.len() -1].clone()))
+                            messages.push((self.on_selected)(
+                                self.options[self.options.len() - 1].clone(),
+                            ))
                         }
                     }
 
-                    
                     return event::Status::Captured;
                 } else {
                     return event::Status::Ignored;
