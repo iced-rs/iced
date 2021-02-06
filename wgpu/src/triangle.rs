@@ -362,7 +362,7 @@ impl Pipeline {
 
             let mut render_pass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu::triangle Render Pass"),
+                    label: Some("iced_wgpu::triangle render pass"),
                     color_attachments: &[
                         wgpu::RenderPassColorAttachmentDescriptor {
                             attachment,

@@ -39,7 +39,7 @@ impl Compositor {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: Some(
-                        "iced_wgpu::window::Compositor Device Descriptor",
+                        "iced_wgpu::window::compositor device descriptor",
                     ),
                     features: wgpu::Features::empty(),
                     limits: wgpu::Limits {
@@ -132,7 +132,7 @@ impl iced_graphics::window::Compositor for Compositor {
         );
 
         let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("iced_wgpu::window::Compositor Render Pass"),
+            label: Some("iced_wgpu::window::Compositor render pass"),
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: &frame.output.view,
                 resolve_target: None,

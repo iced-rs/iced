@@ -177,7 +177,7 @@ impl Blit {
     ) {
         let mut render_pass =
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("iced_wgpu::triangle::msaa Render Pass"),
+                label: Some("iced_wgpu::triangle::msaa render pass"),
                 color_attachments: &[
                     wgpu::RenderPassColorAttachmentDescriptor {
                         attachment: target,
