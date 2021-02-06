@@ -76,7 +76,7 @@ impl Pipeline {
                         visibility: wgpu::ShaderStage::FRAGMENT,
                         ty: wgpu::BindingType::Sampler {
                             comparison: false,
-                            filtering: false,
+                            filtering: true,
                         },
                         count: None,
                     },
@@ -118,7 +118,7 @@ impl Pipeline {
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float {
-                            filterable: false,
+                            filterable: true,
                         },
                         view_dimension: wgpu::TextureViewDimension::D2Array,
                         multisampled: false,
