@@ -130,13 +130,13 @@ impl Pipeline {
                     entry_point: "main",
                     targets: &[wgpu::ColorTargetState {
                         format,
-                        alpha_blend: wgpu::BlendState {
-                            src_factor: wgpu::BlendFactor::One,
+                        color_blend: wgpu::BlendState {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
                             dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
                             operation: wgpu::BlendOperation::Add,
                         },
-                        color_blend: wgpu::BlendState {
-                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                        alpha_blend: wgpu::BlendState {
+                            src_factor: wgpu::BlendFactor::One,
                             dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
                             operation: wgpu::BlendOperation::Add,
                         },
