@@ -116,7 +116,6 @@ impl Blit {
                     ..Default::default()
                 },
                 depth_stencil: None,
-
                 multisample: wgpu::MultisampleState {
                     count: 1,
                     mask: !0,
