@@ -32,7 +32,10 @@ impl Blit {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler { comparison: false },
+                    ty: wgpu::BindingType::Sampler {
+                        comparison: false,
+                        filtering: false,
+                    },
                     count: None,
                 }],
             });
@@ -53,9 +56,11 @@ impl Blit {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Float,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float {
+                            filterable: false,
+                        },
+                        view_dimension: wgpu::TextureViewDimension::D2,
                         multisampled: false,
                     },
                     count: None,
@@ -69,11 +74,11 @@ impl Blit {
                 bind_group_layouts: &[&constant_layout, &texture_layout],
             });
 
-        let vs_module = device.create_shader_module(wgpu::include_spirv!(
+        let vs_module = device.create_shader_module(&wgpu::include_spirv!(
             "../shader/blit.vert.spv"
         ));
 
-        let fs_module = device.create_shader_module(wgpu::include_spirv!(
+        let fs_module = device.create_shader_module(&wgpu::include_spirv!(
             "../shader/blit.frag.spv"
         ));
 
@@ -81,42 +86,41 @@ impl Blit {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some("iced_wgpu::triangle::msaa pipeline"),
                 layout: Some(&layout),
-                vertex_stage: wgpu::ProgrammableStageDescriptor {
+                vertex: wgpu::VertexState {
                     module: &vs_module,
                     entry_point: "main",
+                    buffers: &[],
                 },
-                fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
+                fragment: Some(wgpu::FragmentState {
                     module: &fs_module,
                     entry_point: "main",
+                    targets: &[wgpu::ColorTargetState {
+                        format,
+                        color_blend: wgpu::BlendState {
+                            src_factor: wgpu::BlendFactor::SrcAlpha,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha_blend: wgpu::BlendState {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        write_mask: wgpu::ColorWrite::ALL,
+                    }],
                 }),
-                rasterization_state: Some(wgpu::RasterizationStateDescriptor {
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
                     front_face: wgpu::FrontFace::Cw,
                     cull_mode: wgpu::CullMode::None,
                     ..Default::default()
-                }),
-                primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-                color_states: &[wgpu::ColorStateDescriptor {
-                    format,
-                    color_blend: wgpu::BlendDescriptor {
-                        src_factor: wgpu::BlendFactor::SrcAlpha,
-                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                        operation: wgpu::BlendOperation::Add,
-                    },
-                    alpha_blend: wgpu::BlendDescriptor {
-                        src_factor: wgpu::BlendFactor::One,
-                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                        operation: wgpu::BlendOperation::Add,
-                    },
-                    write_mask: wgpu::ColorWrite::ALL,
-                }],
-                depth_stencil_state: None,
-                vertex_state: wgpu::VertexStateDescriptor {
-                    index_format: wgpu::IndexFormat::Uint16,
-                    vertex_buffers: &[],
                 },
-                sample_count: 1,
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
             });
 
         Blit {
@@ -172,6 +176,7 @@ impl Blit {
     ) {
         let mut render_pass =
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu::triangle::msaa render pass"),
                 color_attachments: &[
                     wgpu::RenderPassColorAttachmentDescriptor {
                         attachment: target,
@@ -227,7 +232,7 @@ impl Targets {
             sample_count,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
         });
 
         let resolve = device.create_texture(&wgpu::TextureDescriptor {
@@ -237,7 +242,7 @@ impl Targets {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT
                 | wgpu::TextureUsage::SAMPLED,
         });
 
