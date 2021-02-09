@@ -260,7 +260,7 @@ where
                             .options
                             .iter()
                             .position(|option| option == selected)
-                            .unwrap()
+                            .unwrap_or(0)
                             + 1;
                         if i < self.options.len() {
                             messages.push((self.on_selected)(
@@ -277,7 +277,7 @@ where
                             .options
                             .iter()
                             .position(|option| option == selected)
-                            .unwrap();
+                            .unwrap_or(0);
                         if i != 0 {
                             messages.push((self.on_selected)(
                                 self.options[i - 1].clone(),
