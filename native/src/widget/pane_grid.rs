@@ -360,7 +360,7 @@ where
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed{ .. }) => {
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let bounds = layout.bounds();
 
                 if bounds.contains(cursor_position) {
@@ -401,8 +401,8 @@ where
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted{ .. })
-            | Event::Touch(touch::Event::FingerLost{ .. }) => {
+            | Event::Touch(touch::Event::FingerLifted { .. })
+            | Event::Touch(touch::Event::FingerLost { .. }) => {
                 if let Some((pane, _)) = self.state.picked_pane() {
                     if let Some(on_drag) = &self.on_drag {
                         let mut dropped_region =
@@ -435,7 +435,7 @@ where
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. })
-            | Event::Touch(touch::Event::FingerMoved{ .. }) => {
+            | Event::Touch(touch::Event::FingerMoved { .. }) => {
                 event_status =
                     self.trigger_resize(layout, cursor_position, messages);
             }

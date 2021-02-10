@@ -19,7 +19,7 @@ pub fn window_event(
     match event {
         WindowEvent::Resized(new_size) => {
             let logical_size = new_size.to_logical(scale_factor);
-            
+
             Some(Event::Window(window::Event::Resized {
                 width: logical_size.width,
                 height: logical_size.height,

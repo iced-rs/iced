@@ -349,19 +349,15 @@ where
                     );
                 }
             }
-            Event::Touch(touch::Event {
-                position,
-                phase: touch::Phase::Started,
-                ..
-            }) => {
+            Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let bounds = layout.bounds();
 
-                if bounds.contains(position) {
+                if bounds.contains(cursor_position) {
                     let text_size =
                         self.text_size.unwrap_or(renderer.default_size());
 
                     *self.hovered_option = Some(
-                        ((position.y - bounds.y)
+                        ((cursor_position.y - bounds.y)
                             / f32::from(text_size + self.padding * 2))
                             as usize,
                     );
