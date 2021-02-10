@@ -2,7 +2,7 @@
 use iced_core::{Background, Color};
 
 /// The appearance of a radio button.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Style {
     pub background: Background,
     pub dot_color: Color,

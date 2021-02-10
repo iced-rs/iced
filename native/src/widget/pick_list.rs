@@ -133,7 +133,7 @@ where
     Renderer: self::Renderer + scrollable::Renderer + 'a,
 {
     fn width(&self) -> Length {
-        Length::Shrink
+        self.width
     }
 
     fn height(&self) -> Length {

@@ -12,7 +12,7 @@ use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
 pub struct Content<'a, Message, Renderer: pane_grid::Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
     body: Element<'a, Message, Renderer>,
-    style: Renderer::Style,
+    style: <Renderer as container::Renderer>::Style,
 }
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
@@ -24,7 +24,7 @@ where
         Self {
             title_bar: None,
             body: body.into(),
-            style: Renderer::Style::default(),
+            style: Default::default(),
         }
     }
 
@@ -38,7 +38,10 @@ where
     }
 
     /// Sets the style of the [`Content`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as container::Renderer>::Style>,
+    ) -> Self {
         self.style = style.into();
         self
     }

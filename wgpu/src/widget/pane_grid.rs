@@ -9,9 +9,9 @@
 //! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
 use crate::Renderer;
 
-pub use iced_native::pane_grid::{
-    Axis, Configuration, Direction, DragEvent, Node, Pane, ResizeEvent, Split,
-    State,
+pub use iced_graphics::pane_grid::{
+    Axis, Configuration, Direction, DragEvent, Line, Node, Pane, ResizeEvent,
+    Split, State, StyleSheet,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits

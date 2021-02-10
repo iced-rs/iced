@@ -31,7 +31,7 @@ impl Viewport {
 
     /// Returns the physical width of the [`Viewport`].
     pub fn physical_width(&self) -> u32 {
-        self.physical_size.height
+        self.physical_size.width
     }
 
     /// Returns the physical height of the [`Viewport`].

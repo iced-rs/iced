@@ -191,7 +191,12 @@ pub mod widget;
 pub mod window;
 
 #[cfg(all(
-    any(feature = "tokio", feature = "tokio_old", feature = "async-std"),
+    any(
+        feature = "tokio",
+        feature = "tokio_old",
+        feature = "async-std",
+        feature = "smol"
+    ),
     not(target_arch = "wasm32")
 ))]
 #[cfg_attr(
@@ -200,6 +205,7 @@ pub mod window;
         feature = "tokio",
         feature = "tokio_old",
         feature = "async-std"
+        feature = "smol"
     )))
 )]
 pub mod time;

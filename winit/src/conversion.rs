@@ -109,6 +109,11 @@ pub fn window_event(
         WindowEvent::ModifiersChanged(new_modifiers) => Some(Event::Keyboard(
             keyboard::Event::ModifiersChanged(self::modifiers(*new_modifiers)),
         )),
+        WindowEvent::Focused(focused) => Some(Event::Window(if *focused {
+            window::Event::Focused
+        } else {
+            window::Event::Unfocused
+        })),
         WindowEvent::HoveredFile(path) => {
             Some(Event::Window(window::Event::FileHovered(path.clone())))
         }

@@ -26,14 +26,19 @@ optional = true
 features = ["rt-core", "rt-threaded", "time", "stream"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.tokio]
-version = "0.3"
+package = "tokio"
+version = "1.0"
 optional = true
-features = ["rt-multi-thread", "time", "stream"]
+features = ["rt", "rt-multi-thread", "time"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.async-std]
 version = "1.0"
 optional = true
 features = ["unstable"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.smol]
+version = "1.2"
+optional = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"

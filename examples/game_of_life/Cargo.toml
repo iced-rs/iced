@@ -7,6 +7,6 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
-tokio = { version = "0.3", features = ["sync"] }
+tokio = { version = "1.0", features = ["sync"] }
 itertools = "0.9"
 rustc-hash = "1.1"
