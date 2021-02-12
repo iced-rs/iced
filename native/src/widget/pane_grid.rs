@@ -33,7 +33,6 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::row;
-use crate::text;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
