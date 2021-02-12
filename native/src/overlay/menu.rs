@@ -338,10 +338,11 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 let bounds = layout.bounds();
-                let text_size =
-                    self.text_size.unwrap_or(renderer.default_size());
 
                 if bounds.contains(cursor_position) {
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
+
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
                             / f32::from(text_size + self.padding * 2))
