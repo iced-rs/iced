@@ -6,6 +6,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::scrollable;
 use crate::text;
+use crate::touch;
 use crate::{
     Clipboard, Container, Element, Hasher, Layout, Length, Point, Rectangle,
     Scrollable, Size, Vector, Widget,
@@ -337,15 +338,36 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 let bounds = layout.bounds();
-                let text_size =
-                    self.text_size.unwrap_or(renderer.default_size());
 
                 if bounds.contains(cursor_position) {
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
+
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
                             / f32::from(text_size + self.padding * 2))
                             as usize,
                     );
+                }
+            }
+            Event::Touch(touch::Event::FingerPressed { .. }) => {
+                let bounds = layout.bounds();
+
+                if bounds.contains(cursor_position) {
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
+
+                    *self.hovered_option = Some(
+                        ((cursor_position.y - bounds.y)
+                            / f32::from(text_size + self.padding * 2))
+                            as usize,
+                    );
+
+                    if let Some(index) = *self.hovered_option {
+                        if let Some(option) = self.options.get(index) {
+                            *self.last_selection = Some(option.clone());
+                        }
+                    }
                 }
             }
             _ => {}
