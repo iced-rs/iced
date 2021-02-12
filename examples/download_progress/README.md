@@ -1,6 +1,6 @@
 ## Download progress
 
-A application that asynchronously downloads multiple dummy file of 100 MB and tracks the download progress or cancel the download task respectively.
+A basic application that asynchronously downloads multiple dummy files of 100 MB and tracks the download progress.
 
 The example implements a custom `Subscription` in the __[`download`](src/download.rs)__ module. This subscription downloads and produces messages that can be used to keep track of its progress.
 
