@@ -139,9 +139,6 @@ impl<A: Application> State<A> {
                 self.cursor_position =
                     winit::dpi::PhysicalPosition::new(-1.0, -1.0);
             }
-            WindowEvent::Touch(touch) => {
-                self.cursor_position = touch.location;
-            }
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = *new_modifiers;
             }
