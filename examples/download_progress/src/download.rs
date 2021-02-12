@@ -1,37 +1,46 @@
 use iced_futures::futures;
+use std::hash::{Hash, Hasher};
 
 // Just a little utility function
-pub fn file<T: ToString>(url: T) -> iced::Subscription<Progress> {
+pub fn file<I: 'static + Hash + Copy + Send, T: ToString>(
+    id: I,
+    url: T,
+) -> iced::Subscription<(I, Progress)> {
     iced::Subscription::from_recipe(Download {
+        id,
         url: url.to_string(),
     })
 }
 
-pub struct Download {
+pub struct Download<I> {
+    id: I,
     url: String,
 }
 
 // Make sure iced can use our download stream
-impl<H, I> iced_native::subscription::Recipe<H, I> for Download
+impl<H, I, T> iced_native::subscription::Recipe<H, I> for Download<T>
 where
-    H: std::hash::Hasher,
+    T: 'static + Hash + Copy + Send,
+    H: Hasher,
 {
-    type Output = Progress;
+    type Output = (T, Progress);
 
     fn hash(&self, state: &mut H) {
-        use std::hash::Hash;
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
 
-        std::any::TypeId::of::<Self>().hash(state);
-        self.url.hash(state);
+        self.id.hash(state);
     }
 
     fn stream(
         self: Box<Self>,
         _input: futures::stream::BoxStream<'static, I>,
     ) -> futures::stream::BoxStream<'static, Self::Output> {
+        let id = self.id;
+
         Box::pin(futures::stream::unfold(
             State::Ready(self.url),
-            |state| async move {
+            move |state| async move {
                 match state {
                     State::Ready(url) => {
                         let response = reqwest::get(&url).await;
@@ -40,7 +49,7 @@ where
                             Ok(response) => {
                                 if let Some(total) = response.content_length() {
                                     Some((
-                                        Progress::Started,
+                                        (id, Progress::Started),
                                         State::Downloading {
                                             response,
                                             total,
@@ -48,11 +57,14 @@ where
                                         },
                                     ))
                                 } else {
-                                    Some((Progress::Errored, State::Finished))
+                                    Some((
+                                        (id, Progress::Errored),
+                                        State::Finished,
+                                    ))
                                 }
                             }
                             Err(_) => {
-                                Some((Progress::Errored, State::Finished))
+                                Some(((id, Progress::Errored), State::Finished))
                             }
                         }
                     }
@@ -68,7 +80,7 @@ where
                                 (downloaded as f32 / total as f32) * 100.0;
 
                             Some((
-                                Progress::Advanced(percentage),
+                                (id, Progress::Advanced(percentage)),
                                 State::Downloading {
                                     response,
                                     total,
@@ -76,8 +88,12 @@ where
                                 },
                             ))
                         }
-                        Ok(None) => Some((Progress::Finished, State::Finished)),
-                        Err(_) => Some((Progress::Errored, State::Finished)),
+                        Ok(None) => {
+                            Some(((id, Progress::Finished), State::Finished))
+                        }
+                        Err(_) => {
+                            Some(((id, Progress::Errored), State::Finished))
+                        }
                     },
                     State::Finished => {
                         // We do not let the stream die, as it would start a
