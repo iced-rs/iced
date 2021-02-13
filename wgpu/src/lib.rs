@@ -49,7 +49,7 @@ pub use widget::*;
 
 pub(crate) use iced_graphics::Transformation;
 
-#[cfg(any(feature = "image", feature = "svg"))]
+#[cfg(any(feature = "image_rs", feature = "svg"))]
 mod image;
 
 /// A [`wgpu`] graphics renderer for [`iced`].

@@ -9,6 +9,18 @@ repository = "https://github.com/hecrj/iced"
 
 [features]
 svg = ["resvg", "usvg"]
+image = ["png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp"]
+png = ["image_rs/png"]
+jpeg = ["image_rs/jpeg"]
+jpeg_rayon = ["image_rs/jpeg_rayon"]
+gif = ["image_rs/gif"]
+webp = ["image_rs/webp"]
+pnm = ["image_rs/pnm"]
+ico = ["image_rs/ico"]
+bmp = ["image_rs/bmp"]
+hdr = ["image_rs/hdr"]
+dds = ["image_rs/dds"]
+farbfeld = ["image_rs/farbfeld"]
 canvas = ["iced_graphics/canvas"]
 qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
@@ -35,8 +47,10 @@ version = "0.1"
 path = "../graphics"
 features = ["font-fallback", "font-icons"]
 
-[dependencies.image]
+[dependencies.image_rs]
 version = "0.23"
+package = "image"
+default-features = false
 optional = true
 
 [dependencies.resvg]

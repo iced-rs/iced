@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub enum Memory {
-    Host(::image::ImageBuffer<::image::Bgra<u8>, Vec<u8>>),
+    Host(::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>>),
     Device(atlas::Entry),
     NotFound,
     Invalid,
@@ -42,14 +42,14 @@ impl Cache {
 
         let memory = match handle.data() {
             image::Data::Path(path) => {
-                if let Ok(image) = ::image::open(path) {
+                if let Ok(image) = ::image_rs::open(path) {
                     Memory::Host(image.to_bgra8())
                 } else {
                     Memory::NotFound
                 }
             }
             image::Data::Bytes(bytes) => {
-                if let Ok(image) = ::image::load_from_memory(&bytes) {
+                if let Ok(image) = ::image_rs::load_from_memory(&bytes) {
                     Memory::Host(image.to_bgra8())
                 } else {
                     Memory::Invalid
@@ -60,7 +60,7 @@ impl Cache {
                 height,
                 pixels,
             } => {
-                if let Some(image) = ::image::ImageBuffer::from_vec(
+                if let Some(image) = ::image_rs::ImageBuffer::from_vec(
                     *width,
                     *height,
                     pixels.to_vec(),
