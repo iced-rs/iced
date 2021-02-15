@@ -12,6 +12,7 @@ pub struct Container<'a, Message> {
     width: Length,
     height: Length,
     max_width: u32,
+    #[allow(dead_code)]
     max_height: u32,
     horizontal_alignment: Align,
     vertical_alignment: Align,

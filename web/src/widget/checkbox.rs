@@ -30,6 +30,7 @@ pub struct Checkbox<Message> {
     label: String,
     id: Option<String>,
     width: Length,
+    #[allow(dead_code)]
     style: Box<dyn StyleSheet>,
 }
 

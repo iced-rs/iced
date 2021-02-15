@@ -25,8 +25,10 @@ pub struct Button<'a, Message> {
     content: Element<'a, Message>,
     on_press: Option<Message>,
     width: Length,
+    #[allow(dead_code)]
     height: Length,
     min_width: u32,
+    #[allow(dead_code)]
     min_height: u32,
     padding: u16,
     style: Box<dyn StyleSheet>,

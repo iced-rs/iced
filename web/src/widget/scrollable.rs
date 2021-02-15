@@ -11,6 +11,7 @@ pub struct Scrollable<'a, Message> {
     height: Length,
     max_height: u32,
     content: Column<'a, Message>,
+    #[allow(dead_code)]
     style: Box<dyn StyleSheet>,
 }
 

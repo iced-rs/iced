@@ -37,6 +37,7 @@ pub struct Radio<Message> {
     label: String,
     id: Option<String>,
     name: Option<String>,
+    #[allow(dead_code)]
     style: Box<dyn StyleSheet>,
 }
 
