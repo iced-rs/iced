@@ -30,12 +30,12 @@ where
     /// [`Tooltip`]: struct.Tooltip.html
     pub fn new(
         content: impl Into<Element<'a, Message, Renderer>>,
-        tooltip: Text<Renderer>,
+        tooltip: impl ToString,
         position: Position,
     ) -> Self {
         Tooltip {
             content: content.into(),
-            tooltip,
+            tooltip: Text::new(tooltip.to_string()),
             position,
             style: Default::default(),
             gap: 0,
@@ -43,12 +43,17 @@ where
         }
     }
 
-    /// Sets the style of the [`Tooltip`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer as container::Renderer>::Style>,
-    ) -> Self {
-        self.style = style.into();
+    /// Sets the size of the text of the [`Tooltip`].
+    pub fn size(mut self, size: u16) -> Self {
+        self.tooltip = self.tooltip.size(size);
+        self
+    }
+
+    /// Sets the font of the [`Tooltip`].
+    ///
+    /// [`Font`]: Renderer::Font
+    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+        self.tooltip = self.tooltip.font(font);
         self
     }
 
@@ -61,6 +66,15 @@ where
     /// Sets the padding of the [`Tooltip`].
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
+        self
+    }
+
+    /// Sets the style of the [`Tooltip`].
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as container::Renderer>::Style>,
+    ) -> Self {
+        self.style = style.into();
         self
     }
 }

@@ -110,11 +110,11 @@ fn tooltip<'a>(
         .on_press(Message)
         .width(Length::Fill)
         .height(Length::Fill),
-        Text::new("Tooltip"),
+        "Tooltip",
         position,
     )
-    .gap(10)
-    .padding(20)
+    .gap(5)
+    .padding(10)
     .style(style::Tooltip)
     .into()
 }
