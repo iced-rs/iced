@@ -239,7 +239,6 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-        _viewport: &Rectangle,
     ) -> Renderer::Output {
         let primitives = self.container.draw(
             renderer,

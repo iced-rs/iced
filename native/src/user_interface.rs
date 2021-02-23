@@ -351,7 +351,6 @@ where
                 &Renderer::Defaults::default(),
                 Layout::new(&layer.layout),
                 cursor_position,
-                &viewport,
             );
 
             self.overlay = Some(layer);
