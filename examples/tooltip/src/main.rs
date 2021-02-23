@@ -113,5 +113,6 @@ fn tooltip<'a>(
         Text::new("Tooltip"),
         position,
     )
+    .gap(10)
     .into()
 }

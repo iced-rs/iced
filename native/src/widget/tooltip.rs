@@ -15,6 +15,7 @@ pub struct Tooltip<'a, Message, Renderer: self::Renderer + text::Renderer> {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
+    gap: u16,
 }
 
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
@@ -33,7 +34,14 @@ where
             content: content.into(),
             tooltip,
             position,
+            gap: 0,
         }
+    }
+
+    /// Sets the gap between the content and its [`Tooltip`].
+    pub fn gap(mut self, gap: u16) -> Self {
+        self.gap = gap;
+        self
     }
 }
 
@@ -109,6 +117,7 @@ where
             &self.content,
             &self.tooltip,
             self.position,
+            self.gap,
         )
     }
 
@@ -143,6 +152,7 @@ pub trait Renderer: crate::Renderer + text::Renderer {
         content: &Element<'_, Message, Self>,
         tooltip: &Text<Self>,
         position: Position,
+        gap: u16,
     ) -> Self::Output;
 }
 

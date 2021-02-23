@@ -30,6 +30,7 @@ where
         content: &Element<'_, Message, Self>,
         tooltip: &Text<Self>,
         position: Position,
+        gap: u16,
     ) -> Self::Output {
         let bounds = content_layout.bounds();
 
@@ -58,18 +59,21 @@ where
             let y_center =
                 bounds.y + (bounds.height - tooltip_bounds.height) / 2.0;
 
+            let gap = f32::from(gap);
+
             let offset = match position {
-                Position::Top => {
-                    Vector::new(x_center, bounds.y - tooltip_bounds.height)
-                }
+                Position::Top => Vector::new(
+                    x_center,
+                    bounds.y - tooltip_bounds.height - gap,
+                ),
                 Position::Bottom => {
-                    Vector::new(x_center, bounds.y + bounds.height)
+                    Vector::new(x_center, bounds.y + bounds.height + gap)
                 }
                 Position::Left => {
-                    Vector::new(bounds.x - tooltip_bounds.width, y_center)
+                    Vector::new(bounds.x - tooltip_bounds.width - gap, y_center)
                 }
                 Position::Right => {
-                    Vector::new(bounds.x + bounds.width, y_center)
+                    Vector::new(bounds.x + bounds.width + gap, y_center)
                 }
                 Position::FollowCursor => Vector::new(
                     cursor_position.x,
