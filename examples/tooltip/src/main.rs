@@ -114,5 +114,25 @@ fn tooltip<'a>(
         position,
     )
     .gap(10)
+    .padding(20)
+    .style(style::Tooltip)
     .into()
+}
+
+mod style {
+    use iced::container;
+    use iced::Color;
+
+    pub struct Tooltip;
+
+    impl container::StyleSheet for Tooltip {
+        fn style(&self) -> container::Style {
+            container::Style {
+                text_color: Some(Color::from_rgb8(0xEE, 0xEE, 0xEE)),
+                background: Some(Color::from_rgb(0.11, 0.42, 0.87).into()),
+                border_radius: 12.0,
+                ..container::Style::default()
+            }
+        }
+    }
 }

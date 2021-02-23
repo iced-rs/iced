@@ -3,6 +3,7 @@ use std::hash::Hash;
 
 use iced_core::Rectangle;
 
+use crate::widget::container;
 use crate::widget::text::{self, Text};
 use crate::{
     event, layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
@@ -11,16 +12,18 @@ use crate::{
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
-pub struct Tooltip<'a, Message, Renderer: self::Renderer + text::Renderer> {
+pub struct Tooltip<'a, Message, Renderer: self::Renderer> {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
+    style: <Renderer as container::Renderer>::Style,
     gap: u16,
+    padding: u16,
 }
 
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer,
+    Renderer: self::Renderer,
 {
     /// Creates an empty [`Tooltip`].
     ///
@@ -34,13 +37,30 @@ where
             content: content.into(),
             tooltip,
             position,
+            style: Default::default(),
             gap: 0,
+            padding: Renderer::DEFAULT_PADDING,
         }
+    }
+
+    /// Sets the style of the [`Tooltip`].
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as container::Renderer>::Style>,
+    ) -> Self {
+        self.style = style.into();
+        self
     }
 
     /// Sets the gap between the content and its [`Tooltip`].
     pub fn gap(mut self, gap: u16) -> Self {
         self.gap = gap;
+        self
+    }
+
+    /// Sets the padding of the [`Tooltip`].
+    pub fn padding(mut self, padding: u16) -> Self {
+        self.padding = padding;
         self
     }
 }
@@ -63,7 +83,7 @@ pub enum Position {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Tooltip<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.content.width()
@@ -117,7 +137,9 @@ where
             &self.content,
             &self.tooltip,
             self.position,
+            &self.style,
             self.gap,
+            self.padding,
         )
     }
 
@@ -136,9 +158,11 @@ where
 ///
 /// [`Tooltip`]: struct.Tooltip.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer: crate::Renderer + text::Renderer {
-    /// The style supported by this renderer.
-    type Style: Default;
+pub trait Renderer:
+    crate::Renderer + text::Renderer + container::Renderer
+{
+    /// The default padding of a [`Tooltip`] drawn by this renderer.
+    const DEFAULT_PADDING: u16;
 
     /// Draws a [`Tooltip`].
     ///
@@ -152,14 +176,16 @@ pub trait Renderer: crate::Renderer + text::Renderer {
         content: &Element<'_, Message, Self>,
         tooltip: &Text<Self>,
         position: Position,
+        style: &<Self as container::Renderer>::Style,
         gap: u16,
+        padding: u16,
     ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + text::Renderer,
+    Renderer: 'a + self::Renderer,
     Message: 'a,
 {
     fn from(
