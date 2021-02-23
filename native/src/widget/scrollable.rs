@@ -401,17 +401,11 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-        overlay_content_bounds: Option<Rectangle>,
-        cursor_position: Point,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         let Self { content, state, .. } = self;
 
         content
-            .overlay(
-                layout.children().next().unwrap(),
-                overlay_content_bounds,
-                cursor_position,
-            )
+            .overlay(layout.children().next().unwrap())
             .map(|overlay| {
                 let bounds = layout.bounds();
                 let content_layout = layout.children().next().unwrap();

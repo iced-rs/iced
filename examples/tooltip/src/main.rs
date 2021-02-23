@@ -1,6 +1,7 @@
+use iced::tooltip::{self, Tooltip};
 use iced::{
-    button, tooltip::TooltipPosition, Button, Column, Container, Element,
-    Length, Row, Sandbox, Settings, Text, Tooltip,
+    button, Button, Column, Container, Element, HorizontalAlignment, Length,
+    Row, Sandbox, Settings, Text, VerticalAlignment,
 };
 
 pub fn main() {
@@ -9,11 +10,11 @@ pub fn main() {
 
 #[derive(Default)]
 struct Example {
-    tooltip_top_button_state: button::State,
-    tooltip_bottom_button_state: button::State,
-    tooltip_right_button_state: button::State,
-    tooltip_left_button_state: button::State,
-    tooltip_cursor_button_state: button::State,
+    top: button::State,
+    bottom: button::State,
+    right: button::State,
+    left: button::State,
+    follow_cursor: button::State,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -33,52 +34,39 @@ impl Sandbox for Example {
     fn update(&mut self, _message: Message) {}
 
     fn view(&mut self) -> Element<Message> {
-        let tooltip_top = tooltip_builder(
-            "Tooltip at top",
-            &mut self.tooltip_top_button_state,
-            TooltipPosition::Top,
-        );
-        let tooltip_bottom = tooltip_builder(
+        let top =
+            tooltip("Tooltip at top", &mut self.top, tooltip::Position::Top);
+
+        let bottom = tooltip(
             "Tooltip at bottom",
-            &mut self.tooltip_bottom_button_state,
-            TooltipPosition::Bottom,
+            &mut self.bottom,
+            tooltip::Position::Bottom,
         );
-        let tooltip_right = tooltip_builder(
+
+        let left =
+            tooltip("Tooltip at left", &mut self.left, tooltip::Position::Left);
+
+        let right = tooltip(
             "Tooltip at right",
-            &mut self.tooltip_right_button_state,
-            TooltipPosition::Right,
-        );
-        let tooltip_left = tooltip_builder(
-            "Tooltip at left",
-            &mut self.tooltip_left_button_state,
-            TooltipPosition::Left,
+            &mut self.right,
+            tooltip::Position::Right,
         );
 
         let fixed_tooltips = Row::with_children(vec![
-            tooltip_top.into(),
-            tooltip_bottom.into(),
-            tooltip_left.into(),
-            tooltip_right.into(),
+            top.into(),
+            bottom.into(),
+            left.into(),
+            right.into(),
         ])
         .width(Length::Fill)
         .height(Length::Fill)
         .align_items(iced::Align::Center)
-        .spacing(120);
+        .spacing(50);
 
-        let cursor_tooltip_area = Tooltip::new(
-            Button::new(
-                &mut self.tooltip_cursor_button_state,
-                Container::new(Text::new("Tooltip follows cursor").size(40))
-                    .center_y()
-                    .center_x()
-                    .width(Length::Fill)
-                    .height(Length::Fill),
-            )
-            .on_press(Message)
-            .width(Length::Fill)
-            .height(Length::Fill),
-            tooltip(),
-            TooltipPosition::FollowCursor,
+        let follow_cursor = tooltip(
+            "Tooltip follows cursor",
+            &mut self.follow_cursor,
+            tooltip::Position::FollowCursor,
         );
 
         let content = Column::with_children(vec![
@@ -88,36 +76,42 @@ impl Sandbox for Example {
                 .center_x()
                 .center_y()
                 .into(),
-            cursor_tooltip_area.into(),
+            follow_cursor.into(),
         ])
         .width(Length::Fill)
-        .height(Length::Fill);
+        .height(Length::Fill)
+        .spacing(50);
 
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
             .center_y()
+            .padding(50)
             .into()
     }
 }
 
-fn tooltip_builder<'a>(
+fn tooltip<'a>(
     label: &str,
     button_state: &'a mut button::State,
-    position: TooltipPosition,
-) -> Container<'a, Message> {
-    Container::new(Tooltip::new(
-        Button::new(button_state, Text::new(label).size(40)).on_press(Message),
-        tooltip(),
+    position: tooltip::Position,
+) -> Element<'a, Message> {
+    Tooltip::new(
+        Button::new(
+            button_state,
+            Text::new(label)
+                .size(40)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .horizontal_alignment(HorizontalAlignment::Center)
+                .vertical_alignment(VerticalAlignment::Center),
+        )
+        .on_press(Message)
+        .width(Length::Fill)
+        .height(Length::Fill),
+        Text::new("Tooltip"),
         position,
-    ))
-    .center_x()
-    .center_y()
-    .width(Length::Fill)
-    .height(Length::Fill)
-}
-
-fn tooltip() -> Text {
-    Text::new("Tooltip").size(20)
+    )
+    .into()
 }

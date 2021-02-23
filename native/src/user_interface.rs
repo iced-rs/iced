@@ -198,11 +198,8 @@ where
         messages: &mut Vec<Message>,
     ) -> Vec<event::Status> {
         let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
-            self.root.overlay(
-                Layout::new(&self.base.layout),
-                self.overlay.as_ref().map(|l| l.layout.bounds()),
-                cursor_position,
-            ) {
+            self.root.overlay(Layout::new(&self.base.layout))
+        {
             let layer = Self::overlay_layer(
                 self.overlay.take(),
                 self.bounds,
@@ -337,11 +334,9 @@ where
     ) -> Renderer::Output {
         let viewport = Rectangle::with_size(self.bounds);
 
-        let overlay = if let Some(mut overlay) = self.root.overlay(
-            Layout::new(&self.base.layout),
-            self.overlay.as_ref().map(|l| l.layout.bounds()),
-            cursor_position,
-        ) {
+        let overlay = if let Some(mut overlay) =
+            self.root.overlay(Layout::new(&self.base.layout))
+        {
             let layer = Self::overlay_layer(
                 self.overlay.take(),
                 self.bounds,

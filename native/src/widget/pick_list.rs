@@ -274,8 +274,6 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-        _overlay_content_bounds: Option<Rectangle>,
-        _cursor_position: Point,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         if *self.is_open {
             let bounds = layout.bounds();

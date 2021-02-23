@@ -558,15 +558,11 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
-        overlay_content_bounds: Option<Rectangle>,
-        cursor_position: Point,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         self.elements
             .iter_mut()
             .zip(layout.children())
-            .filter_map(|((_, pane), layout)| {
-                pane.overlay(layout, overlay_content_bounds, cursor_position)
-            })
+            .filter_map(|((_, pane), layout)| pane.overlay(layout))
             .next()
     }
 }
