@@ -36,6 +36,7 @@ pub mod space;
 pub mod svg;
 pub mod text;
 pub mod text_input;
+pub mod tooltip;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -71,6 +72,8 @@ pub use svg::Svg;
 pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
+#[doc(no_inline)]
+pub use tooltip::Tooltip;
 
 use crate::event::{self, Event};
 use crate::layout;
