@@ -58,59 +58,82 @@ where
                 },
             };
 
-            let tooltip_layout = Widget::<(), Self>::layout(
+            let text_layout = Widget::<(), Self>::layout(
                 tooltip,
                 self,
                 &layout::Limits::new(Size::ZERO, viewport.size())
                     .pad(f32::from(padding)),
             );
 
-            let tooltip_bounds = tooltip_layout.bounds();
-
-            let x_center =
-                bounds.x + (bounds.width - tooltip_bounds.width) / 2.0;
-
+            let text_bounds = text_layout.bounds();
+            let x_center = bounds.x + (bounds.width - text_bounds.width) / 2.0;
             let y_center =
-                bounds.y + (bounds.height - tooltip_bounds.height) / 2.0;
+                bounds.y + (bounds.height - text_bounds.height) / 2.0;
 
-            let offset = match position {
-                Position::Top => Vector::new(
-                    x_center,
-                    bounds.y - tooltip_bounds.height - gap - padding,
-                ),
-                Position::Bottom => Vector::new(
-                    x_center,
-                    bounds.y + bounds.height + gap + padding,
-                ),
-                Position::Left => Vector::new(
-                    bounds.x - tooltip_bounds.width - gap - padding,
-                    y_center,
-                ),
-                Position::Right => Vector::new(
-                    bounds.x + bounds.width + gap + padding,
-                    y_center,
-                ),
-                Position::FollowCursor => Vector::new(
-                    cursor_position.x,
-                    cursor_position.y - tooltip_bounds.height,
-                ),
+            let mut tooltip_bounds = {
+                let offset = match position {
+                    Position::Top => Vector::new(
+                        x_center,
+                        bounds.y - text_bounds.height - gap - padding,
+                    ),
+                    Position::Bottom => Vector::new(
+                        x_center,
+                        bounds.y + bounds.height + gap + padding,
+                    ),
+                    Position::Left => Vector::new(
+                        bounds.x - text_bounds.width - gap - padding,
+                        y_center,
+                    ),
+                    Position::Right => Vector::new(
+                        bounds.x + bounds.width + gap + padding,
+                        y_center,
+                    ),
+                    Position::FollowCursor => Vector::new(
+                        cursor_position.x,
+                        cursor_position.y - text_bounds.height,
+                    ),
+                };
+
+                Rectangle {
+                    x: offset.x - padding,
+                    y: offset.y - padding,
+                    width: text_bounds.width + padding * 2.0,
+                    height: text_bounds.height + padding * 2.0,
+                }
             };
+
+            if tooltip_bounds.x < viewport.x {
+                tooltip_bounds.x = viewport.x;
+            } else if viewport.x + viewport.width
+                < tooltip_bounds.x + tooltip_bounds.width
+            {
+                tooltip_bounds.x =
+                    viewport.x + viewport.width - tooltip_bounds.width;
+            }
+
+            if tooltip_bounds.y < viewport.y {
+                tooltip_bounds.y = viewport.y;
+            } else if viewport.y + viewport.height
+                < tooltip_bounds.y + tooltip_bounds.height
+            {
+                tooltip_bounds.y =
+                    viewport.y + viewport.height - tooltip_bounds.height;
+            }
 
             let (tooltip, _) = Widget::<(), Self>::draw(
                 tooltip,
                 self,
                 &defaults,
-                Layout::with_offset(offset, &tooltip_layout),
+                Layout::with_offset(
+                    Vector::new(
+                        tooltip_bounds.x + padding,
+                        tooltip_bounds.y + padding,
+                    ),
+                    &text_layout,
+                ),
                 cursor_position,
                 viewport,
             );
-
-            let tooltip_bounds = Rectangle {
-                x: offset.x - padding,
-                y: offset.y - padding,
-                width: tooltip_bounds.width + padding * 2.0,
-                height: tooltip_bounds.height + padding * 2.0,
-            };
 
             (
                 Primitive::Group {
