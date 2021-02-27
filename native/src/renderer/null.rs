@@ -257,6 +257,7 @@ impl pane_grid::Renderer for Null {
         _layout: Layout<'_>,
         _style: &<Self as pane_grid::Renderer>::Style,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 
@@ -271,6 +272,7 @@ impl pane_grid::Renderer for Null {
         )>,
         _body: (&Element<'_, Message, Self>, Layout<'_>),
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 
@@ -282,6 +284,7 @@ impl pane_grid::Renderer for Null {
         _content: (&Element<'_, Message, Self>, Layout<'_>),
         _controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 }

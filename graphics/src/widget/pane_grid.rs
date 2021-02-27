@@ -45,6 +45,7 @@ where
         layout: Layout<'_>,
         style_sheet: &<Self as pane_grid::Renderer>::Style,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output {
         let pane_cursor_position = if dragging.is_some() {
             // TODO: Remove once cursor availability is encoded in the type
@@ -62,8 +63,13 @@ where
             .zip(layout.children())
             .enumerate()
             .map(|(i, ((id, pane), layout))| {
-                let (primitive, new_mouse_interaction) =
-                    pane.draw(self, defaults, layout, pane_cursor_position);
+                let (primitive, new_mouse_interaction) = pane.draw(
+                    self,
+                    defaults,
+                    layout,
+                    pane_cursor_position,
+                    viewport,
+                );
 
                 if new_mouse_interaction > mouse_interaction {
                     mouse_interaction = new_mouse_interaction;
@@ -180,12 +186,13 @@ where
         title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
         body: (&Element<'_, Message, Self>, Layout<'_>),
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output {
         let style = style_sheet.style();
         let (body, body_layout) = body;
 
         let (body_primitive, body_interaction) =
-            body.draw(self, defaults, body_layout, cursor_position, &bounds);
+            body.draw(self, defaults, body_layout, cursor_position, viewport);
 
         let background = crate::widget::container::background(bounds, &style);
 
@@ -199,6 +206,7 @@ where
                 defaults,
                 title_bar_layout,
                 cursor_position,
+                viewport,
                 show_controls,
             );
 
@@ -240,6 +248,7 @@ where
         content: (&Element<'_, Message, Self>, Layout<'_>),
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output {
         let style = style_sheet.style();
         let (title_content, title_layout) = content;
@@ -257,7 +266,7 @@ where
             &defaults,
             title_layout,
             cursor_position,
-            &bounds,
+            viewport,
         );
 
         if let Some((controls, controls_layout)) = controls {
@@ -266,7 +275,7 @@ where
                 &defaults,
                 controls_layout,
                 cursor_position,
-                &bounds,
+                viewport,
             );
 
             (
