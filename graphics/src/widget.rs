@@ -21,6 +21,7 @@ pub mod slider;
 pub mod svg;
 pub mod text_input;
 pub mod tooltip;
+pub mod number_input;
 
 mod column;
 mod row;
@@ -51,6 +52,8 @@ pub use slider::Slider;
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
+#[doc(no_inline)]
+pub use number_input::NumberInput;
 
 pub use column::Column;
 pub use image::Image;

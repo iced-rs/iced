@@ -37,6 +37,7 @@ pub mod svg;
 pub mod text;
 pub mod text_input;
 pub mod tooltip;
+pub mod number_input;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -74,6 +75,8 @@ pub use text::Text;
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
+#[doc(no_inline)]
+pub use number_input::NumberInput;
 
 use crate::event::{self, Event};
 use crate::layout;

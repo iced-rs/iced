@@ -21,6 +21,7 @@ pub mod scrollable;
 pub mod slider;
 pub mod text_input;
 pub mod tooltip;
+pub mod number_input;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -46,6 +47,8 @@ pub use slider::Slider;
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
+#[doc(no_inline)]
+pub use number_input::NumberInput;
 
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
