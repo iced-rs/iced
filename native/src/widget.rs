@@ -24,6 +24,7 @@ pub mod checkbox;
 pub mod column;
 pub mod container;
 pub mod image;
+pub mod number_input;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
@@ -37,7 +38,6 @@ pub mod svg;
 pub mod text;
 pub mod text_input;
 pub mod tooltip;
-pub mod number_input;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -49,6 +49,8 @@ pub use column::Column;
 pub use container::Container;
 #[doc(no_inline)]
 pub use image::Image;
+#[doc(no_inline)]
+pub use number_input::NumberInput;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
@@ -75,8 +77,6 @@ pub use text::Text;
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
-#[doc(no_inline)]
-pub use number_input::NumberInput;
 
 use crate::event::{self, Event};
 use crate::layout;

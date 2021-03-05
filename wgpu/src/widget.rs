@@ -12,6 +12,7 @@ use crate::Renderer;
 pub mod button;
 pub mod checkbox;
 pub mod container;
+pub mod number_input;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
@@ -21,7 +22,6 @@ pub mod scrollable;
 pub mod slider;
 pub mod text_input;
 pub mod tooltip;
-pub mod number_input;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -29,6 +29,8 @@ pub use button::Button;
 pub use checkbox::Checkbox;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use number_input::NumberInput;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
@@ -47,8 +49,6 @@ pub use slider::Slider;
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
-#[doc(no_inline)]
-pub use number_input::NumberInput;
 
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]

@@ -11,6 +11,7 @@ pub mod button;
 pub mod checkbox;
 pub mod container;
 pub mod image;
+pub mod number_input;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
@@ -21,7 +22,6 @@ pub mod slider;
 pub mod svg;
 pub mod text_input;
 pub mod tooltip;
-pub mod number_input;
 
 mod column;
 mod row;
@@ -34,6 +34,8 @@ pub use button::Button;
 pub use checkbox::Checkbox;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use number_input::NumberInput;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
@@ -52,8 +54,6 @@ pub use slider::Slider;
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
-#[doc(no_inline)]
-pub use number_input::NumberInput;
 
 pub use column::Column;
 pub use image::Image;

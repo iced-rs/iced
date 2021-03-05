@@ -1,14 +1,17 @@
-use iced::{Container, Element, Length, Sandbox, Settings, Text, Row, Align, window, number_input, NumberInput};
+use iced::{
+    number_input, window, Align, Container, Element, Length, NumberInput, Row,
+    Sandbox, Settings, Text,
+};
 
 #[derive(Default)]
 pub struct NumberInputDemo {
-   state: number_input::State,
-   value: u8
+    state: number_input::State,
+    value: u8,
 }
 
 #[derive(Debug, Clone)]
 pub enum NumInpMessage {
-   NumInpChanged(u8),
+    NumInpChanged(u8),
 }
 
 fn main() -> iced::Result {
@@ -51,30 +54,42 @@ impl Sandbox for NumberInputDemo {
             self.value,
             255,
             Self::Message::NumInpChanged,
-        ).step(1)
+        )
+        .step(1)
         .input_style(style::CustomTextInput)
         .style(style::CustomNumInput);
 
         Container::new(
-            Row::new().spacing(10).align_items(Align::Center)
-            .push(lb_minute)
-            .push(txt_minute)
-        ).width(Length::Fill).height(Length::Fill).center_x().center_y().into()
+            Row::new()
+                .spacing(10)
+                .align_items(Align::Center)
+                .push(lb_minute)
+                .push(txt_minute),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x()
+        .center_y()
+        .into()
     }
 }
 
 mod style {
-    use iced::{number_input, text_input};
     use iced::Color;
+    use iced::{number_input, text_input};
 
-    const BACKGROUND: Color = Color::from_rgb(238.0 / 255.0, 238.0 / 255.0, 238.0 / 255.0);
-    const FOREGROUND: Color = Color::from_rgb(224.0 / 255.0, 224.0 / 255.0, 224.0 / 255.0);
-    const HOVERED: Color = Color::from_rgb(129.0 / 255.0, 129.0 / 255.0, 129.0 / 255.0);
-    const PRIMARY: Color = Color::from_rgb(12.0 / 255.0, 46.0 / 251.0, 179.0 / 255.0);
+    const BACKGROUND: Color =
+        Color::from_rgb(238.0 / 255.0, 238.0 / 255.0, 238.0 / 255.0);
+    const FOREGROUND: Color =
+        Color::from_rgb(224.0 / 255.0, 224.0 / 255.0, 224.0 / 255.0);
+    const HOVERED: Color =
+        Color::from_rgb(129.0 / 255.0, 129.0 / 255.0, 129.0 / 255.0);
+    const PRIMARY: Color =
+        Color::from_rgb(12.0 / 255.0, 46.0 / 251.0, 179.0 / 255.0);
 
     pub struct CustomNumInput;
     impl number_input::StyleSheet for CustomNumInput {
-        fn active(&self) -> number_input::Style { 
+        fn active(&self) -> number_input::Style {
             number_input::Style {
                 icon_color: PRIMARY,
                 ..number_input::Style::default()
@@ -103,10 +118,16 @@ mod style {
             }
         }
 
-        fn placeholder_color(&self) -> Color { HOVERED }
+        fn placeholder_color(&self) -> Color {
+            HOVERED
+        }
 
-        fn selection_color(&self) -> Color { HOVERED }
+        fn selection_color(&self) -> Color {
+            HOVERED
+        }
 
-        fn value_color(&self) -> Color { Color::BLACK }
+        fn value_color(&self) -> Color {
+            Color::BLACK
+        }
     }
 }

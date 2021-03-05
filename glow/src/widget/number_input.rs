@@ -9,4 +9,5 @@ pub use iced_native::number_input::State;
 /// A field that can only be filled with numeric type.
 ///
 /// This is an alias of an `iced_native` text input with an `iced_wgpu::Renderer`.
-pub type NumberInput<'a, T, Message> = iced_native::NumberInput<'a, T, Message, Renderer>;
+pub type NumberInput<'a, T, Message> =
+    iced_native::NumberInput<'a, T, Message, Renderer>;

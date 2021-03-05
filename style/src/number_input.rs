@@ -1,8 +1,8 @@
 use iced_core::{Background, Color};
 
 pub struct Style {
-   pub button_background: Option<Background>,
-   pub icon_color: Color,
+    pub button_background: Option<Background>,
+    pub icon_color: Color,
 }
 
 impl std::default::Default for Style {

@@ -1,13 +1,19 @@
 //! Display fields that can only be filled with numeric type.
 //!
 //! A [`NumberInput`] has some local [`State`].
-use std::fmt::Display;
-use std::str::FromStr;
 use crate::{
-   container, event::{self, Event}, mouse, text_input::{self, Value, cursor}, column, row, keyboard, layout::{Limits, Node}, 
-   Align, Clipboard, Container, Element, Hasher, TextInput, Size, Column, Layout, Length, Point, Rectangle, Text, Widget, Row,
+    column, container,
+    event::{self, Event},
+    keyboard,
+    layout::{Limits, Node},
+    mouse, row,
+    text_input::{self, cursor, Value},
+    Align, Clipboard, Column, Container, Element, Hasher, Layout, Length,
+    Point, Rectangle, Row, Size, Text, TextInput, Widget,
 };
 use num_traits::{Num, NumAssignOps};
+use std::fmt::Display;
+use std::str::FromStr;
 
 /// A field that can only be filled with numeric type.
 ///
@@ -63,14 +69,21 @@ where
     pub fn new<F>(state: &'a mut State, value: T, max: T, on_changed: F) -> Self
     where
         F: 'static + Fn(T) -> Message + Copy,
-        T: 'static
+        T: 'static,
     {
-        let State {input_state, mod_state} = state;
+        let State {
+            input_state,
+            mod_state,
+        } = state;
         let padding = <Renderer as self::Renderer>::DEFAULT_PADDING;
-        let convert_to_num = move |s: String| on_changed(
-            T::from_str(&s).unwrap_or(if s.is_empty() {T::zero()} else {value})
-        );
- 
+        let convert_to_num = move |s: String| {
+            on_changed(T::from_str(&s).unwrap_or(if s.is_empty() {
+                T::zero()
+            } else {
+                value
+            }))
+        };
+
         Self {
             state: mod_state,
             value,
@@ -78,19 +91,26 @@ where
             bounds: (T::zero(), max),
             padding,
             size: None,
-            content: TextInput::new(input_state, "", format!("{}", value).as_str(), convert_to_num).padding(padding).width(Length::Units(127)),
+            content: TextInput::new(
+                input_state,
+                "",
+                format!("{}", value).as_str(),
+                convert_to_num,
+            )
+            .padding(padding)
+            .width(Length::Units(127)),
             on_change: Box::new(on_changed),
             style: <Renderer as self::Renderer>::Style::default(),
             font: Default::default(),
         }
     }
- 
+
     /// Sets the step of the [`NumberInput`].
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
         self
     }
- 
+
     /// Sets the minimum value of the [`NumberInput`].
     pub fn min(mut self, min: T) -> Self {
         if min < self.bounds.1 {
@@ -98,7 +118,7 @@ where
         }
         self
     }
- 
+
     /// Sets the maximum value of the [`NumberInput`].
     pub fn max(mut self, max: T) -> Self {
         if max > self.bounds.0 {
@@ -106,7 +126,7 @@ where
         }
         self
     }
- 
+
     /// Sets the minimum & maximum value (bound) of the [`NumberInput`].
     pub fn bounds(mut self, bounds: (T, T)) -> Self {
         if bounds.0 < bounds.1 {
@@ -114,7 +134,7 @@ where
         }
         self
     }
-    
+
     /// Sets the [ `Font`] of the [`Text`].
     ///
     /// [`Font`]: crate::widget::text::Renderer::Font
@@ -124,52 +144,58 @@ where
         self.content = self.content.font(font);
         self
     }
- 
+
     /// Sets the width of the [`NumberInput`].
     pub fn width(mut self, width: Length) -> Self {
         self.content = self.content.width(width);
         self
     }
- 
+
     /// Sets the maximum width of the [`NumberInput`].
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.content = self.content.max_width(max_width);
         self
     }
- 
+
     /// Sets the padding of the [`NumberInput`].
     pub fn padding(mut self, units: u16) -> Self {
         self.padding = units;
         self.content = self.content.padding(units);
         self
     }
- 
+
     /// Sets the text size of the [`NumberInput`].
     pub fn size(mut self, size: u16) -> Self {
         self.size = Some(size);
         self.content = self.content.size(size);
         self
     }
- 
+
     /// Sets the message that should be produced when the [`NumberInput`] is
     /// focused and the enter key is pressed.
     pub fn on_submit(mut self, message: Message) -> Self {
         self.content = self.content.on_submit(message);
         self
     }
-    
+
     /// Sets the style of the [`NumberInput`].
-    pub fn style(mut self, style: impl Into<<Renderer as self::Renderer>::Style>) -> Self {
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as self::Renderer>::Style>,
+    ) -> Self {
         self.style = style.into();
         self
     }
 
     /// Sets the input style of the [`NumberInput`].
-    pub fn input_style(mut self, style: impl Into<<Renderer as text_input::Renderer>::Style>) -> Self {
+    pub fn input_style(
+        mut self,
+        style: impl Into<<Renderer as text_input::Renderer>::Style>,
+    ) -> Self {
         self.content = self.content.style(style.into());
         self
     }
- 
+
     fn decrease_val(&mut self, messages: &mut Vec<Message>) {
         if self.value > self.bounds.0 {
             let new_val = self.value - self.step;
@@ -181,7 +207,7 @@ where
             messages.push((self.on_change)(self.value));
         }
     }
- 
+
     fn increase_val(&mut self, messages: &mut Vec<Message>) {
         if self.value < self.bounds.1 {
             let new_val = self.value + self.step;
@@ -194,45 +220,71 @@ where
         }
     }
 }
- 
-impl<'a, T, Message, Renderer> Widget<Message, Renderer> for NumberInput<'a, T, Message, Renderer>
+
+impl<'a, T, Message, Renderer> Widget<Message, Renderer>
+    for NumberInput<'a, T, Message, Renderer>
 where
     T: Num + NumAssignOps + PartialOrd + Display + FromStr + ToString + Copy,
     Message: Clone,
-    Renderer: self::Renderer + container::Renderer + column::Renderer + row::Renderer,
+    Renderer:
+        self::Renderer + container::Renderer + column::Renderer + row::Renderer,
 {
     fn width(&self) -> Length {
         Widget::<Message, Renderer>::width(&self.content)
     }
- 
+
     fn height(&self) -> Length {
         Length::Shrink
     }
- 
+
     fn layout(&self, renderer: &Renderer, limits: &Limits) -> Node {
         let padding = f32::from(self.padding);
-        let limits = limits.width(self.width()).height(Length::Shrink).pad(padding);
+        let limits = limits
+            .width(self.width())
+            .height(Length::Shrink)
+            .pad(padding);
         let content = self.content.layout(renderer, &limits.loose());
         let txt_size = self.size.unwrap_or(renderer.default_size());
-        let icon_size = txt_size*3/4;
-        let btn_mod = |c| Container::<(), Renderer>::new(Text::new(format!(" {} ", c)).size(icon_size)).center_y().center_x();
+        let icon_size = txt_size * 3 / 4;
+        let btn_mod = |c| {
+            Container::<(), Renderer>::new(
+                Text::new(format!(" {} ", c)).size(icon_size),
+            )
+            .center_y()
+            .center_x()
+        };
         let mut modifier = if self.padding < Renderer::DEFAULT_PADDING {
-            Row::<(), Renderer>::new().spacing(1).width(Length::Shrink).push(btn_mod('+')).push(btn_mod('-')).layout(renderer, &limits.loose())
+            Row::<(), Renderer>::new()
+                .spacing(1)
+                .width(Length::Shrink)
+                .push(btn_mod('+'))
+                .push(btn_mod('-'))
+                .layout(renderer, &limits.loose())
         } else {
-            Column::<(), Renderer>::new().spacing(1).width(Length::Shrink).push(btn_mod('▲')).push(btn_mod('▼')).layout(renderer, &limits.loose())
+            Column::<(), Renderer>::new()
+                .spacing(1)
+                .width(Length::Shrink)
+                .push(btn_mod('▲'))
+                .push(btn_mod('▼'))
+                .layout(renderer, &limits.loose())
         };
         let intrinsic = Size::new(
             content.size().width - 3.0,
-            content.size().height.max(modifier.size().height)
+            content.size().height.max(modifier.size().height),
         );
         modifier.align(Align::End, Align::Center, intrinsic);
         let size = limits.resolve(intrinsic);
         Node::with_children(size, vec![content, modifier])
     }
- 
-    fn draw(&self, renderer: &mut Renderer, _defaults: &Renderer::Defaults, layout: Layout<'_>, 
-       cursor_position: Point, _viewport: &Rectangle) -> Renderer::Output 
-    {
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        _defaults: &Renderer::Defaults,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) -> Renderer::Output {
         let bounds = layout.bounds();
         let mut children = layout.children();
         let content_layout = children.next().unwrap();
@@ -240,16 +292,27 @@ where
         let inc_bounds = mod_children.next().unwrap().bounds();
         let dec_bounds = mod_children.next().unwrap().bounds();
         let is_mouse_over = bounds.contains(cursor_position);
-        let content = self.content.draw(renderer, content_layout, cursor_position, None);
+        let content =
+            self.content
+                .draw(renderer, content_layout, cursor_position, None);
         let is_decrease_disabled = self.value <= self.bounds.0;
         let is_increase_disabled = self.value >= self.bounds.1;
-    
+
         self::Renderer::draw(
-            renderer, cursor_position, &self.state, inc_bounds, dec_bounds, is_mouse_over, is_decrease_disabled, 
-            is_increase_disabled, content, &self.style, self.font
+            renderer,
+            cursor_position,
+            &self.state,
+            inc_bounds,
+            dec_bounds,
+            is_mouse_over,
+            is_decrease_disabled,
+            is_increase_disabled,
+            content,
+            &self.style,
+            self.font,
         )
     }
- 
+
     fn hash_layout(&self, state: &mut Hasher) {
         use std::hash::Hash;
         struct Marker;
@@ -259,10 +322,16 @@ where
         self.size.hash(state);
         self.content.hash_layout(state);
     }
- 
-    fn on_event(&mut self, event: Event, layout: Layout<'_>, cursor_position: Point, messages: &mut Vec<Message>,
-       renderer: &Renderer, clipboard: Option<&dyn Clipboard>) -> event::Status 
-    {
+
+    fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        messages: &mut Vec<Message>,
+        renderer: &Renderer,
+        clipboard: Option<&dyn Clipboard>,
+    ) -> event::Status {
         let mut children = layout.children();
         let content = children.next().unwrap();
         let mut mod_children = children.next().unwrap().children();
@@ -270,12 +339,14 @@ where
         let dec_bounds = mod_children.next().unwrap().bounds();
         let mouse_over_inc = inc_bounds.contains(cursor_position);
         let mouse_over_dec = dec_bounds.contains(cursor_position);
-    
+
         if layout.bounds().contains(cursor_position) {
             if mouse_over_inc || mouse_over_dec {
                 let mut event_status = event::Status::Captured;
                 match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                    Event::Mouse(mouse::Event::ButtonPressed(
+                        mouse::Button::Left,
+                    )) => {
                         if mouse_over_dec {
                             self.state.decrease_pressed = true;
                             self.decrease_val(messages);
@@ -286,7 +357,9 @@ where
                             event_status = event::Status::Ignored;
                         }
                     }
-                    Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                    Event::Mouse(mouse::Event::ButtonReleased(
+                        mouse::Button::Left,
+                    )) => {
                         if mouse_over_dec {
                             self.state.decrease_pressed = false;
                         } else if mouse_over_inc {
@@ -295,47 +368,80 @@ where
                             event_status = event::Status::Ignored;
                         }
                     }
-                    _ => event_status = event::Status::Ignored
+                    _ => event_status = event::Status::Ignored,
                 }
                 event_status
             } else {
                 match event {
-                    Event::Keyboard(keyboard::Event::CharacterReceived(c)) 
-                    if self.content.state().is_focused() && c.is_numeric() => {
+                    Event::Keyboard(keyboard::Event::CharacterReceived(c))
+                        if self.content.state().is_focused()
+                            && c.is_numeric() =>
+                    {
                         let mut new_val = self.value.to_string();
-                        match self.content.state().cursor().state(&Value::new(&new_val)) {
+                        match self
+                            .content
+                            .state()
+                            .cursor()
+                            .state(&Value::new(&new_val))
+                        {
                             cursor::State::Index(idx) => new_val.insert(idx, c),
-                            cursor::State::Selection{start, end} => new_val.replace_range(start..end, &c.to_string()),
+                            cursor::State::Selection { start, end } => new_val
+                                .replace_range(start..end, &c.to_string()),
                         }
-                        
+
                         match T::from_str(&new_val) {
                             Ok(val) => {
-                                if (self.bounds.0..=self.bounds.1).contains(&val) {
-                                    self.content.on_event(event.clone(), content, cursor_position, messages, renderer, clipboard)
+                                if (self.bounds.0..=self.bounds.1)
+                                    .contains(&val)
+                                {
+                                    self.content.on_event(
+                                        event.clone(),
+                                        content,
+                                        cursor_position,
+                                        messages,
+                                        renderer,
+                                        clipboard,
+                                    )
                                 } else {
                                     event::Status::Ignored
                                 }
-                            },
-                            Err(_) => event::Status::Ignored
+                            }
+                            Err(_) => event::Status::Ignored,
                         }
-                    },
-                    Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) 
-                        if self.content.state().is_focused() => {
+                    }
+                    Event::Keyboard(keyboard::Event::KeyPressed {
+                        key_code,
+                        ..
+                    }) if self.content.state().is_focused() => {
                         match key_code {
                             keyboard::KeyCode::Up => {
                                 self.increase_val(messages);
                                 // self.content.state().move_cursor_to_end();
                                 event::Status::Captured
-                            },
+                            }
                             keyboard::KeyCode::Down => {
                                 self.decrease_val(messages);
                                 // self.content.state().move_cursor_to_end();
                                 event::Status::Captured
-                            },
-                            _ => self.content.on_event(event.clone(), content, cursor_position, messages, renderer, clipboard)
+                            }
+                            _ => self.content.on_event(
+                                event.clone(),
+                                content,
+                                cursor_position,
+                                messages,
+                                renderer,
+                                clipboard,
+                            ),
                         }
-                    },
-                    _ => self.content.on_event(event.clone(), content, cursor_position, messages, renderer, clipboard)
+                    }
+                    _ => self.content.on_event(
+                        event.clone(),
+                        content,
+                        cursor_position,
+                        messages,
+                        renderer,
+                        clipboard,
+                    ),
                 }
             }
         } else {
@@ -350,7 +456,7 @@ pub struct State {
     input_state: text_input::State,
     mod_state: ModifierState,
 }
- 
+
 impl State {
     /// Creates a new [`State`], representing an unfocused [`NumberInput`].
     pub fn new() -> Self {
@@ -381,9 +487,18 @@ pub trait Renderer: text_input::Renderer {
     const DEFAULT_PADDING: u16;
 
     /// Draws a [`NumberInput`].
-    fn draw(&mut self, cursor_position: Point, state: &ModifierState, inc_bounds: Rectangle,
-        dec_bounds: Rectangle, is_mouse_over: bool, is_decrease_disabled: bool, is_increase_disabled: bool, 
-        content: Self::Output, style: &<Self as self::Renderer>::Style, font: Self::Font,
+    fn draw(
+        &mut self,
+        cursor_position: Point,
+        state: &ModifierState,
+        inc_bounds: Rectangle,
+        dec_bounds: Rectangle,
+        is_mouse_over: bool,
+        is_decrease_disabled: bool,
+        is_increase_disabled: bool,
+        content: Self::Output,
+        style: &<Self as self::Renderer>::Style,
+        font: Self::Font,
     ) -> Self::Output;
 }
 
@@ -392,7 +507,11 @@ impl<'a, T, Message, Renderer> From<NumberInput<'a, T, Message, Renderer>>
 where
     T: 'a + Num + NumAssignOps + PartialOrd + Display + FromStr + Copy,
     Message: 'a + Clone,
-    Renderer: 'a + self::Renderer + container::Renderer + column::Renderer + row::Renderer,
+    Renderer: 'a
+        + self::Renderer
+        + container::Renderer
+        + column::Renderer
+        + row::Renderer,
 {
     fn from(num_input: NumberInput<'a, T, Message, Renderer>) -> Self {
         Element::new(num_input)

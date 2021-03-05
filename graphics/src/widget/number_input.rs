@@ -19,18 +19,29 @@ pub type NumberInput<'a, T, Message, Backend> =
     iced_native::NumberInput<'a, T, Message, Renderer<Backend>>;
 
 impl<B> number_input::Renderer for Renderer<B>
-where B: Backend + backend::Text {
+where
+    B: Backend + backend::Text,
+{
     type Style = Box<dyn StyleSheet>;
 
     const DEFAULT_PADDING: u16 = 5;
 
-    fn draw(&mut self, cursor_position: Point, state: &ModifierState, inc_bounds: Rectangle,
-        dec_bounds: Rectangle, is_mouse_over: bool, is_decrease_disabled: bool, is_increase_disabled: bool,
-        (content, _): Self::Output, style: &<Self as number_input::Renderer>::Style, font: Self::Font,
+    fn draw(
+        &mut self,
+        cursor_position: Point,
+        state: &ModifierState,
+        inc_bounds: Rectangle,
+        dec_bounds: Rectangle,
+        is_mouse_over: bool,
+        is_decrease_disabled: bool,
+        is_increase_disabled: bool,
+        (content, _): Self::Output,
+        style: &<Self as number_input::Renderer>::Style,
+        font: Self::Font,
     ) -> Self::Output {
         let mouse_over_decrease = dec_bounds.contains(cursor_position);
         let mouse_over_increase = inc_bounds.contains(cursor_position);
-    
+
         let decrease_btn_style = if is_decrease_disabled {
             style.disabled()
         } else if state.decrease_pressed {
@@ -38,7 +49,7 @@ where B: Backend + backend::Text {
         } else {
             style.active()
         };
-    
+
         let increase_btn_style = if is_increase_disabled {
             style.disabled()
         } else if state.increase_pressed {
@@ -46,7 +57,7 @@ where B: Backend + backend::Text {
         } else {
             style.active()
         };
-    
+
         // decrease button section
         let decrease_button_rect = Primitive::Quad {
             bounds: dec_bounds,
@@ -73,7 +84,7 @@ where B: Backend + backend::Text {
         let decrease_btn = Primitive::Group {
             primitives: vec![decrease_button_rect, decrease_text],
         };
-    
+
         // increase button section
         let increase_button_rect = Primitive::Quad {
             bounds: inc_bounds,
@@ -100,12 +111,14 @@ where B: Backend + backend::Text {
         let increase_btn = Primitive::Group {
             primitives: vec![increase_button_rect, increase_text],
         };
-    
+
         (
             Primitive::Group {
                 primitives: vec![content, decrease_btn, increase_btn],
             },
-            if (mouse_over_decrease && !is_decrease_disabled) || (mouse_over_increase && !is_increase_disabled) {
+            if (mouse_over_decrease && !is_decrease_disabled)
+                || (mouse_over_increase && !is_increase_disabled)
+            {
                 mouse::Interaction::Pointer
             } else if is_mouse_over {
                 mouse::Interaction::Text
