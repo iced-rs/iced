@@ -2,6 +2,7 @@
 //!
 //! A [`Button`] has some local [`State`].
 use crate::event::{self, Event};
+use crate::overlay;
 use crate::layout;
 use crate::mouse;
 use crate::touch;
@@ -239,6 +240,13 @@ where
 
         self.width.hash(state);
         self.content.hash_layout(state);
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.content.overlay(layout)
     }
 }
 
