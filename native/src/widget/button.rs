@@ -2,9 +2,9 @@
 //!
 //! A [`Button`] has some local [`State`].
 use crate::event::{self, Event};
-use crate::overlay;
 use crate::layout;
 use crate::mouse;
+use crate::overlay;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
