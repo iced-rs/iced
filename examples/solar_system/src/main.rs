@@ -117,15 +117,13 @@ impl State {
                 (
                     Point::new(
                         rng.gen_range(
-                            -(width as f32) / 2.0,
-                            width as f32 / 2.0,
+                            (-(width as f32) / 2.0)..(width as f32 / 2.0),
                         ),
                         rng.gen_range(
-                            -(height as f32) / 2.0,
-                            height as f32 / 2.0,
+                            (-(height as f32) / 2.0)..(height as f32 / 2.0),
                         ),
                     ),
-                    rng.gen_range(0.5, 1.0),
+                    rng.gen_range(0.5..1.0),
                 )
             })
             .collect()

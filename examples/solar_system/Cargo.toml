@@ -7,4 +7,4 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
-rand = "0.7"
+rand = "0.8.3"
