@@ -21,7 +21,7 @@ use std::str::FromStr;
 /// ```
 /// # use iced_native::{number_input, renderer::Null};
 /// #
-/// # pub type NumberInput<'a, Message> = iced_native::NumberInput<'a, Message, Null>;
+/// # pub type NumberInput<'a, T, Message> = iced_native::NumberInput<'a, T, Message, Null>;
 /// #[derive(Debug, Clone)]
 /// enum Message {
 ///     NumberInputChanged(u32),
