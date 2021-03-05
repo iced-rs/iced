@@ -1,6 +1,6 @@
 use crate::{
-    button, checkbox, column, container, pane_grid, progress_bar, radio, row,
-    scrollable, slider, text, text_input, Color, Element, Font,
+    button, checkbox, column, container, number_input, pane_grid, progress_bar,
+    radio, row, scrollable, slider, text, text_input, Color, Element, Font,
     HorizontalAlignment, Layout, Point, Rectangle, Renderer, Size,
     VerticalAlignment,
 };
@@ -283,5 +283,26 @@ impl pane_grid::Renderer for Null {
         _controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         _cursor_position: Point,
     ) {
+    }
+}
+
+impl number_input::Renderer for Null {
+    type Style = ();
+
+    const DEFAULT_PADDING: u16 = 7;
+
+    fn draw(
+        &mut self,
+        _: Point,
+        _: &number_input::ModifierState,
+        _: Rectangle,
+        _: Rectangle,
+        _: bool,
+        _: bool,
+        _: bool,
+        _: Self::Output,
+        _: &<Self as number_input::Renderer>::Style,
+        _: <Self as text::Renderer>::Font,
+    ) -> Self::Output {
     }
 }
