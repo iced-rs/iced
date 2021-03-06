@@ -75,6 +75,7 @@ where
             input_state,
             mod_state,
         } = state;
+
         let padding = <Renderer as self::Renderer>::DEFAULT_PADDING;
         let convert_to_num = move |s: String| {
             on_changed(T::from_str(&s).unwrap_or(if s.is_empty() {
@@ -205,6 +206,7 @@ where
                 self.bounds.0
             };
             messages.push((self.on_change)(self.value));
+            // self.content.state().move_cursor_to_end();
         }
     }
 
@@ -217,6 +219,7 @@ where
                 self.bounds.1
             };
             messages.push((self.on_change)(self.value));
+            // self.content.state().move_cursor_to_end();
         }
     }
 }
@@ -384,7 +387,13 @@ where
                             .cursor()
                             .state(&Value::new(&new_val))
                         {
-                            cursor::State::Index(idx) => new_val.insert(idx, c),
+                            cursor::State::Index(idx) => {
+                                if T::zero().eq(&self.value) {
+                                    new_val = c.to_string();
+                                } else {
+                                    new_val.insert(idx, c)
+                                }
+                            }
                             cursor::State::Selection { start, end } => new_val
                                 .replace_range(start..end, &c.to_string()),
                         }
@@ -394,6 +403,8 @@ where
                                 if (self.bounds.0..=self.bounds.1)
                                     .contains(&val)
                                 {
+                                    self.value = val;
+                                    messages.push((self.on_change)(self.value));
                                     self.content.on_event(
                                         event.clone(),
                                         content,
@@ -412,26 +423,62 @@ where
                     Event::Keyboard(keyboard::Event::KeyPressed {
                         key_code,
                         ..
-                    }) if self.content.state().is_focused() => {
-                        match key_code {
-                            keyboard::KeyCode::Up => {
-                                self.increase_val(messages);
-                                // self.content.state().move_cursor_to_end();
+                    }) if self.content.state().is_focused() => match key_code {
+                        keyboard::KeyCode::Up => {
+                            self.increase_val(messages);
+                            event::Status::Captured
+                        }
+                        keyboard::KeyCode::Down => {
+                            self.decrease_val(messages);
+                            event::Status::Captured
+                        }
+                        keyboard::KeyCode::Backspace => {
+                            if self.value.to_string().len() == 1 {
+                                self.value = T::zero();
+                                messages.push((self.on_change)(self.value));
                                 event::Status::Captured
+                            } else if T::zero().eq(&self.value) {
+                                event::Status::Ignored
+                            } else {
+                                self.content.on_event(
+                                    event.clone(),
+                                    content,
+                                    cursor_position,
+                                    messages,
+                                    renderer,
+                                    clipboard,
+                                )
                             }
-                            keyboard::KeyCode::Down => {
-                                self.decrease_val(messages);
-                                // self.content.state().move_cursor_to_end();
-                                event::Status::Captured
+                        }
+                        _ => self.content.on_event(
+                            event.clone(),
+                            content,
+                            cursor_position,
+                            messages,
+                            renderer,
+                            clipboard,
+                        ),
+                    },
+                    // This section from line 462 to 483 was owned by 13r0ck (https://github.com/13r0ck).
+                    Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                        if layout.bounds().contains(cursor_position) {
+                            let negative: bool;
+                            match delta {
+                                mouse::ScrollDelta::Lines { y, .. } => {
+                                    negative = y.is_sign_negative()
+                                }
+                                mouse::ScrollDelta::Pixels { y, .. } => {
+                                    negative = y.is_sign_negative()
+                                }
                             }
-                            _ => self.content.on_event(
-                                event.clone(),
-                                content,
-                                cursor_position,
-                                messages,
-                                renderer,
-                                clipboard,
-                            ),
+                            if negative {
+                                self.increase_val(messages)
+                            } else {
+                                self.decrease_val(messages)
+                            }
+                            event::Status::Captured
+                        } else {
+                            event::Status::Ignored
                         }
                     }
                     _ => self.content.on_event(

@@ -10,7 +10,7 @@ pub struct NumberInputDemo {
 }
 
 #[derive(Debug, Clone)]
-pub enum NumInpMessage {
+pub enum Message {
     NumInpChanged(u8),
 }
 
@@ -26,7 +26,7 @@ fn main() -> iced::Result {
 }
 
 impl Sandbox for NumberInputDemo {
-    type Message = NumInpMessage;
+    type Message = Message;
 
     fn new() -> Self {
         Self {
@@ -39,21 +39,21 @@ impl Sandbox for NumberInputDemo {
         String::from("Number Input Demo")
     }
 
-    fn update(&mut self, message: Self::Message) {
+    fn update(&mut self, message: Message) {
         match message {
-            Self::Message::NumInpChanged(val) => {
+            Message::NumInpChanged(val) => {
                 self.value = val;
             }
         }
     }
 
-    fn view(&mut self) -> Element<Self::Message> {
+    fn view(&mut self) -> Element<Message> {
         let lb_minute = Text::new("Number Input:");
         let txt_minute = NumberInput::new(
             &mut self.state,
             self.value,
             255,
-            Self::Message::NumInpChanged,
+            Message::NumInpChanged,
         )
         .step(1)
         .input_style(style::CustomTextInput)
