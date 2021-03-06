@@ -247,6 +247,53 @@ where
                     event_status
                 }
             }
+            Event::Mouse(mouse::Event::WheelScrolled { delta })
+                if layout.bounds().contains(cursor_position)
+                    && !*self.is_open =>
+            {
+                let y = match delta {
+                    mouse::ScrollDelta::Lines { y, .. }
+                    | mouse::ScrollDelta::Pixels { y, .. } => y,
+                };
+
+                if y.is_sign_negative() {
+                    if let Some(selected) = self.selected.as_ref() {
+                        let i = self
+                            .options
+                            .iter()
+                            .position(|option| option == selected)
+                            .unwrap_or(0)
+                            + 1;
+                        if i < self.options.len() {
+                            messages.push((self.on_selected)(
+                                self.options[i].clone(),
+                            ));
+                        }
+                    } else {
+                        messages
+                            .push((self.on_selected)(self.options[0].clone()))
+                    }
+                } else {
+                    if let Some(selected) = self.selected.as_ref() {
+                        let i = self
+                            .options
+                            .iter()
+                            .position(|option| option == selected)
+                            .unwrap_or(0);
+                        if i != 0 {
+                            messages.push((self.on_selected)(
+                                self.options[i - 1].clone(),
+                            ));
+                        }
+                    } else {
+                        messages.push((self.on_selected)(
+                            self.options[self.options.len() - 1].clone(),
+                        ))
+                    }
+                }
+
+                return event::Status::Captured;
+            }
             _ => event::Status::Ignored,
         }
     }
