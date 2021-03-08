@@ -1,5 +1,5 @@
 [package]
-name = "subscription_tokio_channel"
+name = "subscription_with_channel"
 version = "0.1.0"
 authors = ["dearkarm"]
 edition = "2018"
