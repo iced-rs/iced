@@ -81,6 +81,7 @@ members = [
     "examples/svg",
     "examples/todos",
     "examples/tour",
+    "examples/subscription_with_channel",
 ]
 
 [dependencies]
