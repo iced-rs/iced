@@ -147,6 +147,10 @@ where
 
         self.content.hash_layout(hasher);
         self.padding.hash(hasher);
+
+        if let Some(controls) = &self.controls {
+            controls.hash_layout(hasher);
+        }
     }
 
     pub(crate) fn layout(
