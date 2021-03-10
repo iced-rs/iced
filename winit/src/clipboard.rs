@@ -16,4 +16,11 @@ impl iced_native::Clipboard for Clipboard {
     fn read(&self) -> Option<String> {
         self.0.read().ok()
     }
+
+    fn write(&mut self, contents: String) {
+        match self.0.write(contents) {
+            Ok(()) => {}
+            Err(error) => log::warn!("error writing to clipboard: {}", error),
+        }
+    }
 }
