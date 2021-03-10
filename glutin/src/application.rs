@@ -136,7 +136,7 @@ async fn run_instance<A, E, C>(
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
 
-    let clipboard = Clipboard::new(context.window());
+    let clipboard = Clipboard::connect(context.window());
 
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();

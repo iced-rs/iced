@@ -509,7 +509,7 @@ where
                                     Some(content) => content,
                                     None => {
                                         let content: String = clipboard
-                                            .content()
+                                            .read()
                                             .unwrap_or(String::new())
                                             .chars()
                                             .filter(|c| !c.is_control())

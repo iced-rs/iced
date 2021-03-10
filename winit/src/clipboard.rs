@@ -5,13 +5,15 @@ pub struct Clipboard(window_clipboard::Clipboard);
 
 impl Clipboard {
     /// Creates a new [`Clipboard`] for the given window.
-    pub fn new(window: &winit::window::Window) -> Option<Clipboard> {
-        window_clipboard::Clipboard::new(window).map(Clipboard).ok()
+    pub fn connect(window: &winit::window::Window) -> Option<Clipboard> {
+        window_clipboard::Clipboard::connect(window)
+            .map(Clipboard)
+            .ok()
     }
 }
 
 impl iced_native::Clipboard for Clipboard {
-    fn content(&self) -> Option<String> {
+    fn read(&self) -> Option<String> {
         self.0.read().ok()
     }
 }

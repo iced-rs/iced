@@ -194,7 +194,7 @@ async fn run_instance<A, E, C>(
     use winit::event;
 
     let surface = compositor.create_surface(&window);
-    let clipboard = Clipboard::new(&window);
+    let clipboard = Clipboard::connect(&window);
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
