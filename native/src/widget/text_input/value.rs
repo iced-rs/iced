@@ -73,6 +73,15 @@ impl Value {
             .unwrap_or(self.len())
     }
 
+    /// Returns a new [`Value`] containing the graphemes from `start` until the
+    /// given `end`.
+    pub fn select(&self, start: usize, end: usize) -> Self {
+        let graphemes =
+            self.graphemes[start.min(self.len())..end.min(self.len())].to_vec();
+
+        Self { graphemes }
+    }
+
     /// Returns a new [`Value`] containing the graphemes until the given
     /// `index`.
     pub fn until(&self, index: usize) -> Self {

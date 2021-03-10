@@ -199,9 +199,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         if let Some(controls) = &mut self.controls {
             let mut children = layout.children();
@@ -215,9 +215,9 @@ where
                 event,
                 controls_layout,
                 cursor_position,
-                messages,
                 renderer,
                 clipboard,
+                messages,
             )
         } else {
             event::Status::Ignored

@@ -160,17 +160,17 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         if let event::Status::Captured = self.content.on_event(
             event.clone(),
             layout.children().next().unwrap(),
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         ) {
             return event::Status::Captured;
         }

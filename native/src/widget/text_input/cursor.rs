@@ -48,6 +48,18 @@ impl Cursor {
         }
     }
 
+    /// Returns the current selection of the [`Cursor`] for the given [`Value`].
+    ///
+    /// `start` is guaranteed to be <= than `end`.
+    pub fn selection(&self, value: &Value) -> Option<(usize, usize)> {
+        match self.state(value) {
+            State::Selection { start, end } => {
+                Some((start.min(end), start.max(end)))
+            }
+            _ => None,
+        }
+    }
+
     pub(crate) fn move_to(&mut self, position: usize) {
         self.state = State::Index(position);
     }
@@ -159,15 +171,6 @@ impl Cursor {
         };
 
         end.min(value.len())
-    }
-
-    pub(crate) fn selection(&self, value: &Value) -> Option<(usize, usize)> {
-        match self.state(value) {
-            State::Selection { start, end } => {
-                Some((start.min(end), start.max(end)))
-            }
-            _ => None,
-        }
     }
 
     fn left(&self, value: &Value) -> usize {

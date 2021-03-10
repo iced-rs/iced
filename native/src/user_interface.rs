@@ -134,7 +134,7 @@ where
     /// completing [the previous example](#example):
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache, Size, Point};
+    /// use iced_native::{clipboard, UserInterface, Cache, Size, Point};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -157,6 +157,7 @@ where
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
+    /// let mut clipboard = clipboard::Null;
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
@@ -176,8 +177,8 @@ where
     ///     let event_statuses = user_interface.update(
     ///         &events,
     ///         cursor_position,
-    ///         None,
     ///         &renderer,
+    ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///
@@ -193,8 +194,8 @@ where
         &mut self,
         events: &[Event],
         cursor_position: Point,
-        clipboard: Option<&dyn Clipboard>,
         renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> Vec<event::Status> {
         let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
@@ -215,9 +216,9 @@ where
                         event,
                         Layout::new(&layer.layout),
                         cursor_position,
-                        messages,
                         renderer,
                         clipboard,
+                        messages,
                     )
                 })
                 .collect();
@@ -246,9 +247,9 @@ where
                     event,
                     Layout::new(&self.base.layout),
                     base_cursor,
-                    messages,
                     renderer,
                     clipboard,
+                    messages,
                 );
 
                 event_status.merge(overlay_status)
@@ -269,7 +270,7 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache, Size, Point};
+    /// use iced_native::{clipboard, UserInterface, Cache, Size, Point};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -292,6 +293,7 @@ where
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
+    /// let mut clipboard = clipboard::Null;
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
     ///
@@ -309,8 +311,8 @@ where
     ///     let event_statuses = user_interface.update(
     ///         &events,
     ///         cursor_position,
-    ///         None,
     ///         &renderer,
+    ///         &mut clipboard,
     ///         &mut messages
     ///     );
     ///

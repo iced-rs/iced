@@ -120,17 +120,17 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         self.content.widget.on_event(
             event,
             layout,
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         )
     }
 

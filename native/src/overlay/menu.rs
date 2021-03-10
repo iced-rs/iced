@@ -219,17 +219,17 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         self.container.on_event(
             event.clone(),
             layout,
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         )
     }
 
@@ -320,9 +320,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _messages: &mut Vec<Message>,
         renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        _clipboard: &mut dyn Clipboard,
+        _messages: &mut Vec<Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {

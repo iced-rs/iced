@@ -67,9 +67,9 @@ where
         _event: Event,
         _layout: Layout<'_>,
         _cursor_position: Point,
-        _messages: &mut Vec<Message>,
         _renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        _clipboard: &mut dyn Clipboard,
+        _messages: &mut Vec<Message>,
     ) -> event::Status {
         event::Status::Ignored
     }

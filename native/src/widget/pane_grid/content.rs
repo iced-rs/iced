@@ -143,9 +143,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
 
@@ -156,9 +156,9 @@ where
                 event.clone(),
                 children.next().unwrap(),
                 cursor_position,
-                messages,
                 renderer,
                 clipboard,
+                messages,
             );
 
             children.next().unwrap()
@@ -170,9 +170,9 @@ where
             event,
             body_layout,
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         );
 
         event_status.merge(body_status)

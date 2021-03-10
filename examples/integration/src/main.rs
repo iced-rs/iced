@@ -5,7 +5,7 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
-use iced_winit::{conversion, futures, program, winit, Debug, Size};
+use iced_winit::{conversion, futures, program, winit, Clipboard, Debug, Size};
 
 use futures::task::SpawnExt;
 use winit::{
@@ -28,6 +28,7 @@ pub fn main() {
     );
     let mut cursor_position = PhysicalPosition::new(-1.0, -1.0);
     let mut modifiers = ModifiersState::default();
+    let mut clipboard = Clipboard::connect(&window);
 
     // Initialize wgpu
     let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
@@ -141,8 +142,8 @@ pub fn main() {
                             cursor_position,
                             viewport.scale_factor(),
                         ),
-                        None,
                         &mut renderer,
+                        &mut clipboard,
                         &mut debug,
                     );
 

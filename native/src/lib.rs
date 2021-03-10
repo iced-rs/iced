@@ -33,6 +33,7 @@
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
+pub mod clipboard;
 pub mod event;
 pub mod keyboard;
 pub mod layout;
@@ -45,7 +46,6 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
-mod clipboard;
 mod element;
 mod hasher;
 mod runtime;
