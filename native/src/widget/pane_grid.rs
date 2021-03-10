@@ -478,7 +478,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         let picked_split = self
             .state
@@ -537,6 +537,7 @@ where
             layout,
             &self.style,
             cursor_position,
+            viewport,
         )
     }
 
@@ -594,6 +595,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
         layout: Layout<'_>,
         style: &<Self as self::Renderer>::Style,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output;
 
     /// Draws a [`Pane`].
@@ -611,6 +613,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
         title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
         body: (&Element<'_, Message, Self>, Layout<'_>),
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output;
 
     /// Draws a [`TitleBar`].
@@ -629,6 +632,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
         content: (&Element<'_, Message, Self>, Layout<'_>),
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output;
 }
 

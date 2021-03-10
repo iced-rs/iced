@@ -2,7 +2,7 @@ use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::pane_grid;
-use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
+use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The title bar of a [`Pane`].
 ///
@@ -85,6 +85,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
         show_controls: bool,
     ) -> Renderer::Output {
         let mut children = layout.children();
@@ -112,6 +113,7 @@ where
             (&self.content, title_layout),
             controls,
             cursor_position,
+            viewport,
         )
     }
 
