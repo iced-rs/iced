@@ -501,6 +501,46 @@ where
                             self.state.cursor.move_to(self.value.len());
                         }
                     }
+                    keyboard::KeyCode::C
+                        if self
+                            .state
+                            .keyboard_modifiers
+                            .is_command_pressed() =>
+                    {
+                        match self.state.cursor.selection(&self.value) {
+                            Some((start, end)) => {
+                                clipboard.write(
+                                    self.value.select(start, end).to_string(),
+                                );
+                            }
+                            None => {}
+                        }
+                    }
+                    keyboard::KeyCode::X
+                        if self
+                            .state
+                            .keyboard_modifiers
+                            .is_command_pressed() =>
+                    {
+                        match self.state.cursor.selection(&self.value) {
+                            Some((start, end)) => {
+                                clipboard.write(
+                                    self.value.select(start, end).to_string(),
+                                );
+                            }
+                            None => {}
+                        }
+
+                        let mut editor = Editor::new(
+                            &mut self.value,
+                            &mut self.state.cursor,
+                        );
+
+                        editor.delete();
+
+                        let message = (self.on_change)(editor.contents());
+                        messages.push(message);
+                    }
                     keyboard::KeyCode::V => {
                         if self.state.keyboard_modifiers.is_command_pressed() {
                             let content = match self.state.is_pasting.take() {
