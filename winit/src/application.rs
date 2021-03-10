@@ -194,7 +194,7 @@ async fn run_instance<A, E, C>(
     use winit::event;
 
     let surface = compositor.create_surface(&window);
-    let clipboard = Clipboard::new(&window);
+    let mut clipboard = Clipboard::connect(&window);
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -237,8 +237,8 @@ async fn run_instance<A, E, C>(
                 let statuses = user_interface.update(
                     &events,
                     state.cursor_position(),
-                    clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
+                    &mut clipboard,
                     &mut messages,
                 );
 

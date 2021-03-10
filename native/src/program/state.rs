@@ -91,8 +91,8 @@ where
         &mut self,
         bounds: Size,
         cursor_position: Point,
-        clipboard: Option<&dyn Clipboard>,
         renderer: &mut P::Renderer,
+        clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
         let mut user_interface = build_user_interface(
@@ -109,8 +109,8 @@ where
         let _ = user_interface.update(
             &self.queued_events,
             cursor_position,
-            clipboard,
             renderer,
+            clipboard,
             &mut messages,
         );
 

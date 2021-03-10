@@ -53,17 +53,17 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         self.overlay.on_event(
             event,
             layout,
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         )
     }
 
@@ -117,9 +117,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<B>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<B>,
     ) -> event::Status {
         let mut original_messages = Vec::new();
 
@@ -127,9 +127,9 @@ where
             event,
             layout,
             cursor_position,
-            &mut original_messages,
             renderer,
             clipboard,
+            &mut original_messages,
         );
 
         original_messages
