@@ -20,17 +20,17 @@ impl Clipboard {
 
         Clipboard { state }
     }
-}
 
-impl iced_native::Clipboard for Clipboard {
-    fn read(&self) -> Option<String> {
+    /// Reads the current content of the [`Clipboard`] as text.
+    pub fn read(&self) -> Option<String> {
         match &self.state {
             State::Connected(clipboard) => clipboard.read().ok(),
             State::Unavailable => None,
         }
     }
 
-    fn write(&mut self, contents: String) {
+    /// Writes the given text contents to the [`Clipboard`].
+    pub fn write(&mut self, contents: String) {
         match &mut self.state {
             State::Connected(clipboard) => match clipboard.write(contents) {
                 Ok(()) => {}
@@ -40,5 +40,15 @@ impl iced_native::Clipboard for Clipboard {
             },
             State::Unavailable => {}
         }
+    }
+}
+
+impl iced_native::Clipboard for Clipboard {
+    fn read(&self) -> Option<String> {
+        self.read()
+    }
+
+    fn write(&mut self, contents: String) {
+        self.write(contents)
     }
 }
