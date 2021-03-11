@@ -1,6 +1,6 @@
 use iced::{
-    executor, Align, Application, Checkbox, Column, Command, Container,
-    Element, Length, Settings, Subscription, Text,
+    executor, Align, Application, Checkbox, Clipboard, Column, Command,
+    Container, Element, Length, Settings, Subscription, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -32,7 +32,11 @@ impl Application for Events {
         String::from("Events - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match message {
             Message::EventOccurred(event) => {
                 self.last.push(event);

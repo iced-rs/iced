@@ -1,7 +1,8 @@
 use iced::{
     button, executor, keyboard, pane_grid, scrollable, Align, Application,
-    Button, Color, Column, Command, Container, Element, HorizontalAlignment,
-    Length, PaneGrid, Row, Scrollable, Settings, Subscription, Text,
+    Button, Clipboard, Color, Column, Command, Container, Element,
+    HorizontalAlignment, Length, PaneGrid, Row, Scrollable, Settings,
+    Subscription, Text,
 };
 use iced_native::{event, subscription, Event};
 
@@ -49,7 +50,11 @@ impl Application for Example {
         String::from("Pane grid - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match message {
             Message::Split(axis, pane) => {
                 let result = self.panes.split(

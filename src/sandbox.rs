@@ -1,5 +1,6 @@
 use crate::{
-    Application, Color, Command, Element, Error, Settings, Subscription,
+    Application, Clipboard, Color, Command, Element, Error, Settings,
+    Subscription,
 };
 
 /// A sandboxed [`Application`].
@@ -161,7 +162,11 @@ where
         T::title(self)
     }
 
-    fn update(&mut self, message: T::Message) -> Command<T::Message> {
+    fn update(
+        &mut self,
+        message: T::Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<T::Message> {
         T::update(self, message);
 
         Command::none()

@@ -1,6 +1,5 @@
 use crate::{
-    Cache, Clipboard, Command, Debug, Event, Point, Program, Renderer, Size,
-    UserInterface,
+    Cache, Command, Debug, Event, Point, Program, Renderer, Size, UserInterface,
 };
 
 /// The execution state of a [`Program`]. It leverages caching, event
@@ -92,7 +91,7 @@ where
         bounds: Size,
         cursor_position: Point,
         renderer: &mut P::Renderer,
-        clipboard: &mut dyn Clipboard,
+        clipboard: &mut P::Clipboard,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
         let mut user_interface = build_user_interface(
@@ -136,7 +135,7 @@ where
                     debug.log_message(&message);
 
                     debug.update_started();
-                    let command = self.program.update(message);
+                    let command = self.program.update(message, clipboard);
                     debug.update_finished();
 
                     command
