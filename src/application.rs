@@ -305,8 +305,12 @@ where
         self.0.title()
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
+    fn update(
+        &mut self,
+        message: Self::Message,
+        clipboard: &mut Clipboard,
+    ) -> Command<Self::Message> {
+        self.0.update(message, clipboard)
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
