@@ -190,6 +190,7 @@ async fn run_instance<A, E, C>(
                         &mut application,
                         &mut runtime,
                         &mut debug,
+                        &mut clipboard,
                         &mut messages,
                     );
 

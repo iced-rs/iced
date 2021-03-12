@@ -1,6 +1,6 @@
 use iced::{
-    button, futures, image, Align, Application, Button, Column, Command,
-    Container, Element, Length, Row, Settings, Text,
+    button, futures, image, Align, Application, Button, Clipboard, Column,
+    Command, Container, Element, Length, Row, Settings, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -48,7 +48,11 @@ impl Application for Pokedex {
         format!("{} - Pokédex", subtitle)
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match message {
             Message::PokemonFound(Ok(pokemon)) => {
                 *self = Pokedex::Loaded {
