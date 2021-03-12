@@ -246,7 +246,7 @@ where
         &mut self,
         layout: Layout<'_>,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.content.overlay(layout)
+        self.content.overlay(layout.children().next().unwrap())
     }
 }
 
