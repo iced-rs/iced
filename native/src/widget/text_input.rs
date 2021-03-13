@@ -792,6 +792,11 @@ impl State {
     pub fn move_cursor_to(&mut self, position: usize) {
         self.cursor.move_to(position);
     }
+
+    /// Selects all the content of the [`TextInput`].
+    pub fn select_all(&mut self) {
+        self.cursor.select_range(0, usize::MAX);
+    }
 }
 
 // TODO: Reduce allocations
