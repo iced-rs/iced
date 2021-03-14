@@ -4,6 +4,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
+use crate::overlay;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
@@ -239,6 +240,13 @@ where
 
         self.width.hash(state);
         self.content.hash_layout(state);
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.content.overlay(layout.children().next().unwrap())
     }
 }
 
