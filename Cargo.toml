@@ -79,6 +79,7 @@ members = [
     "examples/scrollable",
     "examples/solar_system",
     "examples/stopwatch",
+    "examples/basic_styling",
     "examples/styling",
     "examples/svg",
     "examples/todos",
