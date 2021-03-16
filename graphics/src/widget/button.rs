@@ -9,7 +9,7 @@ use iced_native::{
 };
 
 pub use iced_native::button::State;
-pub use iced_style::button::{Style, StyleSheet};
+pub use iced_style::button::{Style, StyleSheet, DefaultStyle};
 
 /// A widget that produces a message when clicked.
 ///

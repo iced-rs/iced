@@ -3,7 +3,7 @@
 //! A [`Button`] has some local [`State`].
 use crate::Renderer;
 
-pub use iced_graphics::button::{Style, StyleSheet};
+pub use iced_graphics::button::{Style, StyleSheet, DefaultStyle};
 pub use iced_native::button::State;
 
 /// A widget that produces a message when clicked.
