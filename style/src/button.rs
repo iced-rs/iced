@@ -65,9 +65,9 @@ pub trait StyleSheet {
     }
 }
 
-struct Default;
+pub struct DefaultStyle;
 
-impl StyleSheet for Default {
+impl StyleSheet for DefaultStyle {
     fn active(&self) -> Style {
         Style {
             shadow_offset: Vector::new(0.0, 0.0),
@@ -82,7 +82,7 @@ impl StyleSheet for Default {
 
 impl std::default::Default for Box<dyn StyleSheet> {
     fn default() -> Self {
-        Box::new(Default)
+        Box::new(DefaultStyle)
     }
 }
 
