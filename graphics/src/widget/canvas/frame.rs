@@ -254,11 +254,19 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Applies a scaling to the current transform of the [`Frame`].
+    /// Applies scaling uniformly in both dimensions to the current transform of the [`Frame`].
     #[inline]
     pub fn scale(&mut self, scale: f32) {
         self.transforms.current.raw =
             self.transforms.current.raw.pre_scale(scale, scale);
+        self.transforms.current.is_identity = false;
+    }
+
+    /// Applies scaling, independently in each dimension, to the current transform of the [`Frame`].
+    #[inline]
+    pub fn scale2(&mut self, scale: Vector<f32>) {
+        self.transforms.current.raw =
+            self.transforms.current.raw.pre_scale(scale.x, scale.y);
         self.transforms.current.is_identity = false;
     }
 
