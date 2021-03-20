@@ -2,7 +2,7 @@
 use iced_core::{Background, Color};
 
 /// The appearance of a checkbox.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Style {
     pub background: Background,
     pub checkmark_color: Color,

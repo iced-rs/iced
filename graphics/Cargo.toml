@@ -42,6 +42,7 @@ optional = true
 [dependencies.qrcode]
 version = "0.12"
 optional = true
+default-features = false
 
 [dependencies.font-kit]
 version = "0.10"

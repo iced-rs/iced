@@ -36,6 +36,7 @@ pub mod space;
 pub mod svg;
 pub mod text;
 pub mod text_input;
+pub mod tooltip;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -71,6 +72,8 @@ pub use svg::Svg;
 pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
+#[doc(no_inline)]
+pub use tooltip::Tooltip;
 
 use crate::event::{self, Event};
 use crate::layout;
@@ -161,9 +164,9 @@ where
         _event: Event,
         _layout: Layout<'_>,
         _cursor_position: Point,
-        _messages: &mut Vec<Message>,
         _renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        _clipboard: &mut dyn Clipboard,
+        _messages: &mut Vec<Message>,
     ) -> event::Status {
         event::Status::Ignored
     }

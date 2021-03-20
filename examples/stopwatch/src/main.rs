@@ -1,6 +1,6 @@
 use iced::{
-    button, executor, time, Align, Application, Button, Column, Command,
-    Container, Element, HorizontalAlignment, Length, Row, Settings,
+    button, executor, time, Align, Application, Button, Clipboard, Column,
+    Command, Container, Element, HorizontalAlignment, Length, Row, Settings,
     Subscription, Text,
 };
 use std::time::{Duration, Instant};
@@ -49,7 +49,11 @@ impl Application for Stopwatch {
         String::from("Stopwatch - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match message {
             Message::Toggle => match self.state {
                 State::Idle => {

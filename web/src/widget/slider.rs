@@ -38,7 +38,9 @@ pub struct Slider<'a, T, Message> {
     step: T,
     value: T,
     on_change: Rc<Box<dyn Fn(T) -> Message>>,
+    #[allow(dead_code)]
     width: Length,
+    #[allow(dead_code)]
     style: Box<dyn StyleSheet>,
 }
 

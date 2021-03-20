@@ -243,9 +243,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         let event_status = match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -506,45 +506,84 @@ where
                             self.state.cursor.move_to(self.value.len());
                         }
                     }
+                    keyboard::KeyCode::C
+                        if self
+                            .state
+                            .keyboard_modifiers
+                            .is_command_pressed() =>
+                    {
+                        match self.state.cursor.selection(&self.value) {
+                            Some((start, end)) => {
+                                clipboard.write(
+                                    self.value.select(start, end).to_string(),
+                                );
+                            }
+                            None => {}
+                        }
+                    }
+                    keyboard::KeyCode::X
+                        if self
+                            .state
+                            .keyboard_modifiers
+                            .is_command_pressed() =>
+                    {
+                        match self.state.cursor.selection(&self.value) {
+                            Some((start, end)) => {
+                                clipboard.write(
+                                    self.value.select(start, end).to_string(),
+                                );
+                            }
+                            None => {}
+                        }
+
+                        let mut editor = Editor::new(
+                            &mut self.value,
+                            &mut self.state.cursor,
+                        );
+
+                        editor.delete();
+
+                        let message = (self.on_change)(editor.contents());
+                        messages.push(message);
+                    }
                     keyboard::KeyCode::V => {
                         if self.state.keyboard_modifiers.is_command_pressed() {
-                            if let Some(clipboard) = clipboard {
-                                let content = match self.state.is_pasting.take()
-                                {
-                                    Some(content) => content,
-                                    None => {
-                                        let content: String = clipboard
-                                            .content()
-                                            .unwrap_or(String::new())
-                                            .chars()
-                                            .filter(|c| !c.is_control())
-                                            .collect();
+                            let content = match self.state.is_pasting.take() {
+                                Some(content) => content,
+                                None => {
+                                    let content: String = clipboard
+                                        .read()
+                                        .unwrap_or(String::new())
+                                        .chars()
+                                        .filter(|c| !c.is_control())
+                                        .collect();
 
-                                        Value::new(&content)
-                                    }
-                                };
+                                    Value::new(&content)
+                                }
+                            };
 
-                                let mut editor = Editor::new(
-                                    &mut self.value,
-                                    &mut self.state.cursor,
-                                );
+                            let mut editor = Editor::new(
+                                &mut self.value,
+                                &mut self.state.cursor,
+                            );
 
-                                editor.paste(content.clone());
+                            editor.paste(content.clone());
 
-                                let message =
-                                    (self.on_change)(editor.contents());
-                                messages.push(message);
+                            let message = (self.on_change)(editor.contents());
+                            messages.push(message);
 
-                                self.state.is_pasting = Some(content);
-                            }
+                            self.state.is_pasting = Some(content);
                         } else {
                             self.state.is_pasting = None;
                         }
                     }
-                    keyboard::KeyCode::A => {
-                        if self.state.keyboard_modifiers.is_command_pressed() {
-                            self.state.cursor.select_all(&self.value);
-                        }
+                    keyboard::KeyCode::A
+                        if self
+                            .state
+                            .keyboard_modifiers
+                            .is_command_pressed() =>
+                    {
+                        self.state.cursor.select_all(&self.value);
                     }
                     keyboard::KeyCode::Escape => {
                         self.state.is_focused = false;
@@ -581,22 +620,19 @@ where
         };
 
         if self.state.is_focused {
-            if let Some(clipboard) = clipboard {
-                let text_layout = layout.children().next().unwrap();
-                let index = self.state.cursor.start(&self.value);
-                let text_before_cursor = self.value.until(index).to_string();
-                let text_value_width = renderer.measure_value(
-                    &text_before_cursor,
-                    self.size.unwrap_or(renderer.default_size()),
-                    self.font,
-                );
-                clipboard.set_ime_position(Point::new(
-                    (text_layout.bounds().x + text_value_width).min(
-                        text_layout.bounds().x + text_layout.bounds().width,
-                    ),
-                    text_layout.bounds().y,
-                ));
-            }
+            let text_layout = layout.children().next().unwrap();
+            let index = self.state.cursor.start(&self.value);
+            let text_before_cursor = self.value.until(index).to_string();
+            let text_value_width = renderer.measure_value(
+                &text_before_cursor,
+                self.size.unwrap_or(renderer.default_size()),
+                self.font,
+            );
+            clipboard.set_ime_position(Point::new(
+                (text_layout.bounds().x + text_value_width)
+                    .min(text_layout.bounds().x + text_layout.bounds().width),
+                text_layout.bounds().y,
+            ));
         }
 
         event_status

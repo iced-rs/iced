@@ -6,6 +6,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::scrollable;
 use crate::text;
+use crate::touch;
 use crate::{
     Clipboard, Container, Element, Hasher, Layout, Length, Point, Rectangle,
     Scrollable, Size, Vector, Widget,
@@ -218,17 +219,17 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         self.container.on_event(
             event.clone(),
             layout,
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         )
     }
 
@@ -319,9 +320,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _messages: &mut Vec<Message>,
         renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        _clipboard: &mut dyn Clipboard,
+        _messages: &mut Vec<Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -337,15 +338,36 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 let bounds = layout.bounds();
-                let text_size =
-                    self.text_size.unwrap_or(renderer.default_size());
 
                 if bounds.contains(cursor_position) {
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
+
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
                             / f32::from(text_size + self.padding * 2))
                             as usize,
                     );
+                }
+            }
+            Event::Touch(touch::Event::FingerPressed { .. }) => {
+                let bounds = layout.bounds();
+
+                if bounds.contains(cursor_position) {
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
+
+                    *self.hovered_option = Some(
+                        ((cursor_position.y - bounds.y)
+                            / f32::from(text_size + self.padding * 2))
+                            as usize,
+                    );
+
+                    if let Some(index) = *self.hovered_option {
+                        if let Some(option) = self.options.get(index) {
+                            *self.last_selection = Some(option.clone());
+                        }
+                    }
                 }
             }
             _ => {}

@@ -19,6 +19,7 @@ impl Pipeline {
         let default_font = default_font.map(|slice| slice.to_vec());
 
         // TODO: Font customization
+        #[cfg(not(target_os = "ios"))]
         #[cfg(feature = "default_system_font")]
         let default_font = {
             default_font.or_else(|| {

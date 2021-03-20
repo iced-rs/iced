@@ -1,5 +1,6 @@
 use crate::{
-    Application, Color, Command, Element, Error, Settings, Subscription,
+    Application, Clipboard, Color, Command, Element, Error, Settings,
+    Subscription,
 };
 
 /// A sandboxed [`Application`].
@@ -17,8 +18,8 @@ use crate::{
 /// # Examples
 /// [The repository has a bunch of examples] that use the [`Sandbox`] trait:
 ///
-/// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using
-/// [`lyon`].
+/// - [`bezier_tool`], a Paint-like tool for drawing Bézier curves using the
+/// [`Canvas widget`].
 /// - [`counter`], the classic counter example explained in [the overview].
 /// - [`custom_widget`], a demonstration of how to build a custom widget that
 /// draws a circle.
@@ -45,7 +46,7 @@ use crate::{
 /// [`styling`]: https://github.com/hecrj/iced/tree/0.2/examples/styling
 /// [`svg`]: https://github.com/hecrj/iced/tree/0.2/examples/svg
 /// [`tour`]: https://github.com/hecrj/iced/tree/0.2/examples/tour
-/// [`lyon`]: https://github.com/nical/lyon
+/// [`Canvas widget`]: crate::widget::Canvas
 /// [the overview]: index.html#overview
 /// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.2/wgpu
 /// [`Svg` widget]: crate::widget::Svg
@@ -161,7 +162,11 @@ where
         T::title(self)
     }
 
-    fn update(&mut self, message: T::Message) -> Command<T::Message> {
+    fn update(
+        &mut self,
+        message: T::Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<T::Message> {
         T::update(self, message);
 
         Command::none()

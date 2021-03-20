@@ -191,7 +191,12 @@ pub mod widget;
 pub mod window;
 
 #[cfg(all(
-    any(feature = "tokio", feature = "tokio_old", feature = "async-std"),
+    any(
+        feature = "tokio",
+        feature = "tokio_old",
+        feature = "async-std",
+        feature = "smol"
+    ),
     not(target_arch = "wasm32")
 ))]
 #[cfg_attr(
@@ -200,6 +205,7 @@ pub mod window;
         feature = "tokio",
         feature = "tokio_old",
         feature = "async-std"
+        feature = "smol"
     )))
 )]
 pub mod time;
@@ -239,6 +245,7 @@ pub use sandbox::Sandbox;
 pub use settings::Settings;
 
 pub use runtime::{
-    futures, Align, Background, Color, Command, Font, HorizontalAlignment,
-    Length, Point, Rectangle, Size, Subscription, Vector, VerticalAlignment,
+    futures, Align, Background, Clipboard, Color, Command, Font,
+    HorizontalAlignment, Length, Point, Rectangle, Size, Subscription, Vector,
+    VerticalAlignment,
 };

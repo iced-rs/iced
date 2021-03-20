@@ -2,7 +2,7 @@ use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::pane_grid;
-use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
+use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The title bar of a [`Pane`].
 ///
@@ -85,6 +85,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
         show_controls: bool,
     ) -> Renderer::Output {
         let mut children = layout.children();
@@ -112,6 +113,7 @@ where
             (&self.content, title_layout),
             controls,
             cursor_position,
+            viewport,
         )
     }
 
@@ -147,6 +149,10 @@ where
 
         self.content.hash_layout(hasher);
         self.padding.hash(hasher);
+
+        if let Some(controls) = &self.controls {
+            controls.hash_layout(hasher);
+        }
     }
 
     pub(crate) fn layout(
@@ -195,9 +201,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         if let Some(controls) = &mut self.controls {
             let mut children = layout.children();
@@ -211,9 +217,9 @@ where
                 event,
                 controls_layout,
                 cursor_position,
-                messages,
                 renderer,
                 clipboard,
+                messages,
             )
         } else {
             event::Status::Ignored

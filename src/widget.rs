@@ -17,7 +17,8 @@
 mod platform {
     pub use crate::renderer::widget::{
         button, checkbox, container, pane_grid, pick_list, progress_bar, radio,
-        rule, scrollable, slider, text_input, Column, Row, Space, Text,
+        rule, scrollable, slider, text_input, tooltip, Column, Row, Space,
+        Text,
     };
 
     #[cfg(any(feature = "canvas", feature = "glow_canvas"))]
@@ -52,7 +53,7 @@ mod platform {
         button::Button, checkbox::Checkbox, container::Container, image::Image,
         pane_grid::PaneGrid, pick_list::PickList, progress_bar::ProgressBar,
         radio::Radio, rule::Rule, scrollable::Scrollable, slider::Slider,
-        svg::Svg, text_input::TextInput,
+        svg::Svg, text_input::TextInput, tooltip::Tooltip,
     };
 
     #[cfg(any(feature = "canvas", feature = "glow_canvas"))]

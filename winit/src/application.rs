@@ -29,7 +29,7 @@ use std::mem::ManuallyDrop;
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-pub trait Application: Program {
+pub trait Application: Program<Clipboard = Clipboard> {
     /// The data needed to initialize your [`Application`].
     type Flags;
 
@@ -194,7 +194,7 @@ async fn run_instance<A, E, C>(
     use winit::event;
 
     let surface = compositor.create_surface(&window);
-    let clipboard = Clipboard::new(&window);
+    let mut clipboard = Clipboard::connect(&window);
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -237,8 +237,8 @@ async fn run_instance<A, E, C>(
                 let statuses = user_interface.update(
                     &events,
                     state.cursor_position(),
-                    clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
+                    &mut clipboard,
                     &mut messages,
                 );
 
@@ -257,6 +257,7 @@ async fn run_instance<A, E, C>(
                         &mut application,
                         &mut runtime,
                         &mut debug,
+                        &mut clipboard,
                         &mut messages,
                     );
 
@@ -409,13 +410,14 @@ pub fn update<A: Application, E: Executor>(
     application: &mut A,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     debug: &mut Debug,
+    clipboard: &mut A::Clipboard,
     messages: &mut Vec<A::Message>,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
 
         debug.update_started();
-        let command = runtime.enter(|| application.update(message));
+        let command = runtime.enter(|| application.update(message, clipboard));
         debug.update_finished();
 
         runtime.spawn(command);

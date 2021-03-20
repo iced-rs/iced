@@ -5,7 +5,7 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
-use iced_winit::{conversion, futures, program, winit, Debug, Size};
+use iced_winit::{conversion, futures, program, winit, Clipboard, Debug, Size};
 
 use futures::task::SpawnExt;
 use winit::{
@@ -28,6 +28,7 @@ pub fn main() {
     );
     let mut cursor_position = PhysicalPosition::new(-1.0, -1.0);
     let mut modifiers = ModifiersState::default();
+    let mut clipboard = Clipboard::connect(&window);
 
     // Initialize wgpu
     let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
@@ -36,7 +37,7 @@ pub fn main() {
     let (mut device, queue) = futures::executor::block_on(async {
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::Default,
+                power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: Some(&surface),
             })
             .await
@@ -45,9 +46,9 @@ pub fn main() {
         adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
+                    label: None,
                     features: wgpu::Features::empty(),
                     limits: wgpu::Limits::default(),
-                    shader_validation: false,
                 },
                 None,
             )
@@ -63,7 +64,7 @@ pub fn main() {
         device.create_swap_chain(
             &surface,
             &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
                 format: format,
                 width: size.width,
                 height: size.height,
@@ -141,8 +142,8 @@ pub fn main() {
                             cursor_position,
                             viewport.scale_factor(),
                         ),
-                        None,
                         &mut renderer,
+                        &mut clipboard,
                         &mut debug,
                     );
 
@@ -157,7 +158,7 @@ pub fn main() {
                     swap_chain = device.create_swap_chain(
                         &surface,
                         &wgpu::SwapChainDescriptor {
-                            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
                             format: format,
                             width: size.width,
                             height: size.height,

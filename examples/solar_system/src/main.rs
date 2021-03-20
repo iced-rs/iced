@@ -8,8 +8,8 @@
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::{
     canvas::{self, Cursor, Path, Stroke},
-    executor, time, window, Application, Canvas, Color, Command, Element,
-    Length, Point, Rectangle, Settings, Size, Subscription, Vector,
+    executor, time, window, Application, Canvas, Clipboard, Color, Command,
+    Element, Length, Point, Rectangle, Settings, Size, Subscription, Vector,
 };
 
 use std::time::Instant;
@@ -48,7 +48,11 @@ impl Application for SolarSystem {
         String::from("Solar system - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match message {
             Message::Tick(instant) => {
                 self.state.update(instant);
@@ -117,15 +121,13 @@ impl State {
                 (
                     Point::new(
                         rng.gen_range(
-                            -(width as f32) / 2.0,
-                            width as f32 / 2.0,
+                            (-(width as f32) / 2.0)..(width as f32 / 2.0),
                         ),
                         rng.gen_range(
-                            -(height as f32) / 2.0,
-                            height as f32 / 2.0,
+                            (-(height as f32) / 2.0)..(height as f32 / 2.0),
                         ),
                     ),
-                    rng.gen_range(0.5, 1.0),
+                    rng.gen_range(0.5..1.0),
                 )
             })
             .collect()

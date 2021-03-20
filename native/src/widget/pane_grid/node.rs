@@ -3,7 +3,7 @@ use crate::{
     Rectangle, Size,
 };
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// A layout node of a [`PaneGrid`].
 ///
@@ -59,8 +59,8 @@ impl Node {
         &self,
         spacing: f32,
         size: Size,
-    ) -> HashMap<Pane, Rectangle> {
-        let mut regions = HashMap::new();
+    ) -> BTreeMap<Pane, Rectangle> {
+        let mut regions = BTreeMap::new();
 
         self.compute_regions(
             spacing,
@@ -83,8 +83,8 @@ impl Node {
         &self,
         spacing: f32,
         size: Size,
-    ) -> HashMap<Split, (Axis, Rectangle, f32)> {
-        let mut splits = HashMap::new();
+    ) -> BTreeMap<Split, (Axis, Rectangle, f32)> {
+        let mut splits = BTreeMap::new();
 
         self.compute_splits(
             spacing,
@@ -191,7 +191,7 @@ impl Node {
         &self,
         spacing: f32,
         current: &Rectangle,
-        regions: &mut HashMap<Pane, Rectangle>,
+        regions: &mut BTreeMap<Pane, Rectangle>,
     ) {
         match self {
             Node::Split {
@@ -212,7 +212,7 @@ impl Node {
         &self,
         spacing: f32,
         current: &Rectangle,
-        splits: &mut HashMap<Split, (Axis, Rectangle, f32)>,
+        splits: &mut BTreeMap<Split, (Axis, Rectangle, f32)>,
     ) {
         match self {
             Node::Split {

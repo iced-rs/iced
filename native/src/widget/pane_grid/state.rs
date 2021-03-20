@@ -3,7 +3,7 @@ use crate::{
     Hasher, Point, Rectangle, Size,
 };
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// The state of a [`PaneGrid`].
 ///
@@ -257,7 +257,7 @@ impl Internal {
         &self,
         spacing: f32,
         size: Size,
-    ) -> HashMap<Pane, Rectangle> {
+    ) -> BTreeMap<Pane, Rectangle> {
         self.layout.pane_regions(spacing, size)
     }
 
@@ -265,7 +265,7 @@ impl Internal {
         &self,
         spacing: f32,
         size: Size,
-    ) -> HashMap<Split, (Axis, Rectangle, f32)> {
+    ) -> BTreeMap<Split, (Axis, Rectangle, f32)> {
         self.layout.split_regions(spacing, size)
     }
 

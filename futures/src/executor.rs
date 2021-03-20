@@ -13,6 +13,9 @@ mod tokio_old;
 #[cfg(all(not(target_arch = "wasm32"), feature = "async-std"))]
 mod async_std;
 
+#[cfg(all(not(target_arch = "wasm32"), feature = "smol"))]
+mod smol;
+
 #[cfg(target_arch = "wasm32")]
 mod wasm_bindgen;
 
@@ -29,6 +32,9 @@ pub use self::tokio_old::TokioOld;
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "async-std"))]
 pub use self::async_std::AsyncStd;
+
+#[cfg(all(not(target_arch = "wasm32"), feature = "smol"))]
+pub use self::smol::Smol;
 
 #[cfg(target_arch = "wasm32")]
 pub use wasm_bindgen::WasmBindgen;

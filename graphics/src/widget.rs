@@ -20,6 +20,7 @@ pub mod scrollable;
 pub mod slider;
 pub mod svg;
 pub mod text_input;
+pub mod tooltip;
 
 mod column;
 mod row;
@@ -48,6 +49,8 @@ pub use scrollable::Scrollable;
 pub use slider::Slider;
 #[doc(no_inline)]
 pub use text_input::TextInput;
+#[doc(no_inline)]
+pub use tooltip::Tooltip;
 
 pub use column::Column;
 pub use image::Image;

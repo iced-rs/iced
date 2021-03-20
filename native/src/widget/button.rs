@@ -4,6 +4,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
+use crate::overlay;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
@@ -160,17 +161,17 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         if let event::Status::Captured = self.content.on_event(
             event.clone(),
             layout.children().next().unwrap(),
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         ) {
             return event::Status::Captured;
         }
@@ -239,6 +240,13 @@ where
 
         self.width.hash(state);
         self.content.hash_layout(state);
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.content.overlay(layout.children().next().unwrap())
     }
 }
 

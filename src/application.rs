@@ -1,5 +1,7 @@
 use crate::window;
-use crate::{Color, Command, Element, Executor, Settings, Subscription};
+use crate::{
+    Clipboard, Color, Command, Element, Executor, Settings, Subscription,
+};
 
 /// An interactive cross-platform application.
 ///
@@ -57,7 +59,7 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 /// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::{executor, Application, Command, Element, Settings, Text};
+/// use iced::{executor, Application, Clipboard, Command, Element, Settings, Text};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -78,7 +80,7 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 ///         String::from("A cool application")
 ///     }
 ///
-///     fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
+///     fn update(&mut self, _message: Self::Message, _clipboard: &mut Clipboard) -> Command<Self::Message> {
 ///         Command::none()
 ///     }
 ///
@@ -127,7 +129,11 @@ pub trait Application: Sized {
     /// this method.
     ///
     /// Any [`Command`] returned will be executed immediately in the background.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
+    fn update(
+        &mut self,
+        message: Self::Message,
+        clipboard: &mut Clipboard,
+    ) -> Command<Self::Message>;
 
     /// Returns the event [`Subscription`] for the current state of the
     /// application.
@@ -228,9 +234,14 @@ where
 {
     type Renderer = crate::renderer::Renderer;
     type Message = A::Message;
+    type Clipboard = iced_winit::Clipboard;
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
+    fn update(
+        &mut self,
+        message: Self::Message,
+        clipboard: &mut iced_winit::Clipboard,
+    ) -> Command<Self::Message> {
+        self.0.update(message, clipboard)
     }
 
     fn view(&mut self) -> Element<'_, Self::Message> {
@@ -294,8 +305,12 @@ where
         self.0.title()
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
+    fn update(
+        &mut self,
+        message: Self::Message,
+        clipboard: &mut Clipboard,
+    ) -> Command<Self::Message> {
+        self.0.update(message, clipboard)
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {

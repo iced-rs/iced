@@ -19,11 +19,14 @@ pub struct Layout<'a> {
 }
 
 impl<'a> Layout<'a> {
-    pub(crate) fn new(node: &'a Node) -> Self {
+    /// Creates a new [`Layout`] for the given [`Node`] at the origin.
+    pub fn new(node: &'a Node) -> Self {
         Self::with_offset(Vector::new(0.0, 0.0), node)
     }
 
-    pub(crate) fn with_offset(offset: Vector, node: &'a Node) -> Self {
+    /// Creates a new [`Layout`] for the given [`Node`] with the provided offset
+    /// from the origin.
+    pub fn with_offset(offset: Vector, node: &'a Node) -> Self {
         let bounds = node.bounds();
 
         Self {

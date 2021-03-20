@@ -3,7 +3,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::pane_grid::{self, TitleBar};
-use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
+use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The content of a [`Pane`].
 ///
@@ -60,6 +60,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();
@@ -73,6 +74,7 @@ where
                 Some((title_bar, title_bar_layout)),
                 (&self.body, body_layout),
                 cursor_position,
+                viewport,
             )
         } else {
             renderer.draw_pane(
@@ -82,6 +84,7 @@ where
                 None,
                 (&self.body, layout),
                 cursor_position,
+                viewport,
             )
         }
     }
@@ -143,9 +146,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
 
@@ -156,9 +159,9 @@ where
                 event.clone(),
                 children.next().unwrap(),
                 cursor_position,
-                messages,
                 renderer,
                 clipboard,
+                messages,
             );
 
             children.next().unwrap()
@@ -170,9 +173,9 @@ where
             event,
             body_layout,
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         );
 
         event_status.merge(body_status)

@@ -135,7 +135,7 @@ where
             .filter_map(|connection| connection.listener.as_mut())
             .for_each(|listener| {
                 if let Err(error) = listener.try_send(event.clone()) {
-                    log::error!(
+                    log::warn!(
                         "Error sending event to subscription: {:?}",
                         error
                     );
