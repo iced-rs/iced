@@ -2,11 +2,15 @@
 use crate::{Bus, Css, Element, Hasher, Length, Widget};
 
 use dodrio::bumpalo;
+use js_sys::Array;
+use js_sys::Uint8Array;
 use std::{
     hash::{Hash, Hasher as _},
     path::PathBuf,
     sync::Arc,
 };
+use web_sys::Blob;
+use web_sys::Url;
 
 /// A frame that displays an image while keeping aspect ratio.
 ///
@@ -75,6 +79,7 @@ impl<Message> Widget<Message> for Image {
         let src = String::from_str_in(
             match self.handle.data.as_ref() {
                 Data::Path(path) => path.to_str().unwrap_or(""),
+                Data::ObjectUrl(url) => &url,
             },
             bump,
         )
@@ -122,6 +127,27 @@ impl Handle {
         Self::from_data(Data::Path(path.into()))
     }
 
+    /// Creates an image [`Handle`] containing the image data directly.
+    ///
+    /// NOTE: this unnecessarily takes ownership of the data to be compaticle with `iced_native`.
+    /// If you're only using `iced_web`, you should use `from_slice` instead.
+    pub fn from_memory(bytes: Vec<u8>) -> Handle {
+        Handle::from_slice(bytes.as_slice())
+    }
+
+    /// Creates an image [`Handle`] containing the image data directly.
+    pub fn from_slice(bytes: &[u8]) -> Handle {
+        // This copies the memory twice (once in Uint8Array::from and once in Blob::new),
+        // but unsafe code is needed not to do that and #[forbid(unsafe_code)] is on.
+        let blob = Blob::new_with_u8_array_sequence(&Array::of1(
+            &Uint8Array::from(bytes),
+        ))
+        .unwrap();
+        Self::from_data(Data::ObjectUrl(
+            Url::create_object_url_with_blob(&blob).unwrap(),
+        ))
+    }
+
     fn from_data(data: Data) -> Handle {
         let mut hasher = Hasher::default();
         data.hash(&mut hasher);
@@ -160,12 +186,25 @@ impl From<&str> for Handle {
 pub enum Data {
     /// A remote image
     Path(PathBuf),
+
+    /// An Object URL pointing to some image data.
+    ObjectUrl(String),
 }
 
 impl std::fmt::Debug for Data {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Data::Path(path) => write!(f, "Path({:?})", path),
+            Data::ObjectUrl(url) => write!(f, "ObjectUrl({:?})", url),
+        }
+    }
+}
+
+impl Drop for Data {
+    fn drop(&mut self) {
+        match self {
+            Data::ObjectUrl(url) => Url::revoke_object_url(&url).unwrap(),
+            _ => {}
         }
     }
 }
