@@ -15,6 +15,35 @@ pub struct Compositor {
     local_pool: futures::executor::LocalPool,
 }
 
+#[derive(Clone)]
+pub enum WgpuBackend {
+    Auto,
+    Vulkan,
+    Metal,
+    Dx12,
+    Dx11,
+    Gl,
+    BrowserWgpu,
+}
+
+impl WgpuBackend {
+    fn from_env() -> Self {
+        if let Ok(backend) = std::env::var("WGPU_BACKEND") {
+            match backend.to_lowercase().as_str() {
+                "vulkan" => WgpuBackend::Vulkan,
+                "metal" => WgpuBackend::Metal,
+                "dx12" => WgpuBackend::Dx12,
+                "dx11" => WgpuBackend::Dx11,
+                "gl" => WgpuBackend::Gl,
+                "webgpu" => WgpuBackend::BrowserWgpu,
+                other => panic!("Unknown backend: {}", other),
+            }
+        } else {
+            WgpuBackend::Auto
+        }
+    }
+}
+
 impl Compositor {
     const CHUNK_SIZE: u64 = 10 * 1024;
 
@@ -22,7 +51,17 @@ impl Compositor {
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
     pub async fn request(settings: Settings) -> Option<Self> {
-        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+        let backend = match WgpuBackend::from_env() {
+            WgpuBackend::Auto => wgpu::BackendBit::PRIMARY,
+            WgpuBackend::Vulkan => wgpu::BackendBit::VULKAN,
+            WgpuBackend::Metal => wgpu::BackendBit::METAL,
+            WgpuBackend::Dx12 => wgpu::BackendBit::DX12,
+            WgpuBackend::Dx11 => wgpu::BackendBit::DX11,
+            WgpuBackend::Gl => wgpu::BackendBit::GL,
+            WgpuBackend::BrowserWgpu => wgpu::BackendBit::BROWSER_WEBGPU,
+        };
+
+        let instance = wgpu::Instance::new(backend);
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
