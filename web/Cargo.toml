@@ -46,4 +46,5 @@ features = [
     "InputEvent",
     "KeyboardEvent",
     "Url",
+    "Blob",
 ]
