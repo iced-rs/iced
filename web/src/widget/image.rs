@@ -76,14 +76,21 @@ impl<Message> Widget<Message> for Image {
         use dodrio::builder::*;
         use dodrio::bumpalo::collections::String;
 
-        let src = String::from_str_in(
-            match self.handle.data.as_ref() {
-                Data::Path(path) => path.to_str().unwrap_or(""),
-                Data::ObjectUrl(url) => &url,
-            },
-            bump,
-        )
-        .into_bump_str();
+        let src = match self.handle.data.as_ref() {
+            Data::Path(path) => {
+                String::from_str_in(path.to_str().unwrap_or(""), bump)
+                    .into_bump_str()
+            }
+            Data::Bytes(bytes) => bump.alloc(
+                Url::create_object_url_with_blob(
+                    &Blob::new_with_u8_array_sequence(&Array::of1(
+                        &Uint8Array::from(bytes.as_slice()),
+                    ))
+                    .unwrap(),
+                )
+                .unwrap(),
+            ),
+        };
 
         let alt = String::from_str_in(&self.alt, bump).into_bump_str();
 
@@ -129,23 +136,10 @@ impl Handle {
 
     /// Creates an image [`Handle`] containing the image data directly.
     ///
-    /// NOTE: this unnecessarily takes ownership of the data to be compaticle with `iced_native`.
-    /// If you're only using `iced_web`, you should use `from_slice` instead.
+    /// This is useful if you already have your image loaded in-memory, maybe
+    /// because you downloaded or generated it procedurally.
     pub fn from_memory(bytes: Vec<u8>) -> Handle {
-        Handle::from_slice(bytes.as_slice())
-    }
-
-    /// Creates an image [`Handle`] containing the image data directly.
-    pub fn from_slice(bytes: &[u8]) -> Handle {
-        // This copies the memory twice (once in Uint8Array::from and once in Blob::new),
-        // but unsafe code is needed not to do that and #[forbid(unsafe_code)] is on.
-        let blob = Blob::new_with_u8_array_sequence(&Array::of1(
-            &Uint8Array::from(bytes),
-        ))
-        .unwrap();
-        Self::from_data(Data::ObjectUrl(
-            Url::create_object_url_with_blob(&blob).unwrap(),
-        ))
+        Self::from_data(Data::Bytes(bytes))
     }
 
     fn from_data(data: Data) -> Handle {
@@ -187,24 +181,15 @@ pub enum Data {
     /// A remote image
     Path(PathBuf),
 
-    /// An Object URL pointing to some image data.
-    ObjectUrl(String),
+    /// In-memory data
+    Bytes(Vec<u8>),
 }
 
 impl std::fmt::Debug for Data {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Data::Path(path) => write!(f, "Path({:?})", path),
-            Data::ObjectUrl(url) => write!(f, "ObjectUrl({:?})", url),
-        }
-    }
-}
-
-impl Drop for Data {
-    fn drop(&mut self) {
-        match self {
-            Data::ObjectUrl(url) => Url::revoke_object_url(&url).unwrap(),
-            _ => {}
+            Data::Bytes(_) => write!(f, "Bytes(...)"),
         }
     }
 }
