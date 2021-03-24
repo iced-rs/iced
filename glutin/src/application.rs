@@ -107,7 +107,22 @@ where
             return;
         }
 
-        if let Some(event) = event.to_static() {
+        let event = match event {
+            glutin::event::Event::WindowEvent {
+                event:
+                    glutin::event::WindowEvent::ScaleFactorChanged {
+                        new_inner_size,
+                        ..
+                    },
+                window_id,
+            } => Some(glutin::event::Event::WindowEvent {
+                event: glutin::event::WindowEvent::Resized(*new_inner_size),
+                window_id,
+            }),
+            _ => event.to_static(),
+        };
+
+        if let Some(event) = event {
             sender.start_send(event).expect("Send event");
 
             let poll = instance.as_mut().poll(&mut context);
