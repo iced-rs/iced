@@ -22,7 +22,7 @@ impl Compositor {
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
     pub async fn request(settings: Settings) -> Option<Self> {
-        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+        let instance = wgpu::Instance::new(settings.internal_backend);
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {

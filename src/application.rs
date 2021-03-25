@@ -206,7 +206,7 @@ pub trait Application: Sized {
                 } else {
                     None
                 },
-                ..crate::renderer::Settings::default()
+                ..crate::renderer::Settings::from_env()
             };
 
             Ok(crate::runtime::application::run::<

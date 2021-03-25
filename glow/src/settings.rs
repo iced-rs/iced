@@ -29,3 +29,12 @@ impl Default for Settings {
         }
     }
 }
+
+impl Settings {
+    /// Creates new [`Settings`] using environment configuration.
+    ///
+    /// Currently, this is equivalent to calling [`Settings::default`].
+    pub fn from_env() -> Self {
+        Self::default()
+    }
+}
