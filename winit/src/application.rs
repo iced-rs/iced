@@ -193,8 +193,9 @@ async fn run_instance<A, E, C>(
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    let surface = compositor.create_surface(&window);
-    let mut clipboard = Clipboard::connect(&window);
+    let window = std::sync::Arc::new(window);
+    let surface = compositor.create_surface(window.as_ref());
+    let mut clipboard = Clipboard::connect(window.clone());
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();

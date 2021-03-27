@@ -136,9 +136,12 @@ async fn run_instance<A, E, C>(
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
 
-    let mut clipboard = Clipboard::connect(context.window());
+    #[allow(unsafe_code)]
+    let (context, window) = unsafe { context.split() };
+    let window = std::sync::Arc::new(window);
+    let mut clipboard = Clipboard::connect(window.clone());
 
-    let mut state = application::State::new(&application, context.window());
+    let mut state = application::State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
@@ -195,7 +198,7 @@ async fn run_instance<A, E, C>(
                     );
 
                     // Update window
-                    state.synchronize(&application, context.window());
+                    state.synchronize(&application, &window);
 
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(
@@ -212,7 +215,7 @@ async fn run_instance<A, E, C>(
                     user_interface.draw(&mut renderer, state.cursor_position());
                 debug.draw_finished();
 
-                context.window().request_redraw();
+                window.request_redraw();
             }
             event::Event::UserEvent(message) => {
                 messages.push(message);
@@ -260,9 +263,9 @@ async fn run_instance<A, E, C>(
                 debug.render_finished();
 
                 if new_mouse_interaction != mouse_interaction {
-                    context.window().set_cursor_icon(
-                        conversion::mouse_interaction(new_mouse_interaction),
-                    );
+                    window.set_cursor_icon(conversion::mouse_interaction(
+                        new_mouse_interaction,
+                    ));
 
                     mouse_interaction = new_mouse_interaction;
                 }
@@ -279,7 +282,7 @@ async fn run_instance<A, E, C>(
                     break;
                 }
 
-                state.update(context.window(), &window_event, &mut debug);
+                state.update(&window, &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(
                     &window_event,

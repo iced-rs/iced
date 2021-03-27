@@ -20,6 +20,7 @@ pub fn main() {
     // Initialize winit
     let event_loop = EventLoop::new();
     let window = winit::window::Window::new(&event_loop).unwrap();
+    let window = std::sync::Arc::new(window);
 
     let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
@@ -28,11 +29,11 @@ pub fn main() {
     );
     let mut cursor_position = PhysicalPosition::new(-1.0, -1.0);
     let mut modifiers = ModifiersState::default();
-    let mut clipboard = Clipboard::connect(&window);
+    let mut clipboard = Clipboard::connect(window.clone());
 
     // Initialize wgpu
     let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
-    let surface = unsafe { instance.create_surface(&window) };
+    let surface = unsafe { instance.create_surface(window.as_ref()) };
 
     let (mut device, queue) = futures::executor::block_on(async {
         let adapter = instance
