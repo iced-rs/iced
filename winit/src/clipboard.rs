@@ -46,7 +46,7 @@ impl Clipboard {
     }
 }
 
-impl<'a> iced_native::Clipboard for Clipboard {
+impl iced_native::Clipboard for Clipboard {
     fn read(&self) -> Option<String> {
         self.read()
     }
