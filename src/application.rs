@@ -87,6 +87,10 @@ use crate::{
 ///     fn view(&mut self) -> Element<Self::Message> {
 ///         Text::new("Hello, world!").into()
 ///     }
+///
+///     fn exiting(&self) {
+///         println!("Cleaning up custom resources...")
+///     }
 /// }
 /// ```
 pub trait Application: Sized {
@@ -223,6 +227,9 @@ pub trait Application: Sized {
             Ok(())
         }
     }
+
+    /// Triggered when application is exiting.
+    fn exiting(&self) {}
 }
 
 struct Instance<A: Application>(A);
@@ -284,6 +291,10 @@ where
     fn scale_factor(&self) -> f64 {
         self.0.scale_factor()
     }
+
+    fn exiting(&self){
+        self.0.exiting()
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -319,5 +330,9 @@ where
 
     fn view(&mut self) -> Element<'_, Self::Message> {
         self.0.view()
+    }
+
+    fn exiting(&self){
+        self.0.exiting()
     }
 }

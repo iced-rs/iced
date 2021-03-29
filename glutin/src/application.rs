@@ -310,4 +310,6 @@ async fn run_instance<A, E, C>(
 
     // Manually drop the user interface
     drop(ManuallyDrop::into_inner(user_interface));
+
+    application.exiting();
 }
