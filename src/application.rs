@@ -292,7 +292,7 @@ where
         self.0.scale_factor()
     }
 
-    fn exiting(&self){
+    fn exiting(&self) {
         self.0.exiting()
     }
 }
@@ -332,7 +332,7 @@ where
         self.0.view()
     }
 
-    fn exiting(&self){
+    fn exiting(&self) {
         self.0.exiting()
     }
 }
