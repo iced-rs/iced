@@ -33,6 +33,9 @@ pub fn window_event(
                 height: logical_size.height,
             }))
         }
+        WindowEvent::CloseRequested => {
+            Some(Event::Window(window::Event::CloseRequested))
+        }
         WindowEvent::CursorMoved { position, .. } => {
             let position = position.to_logical::<f64>(scale_factor);
 

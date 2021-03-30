@@ -12,6 +12,12 @@ pub enum Event {
         height: u32,
     },
 
+    /// The user has requested for the window to close.
+    ///
+    /// Usually, you will want to terminate the execution whenever this event
+    /// occurs.
+    CloseRequested,
+
     /// A window was focused.
     Focused,
 
