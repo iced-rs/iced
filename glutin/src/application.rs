@@ -92,10 +92,11 @@ where
         application,
         compositor,
         renderer,
-        context,
         runtime,
         debug,
         receiver,
+        context,
+        settings.exit_on_close_request,
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
@@ -139,10 +140,11 @@ async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
     mut renderer: A::Renderer,
-    context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<glutin::event::Event<'_, A::Message>>,
+    context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
+    exit_on_close_request: bool,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -212,6 +214,8 @@ async fn run_instance<A, E, C>(
                     // Update window
                     state.synchronize(&application, context.window());
 
+                    let should_exit = application.should_exit();
+
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(
                             &mut application,
@@ -220,6 +224,10 @@ async fn run_instance<A, E, C>(
                             state.logical_size(),
                             &mut debug,
                         ));
+
+                    if should_exit {
+                        break;
+                    }
                 }
 
                 debug.draw_started();
@@ -290,6 +298,7 @@ async fn run_instance<A, E, C>(
                 ..
             } => {
                 if application::requests_exit(&window_event, state.modifiers())
+                    && exit_on_close_request
                 {
                     break;
                 }

@@ -184,6 +184,13 @@ pub trait Application: Sized {
         1.0
     }
 
+    /// Returns whether the [`Application`] should be terminated.
+    ///
+    /// By default, it returns `false`.
+    fn should_exit(&self) -> bool {
+        false
+    }
+
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -283,6 +290,10 @@ where
 
     fn scale_factor(&self) -> f64 {
         self.0.scale_factor()
+    }
+
+    fn should_exit(&self) -> bool {
+        self.0.should_exit()
     }
 }
 

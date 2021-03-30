@@ -23,6 +23,10 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub flags: Flags,
+
+    /// Whether the [`Application`] should exit when the user requests the
+    /// window to close (e.g. the user presses the close button).
+    pub exit_on_close_request: bool,
 }
 
 /// The window settings of an application.
