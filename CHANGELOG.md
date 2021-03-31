@@ -6,10 +6,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Support for the [`smol`] async runtime. [#699]
+- Touch support. [#57] [#650] (thanks to @simlay and @discordance!)
+- Clipboard write access for
+  - `TextInput` widget. [#770]
+  - `Application::update`. [#773]
+- `image::Viewer` widget. It allows panning and scaling of an image. [#319] (thanks to @tarkah!)
+- `Tooltip` widget. It annotates content with some text on mouse hover. [#465] (thanks to @yusdacra!)
+- Support for the [`smol`] async runtime. [#699] (thanks to @JayceFayne!)
+- Support for graceful exiting when using the `Application` trait. [#804]
+- Image format features in [`iced_wgpu`] to reduce code bloat. [#392] (thanks to @unrelentingtech!)
+- `Focused` and `Unfocused` variant to `window::Event`. [#701] (thanks to @cossonleo!)
+- `WGPU_BACKEND` environment variable to configure the internal graphics backend of `iced_wgpu`. [#789] (thanks to @Cupnfish!)
 
+### Changed
+- The `TitleBar` of a `PaneGrid` now supports generic elements. [#657] (thanks to @clarkmoody!)
+- The `Error` type now implements `Send` and `Sync`. [#719] (thanks to @taiki-e!)
+- The `Style` types in `iced_style` now implement `Clone` and `Copy`. [#720] (thanks to @taiki-e!)
+- The following dependencies have been updated:
+  - [`font-kit`] → `0.10` [#669]
+  - [`glutin`] → `0.26` [#658]
+  - [`resvg`] → `0.12` [#669]
+  - [`tokio`] → `1.0` [#672] (thanks to @yusdacra!)
+  - [`winit`] → `0.24` [#658]
+  - [`wgpu`] → `0.7` [#725] (thanks to @PolyMeilex)
+- The following examples were improved:
+  - `download_progress` now showcases multiple file downloads at once. [#283] (thanks to @Folyd!)
+  - `solar_system` uses the new `rand` API. [#760] (thanks to @TriedAngle!)
+
+### Fixed
+- Button events not being propagated to contents. [#668]
+- Incorrect overlay implementation for the `Button` widget. [#764]
+- `Viewport::physical_width` returning the wrong value. [#700]
+- Outdated documentation for the `Sandbox` trait. [#710]
+
+[#57]: https://github.com/hecrj/iced/pull/57
+[#283]: https://github.com/hecrj/iced/pull/283
+[#319]: https://github.com/hecrj/iced/pull/319
+[#392]: https://github.com/hecrj/iced/pull/392
+[#465]: https://github.com/hecrj/iced/pull/465
+[#650]: https://github.com/hecrj/iced/pull/650
+[#657]: https://github.com/hecrj/iced/pull/657
+[#658]: https://github.com/hecrj/iced/pull/658
+[#668]: https://github.com/hecrj/iced/pull/668
+[#669]: https://github.com/hecrj/iced/pull/669
+[#672]: https://github.com/hecrj/iced/pull/672
 [#699]: https://github.com/hecrj/iced/pull/699
+[#700]: https://github.com/hecrj/iced/pull/700
+[#701]: https://github.com/hecrj/iced/pull/701
+[#710]: https://github.com/hecrj/iced/pull/710
+[#719]: https://github.com/hecrj/iced/pull/719
+[#720]: https://github.com/hecrj/iced/pull/720
+[#725]: https://github.com/hecrj/iced/pull/725
+[#760]: https://github.com/hecrj/iced/pull/760
+[#764]: https://github.com/hecrj/iced/pull/764
+[#770]: https://github.com/hecrj/iced/pull/770
+[#773]: https://github.com/hecrj/iced/pull/773
+[#789]: https://github.com/hecrj/iced/pull/789
+[#804]: https://github.com/hecrj/iced/pull/804
 [`smol`]: https://github.com/smol-rs/smol
+[`winit`]: https://github.com/rust-windowing/winit
+[`glutin`]: https://github.com/rust-windowing/glutin
+[`font-kit`]: https://github.com/servo/font-kit
 
 ## [0.2.0] - 2020-11-26
 ### Added
