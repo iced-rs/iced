@@ -25,6 +25,10 @@ pub struct Settings<Flags> {
     /// The default value is 20.
     pub default_text_size: u16,
 
+    /// Whether the [`Application`] should exit when the user requests the
+    /// window to close (e.g. the user presses the close button).
+    pub exit_on_close_request: bool,
+
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
     ///
@@ -46,10 +50,11 @@ impl<Flags> Settings<Flags> {
 
         Self {
             flags,
-            antialiasing: default_settings.antialiasing,
+            window: default_settings.window,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
-            window: default_settings.window,
+            exit_on_close_request: default_settings.exit_on_close_request,
+            antialiasing: default_settings.antialiasing,
         }
     }
 }
@@ -61,10 +66,11 @@ where
     fn default() -> Self {
         Self {
             flags: Default::default(),
-            antialiasing: Default::default(),
+            window: Default::default(),
             default_font: Default::default(),
             default_text_size: 20,
-            window: Default::default(),
+            exit_on_close_request: true,
+            antialiasing: false,
         }
     }
 }
@@ -75,6 +81,7 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
         iced_winit::Settings {
             window: settings.window.into(),
             flags: settings.flags,
+            exit_on_close_request: settings.exit_on_close_request,
         }
     }
 }
