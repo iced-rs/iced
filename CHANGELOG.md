@@ -207,7 +207,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [`wasm-bindgen-futures`]: https://github.com/rustwasm/wasm-bindgen/tree/master/crates/futures
 [`resvg`]: https://github.com/RazrFalcon/resvg
 [`raqote`]: https://github.com/jrmuizel/raqote
-[`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.1/wgpu
+[`iced_wgpu`]: https://github.com/hecrj/iced/tree/master/wgpu
 
 
 ## [0.1.0-beta] - 2019-11-25
