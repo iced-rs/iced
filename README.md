@@ -55,7 +55,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.2"
+iced = "0.3"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

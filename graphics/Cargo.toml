@@ -1,6 +1,6 @@
 [package]
 name = "iced_graphics"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
@@ -28,11 +28,11 @@ version = "1.4"
 features = ["derive"]
 
 [dependencies.iced_native]
-version = "0.3"
+version = "0.4"
 path = "../native"
 
 [dependencies.iced_style]
-version = "0.2"
+version = "0.3"
 path = "../style"
 
 [dependencies.lyon]

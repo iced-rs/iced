@@ -20,7 +20,7 @@ It exposes a renderer-agnostic `Application` trait that can be implemented and t
 Add `iced_winit` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_winit = "0.2"
+iced_winit = "0.3"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

@@ -1,6 +1,6 @@
 [package]
 name = "iced_web"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A web backend for Iced"
@@ -22,15 +22,15 @@ url = "2.0"
 num-traits = "0.2"
 
 [dependencies.iced_core]
-version = "0.3"
+version = "0.4"
 path = "../core"
 
 [dependencies.iced_futures]
-version = "0.2"
+version = "0.3"
 path = "../futures"
 
 [dependencies.iced_style]
-version = "0.2"
+version = "0.3"
 path = "../style"
 
 [dependencies.web-sys]
