@@ -102,4 +102,4 @@ iced_web = { version = "0.4", path = "web" }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
-features = ["image", "svg", "canvas"]
+features = ["image", "svg", "canvas", "qr_code"]
