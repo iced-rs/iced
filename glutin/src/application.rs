@@ -55,6 +55,7 @@ where
         let builder = settings.window.into_builder(
             &application.title(),
             application.mode(),
+            application.visible(),
             event_loop.primary_monitor(),
         );
 
