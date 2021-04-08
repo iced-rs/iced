@@ -110,7 +110,16 @@ impl Backend {
         target_width: u32,
         target_height: u32,
     ) {
-        let bounds = (layer.bounds * scale_factor).snap();
+        let target_bounds = iced_graphics::Rectangle::with_size(
+            iced_graphics::Size::new(target_width as f32, target_height as f32),
+        );
+        let mut bounds_float = layer.bounds * scale_factor;
+        bounds_float.width =
+            bounds_float.width.min(target_width as f32 - bounds_float.x);
+        bounds_float.height = bounds_float
+            .height
+            .min(target_height as f32 - bounds_float.y);
+        let bounds = bounds_float.snap();
 
         if !layer.quads.is_empty() {
             self.quad_pipeline.draw(
