@@ -191,6 +191,13 @@ pub trait Application: Sized {
         false
     }
 
+    /// Returns whether the [`Application`] should be visible or not
+    ///
+    /// By default, it returns `true`.
+    fn visible(&self) -> bool {
+        true
+    }
+
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -294,6 +301,10 @@ where
 
     fn should_exit(&self) -> bool {
         self.0.should_exit()
+    }
+
+    fn visible(&self) -> bool {
+        self.0.visible()
     }
 }
 

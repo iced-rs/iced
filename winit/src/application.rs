@@ -98,6 +98,13 @@ pub trait Application: Program<Clipboard = Clipboard> {
     fn should_exit(&self) -> bool {
         false
     }
+
+    /// Returns whether the [`Application`] should be visible or not
+    ///
+    /// By default, it returns `true`.
+    fn visible(&self) -> bool {
+        true
+    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -145,6 +152,7 @@ where
         .into_builder(
             &application.title(),
             application.mode(),
+            application.visible(),
             event_loop.primary_monitor(),
         )
         .build(&event_loop)
