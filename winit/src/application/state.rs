@@ -12,7 +12,6 @@ pub struct State<A: Application> {
     mode: Mode,
     background_color: Color,
     scale_factor: f64,
-    visible: bool,
     viewport: Viewport,
     viewport_version: usize,
     cursor_position: winit::dpi::PhysicalPosition<f64>,
@@ -27,7 +26,6 @@ impl<A: Application> State<A> {
         let mode = application.mode();
         let background_color = application.background_color();
         let scale_factor = application.scale_factor();
-        let visible = application.visible();
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -43,7 +41,6 @@ impl<A: Application> State<A> {
             mode,
             background_color,
             scale_factor,
-            visible,
             viewport,
             viewport_version: 0,
             // TODO: Encode cursor availability in the type-system
@@ -185,6 +182,8 @@ impl<A: Application> State<A> {
                 new_mode,
             ));
 
+            window.set_visible(conversion::visible(new_mode));
+
             self.mode = new_mode;
         }
 
@@ -203,15 +202,6 @@ impl<A: Application> State<A> {
             );
 
             self.scale_factor = new_scale_factor;
-        }
-
-        // Update window visibility
-        let new_visible = application.visible();
-
-        if self.visible != new_visible {
-            window.set_visible(new_visible);
-
-            self.visible = new_visible;
         }
     }
 }

@@ -66,7 +66,6 @@ impl Window {
         self,
         title: &str,
         mode: Mode,
-        visible: bool,
         primary_monitor: Option<MonitorHandle>,
     ) -> WindowBuilder {
         let mut window_builder = WindowBuilder::new();
@@ -82,7 +81,7 @@ impl Window {
             .with_window_icon(self.icon)
             .with_always_on_top(self.always_on_top)
             .with_fullscreen(conversion::fullscreen(primary_monitor, mode))
-            .with_visible(visible);
+            .with_visible(conversion::visible(mode));
 
         if let Some((width, height)) = self.min_size {
             window_builder = window_builder

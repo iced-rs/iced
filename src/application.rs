@@ -191,13 +191,6 @@ pub trait Application: Sized {
         false
     }
 
-    /// Returns whether the [`Application`] should be visible or not
-    ///
-    /// By default, it returns `true`.
-    fn visible(&self) -> bool {
-        true
-    }
-
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -284,6 +277,7 @@ where
         match self.0.mode() {
             window::Mode::Windowed => iced_winit::Mode::Windowed,
             window::Mode::Fullscreen => iced_winit::Mode::Fullscreen,
+            window::Mode::Hidden => iced_winit::Mode::Hidden,
         }
     }
 
@@ -301,10 +295,6 @@ where
 
     fn should_exit(&self) -> bool {
         self.0.should_exit()
-    }
-
-    fn visible(&self) -> bool {
-        self.0.visible()
     }
 }
 
