@@ -2,15 +2,11 @@
 use crate::{Bus, Css, Element, Hasher, Length, Widget};
 
 use dodrio::bumpalo;
-use js_sys::Array;
-use js_sys::Uint8Array;
 use std::{
     hash::{Hash, Hasher as _},
     path::PathBuf,
     sync::Arc,
 };
-use web_sys::Blob;
-use web_sys::Url;
 
 /// A frame that displays an image while keeping aspect ratio.
 ///
@@ -79,18 +75,13 @@ impl<Message> Widget<Message> for Image {
         let src = match self.handle.data.as_ref() {
             Data::Path(path) => {
                 String::from_str_in(path.to_str().unwrap_or(""), bump)
-                    .into_bump_str()
             }
-            Data::Bytes(bytes) => bump.alloc(
-                Url::create_object_url_with_blob(
-                    &Blob::new_with_u8_array_sequence(&Array::of1(
-                        &Uint8Array::from(bytes.as_slice()),
-                    ))
-                    .unwrap(),
-                )
-                .unwrap(),
-            ),
-        };
+            Data::Bytes(bytes) => {
+                // The web is able to infer the kind of image, so we don't have to add a dependency on image-rs to guess the mime type.
+                bumpalo::format!(in bump, "data:;base64,{}", base64::encode(bytes))
+            },
+        }
+        .into_bump_str();
 
         let alt = String::from_str_in(&self.alt, bump).into_bump_str();
 
