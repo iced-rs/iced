@@ -80,7 +80,8 @@ impl Window {
             .with_transparent(self.transparent)
             .with_window_icon(self.icon)
             .with_always_on_top(self.always_on_top)
-            .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
+            .with_fullscreen(conversion::fullscreen(primary_monitor, mode))
+            .with_visible(conversion::visible(mode));
 
         if let Some((width, height)) = self.min_size {
             window_builder = window_builder

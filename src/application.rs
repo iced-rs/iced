@@ -277,6 +277,7 @@ where
         match self.0.mode() {
             window::Mode::Windowed => iced_winit::Mode::Windowed,
             window::Mode::Fullscreen => iced_winit::Mode::Fullscreen,
+            window::Mode::Hidden => iced_winit::Mode::Hidden,
         }
     }
 

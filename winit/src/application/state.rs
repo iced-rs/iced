@@ -182,6 +182,8 @@ impl<A: Application> State<A> {
                 new_mode,
             ));
 
+            window.set_visible(conversion::visible(new_mode));
+
             self.mode = new_mode;
         }
 
