@@ -26,8 +26,8 @@ qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
 
 [dependencies]
-wgpu = "0.7"
-wgpu_glyph = "0.11"
+wgpu = {git = "https://github.com/gfx-rs/wgpu-rs", rev = "53600ecd834893ef3e90458c48b84f2582d6c343"}
+wgpu_glyph = {git = "https://github.com/Dispersia/wgpu_glyph", branch = "update-wgpu"}
 glyph_brush = "0.7"
 raw-window-handle = "0.3"
 log = "0.4"
