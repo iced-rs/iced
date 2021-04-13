@@ -127,11 +127,14 @@ impl Pipeline {
                 bind_group_layouts: &[&constants_layout],
             });
 
-        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-            label: Some("iced_wgpu::triangle::shader"),
-            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!("shader/triangle.wgsl"))),
-            flags: wgpu::ShaderFlags::all()
-        });
+        let shader =
+            device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("iced_wgpu::triangle::shader"),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
+                    include_str!("shader/triangle.wgsl"),
+                )),
+                flags: wgpu::ShaderFlags::all(),
+            });
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -303,8 +306,6 @@ impl Pipeline {
                         vertex_buffer.copy_from_slice(vertices);
                     }
 
-                    println!("Indices: {} - Index Size: {}", indices_size, self.index_buffer.size);
-
                     {
                         let mut index_buffer = staging_belt.write_buffer(
                             encoder,
@@ -366,13 +367,11 @@ impl Pipeline {
             let mut render_pass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("iced_wgpu::triangle render pass"),
-                    color_attachments: &[
-                        wgpu::RenderPassColorAttachment {
-                            view: attachment,
-                            resolve_target,
-                            ops: wgpu::Operations { load, store: true },
-                        },
-                    ],
+                    color_attachments: &[wgpu::RenderPassColorAttachment {
+                        view: attachment,
+                        resolve_target,
+                        ops: wgpu::Operations { load, store: true },
+                    }],
                     depth_stencil_attachment: None,
                 });
 
