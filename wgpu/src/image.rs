@@ -183,7 +183,7 @@ impl Pipeline {
                                 },
                                 wgpu::VertexAttribute {
                                     shader_location: 5,
-                                    format: wgpu::VertexFormat::Uint32,
+                                    format: wgpu::VertexFormat::Sint32,
                                     offset: 4 * 8,
                                 },
                             ],
