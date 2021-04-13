@@ -119,5 +119,5 @@ fn fs_main(
         input.border_radius + 0.5,
         dist);
 
-    return vec4<f32>(radius_alpha, radius_alpha, radius_alpha, radius_alpha);
+    return vec4<f32>(mixed_color.x, mixed_color.y, mixed_color.z, mixed_color.w * radius_alpha);
 }

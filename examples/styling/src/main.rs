@@ -44,7 +44,7 @@ impl Sandbox for Styling {
         match message {
             Message::ThemeChanged(theme) => self.theme = theme,
             Message::InputChanged(value) => self.input_value = value,
-            Message::ButtonPressed => (),
+            Message::ButtonPressed => {}
             Message::SliderChanged(value) => self.slider_value = value,
             Message::CheckboxToggled(value) => self.toggle_value = value,
         }

@@ -97,23 +97,25 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::InvalidData { byte_count } => {
-                write!(f,
-                "The provided RGBA data (with length {:?}) isn't divisble by \
+                write!(
+                    f,
+                    "The provided RGBA data (with length {:?}) isn't divisble by \
                 4. Therefore, it cannot be safely interpreted as 32bpp RGBA \
                 pixels.",
-                byte_count,
-            )
+                    byte_count,
+                )
             }
             Error::DimensionsMismatch {
                 width,
                 height,
                 pixel_count,
             } => {
-                write!(f,
-                "The number of RGBA pixels ({:?}) does not match the provided \
+                write!(
+                    f,
+                    "The number of RGBA pixels ({:?}) does not match the provided \
                 dimensions ({:?}x{:?}).",
-                pixel_count, width, height,
-            )
+                    pixel_count, width, height,
+                )
             }
             Error::OsError(e) => write!(
                 f,

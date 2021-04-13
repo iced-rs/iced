@@ -74,11 +74,14 @@ impl Blit {
                 bind_group_layouts: &[&constant_layout, &texture_layout],
             });
 
-        let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-            label: Some("iced_wgpu::triangle::blit_shader"),
-            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(include_str!("../shader/blit.wgsl"))),
-            flags: wgpu::ShaderFlags::all()
-        });
+        let shader =
+            device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("iced_wgpu::triangle::blit_shader"),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
+                    include_str!("../shader/blit.wgsl"),
+                )),
+                flags: wgpu::ShaderFlags::all(),
+            });
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -176,16 +179,14 @@ impl Blit {
         let mut render_pass =
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("iced_wgpu::triangle::msaa render pass"),
-                color_attachments: &[
-                    wgpu::RenderPassColorAttachment {
-                        view: target,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Load,
-                            store: true,
-                        },
+                color_attachments: &[wgpu::RenderPassColorAttachment {
+                    view: target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
                     },
-                ],
+                }],
                 depth_stencil_attachment: None,
             });
 
