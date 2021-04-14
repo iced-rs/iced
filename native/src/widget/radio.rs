@@ -1,16 +1,16 @@
 //! Create choices using radio buttons.
-use crate::event::{self, Event};
-use crate::{layout, Color};
-use crate::mouse;
-use crate::row;
-use crate::text;
-use crate::touch;
+use std::hash::Hash;
+
+use crate::{Color, layout};
 use crate::{
     Align, Clipboard, Element, Hasher, HorizontalAlignment, Layout, Length,
     Point, Rectangle, Row, Text, VerticalAlignment, Widget,
 };
-
-use std::hash::Hash;
+use crate::event::{self, Event};
+use crate::mouse;
+use crate::row;
+use crate::text;
+use crate::touch;
 
 /// A circular button representing a choice.
 ///
@@ -53,7 +53,7 @@ pub struct Radio<Message, Renderer: self::Renderer + text::Renderer> {
 }
 
 impl<Message, Renderer: self::Renderer + text::Renderer>
-Radio<Message, Renderer>
+    Radio<Message, Renderer>
 where
     Message: Clone,
 {
