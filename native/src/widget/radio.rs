@@ -1,6 +1,6 @@
 //! Create choices using radio buttons.
 use crate::event::{self, Event};
-use crate::layout;
+use crate::{layout, Color};
 use crate::mouse;
 use crate::row;
 use crate::text;
@@ -47,11 +47,13 @@ pub struct Radio<Message, Renderer: self::Renderer + text::Renderer> {
     size: u16,
     spacing: u16,
     text_size: Option<u16>,
+    text_color: Option<Color>,
+    font: Renderer::Font,
     style: Renderer::Style,
 }
 
 impl<Message, Renderer: self::Renderer + text::Renderer>
-    Radio<Message, Renderer>
+Radio<Message, Renderer>
 where
     Message: Clone,
 {
@@ -81,6 +83,8 @@ where
             size: <Renderer as self::Renderer>::DEFAULT_SIZE,
             spacing: Renderer::DEFAULT_SPACING, //15
             text_size: None,
+            text_color: None,
+            font: Default::default(),
             style: Renderer::Style::default(),
         }
     }
@@ -106,6 +110,18 @@ where
     /// Sets the text size of the [`Radio`] button.
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
+        self
+    }
+
+    /// Sets the text color of the [`Radio`] button.
+    pub fn text_color(mut self, color: Color) -> Self {
+        self.text_color = Some(color);
+        self
+    }
+
+    /// Sets the text font of the [`Radio`] button.
+    pub fn font(mut self, font: Renderer::Font) -> Self {
+        self.font = font;
         self
     }
 
@@ -196,8 +212,8 @@ where
             label_layout.bounds(),
             &self.label,
             self.text_size.unwrap_or(renderer.default_size()),
-            Default::default(),
-            None,
+            self.font,
+            self.text_color.clone(),
             HorizontalAlignment::Left,
             VerticalAlignment::Center,
         );
