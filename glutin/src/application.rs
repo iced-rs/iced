@@ -237,6 +237,9 @@ async fn run_instance<A, E, C>(
 
                 context.window().request_redraw();
             }
+            event::Event::ReceivedUrl(url) => {
+                events.push(iced_native::Event::UrlReceived(url));
+            }
             event::Event::UserEvent(message) => {
                 messages.push(message);
             }

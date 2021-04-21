@@ -84,12 +84,16 @@ members = [
     "examples/todos",
     "examples/tour",
     "examples/tooltip",
+    "examples/url_handler",
 ]
 
 [dependencies]
 iced_core = { version = "0.4", path = "core" }
 iced_futures = { version = "0.3", path = "futures" }
 thiserror = "1.0"
+
+[patch.crates-io]
+winit = { git="https://github.com/cryptowatch/winit", rev="f9180f3b3c0f4fb8fd8c65bd0adf641cd6b32dd0" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced_winit = { version = "0.3", path = "winit" }

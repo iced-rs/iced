@@ -23,6 +23,10 @@ pub enum Event {
 
     /// A touch event
     Touch(touch::Event),
+    
+    // TODO: System(system::Event)?
+    /// A url was received.
+    UrlReceived(String),
 }
 
 /// The status of an [`Event`] after being processed.
