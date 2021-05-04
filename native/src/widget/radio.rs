@@ -213,7 +213,7 @@ where
             &self.label,
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
-            self.text_color.clone(),
+            self.text_color,
             HorizontalAlignment::Left,
             VerticalAlignment::Center,
         );
