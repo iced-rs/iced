@@ -1,8 +1,8 @@
 mod style;
 
 use iced::{
-    scrollable, Column, Container, Element, Length, Radio, Row, Rule, Sandbox,
-    Scrollable, Settings, Space, Text,
+    button, scrollable, Button, Column, Container, Element, Length, Radio, Row,
+    Rule, Sandbox, Scrollable, Settings, Space, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -63,12 +63,14 @@ impl Sandbox for ScrollableDemo {
             variants
                 .iter_mut()
                 .map(|variant| {
-                    let mut scrollable = Scrollable::new(&mut variant.state)
-                        .padding(10)
-                        .width(Length::Fill)
-                        .height(Length::Fill)
-                        .style(*theme)
-                        .push(Text::new(variant.title));
+                    let mut scrollable =
+                        Scrollable::new(&mut variant.scrollable)
+                            .padding(10)
+                            .spacing(10)
+                            .width(Length::Fill)
+                            .height(Length::Fill)
+                            .style(*theme)
+                            .push(Text::new(variant.title));
 
                     if let Some(scrollbar_width) = variant.scrollbar_width {
                         scrollable = scrollable
@@ -108,6 +110,14 @@ impl Sandbox for ScrollableDemo {
                         .push(Space::with_height(Length::Units(1200)))
                         .push(Text::new("Middle"))
                         .push(Space::with_height(Length::Units(1200)))
+                        .push(
+                            Button::new(
+                                &mut variant.button,
+                                Text::new("I am a button"),
+                            )
+                            .width(Length::Fill)
+                            .padding(10),
+                        )
                         .push(Text::new("The End."));
 
                     Container::new(scrollable)
@@ -142,7 +152,8 @@ impl Sandbox for ScrollableDemo {
 /// A version of a scrollable
 struct Variant {
     title: &'static str,
-    state: scrollable::State,
+    scrollable: scrollable::State,
+    button: button::State,
     scrollbar_width: Option<u16>,
     scrollbar_margin: Option<u16>,
     scroller_width: Option<u16>,
@@ -153,28 +164,32 @@ impl Variant {
         vec![
             Self {
                 title: "Default Scrollbar",
-                state: scrollable::State::new(),
+                scrollable: scrollable::State::new(),
+                button: button::State::new(),
                 scrollbar_width: None,
                 scrollbar_margin: None,
                 scroller_width: None,
             },
             Self {
                 title: "Slimmed & Margin",
-                state: scrollable::State::new(),
+                scrollable: scrollable::State::new(),
+                button: button::State::new(),
                 scrollbar_width: Some(4),
                 scrollbar_margin: Some(3),
                 scroller_width: Some(4),
             },
             Self {
                 title: "Wide Scroller",
-                state: scrollable::State::new(),
+                scrollable: scrollable::State::new(),
+                button: button::State::new(),
                 scrollbar_width: Some(4),
                 scrollbar_margin: None,
                 scroller_width: Some(10),
             },
             Self {
                 title: "Narrow Scroller",
-                state: scrollable::State::new(),
+                scrollable: scrollable::State::new(),
+                button: button::State::new(),
                 scrollbar_width: Some(10),
                 scrollbar_margin: None,
                 scroller_width: Some(4),
