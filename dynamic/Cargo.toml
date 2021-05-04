@@ -1,0 +1,18 @@
+[package]
+name = "iced_dynamic"
+version = "0.3.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+description = "A cross-platform GUI library inspired by Elm"
+license = "MIT"
+repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced"
+readme = "README.md"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+iced_internal = { path = "../internal", version = "0.3.0", default-features = false }

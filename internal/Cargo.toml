@@ -1,0 +1,60 @@
+[package]
+name = "iced_internal"
+version = "0.3.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2018"
+description = "A cross-platform GUI library inspired by Elm"
+license = "MIT"
+repository = "https://github.com/hecrj/iced"
+documentation = "https://docs.rs/iced"
+readme = "README.md"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
+
+[features]
+# Enables the `iced_wgpu` renderer
+wgpu = ["iced_wgpu"]
+# Enables the `Image` widget
+image = ["iced_wgpu/image"]
+# Enables the `Svg` widget
+svg = ["iced_wgpu/svg"]
+# Enables the `Canvas` widget
+canvas = ["iced_wgpu/canvas"]
+# Enables the `QRCode` widget
+qr_code = ["iced_wgpu/qr_code"]
+# Enables using system fonts
+default_system_font = ["iced_wgpu/default_system_font"]
+# Enables the `iced_glow` renderer. Overrides `iced_wgpu`
+glow = ["iced_glow", "iced_glutin"]
+# Enables the `Canvas` widget for `iced_glow`
+glow_canvas = ["iced_glow/canvas"]
+# Enables the `QRCode` widget for `iced_glow`
+glow_qr_code = ["iced_glow/qr_code"]
+# Enables using system fonts for `iced_glow`
+glow_default_system_font = ["iced_glow/default_system_font"]
+# Enables a debug view in native platforms (press F12)
+debug = ["iced_winit/debug"]
+# Enables `tokio` as the `executor::Default` on native platforms
+tokio = ["iced_futures/tokio"]
+# Enables old `tokio` (0.2) as the `executor::Default` on native platforms
+tokio_old = ["iced_futures/tokio_old"]
+# Enables `async-std` as the `executor::Default` on native platforms
+async-std = ["iced_futures/async-std"]
+# Enables `smol` as the `executor::Default` on native platforms
+smol = ["iced_futures/smol"]
+# Enables advanced color conversion via `palette`
+palette = ["iced_core/palette"]
+
+[dependencies]
+iced_core = { version = "0.4", path = "../core" }
+iced_futures = { version = "0.3", path = "../futures" }
+thiserror = "1.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+iced_winit = { version = "0.3", path = "../winit" }
+iced_glutin = { version = "0.2", path = "../glutin", optional = true }
+iced_wgpu = { version = "0.4", path = "../wgpu", optional = true }
+iced_glow = { version = "0.2", path = "../glow", optional = true}
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+iced_web = { version = "0.4", path = "../web" }
