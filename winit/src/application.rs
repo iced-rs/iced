@@ -118,8 +118,6 @@ where
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let (compositor, renderer) = C::new(compositor_settings)?;
-
     let event_loop = EventLoop::with_user_event();
 
     let mut runtime = {
@@ -149,6 +147,8 @@ where
         )
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
+
+    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
     let (mut sender, receiver) = mpsc::unbounded();
 
