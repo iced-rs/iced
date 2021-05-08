@@ -31,6 +31,7 @@ Inspired by [Elm].
     * A [built-in renderer] supporting Vulkan, Metal, DX11, and DX12
     * A [windowing shell]
     * A [web runtime] leveraging the DOM
+  * Fast iteration times with dynamic linking (`--features iced/dynamic`)
 
 __Iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
