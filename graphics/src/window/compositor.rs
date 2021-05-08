@@ -17,7 +17,10 @@ pub trait Compositor: Sized {
     type SwapChain;
 
     /// Creates a new [`Compositor`].
-    fn new(settings: Self::Settings) -> Result<(Self, Self::Renderer), Error>;
+    fn new<W: HasRawWindowHandle>(
+        settings: Self::Settings,
+        compatible_window: Option<&W>,
+    ) -> Result<(Self, Self::Renderer), Error>;
 
     /// Crates a new [`Surface`] for the given window.
     ///
