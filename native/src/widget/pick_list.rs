@@ -25,6 +25,7 @@ where
     on_selected: Box<dyn Fn(T) -> Message>,
     options: Cow<'a, [T]>,
     selected: Option<T>,
+    on_change: Option<Message>,
     width: Length,
     padding: u16,
     text_size: Option<u16>,
@@ -82,6 +83,7 @@ where
             on_selected: Box::new(on_selected),
             options: options.into(),
             selected,
+            on_change: None,
             width: Length::Shrink,
             text_size: None,
             padding: Renderer::DEFAULT_PADDING,
@@ -111,6 +113,12 @@ where
     /// Sets the font of the [`PickList`].
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
+        self
+    }
+
+    /// Sets the message sent when [`PickList`] selection changes
+    pub fn on_change(mut self, msg: Message) -> Self {
+        self.on_change = Some(msg);
         self
     }
 
@@ -247,6 +255,66 @@ where
                     event_status
                 }
             }
+            Event::Mouse(mouse::Event::WheelScrolled { delta })
+                if layout.bounds().contains(cursor_position)
+                    && !*self.is_open =>
+            {
+                let y = match delta {
+                    mouse::ScrollDelta::Lines { y, .. }
+                    | mouse::ScrollDelta::Pixels { y, .. } => y,
+                };
+
+                if y.is_sign_negative() {
+                    if let Some(selected) = self.selected.as_ref() {
+                        let i = self
+                            .options
+                            .iter()
+                            .position(|option| option == selected)
+                            .unwrap_or(0)
+                            + 1;
+                        if i < self.options.len() {
+                            messages.push((self.on_selected)(
+                                self.options[i].clone(),
+                            ));
+                            if let Some(msg) = self.on_change.take() {
+                                messages.push(msg)
+                            }
+                        }
+                    } else {
+                        messages
+                            .push((self.on_selected)(self.options[0].clone()));
+                            if let Some(msg) = self.on_change.take() {
+                                messages.push(msg)
+                            }
+                    }
+                } else {
+                    if let Some(selected) = self.selected.as_ref() {
+                        let i = self
+                            .options
+                            .iter()
+                            .position(|option| option == selected)
+                            .unwrap_or(0);
+                        if i != 0 {
+                            messages.push((self.on_selected)(
+                                self.options[i - 1].clone(),
+                            ));
+                            if let Some(msg) = self.on_change.take() {
+                                messages.push(msg)
+                            }
+                        }
+                    } else {
+                        messages.push((self.on_selected)(
+                            self.options[self.options.len() - 1].clone(),
+                        ));
+                        if let Some(msg) = self.on_change.take() {
+                            messages.push(msg)
+                        }
+                    }
+                }
+
+                return event::Status::Captured;
+            }
+
             _ => event::Status::Ignored,
         }
     }
