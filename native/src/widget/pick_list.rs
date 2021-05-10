@@ -265,19 +265,11 @@ where
                 };
 
                 if y.is_sign_negative() {
+                    let mut options_iter = self.options.iter();
                     if let Some(selected) = self.selected.as_ref() {
-                        let i = self
-                            .options
-                            .iter()
-                            .position(|option| option == selected)
-                            .unwrap_or(0)
-                            + 1;
-                        if i < self.options.len() {
-                            messages.push((self.on_selected)(
-                                self.options[i].clone(),
-                            ));
-                            if let Some(msg) = self.on_change.take() {
-                                messages.push(msg)
+                        if let Some(_) = options_iter.position(|o| o == selected) {
+                            if let Some(prev_val) = options_iter.next() {
+                                messages.push((self.on_selected)(prev_val.clone()));
                             }
                         }
                     } else {
@@ -288,18 +280,11 @@ where
                             }
                     }
                 } else {
+                    let mut options_iter = self.options.iter().rev();
                     if let Some(selected) = self.selected.as_ref() {
-                        let i = self
-                            .options
-                            .iter()
-                            .position(|option| option == selected)
-                            .unwrap_or(0);
-                        if i != 0 {
-                            messages.push((self.on_selected)(
-                                self.options[i - 1].clone(),
-                            ));
-                            if let Some(msg) = self.on_change.take() {
-                                messages.push(msg)
+                        if let Some(_) = options_iter.position(|o| o == selected) {
+                            if let Some(next_val) = options_iter.next() {
+                                messages.push((self.on_selected)(next_val.clone()));
                             }
                         }
                     } else {
