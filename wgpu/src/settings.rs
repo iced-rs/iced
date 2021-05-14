@@ -47,6 +47,7 @@ impl Settings {
     ///     - `dx11`
     ///     - `gl`
     ///     - `webgpu`
+    ///     - `primary`
     pub fn from_env() -> Self {
         Settings {
             internal_backend: backend_from_env()
