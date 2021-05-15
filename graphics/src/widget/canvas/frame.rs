@@ -215,6 +215,14 @@ impl Frame {
         });
     }
 
+    /// Fill svg
+    pub fn fill_svg(&mut self, svg: super::super::Svg, bounds: Rectangle) {
+        self.primitives.push(Primitive::Svg {
+            handle: svg.handle,
+            bounds,
+        });
+    }
+
     /// Stores the current transform of the [`Frame`] and executes the given
     /// drawing operations, restoring the transform afterwards.
     ///

@@ -57,6 +57,11 @@ where
         &self.program
     }
 
+    /// Returns a reference to the [`Program`] of the [`State`].
+    pub fn program_mut(&mut self) -> &mut P {
+        &mut self.program
+    }
+
     /// Returns a reference to the current rendering primitive of the [`State`].
     pub fn primitive(&self) -> &<P::Renderer as Renderer>::Output {
         &self.primitive

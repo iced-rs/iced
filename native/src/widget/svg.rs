@@ -16,7 +16,8 @@ use std::{
 /// specially when they are complex.
 #[derive(Debug, Clone)]
 pub struct Svg {
-    handle: Handle,
+    /// The svg handle
+    pub handle: Handle,
     width: Length,
     height: Length,
 }
