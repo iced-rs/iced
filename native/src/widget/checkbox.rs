@@ -8,8 +8,8 @@ use crate::row;
 use crate::text;
 use crate::touch;
 use crate::{
-    Align, Clipboard, Color, Element, Hasher, HorizontalAlignment, Layout, Length,
-    Point, Rectangle, Row, Text, VerticalAlignment, Widget,
+    Align, Clipboard, Color, Element, Hasher, HorizontalAlignment, Layout,
+    Length, Point, Rectangle, Row, Text, VerticalAlignment, Widget,
 };
 
 /// A box that can be checked.
