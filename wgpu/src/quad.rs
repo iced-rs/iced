@@ -28,7 +28,7 @@ impl Pipeline {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
                         min_binding_size: wgpu::BufferSize::new(
-                            mem::size_of::<Uniforms>() as u64,
+                            mem::size_of::<Uniforms>() as wgpu::BufferAddress,
                         ),
                     },
                     count: None,
@@ -37,7 +37,7 @@ impl Pipeline {
 
         let constants_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("iced_wgpu::quad uniforms buffer"),
-            size: mem::size_of::<Uniforms>() as u64,
+            size: mem::size_of::<Uniforms>() as wgpu::BufferAddress,
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
             mapped_at_creation: false,
         });
@@ -47,11 +47,7 @@ impl Pipeline {
             layout: &constant_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: &constants_buffer,
-                    offset: 0,
-                    size: None,
-                }),
+                resource: constants_buffer.as_entire_binding(),
             }],
         });
 
