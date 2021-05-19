@@ -110,13 +110,17 @@ impl Pipeline {
                 layout: &constants_layout,
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &constants_buffer.raw,
-                        offset: 0,
-                        size: wgpu::BufferSize::new(
-                            std::mem::size_of::<Uniforms>() as u64,
-                        ),
-                    },
+                    resource: wgpu::BindingResource::Buffer(
+                        wgpu::BufferBinding {
+                            buffer: &constants_buffer.raw,
+                            offset: 0,
+                            size: wgpu::BufferSize::new(std::mem::size_of::<
+                                Uniforms,
+                            >(
+                            )
+                                as u64),
+                        },
+                    ),
                 }],
             });
 
@@ -256,15 +260,15 @@ impl Pipeline {
                     layout: &self.constants_layout,
                     entries: &[wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer {
-                            buffer: &self.uniforms_buffer.raw,
-                            offset: 0,
-                            size: wgpu::BufferSize::new(std::mem::size_of::<
-                                Uniforms,
-                            >(
-                            )
-                                as u64),
-                        },
+                        resource: wgpu::BindingResource::Buffer(
+                            wgpu::BufferBinding {
+                                buffer: &self.uniforms_buffer.raw,
+                                offset: 0,
+                                size: wgpu::BufferSize::new(
+                                    std::mem::size_of::<Uniforms>() as u64,
+                                ),
+                            },
+                        ),
                     }],
                 });
         }

@@ -97,11 +97,13 @@ impl Pipeline {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer {
-                            buffer: &uniforms_buffer,
-                            offset: 0,
-                            size: None,
-                        },
+                        resource: wgpu::BindingResource::Buffer(
+                            wgpu::BufferBinding {
+                                buffer: &uniforms_buffer,
+                                offset: 0,
+                                size: None,
+                            },
+                        ),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,

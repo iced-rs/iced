@@ -11,18 +11,6 @@ readme = "README.md"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
-[patch."https://github.com/gfx-rs/wgpu"]
-wgpu-types = { git = "https://github.com/Dispersia/wgpu" }
-wgpu-core = { git = "https://github.com/Dispersia/wgpu" }
-
-[patch."https://github.com/gfx-rs/wgpu-rs"]
-wgpu = { git = "https://github.com/Dispersia/wgpu-rs" }
-
-[patch.crates-io]
-wgpu-types = { git = "https://github.com/Dispersia/wgpu" }
-wgpu-core = { git = "https://github.com/Dispersia/wgpu" }
-wgpu = { git = "https://github.com/Dispersia/wgpu-rs" }
-
 [features]
 default = ["wgpu", "default_system_font"]
 # Enables the `iced_wgpu` renderer
