@@ -47,6 +47,7 @@ impl Settings {
     ///     - `dx11`
     ///     - `gl`
     ///     - `webgpu`
+    ///     - `primary`
     pub fn from_env() -> Self {
         Settings {
             internal_backend: backend_from_env()
@@ -78,6 +79,7 @@ fn backend_from_env() -> Option<wgpu::BackendBit> {
             "dx11" => wgpu::BackendBit::DX11,
             "gl" => wgpu::BackendBit::GL,
             "webgpu" => wgpu::BackendBit::BROWSER_WEBGPU,
+            "primary" => wgpu::BackendBit::PRIMARY,
             other => panic!("Unknown backend: {}", other),
         }
     })

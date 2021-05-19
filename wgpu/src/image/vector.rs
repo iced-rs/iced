@@ -1,6 +1,7 @@
-use crate::image::atlas::{self, Atlas};
 use iced_native::svg;
 use std::collections::{HashMap, HashSet};
+
+use crate::image::atlas::{self, Atlas};
 
 pub enum Svg {
     Loaded(usvg::Tree),
@@ -111,26 +112,13 @@ impl Cache {
                 let width = img.width();
                 let height = img.height();
 
-                let mut rgba = img.take().into_iter();
-
-                // TODO: Perform conversion in the GPU
-                let bgra: Vec<u8> = std::iter::from_fn(move || {
-                    use std::iter::once;
-
-                    let r = rgba.next()?;
-                    let g = rgba.next()?;
-                    let b = rgba.next()?;
-                    let a = rgba.next()?;
-
-                    Some(once(b).chain(once(g)).chain(once(r)).chain(once(a)))
-                })
-                .flatten()
-                .collect();
+                let mut rgba = img.take();
+                rgba.chunks_exact_mut(4).for_each(|rgba| rgba.swap(0, 2));
 
                 let allocation = texture_atlas.upload(
                     width,
                     height,
-                    bytemuck::cast_slice(bgra.as_slice()),
+                    bytemuck::cast_slice(rgba.as_slice()),
                     device,
                     encoder,
                 )?;

@@ -21,8 +21,15 @@ impl Compositor {
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
-    pub async fn request(settings: Settings) -> Option<Self> {
+    pub async fn request<W: HasRawWindowHandle>(
+        settings: Settings,
+        compatible_window: Option<&W>,
+    ) -> Option<Self> {
         let instance = wgpu::Instance::new(settings.internal_backend);
+
+        #[allow(unsafe_code)]
+        let compatible_surface = compatible_window
+            .map(|window| unsafe { instance.create_surface(window) });
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -31,7 +38,7 @@ impl Compositor {
                 } else {
                     wgpu::PowerPreference::HighPerformance
                 },
-                compatible_surface: None,
+                compatible_surface: compatible_surface.as_ref(),
             })
             .await?;
 
@@ -77,9 +84,15 @@ impl iced_graphics::window::Compositor for Compositor {
     type Surface = wgpu::Surface;
     type SwapChain = wgpu::SwapChain;
 
-    fn new(settings: Self::Settings) -> Result<(Self, Renderer), Error> {
-        let compositor = futures::executor::block_on(Self::request(settings))
-            .ok_or(Error::AdapterNotFound)?;
+    fn new<W: HasRawWindowHandle>(
+        settings: Self::Settings,
+        compatible_window: Option<&W>,
+    ) -> Result<(Self, Renderer), Error> {
+        let compositor = futures::executor::block_on(Self::request(
+            settings,
+            compatible_window,
+        ))
+        .ok_or(Error::AdapterNotFound)?;
 
         let backend = compositor.create_backend();
 
