@@ -163,7 +163,7 @@ where
                         let (width, _) = renderer.measure(
                             &label,
                             text_size,
-                            Renderer::Font::default(),
+                            self.font,
                             Size::new(f32::INFINITY, f32::INFINITY),
                         );
 
