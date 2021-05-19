@@ -78,8 +78,7 @@ where
                 .drain(..)
                 .map(|recipe| {
                     Box::new(With::new(recipe, value.clone()))
-                        as
-                        Box<dyn Recipe<H, E, Output = (T, O)>>
+                        as Box<dyn Recipe<H, E, Output = (T, O)>>
                 })
                 .collect(),
         }

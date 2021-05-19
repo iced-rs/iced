@@ -209,11 +209,10 @@ where
         cursor_position: Point,
         messages: &mut Vec<Message>,
     ) {
-        let mut clicked_region = self
-            .elements
-            .iter()
-            .zip(layout.children())
-            .filter(|(_, layout)| layout.bounds().contains(cursor_position));
+        let mut clicked_region =
+            self.elements.iter().zip(layout.children()).filter(
+                |(_, layout)| layout.bounds().contains(cursor_position),
+            );
 
         if let Some(((pane, content), layout)) = clicked_region.next() {
             if let Some(on_click) = &self.on_click {

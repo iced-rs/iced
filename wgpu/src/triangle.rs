@@ -263,8 +263,7 @@ impl Pipeline {
                                 Uniforms,
                             >(
                             )
-                                as
-                                u64),
+                                as u64),
                         },
                     }],
                 });
@@ -333,7 +332,6 @@ impl Pipeline {
         }
 
         let uniforms = bytemuck::cast_slice(&uniforms);
-
 
         if let Some(uniforms_size) =
             wgpu::BufferSize::new(uniforms.len() as u64)
