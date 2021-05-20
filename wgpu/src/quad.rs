@@ -315,7 +315,7 @@ impl Uniforms {
         Self {
             transform: *transformation.as_ref(),
             scale,
-            _padding: [0.0; 3]
+            _padding: [0.0; 3],
         }
     }
 }
@@ -325,7 +325,7 @@ impl Default for Uniforms {
         Self {
             transform: *Transformation::identity().as_ref(),
             scale: 1.0,
-            _padding: [0.0; 3]
+            _padding: [0.0; 3],
         }
     }
 }
