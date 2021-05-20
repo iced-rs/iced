@@ -97,11 +97,13 @@ impl Pipeline {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::Buffer {
-                            buffer: &uniforms_buffer,
-                            offset: 0,
-                            size: None,
-                        },
+                        resource: wgpu::BindingResource::Buffer(
+                            wgpu::BufferBinding {
+                                buffer: &uniforms_buffer,
+                                offset: 0,
+                                size: None,
+                            },
+                        ),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
@@ -155,7 +157,7 @@ impl Pipeline {
                             step_mode: wgpu::InputStepMode::Vertex,
                             attributes: &[wgpu::VertexAttribute {
                                 shader_location: 0,
-                                format: wgpu::VertexFormat::Float2,
+                                format: wgpu::VertexFormat::Float32x2,
                                 offset: 0,
                             }],
                         },
@@ -165,27 +167,27 @@ impl Pipeline {
                             attributes: &[
                                 wgpu::VertexAttribute {
                                     shader_location: 1,
-                                    format: wgpu::VertexFormat::Float2,
+                                    format: wgpu::VertexFormat::Float32x2,
                                     offset: 0,
                                 },
                                 wgpu::VertexAttribute {
                                     shader_location: 2,
-                                    format: wgpu::VertexFormat::Float2,
+                                    format: wgpu::VertexFormat::Float32x2,
                                     offset: 4 * 2,
                                 },
                                 wgpu::VertexAttribute {
                                     shader_location: 3,
-                                    format: wgpu::VertexFormat::Float2,
+                                    format: wgpu::VertexFormat::Float32x2,
                                     offset: 4 * 4,
                                 },
                                 wgpu::VertexAttribute {
                                     shader_location: 4,
-                                    format: wgpu::VertexFormat::Float2,
+                                    format: wgpu::VertexFormat::Float32x2,
                                     offset: 4 * 6,
                                 },
                                 wgpu::VertexAttribute {
                                     shader_location: 5,
-                                    format: wgpu::VertexFormat::Uint,
+                                    format: wgpu::VertexFormat::Uint32,
                                     offset: 4 * 8,
                                 },
                             ],
@@ -197,23 +199,25 @@ impl Pipeline {
                     entry_point: "main",
                     targets: &[wgpu::ColorTargetState {
                         format,
-                        color_blend: wgpu::BlendState {
-                            src_factor: wgpu::BlendFactor::SrcAlpha,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                        alpha_blend: wgpu::BlendState {
-                            src_factor: wgpu::BlendFactor::One,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::SrcAlpha,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::One,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                        }),
                         write_mask: wgpu::ColorWrite::ALL,
                     }],
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
                     front_face: wgpu::FrontFace::Cw,
-                    cull_mode: wgpu::CullMode::None,
+                    cull_mode: None,
                     ..Default::default()
                 },
                 depth_stencil: None,
@@ -423,16 +427,14 @@ impl Pipeline {
             let mut render_pass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("iced_wgpu::image render pass"),
-                    color_attachments: &[
-                        wgpu::RenderPassColorAttachmentDescriptor {
-                            attachment: target,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: true,
-                            },
+                    color_attachments: &[wgpu::RenderPassColorAttachment {
+                        view: target,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: true,
                         },
-                    ],
+                    }],
                     depth_stencil_attachment: None,
                 });
 

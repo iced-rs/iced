@@ -24,7 +24,7 @@ impl Atlas {
         let extent = wgpu::Extent3d {
             width: SIZE,
             height: SIZE,
-            depth: 1,
+            depth_or_array_layers: 1,
         };
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -294,19 +294,19 @@ impl Atlas {
         let extent = wgpu::Extent3d {
             width,
             height,
-            depth: 1,
+            depth_or_array_layers: 1,
         };
 
         encoder.copy_buffer_to_texture(
-            wgpu::BufferCopyView {
+            wgpu::ImageCopyBuffer {
                 buffer,
-                layout: wgpu::TextureDataLayout {
+                layout: wgpu::ImageDataLayout {
                     offset: offset as u64,
-                    bytes_per_row: 4 * image_width + padding,
-                    rows_per_image: image_height,
+                    bytes_per_row: Some(std::num::NonZeroU32::new(4 * image_width + padding).unwrap()),
+                    rows_per_image: Some(std::num::NonZeroU32::new(image_height).unwrap()),
                 },
             },
-            wgpu::TextureCopyView {
+            wgpu::ImageCopyTexture {
                 texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
@@ -334,7 +334,7 @@ impl Atlas {
             size: wgpu::Extent3d {
                 width: SIZE,
                 height: SIZE,
-                depth: self.layers.len() as u32,
+                depth_or_array_layers: self.layers.len() as u32,
             },
             mip_level_count: 1,
             sample_count: 1,
@@ -355,7 +355,7 @@ impl Atlas {
             }
 
             encoder.copy_texture_to_texture(
-                wgpu::TextureCopyView {
+                wgpu::ImageCopyTexture {
                     texture: &self.texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d {
@@ -364,7 +364,7 @@ impl Atlas {
                         z: i as u32,
                     },
                 },
-                wgpu::TextureCopyView {
+                wgpu::ImageCopyTexture {
                     texture: &new_texture,
                     mip_level: 0,
                     origin: wgpu::Origin3d {
@@ -376,7 +376,7 @@ impl Atlas {
                 wgpu::Extent3d {
                     width: SIZE,
                     height: SIZE,
-                    depth: 1,
+                    depth_or_array_layers: 1,
                 },
             );
         }

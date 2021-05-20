@@ -26,8 +26,8 @@ qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
 
 [dependencies]
-wgpu = "0.7"
-wgpu_glyph = "0.11"
+wgpu = "0.8"
+wgpu_glyph = "0.12"
 glyph_brush = "0.7"
 raw-window-handle = "0.3"
 log = "0.4"

@@ -35,6 +35,7 @@ pub mod window;
 mod backend;
 mod quad;
 mod text;
+mod util;
 
 pub use iced_graphics::{
     Antialiasing, Color, Defaults, Error, Primitive, Viewport,
