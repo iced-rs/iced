@@ -305,6 +305,9 @@ const MAX_INSTANCES: usize = 100_000;
 struct Uniforms {
     transform: [f32; 16],
     scale: f32,
+    // Uniforms must be aligned to their largest member,
+    // this uses a mat4x4<f32> which aligns to 16, so align to that
+    _padding: [f32; 3],
 }
 
 impl Uniforms {
@@ -312,6 +315,7 @@ impl Uniforms {
         Self {
             transform: *transformation.as_ref(),
             scale,
+            _padding: [0.0; 3]
         }
     }
 }
@@ -321,6 +325,7 @@ impl Default for Uniforms {
         Self {
             transform: *Transformation::identity().as_ref(),
             scale: 1.0,
+            _padding: [0.0; 3]
         }
     }
 }
