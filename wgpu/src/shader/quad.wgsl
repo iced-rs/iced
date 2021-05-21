@@ -80,8 +80,7 @@ fn distance_alg(
 
 [[stage(fragment)]]
 fn fs_main(
-    input: VertexOutput,
-    [[builtin(position)]] coord: vec4<f32>
+    input: VertexOutput
 ) -> [[location(0)]] vec4<f32> {
     var mixed_color: vec4<f32> = input.color;
 
@@ -92,7 +91,7 @@ fn fs_main(
         );
 
         var internal_distance: f32 = distance_alg(
-            vec2<f32>(coord.x, coord.y),
+            vec2<f32>(input.position.x, input.position.y),
             input.pos + vec2<f32>(input.border_width, input.border_width),
             input.scale - vec2<f32>(input.border_width * 2.0, input.border_width * 2.0),
             internal_border
@@ -108,7 +107,7 @@ fn fs_main(
     }
 
     var dist: f32 = distance_alg(
-        vec2<f32>(coord.x, coord.y),
+        vec2<f32>(input.position.x, input.position.y),
         input.pos,
         input.scale,
         input.border_radius
