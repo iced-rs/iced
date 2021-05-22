@@ -47,11 +47,11 @@ impl Pipeline {
             layout: &constant_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::Buffer {
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
                     buffer: &constants_buffer,
                     offset: 0,
                     size: None,
-                },
+                }),
             }],
         });
 
@@ -83,45 +83,21 @@ impl Pipeline {
                             step_mode: wgpu::InputStepMode::Vertex,
                             attributes: &[wgpu::VertexAttribute {
                                 shader_location: 0,
-                                format: wgpu::VertexFormat::Float2,
+                                format: wgpu::VertexFormat::Float32x2,
                                 offset: 0,
                             }],
                         },
                         wgpu::VertexBufferLayout {
                             array_stride: mem::size_of::<layer::Quad>() as u64,
                             step_mode: wgpu::InputStepMode::Instance,
-                            attributes: &[
-                                wgpu::VertexAttribute {
-                                    shader_location: 1,
-                                    format: wgpu::VertexFormat::Float2,
-                                    offset: 0,
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 2,
-                                    format: wgpu::VertexFormat::Float2,
-                                    offset: 4 * 2,
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 3,
-                                    format: wgpu::VertexFormat::Float4,
-                                    offset: 4 * (2 + 2),
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 4,
-                                    format: wgpu::VertexFormat::Float4,
-                                    offset: 4 * (2 + 2 + 4),
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 5,
-                                    format: wgpu::VertexFormat::Float,
-                                    offset: 4 * (2 + 2 + 4 + 4),
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 6,
-                                    format: wgpu::VertexFormat::Float,
-                                    offset: 4 * (2 + 2 + 4 + 4 + 1),
-                                },
-                            ],
+                            attributes: &wgpu::vertex_attr_array!(
+                                1 => Float32x2,
+                                2 => Float32x2,
+                                3 => Float32x4,
+                                4 => Float32x4,
+                                5 => Float32,
+                                6 => Float32,
+                            ),
                         },
                     ],
                 },
@@ -130,23 +106,25 @@ impl Pipeline {
                     entry_point: "main",
                     targets: &[wgpu::ColorTargetState {
                         format,
-                        color_blend: wgpu::BlendState {
-                            src_factor: wgpu::BlendFactor::SrcAlpha,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                        alpha_blend: wgpu::BlendState {
-                            src_factor: wgpu::BlendFactor::One,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::SrcAlpha,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::One,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                        }),
                         write_mask: wgpu::ColorWrite::ALL,
                     }],
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
                     front_face: wgpu::FrontFace::Cw,
-                    cull_mode: wgpu::CullMode::None,
+                    cull_mode: None,
                     ..Default::default()
                 },
                 depth_stencil: None,
@@ -237,16 +215,14 @@ impl Pipeline {
                 let mut render_pass =
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("iced_wgpu::quad render pass"),
-                        color_attachments: &[
-                            wgpu::RenderPassColorAttachmentDescriptor {
-                                attachment: target,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Load,
-                                    store: true,
-                                },
+                        color_attachments: &[wgpu::RenderPassColorAttachment {
+                            view: target,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: true,
                             },
-                        ],
+                        }],
                         depth_stencil_attachment: None,
                     });
 
@@ -308,14 +284,15 @@ const MAX_INSTANCES: usize = 100_000;
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Uniforms {
     transform: [f32; 16],
-    scale: f32,
+    // mat4 is an array of vec4 so scale has to be padded to this size too
+    scale: [f32; 4],
 }
 
 impl Uniforms {
     fn new(transformation: Transformation, scale: f32) -> Uniforms {
         Self {
             transform: *transformation.as_ref(),
-            scale,
+            scale: [scale, 0.0, 0.0, 0.0],
         }
     }
 }
@@ -324,7 +301,7 @@ impl Default for Uniforms {
     fn default() -> Self {
         Self {
             transform: *Transformation::identity().as_ref(),
-            scale: 1.0,
+            scale: [1.0, 0.0, 0.0, 0.0],
         }
     }
 }
