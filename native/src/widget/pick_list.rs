@@ -25,6 +25,7 @@ where
     last_selection: &'a mut Option<T>,
     on_selected: Box<dyn Fn(T) -> Message>,
     options: Cow<'a, [T]>,
+    placeholder: Option<String>,
     selected: Option<T>,
     width: Length,
     padding: Padding,
@@ -82,6 +83,7 @@ where
             last_selection,
             on_selected: Box::new(on_selected),
             options: options.into(),
+            placeholder: None,
             selected,
             width: Length::Shrink,
             text_size: None,
@@ -89,6 +91,12 @@ where
             font: Default::default(),
             style: Default::default(),
         }
+    }
+
+    /// Sets the placeholder of the [`PickList`].
+    pub fn placeholder(mut self, placeholder: impl Into<String>) -> Self {
+        self.placeholder = Some(placeholder.into());
+        self
     }
 
     /// Sets the width of the [`PickList`].
@@ -158,8 +166,7 @@ where
         let max_width = match self.width {
             Length::Shrink => {
                 let labels = self.options.iter().map(ToString::to_string);
-
-                labels
+                let labels_width = labels
                     .map(|label| {
                         let (width, _) = renderer.measure(
                             &label,
@@ -171,7 +178,24 @@ where
                         width.round() as u32
                     })
                     .max()
-                    .unwrap_or(100)
+                    .unwrap_or(100);
+
+                let placeholder_width = self
+                    .placeholder
+                    .as_ref()
+                    .map(|placeholder| {
+                        let (width, _) = renderer.measure(
+                            placeholder,
+                            text_size,
+                            self.font,
+                            Size::new(f32::INFINITY, f32::INFINITY),
+                        );
+
+                        width.round() as u32
+                    })
+                    .unwrap_or(100);
+
+                labels_width.max(placeholder_width)
             }
             _ => 0,
         };
@@ -265,6 +289,7 @@ where
             layout.bounds(),
             cursor_position,
             self.selected.as_ref().map(ToString::to_string),
+            self.placeholder.clone(),
             self.padding,
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
@@ -325,6 +350,7 @@ pub trait Renderer: text::Renderer + menu::Renderer {
         bounds: Rectangle,
         cursor_position: Point,
         selected: Option<String>,
+        placeholder: Option<String>,
         padding: Padding,
         text_size: u16,
         font: Self::Font,

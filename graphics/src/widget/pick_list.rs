@@ -31,6 +31,7 @@ where
         bounds: Rectangle,
         cursor_position: Point,
         selected: Option<String>,
+        placeholder: Option<String>,
         padding: Padding,
         text_size: u16,
         font: Font,
@@ -68,7 +69,7 @@ where
 
         (
             Primitive::Group {
-                primitives: if let Some(label) = selected {
+                primitives: if let Some(label) = selected.or(placeholder) {
                     let label = Primitive::Text {
                         content: label,
                         size: f32::from(text_size),
