@@ -218,10 +218,10 @@ where
                         body_primitive,
                     ],
                 },
-                if is_over_pick_area {
-                    mouse::Interaction::Grab
-                } else if title_bar_interaction > body_interaction {
+                if title_bar_interaction > body_interaction {
                     title_bar_interaction
+                } else if is_over_pick_area {
+                    mouse::Interaction::Grab
                 } else {
                     body_interaction
                 },
