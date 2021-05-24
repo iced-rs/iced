@@ -11,7 +11,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
-    panes: pane_grid::State<Content>,
+    panes: pane_grid::State<Pane>,
     panes_created: usize,
     focus: Option<pane_grid::Pane>,
 }
@@ -34,7 +34,7 @@ impl Application for Example {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let (panes, _) = pane_grid::State::new(Content::new(0));
+        let (panes, _) = pane_grid::State::new(Pane::new(0));
 
         (
             Example {
@@ -60,7 +60,7 @@ impl Application for Example {
                 let result = self.panes.split(
                     axis,
                     &pane,
-                    Content::new(self.panes_created),
+                    Pane::new(self.panes_created),
                 );
 
                 if let Some((pane, _)) = result {
@@ -74,7 +74,7 @@ impl Application for Example {
                     let result = self.panes.split(
                         axis,
                         &pane,
-                        Content::new(self.panes_created),
+                        Pane::new(self.panes_created),
                     );
 
                     if let Some((pane, _)) = result {
@@ -143,12 +143,12 @@ impl Application for Example {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
-        let pane_grid = PaneGrid::new(&mut self.panes, |pane, content| {
-            let is_focused = focus == Some(pane);
+        let pane_grid = PaneGrid::new(&mut self.panes, |id, pane| {
+            let is_focused = focus == Some(id);
 
             let title = Row::with_children(vec![
                 Text::new("Pane").into(),
-                Text::new(content.id.to_string())
+                Text::new(pane.content.id.to_string())
                     .color(if is_focused {
                         PANE_ID_COLOR_FOCUSED
                     } else {
@@ -159,10 +159,11 @@ impl Application for Example {
             .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
+                .controls(pane.controls.view(id, total_panes))
                 .padding(10)
                 .style(style::TitleBar { is_focused });
 
-            pane_grid::Content::new(content.view(pane, total_panes))
+            pane_grid::Content::new(pane.content.view(id, total_panes))
                 .title_bar(title_bar)
                 .style(style::Pane { is_focused })
         })
@@ -212,12 +213,30 @@ fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     }
 }
 
+struct Pane {
+    pub content: Content,
+    pub controls: Controls,
+}
+
 struct Content {
     id: usize,
     scroll: scrollable::State,
     split_horizontally: button::State,
     split_vertically: button::State,
     close: button::State,
+}
+
+struct Controls {
+    close: button::State,
+}
+
+impl Pane {
+    fn new(id: usize) -> Self {
+        Self {
+            content: Content::new(id),
+            controls: Controls::new(),
+        }
+    }
 }
 
 impl Content {
@@ -297,7 +316,31 @@ impl Content {
     }
 }
 
+impl Controls {
+    fn new() -> Self {
+        Self {
+            close: button::State::new(),
+        }
+    }
+
+    pub fn view(
+        &mut self,
+        pane: pane_grid::Pane,
+        total_panes: usize,
+    ) -> Element<Message> {
+        let mut button =
+            Button::new(&mut self.close, Text::new("Close").size(14))
+                .style(style::Button::Control)
+                .padding(3);
+        if total_panes > 1 {
+            button = button.on_press(Message::Close(pane));
+        }
+        button.into()
+    }
+}
+
 mod style {
+    use crate::PANE_ID_COLOR_FOCUSED;
     use iced::{button, container, Background, Color, Vector};
 
     const SURFACE: Color = Color::from_rgb(
@@ -359,6 +402,7 @@ mod style {
     pub enum Button {
         Primary,
         Destructive,
+        Control,
     }
 
     impl button::StyleSheet for Button {
@@ -368,6 +412,7 @@ mod style {
                 Button::Destructive => {
                     (None, Color::from_rgb8(0xFF, 0x47, 0x47))
                 }
+                Button::Control => (Some(PANE_ID_COLOR_FOCUSED), Color::WHITE),
             };
 
             button::Style {
@@ -388,6 +433,7 @@ mod style {
                     a: 0.2,
                     ..active.text_color
                 }),
+                Button::Control => Some(PANE_ID_COLOR_FOCUSED),
             };
 
             button::Style {
