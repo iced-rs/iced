@@ -146,8 +146,8 @@ impl iced_graphics::window::Compositor for Compositor {
 
         let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("iced_wgpu::window::Compositor render pass"),
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: &frame.output.view,
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+                view: &frame.output.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear({

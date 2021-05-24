@@ -213,7 +213,10 @@ impl Pokemon {
     }
 
     async fn fetch_image(id: u16) -> Result<image::Handle, reqwest::Error> {
-        let url = format!("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png", id);
+        let url = format!(
+            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png",
+            id
+        );
 
         #[cfg(not(target_arch = "wasm32"))]
         {

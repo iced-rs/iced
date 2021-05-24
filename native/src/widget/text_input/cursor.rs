@@ -113,7 +113,7 @@ impl Cursor {
             State::Selection { start, end } if end > 0 => {
                 self.select_range(start, end - 1)
             }
-            _ => (),
+            _ => {}
         }
     }
 
@@ -125,7 +125,7 @@ impl Cursor {
             State::Selection { start, end } if end < value.len() => {
                 self.select_range(start, end + 1)
             }
-            _ => (),
+            _ => {}
         }
     }
 

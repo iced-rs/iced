@@ -20,7 +20,7 @@ impl<'a> Editor<'a> {
                 self.cursor.move_left(self.value);
                 self.value.remove_many(left, right);
             }
-            _ => (),
+            _ => {}
         }
 
         self.value.insert(self.cursor.end(self.value), character);
@@ -35,7 +35,7 @@ impl<'a> Editor<'a> {
                 self.cursor.move_left(self.value);
                 self.value.remove_many(left, right);
             }
-            _ => (),
+            _ => {}
         }
 
         self.value.insert_many(self.cursor.end(self.value), content);
