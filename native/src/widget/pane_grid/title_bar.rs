@@ -129,15 +129,16 @@ where
         if layout.bounds().contains(cursor_position) {
             let mut children = layout.children();
             let padded = children.next().unwrap();
+            let mut children = padded.children();
+            let title_layout = children.next().unwrap();
 
             if self.controls.is_some() {
-                let mut children = padded.children();
-                let _ = children.next().unwrap();
                 let controls_layout = children.next().unwrap();
 
                 !controls_layout.bounds().contains(cursor_position)
+                    && !title_layout.bounds().contains(cursor_position)
             } else {
-                true
+                !title_layout.bounds().contains(cursor_position)
             }
         } else {
             false
@@ -205,16 +206,17 @@ where
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> event::Status {
-        if let Some(controls) = &mut self.controls {
-            let mut children = layout.children();
-            let padded = children.next().unwrap();
+        let mut children = layout.children();
+        let padded = children.next().unwrap();
 
-            let mut children = padded.children();
-            let _ = children.next();
+        let mut children = padded.children();
+        let title_layout = children.next().unwrap();
+
+        let control_status = if let Some(controls) = &mut self.controls {
             let controls_layout = children.next().unwrap();
 
             controls.on_event(
-                event,
+                event.clone(),
                 controls_layout,
                 cursor_position,
                 renderer,
@@ -223,6 +225,17 @@ where
             )
         } else {
             event::Status::Ignored
-        }
+        };
+
+        let title_status = self.content.on_event(
+            event,
+            title_layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            messages,
+        );
+
+        control_status.merge(title_status)
     }
 }
