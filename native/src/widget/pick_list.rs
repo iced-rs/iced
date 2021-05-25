@@ -25,7 +25,6 @@ where
     on_selected: Box<dyn Fn(T) -> Message>,
     options: Cow<'a, [T]>,
     selected: Option<T>,
-    on_change: Option<Message>,
     width: Length,
     padding: u16,
     text_size: Option<u16>,
@@ -83,7 +82,6 @@ where
             on_selected: Box::new(on_selected),
             options: options.into(),
             selected,
-            on_change: None,
             width: Length::Shrink,
             text_size: None,
             padding: Renderer::DEFAULT_PADDING,
@@ -113,12 +111,6 @@ where
     /// Sets the font of the [`PickList`].
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
-        self
-    }
-
-    /// Sets the message sent when [`PickList`] selection changes
-    pub fn on_change(mut self, msg: Message) -> Self {
-        self.on_change = Some(msg);
         self
     }
 
@@ -278,9 +270,6 @@ where
                     } else {
                         messages
                             .push((self.on_selected)(self.options[0].clone()));
-                        if let Some(msg) = self.on_change.take() {
-                            messages.push(msg)
-                        }
                     }
                 } else {
                     let mut options_iter = self.options.iter().rev();
@@ -297,9 +286,6 @@ where
                         messages.push((self.on_selected)(
                             self.options[self.options.len() - 1].clone(),
                         ));
-                        if let Some(msg) = self.on_change.take() {
-                            messages.push(msg)
-                        }
                     }
                 }
 
