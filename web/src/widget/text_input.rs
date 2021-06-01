@@ -131,7 +131,7 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut Css<'b>,
+        _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;
