@@ -29,6 +29,16 @@ impl Padding {
             left: padding,
         }
     }
+
+    /// Returns the total amount of vertical [`Padding`].
+    pub fn vertical(self) -> u16 {
+        self.top + self.bottom
+    }
+
+    /// Returns the total amount of horizontal [`Padding`].
+    pub fn horizontal(self) -> u16 {
+        self.left + self.right
+    }
 }
 
 impl std::convert::From<u16> for Padding {
