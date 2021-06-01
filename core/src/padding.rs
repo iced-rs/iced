@@ -1,4 +1,36 @@
 /// An amount of space to pad for each side of a box
+///
+/// You can leverage the `From` trait to build [`Padding`] conveniently:
+///
+/// ```
+/// # use iced_core::Padding;
+/// #
+/// let padding = Padding::from(20);              // 20px on all sides
+/// let padding = Padding::from([10, 20]);        // top/bottom, left/right
+/// let padding = Padding::from([5, 10, 15, 20]); // top, right, bottom, left
+/// ```
+///
+/// Normally, the `padding` method of a widget will ask for an `Into<Padding>`,
+/// so you can easily write:
+///
+/// ```
+/// # use iced_core::Padding;
+/// #
+/// # struct Widget;
+/// #
+/// impl Widget {
+///     # pub fn new() -> Self { Self }
+///     #
+///     pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
+///         // ...
+///         self
+///     }
+/// }
+///
+/// let widget = Widget::new().padding(20);              // 20px on all sides
+/// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
+/// let widget = Widget::new().padding([5, 10, 15, 20]); // top, right, bottom, left
+/// ```
 #[derive(Debug, Hash, Copy, Clone)]
 pub struct Padding {
     /// Top padding

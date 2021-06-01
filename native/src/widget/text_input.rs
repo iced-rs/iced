@@ -128,11 +128,6 @@ where
     }
 
     /// Sets the [`Padding`] of the [`TextInput`].
-    ///```ignore
-    /// TextInput::new(/*...*/).padding(20);              // 20px on all sides
-    /// TextInput::new(/*...*/).padding([10, 20]);        // top/bottom, left/right
-    /// TextInput::new(/*...*/).padding([5, 10, 15, 20]); // top, right, bottom, left
-    /// ```
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
         self

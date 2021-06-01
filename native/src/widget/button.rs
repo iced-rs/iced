@@ -91,11 +91,6 @@ where
     }
 
     /// Sets the [`Padding`] of the [`Button`].
-    ///```ignore
-    /// Button::new(/*...*/).padding(20);              // 20px on all sides
-    /// Button::new(/*...*/).padding([10, 20]);        // top/bottom, left/right
-    /// Button::new(/*...*/).padding([5, 10, 15, 20]); // top, right, bottom, left
-    /// ```   
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
         self

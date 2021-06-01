@@ -59,11 +59,6 @@ where
     }
 
     /// Sets the [`Padding`] of the [`Menu`].
-    ///```ignore
-    /// Menu::new(/*...*/).padding(20);              // 20px on all sides
-    /// Menu::new(/*...*/).padding([10, 20]);        // top/bottom, left/right
-    /// Menu::new(/*...*/).padding([5, 10, 15, 20]); // top, right, bottom, left
-    /// ```
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
         self

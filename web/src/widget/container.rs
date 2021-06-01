@@ -42,11 +42,6 @@ impl<'a, Message> Container<'a, Message> {
     }
 
     /// Sets the [`Padding`] of the [`Container`].
-    ///```ignore
-    /// Container::new(/*...*/).padding(20);              // 20px on all sides
-    /// Container::new(/*...*/).padding([10, 20]);        // top/bottom, left/right
-    /// Container::new(/*...*/).padding([5, 10, 15, 20]); // top, right, bottom, left
-    /// ```
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
         self

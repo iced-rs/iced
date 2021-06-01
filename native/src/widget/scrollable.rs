@@ -52,11 +52,6 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     }
 
     /// Sets the [`Padding`] of the [`Scrollable`].
-    ///```ignore
-    /// Scrollable::new(/*...*/).padding(20);              // 20px on all sides
-    /// Scrollable::new(/*...*/).padding([10, 20]);        // top/bottom, left/right
-    /// Scrollable::new(/*...*/).padding([5, 10, 15, 20]); // top, right, bottom, left
-    /// ```
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.content = self.content.padding(padding);
         self
