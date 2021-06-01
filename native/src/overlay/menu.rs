@@ -350,7 +350,7 @@ where
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(text_size + self.padding * 2))
+                            / f32::from(text_size + self.padding.vertical()))
                             as usize,
                     );
                 }
