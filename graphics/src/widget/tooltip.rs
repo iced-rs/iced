@@ -5,7 +5,7 @@ use crate::{Primitive, Renderer, Vector};
 
 use iced_native::container;
 use iced_native::layout::{self, Layout};
-use iced_native::{Element, Point, Rectangle, Size, Text};
+use iced_native::{Element, Padding, Point, Rectangle, Size, Text};
 
 /// An element decorating some content.
 ///
@@ -49,7 +49,6 @@ where
             use iced_native::Widget;
 
             let gap = f32::from(gap);
-            let padding = f32::from(padding);
             let style = style_sheet.style();
 
             let defaults = Defaults {
@@ -62,9 +61,10 @@ where
                 tooltip,
                 self,
                 &layout::Limits::new(Size::ZERO, viewport.size())
-                    .pad(f32::from(padding)),
+                    .pad(Padding::new(padding)),
             );
 
+            let padding = f32::from(padding);
             let text_bounds = text_layout.bounds();
             let x_center = bounds.x + (bounds.width - text_bounds.width) / 2.0;
             let y_center =
