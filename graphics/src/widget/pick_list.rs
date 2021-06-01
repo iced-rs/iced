@@ -57,8 +57,7 @@ where
             font: B::ICON_FONT,
             size: bounds.height * style.icon_size,
             bounds: Rectangle {
-                x: bounds.x + bounds.width
-                    - f32::from(padding.left + padding.right),
+                x: bounds.x + bounds.width - f32::from(padding.horizontal()),
                 y: bounds.center_y(),
                 ..bounds
             },

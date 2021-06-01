@@ -299,7 +299,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                f32::from(text_size + self.padding.top + self.padding.bottom)
+                f32::from(text_size + self.padding.vertical())
                     * self.options.len() as f32,
             );
 
@@ -364,11 +364,8 @@ where
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(
-                                text_size
-                                    + self.padding.top
-                                    + self.padding.bottom,
-                            )) as usize,
+                            / f32::from(text_size + self.padding.vertical()))
+                            as usize,
                     );
 
                     if let Some(index) = *self.hovered_option {

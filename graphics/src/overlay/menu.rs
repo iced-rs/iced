@@ -53,7 +53,7 @@ where
         use std::f32;
 
         let is_mouse_over = bounds.contains(cursor_position);
-        let option_height = (text_size + padding.top + padding.bottom) as usize;
+        let option_height = (text_size + padding.vertical()) as usize;
 
         let mut primitives = Vec::new();
 
@@ -72,7 +72,7 @@ where
                 x: bounds.x,
                 y: bounds.y + (option_height * i) as f32,
                 width: bounds.width,
-                height: f32::from(text_size + padding.top + padding.bottom),
+                height: f32::from(text_size + padding.vertical()),
             };
 
             if is_selected {
