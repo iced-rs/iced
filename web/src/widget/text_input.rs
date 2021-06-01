@@ -1,7 +1,7 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
-use crate::{bumpalo, css, Bus, Css, Element, Length, Widget};
+use crate::{bumpalo, css, Bus, Css, Element, Length, Padding, Widget};
 
 pub use iced_style::text_input::{Style, StyleSheet};
 
@@ -35,7 +35,7 @@ pub struct TextInput<'a, Message> {
     is_secure: bool,
     width: Length,
     max_width: u32,
-    padding: u16,
+    padding: Padding,
     size: Option<u16>,
     on_change: Rc<Box<dyn Fn(String) -> Message>>,
     on_submit: Option<Message>,
@@ -66,7 +66,7 @@ impl<'a, Message> TextInput<'a, Message> {
             is_secure: false,
             width: Length::Fill,
             max_width: u32::MAX,
-            padding: 0,
+            padding: Padding::ZERO,
             size: None,
             on_change: Rc::new(Box::new(on_change)),
             on_submit: None,
@@ -92,9 +92,9 @@ impl<'a, Message> TextInput<'a, Message> {
         self
     }
 
-    /// Sets the padding of the [`TextInput`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    /// Sets the [`Padding`] of the [`TextInput`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -126,19 +126,10 @@ where
         &self,
         bump: &'b bumpalo::Bump,
         bus: &Bus<Message>,
-        style_sheet: &mut Css<'b>,
+        _style_sheet: &mut Css<'b>,
     ) -> dodrio::Node<'b> {
         use dodrio::builder::*;
         use wasm_bindgen::JsCast;
-
-        let class = {
-            use dodrio::bumpalo::collections::String;
-
-            let padding_class =
-                style_sheet.insert(bump, css::Rule::Padding(self.padding));
-
-            String::from_str_in(&padding_class, bump).into_bump_str()
-        };
 
         let placeholder = {
             use dodrio::bumpalo::collections::String;
@@ -159,16 +150,16 @@ where
         let style = self.style_sheet.active();
 
         input(bump)
-            .attr("class", class)
             .attr(
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "width: {}; max-width: {}; font-size: {}px; \
+                    "width: {}; max-width: {}; padding: {}; font-size: {}px; \
                     background: {}; border-width: {}px; border-color: {}; \
                     border-radius: {}px; color: {}",
                     css::length(self.width),
                     css::max_length(self.max_width),
+                    css::padding(self.padding),
                     self.size.unwrap_or(20),
                     css::background(style.background),
                     style.border_width,

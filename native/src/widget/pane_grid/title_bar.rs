@@ -2,7 +2,9 @@ use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::pane_grid;
-use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
+use crate::{
+    Clipboard, Element, Hasher, Layout, Padding, Point, Rectangle, Size,
+};
 
 /// The title bar of a [`Pane`].
 ///
@@ -11,7 +13,7 @@ use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
     content: Element<'a, Message, Renderer>,
     controls: Option<Element<'a, Message, Renderer>>,
-    padding: u16,
+    padding: Padding,
     always_show_controls: bool,
     style: <Renderer as container::Renderer>::Style,
 }
@@ -28,7 +30,7 @@ where
         Self {
             content: content.into(),
             controls: None,
-            padding: 0,
+            padding: Padding::ZERO,
             always_show_controls: false,
             style: Default::default(),
         }
@@ -43,9 +45,9 @@ where
         self
     }
 
-    /// Sets the padding of the [`TitleBar`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    /// Sets the [`Padding`] of the [`TitleBar`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -161,8 +163,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let padding = f32::from(self.padding);
-        let limits = limits.pad(padding);
+        let limits = limits.pad(self.padding);
         let max_size = limits.max();
 
         let title_layout = self
@@ -192,9 +193,12 @@ where
             )
         };
 
-        node.move_to(Point::new(padding, padding));
+        node.move_to(Point::new(
+            self.padding.left.into(),
+            self.padding.top.into(),
+        ));
 
-        layout::Node::with_children(node.size().pad(padding), vec![node])
+        layout::Node::with_children(node.size().pad(self.padding), vec![node])
     }
 
     pub(crate) fn on_event(

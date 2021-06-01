@@ -2,8 +2,8 @@
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::{
-    mouse, overlay, Color, Font, HorizontalAlignment, Point, Rectangle,
-    VerticalAlignment,
+    mouse, overlay, Color, Font, HorizontalAlignment, Padding, Point,
+    Rectangle, VerticalAlignment,
 };
 
 pub use iced_style::menu::Style;
@@ -45,7 +45,7 @@ where
         viewport: &Rectangle,
         options: &[T],
         hovered_option: Option<usize>,
-        padding: u16,
+        padding: Padding,
         text_size: u16,
         font: Font,
         style: &Style,
@@ -53,7 +53,7 @@ where
         use std::f32;
 
         let is_mouse_over = bounds.contains(cursor_position);
-        let option_height = text_size as usize + padding as usize * 2;
+        let option_height = (text_size + padding.vertical()) as usize;
 
         let mut primitives = Vec::new();
 
@@ -72,7 +72,7 @@ where
                 x: bounds.x,
                 y: bounds.y + (option_height * i) as f32,
                 width: bounds.width,
-                height: f32::from(text_size + padding * 2),
+                height: f32::from(text_size + padding.vertical()),
             };
 
             if is_selected {
@@ -88,7 +88,7 @@ where
             primitives.push(Primitive::Text {
                 content: option.to_string(),
                 bounds: Rectangle {
-                    x: bounds.x + f32::from(padding),
+                    x: bounds.x + padding.left as f32,
                     y: bounds.center_y(),
                     width: f32::INFINITY,
                     ..bounds

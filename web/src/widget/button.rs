@@ -1,7 +1,7 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
-use crate::{css, Background, Bus, Css, Element, Length, Widget};
+use crate::{css, Background, Bus, Css, Element, Length, Padding, Widget};
 
 pub use iced_style::button::{Style, StyleSheet};
 
@@ -30,7 +30,7 @@ pub struct Button<'a, Message> {
     min_width: u32,
     #[allow(dead_code)]
     min_height: u32,
-    padding: u16,
+    padding: Padding,
     style: Box<dyn StyleSheet>,
 }
 
@@ -48,7 +48,7 @@ impl<'a, Message> Button<'a, Message> {
             height: Length::Shrink,
             min_width: 0,
             min_height: 0,
-            padding: 5,
+            padding: Padding::new(5),
             style: Default::default(),
         }
     }
@@ -77,9 +77,9 @@ impl<'a, Message> Button<'a, Message> {
         self
     }
 
-    /// Sets the padding of the [`Button`].
-    pub fn padding(mut self, padding: u16) -> Self {
-        self.padding = padding;
+    /// Sets the [`Padding`] of the [`Button`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -122,9 +122,6 @@ where
         // TODO: State-based styling
         let style = self.style.active();
 
-        let padding_class =
-            style_sheet.insert(bump, css::Rule::Padding(self.padding));
-
         let background = match style.background {
             None => String::from("none"),
             Some(background) => match background {
@@ -132,25 +129,19 @@ where
             },
         };
 
-        let class = {
-            use dodrio::bumpalo::collections::String;
-
-            String::from_str_in(&padding_class, bump).into_bump_str()
-        };
-
         let mut node = button(bump)
-            .attr("class", class)
             .attr(
                 "style",
                 bumpalo::format!(
                     in bump,
                     "background: {}; border-radius: {}px; width:{}; \
-                    min-width: {}; color: {}",
+                    min-width: {}; color: {}; padding: {}",
                     background,
                     style.border_radius,
                     css::length(self.width),
                     css::min_length(self.min_width),
-                    css::color(style.text_color)
+                    css::color(style.text_color),
+                    css::padding(self.padding)
                 )
                 .into_bump_str(),
             )

@@ -5,7 +5,7 @@ use crate::defaults::{self, Defaults};
 use crate::{Backend, Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::{
-    Background, Color, Element, Layout, Point, Rectangle, Vector,
+    Background, Color, Element, Layout, Padding, Point, Rectangle, Vector,
 };
 
 pub use iced_native::button::State;
@@ -21,7 +21,7 @@ impl<B> iced_native::button::Renderer for Renderer<B>
 where
     B: Backend,
 {
-    const DEFAULT_PADDING: u16 = 5;
+    const DEFAULT_PADDING: Padding = Padding::new(5);
 
     type Style = Box<dyn StyleSheet>;
 

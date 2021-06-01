@@ -16,9 +16,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 use crate::{
     layout::{Limits, Node},
-    Align, Element, Point, Size,
+    Align, Element, Padding, Point, Size,
 };
 
 /// The main axis of a flex layout.
@@ -62,7 +63,7 @@ pub fn resolve<Message, Renderer>(
     axis: Axis,
     renderer: &Renderer,
     limits: &Limits,
-    padding: f32,
+    padding: Padding,
     spacing: f32,
     align_items: Align,
     items: &[Element<'_, Message, Renderer>],
@@ -141,14 +142,15 @@ where
         }
     }
 
-    let mut main = padding;
+    let pad = axis.pack(padding.left as f32, padding.top as f32);
+    let mut main = pad.0;
 
     for (i, node) in nodes.iter_mut().enumerate() {
         if i > 0 {
             main += spacing;
         }
 
-        let (x, y) = axis.pack(main, padding);
+        let (x, y) = axis.pack(main, pad.1);
 
         node.move_to(Point::new(x, y));
 
@@ -166,7 +168,7 @@ where
         main += axis.main(size);
     }
 
-    let (width, height) = axis.pack(main - padding, cross);
+    let (width, height) = axis.pack(main - pad.0, cross);
     let size = limits.resolve(Size::new(width, height));
 
     Node::with_children(size.pad(padding), nodes)

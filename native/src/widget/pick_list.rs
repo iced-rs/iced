@@ -8,7 +8,8 @@ use crate::scrollable;
 use crate::text;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
+    Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -26,7 +27,7 @@ where
     options: Cow<'a, [T]>,
     selected: Option<T>,
     width: Length,
-    padding: u16,
+    padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
@@ -96,9 +97,9 @@ where
         self
     }
 
-    /// Sets the padding of the [`PickList`].
-    pub fn padding(mut self, padding: u16) -> Self {
-        self.padding = padding;
+    /// Sets the [`Padding`] of the [`PickList`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -150,7 +151,7 @@ where
         let limits = limits
             .width(self.width)
             .height(Length::Shrink)
-            .pad(f32::from(self.padding));
+            .pad(self.padding);
 
         let text_size = self.text_size.unwrap_or(renderer.default_size());
 
@@ -179,11 +180,11 @@ where
             let intrinsic = Size::new(
                 max_width as f32
                     + f32::from(text_size)
-                    + f32::from(self.padding),
+                    + f32::from(self.padding.left),
                 f32::from(text_size),
             );
 
-            limits.resolve(intrinsic).pad(f32::from(self.padding))
+            limits.resolve(intrinsic).pad(self.padding)
         };
 
         layout::Node::new(size)
@@ -308,7 +309,7 @@ where
 /// [renderer]: crate::renderer
 pub trait Renderer: text::Renderer + menu::Renderer {
     /// The default padding of a [`PickList`].
-    const DEFAULT_PADDING: u16;
+    const DEFAULT_PADDING: Padding;
 
     /// The [`PickList`] style supported by this renderer.
     type Style: Default;
@@ -324,7 +325,7 @@ pub trait Renderer: text::Renderer + menu::Renderer {
         bounds: Rectangle,
         cursor_position: Point,
         selected: Option<String>,
-        padding: u16,
+        padding: Padding,
         text_size: u16,
         font: Self::Font,
         style: &<Self as Renderer>::Style,

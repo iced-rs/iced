@@ -18,7 +18,8 @@ use crate::mouse::{self, click};
 use crate::text;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
+    Size, Widget,
 };
 
 use std::u32;
@@ -56,7 +57,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     font: Renderer::Font,
     width: Length,
     max_width: u32,
-    padding: u16,
+    padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
@@ -92,7 +93,7 @@ where
             font: Default::default(),
             width: Length::Fill,
             max_width: u32::MAX,
-            padding: 0,
+            padding: Padding::ZERO,
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
@@ -126,9 +127,9 @@ where
         self
     }
 
-    /// Sets the padding of the [`TextInput`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    /// Sets the [`Padding`] of the [`TextInput`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -223,19 +224,21 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let padding = self.padding as f32;
         let text_size = self.size.unwrap_or(renderer.default_size());
 
         let limits = limits
-            .pad(padding)
+            .pad(self.padding)
             .width(self.width)
             .max_width(self.max_width)
             .height(Length::Units(text_size));
 
         let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-        text.move_to(Point::new(padding, padding));
+        text.move_to(Point::new(
+            self.padding.left.into(),
+            self.padding.top.into(),
+        ));
 
-        layout::Node::with_children(text.size().pad(padding), vec![text])
+        layout::Node::with_children(text.size().pad(self.padding), vec![text])
     }
 
     fn on_event(

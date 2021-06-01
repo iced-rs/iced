@@ -1,4 +1,4 @@
-use crate::Vector;
+use crate::{Padding, Vector};
 use std::f32;
 
 /// An amount of space in 2 dimensions.
@@ -28,10 +28,10 @@ impl Size {
     pub const INFINITY: Size = Size::new(f32::INFINITY, f32::INFINITY);
 
     /// Increments the [`Size`] to account for the given padding.
-    pub fn pad(&self, padding: f32) -> Self {
+    pub fn pad(&self, padding: Padding) -> Self {
         Size {
-            width: self.width + padding * 2.0,
-            height: self.height + padding * 2.0,
+            width: self.width + padding.horizontal() as f32,
+            height: self.height + padding.vertical() as f32,
         }
     }
 }

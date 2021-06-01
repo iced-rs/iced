@@ -75,7 +75,7 @@ pub use element::Element;
 pub use hasher::Hasher;
 pub use iced_core::{
     keyboard, mouse, Align, Background, Color, Font, HorizontalAlignment,
-    Length, Point, Rectangle, Size, Vector, VerticalAlignment,
+    Length, Padding, Point, Rectangle, Size, Vector, VerticalAlignment,
 };
 pub use iced_futures::{executor, futures, Command};
 pub use subscription::Subscription;

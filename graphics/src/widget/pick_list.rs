@@ -2,7 +2,8 @@
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::{
-    mouse, Font, HorizontalAlignment, Point, Rectangle, VerticalAlignment,
+    mouse, Font, HorizontalAlignment, Padding, Point, Rectangle,
+    VerticalAlignment,
 };
 use iced_style::menu;
 
@@ -19,7 +20,7 @@ where
 {
     type Style = Box<dyn StyleSheet>;
 
-    const DEFAULT_PADDING: u16 = 5;
+    const DEFAULT_PADDING: Padding = Padding::new(5);
 
     fn menu_style(style: &Box<dyn StyleSheet>) -> menu::Style {
         style.menu()
@@ -30,7 +31,7 @@ where
         bounds: Rectangle,
         cursor_position: Point,
         selected: Option<String>,
-        padding: u16,
+        padding: Padding,
         text_size: u16,
         font: Font,
         style: &Box<dyn StyleSheet>,
@@ -56,7 +57,7 @@ where
             font: B::ICON_FONT,
             size: bounds.height * style.icon_size,
             bounds: Rectangle {
-                x: bounds.x + bounds.width - f32::from(padding) * 2.0,
+                x: bounds.x + bounds.width - f32::from(padding.horizontal()),
                 y: bounds.center_y(),
                 ..bounds
             },
@@ -74,7 +75,7 @@ where
                         font,
                         color: style.text_color,
                         bounds: Rectangle {
-                            x: bounds.x + f32::from(padding),
+                            x: bounds.x + f32::from(padding.left),
                             y: bounds.center_y(),
                             ..bounds
                         },

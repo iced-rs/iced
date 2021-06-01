@@ -1,5 +1,5 @@
 //! Decorate content and apply alignment.
-use crate::{bumpalo, css, Align, Bus, Css, Element, Length, Widget};
+use crate::{bumpalo, css, Align, Bus, Css, Element, Length, Padding, Widget};
 
 pub use iced_style::container::{Style, StyleSheet};
 
@@ -8,7 +8,7 @@ pub use iced_style::container::{Style, StyleSheet};
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
 pub struct Container<'a, Message> {
-    padding: u16,
+    padding: Padding,
     width: Length,
     height: Length,
     max_width: u32,
@@ -29,7 +29,7 @@ impl<'a, Message> Container<'a, Message> {
         use std::u32;
 
         Container {
-            padding: 0,
+            padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
             max_width: u32::MAX,
@@ -41,9 +41,9 @@ impl<'a, Message> Container<'a, Message> {
         }
     }
 
-    /// Sets the padding of the [`Container`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    /// Sets the [`Padding`] of the [`Container`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -106,24 +106,22 @@ where
 
         let column_class = style_sheet.insert(bump, css::Rule::Column);
 
-        let padding_class =
-            style_sheet.insert(bump, css::Rule::Padding(self.padding));
-
         let style = self.style_sheet.style();
 
         let node = div(bump)
             .attr(
                 "class",
-                bumpalo::format!(in bump, "{} {}", column_class, padding_class).into_bump_str(),
+                bumpalo::format!(in bump, "{}", column_class).into_bump_str(),
             )
             .attr(
                 "style",
                 bumpalo::format!(
                     in bump,
-                    "width: {}; height: {}; max-width: {}; align-items: {}; justify-content: {}; background: {}; color: {}; border-width: {}px; border-color: {}; border-radius: {}px",
+                    "width: {}; height: {}; max-width: {}; padding: {}; align-items: {}; justify-content: {}; background: {}; color: {}; border-width: {}px; border-color: {}; border-radius: {}px",
                     css::length(self.width),
                     css::length(self.height),
                     css::max_length(self.max_width),
+                    css::padding(self.padding),
                     css::align(self.horizontal_alignment),
                     css::align(self.vertical_alignment),
                     style.background.map(css::background).unwrap_or(String::from("initial")),

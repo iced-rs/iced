@@ -6,7 +6,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::touch;
 use crate::{
-    Align, Clipboard, Column, Element, Hasher, Layout, Length, Point,
+    Align, Clipboard, Column, Element, Hasher, Layout, Length, Padding, Point,
     Rectangle, Size, Vector, Widget,
 };
 
@@ -51,9 +51,9 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
         self
     }
 
-    /// Sets the padding of the [`Scrollable`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.content = self.content.padding(units);
+    /// Sets the [`Padding`] of the [`Scrollable`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.content = self.content.padding(padding);
         self
     }
 

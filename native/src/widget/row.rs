@@ -3,7 +3,8 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Align, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
+    Align, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Widget,
 };
 
 use std::hash::Hash;
@@ -13,7 +14,7 @@ use std::u32;
 #[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Renderer> {
     spacing: u16,
-    padding: u16,
+    padding: Padding,
     width: Length,
     height: Length,
     max_width: u32,
@@ -34,7 +35,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     ) -> Self {
         Row {
             spacing: 0,
-            padding: 0,
+            padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
             max_width: u32::MAX,
@@ -54,9 +55,9 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         self
     }
 
-    /// Sets the padding of the [`Row`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    /// Sets the [`Padding`] of the [`Row`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -128,7 +129,7 @@ where
             layout::flex::Axis::Horizontal,
             renderer,
             &limits,
-            self.padding as f32,
+            self.padding,
             self.spacing as f32,
             self.align_items,
             &self.children,

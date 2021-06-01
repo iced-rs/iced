@@ -7,7 +7,8 @@ use crate::mouse;
 use crate::overlay;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
+    Widget,
 };
 use std::hash::Hash;
 
@@ -37,7 +38,7 @@ pub struct Button<'a, Message, Renderer: self::Renderer> {
     height: Length,
     min_width: u32,
     min_height: u32,
-    padding: u16,
+    padding: Padding,
     style: Renderer::Style,
 }
 
@@ -89,9 +90,9 @@ where
         self
     }
 
-    /// Sets the padding of the [`Button`].
-    pub fn padding(mut self, padding: u16) -> Self {
-        self.padding = padding;
+    /// Sets the [`Padding`] of the [`Button`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -140,18 +141,20 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let padding = f32::from(self.padding);
         let limits = limits
             .min_width(self.min_width)
             .min_height(self.min_height)
             .width(self.width)
             .height(self.height)
-            .pad(padding);
+            .pad(self.padding);
 
         let mut content = self.content.layout(renderer, &limits);
-        content.move_to(Point::new(padding, padding));
+        content.move_to(Point::new(
+            self.padding.left.into(),
+            self.padding.top.into(),
+        ));
 
-        let size = limits.resolve(content.size()).pad(padding);
+        let size = limits.resolve(content.size()).pad(self.padding);
 
         layout::Node::with_children(size, vec![content])
     }
@@ -258,7 +261,7 @@ where
 /// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer + Sized {
     /// The default padding of a [`Button`].
-    const DEFAULT_PADDING: u16;
+    const DEFAULT_PADDING: Padding;
 
     /// The style supported by this renderer.
     type Style: Default;
