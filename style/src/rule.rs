@@ -79,6 +79,17 @@ pub struct Style {
     pub fill_mode: FillMode,
 }
 
+impl std::default::Default for Style {
+    fn default() -> Self {
+        Style {
+            color: [0.6, 0.6, 0.6, 0.51].into(),
+            width: 1,
+            radius: 0.0,
+            fill_mode: FillMode::Percent(90.0),
+        }
+    }
+}
+
 /// A set of rules that dictate the style of a rule.
 pub trait StyleSheet {
     /// Produces the style of a rule.
@@ -89,12 +100,7 @@ struct Default;
 
 impl StyleSheet for Default {
     fn style(&self) -> Style {
-        Style {
-            color: [0.6, 0.6, 0.6, 0.51].into(),
-            width: 1,
-            radius: 0.0,
-            fill_mode: FillMode::Percent(90.0),
-        }
+        Style::default()
     }
 }
 
