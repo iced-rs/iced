@@ -24,6 +24,7 @@ pub mod radio;
 pub mod scrollable;
 pub mod slider;
 pub mod text_input;
+pub mod toggler;
 
 mod column;
 mod row;
@@ -40,6 +41,8 @@ pub use slider::Slider;
 pub use text::Text;
 #[doc(no_inline)]
 pub use text_input::TextInput;
+#[doc(no_inline)]
+pub use toggler::Toggler;
 
 pub use checkbox::Checkbox;
 pub use column::Column;
