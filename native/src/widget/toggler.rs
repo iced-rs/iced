@@ -31,7 +31,7 @@ pub struct Toggler<Message, Renderer: self::Renderer + text::Renderer> {
     width: Length,
     size: u16,
     text_size: Option<u16>,
-    text_align: Option<HorizontalAlignment>,
+    text_alignment: HorizontalAlignment,
     spacing: u16,
     font: Renderer::Font,
     style: Renderer::Style,
@@ -65,7 +65,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
             width: Length::Fill,
             size: <Renderer as self::Renderer>::DEFAULT_SIZE,
             text_size: None,
-            text_align: None,
+            text_alignment: HorizontalAlignment::Left,
             spacing: 0,
             font: Renderer::Font::default(),
             style: Renderer::Style::default(),
@@ -99,8 +99,8 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     /// Sets the horizontal alignment of the text of the [`Toggler`]
     ///
     /// [`Toggler`]: struct.Toggler.html
-    pub fn text_align(mut self, align: HorizontalAlignment) -> Self {
-        self.text_align = Some(align);
+    pub fn text_alignment(mut self, alignment: HorizontalAlignment) -> Self {
+        self.text_alignment = alignment;
         self
     }
 
@@ -155,9 +155,7 @@ where
         if let Some(label) = &self.label {
             row = row.push(
                 Text::new(label)
-                    .horizontal_alignment(
-                        self.text_align.unwrap_or(HorizontalAlignment::Left),
-                    )
+                    .horizontal_alignment(self.text_alignment)
                     .font(self.font)
                     .width(self.width)
                     .size(self.text_size.unwrap_or(renderer.default_size())),
@@ -221,7 +219,7 @@ where
                     self.text_size.unwrap_or(renderer.default_size()),
                     self.font,
                     None,
-                    self.text_align.unwrap_or(HorizontalAlignment::Left),
+                    self.text_alignment,
                     VerticalAlignment::Center,
                 ))
             }
