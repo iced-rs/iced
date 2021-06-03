@@ -22,7 +22,6 @@ use crate::{
 ///
 /// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
 /// ```
-///
 #[allow(missing_debug_implementations)]
 pub struct Toggler<Message, Renderer: self::Renderer + text::Renderer> {
     is_active: bool,
@@ -48,8 +47,6 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     ///   * a function that will be called when the [`Toggler`] is toggled. It
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     pub fn new<F>(
         is_active: bool,
         label: impl Into<Option<String>>,
@@ -73,57 +70,42 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     }
 
     /// Sets the size of the [`Toggler`].
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     pub fn size(mut self, size: u16) -> Self {
         self.size = size;
         self
     }
 
     /// Sets the width of the [`Toggler`].
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
     /// Sets the text size o the [`Toggler`].
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
         self
     }
 
     /// Sets the horizontal alignment of the text of the [`Toggler`]
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     pub fn text_alignment(mut self, alignment: HorizontalAlignment) -> Self {
         self.text_alignment = alignment;
         self
     }
 
     /// Sets the spacing between the [`Toggler`] and the text.
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     pub fn spacing(mut self, spacing: u16) -> Self {
         self.spacing = spacing;
         self
     }
 
     /// Sets the [`Font`] of the text of the [`Toggler`]
-    ///
-    /// [`Toggler`]: struct.Toggler.html
-    /// [`Font`]: ../../struct.Font.html
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
     }
 
     /// Sets the style of the [`Toggler`].
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
         self.style = style.into();
         self
@@ -255,15 +237,12 @@ where
 /// Your [renderer] will need to implement this trait before being
 /// able to use a [`Toggler`] in your user interface.
 ///
-/// [`Toggler`]: struct.Toggler.html
 /// [renderer]: ../../renderer/index.html
 pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
 
     /// The default size of a [`Toggler`].
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     const DEFAULT_SIZE: u16;
 
     /// Draws a [`Toggler`].
@@ -274,8 +253,6 @@ pub trait Renderer: crate::Renderer {
     ///   * whether the mouse is over the [`Toggler`] or not
     ///   * the drawn label of the [`Toggler`]
     ///   * the style of the [`Toggler`]
-    ///
-    /// [`Toggler`]: struct.Toggler.html
     fn draw(
         &mut self,
         bounds: Rectangle,
