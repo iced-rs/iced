@@ -565,11 +565,14 @@ impl<'a> Step {
             .push(Text::new(
                 "A toggler is mostly used to enable or disable something.",
             ))
-            .push(Toggler::new(
-                can_continue,
-                String::from("Toggle me to continue..."),
-                StepMessage::TogglerChanged,
-            ))
+            .push(
+                Container::new(Toggler::new(
+                    can_continue,
+                    String::from("Toggle me to continue..."),
+                    StepMessage::TogglerChanged,
+                ))
+                .padding([0, 40]),
+            )
     }
 
     fn image(
