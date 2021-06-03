@@ -78,6 +78,7 @@ impl Cache {
             (scale * width).round() as u32,
             (scale * height).round() as u32,
         );
+        println!("Upload {} {}x{}", id, width, height);
 
         // TODO: Optimize!
         // We currently rerasterize the SVG when its size changes. This is slow
@@ -122,6 +123,7 @@ impl Cache {
                     device,
                     encoder,
                 )?;
+                println!("  Allocating {} {}x{}", id, width, height);
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert((id, width, height));

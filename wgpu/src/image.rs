@@ -309,6 +309,7 @@ impl Pipeline {
         target: &wgpu::TextureView,
         _scale: f32,
     ) {
+        println!("=== Drawing {} images", images.len());
         let instances: &mut Vec<Instance> = &mut Vec::new();
 
         #[cfg(feature = "image_rs")]
@@ -463,6 +464,7 @@ impl Pipeline {
 
             i += Instance::MAX;
         }
+        println!("=== Done");
     }
 
     pub fn trim_cache(&mut self) {

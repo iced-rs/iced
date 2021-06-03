@@ -252,9 +252,9 @@ async fn run_instance<A, E, C>(
     while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
-                if events.is_empty() && messages.is_empty() {
-                    continue;
-                }
+                // if events.is_empty() && messages.is_empty() {
+                //     continue;
+                // }
 
                 debug.event_processing_started();
 
