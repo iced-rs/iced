@@ -1,6 +1,6 @@
 use iced::{
-    pick_list, scrollable, Align, Container, Element, Length, PickList,
-    Sandbox, Scrollable, Settings, Space, Text,
+    scrollable, selection_list, Align, Container, Element, Length, Sandbox,
+    Scrollable, SelectionList, Settings, Space, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -10,7 +10,7 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct Example {
     scroll: scrollable::State,
-    pick_list: pick_list::State<Language>,
+    selection_list: selection_list::State<Language>,
     selected_language: Language,
 }
 
@@ -27,7 +27,7 @@ impl Sandbox for Example {
     }
 
     fn title(&self) -> String {
-        String::from("Pick list - Iced")
+        String::from("Selection list - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -39,9 +39,9 @@ impl Sandbox for Example {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let pick_list = PickList::new(
-            &mut self.pick_list,
-            &Language::ALL[..],
+        let selection_list = SelectionList::new(
+            &mut self.selection_list,
+            Language::ALL[..].to_vec(),
             Some(self.selected_language),
             Message::LanguageSelected,
         );
@@ -51,8 +51,9 @@ impl Sandbox for Example {
             .align_items(Align::Center)
             .spacing(10)
             .push(Space::with_height(Length::Units(600)))
+            .push(selection_list)
             .push(Text::new("Which is your favorite language?"))
-            .push(pick_list);
+            .push(Text::new(format!("{:?}", self.selected_language)));
 
         content = content.push(Space::with_height(Length::Units(600)));
 

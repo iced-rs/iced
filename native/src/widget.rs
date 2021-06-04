@@ -31,6 +31,7 @@ pub mod radio;
 pub mod row;
 pub mod rule;
 pub mod scrollable;
+pub mod selection_list;
 pub mod slider;
 pub mod space;
 pub mod svg;
@@ -63,6 +64,8 @@ pub use row::Row;
 pub use rule::Rule;
 #[doc(no_inline)]
 pub use scrollable::Scrollable;
+#[doc(no_inline)]
+pub use selection_list::SelectionList;
 #[doc(no_inline)]
 pub use slider::Slider;
 #[doc(no_inline)]
