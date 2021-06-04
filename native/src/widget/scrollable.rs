@@ -23,6 +23,7 @@ pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
     scrollbar_margin: u16,
     scroller_width: u16,
     content: Column<'a, Message, Renderer>,
+    on_scroll: Option<Box<dyn Fn(f32) -> Message>>,
     style: Renderer::Style,
 }
 
@@ -37,6 +38,7 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
             scrollbar_margin: 0,
             scroller_width: 10,
             content: Column::new(),
+            on_scroll: None,
             style: Renderer::Style::default(),
         }
     }
@@ -101,9 +103,19 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     }
 
     /// Sets the scroller width of the [`Scrollable`] .
-    /// Silently enforces a minimum value of 1.
+    ///
+    /// It silently enforces a minimum value of 1.
     pub fn scroller_width(mut self, scroller_width: u16) -> Self {
         self.scroller_width = scroller_width.max(1);
+        self
+    }
+
+    /// Sets a function to call when the [`Scrollable`] is scrolled.
+    ///
+    /// The function takes the new relative offset of the [`Scrollable`]
+    /// (e.g. `0` means top, while `1` means bottom).
+    pub fn on_scroll(mut self, f: impl Fn(f32) -> Message + 'static) -> Self {
+        self.on_scroll = Some(Box::new(f));
         self
     }
 
@@ -120,6 +132,24 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     {
         self.content = self.content.push(child);
         self
+    }
+
+    fn notify_on_scroll(
+        &self,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        messages: &mut Vec<Message>,
+    ) {
+        if content_bounds.height <= bounds.height {
+            return;
+        }
+
+        if let Some(on_scroll) = &self.on_scroll {
+            messages.push(on_scroll(
+                self.state.offset.absolute(bounds, content_bounds)
+                    / (content_bounds.height - bounds.height),
+            ));
+        }
     }
 }
 
@@ -228,6 +258,8 @@ where
                         }
                     }
 
+                    self.notify_on_scroll(bounds, content_bounds, messages);
+
                     return event::Status::Captured;
                 }
                 Event::Touch(event) => {
@@ -251,6 +283,12 @@ where
 
                                 self.state.scroll_box_touched_at =
                                     Some(cursor_position);
+
+                                self.notify_on_scroll(
+                                    bounds,
+                                    content_bounds,
+                                    messages,
+                                );
                             }
                         }
                         touch::Event::FingerLifted { .. }
@@ -290,6 +328,8 @@ where
                             content_bounds,
                         );
 
+                        self.notify_on_scroll(bounds, content_bounds, messages);
+
                         return event::Status::Captured;
                     }
                 }
@@ -316,6 +356,12 @@ where
 
                             self.state.scroller_grabbed_at =
                                 Some(scroller_grabbed_at);
+
+                            self.notify_on_scroll(
+                                bounds,
+                                content_bounds,
+                                messages,
+                            );
 
                             return event::Status::Captured;
                         }
