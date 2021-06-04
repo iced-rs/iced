@@ -17,6 +17,8 @@ struct ScrollableDemo {
 #[derive(Debug, Clone)]
 enum Message {
     ThemeChanged(style::Theme),
+    ScrollToTop(usize),
+    ScrollToBottom(usize),
 }
 
 impl Sandbox for ScrollableDemo {
@@ -36,6 +38,16 @@ impl Sandbox for ScrollableDemo {
     fn update(&mut self, message: Message) {
         match message {
             Message::ThemeChanged(theme) => self.theme = theme,
+            Message::ScrollToTop(i) => {
+                if let Some(variant) = self.variants.get_mut(i) {
+                    variant.scrollable.snap_to(0.0);
+                }
+            }
+            Message::ScrollToBottom(i) => {
+                if let Some(variant) = self.variants.get_mut(i) {
+                    variant.scrollable.snap_to(1.0);
+                }
+            }
         }
     }
 
@@ -62,7 +74,8 @@ impl Sandbox for ScrollableDemo {
         let scrollable_row = Row::with_children(
             variants
                 .iter_mut()
-                .map(|variant| {
+                .enumerate()
+                .map(|(i, variant)| {
                     let mut scrollable =
                         Scrollable::new(&mut variant.scrollable)
                             .padding(10)
@@ -70,7 +83,16 @@ impl Sandbox for ScrollableDemo {
                             .width(Length::Fill)
                             .height(Length::Fill)
                             .style(*theme)
-                            .push(Text::new(variant.title));
+                            .push(Text::new(variant.title))
+                            .push(
+                                Button::new(
+                                    &mut variant.scroll_to_bottom,
+                                    Text::new("Scroll to bottom"),
+                                )
+                                .width(Length::Fill)
+                                .padding(10)
+                                .on_press(Message::ScrollToBottom(i)),
+                            );
 
                     if let Some(scrollbar_width) = variant.scrollbar_width {
                         scrollable = scrollable
@@ -110,15 +132,16 @@ impl Sandbox for ScrollableDemo {
                         .push(Space::with_height(Length::Units(1200)))
                         .push(Text::new("Middle"))
                         .push(Space::with_height(Length::Units(1200)))
+                        .push(Text::new("The End."))
                         .push(
                             Button::new(
-                                &mut variant.button,
-                                Text::new("I am a button"),
+                                &mut variant.scroll_to_top,
+                                Text::new("Scroll to top"),
                             )
                             .width(Length::Fill)
-                            .padding(10),
-                        )
-                        .push(Text::new("The End."));
+                            .padding(10)
+                            .on_press(Message::ScrollToTop(i)),
+                        );
 
                     Container::new(scrollable)
                         .width(Length::Fill)
@@ -153,7 +176,8 @@ impl Sandbox for ScrollableDemo {
 struct Variant {
     title: &'static str,
     scrollable: scrollable::State,
-    button: button::State,
+    scroll_to_top: button::State,
+    scroll_to_bottom: button::State,
     scrollbar_width: Option<u16>,
     scrollbar_margin: Option<u16>,
     scroller_width: Option<u16>,
@@ -165,7 +189,8 @@ impl Variant {
             Self {
                 title: "Default Scrollbar",
                 scrollable: scrollable::State::new(),
-                button: button::State::new(),
+                scroll_to_top: button::State::new(),
+                scroll_to_bottom: button::State::new(),
                 scrollbar_width: None,
                 scrollbar_margin: None,
                 scroller_width: None,
@@ -173,7 +198,8 @@ impl Variant {
             Self {
                 title: "Slimmed & Margin",
                 scrollable: scrollable::State::new(),
-                button: button::State::new(),
+                scroll_to_top: button::State::new(),
+                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(4),
                 scrollbar_margin: Some(3),
                 scroller_width: Some(4),
@@ -181,7 +207,8 @@ impl Variant {
             Self {
                 title: "Wide Scroller",
                 scrollable: scrollable::State::new(),
-                button: button::State::new(),
+                scroll_to_top: button::State::new(),
+                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(4),
                 scrollbar_margin: None,
                 scroller_width: Some(10),
@@ -189,7 +216,8 @@ impl Variant {
             Self {
                 title: "Narrow Scroller",
                 scrollable: scrollable::State::new(),
-                button: button::State::new(),
+                scroll_to_top: button::State::new(),
+                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(10),
                 scrollbar_margin: None,
                 scroller_width: Some(4),
