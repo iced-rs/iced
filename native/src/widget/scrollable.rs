@@ -23,6 +23,7 @@ pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
     scrollbar_margin: u16,
     scroller_width: u16,
     content: Column<'a, Message, Renderer>,
+    on_scroll: Option<Box<dyn Fn(f32) -> Message>>,
     style: Renderer::Style,
 }
 
@@ -37,6 +38,7 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
             scrollbar_margin: 0,
             scroller_width: 10,
             content: Column::new(),
+            on_scroll: None,
             style: Renderer::Style::default(),
         }
     }
@@ -101,9 +103,19 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     }
 
     /// Sets the scroller width of the [`Scrollable`] .
-    /// Silently enforces a minimum value of 1.
+    ///
+    /// It silently enforces a minimum value of 1.
     pub fn scroller_width(mut self, scroller_width: u16) -> Self {
         self.scroller_width = scroller_width.max(1);
+        self
+    }
+
+    /// Sets a function to call when the [`Scrollable`] is scrolled.
+    ///
+    /// The function takes the new relative offset of the [`Scrollable`]
+    /// (e.g. `0` means top, while `1` means bottom).
+    pub fn on_scroll(mut self, f: impl Fn(f32) -> Message + 'static) -> Self {
+        self.on_scroll = Some(Box::new(f));
         self
     }
 
@@ -120,6 +132,24 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     {
         self.content = self.content.push(child);
         self
+    }
+
+    fn notify_on_scroll(
+        &self,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        messages: &mut Vec<Message>,
+    ) {
+        if content_bounds.height <= bounds.height {
+            return;
+        }
+
+        if let Some(on_scroll) = &self.on_scroll {
+            messages.push(on_scroll(
+                self.state.offset.absolute(bounds, content_bounds)
+                    / (content_bounds.height - bounds.height),
+            ));
+        }
     }
 }
 
@@ -228,6 +258,8 @@ where
                         }
                     }
 
+                    self.notify_on_scroll(bounds, content_bounds, messages);
+
                     return event::Status::Captured;
                 }
                 Event::Touch(event) => {
@@ -251,6 +283,12 @@ where
 
                                 self.state.scroll_box_touched_at =
                                     Some(cursor_position);
+
+                                self.notify_on_scroll(
+                                    bounds,
+                                    content_bounds,
+                                    messages,
+                                );
                             }
                         }
                         touch::Event::FingerLifted { .. }
@@ -290,6 +328,8 @@ where
                             content_bounds,
                         );
 
+                        self.notify_on_scroll(bounds, content_bounds, messages);
+
                         return event::Status::Captured;
                     }
                 }
@@ -316,6 +356,12 @@ where
 
                             self.state.scroller_grabbed_at =
                                 Some(scroller_grabbed_at);
+
+                            self.notify_on_scroll(
+                                bounds,
+                                content_bounds,
+                                messages,
+                            );
 
                             return event::Status::Captured;
                         }
@@ -418,11 +464,44 @@ where
 }
 
 /// The local state of a [`Scrollable`].
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct State {
     scroller_grabbed_at: Option<f32>,
     scroll_box_touched_at: Option<Point>,
-    offset: f32,
+    offset: Offset,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            scroller_grabbed_at: None,
+            scroll_box_touched_at: None,
+            offset: Offset::Absolute(0.0),
+        }
+    }
+}
+
+/// The local state of a [`Scrollable`].
+#[derive(Debug, Clone, Copy)]
+enum Offset {
+    Absolute(f32),
+    Relative(f32),
+}
+
+impl Offset {
+    fn absolute(self, bounds: Rectangle, content_bounds: Rectangle) -> f32 {
+        match self {
+            Self::Absolute(absolute) => {
+                let hidden_content =
+                    (content_bounds.height - bounds.height).max(0.0);
+
+                absolute.min(hidden_content)
+            }
+            Self::Relative(percentage) => {
+                ((content_bounds.height - bounds.height) * percentage).max(0.0)
+            }
+        }
+    }
 }
 
 impl State {
@@ -443,13 +522,14 @@ impl State {
             return;
         }
 
-        self.offset = (self.offset - delta_y)
-            .max(0.0)
-            .min((content_bounds.height - bounds.height) as f32);
+        self.offset = Offset::Absolute(
+            (self.offset.absolute(bounds, content_bounds) - delta_y)
+                .max(0.0)
+                .min((content_bounds.height - bounds.height) as f32),
+        );
     }
 
-    /// Moves the scroll position to a relative amount, given the bounds of
-    /// the [`Scrollable`] and its contents.
+    /// Scrolls the [`Scrollable`] to a relative amount.
     ///
     /// `0` represents scrollbar at the top, while `1` represents scrollbar at
     /// the bottom.
@@ -459,17 +539,29 @@ impl State {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
+        self.snap_to(percentage);
+        self.unsnap(bounds, content_bounds);
+    }
+
+    /// Snaps the scroll position to a relative amount.
+    ///
+    /// `0` represents scrollbar at the top, while `1` represents scrollbar at
+    /// the bottom.
+    pub fn snap_to(&mut self, percentage: f32) {
+        self.offset = Offset::Relative(percentage.max(0.0).min(1.0));
+    }
+
+    /// Unsnaps the current scroll position, if snapped, given the bounds of the
+    /// [`Scrollable`] and its contents.
+    pub fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
         self.offset =
-            ((content_bounds.height - bounds.height) * percentage).max(0.0);
+            Offset::Absolute(self.offset.absolute(bounds, content_bounds));
     }
 
     /// Returns the current scrolling offset of the [`State`], given the bounds
     /// of the [`Scrollable`] and its contents.
     pub fn offset(&self, bounds: Rectangle, content_bounds: Rectangle) -> u32 {
-        let hidden_content =
-            (content_bounds.height - bounds.height).max(0.0).round() as u32;
-
-        self.offset.min(hidden_content as f32) as u32
+        self.offset.absolute(bounds, content_bounds) as u32
     }
 
     /// Returns whether the scroller is currently grabbed or not.
