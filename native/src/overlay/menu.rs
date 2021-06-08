@@ -95,10 +95,11 @@ where
         self,
         position: Point,
         target_height: f32,
+        floating: bool,
     ) -> overlay::Element<'a, Message, Renderer> {
         overlay::Element::new(
             position,
-            Box::new(Overlay::new(self, target_height)),
+            Box::new(Overlay::new(self, target_height, floating)),
         )
     }
 }
@@ -120,6 +121,7 @@ struct Overlay<'a, Message, Renderer: self::Renderer> {
     container: Container<'a, Message, Renderer>,
     width: u16,
     target_height: f32,
+    floating: bool,
     style: <Renderer as self::Renderer>::Style,
 }
 
@@ -128,7 +130,11 @@ where
     Message: 'a,
     Renderer: 'a,
 {
-    pub fn new<T>(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self
+    pub fn new<T>(
+        menu: Menu<'a, T, Renderer>,
+        target_height: f32,
+        floating: bool,
+    ) -> Self
     where
         T: Clone + ToString,
     {
@@ -160,6 +166,7 @@ where
             container,
             width: width,
             target_height,
+            floating,
             style: style,
         }
     }
@@ -183,7 +190,7 @@ where
             Size::ZERO,
             Size::new(
                 bounds.width - position.x,
-                if space_below > space_above {
+                if space_below > space_above && self.floating {
                     space_below
                 } else {
                     space_above
@@ -194,7 +201,7 @@ where
 
         let mut node = self.container.layout(renderer, &limits);
 
-        node.move_to(if space_below > space_above {
+        node.move_to(if space_below > space_above && self.floating {
             position + Vector::new(0.0, self.target_height)
         } else {
             position - Vector::new(0.0, node.size().height)

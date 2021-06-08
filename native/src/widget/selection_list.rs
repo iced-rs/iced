@@ -23,7 +23,7 @@ where
     last_selection: &'a mut Option<T>,
     on_selected: Box<dyn Fn(T) -> Message>,
     selected: Option<T>,
-    options: Vec<T>,
+    options: &'a [T],
     width: Length,
     padding: Padding,
     text_size: Option<u16>,
@@ -60,7 +60,7 @@ where
     /// selected.
     pub fn new(
         state: &'a mut State<T>,
-        options: Vec<T>,
+        options: &'a [T],
         selected: Option<T>,
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
@@ -75,9 +75,9 @@ where
             hovered_option,
             last_selection,
             on_selected: Box::new(on_selected),
-            options: options,
+            options,
             selected,
-            width: Length::Shrink,
+            width: Length::Fill,
             text_size: None,
             padding: Renderer::DEFAULT_PADDING,
             font: Default::default(),
@@ -125,17 +125,6 @@ where
     ) -> Self {
         self.style = style.into();
         self
-    }
-
-    /// Insert into the [`SelectionList`].
-    pub fn insert(&mut self, index: usize, element: T) {
-        self.options.insert(index, element);
-        self.update_hovered_option();
-    }
-
-    /// push into the end of the [`SelectionList`].
-    pub fn push(&mut self, element: T) {
-        self.options.push(element);
     }
 }
 
@@ -286,7 +275,7 @@ where
             menu = menu.text_size(text_size);
         }
 
-        Some(menu.overlay(layout.position(), bounds.height))
+        Some(menu.overlay(layout.position(), bounds.height, false))
     }
 }
 

@@ -294,7 +294,7 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            Some(menu.overlay(layout.position(), bounds.height))
+            Some(menu.overlay(layout.position(), bounds.height, true))
         } else {
             None
         }
