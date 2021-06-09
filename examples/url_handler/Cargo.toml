@@ -8,5 +8,3 @@ publish = false
 [dependencies]
 iced = { path = "../.." }
 iced_native = { path = "../../native" }
-syslog="4.0"
-log="0.4"

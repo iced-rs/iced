@@ -1,8 +1,11 @@
 use iced::{
-    executor, Application, Command, Clipboard,
-    Container, Element, Length, Settings, Subscription, Text,
+    executor, Application, Clipboard, Command, Container, Element, Length,
+    Settings, Subscription, Text,
 };
-use iced_native::Event;
+use iced_native::{
+    event::{MacOS, PlatformSpecific},
+    Event,
+};
 
 pub fn main() -> iced::Result {
     App::run(Settings::default())
@@ -38,7 +41,10 @@ impl Application for App {
     ) -> Command<Message> {
         match message {
             Message::EventOccurred(event) => {
-                if let Event::UrlReceived(url) = event{
+                if let Event::PlatformSpecific(PlatformSpecific::MacOS(
+                    MacOS::ReceivedUrl(url),
+                )) = event
+                {
                     self.url = Some(url);
                 }
             }
@@ -52,9 +58,9 @@ impl Application for App {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let content = match &self.url{
+        let content = match &self.url {
             Some(url) => Text::new(format!("{}", url)),
-            None => Text::new("No URL received yet!")
+            None => Text::new("No URL received yet!"),
         };
 
         Container::new(content.size(48))
