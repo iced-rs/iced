@@ -70,15 +70,13 @@ impl Sandbox for Tour {
 
         controls = controls.push(Space::with_width(Length::Fill));
 
-        let mut button = button(next_button, "Next");
-        button = if steps.can_continue() {
-            button
-                .style(style::Button::Primary)
-                .on_press(Message::NextPressed)
-        } else {
-            button.style(style::Button::Disabled)
-        };
-        controls = controls.push(button);
+        if steps.can_continue() {
+            controls = controls.push(
+                button(next_button, "Next")
+                    .on_press(Message::NextPressed)
+                    .style(style::Button::Primary),
+            );
+        }
 
         let content: Element<_> = Column::new()
             .max_width(540)
@@ -792,7 +790,6 @@ mod style {
     pub enum Button {
         Primary,
         Secondary,
-        Disabled,
     }
 
     impl button::StyleSheet for Button {
@@ -800,8 +797,7 @@ mod style {
             button::Style {
                 background: Some(Background::Color(match self {
                     Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
-                    Button::Secondary => Color::from_rgb(0.055, 0.21, 0.435),
-                    Button::Disabled => Color::from_rgb(0.5, 0.5, 0.5),
+                    Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
                 })),
                 border_radius: 12.0,
                 shadow_offset: Vector::new(1.0, 1.0),
