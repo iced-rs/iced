@@ -105,8 +105,8 @@ impl Rectangle<f32> {
         Rectangle {
             x: self.x as u32,
             y: self.y as u32,
-            width: self.width.ceil() as u32,
-            height: self.height.ceil() as u32,
+            width: self.width as u32,
+            height: self.height as u32,
         }
     }
 }
