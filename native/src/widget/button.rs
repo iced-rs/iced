@@ -29,6 +29,29 @@ use std::hash::Hash;
 /// let button = Button::new(&mut state, Text::new("Press me!"))
 ///     .on_press(Message::ButtonPressed);
 /// ```
+///
+/// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
+/// be disabled:
+///
+/// ```
+/// # use iced_native::{button, Text};
+/// #
+/// # type Button<'a, Message> =
+/// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
+/// #
+/// #[derive(Clone)]
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// fn disabled_button(state: &mut button::State) -> Button<'_, Message> {
+///     Button::new(state, Text::new("I'm disabled!"))
+/// }
+///
+/// fn enabled_button(state: &mut button::State) -> Button<'_, Message> {
+///     disabled_button(state).on_press(Message::ButtonPressed)
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
@@ -97,6 +120,7 @@ where
     }
 
     /// Sets the message that will be produced when the [`Button`] is pressed.
+    /// If on_press isn't set, button will be disabled.
     pub fn on_press(mut self, msg: Message) -> Self {
         self.on_press = Some(msg);
         self
