@@ -2,6 +2,8 @@
 use std::fmt;
 use std::io;
 
+use image_rs::{DynamicImage, GenericImageView};
+
 /// The icon of a window.
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone)]
@@ -13,6 +15,26 @@ pub struct Icon(iced_winit::winit::window::Icon);
 pub struct Icon;
 
 impl Icon {
+    /// Creates an icon from dynamic image.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_dynamic_image(dynamic_image: DynamicImage) -> Result<Self, Error> {
+        let width = dynamic_image.width();
+        let height = dynamic_image.height();
+        let rgba = dynamic_image.into_rgba8().into_raw();
+
+        let raw =
+            iced_winit::winit::window::Icon::from_rgba(rgba, width, height)?;
+
+        Ok(Icon(raw))
+    }
+
+    /// Creates an icon from dynamic image.
+    #[cfg(target_arch = "wasm32")]
+    pub fn from_dynamic_image(_dynamic_image: DynamicImage) -> Result<Self, Error> {
+        Ok(Icon)
+    }
+
+
     /// Creates an icon from 32bpp RGBA data.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn from_rgba(
