@@ -96,6 +96,7 @@ iced_winit = { version = "0.3", path = "winit" }
 iced_glutin = { version = "0.2", path = "glutin", optional = true }
 iced_wgpu = { version = "0.4", path = "wgpu", optional = true }
 iced_glow = { version = "0.2", path = "glow", optional = true}
+image_rs = { package = "image", version = "0.23.14" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced_web = { version = "0.4", path = "web" }
