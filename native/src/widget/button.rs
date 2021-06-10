@@ -30,7 +30,8 @@ use std::hash::Hash;
 ///     .on_press(Message::ButtonPressed);
 /// ```
 ///
-/// Buttons can be disabled by not having an on_press.
+/// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
+/// be disabled:
 ///
 /// ```
 /// # use iced_native::{button, Text};
@@ -38,13 +39,18 @@ use std::hash::Hash;
 /// # type Button<'a, Message> =
 /// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
 /// #
-/// # #[derive(Clone)]
-/// # enum Message {
-/// #     ButtonPressed,
-/// # }
-/// #
-/// let mut state = button::State::new();
-/// let disabled_button = Button::<Message>::new(&mut state, Text::new("I'm disabled!"));
+/// #[derive(Clone)]
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// fn disabled_button(state: &mut button::State) -> Button<'_, Message> {
+///     Button::new(state, Text::new("I'm disabled!"))
+/// }
+///
+/// fn enabled_button(state: &mut button::State) -> Button<'_, Message> {
+///     disabled_button(state).on_press(Message::ButtonPressed)
+/// }
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer: self::Renderer> {
