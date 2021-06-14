@@ -46,7 +46,9 @@ impl Pipeline {
         let draw_brush =
             wgpu_glyph::GlyphBrushBuilder::using_font(font.clone())
                 .initial_cache_size((2048, 2048))
-                .draw_cache_multithread(false) // TODO: Expose as a configuration flag
+                .draw_cache_multithread(cfg!(
+                    feature = "glyph_draw_cache_multithread"
+                ))
                 .build(device, format);
 
         let measure_brush =
