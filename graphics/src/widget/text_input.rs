@@ -255,7 +255,7 @@ where
 {
     use iced_native::text_input::Renderer;
 
-    let text_before_cursor = value.until(cursor_index).to_string();
+    let text_before_cursor = value.until(cursor_index).concat();
 
     let text_value_width =
         renderer.measure_value(&text_before_cursor, size, font);

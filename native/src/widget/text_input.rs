@@ -177,20 +177,7 @@ where
         #[allow(clippy::or_fun_call)]
         let size = self.size.unwrap_or(renderer.default_size());
 
-        if self.is_secure {
-            self::Renderer::draw(
-                renderer,
-                bounds,
-                text_bounds,
-                cursor_position,
-                self.font,
-                size,
-                &self.placeholder,
-                &value.secure(),
-                &self.state,
-                &self.style,
-            )
-        } else {
+        let mut draw = |value| {
             self::Renderer::draw(
                 renderer,
                 bounds,
@@ -203,6 +190,12 @@ where
                 &self.state,
                 &self.style,
             )
+        };
+
+        if self.is_secure {
+            draw(&value.secure())
+        } else {
+            draw(value)
         }
     }
 }
@@ -521,9 +514,8 @@ where
                         if let Some((start, end)) =
                             self.state.cursor.selection(&self.value)
                         {
-                            clipboard.write(
-                                self.value.select(start, end).to_string(),
-                            );
+                            clipboard
+                                .write(self.value.select(start, end).concat());
                         }
                     }
                     keyboard::KeyCode::X
@@ -535,9 +527,8 @@ where
                         if let Some((start, end)) =
                             self.state.cursor.selection(&self.value)
                         {
-                            clipboard.write(
-                                self.value.select(start, end).to_string(),
-                            );
+                            clipboard
+                                .write(self.value.select(start, end).concat());
                         }
 
                         let mut editor = Editor::new(
@@ -814,11 +805,11 @@ fn find_cursor_position<Renderer: self::Renderer>(
             return 0;
         }
 
-        let prev = value.until(start - 1);
-        let next = value.until(start);
+        let prev = value.until(start - 1).concat();
+        let next = value.until(start).concat();
 
-        let prev_width = renderer.measure_value(&prev.to_string(), size, font);
-        let next_width = renderer.measure_value(&next.to_string(), size, font);
+        let prev_width = renderer.measure_value(&prev, size, font);
+        let next_width = renderer.measure_value(&next, size, font);
 
         if next_width - target > target - prev_width {
             return start - 1;
@@ -828,30 +819,17 @@ fn find_cursor_position<Renderer: self::Renderer>(
     }
 
     let index = (end - start) / 2;
-    let subvalue = value.until(start + index);
+    let subvalue = value.until(start + index).concat();
 
-    let width = renderer.measure_value(&subvalue.to_string(), size, font);
+    let width = renderer.measure_value(&subvalue, size, font);
+    let find = |start, end| {
+        find_cursor_position(renderer, value, font, size, target, start, end)
+    };
 
     if width > target {
-        find_cursor_position(
-            renderer,
-            value,
-            font,
-            size,
-            target,
-            start,
-            start + index,
-        )
+        find(start, start + index)
     } else {
-        find_cursor_position(
-            renderer,
-            value,
-            font,
-            size,
-            target,
-            start + index + 1,
-            end,
-        )
+        find(start + index + 1, end)
     }
 }
 
