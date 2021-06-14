@@ -114,11 +114,7 @@ impl Pipeline {
                         wgpu::BufferBinding {
                             buffer: &constants_buffer.raw,
                             offset: 0,
-                            size: wgpu::BufferSize::new(std::mem::size_of::<
-                                Uniforms,
-                            >(
-                            )
-                                as u64),
+                            size: wgpu::BufferSize::new(UNIFORMS_SIZE as u64),
                         },
                     ),
                 }],
@@ -233,16 +229,13 @@ impl Pipeline {
         scale_factor: f32,
         meshes: &[layer::Mesh<'_>],
     ) {
-        // This looks a bit crazy, but we are just counting how many vertices
-        // and indices we will need to handle.
-        // TODO: Improve readability
-        let (total_vertices, total_indices) = meshes
-            .iter()
-            .map(|layer::Mesh { buffers, .. }| {
-                (buffers.vertices.len(), buffers.indices.len())
-            })
-            .fold((0, 0), |(total_v, total_i), (v, i)| {
-                (total_v + v, total_i + i)
+        // Count how many vertices and indices we will need to handle.
+        let (total_vertices, total_indices) =
+            meshes.iter().fold((0, 0), |(total_v, total_i), mesh| {
+                (
+                    total_v + mesh.buffers.vertices.len(),
+                    total_i + mesh.buffers.indices.len(),
+                )
             });
 
         // Then we ensure the current buffers are big enough, resizing if
@@ -264,7 +257,7 @@ impl Pipeline {
                                 buffer: &self.uniforms_buffer.raw,
                                 offset: 0,
                                 size: wgpu::BufferSize::new(
-                                    std::mem::size_of::<Uniforms>() as u64,
+                                    UNIFORMS_SIZE as u64,
                                 ),
                             },
                         ),
@@ -389,7 +382,7 @@ impl Pipeline {
                 render_pass.set_bind_group(
                     0,
                     &self.constants,
-                    &[(std::mem::size_of::<Uniforms>() * i) as u32],
+                    &[(UNIFORMS_SIZE * i) as u32],
                 );
 
                 render_pass.set_index_buffer(
@@ -415,6 +408,8 @@ impl Pipeline {
         }
     }
 }
+
+const UNIFORMS_SIZE: usize = std::mem::size_of::<Uniforms>();
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
