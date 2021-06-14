@@ -237,9 +237,15 @@ async fn run_instance<A, E, C>(
 
                 context.window().request_redraw();
             }
-            event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(url))) => {
+            event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
+                event::MacOS::ReceivedUrl(url),
+            )) => {
                 use iced_native::event;
-                events.push(iced_native::Event::PlatformSpecific(event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(url))));
+                events.push(iced_native::Event::PlatformSpecific(
+                    event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
+                        url,
+                    )),
+                ));
             }
             event::Event::UserEvent(message) => {
                 messages.push(message);
