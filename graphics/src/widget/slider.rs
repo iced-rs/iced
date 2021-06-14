@@ -72,18 +72,16 @@ where
             },
         );
 
-        let (handle_width, handle_height, handle_border_radius) = match style
-            .handle
-            .shape
-        {
-            HandleShape::Circle { radius } => {
-                (radius * 2.0, radius * 2.0, radius)
-            }
-            HandleShape::Rectangle {
-                width,
-                border_radius,
-            } => (f32::from(width), f32::from(bounds.height), border_radius),
-        };
+        let (handle_width, handle_height, handle_border_radius) =
+            match style.handle.shape {
+                HandleShape::Circle { radius } => {
+                    (radius * 2.0, radius * 2.0, radius)
+                }
+                HandleShape::Rectangle {
+                    width,
+                    border_radius,
+                } => (f32::from(width), bounds.height, border_radius),
+            };
 
         let (range_start, range_end) = range.into_inner();
 

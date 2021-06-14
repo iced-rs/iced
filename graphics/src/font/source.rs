@@ -6,6 +6,12 @@ pub struct Source {
     raw: font_kit::source::SystemSource,
 }
 
+impl Default for Source {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Source {
     /// Creates a new [`Source`].
     pub fn new() -> Self {

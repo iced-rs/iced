@@ -8,7 +8,7 @@ use std::rc::Rc;
 /// [`Application`]: crate::Application
 #[allow(missing_debug_implementations)]
 pub struct Bus<Message> {
-    publish: Rc<Box<dyn Fn(Message) -> ()>>,
+    publish: Rc<dyn Fn(Message)>,
 }
 
 impl<Message> Clone for Bus<Message> {
@@ -40,7 +40,7 @@ where
 
     /// Creates a new [`Bus`] that applies the given function to the messages
     /// before publishing.
-    pub fn map<B>(&self, mapper: Rc<Box<dyn Fn(B) -> Message>>) -> Bus<B>
+    pub fn map<B>(&self, mapper: Rc<dyn Fn(B) -> Message>) -> Bus<B>
     where
         B: 'static,
     {

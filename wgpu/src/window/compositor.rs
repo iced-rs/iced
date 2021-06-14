@@ -63,8 +63,8 @@ impl Compositor {
         let local_pool = futures::executor::LocalPool::new();
 
         Some(Compositor {
-            instance,
             settings,
+            instance,
             device,
             queue,
             staging_belt,
@@ -167,7 +167,7 @@ impl iced_graphics::window::Compositor for Compositor {
         });
 
         let mouse_interaction = renderer.backend_mut().draw(
-            &mut self.device,
+            &self.device,
             &mut self.staging_belt,
             &mut encoder,
             &frame.output.view,

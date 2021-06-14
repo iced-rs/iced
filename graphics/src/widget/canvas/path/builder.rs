@@ -11,6 +11,12 @@ pub struct Builder {
     raw: lyon::path::builder::SvgPathBuilder<lyon::path::Builder>,
 }
 
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Builder {
     /// Creates a new [`Builder`].
     pub fn new() -> Builder {

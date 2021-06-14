@@ -37,7 +37,7 @@ pub struct Slider<'a, T, Message> {
     range: RangeInclusive<T>,
     step: T,
     value: T,
-    on_change: Rc<Box<dyn Fn(T) -> Message>>,
+    on_change: Rc<dyn Fn(T) -> Message>,
     #[allow(dead_code)]
     width: Length,
     #[allow(dead_code)]

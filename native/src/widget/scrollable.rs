@@ -662,6 +662,7 @@ pub trait Renderer: column::Renderer + Sized {
     /// - a optional [`Scrollbar`] to be rendered
     /// - the scrolling offset
     /// - the drawn content
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &mut self,
         scrollable: &State,

@@ -193,9 +193,7 @@ impl Pipeline {
                 },
                 depth_stencil: None,
                 multisample: wgpu::MultisampleState {
-                    count: u32::from(
-                        antialiasing.map(|a| a.sample_count()).unwrap_or(1),
-                    ),
+                    count: antialiasing.map(|a| a.sample_count()).unwrap_or(1),
                     mask: !0,
                     alpha_to_coverage_enabled: false,
                 },
@@ -222,6 +220,7 @@ impl Pipeline {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn draw(
         &mut self,
         device: &wgpu::Device,
@@ -291,47 +290,43 @@ impl Pipeline {
             let vertices = bytemuck::cast_slice(&mesh.buffers.vertices);
             let indices = bytemuck::cast_slice(&mesh.buffers.indices);
 
-            match (
+            if let (Some(vertices_size), Some(indices_size)) = (
                 wgpu::BufferSize::new(vertices.len() as u64),
                 wgpu::BufferSize::new(indices.len() as u64),
             ) {
-                (Some(vertices_size), Some(indices_size)) => {
-                    {
-                        let mut vertex_buffer = staging_belt.write_buffer(
-                            encoder,
-                            &self.vertex_buffer.raw,
-                            (std::mem::size_of::<Vertex2D>() * last_vertex)
-                                as u64,
-                            vertices_size,
-                            device,
-                        );
+                {
+                    let mut vertex_buffer = staging_belt.write_buffer(
+                        encoder,
+                        &self.vertex_buffer.raw,
+                        (std::mem::size_of::<Vertex2D>() * last_vertex) as u64,
+                        vertices_size,
+                        device,
+                    );
 
-                        vertex_buffer.copy_from_slice(vertices);
-                    }
-
-                    {
-                        let mut index_buffer = staging_belt.write_buffer(
-                            encoder,
-                            &self.index_buffer.raw,
-                            (std::mem::size_of::<u32>() * last_index) as u64,
-                            indices_size,
-                            device,
-                        );
-
-                        index_buffer.copy_from_slice(indices);
-                    }
-
-                    uniforms.push(transform);
-                    offsets.push((
-                        last_vertex as u64,
-                        last_index as u64,
-                        mesh.buffers.indices.len(),
-                    ));
-
-                    last_vertex += mesh.buffers.vertices.len();
-                    last_index += mesh.buffers.indices.len();
+                    vertex_buffer.copy_from_slice(vertices);
                 }
-                _ => {}
+
+                {
+                    let mut index_buffer = staging_belt.write_buffer(
+                        encoder,
+                        &self.index_buffer.raw,
+                        (std::mem::size_of::<u32>() * last_index) as u64,
+                        indices_size,
+                        device,
+                    );
+
+                    index_buffer.copy_from_slice(indices);
+                }
+
+                uniforms.push(transform);
+                offsets.push((
+                    last_vertex as u64,
+                    last_index as u64,
+                    mesh.buffers.indices.len(),
+                ));
+
+                last_vertex += mesh.buffers.vertices.len();
+                last_index += mesh.buffers.indices.len();
             }
         }
 

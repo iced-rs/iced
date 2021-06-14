@@ -145,6 +145,7 @@ where
                     .height(Length::Units(self.size)),
             )
             .push(
+                #[allow(clippy::or_fun_call)]
                 Text::new(&self.label)
                     .font(self.font)
                     .width(self.width)
@@ -199,6 +200,7 @@ where
             defaults,
             label_layout.bounds(),
             &self.label,
+            #[allow(clippy::or_fun_call)]
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
             self.text_color,

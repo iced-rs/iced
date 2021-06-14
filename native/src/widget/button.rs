@@ -291,6 +291,7 @@ pub trait Renderer: crate::Renderer + Sized {
     type Style: Default;
 
     /// Draws a [`Button`].
+    #[allow(clippy::too_many_arguments)]
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,

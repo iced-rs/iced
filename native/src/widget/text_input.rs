@@ -174,6 +174,8 @@ where
         let value = value.unwrap_or(&self.value);
         let bounds = layout.bounds();
         let text_bounds = layout.children().next().unwrap().bounds();
+        #[allow(clippy::or_fun_call)]
+        let size = self.size.unwrap_or(renderer.default_size());
 
         if self.is_secure {
             self::Renderer::draw(
@@ -182,7 +184,7 @@ where
                 text_bounds,
                 cursor_position,
                 self.font,
-                self.size.unwrap_or(renderer.default_size()),
+                size,
                 &self.placeholder,
                 &value.secure(),
                 &self.state,
@@ -195,7 +197,7 @@ where
                 text_bounds,
                 cursor_position,
                 self.font,
-                self.size.unwrap_or(renderer.default_size()),
+                size,
                 &self.placeholder,
                 value,
                 &self.state,
@@ -224,13 +226,14 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let text_size = self.size.unwrap_or(renderer.default_size());
-
+        #[allow(clippy::or_fun_call)]
         let limits = limits
             .pad(self.padding)
             .width(self.width)
             .max_width(self.max_width)
-            .height(Length::Units(text_size));
+            .height(Length::Units(
+                self.size.unwrap_or(renderer.default_size()),
+            ));
 
         let mut text = layout::Node::new(limits.resolve(Size::ZERO));
         text.move_to(Point::new(
@@ -278,7 +281,9 @@ where
                                 let position = renderer.find_cursor_position(
                                     text_layout.bounds(),
                                     self.font,
-                                    self.size,
+                                    #[allow(clippy::or_fun_call)]
+                                    self.size
+                                        .unwrap_or(renderer.default_size()),
                                     &value,
                                     &self.state,
                                     target,
@@ -298,7 +303,9 @@ where
                                 let position = renderer.find_cursor_position(
                                     text_layout.bounds(),
                                     self.font,
-                                    self.size,
+                                    #[allow(clippy::or_fun_call)]
+                                    self.size
+                                        .unwrap_or(renderer.default_size()),
                                     &self.value,
                                     &self.state,
                                     target,
@@ -344,7 +351,8 @@ where
                         let position = renderer.find_cursor_position(
                             text_layout.bounds(),
                             self.font,
-                            self.size,
+                            #[allow(clippy::or_fun_call)]
+                            self.size.unwrap_or(renderer.default_size()),
                             &value,
                             &self.state,
                             target,
@@ -510,13 +518,12 @@ where
                             .keyboard_modifiers
                             .is_command_pressed() =>
                     {
-                        match self.state.cursor.selection(&self.value) {
-                            Some((start, end)) => {
-                                clipboard.write(
-                                    self.value.select(start, end).to_string(),
-                                );
-                            }
-                            None => {}
+                        if let Some((start, end)) =
+                            self.state.cursor.selection(&self.value)
+                        {
+                            clipboard.write(
+                                self.value.select(start, end).to_string(),
+                            );
                         }
                     }
                     keyboard::KeyCode::X
@@ -525,13 +532,12 @@ where
                             .keyboard_modifiers
                             .is_command_pressed() =>
                     {
-                        match self.state.cursor.selection(&self.value) {
-                            Some((start, end)) => {
-                                clipboard.write(
-                                    self.value.select(start, end).to_string(),
-                                );
-                            }
-                            None => {}
+                        if let Some((start, end)) =
+                            self.state.cursor.selection(&self.value)
+                        {
+                            clipboard.write(
+                                self.value.select(start, end).to_string(),
+                            );
                         }
 
                         let mut editor = Editor::new(
@@ -551,7 +557,7 @@ where
                                 None => {
                                     let content: String = clipboard
                                         .read()
-                                        .unwrap_or(String::new())
+                                        .unwrap_or_else(String::new)
                                         .chars()
                                         .filter(|c| !c.is_control())
                                         .collect();
@@ -599,11 +605,8 @@ where
             Event::Keyboard(keyboard::Event::KeyReleased {
                 key_code, ..
             }) if self.state.is_focused => {
-                match key_code {
-                    keyboard::KeyCode::V => {
-                        self.state.is_pasting = None;
-                    }
-                    _ => {}
+                if key_code == keyboard::KeyCode::V {
+                    self.state.is_pasting = None;
                 }
 
                 return event::Status::Captured;
@@ -678,6 +681,7 @@ pub trait Renderer: text::Renderer + Sized {
     /// - the placeholder to show when the value is empty
     /// - the current [`Value`]
     /// - the current [`State`]
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &mut self,
         bounds: Rectangle,
@@ -697,13 +701,11 @@ pub trait Renderer: text::Renderer + Sized {
         &self,
         text_bounds: Rectangle,
         font: Self::Font,
-        size: Option<u16>,
+        size: u16,
         value: &Value,
         state: &State,
         x: f32,
     ) -> usize {
-        let size = size.unwrap_or(self.default_size());
-
         let offset = self.offset(text_bounds, font, size, &value, &state);
 
         find_cursor_position(

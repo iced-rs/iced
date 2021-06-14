@@ -181,6 +181,7 @@ pub trait Renderer:
     /// Draws a [`Tooltip`].
     ///
     /// [`Tooltip`]: struct.Tooltip.html
+    #[allow(clippy::too_many_arguments)]
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,

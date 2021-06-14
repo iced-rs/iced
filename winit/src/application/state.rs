@@ -193,6 +193,7 @@ impl<A: Application> State<A> {
         // Update scale factor
         let new_scale_factor = application.scale_factor();
 
+        #[allow(clippy::float_cmp)] // scale should be precise enough
         if self.scale_factor != new_scale_factor {
             let size = window.inner_size();
 

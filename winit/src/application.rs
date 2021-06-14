@@ -200,6 +200,7 @@ where
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
@@ -261,7 +262,7 @@ async fn run_instance<A, E, C>(
                 let statuses = user_interface.update(
                     &events,
                     state.cursor_position(),
-                    &mut renderer,
+                    &renderer,
                     &mut clipboard,
                     &mut messages,
                 );
@@ -405,6 +406,7 @@ pub fn requests_exit(
 ) -> bool {
     use winit::event::WindowEvent;
 
+    #[allow(clippy::match_like_matches_macro)]
     match event {
         WindowEvent::CloseRequested => true,
         #[cfg(target_os = "macos")]

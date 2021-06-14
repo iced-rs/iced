@@ -279,6 +279,7 @@ impl Atlas {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn upload_allocation(
         &mut self,
         buffer: &wgpu::Buffer,

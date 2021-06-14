@@ -31,6 +31,12 @@ pub struct Debug {
     last_messages: VecDeque<String>,
 }
 
+impl Default for Debug {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Debug {
     /// Creates a new [`struct@Debug`].
     pub fn new() -> Self {

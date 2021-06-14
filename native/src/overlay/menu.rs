@@ -158,9 +158,9 @@ where
 
         Self {
             container,
-            width: width,
+            width,
             target_height,
-            style: style,
+            style,
         }
     }
 }
@@ -224,7 +224,7 @@ where
         messages: &mut Vec<Message>,
     ) -> event::Status {
         self.container.on_event(
-            event.clone(),
+            event,
             layout,
             cursor_position,
             renderer,
@@ -289,13 +289,15 @@ where
         use std::f32;
 
         let limits = limits.width(Length::Fill).height(Length::Shrink);
-        let text_size = self.text_size.unwrap_or(renderer.default_size());
 
         let size = {
+            #[allow(clippy::or_fun_call)]
             let intrinsic = Size::new(
                 0.0,
-                f32::from(text_size + self.padding.vertical())
-                    * self.options.len() as f32,
+                f32::from(
+                    self.text_size.unwrap_or(renderer.default_size())
+                        + self.padding.vertical(),
+                ) * self.options.len() as f32,
             );
 
             limits.resolve(intrinsic)
@@ -326,9 +328,7 @@ where
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let bounds = layout.bounds();
-
-                if bounds.contains(cursor_position) {
+                if layout.bounds().contains(cursor_position) {
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
                             *self.last_selection = Some(option.clone());
@@ -339,28 +339,30 @@ where
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 let bounds = layout.bounds();
 
+                #[allow(clippy::or_fun_call)]
                 if bounds.contains(cursor_position) {
-                    let text_size =
-                        self.text_size.unwrap_or(renderer.default_size());
-
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(text_size + self.padding.vertical()))
-                            as usize,
+                            / f32::from(
+                                self.text_size
+                                    .unwrap_or(renderer.default_size())
+                                    + self.padding.vertical(),
+                            )) as usize,
                     );
                 }
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let bounds = layout.bounds();
 
+                #[allow(clippy::or_fun_call)]
                 if bounds.contains(cursor_position) {
-                    let text_size =
-                        self.text_size.unwrap_or(renderer.default_size());
-
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(text_size + self.padding.vertical()))
-                            as usize,
+                            / f32::from(
+                                self.text_size
+                                    .unwrap_or(renderer.default_size())
+                                    + self.padding.vertical(),
+                            )) as usize,
                     );
 
                     if let Some(index) = *self.hovered_option {
@@ -392,6 +394,7 @@ where
             self.options,
             *self.hovered_option,
             self.padding,
+            #[allow(clippy::or_fun_call)]
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
             &self.style,
@@ -423,6 +426,7 @@ pub trait Renderer:
     ) -> Self::Output;
 
     /// Draws the list of options of a [`Menu`].
+    #[allow(clippy::too_many_arguments)]
     fn draw<T: ToString>(
         &mut self,
         bounds: Rectangle,
@@ -437,14 +441,14 @@ pub trait Renderer:
     ) -> Self::Output;
 }
 
-impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for List<'a, T, Renderer>
+impl<'a, T, Message, Renderer> From<List<'a, T, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
     Renderer: 'a + self::Renderer,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(list: List<'a, T, Renderer>) -> Self {
+        Element::new(list)
     }
 }

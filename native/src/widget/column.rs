@@ -24,6 +24,12 @@ pub struct Column<'a, Message, Renderer> {
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
+impl<'a, Message, Renderer> Default for Column<'a, Message, Renderer> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Creates an empty [`Column`].
     pub fn new() -> Self {

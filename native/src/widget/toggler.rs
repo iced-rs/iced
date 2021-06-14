@@ -134,6 +134,7 @@ where
             .spacing(self.spacing)
             .align_items(Align::Center);
 
+        #[allow(clippy::or_fun_call)]
         if let Some(label) = &self.label {
             row = row.push(
                 Text::new(label)
@@ -198,6 +199,7 @@ where
                     defaults,
                     label_layout.bounds(),
                     &label,
+                    #[allow(clippy::or_fun_call)]
                     self.text_size.unwrap_or(renderer.default_size()),
                     self.font,
                     None,

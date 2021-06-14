@@ -1,5 +1,7 @@
 use unicode_segmentation::UnicodeSegmentation;
 
+use std::fmt::{self, Display, Formatter};
+
 /// The value of a [`TextInput`].
 ///
 /// [`TextInput`]: crate::widget::TextInput
@@ -58,9 +60,10 @@ impl Value {
     pub fn next_end_of_word(&self, index: usize) -> usize {
         let next_string = &self.graphemes[index..].concat();
 
+        #[allow(clippy::or_fun_call)]
+        // self.len() is very cheap, we don't need lazy eval
         UnicodeSegmentation::split_word_bound_indices(&next_string as &str)
-            .filter(|(_, word)| !word.trim_start().is_empty())
-            .next()
+            .find(|(_, word)| !word.trim_start().is_empty())
             .map(|(i, next_word)| {
                 index
                     + UnicodeSegmentation::graphemes(next_word, true).count()
@@ -88,11 +91,6 @@ impl Value {
         let graphemes = self.graphemes[..index.min(self.len())].to_vec();
 
         Self { graphemes }
-    }
-
-    /// Converts the [`Value`] into a `String`.
-    pub fn to_string(&self) -> String {
-        self.graphemes.concat()
     }
 
     /// Inserts a new `char` at the given grapheme `index`.
@@ -130,5 +128,14 @@ impl Value {
                 .take(self.graphemes.len())
                 .collect(),
         }
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for grapheme in &self.graphemes {
+            write!(f, "{}", grapheme)?;
+        }
+        Ok(())
     }
 }

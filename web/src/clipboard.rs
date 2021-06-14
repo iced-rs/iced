@@ -5,6 +5,7 @@ pub struct Clipboard;
 
 impl Clipboard {
     /// Creates a new [`Clipboard`].
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self
     }

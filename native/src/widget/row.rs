@@ -23,6 +23,12 @@ pub struct Row<'a, Message, Renderer> {
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
+impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Creates an empty [`Row`].
     pub fn new() -> Self {

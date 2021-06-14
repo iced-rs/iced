@@ -105,7 +105,7 @@ impl<'a, Message> Widget<Message> for Text {
         let color = self
             .color
             .map(css::color)
-            .unwrap_or(String::from("inherit"));
+            .unwrap_or_else(|| String::from("inherit"));
 
         let width = css::length(self.width);
         let height = css::length(self.height);

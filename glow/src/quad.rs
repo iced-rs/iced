@@ -111,6 +111,7 @@ impl Pipeline {
             }
         }
 
+        #[allow(clippy::float_cmp)] // scale should be precise enough
         if scale != self.current_scale {
             unsafe {
                 gl.uniform_1_f32(Some(&self.scale_location), scale);

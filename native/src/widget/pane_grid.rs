@@ -97,6 +97,7 @@ pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     spacing: u16,
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
+    #[allow(clippy::type_complexity)]
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
     style: <Renderer as self::Renderer>::Style,
 }
@@ -586,6 +587,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     /// - the [`Axis`] that is currently being resized
     /// - the [`Layout`] of the [`PaneGrid`] and its elements
     /// - the cursor position
+    #[allow(clippy::too_many_arguments)]
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
@@ -605,6 +607,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     /// - the [`Content`] of the [`Pane`]
     /// - the [`Layout`] of the [`Pane`] and its elements
     /// - the cursor position
+    #[allow(clippy::too_many_arguments)]
     fn draw_pane<Message>(
         &mut self,
         defaults: &Self::Defaults,
@@ -624,6 +627,7 @@ pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     /// - the content of the [`TitleBar`] with its layout
     /// - the controls of the [`TitleBar`] with their [`Layout`], if any
     /// - the cursor position
+    #[allow(clippy::too_many_arguments)]
     fn draw_title_bar<Message>(
         &mut self,
         defaults: &Self::Defaults,
@@ -659,8 +663,7 @@ fn hovered_split<'a>(
 ) -> Option<(Split, Axis, Rectangle)> {
     splits
         .filter_map(|(split, (axis, region, ratio))| {
-            let bounds =
-                axis.split_line_bounds(*region, *ratio, f32::from(spacing));
+            let bounds = axis.split_line_bounds(*region, *ratio, spacing);
 
             if bounds.contains(cursor_position) {
                 Some((*split, *axis, bounds))

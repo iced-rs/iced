@@ -14,6 +14,16 @@ pub struct Tracker<Hasher, Event> {
     _hasher: PhantomData<Hasher>,
 }
 
+impl<Hasher, Event> Default for Tracker<Hasher, Event>
+where
+    Hasher: std::hash::Hasher + Default,
+    Event: 'static + Send + Clone,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug)]
 pub struct Execution<Event> {
     _cancel: futures::channel::oneshot::Sender<()>,

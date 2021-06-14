@@ -37,7 +37,7 @@ pub struct TextInput<'a, Message> {
     max_width: u32,
     padding: Padding,
     size: Option<u16>,
-    on_change: Rc<Box<dyn Fn(String) -> Message>>,
+    on_change: Rc<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
     style_sheet: Box<dyn StyleSheet>,
 }
@@ -187,11 +187,8 @@ where
                     let event =
                         event.unchecked_into::<web_sys::KeyboardEvent>();
 
-                    match event.key_code() {
-                        13 => {
-                            submit_event_bus.publish(on_submit);
-                        }
-                        _ => {}
+                    if event.key_code() == 13 {
+                        submit_event_bus.publish(on_submit);
                     }
                 }
             })

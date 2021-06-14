@@ -20,7 +20,7 @@ impl<Renderer: self::Renderer> Rule<Renderer> {
     pub fn horizontal(spacing: u16) -> Self {
         Rule {
             width: Length::Fill,
-            height: Length::from(Length::Units(spacing)),
+            height: Length::Units(spacing),
             style: Renderer::Style::default(),
             is_horizontal: true,
         }
@@ -29,7 +29,7 @@ impl<Renderer: self::Renderer> Rule<Renderer> {
     /// Creates a vertical [`Rule`] for dividing content by the given horizontal spacing.
     pub fn vertical(spacing: u16) -> Self {
         Rule {
-            width: Length::from(Length::Units(spacing)),
+            width: Length::Units(spacing),
             height: Length::Fill,
             style: Renderer::Style::default(),
             is_horizontal: false,

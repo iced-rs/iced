@@ -124,8 +124,8 @@ where
                     css::padding(self.padding),
                     css::align(self.horizontal_alignment),
                     css::align(self.vertical_alignment),
-                    style.background.map(css::background).unwrap_or(String::from("initial")),
-                    style.text_color.map(css::color).unwrap_or(String::from("inherit")),
+                    style.background.map(css::background).unwrap_or_else(|| String::from("initial")),
+                    style.text_color.map(css::color).unwrap_or_else(|| String::from("inherit")),
                     style.border_width,
                     css::color(style.border_color),
                     style.border_radius

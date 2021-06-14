@@ -52,6 +52,13 @@ impl<T> State<T> {
         }
     }
 
+    /// Returns whether the [`State`] is empty or not.
+    ///
+    /// A [`State`] is empty when it contains no panes.
+    pub fn is_empty(&self) -> bool {
+        self.panes.len() == 0
+    }
+
     /// Returns the total amount of panes in the [`State`].
     pub fn len(&self) -> usize {
         self.panes.len()

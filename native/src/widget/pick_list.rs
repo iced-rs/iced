@@ -152,7 +152,7 @@ where
             .width(self.width)
             .height(Length::Shrink)
             .pad(self.padding);
-
+        #[allow(clippy::or_fun_call)]
         let text_size = self.text_size.unwrap_or(renderer.default_size());
 
         let max_width = match self.width {
@@ -266,6 +266,7 @@ where
             cursor_position,
             self.selected.as_ref().map(ToString::to_string),
             self.padding,
+            #[allow(clippy::or_fun_call)]
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
             &self.style,
@@ -320,6 +321,7 @@ pub trait Renderer: text::Renderer + menu::Renderer {
     ) -> <Self as menu::Renderer>::Style;
 
     /// Draws a [`PickList`].
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &mut self,
         bounds: Rectangle,
@@ -332,15 +334,15 @@ pub trait Renderer: text::Renderer + menu::Renderer {
     ) -> Self::Output;
 }
 
-impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for PickList<'a, T, Message, Renderer>
+impl<'a, T: 'a, Message, Renderer> From<PickList<'a, T, Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: self::Renderer + 'a,
     Message: 'static,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(list: PickList<'a, T, Message, Renderer>) -> Self {
+        Element::new(list)
     }
 }

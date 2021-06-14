@@ -21,7 +21,7 @@ pub enum Rule {
 
 impl Rule {
     /// Returns the class name of the [`Rule`].
-    pub fn class<'a>(&self) -> String {
+    pub fn class(&self) -> String {
         match self {
             Rule::Column => String::from("c"),
             Rule::Row => String::from("r"),
@@ -107,6 +107,12 @@ impl Rule {
 #[derive(Debug)]
 pub struct Css<'a> {
     rules: BTreeMap<String, &'a str>,
+}
+
+impl<'a> Default for Css<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<'a> Css<'a> {

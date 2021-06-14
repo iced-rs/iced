@@ -59,6 +59,7 @@ impl Backend {
     ///
     /// The text provided as overlay will be rendered on top of the primitives.
     /// This is useful for rendering debug information.
+    #[allow(clippy::too_many_arguments)]
     pub fn draw<T: AsRef<str>>(
         &mut self,
         device: &wgpu::Device,
@@ -98,6 +99,7 @@ impl Backend {
         *mouse_interaction
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn flush(
         &mut self,
         device: &wgpu::Device,
@@ -221,7 +223,6 @@ impl Backend {
                                 wgpu_glyph::VerticalAlign::Bottom
                             }
                         }),
-                    ..Default::default()
                 };
 
                 self.text_pipeline.queue(text);

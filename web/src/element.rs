@@ -58,7 +58,7 @@ impl<'a, Message> Element<'a, Message> {
 
 struct Map<'a, A, B> {
     widget: Box<dyn Widget<A> + 'a>,
-    mapper: Rc<Box<dyn Fn(A) -> B>>,
+    mapper: Rc<dyn Fn(A) -> B>,
 }
 
 impl<'a, A, B> Map<'a, A, B> {
