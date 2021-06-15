@@ -1,6 +1,8 @@
 //! Create choices using radio buttons.
 use std::hash::Hash;
 
+use smol_str::SmolStr;
+
 use crate::event::{self, Event};
 use crate::mouse;
 use crate::row;
@@ -42,7 +44,7 @@ use crate::{
 pub struct Radio<Message, Renderer: self::Renderer + text::Renderer> {
     is_selected: bool,
     on_click: Message,
-    label: String,
+    label: SmolStr,
     width: Length,
     size: u16,
     spacing: u16,
@@ -67,7 +69,7 @@ where
     ///   receives the value of the radio and must produce a `Message`.
     pub fn new<F, V>(
         value: V,
-        label: impl Into<String>,
+        label: impl Into<SmolStr>,
         selected: Option<V>,
         f: F,
     ) -> Self
@@ -161,7 +163,7 @@ where
             )
             .push(
                 #[allow(clippy::or_fun_call)]
-                Text::new(&self.label)
+                Text::new(self.label.clone())
                     .width(self.width)
                     .size(self.text_size.unwrap_or(renderer.default_size())),
             )

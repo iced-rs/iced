@@ -110,14 +110,11 @@ impl Sandbox for Styling {
         )
         .style(self.theme);
 
-        let toggler = Toggler::new(
-            self.toggler_value,
-            String::from("Toggle me!"),
-            Message::TogglerToggled,
-        )
-        .width(Length::Shrink)
-        .spacing(10)
-        .style(self.theme);
+        let toggler = Toggler::new(self.toggler_value, Message::TogglerToggled)
+            .label("Toggle me!")
+            .width(Length::Shrink)
+            .spacing(10)
+            .style(self.theme);
 
         let content = Column::new()
             .spacing(20)

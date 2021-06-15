@@ -566,11 +566,10 @@ impl<'a> Step {
                 "A toggler is mostly used to enable or disable something.",
             ))
             .push(
-                Container::new(Toggler::new(
-                    can_continue,
-                    String::from("Toggle me to continue..."),
-                    StepMessage::TogglerChanged,
-                ))
+                Container::new(
+                    Toggler::new(can_continue, StepMessage::TogglerChanged)
+                        .label("Toggle me to continue..."),
+                )
                 .padding([0, 40]),
             )
     }
@@ -767,14 +766,20 @@ impl Language {
 
 impl From<Language> for String {
     fn from(language: Language) -> String {
-        String::from(match language {
+        String::from(language.as_ref())
+    }
+}
+
+impl AsRef<str> for Language {
+    fn as_ref(&self) -> &str {
+        match self {
             Language::Rust => "Rust",
             Language::Elm => "Elm",
             Language::Ruby => "Ruby",
             Language::Haskell => "Haskell",
             Language::C => "C",
             Language::Other => "Other",
-        })
+        }
     }
 }
 

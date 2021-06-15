@@ -2,6 +2,7 @@
 use std::hash::Hash;
 
 use iced_core::Rectangle;
+use smol_str::SmolStr;
 
 use crate::widget::container;
 use crate::widget::text::{self, Text};
@@ -30,12 +31,12 @@ where
     /// [`Tooltip`]: struct.Tooltip.html
     pub fn new(
         content: impl Into<Element<'a, Message, Renderer>>,
-        tooltip: impl ToString,
+        tooltip: impl Into<SmolStr>,
         position: Position,
     ) -> Self {
         Tooltip {
             content: content.into(),
-            tooltip: Text::new(tooltip.to_string()),
+            tooltip: Text::new(tooltip),
             position,
             style: Default::default(),
             gap: 0,

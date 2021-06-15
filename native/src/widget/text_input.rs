@@ -7,6 +7,7 @@ mod value;
 pub mod cursor;
 
 pub use cursor::Cursor;
+use smol_str::SmolStr;
 pub use value::Value;
 
 use editor::Editor;
@@ -51,7 +52,7 @@ use std::u32;
 #[allow(missing_debug_implementations)]
 pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
-    placeholder: String,
+    placeholder: SmolStr,
     value: Value,
     is_secure: bool,
     font: Renderer::Font,
@@ -78,7 +79,7 @@ where
     /// - a function that produces a message when the [`TextInput`] changes
     pub fn new<F>(
         state: &'a mut State,
-        placeholder: &str,
+        placeholder: impl Into<SmolStr>,
         value: &str,
         on_change: F,
     ) -> Self
@@ -87,7 +88,7 @@ where
     {
         TextInput {
             state,
-            placeholder: String::from(placeholder),
+            placeholder: placeholder.into(),
             value: Value::new(value),
             is_secure: false,
             font: Default::default(),

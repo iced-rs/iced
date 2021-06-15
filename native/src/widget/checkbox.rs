@@ -1,6 +1,8 @@
 //! Show toggle controls using checkboxes.
 use std::hash::Hash;
 
+use smol_str::SmolStr;
+
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -33,7 +35,7 @@ use crate::{
 pub struct Checkbox<Message, Renderer: self::Renderer + text::Renderer> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
-    label: String,
+    label: SmolStr,
     width: Length,
     size: u16,
     spacing: u16,
@@ -54,7 +56,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     ///   * a function that will be called when the [`Checkbox`] is toggled. It
     ///     will receive the new state of the [`Checkbox`] and must produce a
     ///     `Message`.
-    pub fn new<F>(is_checked: bool, label: impl Into<String>, f: F) -> Self
+    pub fn new<F>(is_checked: bool, label: impl Into<SmolStr>, f: F) -> Self
     where
         F: 'static + Fn(bool) -> Message,
     {
@@ -146,7 +148,7 @@ where
             )
             .push(
                 #[allow(clippy::or_fun_call)]
-                Text::new(&self.label)
+                Text::new(self.label.clone())
                     .font(self.font)
                     .width(self.width)
                     .size(self.text_size.unwrap_or(renderer.default_size())),

@@ -19,7 +19,7 @@ use std::rc::Rc;
 ///
 /// let is_active = true;
 ///
-/// Toggler::new(is_active, String::from("Toggle me!"), Message::TogglerToggled);
+/// Toggler::new(is_active, Message::TogglerToggled).label("Toggle me!");
 /// ```
 ///
 #[allow(missing_debug_implementations)]
@@ -43,22 +43,24 @@ impl<Message> Toggler<Message> {
     ///     `Message`.
     ///
     /// [`Toggler`]: struct.Toggler.html
-    pub fn new<F>(
-        is_active: bool,
-        label: impl Into<Option<String>>,
-        f: F,
-    ) -> Self
+    pub fn new<F>(is_active: bool, f: F) -> Self
     where
         F: 'static + Fn(bool) -> Message,
     {
         Toggler {
             is_active,
             on_toggle: Rc::new(f),
-            label: label.into(),
+            label: None,
             id: None,
             width: Length::Shrink,
             style: Default::default(),
         }
+    }
+
+    /// Sets the label of the [`Toggler`].
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = Some(label.into());
+        self
     }
 
     /// Sets the width of the [`Toggler`].

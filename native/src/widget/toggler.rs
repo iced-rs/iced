@@ -1,6 +1,8 @@
 //! Show toggle controls using togglers.
 use std::hash::Hash;
 
+use smol_str::SmolStr;
+
 use crate::{
     event, layout, mouse, row, text, Align, Clipboard, Element, Event, Hasher,
     HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
@@ -20,13 +22,13 @@ use crate::{
 ///
 /// let is_active = true;
 ///
-/// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
+/// Toggler::new(is_active, Message::TogglerToggled).label("Toggle me!");
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<Message, Renderer: self::Renderer + text::Renderer> {
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
-    label: Option<String>,
+    label: Option<SmolStr>,
     width: Length,
     size: u16,
     text_size: Option<u16>,
@@ -43,22 +45,19 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     ///
     /// It expects:
     ///   * a boolean describing whether the [`Toggler`] is checked or not
-    ///   * An optional label for the [`Toggler`]
     ///   * a function that will be called when the [`Toggler`] is toggled. It
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
-    pub fn new<F>(
-        is_active: bool,
-        label: impl Into<Option<String>>,
-        f: F,
-    ) -> Self
+    ///
+    /// An optional label can be set for the [`Toggler`] using the [`Toggler::label`] method.
+    pub fn new<F>(is_active: bool, f: F) -> Self
     where
         F: 'static + Fn(bool) -> Message,
     {
         Toggler {
             is_active,
             on_toggle: Box::new(f),
-            label: label.into(),
+            label: None,
             width: Length::Fill,
             size: <Renderer as self::Renderer>::DEFAULT_SIZE,
             text_size: None,
@@ -67,6 +66,12 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
             font: Renderer::Font::default(),
             style: Renderer::Style::default(),
         }
+    }
+
+    /// Sets the label of the [`Toggler`].
+    pub fn label(mut self, label: impl Into<SmolStr>) -> Self {
+        self.label = Some(label.into());
+        self
     }
 
     /// Sets the size of the [`Toggler`].
@@ -137,7 +142,7 @@ where
         #[allow(clippy::or_fun_call)]
         if let Some(label) = &self.label {
             row = row.push(
-                Text::new(label)
+                Text::new(label.clone())
                     .horizontal_alignment(self.text_alignment)
                     .font(self.font)
                     .width(self.width)

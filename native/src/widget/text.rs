@@ -1,4 +1,6 @@
 //! Write some text for your users to read.
+use smol_str::SmolStr;
+
 use crate::{
     layout, Color, Element, Hasher, HorizontalAlignment, Layout, Length, Point,
     Rectangle, Size, VerticalAlignment, Widget,
@@ -21,7 +23,7 @@ use std::hash::Hash;
 /// ![Text drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
 #[derive(Debug, Clone)]
 pub struct Text<Renderer: self::Renderer> {
-    content: String,
+    content: SmolStr,
     size: Option<u16>,
     color: Option<Color>,
     font: Renderer::Font,
@@ -33,7 +35,7 @@ pub struct Text<Renderer: self::Renderer> {
 
 impl<Renderer: self::Renderer> Text<Renderer> {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new<T: Into<String>>(label: T) -> Self {
+    pub fn new<T: Into<SmolStr>>(label: T) -> Self {
         Text {
             content: label.into(),
             size: None,
