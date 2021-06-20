@@ -150,20 +150,12 @@ impl Pipeline {
                     buffers: &[wgpu::VertexBufferLayout {
                         array_stride: mem::size_of::<Vertex2D>() as u64,
                         step_mode: wgpu::InputStepMode::Vertex,
-                        attributes: &[
+                        attributes: &wgpu::vertex_attr_array!(
                             // Position
-                            wgpu::VertexAttribute {
-                                shader_location: 0,
-                                format: wgpu::VertexFormat::Float32x2,
-                                offset: 0,
-                            },
+                            0 => Float32x2,
                             // Color
-                            wgpu::VertexAttribute {
-                                shader_location: 1,
-                                format: wgpu::VertexFormat::Float32x4,
-                                offset: 4 * 2,
-                            },
-                        ],
+                            1 => Float32x4,
+                        ),
                     }],
                 },
                 fragment: Some(wgpu::FragmentState {

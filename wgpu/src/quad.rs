@@ -87,38 +87,14 @@ impl Pipeline {
                         wgpu::VertexBufferLayout {
                             array_stride: mem::size_of::<layer::Quad>() as u64,
                             step_mode: wgpu::InputStepMode::Instance,
-                            attributes: &[
-                                wgpu::VertexAttribute {
-                                    shader_location: 1,
-                                    format: wgpu::VertexFormat::Float32x2,
-                                    offset: 0,
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 2,
-                                    format: wgpu::VertexFormat::Float32x2,
-                                    offset: 4 * 2,
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 3,
-                                    format: wgpu::VertexFormat::Float32x4,
-                                    offset: 4 * (2 + 2),
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 4,
-                                    format: wgpu::VertexFormat::Float32x4,
-                                    offset: 4 * (2 + 2 + 4),
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 5,
-                                    format: wgpu::VertexFormat::Float32,
-                                    offset: 4 * (2 + 2 + 4 + 4),
-                                },
-                                wgpu::VertexAttribute {
-                                    shader_location: 6,
-                                    format: wgpu::VertexFormat::Float32,
-                                    offset: 4 * (2 + 2 + 4 + 4 + 1),
-                                },
-                            ],
+                            attributes: &wgpu::vertex_attr_array!(
+                                1 => Float32x2,
+                                2 => Float32x2,
+                                3 => Float32x4,
+                                4 => Float32x4,
+                                5 => Float32,
+                                6 => Float32,
+                            ),
                         },
                     ],
                 },
