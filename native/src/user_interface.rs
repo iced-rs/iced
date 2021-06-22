@@ -16,7 +16,7 @@ use std::hash::Hasher;
 /// The [`integration` example] uses a [`UserInterface`] to integrate Iced in
 /// an existing graphical application.
 ///
-/// [`integration` example]: https://github.com/hecrj/iced/tree/0.2/examples/integration
+/// [`integration` example]: https://github.com/hecrj/iced/tree/0.3/examples/integration
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
