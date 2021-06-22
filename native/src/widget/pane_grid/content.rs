@@ -195,13 +195,12 @@ where
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
-            let title_bar_layout = children.next().unwrap();
+            let title_bar_layout = children.next()?;
 
-            if let Some(overlay) = title_bar.overlay(title_bar_layout) {
-                return Some(overlay);
+            match title_bar.overlay(title_bar_layout) {
+                Some(overlay) => Some(overlay),
+                None => self.body.overlay(children.next()?),
             }
-
-            self.body.overlay(children.next()?)
         } else {
             self.body.overlay(layout)
         }
