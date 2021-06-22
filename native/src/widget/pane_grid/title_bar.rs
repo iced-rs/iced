@@ -1,6 +1,7 @@
 use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
+use crate::overlay;
 use crate::pane_grid;
 use crate::{
     Clipboard, Element, Hasher, Layout, Padding, Point, Rectangle, Size,
@@ -241,5 +242,12 @@ where
         );
 
         control_status.merge(title_status)
+    }
+
+    pub(crate) fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.content.overlay(layout)
     }
 }
