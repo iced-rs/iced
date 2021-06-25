@@ -1,7 +1,15 @@
-use iced_winit::{button, Align, Button, Column, Element, Application, Settings, Text, Renderer, Program, Command};
+use iced::{button, Align, Button, Column, Element, Sandbox, Settings, window::Settings as WindowSettings, Text};
 
 pub fn main() {
-    Counter::run(Settings::default()).unwrap()
+    let settings = Settings {
+        window: WindowSettings {
+            size: (400, 200),
+            position: (100, 100),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    Counter::run(settings).unwrap()
 }
 
 #[derive(Default)]
@@ -17,21 +25,16 @@ enum Message {
     DecrementPressed,
 }
 
-impl Application for Counter {
-    type Flags = ();
+impl Sandbox for Counter {
+    type Message = Message;
 
-    fn new(flags: Self::Flags) -> (Self, Command<Message>) {
-        (Self::default(), Command::none())
+    fn new() -> Self {
+        Self::default()
     }
 
     fn title(&self) -> String {
         String::from("Counter with winit - Iced")
     }
-}
-
-impl Program for Counter {
-    type Renderer = Renderer;
-    type Message = Message;
 
     fn update(&mut self, message: Message) {
         match message {
@@ -44,7 +47,7 @@ impl Program for Counter {
         }
     }
 
-    fn view(&mut self) -> Element<Message, Self::Renderer> {
+    fn view(&mut self) -> Element<Message> {
         Column::new()
             .padding(20)
             .align_items(Align::Center)

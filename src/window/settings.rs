@@ -6,6 +6,11 @@ pub struct Settings {
     /// The initial size of the window.
     pub size: (u32, u32),
 
+    /// The initial position of the window.
+    ///
+    /// Note: this gets ignored on the web
+    pub position: (u32, u32),
+
     /// The minimum size of the window.
     pub min_size: Option<(u32, u32)>,
 
@@ -32,6 +37,7 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             size: (1024, 768),
+            position: (100, 100),
             min_size: None,
             max_size: None,
             resizable: true,
@@ -48,6 +54,7 @@ impl From<Settings> for iced_winit::settings::Window {
     fn from(settings: Settings) -> Self {
         Self {
             size: settings.size,
+            position: settings.position,
             min_size: settings.min_size,
             max_size: settings.max_size,
             resizable: settings.resizable,
