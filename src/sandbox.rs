@@ -1,5 +1,5 @@
 use crate::{
-    Application, Clipboard, Color, Command, Element, Error, Settings,
+    Application, Clipboard, Color, Command, Element, Error, Settings, Window,
     Subscription,
 };
 
@@ -166,6 +166,7 @@ where
         &mut self,
         message: T::Message,
         _clipboard: &mut Clipboard,
+        _window: &Window
     ) -> Command<T::Message> {
         T::update(self, message);
 

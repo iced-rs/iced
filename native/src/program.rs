@@ -6,7 +6,7 @@ mod state;
 pub use state::State;
 
 /// The core of a user interface application following The Elm Architecture.
-pub trait Program: Sized {
+pub trait Program<W>: Sized {
     /// The graphics backend to use to draw the [`Program`].
     type Renderer: Renderer;
 
@@ -28,6 +28,7 @@ pub trait Program: Sized {
         &mut self,
         message: Self::Message,
         clipboard: &mut Self::Clipboard,
+        window: &W
     ) -> Command<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`].

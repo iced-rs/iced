@@ -215,23 +215,23 @@ pub mod time;
     not(feature = "glow"),
     feature = "wgpu"
 ))]
-use iced_winit as runtime;
+pub use iced_winit as runtime;
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
-use iced_glutin as runtime;
+pub use iced_glutin as runtime;
 
 #[cfg(all(
     not(target_arch = "wasm32"),
     not(feature = "glow"),
     feature = "wgpu"
 ))]
-use iced_wgpu as renderer;
+pub use iced_wgpu as renderer;
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
-use iced_glow as renderer;
+pub use iced_glow as renderer;
 
 #[cfg(target_arch = "wasm32")]
-use iced_web as runtime;
+pub use iced_web as runtime;
 
 #[doc(no_inline)]
 pub use widget::*;
@@ -247,5 +247,5 @@ pub use settings::Settings;
 pub use runtime::{
     futures, Align, Background, Clipboard, Color, Command, Font,
     HorizontalAlignment, Length, Point, Rectangle, Size, Subscription, Vector,
-    VerticalAlignment,
+    VerticalAlignment, Window
 };

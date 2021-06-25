@@ -5,9 +5,9 @@ use crate::{
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
 #[allow(missing_debug_implementations)]
-pub struct State<P>
+pub struct State<P, W>
 where
-    P: Program + 'static,
+    P: Program<W> + 'static,
 {
     program: P,
     cache: Option<Cache>,
@@ -16,9 +16,9 @@ where
     queued_messages: Vec<P::Message>,
 }
 
-impl<P> State<P>
+impl<P, W> State<P, W>
 where
-    P: Program + 'static,
+    P: Program<W> + 'static
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
@@ -92,6 +92,7 @@ where
         cursor_position: Point,
         renderer: &mut P::Renderer,
         clipboard: &mut P::Clipboard,
+        window: W,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
         let mut user_interface = build_user_interface(
@@ -135,7 +136,7 @@ where
                     debug.log_message(&message);
 
                     debug.update_started();
-                    let command = self.program.update(message, clipboard);
+                    let command = self.program.update(message, clipboard, &window);
                     debug.update_finished();
 
                     command
@@ -160,7 +161,7 @@ where
     }
 }
 
-fn build_user_interface<'a, P: Program>(
+fn build_user_interface<'a, W, P: Program<W>>(
     program: &'a mut P,
     cache: Cache,
     renderer: &mut P::Renderer,

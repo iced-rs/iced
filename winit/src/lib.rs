@@ -33,6 +33,7 @@ mod error;
 mod mode;
 mod proxy;
 
+pub use winit::window::Window;
 pub use application::Application;
 pub use clipboard::Clipboard;
 pub use error::Error;

@@ -1,0 +1,9 @@
+[package]
+name = "use_window"
+version = "0.1.0"
+authors = ["TimUntersberger <timuntersberger2@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+iced = { path = "../.." }

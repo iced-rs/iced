@@ -16,6 +16,7 @@ pub use iced_native::*;
 
 pub mod application;
 
+pub use glutin::window::Window;
 pub use iced_winit::settings;
 pub use iced_winit::{Clipboard, Error, Mode};
 

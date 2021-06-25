@@ -133,6 +133,7 @@ pub trait Application: Sized {
         &mut self,
         message: Self::Message,
         clipboard: &mut Clipboard,
+        window: &crate::Window,
     ) -> Command<Self::Message>;
 
     /// Returns the event [`Subscription`] for the current state of the
@@ -235,7 +236,7 @@ pub trait Application: Sized {
 struct Instance<A: Application>(A);
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<A> iced_winit::Program for Instance<A>
+impl<A> iced_winit::Program<crate::Window> for Instance<A>
 where
     A: Application,
 {
@@ -247,8 +248,9 @@ where
         &mut self,
         message: Self::Message,
         clipboard: &mut iced_winit::Clipboard,
+        window: &crate::Window
     ) -> Command<Self::Message> {
-        self.0.update(message, clipboard)
+        self.0.update(message, clipboard, window)
     }
 
     fn view(&mut self) -> Element<'_, Self::Message> {

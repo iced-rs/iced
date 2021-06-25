@@ -67,6 +67,8 @@ pub mod css;
 pub mod subscription;
 pub mod widget;
 
+pub type Window = ();
+
 pub use bus::Bus;
 pub use clipboard::Clipboard;
 pub use css::Css;
