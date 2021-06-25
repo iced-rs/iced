@@ -1,65 +1,46 @@
-use iced::{button, Align, Button, Column, Element, Sandbox, Settings, window::Settings as WindowSettings, Text};
+use iced::{Column, Element, Sandbox, Settings, window::Settings as WindowSettings};
+
+const WINDOW_WIDTH: i32 = 200;
+const WINDOW_HEIGHT: i32 = 200;
+const DISPLAY_WIDTH: i32 = 1920;
+const DISPLAY_HEIGHT: i32 = 1080;
+// These numbers are specific to a 1920x1080 monitor
+const BORDER_X: i32 = 8;
+const BORDER_Y: i32 = 2;
+const CAPTION_HEIGHT: i32 = 4;
 
 pub fn main() {
+    let x = DISPLAY_WIDTH / 2 - WINDOW_WIDTH / 2 - BORDER_X;
+    let y = DISPLAY_HEIGHT / 2 - WINDOW_HEIGHT / 2 - BORDER_Y - CAPTION_HEIGHT;
     let settings = Settings {
         window: WindowSettings {
-            size: (400, 200),
-            position: (100, 100),
+            size: (WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32),
+            position: (x, y),
             ..Default::default()
         },
         ..Default::default()
     };
-    Counter::run(settings).unwrap()
+    Winit::run(settings).unwrap()
 }
 
 #[derive(Default)]
-struct Counter {
-    value: i32,
-    increment_button: button::State,
-    decrement_button: button::State,
-}
+struct Winit;
 
-#[derive(Debug, Clone, Copy)]
-enum Message {
-    IncrementPressed,
-    DecrementPressed,
-}
-
-impl Sandbox for Counter {
-    type Message = Message;
+impl Sandbox for Winit {
+    type Message = ();
 
     fn new() -> Self {
         Self::default()
     }
 
     fn title(&self) -> String {
-        String::from("Counter with winit - Iced")
+        String::from("winit - Iced")
     }
 
-    fn update(&mut self, message: Message) {
-        match message {
-            Message::IncrementPressed => {
-                self.value += 1;
-            }
-            Message::DecrementPressed => {
-                self.value -= 1;
-            }
-        }
+    fn update(&mut self, _message: Self::Message) {
     }
 
-    fn view(&mut self) -> Element<Message> {
-        Column::new()
-            .padding(20)
-            .align_items(Align::Center)
-            .push(
-                Button::new(&mut self.increment_button, Text::new("Increment"))
-                    .on_press(Message::IncrementPressed),
-            )
-            .push(Text::new(self.value.to_string()).size(50))
-            .push(
-                Button::new(&mut self.decrement_button, Text::new("Decrement"))
-                    .on_press(Message::DecrementPressed),
-            )
-            .into()
+    fn view(&mut self) -> Element<Self::Message> {
+        Column::new().into()
     }
 }

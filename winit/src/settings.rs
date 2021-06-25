@@ -36,7 +36,7 @@ pub struct Window {
     pub size: (u32, u32),
 
     /// The position of the window.
-    pub position: (u32, u32),
+    pub position: (i32, i32),
 
     /// The minimum size of the window.
     pub min_size: Option<(u32, u32)>,
@@ -78,7 +78,7 @@ impl Window {
         window_builder = window_builder
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
-            .with_outer_position(self.position)
+            .with_position(winit::dpi::LogicalPosition { x: self.position.0, y: self.position.1 })
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
@@ -116,6 +116,7 @@ impl Default for Window {
     fn default() -> Window {
         Window {
             size: (1024, 768),
+            position: (100, 100),
             min_size: None,
             max_size: None,
             resizable: true,
