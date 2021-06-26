@@ -11,6 +11,11 @@ jobs:
     - name: Install cargo-deb
       run: cargo install cargo-deb
     - uses: actions/checkout@master
+    - name: Install dependencies
+      run: |
+        export DEBIAN_FRONTED=noninteractive
+        sudo apt-get -qq update
+        sudo apt-get install -y libxkbcommon-dev
     - name: Enable Link Time Optimizations
       run: |
         echo "[profile.release]" >> Cargo.toml
