@@ -60,6 +60,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
+    input_filter: Option<Box<dyn Fn(char) -> bool>>,
     on_submit: Option<Message>,
     style: Renderer::Style,
 }
@@ -96,6 +97,7 @@ where
             padding: Padding::ZERO,
             size: None,
             on_change: Box::new(on_change),
+            input_filter: None,
             on_submit: None,
             style: Renderer::Style::default(),
         }
@@ -136,6 +138,15 @@ where
     /// Sets the text size of the [`TextInput`].
     pub fn size(mut self, size: u16) -> Self {
         self.size = Some(size);
+        self
+    }
+
+    /// Sets the input filter for the [`TextInput`].
+    pub fn input_filter<F>(mut self, filter: F) -> Self 
+    where
+    F: 'static + Fn(char) -> bool,
+    {
+        self.input_filter = Some(Box::new(filter));
         self
     }
 
@@ -363,7 +374,9 @@ where
                 if self.state.is_focused
                     && self.state.is_pasting.is_none()
                     && !self.state.keyboard_modifiers.is_command_pressed()
-                    && !c.is_control() =>
+                    && !c.is_control()
+                    && self.input_filter.as_ref().map(|filter|filter(c)).unwrap_or(true)
+                    =>
             {
                 let mut editor =
                     Editor::new(&mut self.value, &mut self.state.cursor);
