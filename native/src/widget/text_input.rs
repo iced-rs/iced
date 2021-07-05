@@ -142,9 +142,9 @@ where
     }
 
     /// Sets the input filter for the [`TextInput`].
-    pub fn input_filter<F>(mut self, filter: F) -> Self 
+    pub fn input_filter<F>(mut self, filter: F) -> Self
     where
-    F: 'static + Fn(char) -> bool,
+        F: 'static + Fn(char) -> bool,
     {
         self.input_filter = Some(Box::new(filter));
         self
@@ -375,8 +375,11 @@ where
                     && self.state.is_pasting.is_none()
                     && !self.state.keyboard_modifiers.is_command_pressed()
                     && !c.is_control()
-                    && self.input_filter.as_ref().map(|filter|filter(c)).unwrap_or(true)
-                    =>
+                    && self
+                        .input_filter
+                        .as_ref()
+                        .map(|filter| filter(c))
+                        .unwrap_or(true) =>
             {
                 let mut editor =
                     Editor::new(&mut self.value, &mut self.state.cursor);
