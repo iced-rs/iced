@@ -60,7 +60,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
-    input_filter: Option<Box<dyn Fn(char) -> bool>>,
+    input_filter: Option<Box<dyn Fn(char, &Value) -> bool>>,
     on_submit: Option<Message>,
     style: Renderer::Style,
 }
@@ -144,7 +144,7 @@ where
     /// Sets the input filter for the [`TextInput`].
     pub fn input_filter<F>(mut self, filter: F) -> Self
     where
-        F: 'static + Fn(char) -> bool,
+        F: 'static + Fn(char, &Value) -> bool,
     {
         self.input_filter = Some(Box::new(filter));
         self
@@ -378,7 +378,7 @@ where
                     && self
                         .input_filter
                         .as_ref()
-                        .map(|filter| filter(c))
+                        .map(|filter| filter(c, &self.value))
                         .unwrap_or(true) =>
             {
                 let mut editor =
