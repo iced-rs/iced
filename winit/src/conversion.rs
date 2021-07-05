@@ -6,7 +6,7 @@ use crate::keyboard;
 use crate::mouse;
 use crate::touch;
 use crate::window;
-use crate::{Event, Mode, Point};
+use crate::{Event, Menu, MenuEntry, Mode, Point};
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -156,6 +156,51 @@ pub fn visible(mode: Mode) -> bool {
     }
 }
 
+/// Converts a `Hotkey` from [`iced_native`] to a [`winit`] Hotkey.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+fn hotkey(hotkey: keyboard::Hotkey) -> winit::window::Hotkey {
+    use winit::event::ModifiersState;
+
+    let mut modifiers = ModifiersState::empty();
+    modifiers.set(ModifiersState::CTRL, hotkey.modifiers.control);
+    modifiers.set(ModifiersState::SHIFT, hotkey.modifiers.shift);
+    modifiers.set(ModifiersState::ALT, hotkey.modifiers.alt);
+    modifiers.set(ModifiersState::LOGO, hotkey.modifiers.logo);
+
+    winit::window::Hotkey::new(modifiers, to_virtual_keycode(hotkey.key))
+}
+
+/// Converts a `Menu` from [`iced_native`] to a [`winit`] menu.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+pub fn menu<Message>(menu: Menu<Message>) -> winit::window::Menu {
+    let mut converted = winit::window::Menu::new();
+
+    for item in menu.iter() {
+        match item {
+            MenuEntry::Item {
+                content, hotkey, ..
+            } => {
+                let hotkey: Option<&keyboard::Hotkey> = hotkey.as_ref().into();
+                converted.add_item(
+                    0,
+                    content,
+                    hotkey.map(|h| self::hotkey(*h)),
+                );
+            }
+            MenuEntry::Dropdown { content, submenu } => {
+                converted.add_dropdown(content, self::menu(submenu));
+            }
+            MenuEntry::Separator => converted.add_separator(),
+        }
+    }
+
+    converted
+}
+
 /// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
@@ -249,6 +294,183 @@ pub fn touch_event(
         winit::event::TouchPhase::Cancelled => {
             touch::Event::FingerLost { id, position }
         }
+    }
+}
+
+/// Converts a `KeyCode` from [`iced_native`] to an [`winit`] key code.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+fn to_virtual_keycode(
+    keycode: keyboard::KeyCode,
+) -> winit::event::VirtualKeyCode {
+    use keyboard::KeyCode;
+    use winit::event::VirtualKeyCode;
+
+    match keycode {
+        KeyCode::Key1 => VirtualKeyCode::Key1,
+        KeyCode::Key2 => VirtualKeyCode::Key2,
+        KeyCode::Key3 => VirtualKeyCode::Key3,
+        KeyCode::Key4 => VirtualKeyCode::Key4,
+        KeyCode::Key5 => VirtualKeyCode::Key5,
+        KeyCode::Key6 => VirtualKeyCode::Key6,
+        KeyCode::Key7 => VirtualKeyCode::Key7,
+        KeyCode::Key8 => VirtualKeyCode::Key8,
+        KeyCode::Key9 => VirtualKeyCode::Key9,
+        KeyCode::Key0 => VirtualKeyCode::Key0,
+        KeyCode::A => VirtualKeyCode::A,
+        KeyCode::B => VirtualKeyCode::B,
+        KeyCode::C => VirtualKeyCode::C,
+        KeyCode::D => VirtualKeyCode::D,
+        KeyCode::E => VirtualKeyCode::E,
+        KeyCode::F => VirtualKeyCode::F,
+        KeyCode::G => VirtualKeyCode::G,
+        KeyCode::H => VirtualKeyCode::H,
+        KeyCode::I => VirtualKeyCode::I,
+        KeyCode::J => VirtualKeyCode::J,
+        KeyCode::K => VirtualKeyCode::K,
+        KeyCode::L => VirtualKeyCode::L,
+        KeyCode::M => VirtualKeyCode::M,
+        KeyCode::N => VirtualKeyCode::N,
+        KeyCode::O => VirtualKeyCode::O,
+        KeyCode::P => VirtualKeyCode::P,
+        KeyCode::Q => VirtualKeyCode::Q,
+        KeyCode::R => VirtualKeyCode::R,
+        KeyCode::S => VirtualKeyCode::S,
+        KeyCode::T => VirtualKeyCode::T,
+        KeyCode::U => VirtualKeyCode::U,
+        KeyCode::V => VirtualKeyCode::V,
+        KeyCode::W => VirtualKeyCode::W,
+        KeyCode::X => VirtualKeyCode::X,
+        KeyCode::Y => VirtualKeyCode::Y,
+        KeyCode::Z => VirtualKeyCode::Z,
+        KeyCode::Escape => VirtualKeyCode::Escape,
+        KeyCode::F1 => VirtualKeyCode::F1,
+        KeyCode::F2 => VirtualKeyCode::F2,
+        KeyCode::F3 => VirtualKeyCode::F3,
+        KeyCode::F4 => VirtualKeyCode::F4,
+        KeyCode::F5 => VirtualKeyCode::F5,
+        KeyCode::F6 => VirtualKeyCode::F6,
+        KeyCode::F7 => VirtualKeyCode::F7,
+        KeyCode::F8 => VirtualKeyCode::F8,
+        KeyCode::F9 => VirtualKeyCode::F9,
+        KeyCode::F10 => VirtualKeyCode::F10,
+        KeyCode::F11 => VirtualKeyCode::F11,
+        KeyCode::F12 => VirtualKeyCode::F12,
+        KeyCode::F13 => VirtualKeyCode::F13,
+        KeyCode::F14 => VirtualKeyCode::F14,
+        KeyCode::F15 => VirtualKeyCode::F15,
+        KeyCode::F16 => VirtualKeyCode::F16,
+        KeyCode::F17 => VirtualKeyCode::F17,
+        KeyCode::F18 => VirtualKeyCode::F18,
+        KeyCode::F19 => VirtualKeyCode::F19,
+        KeyCode::F20 => VirtualKeyCode::F20,
+        KeyCode::F21 => VirtualKeyCode::F21,
+        KeyCode::F22 => VirtualKeyCode::F22,
+        KeyCode::F23 => VirtualKeyCode::F23,
+        KeyCode::F24 => VirtualKeyCode::F24,
+        KeyCode::Snapshot => VirtualKeyCode::Snapshot,
+        KeyCode::Scroll => VirtualKeyCode::Scroll,
+        KeyCode::Pause => VirtualKeyCode::Pause,
+        KeyCode::Insert => VirtualKeyCode::Insert,
+        KeyCode::Home => VirtualKeyCode::Home,
+        KeyCode::Delete => VirtualKeyCode::Delete,
+        KeyCode::End => VirtualKeyCode::End,
+        KeyCode::PageDown => VirtualKeyCode::PageDown,
+        KeyCode::PageUp => VirtualKeyCode::PageUp,
+        KeyCode::Left => VirtualKeyCode::Left,
+        KeyCode::Up => VirtualKeyCode::Up,
+        KeyCode::Right => VirtualKeyCode::Right,
+        KeyCode::Down => VirtualKeyCode::Down,
+        KeyCode::Backspace => VirtualKeyCode::Back,
+        KeyCode::Enter => VirtualKeyCode::Return,
+        KeyCode::Space => VirtualKeyCode::Space,
+        KeyCode::Compose => VirtualKeyCode::Compose,
+        KeyCode::Caret => VirtualKeyCode::Caret,
+        KeyCode::Numlock => VirtualKeyCode::Numlock,
+        KeyCode::Numpad0 => VirtualKeyCode::Numpad0,
+        KeyCode::Numpad1 => VirtualKeyCode::Numpad1,
+        KeyCode::Numpad2 => VirtualKeyCode::Numpad2,
+        KeyCode::Numpad3 => VirtualKeyCode::Numpad3,
+        KeyCode::Numpad4 => VirtualKeyCode::Numpad4,
+        KeyCode::Numpad5 => VirtualKeyCode::Numpad5,
+        KeyCode::Numpad6 => VirtualKeyCode::Numpad6,
+        KeyCode::Numpad7 => VirtualKeyCode::Numpad7,
+        KeyCode::Numpad8 => VirtualKeyCode::Numpad8,
+        KeyCode::Numpad9 => VirtualKeyCode::Numpad9,
+        KeyCode::AbntC1 => VirtualKeyCode::AbntC1,
+        KeyCode::AbntC2 => VirtualKeyCode::AbntC2,
+        KeyCode::NumpadAdd => VirtualKeyCode::NumpadAdd,
+        KeyCode::Plus => VirtualKeyCode::Plus,
+        KeyCode::Apostrophe => VirtualKeyCode::Apostrophe,
+        KeyCode::Apps => VirtualKeyCode::Apps,
+        KeyCode::At => VirtualKeyCode::At,
+        KeyCode::Ax => VirtualKeyCode::Ax,
+        KeyCode::Backslash => VirtualKeyCode::Backslash,
+        KeyCode::Calculator => VirtualKeyCode::Calculator,
+        KeyCode::Capital => VirtualKeyCode::Capital,
+        KeyCode::Colon => VirtualKeyCode::Colon,
+        KeyCode::Comma => VirtualKeyCode::Comma,
+        KeyCode::Convert => VirtualKeyCode::Convert,
+        KeyCode::NumpadDecimal => VirtualKeyCode::NumpadDecimal,
+        KeyCode::NumpadDivide => VirtualKeyCode::NumpadDivide,
+        KeyCode::Equals => VirtualKeyCode::Equals,
+        KeyCode::Grave => VirtualKeyCode::Grave,
+        KeyCode::Kana => VirtualKeyCode::Kana,
+        KeyCode::Kanji => VirtualKeyCode::Kanji,
+        KeyCode::LAlt => VirtualKeyCode::LAlt,
+        KeyCode::LBracket => VirtualKeyCode::LBracket,
+        KeyCode::LControl => VirtualKeyCode::LControl,
+        KeyCode::LShift => VirtualKeyCode::LShift,
+        KeyCode::LWin => VirtualKeyCode::LWin,
+        KeyCode::Mail => VirtualKeyCode::Mail,
+        KeyCode::MediaSelect => VirtualKeyCode::MediaSelect,
+        KeyCode::MediaStop => VirtualKeyCode::MediaStop,
+        KeyCode::Minus => VirtualKeyCode::Minus,
+        KeyCode::NumpadMultiply => VirtualKeyCode::NumpadMultiply,
+        KeyCode::Mute => VirtualKeyCode::Mute,
+        KeyCode::MyComputer => VirtualKeyCode::MyComputer,
+        KeyCode::NavigateForward => VirtualKeyCode::NavigateForward,
+        KeyCode::NavigateBackward => VirtualKeyCode::NavigateBackward,
+        KeyCode::NextTrack => VirtualKeyCode::NextTrack,
+        KeyCode::NoConvert => VirtualKeyCode::NoConvert,
+        KeyCode::NumpadComma => VirtualKeyCode::NumpadComma,
+        KeyCode::NumpadEnter => VirtualKeyCode::NumpadEnter,
+        KeyCode::NumpadEquals => VirtualKeyCode::NumpadEquals,
+        KeyCode::OEM102 => VirtualKeyCode::OEM102,
+        KeyCode::Period => VirtualKeyCode::Period,
+        KeyCode::PlayPause => VirtualKeyCode::PlayPause,
+        KeyCode::Power => VirtualKeyCode::Power,
+        KeyCode::PrevTrack => VirtualKeyCode::PrevTrack,
+        KeyCode::RAlt => VirtualKeyCode::RAlt,
+        KeyCode::RBracket => VirtualKeyCode::RBracket,
+        KeyCode::RControl => VirtualKeyCode::RControl,
+        KeyCode::RShift => VirtualKeyCode::RShift,
+        KeyCode::RWin => VirtualKeyCode::RWin,
+        KeyCode::Semicolon => VirtualKeyCode::Semicolon,
+        KeyCode::Slash => VirtualKeyCode::Slash,
+        KeyCode::Sleep => VirtualKeyCode::Sleep,
+        KeyCode::Stop => VirtualKeyCode::Stop,
+        KeyCode::NumpadSubtract => VirtualKeyCode::NumpadSubtract,
+        KeyCode::Sysrq => VirtualKeyCode::Sysrq,
+        KeyCode::Tab => VirtualKeyCode::Tab,
+        KeyCode::Underline => VirtualKeyCode::Underline,
+        KeyCode::Unlabeled => VirtualKeyCode::Unlabeled,
+        KeyCode::VolumeDown => VirtualKeyCode::VolumeDown,
+        KeyCode::VolumeUp => VirtualKeyCode::VolumeUp,
+        KeyCode::Wake => VirtualKeyCode::Wake,
+        KeyCode::WebBack => VirtualKeyCode::WebBack,
+        KeyCode::WebFavorites => VirtualKeyCode::WebFavorites,
+        KeyCode::WebForward => VirtualKeyCode::WebForward,
+        KeyCode::WebHome => VirtualKeyCode::WebHome,
+        KeyCode::WebRefresh => VirtualKeyCode::WebRefresh,
+        KeyCode::WebSearch => VirtualKeyCode::WebSearch,
+        KeyCode::WebStop => VirtualKeyCode::WebStop,
+        KeyCode::Yen => VirtualKeyCode::Yen,
+        KeyCode::Copy => VirtualKeyCode::Copy,
+        KeyCode::Paste => VirtualKeyCode::Paste,
+        KeyCode::Cut => VirtualKeyCode::Cut,
+        KeyCode::Asterisk => VirtualKeyCode::Asterisk,
     }
 }
 

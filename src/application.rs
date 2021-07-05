@@ -1,6 +1,6 @@
 use crate::window;
 use crate::{
-    Clipboard, Color, Command, Element, Executor, Settings, Subscription,
+    Clipboard, Color, Command, Element, Executor, Menu, Settings, Subscription,
 };
 
 /// An interactive cross-platform application.
@@ -191,6 +191,11 @@ pub trait Application: Sized {
         false
     }
 
+    /// TODO
+    fn menu(&self) -> Menu<Self::Message> {
+        Menu::new()
+    }
+
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -295,6 +300,10 @@ where
 
     fn should_exit(&self) -> bool {
         self.0.should_exit()
+    }
+
+    fn menu(&self) -> Menu<Self::Message> {
+        self.0.menu()
     }
 }
 

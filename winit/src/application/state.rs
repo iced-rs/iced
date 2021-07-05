@@ -36,6 +36,8 @@ impl<A: Application> State<A> {
             )
         };
 
+        window.set_menu(Some(conversion::menu(application.menu())));
+
         Self {
             title,
             mode,
