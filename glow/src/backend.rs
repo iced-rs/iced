@@ -2,6 +2,7 @@ use crate::quad;
 use crate::text;
 use crate::triangle;
 use crate::{Settings, Transformation, Viewport};
+use glow::HasContext;
 use iced_graphics::backend;
 use iced_graphics::font;
 use iced_graphics::Layer;
@@ -36,7 +37,7 @@ impl Backend {
         }
     }
 
-    /// Draws the provided primitives in the default framebuffer.
+    /// Draws the provided primitives in the target framebuffer.
     ///
     /// The text provided as overlay will be rendered on top of the primitives.
     /// This is useful for rendering debug information.
@@ -46,6 +47,7 @@ impl Backend {
         viewport: &Viewport,
         (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
         overlay_text: &[T],
+        target: Option<glow::Framebuffer>,
     ) -> mouse::Interaction {
         let viewport_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
@@ -53,6 +55,8 @@ impl Backend {
 
         let mut layers = Layer::generate(primitive, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
+
+        unsafe{ gl.bind_framebuffer(glow::RENDERBUFFER, target); }
 
         for layer in layers {
             self.flush(

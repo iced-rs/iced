@@ -12,11 +12,15 @@ categories = ["gui"]
 
 [features]
 debug = ["iced_winit/debug"]
+offscreen = []
 
 [dependencies.glutin]
 version = "0.27"
 git = "https://github.com/iced-rs/glutin"
 rev = "03437d8a1826d83c62017b2bb7bf18bfc9e352cc"
+
+[dependencies.image]
+version = "0.23"
 
 [dependencies.iced_native]
 version = "0.4"

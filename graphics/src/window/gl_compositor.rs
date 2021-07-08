@@ -1,4 +1,4 @@
-use crate::{Color, Error, Size, Viewport};
+use crate::{Color, Error, Size, Viewport, Rectangle};
 use iced_native::mouse;
 
 use core::ffi::c_void;
@@ -31,7 +31,7 @@ pub trait GLCompositor: Sized {
     type Settings: Default;
 
     /// Creates a new [`GLCompositor`] and [`Renderer`] with the given
-    /// [`Settings`] and an OpenGL address loader function.
+    /// [`Settings`], viewport size and an OpenGL address loader function.
     ///
     /// [`Renderer`]: crate::Renderer
     /// [`Backend`]: crate::Backend
@@ -39,6 +39,7 @@ pub trait GLCompositor: Sized {
     #[allow(unsafe_code)]
     unsafe fn new(
         settings: Self::Settings,
+        viewport_size: Size<u32>,
         loader_function: impl FnMut(&str) -> *const c_void,
     ) -> Result<(Self, Self::Renderer), Error>;
 
@@ -60,4 +61,7 @@ pub trait GLCompositor: Sized {
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction;
+
+    /// Reads the framebuffer pixels on the provided region into the provided buffer.
+    fn read(&self, region: Rectangle<u32>, buffer: &mut [u8]);
 }

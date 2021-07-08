@@ -45,6 +45,8 @@ async-std = ["iced_futures/async-std"]
 smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
+# Enables offscreen rendering
+offscreen = ["iced_glutin/offscreen", "iced_glow/offscreen"]
 
 [badges]
 maintenance = { status = "actively-developed" }
