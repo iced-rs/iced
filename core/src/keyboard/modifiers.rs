@@ -1,20 +1,53 @@
-/// The current state of the keyboard modifiers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct Modifiers {
-    /// Whether a shift key is pressed
-    pub shift: bool,
+use bitflags::bitflags;
 
-    /// Whether a control key is pressed
-    pub control: bool,
-
-    /// Whether an alt key is pressed
-    pub alt: bool,
-
-    /// Whether a logo key is pressed (e.g. windows key, command key...)
-    pub logo: bool,
+bitflags! {
+    /// The current state of the keyboard modifiers.
+    #[derive(Default)]
+    pub struct Modifiers: u32{
+        /// The "shift" key.
+        const SHIFT = 0b100 << 0;
+        // const LSHIFT = 0b010 << 0;
+        // const RSHIFT = 0b001 << 0;
+        //
+        /// The "control" key.
+        const CTRL = 0b100 << 3;
+        // const LCTRL = 0b010 << 3;
+        // const RCTRL = 0b001 << 3;
+        //
+        /// The "alt" key.
+        const ALT = 0b100 << 6;
+        // const LALT = 0b010 << 6;
+        // const RALT = 0b001 << 6;
+        //
+        /// The "windows" key on Windows, "command" key on Mac, and
+        /// "super" key on Linux.
+        const LOGO = 0b100 << 9;
+        // const LLOGO = 0b010 << 9;
+        // const RLOGO = 0b001 << 9;
+    }
 }
 
 impl Modifiers {
+    /// Returns true if the [`SHIFT`] key is pressed in the [`Modifiers`].
+    pub fn shift(self) -> bool {
+        self.contains(Self::SHIFT)
+    }
+
+    /// Returns true if the [`CTRL`] key is pressed in the [`Modifiers`].
+    pub fn control(self) -> bool {
+        self.contains(Self::CTRL)
+    }
+
+    /// Returns true if the [`ALT`] key is pressed in the [`Modifiers`].
+    pub fn alt(self) -> bool {
+        self.contains(Self::ALT)
+    }
+
+    /// Returns true if the [`LOGO`] key is pressed in the [`Modifiers`].
+    pub fn logo(self) -> bool {
+        self.contains(Self::LOGO)
+    }
+
     /// Returns true if a "command key" is pressed in the [`Modifiers`].
     ///
     /// The "command key" is the main modifier key used to issue commands in the
@@ -22,24 +55,13 @@ impl Modifiers {
     ///
     /// - It is the `logo` or command key (⌘) on macOS
     /// - It is the `control` key on other platforms
-    pub fn is_command_pressed(self) -> bool {
+    pub fn command(self) -> bool {
         #[cfg(target_os = "macos")]
-        let is_pressed = self.logo;
+        let is_pressed = self.logo();
 
         #[cfg(not(target_os = "macos"))]
-        let is_pressed = self.control;
+        let is_pressed = self.control();
 
         is_pressed
-    }
-
-    /// Returns true if the current [`Modifiers`] have at least the same
-    /// keys pressed as the provided ones, and false otherwise.
-    pub fn matches(&self, modifiers: Self) -> bool {
-        let shift = !modifiers.shift || self.shift;
-        let control = !modifiers.control || self.control;
-        let alt = !modifiers.alt || self.alt;
-        let logo = !modifiers.logo || self.logo;
-
-        shift && control && alt && logo
     }
 }

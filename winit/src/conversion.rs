@@ -165,10 +165,10 @@ fn hotkey(hotkey: keyboard::Hotkey) -> winit::window::Hotkey {
     use winit::event::ModifiersState;
 
     let mut modifiers = ModifiersState::empty();
-    modifiers.set(ModifiersState::CTRL, hotkey.modifiers.control);
-    modifiers.set(ModifiersState::SHIFT, hotkey.modifiers.shift);
-    modifiers.set(ModifiersState::ALT, hotkey.modifiers.alt);
-    modifiers.set(ModifiersState::LOGO, hotkey.modifiers.logo);
+    modifiers.set(ModifiersState::CTRL, hotkey.modifiers.control());
+    modifiers.set(ModifiersState::SHIFT, hotkey.modifiers.shift());
+    modifiers.set(ModifiersState::ALT, hotkey.modifiers.alt());
+    modifiers.set(ModifiersState::LOGO, hotkey.modifiers.logo());
 
     winit::window::Hotkey::new(modifiers, to_virtual_keycode(hotkey.key))
 }
@@ -249,12 +249,14 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
 pub fn modifiers(
     modifiers: winit::event::ModifiersState,
 ) -> keyboard::Modifiers {
-    keyboard::Modifiers {
-        shift: modifiers.shift(),
-        control: modifiers.ctrl(),
-        alt: modifiers.alt(),
-        logo: modifiers.logo(),
-    }
+    let mut result = keyboard::Modifiers::empty();
+
+    result.set(keyboard::Modifiers::SHIFT, modifiers.shift());
+    result.set(keyboard::Modifiers::CTRL, modifiers.ctrl());
+    result.set(keyboard::Modifiers::ALT, modifiers.alt());
+    result.set(keyboard::Modifiers::LOGO, modifiers.logo());
+
+    result
 }
 
 /// Converts a physical cursor position to a logical `Point`.

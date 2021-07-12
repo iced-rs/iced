@@ -43,18 +43,8 @@ impl Application for App {
     }
 
     fn menu(&self) -> Menu<Message> {
-        let alt = Modifiers {
-            alt: true,
-            control: false,
-            logo: false,
-            shift: false,
-        };
-        let ctrl_shift = Modifiers {
-            control: true,
-            shift: true,
-            logo: false,
-            alt: false,
-        };
+        let alt = Modifiers::ALT;
+        let ctrl_shift = Modifiers::CTRL | Modifiers::SHIFT;
 
         Menu::with_entries(vec![
             menu::Entry::dropdown(
