@@ -185,12 +185,7 @@ pub fn menu<Message>(menu: Menu<Message>) -> winit::window::Menu {
             menu::Entry::Item {
                 content, hotkey, ..
             } => {
-                let hotkey: Option<&keyboard::Hotkey> = hotkey.as_ref().into();
-                converted.add_item(
-                    0,
-                    content,
-                    hotkey.map(|h| self::hotkey(*h)),
-                );
+                converted.add_item(0, content, hotkey.map(self::hotkey));
             }
             menu::Entry::Dropdown { content, submenu } => {
                 converted.add_dropdown(content, self::menu(submenu));
