@@ -3,10 +3,11 @@
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::keyboard;
+use crate::menu::{self, Menu};
 use crate::mouse;
 use crate::touch;
 use crate::window;
-use crate::{Event, Menu, MenuEntry, Mode, Point};
+use crate::{Event, Mode, Point};
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -181,7 +182,7 @@ pub fn menu<Message>(menu: Menu<Message>) -> winit::window::Menu {
 
     for item in menu.iter() {
         match item {
-            MenuEntry::Item {
+            menu::Entry::Item {
                 content, hotkey, ..
             } => {
                 let hotkey: Option<&keyboard::Hotkey> = hotkey.as_ref().into();
@@ -191,10 +192,10 @@ pub fn menu<Message>(menu: Menu<Message>) -> winit::window::Menu {
                     hotkey.map(|h| self::hotkey(*h)),
                 );
             }
-            MenuEntry::Dropdown { content, submenu } => {
+            menu::Entry::Dropdown { content, submenu } => {
                 converted.add_dropdown(content, self::menu(submenu));
             }
-            MenuEntry::Separator => converted.add_separator(),
+            menu::Entry::Separator => converted.add_separator(),
         }
     }
 

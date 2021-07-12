@@ -6,60 +6,35 @@ use crate::keyboard::Hotkey;
 /// This can be used by `shell` implementations to create a menu.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Menu<Message> {
-    items: Vec<MenuEntry<Message>>,
+    entries: Vec<Entry<Message>>,
 }
 
 impl<Message> Menu<Message> {
     /// Creates an empty [`Menu`].
     pub fn new() -> Self {
-        Menu { items: Vec::new() }
+        Self::with_entries(Vec::new())
     }
 
-    /// Adds an item to the [`Menu`].
-    pub fn item<S: Into<String>>(
-        mut self,
-        content: S,
-        hotkey: impl Into<Option<Hotkey>>,
-        on_activation: Message,
-    ) -> Self {
-        let content = content.into();
-        let hotkey = hotkey.into();
-
-        self.items.push(MenuEntry::Item {
-            on_activation,
-            content,
-            hotkey,
-        });
-        self
+    /// Creates a new [`Menu`] with the given entries.
+    pub fn with_entries(entries: Vec<Entry<Message>>) -> Self {
+        Self { entries }
     }
 
-    /// Adds a separator to the [`Menu`].
-    pub fn separator(mut self) -> Self {
-        self.items.push(MenuEntry::Separator);
-        self
-    }
-
-    /// Adds a dropdown to the [`Menu`].
-    pub fn dropdown<S: Into<String>>(
-        mut self,
-        content: S,
-        submenu: Menu<Message>,
-    ) -> Self {
-        let content = content.into();
-
-        self.items.push(MenuEntry::Dropdown { content, submenu });
+    /// Adds an [`Entry`] to the [`Menu`].
+    pub fn push(mut self, entry: Entry<Message>) -> Self {
+        self.entries.push(entry);
         self
     }
 
     /// Returns a [`MenuEntry`] iterator.
-    pub fn iter(self) -> std::vec::IntoIter<MenuEntry<Message>> {
-        self.items.into_iter()
+    pub fn iter(self) -> impl Iterator<Item = Entry<Message>> {
+        self.entries.into_iter()
     }
 }
 
 /// Represents one of the possible entries used to build a [`Menu`].
 #[derive(Debug, Clone, PartialEq)]
-pub enum MenuEntry<Message> {
+pub enum Entry<Message> {
     /// Item for a [`Menu`]
     Item {
         /// The title of the item
@@ -78,4 +53,32 @@ pub enum MenuEntry<Message> {
     },
     /// Separator for a [`Menu`]
     Separator,
+}
+
+impl<Message> Entry<Message> {
+    /// Creates an [`Entry::Item`].
+    pub fn item<S: Into<String>>(
+        content: S,
+        hotkey: impl Into<Option<Hotkey>>,
+        on_activation: Message,
+    ) -> Self {
+        let content = content.into();
+        let hotkey = hotkey.into();
+
+        Entry::Item {
+            content,
+            hotkey,
+            on_activation,
+        }
+    }
+
+    /// Creates an [`Entry::Dropdown`].
+    pub fn dropdown<S: Into<String>>(
+        content: S,
+        submenu: Menu<Message>,
+    ) -> Self {
+        let content = content.into();
+
+        Entry::Dropdown { content, submenu }
+    }
 }

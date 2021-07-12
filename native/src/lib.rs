@@ -76,7 +76,7 @@ pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
-pub use menu::{Menu, MenuEntry};
+pub use menu::Menu;
 pub use overlay::Overlay;
 pub use program::Program;
 pub use renderer::Renderer;

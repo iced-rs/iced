@@ -1,6 +1,7 @@
+use iced::menu::{self, Menu};
 use iced::{
     executor, Application, Clipboard, Command, Container, Element, Length,
-    Menu, Settings, Text,
+    Settings, Text,
 };
 use iced_native::keyboard::{Hotkey, KeyCode, Modifiers};
 
@@ -55,47 +56,50 @@ impl Application for App {
             alt: false,
         };
 
-        Menu::new()
-            .dropdown(
+        Menu::with_entries(vec![
+            menu::Entry::dropdown(
                 "First",
-                Menu::new()
-                    .item(
+                Menu::with_entries(vec![
+                    menu::Entry::item(
                         "One",
                         Hotkey::new(alt, KeyCode::F1),
                         Message::MenuActivated(Entry::One),
-                    )
-                    .item(
+                    ),
+                    menu::Entry::item(
                         "Two",
                         Hotkey::new(alt, KeyCode::F2),
                         Message::MenuActivated(Entry::Two),
-                    )
-                    .separator()
-                    .item(
+                    ),
+                    menu::Entry::Separator,
+                    menu::Entry::item(
                         "Three",
                         Hotkey::new(alt, KeyCode::F3),
                         Message::MenuActivated(Entry::Three),
                     ),
-            )
-            .dropdown(
+                ]),
+            ),
+            menu::Entry::dropdown(
                 "Second",
-                Menu::new()
-                    .item(
+                Menu::with_entries(vec![
+                    menu::Entry::item(
                         "A",
                         Hotkey::new(ctrl_shift, KeyCode::A),
                         Message::MenuActivated(Entry::A),
-                    )
-                    .item(
+                    ),
+                    menu::Entry::item(
                         "B",
                         Hotkey::new(ctrl_shift, KeyCode::B),
                         Message::MenuActivated(Entry::B),
-                    )
-                    .separator()
-                    .item(
+                    ),
+                    menu::Entry::Separator,
+                    menu::Entry::item(
                         "C",
                         Hotkey::new(ctrl_shift, KeyCode::C),
                         Message::MenuActivated(Entry::C),
                     ),
-            )
+                ]),
+            ),
+        ])
     }
 
     fn update(
