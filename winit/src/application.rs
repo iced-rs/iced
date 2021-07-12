@@ -151,6 +151,7 @@ where
             application.mode(),
             event_loop.primary_monitor(),
         )
+        .with_menu(Some(conversion::menu(&application.menu())))
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 

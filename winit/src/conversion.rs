@@ -177,7 +177,7 @@ fn hotkey(hotkey: keyboard::Hotkey) -> winit::window::Hotkey {
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-pub fn menu<Message>(menu: Menu<Message>) -> winit::window::Menu {
+pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
     let mut converted = winit::window::Menu::new();
 
     for item in menu.iter() {

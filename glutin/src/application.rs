@@ -52,11 +52,14 @@ where
     runtime.track(subscription);
 
     let context = {
-        let builder = settings.window.into_builder(
-            &application.title(),
-            application.mode(),
-            event_loop.primary_monitor(),
-        );
+        let builder = settings
+            .window
+            .into_builder(
+                &application.title(),
+                application.mode(),
+                event_loop.primary_monitor(),
+            )
+            .with_menu(Some(conversion::menu(&application.menu())));
 
         let context = ContextBuilder::new()
             .with_vsync(true)

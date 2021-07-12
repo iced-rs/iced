@@ -4,9 +4,15 @@ use crate::keyboard::Hotkey;
 /// Menu representation.
 ///
 /// This can be used by `shell` implementations to create a menu.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Menu<Message> {
     entries: Vec<Entry<Message>>,
+}
+
+impl<Message> PartialEq for Menu<Message> {
+    fn eq(&self, other: &Self) -> bool {
+        self.entries == other.entries
+    }
 }
 
 impl<Message> Menu<Message> {
@@ -27,13 +33,13 @@ impl<Message> Menu<Message> {
     }
 
     /// Returns a [`MenuEntry`] iterator.
-    pub fn iter(self) -> impl Iterator<Item = Entry<Message>> {
-        self.entries.into_iter()
+    pub fn iter(&self) -> impl Iterator<Item = &Entry<Message>> {
+        self.entries.iter()
     }
 }
 
 /// Represents one of the possible entries used to build a [`Menu`].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Entry<Message> {
     /// Item for a [`Menu`]
     Item {
@@ -80,5 +86,31 @@ impl<Message> Entry<Message> {
         let content = content.into();
 
         Entry::Dropdown { content, submenu }
+    }
+}
+
+impl<Message> PartialEq for Entry<Message> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Entry::Item {
+                    content, hotkey, ..
+                },
+                Entry::Item {
+                    content: other_content,
+                    hotkey: other_hotkey,
+                    ..
+                },
+            ) => content == other_content && hotkey == other_hotkey,
+            (
+                Entry::Dropdown { content, submenu },
+                Entry::Dropdown {
+                    content: other_content,
+                    submenu: other_submenu,
+                },
+            ) => content == other_content && submenu == other_submenu,
+            (Entry::Separator, Entry::Separator) => true,
+            _ => false,
+        }
     }
 }
