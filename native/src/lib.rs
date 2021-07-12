@@ -37,7 +37,6 @@ pub mod clipboard;
 pub mod event;
 pub mod keyboard;
 pub mod layout;
-pub mod menu;
 pub mod mouse;
 pub mod overlay;
 pub mod program;
@@ -62,8 +61,8 @@ mod debug;
 mod debug;
 
 pub use iced_core::{
-    Align, Background, Color, Font, HorizontalAlignment, Length, Padding,
-    Point, Rectangle, Size, Vector, VerticalAlignment,
+    menu, Align, Background, Color, Font, HorizontalAlignment, Length, Menu,
+    Padding, Point, Rectangle, Size, Vector, VerticalAlignment,
 };
 pub use iced_futures::{executor, futures, Command};
 
@@ -76,7 +75,6 @@ pub use element::Element;
 pub use event::Event;
 pub use hasher::Hasher;
 pub use layout::Layout;
-pub use menu::Menu;
 pub use overlay::Overlay;
 pub use program::Program;
 pub use renderer::Renderer;
