@@ -178,21 +178,39 @@ fn hotkey(hotkey: keyboard::Hotkey) -> winit::window::Hotkey {
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
-    let mut converted = winit::window::Menu::new();
+    fn menu_i<Message>(
+        starting_id: usize,
+        menu: &Menu<Message>,
+    ) -> (winit::window::Menu, usize) {
+        let mut id = starting_id;
+        let mut converted = winit::window::Menu::new();
 
-    for item in menu.iter() {
-        match item {
-            menu::Entry::Item {
-                content, hotkey, ..
-            } => {
-                converted.add_item(0, content, hotkey.map(self::hotkey));
+        for item in menu.iter() {
+            match item {
+                menu::Entry::Item {
+                    content, hotkey, ..
+                } => {
+                    converted.add_item(id, content, hotkey.map(self::hotkey));
+
+                    id += 1;
+                }
+                menu::Entry::Dropdown { content, submenu } => {
+                    let (submenu, n_children) = menu_i(id, submenu);
+
+                    converted.add_dropdown(content, submenu);
+
+                    id += n_children;
+                }
+                menu::Entry::Separator => {
+                    converted.add_separator();
+                }
             }
-            menu::Entry::Dropdown { content, submenu } => {
-                converted.add_dropdown(content, self::menu(submenu));
-            }
-            menu::Entry::Separator => converted.add_separator(),
         }
+
+        (converted, id - starting_id)
     }
+
+    let (converted, _) = menu_i(0, menu);
 
     converted
 }
