@@ -223,7 +223,10 @@ pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
 pub fn menu_message<Message>(
     _menu: &Menu<Message>,
     id: isize,
-) -> Option<Message> {
+) -> Option<Message>
+where
+    Message: Clone,
+{
     println!("Menu entry activated: {}", id);
 
     None
