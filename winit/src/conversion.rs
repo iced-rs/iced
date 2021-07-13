@@ -179,11 +179,11 @@ fn hotkey(hotkey: keyboard::Hotkey) -> winit::window::Hotkey {
 /// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
     fn menu_i<Message>(
+        converted: &mut winit::window::Menu,
         starting_id: usize,
         menu: &Menu<Message>,
-    ) -> (winit::window::Menu, usize) {
+    ) -> usize {
         let mut id = starting_id;
-        let mut converted = winit::window::Menu::new();
 
         for item in menu.iter() {
             match item {
@@ -195,9 +195,11 @@ pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
                     id += 1;
                 }
                 menu::Entry::Dropdown { content, submenu } => {
-                    let (submenu, n_children) = menu_i(id, submenu);
+                    let mut converted_submenu = winit::window::Menu::new();
+                    let n_children =
+                        menu_i(&mut converted_submenu, id, submenu);
 
-                    converted.add_dropdown(content, submenu);
+                    converted.add_dropdown(content, converted_submenu);
 
                     id += n_children;
                 }
@@ -207,10 +209,11 @@ pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
             }
         }
 
-        (converted, id - starting_id)
+        id - starting_id
     }
 
-    let (converted, _) = menu_i(0, menu);
+    let mut converted = winit::window::Menu::default();
+    let _ = menu_i(&mut converted, 0, menu);
 
     converted
 }
