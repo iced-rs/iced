@@ -307,6 +307,16 @@ async fn run_instance<A, E, C>(
                 // Maybe we can use `ControlFlow::WaitUntil` for this.
             }
             event::Event::WindowEvent {
+                event: event::WindowEvent::MenuEntryActivated(entry_id),
+                ..
+            } => {
+                if let Some(message) =
+                    conversion::menu_message(state.menu(), entry_id)
+                {
+                    messages.push(message);
+                }
+            }
+            event::Event::WindowEvent {
                 event: window_event,
                 ..
             } => {

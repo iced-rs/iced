@@ -215,6 +215,17 @@ pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
     converted
 }
 
+/// Given a [`Menu`] and an identifier of a [`menu::Entry`], it returns the
+/// `Message` that should be produced when that entry is activated.
+pub fn menu_message<Message>(
+    _menu: &Menu<Message>,
+    id: isize,
+) -> Option<Message> {
+    println!("Menu entry activated: {}", id);
+
+    None
+}
+
 /// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
