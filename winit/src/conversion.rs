@@ -220,16 +220,54 @@ pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
 
 /// Given a [`Menu`] and an identifier of a [`menu::Entry`], it returns the
 /// `Message` that should be produced when that entry is activated.
-pub fn menu_message<Message>(
-    _menu: &Menu<Message>,
-    id: isize,
-) -> Option<Message>
+pub fn menu_message<Message>(menu: &Menu<Message>, id: isize) -> Option<Message>
 where
     Message: Clone,
 {
-    println!("Menu entry activated: {}", id);
+    use std::convert::TryFrom;
 
-    None
+    fn find_message<Message>(
+        target: usize,
+        starting_id: usize,
+        menu: &Menu<Message>,
+    ) -> Result<Message, usize>
+    where
+        Message: Clone,
+    {
+        let mut id = starting_id;
+
+        for entry in menu.iter() {
+            match entry {
+                menu::Entry::Item { on_activation, .. } => {
+                    if id == target {
+                        return Ok(on_activation.clone());
+                    }
+
+                    id += 1;
+                }
+                menu::Entry::Dropdown { submenu, .. } => {
+                    match find_message(target, id, submenu) {
+                        Ok(message) => {
+                            return Ok(message);
+                        }
+                        Err(n_children) => {
+                            id += n_children;
+                        }
+                    }
+                }
+                menu::Entry::Separator => {}
+            }
+        }
+
+        Err(id - starting_id)
+    }
+
+    // TODO: Does `winit` really need to provide an `isize`?
+    if let Ok(id) = usize::try_from(id) {
+        find_message(id, 0, menu).ok()
+    } else {
+        None
+    }
 }
 
 /// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
