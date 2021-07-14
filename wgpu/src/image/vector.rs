@@ -75,8 +75,8 @@ impl Cache {
         let id = handle.id();
 
         let (width, height) = (
-            (scale * width).round() as u32,
-            (scale * height).round() as u32,
+            (scale * width).ceil() as u32,
+            (scale * height).ceil() as u32,
         );
 
         // TODO: Optimize!
@@ -122,6 +122,7 @@ impl Cache {
                     device,
                     encoder,
                 )?;
+                log::debug!("allocating {} {}x{}", id, width, height);
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert((id, width, height));
