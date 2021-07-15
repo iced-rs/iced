@@ -249,10 +249,10 @@ where
         layout: Layout<'_>,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         let mut children = layout.children();
-        let padded = children.next().unwrap();
+        let padded = children.next()?;
 
         let mut children = padded.children();
-        let title_layout = children.next().unwrap();
+        let title_layout = children.next()?;
 
         let Self {
             content, controls, ..
@@ -260,7 +260,7 @@ where
 
         content.overlay(title_layout).or_else(move || {
             controls.as_mut().and_then(|controls| {
-                let controls_layout = children.next().unwrap();
+                let controls_layout = children.next()?;
 
                 controls.overlay(controls_layout)
             })
