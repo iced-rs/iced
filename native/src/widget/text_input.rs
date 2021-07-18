@@ -1,15 +1,9 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
-mod editor;
-mod value;
-
-pub mod cursor;
-
 pub use cursor::Cursor;
-pub use value::Value;
-
 use editor::Editor;
+pub use value::Value;
 
 use crate::event::{self, Event};
 use crate::keyboard;
@@ -21,6 +15,11 @@ use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
     Size, Widget,
 };
+
+mod editor;
+mod value;
+
+pub mod cursor;
 
 /// A field that can be filled with text.
 ///
@@ -302,12 +301,14 @@ where
                                         );
 
                                     self.state.cursor.move_to(position);
+
+                                    self.state.is_dragging = true;
                                 }
                             } else {
                                 self.state.cursor.move_to(0);
-                            }
 
-                            self.state.is_dragging = true;
+                                self.state.is_dragging = true;
+                            }
                         }
                         click::Kind::Double => {
                             if self.is_secure {
