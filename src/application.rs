@@ -191,7 +191,9 @@ pub trait Application: Sized {
         false
     }
 
-    /// TODO
+    /// Returns the current system [`Menu`] of the [`Application`].
+    ///
+    /// By default, it returns an empty [`Menu`].
     fn menu(&self) -> Menu<Self::Message> {
         Menu::new()
     }
