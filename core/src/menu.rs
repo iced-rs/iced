@@ -41,7 +41,7 @@ impl<Message> Menu<Message> {
     ///
     /// This is useful to compose menus and split them into different
     /// abstraction levels.
-    pub fn map<B>(self, f: &impl Fn(Message) -> B) -> Menu<B> {
+    pub fn map<B>(self, f: impl Fn(Message) -> B + Copy) -> Menu<B> {
         // TODO: Use a boxed trait to avoid reallocation of entries
         Menu {
             entries: self
@@ -100,7 +100,7 @@ impl<Message> Entry<Message> {
         Self::Dropdown { title, submenu }
     }
 
-    fn map<B>(self, f: &impl Fn(Message) -> B) -> Entry<B> {
+    fn map<B>(self, f: impl Fn(Message) -> B + Copy) -> Entry<B> {
         match self {
             Self::Item {
                 title,
