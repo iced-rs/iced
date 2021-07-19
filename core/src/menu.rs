@@ -26,15 +26,30 @@ impl<Message> Menu<Message> {
         Self { entries }
     }
 
+    /// Returns a [`MenuEntry`] iterator.
+    pub fn iter(&self) -> impl Iterator<Item = &Entry<Message>> {
+        self.entries.iter()
+    }
+
     /// Adds an [`Entry`] to the [`Menu`].
     pub fn push(mut self, entry: Entry<Message>) -> Self {
         self.entries.push(entry);
         self
     }
 
-    /// Returns a [`MenuEntry`] iterator.
-    pub fn iter(&self) -> impl Iterator<Item = &Entry<Message>> {
-        self.entries.iter()
+    /// Maps the `Message` of the [`Menu`] using the provided function.
+    ///
+    /// This is useful to compose menus and split them into different
+    /// abstraction levels.
+    pub fn map<B>(self, f: &impl Fn(Message) -> B) -> Menu<B> {
+        // TODO: Use a boxed trait to avoid reallocation of entries
+        Menu {
+            entries: self
+                .entries
+                .into_iter()
+                .map(|entry| entry.map(f))
+                .collect(),
+        }
     }
 }
 
@@ -71,7 +86,7 @@ impl<Message> Entry<Message> {
         let content = content.into();
         let hotkey = hotkey.into();
 
-        Entry::Item {
+        Self::Item {
             content,
             hotkey,
             on_activation,
@@ -85,7 +100,26 @@ impl<Message> Entry<Message> {
     ) -> Self {
         let content = content.into();
 
-        Entry::Dropdown { content, submenu }
+        Self::Dropdown { content, submenu }
+    }
+
+    fn map<B>(self, f: &impl Fn(Message) -> B) -> Entry<B> {
+        match self {
+            Self::Item {
+                content,
+                hotkey,
+                on_activation,
+            } => Entry::Item {
+                content,
+                hotkey,
+                on_activation: f(on_activation),
+            },
+            Self::Dropdown { content, submenu } => Entry::Dropdown {
+                content,
+                submenu: submenu.map(f),
+            },
+            Self::Separator => Entry::Separator,
+        }
     }
 }
 
