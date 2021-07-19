@@ -59,7 +59,7 @@ pub enum Entry<Message> {
     /// Item for a [`Menu`]
     Item {
         /// The title of the item
-        content: String,
+        title: String,
         /// The [`Hotkey`] to activate the item, if any
         hotkey: Option<Hotkey>,
         /// The message generated when the item is activated
@@ -68,7 +68,7 @@ pub enum Entry<Message> {
     /// Dropdown for a [`Menu`]
     Dropdown {
         /// Title of the dropdown
-        content: String,
+        title: String,
         /// The submenu of the dropdown
         submenu: Menu<Message>,
     },
@@ -79,43 +79,40 @@ pub enum Entry<Message> {
 impl<Message> Entry<Message> {
     /// Creates an [`Entry::Item`].
     pub fn item<S: Into<String>>(
-        content: S,
+        title: S,
         hotkey: impl Into<Option<Hotkey>>,
         on_activation: Message,
     ) -> Self {
-        let content = content.into();
+        let title = title.into();
         let hotkey = hotkey.into();
 
         Self::Item {
-            content,
+            title,
             hotkey,
             on_activation,
         }
     }
 
     /// Creates an [`Entry::Dropdown`].
-    pub fn dropdown<S: Into<String>>(
-        content: S,
-        submenu: Menu<Message>,
-    ) -> Self {
-        let content = content.into();
+    pub fn dropdown<S: Into<String>>(title: S, submenu: Menu<Message>) -> Self {
+        let title = title.into();
 
-        Self::Dropdown { content, submenu }
+        Self::Dropdown { title, submenu }
     }
 
     fn map<B>(self, f: &impl Fn(Message) -> B) -> Entry<B> {
         match self {
             Self::Item {
-                content,
+                title,
                 hotkey,
                 on_activation,
             } => Entry::Item {
-                content,
+                title,
                 hotkey,
                 on_activation: f(on_activation),
             },
-            Self::Dropdown { content, submenu } => Entry::Dropdown {
-                content,
+            Self::Dropdown { title, submenu } => Entry::Dropdown {
+                title,
                 submenu: submenu.map(f),
             },
             Self::Separator => Entry::Separator,
@@ -127,22 +124,20 @@ impl<Message> PartialEq for Entry<Message> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (
+                Entry::Item { title, hotkey, .. },
                 Entry::Item {
-                    content, hotkey, ..
-                },
-                Entry::Item {
-                    content: other_content,
+                    title: other_title,
                     hotkey: other_hotkey,
                     ..
                 },
-            ) => content == other_content && hotkey == other_hotkey,
+            ) => title == other_title && hotkey == other_hotkey,
             (
-                Entry::Dropdown { content, submenu },
+                Entry::Dropdown { title, submenu },
                 Entry::Dropdown {
-                    content: other_content,
+                    title: other_title,
                     submenu: other_submenu,
                 },
-            ) => content == other_content && submenu == other_submenu,
+            ) => title == other_title && submenu == other_submenu,
             (Entry::Separator, Entry::Separator) => true,
             _ => false,
         }

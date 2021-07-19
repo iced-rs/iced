@@ -187,19 +187,17 @@ pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
 
         for item in menu.iter() {
             match item {
-                menu::Entry::Item {
-                    content, hotkey, ..
-                } => {
-                    converted.add_item(id, content, hotkey.map(self::hotkey));
+                menu::Entry::Item { title, hotkey, .. } => {
+                    converted.add_item(id, title, hotkey.map(self::hotkey));
 
                     id += 1;
                 }
-                menu::Entry::Dropdown { content, submenu } => {
+                menu::Entry::Dropdown { title, submenu } => {
                     let mut converted_submenu = winit::window::Menu::new();
                     let n_children =
                         menu_i(&mut converted_submenu, id, submenu);
 
-                    converted.add_dropdown(content, converted_submenu);
+                    converted.add_dropdown(title, converted_submenu);
 
                     id += n_children;
                 }
