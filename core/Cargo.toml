@@ -8,6 +8,7 @@ license = "MIT"
 repository = "https://github.com/hecrj/iced"
 
 [dependencies]
+bitflags = "1.2"
 
 [dependencies.palette]
 version = "0.5.0"

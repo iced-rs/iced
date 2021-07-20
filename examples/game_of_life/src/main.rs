@@ -6,6 +6,7 @@ mod style;
 use grid::Grid;
 use iced::button::{self, Button};
 use iced::executor;
+use iced::menu::{self, Menu};
 use iced::pick_list::{self, PickList};
 use iced::slider::{self, Slider};
 use iced::time;
@@ -126,6 +127,13 @@ impl Application for GameOfLife {
         } else {
             Subscription::none()
         }
+    }
+
+    fn menu(&self) -> Menu<Message> {
+        Menu::with_entries(vec![menu::Entry::dropdown(
+            "Presets",
+            Preset::menu().map(Message::PresetPicked),
+        )])
     }
 
     fn view(&mut self) -> Element<Message> {

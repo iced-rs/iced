@@ -88,7 +88,7 @@ use crate::{
 /// ```
 pub trait Sandbox {
     /// The type of __messages__ your [`Sandbox`] will produce.
-    type Message: std::fmt::Debug + Send;
+    type Message: std::fmt::Debug + Clone + Send;
 
     /// Initializes the [`Sandbox`].
     ///
