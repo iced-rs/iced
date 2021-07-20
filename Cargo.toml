@@ -93,9 +93,6 @@ iced_core = { version = "0.4", path = "core" }
 iced_futures = { version = "0.3", path = "futures" }
 thiserror = "1.0"
 
-[patch.crates-io]
-winit = { git = "https://github.com/iced-rs/winit", rev = "327c8756f90953a6a03f818113f8566176e6eb0d"}
-
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced_winit = { version = "0.3", path = "winit" }
 iced_glutin = { version = "0.2", path = "glutin", optional = true }

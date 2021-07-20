@@ -20,8 +20,8 @@ thiserror = "1.0"
 
 [dependencies.winit]
 version = "0.25"
-# git = "https://github.com/iced-rs/winit"
-# rev = "e351421a32bf01b428325dde44dea39ee2656153"
+git = "https://github.com/iced-rs/winit"
+rev = "844485272a7412cb35cdbfac3524decdf59475ca"
 
 [dependencies.iced_native]
 version = "0.4"
