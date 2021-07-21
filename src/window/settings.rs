@@ -8,22 +8,11 @@ pub struct Settings {
 
     /// The initial position of the window.
     ///
-    /// When the decorations of the window are enabled, Windows 10 will add some inivisble padding
-    /// to the window. This padding gets included in the position. So if you have decorations
-    /// enabled and want the window to be at 0,0 you would have to set the position to
-    /// -DPI_BORDER_X,-DPI_BORDER_Y.
-    ///
-    /// DPI_BORDER_X/DPI_BORDER_Y are the usual size of the padding, which changes based on the DPI of the display.
-    ///
-    /// On a 1920x1080 monitor you would have to set the position to -8,-2.
-    ///
-    /// For info on how you could implement positioning that supports all DPI monitors look at the
-    /// following WINAPI calls:
-    ///
-    /// * GetDpiForMonitor (with MDT_RAW_DPI)
-    /// * GetSystemMetricsForDpi (with SM_CXFRAME and SM_CYFRAME)
-    ///     
-    /// Note: this gets ignored on the web
+    /// When the decorations of the window are enabled, Windows 10 will add some
+    /// invisible padding to the window. This padding gets included in the
+    /// position. So if you have decorations enabled and want the window to be
+    /// at (0, 0) you would have to set the position to
+    /// `(PADDING_X, PADDING_Y)`.
     pub position: (i32, i32),
 
     /// The minimum size of the window.
