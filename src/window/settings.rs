@@ -1,4 +1,4 @@
-use crate::window::Icon;
+use crate::window::{Icon, Position};
 
 /// The window settings of an application.
 #[derive(Debug, Clone)]
@@ -7,13 +7,7 @@ pub struct Settings {
     pub size: (u32, u32),
 
     /// The initial position of the window.
-    ///
-    /// When the decorations of the window are enabled, Windows 10 will add some
-    /// invisible padding to the window. This padding gets included in the
-    /// position. So if you have decorations enabled and want the window to be
-    /// at (0, 0) you would have to set the position to
-    /// `(PADDING_X, PADDING_Y)`.
-    pub position: (i32, i32),
+    pub position: Position,
 
     /// The minimum size of the window.
     pub min_size: Option<(u32, u32)>,
@@ -41,7 +35,7 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             size: (1024, 768),
-            position: (100, 100),
+            position: Position::default(),
             min_size: None,
             max_size: None,
             resizable: true,
@@ -58,7 +52,7 @@ impl From<Settings> for iced_winit::settings::Window {
     fn from(settings: Settings) -> Self {
         Self {
             size: settings.size,
-            position: settings.position,
+            position: iced_winit::Position::from(settings.position),
             min_size: settings.min_size,
             max_size: settings.max_size,
             resizable: settings.resizable,
