@@ -72,6 +72,8 @@ jobs:
       env:
         MACOSX_DEPLOYMENT_TARGET: 10.14
       run: cargo build --verbose --release --package todos
+    - name: Open binary via double-click
+      run: chmod +x target/release/todos
     - name: Archive todos binary
       uses: actions/upload-artifact@v1
       with:
