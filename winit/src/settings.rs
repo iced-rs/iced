@@ -9,7 +9,7 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
-use crate::Mode;
+use crate::{Mode, Position};
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
 
@@ -34,6 +34,9 @@ pub struct Settings<Flags> {
 pub struct Window {
     /// The size of the window.
     pub size: (u32, u32),
+
+    /// The position of the window.
+    pub position: Position,
 
     /// The minimum size of the window.
     pub min_size: Option<(u32, u32)>,
@@ -80,8 +83,15 @@ impl Window {
             .with_transparent(self.transparent)
             .with_window_icon(self.icon)
             .with_always_on_top(self.always_on_top)
-            .with_fullscreen(conversion::fullscreen(primary_monitor, mode))
             .with_visible(conversion::visible(mode));
+
+        if let Some(position) = conversion::position(
+            primary_monitor.as_ref(),
+            self.size,
+            self.position,
+        ) {
+            window_builder = window_builder.with_position(position);
+        }
 
         if let Some((width, height)) = self.min_size {
             window_builder = window_builder
@@ -104,6 +114,9 @@ impl Window {
                 .with_drag_and_drop(self.platform_specific.drag_and_drop);
         }
 
+        window_builder = window_builder
+            .with_fullscreen(conversion::fullscreen(primary_monitor, mode));
+
         window_builder
     }
 }
@@ -112,6 +125,7 @@ impl Default for Window {
     fn default() -> Window {
         Window {
             size: (1024, 768),
+            position: Position::default(),
             min_size: None,
             max_size: None,
             resizable: true,

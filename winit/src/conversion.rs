@@ -7,7 +7,7 @@ use crate::menu::{self, Menu};
 use crate::mouse;
 use crate::touch;
 use crate::window;
-use crate::{Event, Mode, Point};
+use crate::{Event, Mode, Point, Position};
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -131,6 +131,49 @@ pub fn window_event(
             Some(Event::Touch(touch_event(*touch, scale_factor)))
         }
         _ => None,
+    }
+}
+
+/// Converts a [`Position`] to a [`winit`] logical position for a given monitor.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn position(
+    monitor: Option<&winit::monitor::MonitorHandle>,
+    (width, height): (u32, u32),
+    position: Position,
+) -> Option<winit::dpi::Position> {
+    match position {
+        Position::Default => None,
+        Position::Specific(x, y) => {
+            Some(winit::dpi::Position::Logical(winit::dpi::LogicalPosition {
+                x: f64::from(x),
+                y: f64::from(y),
+            }))
+        }
+        Position::Centered => {
+            if let Some(monitor) = monitor {
+                let start = monitor.position();
+
+                let resolution: winit::dpi::LogicalSize<f64> =
+                    monitor.size().to_logical(monitor.scale_factor());
+
+                let centered: winit::dpi::PhysicalPosition<i32> =
+                    winit::dpi::LogicalPosition {
+                        x: (resolution.width - f64::from(width)) / 2.0,
+                        y: (resolution.height - f64::from(height)) / 2.0,
+                    }
+                    .to_physical(monitor.scale_factor());
+
+                Some(winit::dpi::Position::Physical(
+                    winit::dpi::PhysicalPosition {
+                        x: start.x + centered.x,
+                        y: start.y + centered.y,
+                    },
+                ))
+            } else {
+                None
+            }
+        }
     }
 }
 
