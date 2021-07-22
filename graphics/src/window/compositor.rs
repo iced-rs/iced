@@ -52,33 +52,32 @@ pub trait Compositor: Sized {
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, CompositorDrawError>;
+    ) -> Result<mouse::Interaction, SwapChainError>;
 }
 
 /// Result of an unsuccessful call to [`Compositor::draw`].
-#[derive(Debug)]
-pub enum CompositorDrawError {
-    /// The swapchain is outdated. Try rendering again next frame.
-    SwapchainOutdated(Box<dyn std::error::Error>),
-    /// A fatal swapchain error occured. Rendering cannot continue.
-    FatalSwapchainError(Box<dyn std::error::Error>),
+/// Result of an unsuccessful call to [`SwapChain::get_current_frame`].
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum SwapChainError {
+    /// A timeout was encountered while trying to acquire the next frame.
+    Timeout,
+    /// The underlying surface has changed, and therefore the swap chain must be updated.
+    Outdated,
+    /// The swap chain has been lost and needs to be recreated.
+    Lost,
+    /// There is no more memory left to allocate a new frame.
+    OutOfMemory,
 }
 
-impl std::error::Error for CompositorDrawError {}
+impl std::error::Error for SwapChainError {}
 
-impl std::fmt::Display for CompositorDrawError {
+impl std::fmt::Display for SwapChainError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CompositorDrawError::SwapchainOutdated(e) => write!(
-                f,
-                "Swapchain is outdated: {}. Try rendering next frame.",
-                e
-            ),
-            CompositorDrawError::FatalSwapchainError(e) => write!(
-                f,
-                "Fatal swapchain error: {}. Rendering cannot continue.",
-                e
-            ),
-        }
+        write!(f, "{}", match self {
+            Self::Timeout => "A timeout was encountered while trying to acquire the next frame",
+            Self::Outdated => "The underlying surface has changed, and therefore the swap chain must be updated",
+            Self::Lost =>  "The swap chain has been lost and needs to be recreated",
+            Self::OutOfMemory => "There is no more memory left to allocate a new frame",
+        })
     }
 }

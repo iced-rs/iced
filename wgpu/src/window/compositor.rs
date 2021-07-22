@@ -135,8 +135,7 @@ impl iced_graphics::window::Compositor for Compositor {
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, iced_graphics::window::CompositorDrawError>
-    {
+    ) -> Result<mouse::Interaction, iced_graphics::window::SwapChainError> {
         match swap_chain.get_current_frame() {
             Ok(frame) => {
                 let mut encoder = self.device.create_command_encoder(
@@ -145,27 +144,31 @@ impl iced_graphics::window::Compositor for Compositor {
                     },
                 );
 
-                let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu::window::Compositor render pass"),
-                    color_attachments: &[wgpu::RenderPassColorAttachment {
-                        view: &frame.output.view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear({
-                                let [r, g, b, a] = background_color.into_linear();
+                let _ =
+                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some(
+                            "iced_wgpu::window::Compositor render pass",
+                        ),
+                        color_attachments: &[wgpu::RenderPassColorAttachment {
+                            view: &frame.output.view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Clear({
+                                    let [r, g, b, a] =
+                                        background_color.into_linear();
 
-                                wgpu::Color {
-                                    r: f64::from(r),
-                                    g: f64::from(g),
-                                    b: f64::from(b),
-                                    a: f64::from(a),
-                                }
-                            }),
-                            store: true,
-                        },
-                    }],
-                    depth_stencil_attachment: None,
-                });
+                                    wgpu::Color {
+                                        r: f64::from(r),
+                                        g: f64::from(g),
+                                        b: f64::from(b),
+                                        a: f64::from(a),
+                                    }
+                                }),
+                                store: true,
+                            },
+                        }],
+                        depth_stencil_attachment: None,
+                    });
 
                 let mouse_interaction = renderer.backend_mut().draw(
                     &mut self.device,
@@ -192,12 +195,17 @@ impl iced_graphics::window::Compositor for Compositor {
                 Ok(mouse_interaction)
             }
             Err(error) => match error {
-                wgpu::SwapChainError::OutOfMemory => {
-                    Err(iced_graphics::window::CompositorDrawError::FatalSwapchainError(Box::new(error)))
+                wgpu::SwapChainError::Timeout => {
+                    Err(iced_graphics::window::SwapChainError::Timeout)
                 }
-                _ => {
-                    // Try again next frame.
-                    Err(iced_graphics::window::CompositorDrawError::SwapchainOutdated(Box::new(error)))
+                wgpu::SwapChainError::Outdated => {
+                    Err(iced_graphics::window::SwapChainError::Outdated)
+                }
+                wgpu::SwapChainError::Lost => {
+                    Err(iced_graphics::window::SwapChainError::Lost)
+                }
+                wgpu::SwapChainError::OutOfMemory => {
+                    Err(iced_graphics::window::SwapChainError::OutOfMemory)
                 }
             },
         }

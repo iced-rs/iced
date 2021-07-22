@@ -391,15 +391,15 @@ async fn run_instance<A, E, C>(
                         // Maybe we can use `ControlFlow::WaitUntil` for this.
                     }
                     Err(error) => match error {
-                        window::CompositorDrawError::SwapchainOutdated(_) => {
+                        // This is an unrecoverable error.
+                        window::SwapChainError::OutOfMemory => {
+                            panic!("{}", error);
+                        }
+                        _ => {
                             debug.render_finished();
 
-                            // Swapchain is outdated. Try rendering again next frame.
+                            // Try rendering again next frame.
                             window.request_redraw();
-                        }
-                        window::CompositorDrawError::FatalSwapchainError(e) => {
-                            // Fatal swapchain error. Rendering cannot continue.
-                            panic!("{}", e);
                         }
                     },
                 }
