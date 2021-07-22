@@ -56,7 +56,6 @@ pub trait Compositor: Sized {
 }
 
 /// Result of an unsuccessful call to [`Compositor::draw`].
-/// Result of an unsuccessful call to [`SwapChain::get_current_frame`].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SwapChainError {
     /// A timeout was encountered while trying to acquire the next frame.
