@@ -268,6 +268,43 @@ where
                     event_status
                 }
             }
+            Event::Mouse(mouse::Event::WheelScrolled {
+                delta: mouse::ScrollDelta::Lines { y, .. },
+            }) if layout.bounds().contains(cursor_position)
+                && !*self.is_open =>
+            {
+                fn find_next<'a, T: PartialEq>(
+                    selected: &'a T,
+                    mut options: impl Iterator<Item = &'a T>,
+                ) -> Option<&'a T> {
+                    let _ = options.find(|&option| option == selected);
+
+                    options.next()
+                }
+
+                let next_option = if y < 0.0 {
+                    if let Some(selected) = self.selected.as_ref() {
+                        find_next(selected, self.options.iter())
+                    } else {
+                        self.options.first()
+                    }
+                } else if y > 0.0 {
+                    if let Some(selected) = self.selected.as_ref() {
+                        find_next(selected, self.options.iter().rev())
+                    } else {
+                        self.options.last()
+                    }
+                } else {
+                    None
+                };
+
+                if let Some(next_option) = next_option {
+                    messages.push((self.on_selected)(next_option.clone()));
+                }
+
+                return event::Status::Captured;
+            }
+
             _ => event::Status::Ignored,
         }
     }
