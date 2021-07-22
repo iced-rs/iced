@@ -16,6 +16,10 @@ pub struct Settings {
     /// By default, it will be set to 20.
     pub default_text_size: u16,
 
+    /// If enabled, spread text workload in multiple threads when multiple cores
+    /// are available.
+    pub text_multithreading: bool,
+
     /// The antialiasing strategy that will be used for triangle primitives.
     pub antialiasing: Option<Antialiasing>,
 }
@@ -25,6 +29,7 @@ impl Default for Settings {
         Settings {
             default_font: None,
             default_text_size: 20,
+            text_multithreading: false,
             antialiasing: None,
         }
     }

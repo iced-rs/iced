@@ -15,6 +15,7 @@ impl Pipeline {
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
         default_font: Option<&[u8]>,
+        multithreading: bool,
     ) -> Self {
         let default_font = default_font.map(|slice| slice.to_vec());
 
@@ -46,9 +47,7 @@ impl Pipeline {
         let draw_brush =
             wgpu_glyph::GlyphBrushBuilder::using_font(font.clone())
                 .initial_cache_size((2048, 2048))
-                .draw_cache_multithread(cfg!(
-                    feature = "glyph_draw_cache_multithread"
-                ))
+                .draw_cache_multithread(multithreading)
                 .build(device, format);
 
         let measure_brush =

@@ -25,8 +25,6 @@ canvas = ["iced_wgpu/canvas"]
 qr_code = ["iced_wgpu/qr_code"]
 # Enables using system fonts
 default_system_font = ["iced_wgpu/default_system_font"]
-# Enables draw_cache_multithread for glyph drawing
-glyph_draw_cache_multithread = ["iced_wgpu/glyph_draw_cache_multithread"]
 # Enables the `iced_glow` renderer. Overrides `iced_wgpu`
 glow = ["iced_glow", "iced_glutin"]
 # Enables the `Canvas` widget for `iced_glow`
@@ -35,8 +33,6 @@ glow_canvas = ["iced_glow/canvas"]
 glow_qr_code = ["iced_glow/qr_code"]
 # Enables using system fonts for `iced_glow`
 glow_default_system_font = ["iced_glow/default_system_font"]
-# Enables draw_cache_multithread for `iced_glow` glyph drawing
-glow_glyph_draw_cache_multithread = ["iced_glow/glyph_draw_cache_multithread"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms

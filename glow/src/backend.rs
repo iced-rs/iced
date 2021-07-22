@@ -24,7 +24,12 @@ pub struct Backend {
 impl Backend {
     /// Creates a new [`Backend`].
     pub fn new(gl: &glow::Context, settings: Settings) -> Self {
-        let text_pipeline = text::Pipeline::new(gl, settings.default_font);
+        let text_pipeline = text::Pipeline::new(
+            gl,
+            settings.default_font,
+            settings.text_multithreading,
+        );
+
         let quad_pipeline = quad::Pipeline::new(gl);
         let triangle_pipeline = triangle::Pipeline::new(gl);
 
