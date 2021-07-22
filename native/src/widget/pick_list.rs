@@ -162,37 +162,31 @@ where
             .pad(self.padding);
 
         let text_size = self.text_size.unwrap_or(renderer.default_size());
+        let font = self.font;
 
         let max_width = match self.width {
             Length::Shrink => {
-                let labels = self.options.iter().map(ToString::to_string);
-                let labels_width = labels
-                    .map(|label| {
-                        let (width, _) = renderer.measure(
-                            &label,
-                            text_size,
-                            self.font,
-                            Size::new(f32::INFINITY, f32::INFINITY),
-                        );
+                let measure = |label: &str| -> u32 {
+                    let (width, _) = renderer.measure(
+                        label,
+                        text_size,
+                        font,
+                        Size::new(f32::INFINITY, f32::INFINITY),
+                    );
 
-                        width.round() as u32
-                    })
-                    .max()
-                    .unwrap_or(100);
+                    width.round() as u32
+                };
+
+                let labels = self.options.iter().map(ToString::to_string);
+
+                let labels_width =
+                    labels.map(|label| measure(&label)).max().unwrap_or(100);
 
                 let placeholder_width = self
                     .placeholder
                     .as_ref()
-                    .map(|placeholder| {
-                        let (width, _) = renderer.measure(
-                            placeholder,
-                            text_size,
-                            self.font,
-                            Size::new(f32::INFINITY, f32::INFINITY),
-                        );
-
-                        width.round() as u32
-                    })
+                    .map(String::as_str)
+                    .map(measure)
                     .unwrap_or(100);
 
                 labels_width.max(placeholder_width)
