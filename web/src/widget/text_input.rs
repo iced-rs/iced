@@ -232,4 +232,9 @@ impl State {
         // TODO
         Self::default()
     }
+
+    /// Selects all the content of the [`TextInput`].
+    pub fn select_all(&mut self) {
+        // TODO
+    }
 }
