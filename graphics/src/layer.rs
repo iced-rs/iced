@@ -82,7 +82,12 @@ impl<'a> Layer<'a> {
 
         let mut layers = vec![first_layer];
 
-        Self::process_primitive(&mut layers, Vector::new(0.0, 0.0), primitive);
+        Self::process_primitive(
+            &mut layers,
+            Vector::new(0.0, 0.0),
+            primitive,
+            0,
+        );
 
         layers
     }
@@ -91,13 +96,19 @@ impl<'a> Layer<'a> {
         layers: &mut Vec<Self>,
         translation: Vector,
         primitive: &'a Primitive,
+        current_layer: usize,
     ) {
         match primitive {
             Primitive::None => {}
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
-                    Self::process_primitive(layers, translation, primitive)
+                    Self::process_primitive(
+                        layers,
+                        translation,
+                        primitive,
+                        current_layer,
+                    )
                 }
             }
             Primitive::Text {
@@ -109,7 +120,7 @@ impl<'a> Layer<'a> {
                 horizontal_alignment,
                 vertical_alignment,
             } => {
-                let layer = layers.last_mut().unwrap();
+                let layer = &mut layers[current_layer];
 
                 layer.text.push(Text {
                     content,
@@ -128,7 +139,7 @@ impl<'a> Layer<'a> {
                 border_width,
                 border_color,
             } => {
-                let layer = layers.last_mut().unwrap();
+                let layer = &mut layers[current_layer];
 
                 // TODO: Move some of these computations to the GPU (?)
                 layer.quads.push(Quad {
@@ -146,7 +157,7 @@ impl<'a> Layer<'a> {
                 });
             }
             Primitive::Mesh2D { buffers, size } => {
-                let layer = layers.last_mut().unwrap();
+                let layer = &mut layers[current_layer];
 
                 let bounds = Rectangle::new(
                     Point::new(translation.x, translation.y),
@@ -167,7 +178,7 @@ impl<'a> Layer<'a> {
                 offset,
                 content,
             } => {
-                let layer = layers.last_mut().unwrap();
+                let layer = &mut layers[current_layer];
                 let translated_bounds = *bounds + translation;
 
                 // Only draw visible content
@@ -175,16 +186,15 @@ impl<'a> Layer<'a> {
                     layer.bounds.intersection(&translated_bounds)
                 {
                     let clip_layer = Layer::new(clip_bounds);
-                    let new_layer = Layer::new(layer.bounds);
-
                     layers.push(clip_layer);
+
                     Self::process_primitive(
                         layers,
                         translation
                             - Vector::new(offset.x as f32, offset.y as f32),
                         content,
+                        layers.len() - 1,
                     );
-                    layers.push(new_layer);
                 }
             }
             Primitive::Translate {
@@ -195,13 +205,19 @@ impl<'a> Layer<'a> {
                     layers,
                     translation + *new_translation,
                     &content,
+                    current_layer,
                 );
             }
             Primitive::Cached { cache } => {
-                Self::process_primitive(layers, translation, &cache);
+                Self::process_primitive(
+                    layers,
+                    translation,
+                    &cache,
+                    current_layer,
+                );
             }
             Primitive::Image { handle, bounds } => {
-                let layer = layers.last_mut().unwrap();
+                let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Raster {
                     handle: handle.clone(),
@@ -209,7 +225,7 @@ impl<'a> Layer<'a> {
                 });
             }
             Primitive::Svg { handle, bounds } => {
-                let layer = layers.last_mut().unwrap();
+                let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Vector {
                     handle: handle.clone(),

@@ -1,4 +1,4 @@
-use crate::{Length, Size};
+use crate::{Length, Padding, Size};
 
 /// A set of size constraints for layouting.
 #[derive(Debug, Clone, Copy)]
@@ -117,8 +117,11 @@ impl Limits {
     }
 
     /// Shrinks the current [`Limits`] to account for the given padding.
-    pub fn pad(&self, padding: f32) -> Limits {
-        self.shrink(Size::new(padding * 2.0, padding * 2.0))
+    pub fn pad(&self, padding: Padding) -> Limits {
+        self.shrink(Size::new(
+            padding.horizontal() as f32,
+            padding.vertical() as f32,
+        ))
     }
 
     /// Shrinks the current [`Limits`] by the given [`Size`].

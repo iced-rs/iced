@@ -1,6 +1,6 @@
 [package]
 name = "iced_glutin"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A glutin runtime for Iced"
@@ -13,18 +13,20 @@ categories = ["gui"]
 [features]
 debug = ["iced_winit/debug"]
 
-[dependencies]
-glutin = "0.26"
+[dependencies.glutin]
+version = "0.27"
+git = "https://github.com/iced-rs/glutin"
+rev = "03437d8a1826d83c62017b2bb7bf18bfc9e352cc"
 
 [dependencies.iced_native]
-version = "0.3"
+version = "0.4"
 path = "../native"
 
 [dependencies.iced_winit]
-version = "0.2"
+version = "0.3"
 path = "../winit"
 
 [dependencies.iced_graphics]
-version = "0.1"
+version = "0.2"
 path = "../graphics"
 features = ["opengl"]

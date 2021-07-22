@@ -9,7 +9,7 @@ pub enum Error {
 
     /// The application window could not be created.
     #[error("the application window could not be created")]
-    WindowCreationFailed(Box<dyn std::error::Error>),
+    WindowCreationFailed(Box<dyn std::error::Error + Send + Sync>),
 
     /// A suitable graphics adapter or device could not be found.
     #[error("a suitable graphics adapter or device could not be found")]
@@ -30,5 +30,16 @@ impl From<iced_winit::Error> for Error {
                 Error::GraphicsAdapterNotFound
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn assert_send_sync() {
+        fn _assert<T: Send + Sync>() {}
+        _assert::<Error>();
     }
 }

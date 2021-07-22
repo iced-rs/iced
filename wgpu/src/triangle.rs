@@ -86,8 +86,9 @@ impl Pipeline {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::UniformBuffer {
-                        dynamic: true,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: true,
                         min_binding_size: wgpu::BufferSize::new(
                             mem::size_of::<Uniforms>() as u64,
                         ),
@@ -110,9 +111,15 @@ impl Pipeline {
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::Buffer(
-                        constants_buffer
-                            .raw
-                            .slice(0..std::mem::size_of::<Uniforms>() as u64),
+                        wgpu::BufferBinding {
+                            buffer: &constants_buffer.raw,
+                            offset: 0,
+                            size: wgpu::BufferSize::new(std::mem::size_of::<
+                                Uniforms,
+                            >(
+                            )
+                                as u64),
+                        },
                     ),
                 }],
             });
@@ -124,73 +131,66 @@ impl Pipeline {
                 bind_group_layouts: &[&constants_layout],
             });
 
-        let vs_module = device.create_shader_module(wgpu::include_spirv!(
-            "shader/triangle.vert.spv"
-        ));
-
-        let fs_module = device.create_shader_module(wgpu::include_spirv!(
-            "shader/triangle.frag.spv"
-        ));
+        let shader =
+            device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("iced_wgpu::triangle::shader"),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
+                    include_str!("shader/triangle.wgsl"),
+                )),
+                flags: wgpu::ShaderFlags::all(),
+            });
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some("iced_wgpu::triangle pipeline"),
                 layout: Some(&layout),
-                vertex_stage: wgpu::ProgrammableStageDescriptor {
-                    module: &vs_module,
-                    entry_point: "main",
-                },
-                fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
-                    module: &fs_module,
-                    entry_point: "main",
-                }),
-                rasterization_state: Some(wgpu::RasterizationStateDescriptor {
-                    front_face: wgpu::FrontFace::Cw,
-                    cull_mode: wgpu::CullMode::None,
-                    ..Default::default()
-                }),
-                primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-                color_states: &[wgpu::ColorStateDescriptor {
-                    format,
-                    color_blend: wgpu::BlendDescriptor {
-                        src_factor: wgpu::BlendFactor::SrcAlpha,
-                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                        operation: wgpu::BlendOperation::Add,
-                    },
-                    alpha_blend: wgpu::BlendDescriptor {
-                        src_factor: wgpu::BlendFactor::One,
-                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                        operation: wgpu::BlendOperation::Add,
-                    },
-                    write_mask: wgpu::ColorWrite::ALL,
-                }],
-                depth_stencil_state: None,
-                vertex_state: wgpu::VertexStateDescriptor {
-                    index_format: wgpu::IndexFormat::Uint32,
-                    vertex_buffers: &[wgpu::VertexBufferDescriptor {
-                        stride: mem::size_of::<Vertex2D>() as u64,
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: mem::size_of::<Vertex2D>() as u64,
                         step_mode: wgpu::InputStepMode::Vertex,
-                        attributes: &[
+                        attributes: &wgpu::vertex_attr_array!(
                             // Position
-                            wgpu::VertexAttributeDescriptor {
-                                shader_location: 0,
-                                format: wgpu::VertexFormat::Float2,
-                                offset: 0,
-                            },
+                            0 => Float32x2,
                             // Color
-                            wgpu::VertexAttributeDescriptor {
-                                shader_location: 1,
-                                format: wgpu::VertexFormat::Float4,
-                                offset: 4 * 2,
-                            },
-                        ],
+                            1 => Float32x4,
+                        ),
                     }],
                 },
-                sample_count: u32::from(
-                    antialiasing.map(|a| a.sample_count()).unwrap_or(1),
-                ),
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[wgpu::ColorTargetState {
+                        format,
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::SrcAlpha,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::One,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                        }),
+                        write_mask: wgpu::ColorWrite::ALL,
+                    }],
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    front_face: wgpu::FrontFace::Cw,
+                    ..Default::default()
+                },
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState {
+                    count: u32::from(
+                        antialiasing.map(|a| a.sample_count()).unwrap_or(1),
+                    ),
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
             });
 
         Pipeline {
@@ -253,9 +253,13 @@ impl Pipeline {
                     entries: &[wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::Buffer(
-                            self.uniforms_buffer.raw.slice(
-                                0..std::mem::size_of::<Uniforms>() as u64,
-                            ),
+                            wgpu::BufferBinding {
+                                buffer: &self.uniforms_buffer.raw,
+                                offset: 0,
+                                size: wgpu::BufferSize::new(
+                                    std::mem::size_of::<Uniforms>() as u64,
+                                ),
+                            },
                         ),
                     }],
                 });
@@ -356,13 +360,12 @@ impl Pipeline {
 
             let mut render_pass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    color_attachments: &[
-                        wgpu::RenderPassColorAttachmentDescriptor {
-                            attachment,
-                            resolve_target,
-                            ops: wgpu::Operations { load, store: true },
-                        },
-                    ],
+                    label: Some("iced_wgpu::triangle render pass"),
+                    color_attachments: &[wgpu::RenderPassColorAttachment {
+                        view: attachment,
+                        resolve_target,
+                        ops: wgpu::Operations { load, store: true },
+                    }],
                     depth_stencil_attachment: None,
                 });
 
@@ -390,6 +393,7 @@ impl Pipeline {
                     self.index_buffer
                         .raw
                         .slice(index_offset * mem::size_of::<u32>() as u64..),
+                    wgpu::IndexFormat::Uint32,
                 );
 
                 render_pass.set_vertex_buffer(

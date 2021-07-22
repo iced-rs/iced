@@ -1,7 +1,7 @@
 use iced_wgpu::Renderer;
 use iced_winit::{
-    slider, Align, Color, Column, Command, Element, Length, Program, Row,
-    Slider, Text,
+    slider, Align, Clipboard, Color, Column, Command, Element, Length, Program,
+    Row, Slider, Text,
 };
 
 pub struct Controls {
@@ -30,8 +30,13 @@ impl Controls {
 impl Program for Controls {
     type Renderer = Renderer;
     type Message = Message;
+    type Clipboard = Clipboard;
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match message {
             Message::BackgroundColorChanged(color) => {
                 self.background_color = color;

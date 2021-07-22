@@ -18,7 +18,7 @@ This crate is meant to be a starting point for an Iced runtime.
 Add `iced_core` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_core = "0.3"
+iced_core = "0.4"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

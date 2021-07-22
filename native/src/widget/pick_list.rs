@@ -6,8 +6,10 @@ use crate::overlay;
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
 use crate::text;
+use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
+    Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -23,9 +25,10 @@ where
     last_selection: &'a mut Option<T>,
     on_selected: Box<dyn Fn(T) -> Message>,
     options: Cow<'a, [T]>,
+    placeholder: Option<String>,
     selected: Option<T>,
     width: Length,
-    padding: u16,
+    padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
@@ -80,6 +83,7 @@ where
             last_selection,
             on_selected: Box::new(on_selected),
             options: options.into(),
+            placeholder: None,
             selected,
             width: Length::Shrink,
             text_size: None,
@@ -89,15 +93,21 @@ where
         }
     }
 
+    /// Sets the placeholder of the [`PickList`].
+    pub fn placeholder(mut self, placeholder: impl Into<String>) -> Self {
+        self.placeholder = Some(placeholder.into());
+        self
+    }
+
     /// Sets the width of the [`PickList`].
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
-    /// Sets the padding of the [`PickList`].
-    pub fn padding(mut self, padding: u16) -> Self {
-        self.padding = padding;
+    /// Sets the [`Padding`] of the [`PickList`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -132,7 +142,7 @@ where
     Renderer: self::Renderer + scrollable::Renderer + 'a,
 {
     fn width(&self) -> Length {
-        Length::Shrink
+        self.width
     }
 
     fn height(&self) -> Length {
@@ -149,27 +159,37 @@ where
         let limits = limits
             .width(self.width)
             .height(Length::Shrink)
-            .pad(f32::from(self.padding));
+            .pad(self.padding);
 
         let text_size = self.text_size.unwrap_or(renderer.default_size());
+        let font = self.font;
 
         let max_width = match self.width {
             Length::Shrink => {
+                let measure = |label: &str| -> u32 {
+                    let (width, _) = renderer.measure(
+                        label,
+                        text_size,
+                        font,
+                        Size::new(f32::INFINITY, f32::INFINITY),
+                    );
+
+                    width.round() as u32
+                };
+
                 let labels = self.options.iter().map(ToString::to_string);
 
-                labels
-                    .map(|label| {
-                        let (width, _) = renderer.measure(
-                            &label,
-                            text_size,
-                            Renderer::Font::default(),
-                            Size::new(f32::INFINITY, f32::INFINITY),
-                        );
+                let labels_width =
+                    labels.map(|label| measure(&label)).max().unwrap_or(100);
 
-                        width.round() as u32
-                    })
-                    .max()
-                    .unwrap_or(100)
+                let placeholder_width = self
+                    .placeholder
+                    .as_ref()
+                    .map(String::as_str)
+                    .map(measure)
+                    .unwrap_or(100);
+
+                labels_width.max(placeholder_width)
             }
             _ => 0,
         };
@@ -178,11 +198,11 @@ where
             let intrinsic = Size::new(
                 max_width as f32
                     + f32::from(text_size)
-                    + f32::from(self.padding),
+                    + f32::from(self.padding.left),
                 f32::from(text_size),
             );
 
-            limits.resolve(intrinsic).pad(f32::from(self.padding))
+            limits.resolve(intrinsic).pad(self.padding)
         };
 
         layout::Node::new(size)
@@ -193,6 +213,8 @@ where
 
         match self.width {
             Length::Shrink => {
+                self.placeholder.hash(state);
+
                 self.options
                     .iter()
                     .map(ToString::to_string)
@@ -209,12 +231,13 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         _renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        _clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let event_status = if *self.is_open {
                     // TODO: Encode cursor availability in the type system
                     *self.is_open =
@@ -245,6 +268,43 @@ where
                     event_status
                 }
             }
+            Event::Mouse(mouse::Event::WheelScrolled {
+                delta: mouse::ScrollDelta::Lines { y, .. },
+            }) if layout.bounds().contains(cursor_position)
+                && !*self.is_open =>
+            {
+                fn find_next<'a, T: PartialEq>(
+                    selected: &'a T,
+                    mut options: impl Iterator<Item = &'a T>,
+                ) -> Option<&'a T> {
+                    let _ = options.find(|&option| option == selected);
+
+                    options.next()
+                }
+
+                let next_option = if y < 0.0 {
+                    if let Some(selected) = self.selected.as_ref() {
+                        find_next(selected, self.options.iter())
+                    } else {
+                        self.options.first()
+                    }
+                } else if y > 0.0 {
+                    if let Some(selected) = self.selected.as_ref() {
+                        find_next(selected, self.options.iter().rev())
+                    } else {
+                        self.options.last()
+                    }
+                } else {
+                    None
+                };
+
+                if let Some(next_option) = next_option {
+                    messages.push((self.on_selected)(next_option.clone()));
+                }
+
+                return event::Status::Captured;
+            }
+
             _ => event::Status::Ignored,
         }
     }
@@ -262,6 +322,7 @@ where
             layout.bounds(),
             cursor_position,
             self.selected.as_ref().map(ToString::to_string),
+            self.placeholder.as_ref().map(String::as_str),
             self.padding,
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
@@ -306,7 +367,7 @@ where
 /// [renderer]: crate::renderer
 pub trait Renderer: text::Renderer + menu::Renderer {
     /// The default padding of a [`PickList`].
-    const DEFAULT_PADDING: u16;
+    const DEFAULT_PADDING: Padding;
 
     /// The [`PickList`] style supported by this renderer.
     type Style: Default;
@@ -322,7 +383,8 @@ pub trait Renderer: text::Renderer + menu::Renderer {
         bounds: Rectangle,
         cursor_position: Point,
         selected: Option<String>,
-        padding: u16,
+        placeholder: Option<&str>,
+        padding: Padding,
         text_size: u16,
         font: Self::Font,
         style: &<Self as Renderer>::Style,

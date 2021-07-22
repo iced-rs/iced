@@ -1,11 +1,14 @@
 //! Display images in your user interface.
+pub mod viewer;
+
 use crate::backend::{self, Backend};
+
 use crate::{Primitive, Renderer};
 use iced_native::image;
 use iced_native::mouse;
 use iced_native::Layout;
 
-pub use iced_native::image::{Handle, Image};
+pub use iced_native::image::{Handle, Image, Viewer};
 
 impl<B> image::Renderer for Renderer<B>
 where

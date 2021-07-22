@@ -6,4 +6,7 @@ pub enum Mode {
 
     /// The application takes the whole screen of its current monitor.
     Fullscreen,
+
+    /// The application is hidden
+    Hidden,
 }

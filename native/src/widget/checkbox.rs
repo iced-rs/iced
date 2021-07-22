@@ -6,9 +6,10 @@ use crate::layout;
 use crate::mouse;
 use crate::row;
 use crate::text;
+use crate::touch;
 use crate::{
-    Align, Clipboard, Element, Hasher, HorizontalAlignment, Layout, Length,
-    Point, Rectangle, Row, Text, VerticalAlignment, Widget,
+    Align, Clipboard, Color, Element, Hasher, HorizontalAlignment, Layout,
+    Length, Point, Rectangle, Row, Text, VerticalAlignment, Widget,
 };
 
 /// A box that can be checked.
@@ -38,6 +39,7 @@ pub struct Checkbox<Message, Renderer: self::Renderer + text::Renderer> {
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
+    text_color: Option<Color>,
     style: Renderer::Style,
 }
 
@@ -65,6 +67,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
             spacing: Renderer::DEFAULT_SPACING,
             text_size: None,
             font: Renderer::Font::default(),
+            text_color: None,
             style: Renderer::Style::default(),
         }
     }
@@ -98,6 +101,12 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     /// [`Font`]: crate::widget::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
+        self
+    }
+
+    /// Sets the text color of the [`Checkbox`] button.
+    pub fn text_color(mut self, color: Color) -> Self {
+        self.text_color = Some(color);
         self
     }
 
@@ -149,12 +158,13 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         _renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        _clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {
@@ -191,7 +201,7 @@ where
             &self.label,
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
-            None,
+            self.text_color,
             HorizontalAlignment::Left,
             VerticalAlignment::Center,
         );

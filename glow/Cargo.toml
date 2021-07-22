@@ -1,6 +1,6 @@
 [package]
 name = "iced_glow"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A glow renderer for iced"
@@ -24,11 +24,11 @@ bytemuck = "1.4"
 log = "0.4"
 
 [dependencies.iced_native]
-version = "0.3"
+version = "0.4"
 path = "../native"
 
 [dependencies.iced_graphics]
-version = "0.1"
+version = "0.2"
 path = "../graphics"
 features = ["font-fallback", "font-icons", "opengl"]
 

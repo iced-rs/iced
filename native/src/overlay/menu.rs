@@ -6,9 +6,10 @@ use crate::mouse;
 use crate::overlay;
 use crate::scrollable;
 use crate::text;
+use crate::touch;
 use crate::{
-    Clipboard, Container, Element, Hasher, Layout, Length, Point, Rectangle,
-    Scrollable, Size, Vector, Widget,
+    Clipboard, Container, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Scrollable, Size, Vector, Widget,
 };
 
 /// A list of selectable options.
@@ -19,7 +20,7 @@ pub struct Menu<'a, T, Renderer: self::Renderer> {
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
     width: u16,
-    padding: u16,
+    padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
@@ -44,7 +45,7 @@ where
             hovered_option,
             last_selection,
             width: 0,
-            padding: 0,
+            padding: Padding::ZERO,
             text_size: None,
             font: Default::default(),
             style: Default::default(),
@@ -57,9 +58,9 @@ where
         self
     }
 
-    /// Sets the padding of the [`Menu`].
-    pub fn padding(mut self, padding: u16) -> Self {
-        self.padding = padding;
+    /// Sets the [`Padding`] of the [`Menu`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -218,17 +219,17 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         self.container.on_event(
             event.clone(),
             layout,
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         )
     }
 
@@ -260,7 +261,7 @@ struct List<'a, T, Renderer: self::Renderer> {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
-    padding: u16,
+    padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
     style: <Renderer as self::Renderer>::Style,
@@ -293,7 +294,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                f32::from(text_size + self.padding * 2)
+                f32::from(text_size + self.padding.vertical())
                     * self.options.len() as f32,
             );
 
@@ -319,9 +320,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _messages: &mut Vec<Message>,
         renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
+        _clipboard: &mut dyn Clipboard,
+        _messages: &mut Vec<Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -337,15 +338,36 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 let bounds = layout.bounds();
-                let text_size =
-                    self.text_size.unwrap_or(renderer.default_size());
 
                 if bounds.contains(cursor_position) {
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
+
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(text_size + self.padding * 2))
+                            / f32::from(text_size + self.padding.vertical()))
                             as usize,
                     );
+                }
+            }
+            Event::Touch(touch::Event::FingerPressed { .. }) => {
+                let bounds = layout.bounds();
+
+                if bounds.contains(cursor_position) {
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
+
+                    *self.hovered_option = Some(
+                        ((cursor_position.y - bounds.y)
+                            / f32::from(text_size + self.padding.vertical()))
+                            as usize,
+                    );
+
+                    if let Some(index) = *self.hovered_option {
+                        if let Some(option) = self.options.get(index) {
+                            *self.last_selection = Some(option.clone());
+                        }
+                    }
                 }
             }
             _ => {}
@@ -408,7 +430,7 @@ pub trait Renderer:
         viewport: &Rectangle,
         options: &[T],
         hovered_option: Option<usize>,
-        padding: u16,
+        padding: Padding,
         text_size: u16,
         font: Self::Font,
         style: &<Self as Renderer>::Style,

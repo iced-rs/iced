@@ -1,8 +1,8 @@
 mod style;
 
 use iced::{
-    scrollable, Column, Container, Element, Length, Radio, Row, Rule, Sandbox,
-    Scrollable, Settings, Space, Text,
+    button, scrollable, Button, Column, Container, Element, Length,
+    ProgressBar, Radio, Row, Rule, Sandbox, Scrollable, Settings, Space, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -17,6 +17,9 @@ struct ScrollableDemo {
 #[derive(Debug, Clone)]
 enum Message {
     ThemeChanged(style::Theme),
+    ScrollToTop(usize),
+    ScrollToBottom(usize),
+    Scrolled(usize, f32),
 }
 
 impl Sandbox for ScrollableDemo {
@@ -36,6 +39,25 @@ impl Sandbox for ScrollableDemo {
     fn update(&mut self, message: Message) {
         match message {
             Message::ThemeChanged(theme) => self.theme = theme,
+            Message::ScrollToTop(i) => {
+                if let Some(variant) = self.variants.get_mut(i) {
+                    variant.scrollable.snap_to(0.0);
+
+                    variant.latest_offset = 0.0;
+                }
+            }
+            Message::ScrollToBottom(i) => {
+                if let Some(variant) = self.variants.get_mut(i) {
+                    variant.scrollable.snap_to(1.0);
+
+                    variant.latest_offset = 1.0;
+                }
+            }
+            Message::Scrolled(i, offset) => {
+                if let Some(variant) = self.variants.get_mut(i) {
+                    variant.latest_offset = offset;
+                }
+            }
         }
     }
 
@@ -62,13 +84,28 @@ impl Sandbox for ScrollableDemo {
         let scrollable_row = Row::with_children(
             variants
                 .iter_mut()
-                .map(|variant| {
-                    let mut scrollable = Scrollable::new(&mut variant.state)
-                        .padding(10)
-                        .width(Length::Fill)
-                        .height(Length::Fill)
-                        .style(*theme)
-                        .push(Text::new(variant.title));
+                .enumerate()
+                .map(|(i, variant)| {
+                    let mut scrollable =
+                        Scrollable::new(&mut variant.scrollable)
+                            .padding(10)
+                            .spacing(10)
+                            .width(Length::Fill)
+                            .height(Length::Fill)
+                            .on_scroll(move |offset| {
+                                Message::Scrolled(i, offset)
+                            })
+                            .style(*theme)
+                            .push(Text::new(variant.title))
+                            .push(
+                                Button::new(
+                                    &mut variant.scroll_to_bottom,
+                                    Text::new("Scroll to bottom"),
+                                )
+                                .width(Length::Fill)
+                                .padding(10)
+                                .on_press(Message::ScrollToBottom(i)),
+                            );
 
                     if let Some(scrollbar_width) = variant.scrollbar_width {
                         scrollable = scrollable
@@ -108,12 +145,31 @@ impl Sandbox for ScrollableDemo {
                         .push(Space::with_height(Length::Units(1200)))
                         .push(Text::new("Middle"))
                         .push(Space::with_height(Length::Units(1200)))
-                        .push(Text::new("The End."));
+                        .push(Text::new("The End."))
+                        .push(
+                            Button::new(
+                                &mut variant.scroll_to_top,
+                                Text::new("Scroll to top"),
+                            )
+                            .width(Length::Fill)
+                            .padding(10)
+                            .on_press(Message::ScrollToTop(i)),
+                        );
 
-                    Container::new(scrollable)
+                    Column::new()
                         .width(Length::Fill)
                         .height(Length::Fill)
-                        .style(*theme)
+                        .spacing(10)
+                        .push(
+                            Container::new(scrollable)
+                                .width(Length::Fill)
+                                .height(Length::Fill)
+                                .style(*theme),
+                        )
+                        .push(ProgressBar::new(
+                            0.0..=1.0,
+                            variant.latest_offset,
+                        ))
                         .into()
                 })
                 .collect(),
@@ -142,10 +198,13 @@ impl Sandbox for ScrollableDemo {
 /// A version of a scrollable
 struct Variant {
     title: &'static str,
-    state: scrollable::State,
+    scrollable: scrollable::State,
+    scroll_to_top: button::State,
+    scroll_to_bottom: button::State,
     scrollbar_width: Option<u16>,
     scrollbar_margin: Option<u16>,
     scroller_width: Option<u16>,
+    latest_offset: f32,
 }
 
 impl Variant {
@@ -153,31 +212,43 @@ impl Variant {
         vec![
             Self {
                 title: "Default Scrollbar",
-                state: scrollable::State::new(),
+                scrollable: scrollable::State::new(),
+                scroll_to_top: button::State::new(),
+                scroll_to_bottom: button::State::new(),
                 scrollbar_width: None,
                 scrollbar_margin: None,
                 scroller_width: None,
+                latest_offset: 0.0,
             },
             Self {
                 title: "Slimmed & Margin",
-                state: scrollable::State::new(),
+                scrollable: scrollable::State::new(),
+                scroll_to_top: button::State::new(),
+                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(4),
                 scrollbar_margin: Some(3),
                 scroller_width: Some(4),
+                latest_offset: 0.0,
             },
             Self {
                 title: "Wide Scroller",
-                state: scrollable::State::new(),
+                scrollable: scrollable::State::new(),
+                scroll_to_top: button::State::new(),
+                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(4),
                 scrollbar_margin: None,
                 scroller_width: Some(10),
+                latest_offset: 0.0,
             },
             Self {
                 title: "Narrow Scroller",
-                state: scrollable::State::new(),
+                scrollable: scrollable::State::new(),
+                scroll_to_top: button::State::new(),
+                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(10),
                 scrollbar_margin: None,
                 scroller_width: Some(4),
+                latest_offset: 0.0,
             },
         ]
     }

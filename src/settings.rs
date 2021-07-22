@@ -25,6 +25,12 @@ pub struct Settings<Flags> {
     /// The default value is 20.
     pub default_text_size: u16,
 
+    /// If enabled, spread text workload in multiple threads when multiple cores
+    /// are available.
+    ///
+    /// By default, it is disabled.
+    pub text_multithreading: bool,
+
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
     ///
@@ -35,6 +41,12 @@ pub struct Settings<Flags> {
     ///
     /// [`Canvas`]: crate::widget::Canvas
     pub antialiasing: bool,
+
+    /// Whether the [`Application`] should exit when the user requests the
+    /// window to close (e.g. the user presses the close button).
+    ///
+    /// By default, it is enabled.
+    pub exit_on_close_request: bool,
 }
 
 impl<Flags> Settings<Flags> {
@@ -46,10 +58,12 @@ impl<Flags> Settings<Flags> {
 
         Self {
             flags,
-            antialiasing: default_settings.antialiasing,
+            window: default_settings.window,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
-            window: default_settings.window,
+            text_multithreading: default_settings.text_multithreading,
+            antialiasing: default_settings.antialiasing,
+            exit_on_close_request: default_settings.exit_on_close_request,
         }
     }
 }
@@ -61,10 +75,12 @@ where
     fn default() -> Self {
         Self {
             flags: Default::default(),
-            antialiasing: Default::default(),
+            window: Default::default(),
             default_font: Default::default(),
             default_text_size: 20,
-            window: Default::default(),
+            text_multithreading: false,
+            antialiasing: false,
+            exit_on_close_request: true,
         }
     }
 }
@@ -75,6 +91,7 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
         iced_winit::Settings {
             window: settings.window.into(),
             flags: settings.flags,
+            exit_on_close_request: settings.exit_on_close_request,
         }
     }
 }

@@ -4,8 +4,11 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
+use crate::overlay;
+use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
+    Widget,
 };
 use std::hash::Hash;
 
@@ -26,6 +29,29 @@ use std::hash::Hash;
 /// let button = Button::new(&mut state, Text::new("Press me!"))
 ///     .on_press(Message::ButtonPressed);
 /// ```
+///
+/// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
+/// be disabled:
+///
+/// ```
+/// # use iced_native::{button, Text};
+/// #
+/// # type Button<'a, Message> =
+/// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
+/// #
+/// #[derive(Clone)]
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// fn disabled_button(state: &mut button::State) -> Button<'_, Message> {
+///     Button::new(state, Text::new("I'm disabled!"))
+/// }
+///
+/// fn enabled_button(state: &mut button::State) -> Button<'_, Message> {
+///     disabled_button(state).on_press(Message::ButtonPressed)
+/// }
+/// ```
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer: self::Renderer> {
     state: &'a mut State,
@@ -35,7 +61,7 @@ pub struct Button<'a, Message, Renderer: self::Renderer> {
     height: Length,
     min_width: u32,
     min_height: u32,
-    padding: u16,
+    padding: Padding,
     style: Renderer::Style,
 }
 
@@ -87,13 +113,14 @@ where
         self
     }
 
-    /// Sets the padding of the [`Button`].
-    pub fn padding(mut self, padding: u16) -> Self {
-        self.padding = padding;
+    /// Sets the [`Padding`] of the [`Button`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
     /// Sets the message that will be produced when the [`Button`] is pressed.
+    /// If on_press isn't set, button will be disabled.
     pub fn on_press(mut self, msg: Message) -> Self {
         self.on_press = Some(msg);
         self
@@ -138,18 +165,20 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let padding = f32::from(self.padding);
         let limits = limits
             .min_width(self.min_width)
             .min_height(self.min_height)
             .width(self.width)
             .height(self.height)
-            .pad(padding);
+            .pad(self.padding);
 
         let mut content = self.content.layout(renderer, &limits);
-        content.move_to(Point::new(padding, padding));
+        content.move_to(Point::new(
+            self.padding.left.into(),
+            self.padding.top.into(),
+        ));
 
-        let size = limits.resolve(content.size()).pad(padding);
+        let size = limits.resolve(content.size()).pad(self.padding);
 
         layout::Node::with_children(size, vec![content])
     }
@@ -159,12 +188,24 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
-        _renderer: &Renderer,
-        _clipboard: Option<&dyn Clipboard>,
     ) -> event::Status {
+        if let event::Status::Captured = self.content.on_event(
+            event.clone(),
+            layout.children().next().unwrap(),
+            cursor_position,
+            renderer,
+            clipboard,
+            messages,
+        ) {
+            return event::Status::Captured;
+        }
+
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if self.on_press.is_some() {
                     let bounds = layout.bounds();
 
@@ -175,7 +216,8 @@ where
                     }
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. }) => {
                 if let Some(on_press) = self.on_press.clone() {
                     let bounds = layout.bounds();
 
@@ -189,6 +231,9 @@ where
                         return event::Status::Captured;
                     }
                 }
+            }
+            Event::Touch(touch::Event::FingerLost { .. }) => {
+                self.state.is_pressed = false;
             }
             _ => {}
         }
@@ -223,6 +268,13 @@ where
         self.width.hash(state);
         self.content.hash_layout(state);
     }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.content.overlay(layout.children().next().unwrap())
+    }
 }
 
 /// The renderer of a [`Button`].
@@ -233,7 +285,7 @@ where
 /// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer + Sized {
     /// The default padding of a [`Button`].
-    const DEFAULT_PADDING: u16;
+    const DEFAULT_PADDING: Padding;
 
     /// The style supported by this renderer.
     type Style: Default;

@@ -1,14 +1,15 @@
 use crate::conversion;
-use crate::{Application, Color, Debug, Mode, Point, Size, Viewport};
+use crate::{Application, Color, Debug, Menu, Mode, Point, Size, Viewport};
 
 use std::marker::PhantomData;
-use winit::event::WindowEvent;
+use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
 /// The state of a windowed [`Application`].
 #[derive(Debug, Clone)]
 pub struct State<A: Application> {
     title: String,
+    menu: Menu<A::Message>,
     mode: Mode,
     background_color: Color,
     scale_factor: f64,
@@ -23,6 +24,7 @@ impl<A: Application> State<A> {
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {
         let title = application.title();
+        let menu = application.menu();
         let mode = application.mode();
         let background_color = application.background_color();
         let scale_factor = application.scale_factor();
@@ -38,6 +40,7 @@ impl<A: Application> State<A> {
 
         Self {
             title,
+            menu,
             mode,
             background_color,
             scale_factor,
@@ -48,6 +51,11 @@ impl<A: Application> State<A> {
             modifiers: winit::event::ModifiersState::default(),
             application: PhantomData,
         }
+    }
+
+    /// Returns the current [`Menu`] of the [`State`].
+    pub fn menu(&self) -> &Menu<A::Message> {
+        &self.menu
     }
 
     /// Returns the current background [`Color`] of the [`State`].
@@ -128,7 +136,10 @@ impl<A: Application> State<A> {
 
                 self.viewport_version = self.viewport_version.wrapping_add(1);
             }
-            WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { position, .. }
+            | WindowEvent::Touch(Touch {
+                location: position, ..
+            }) => {
                 self.cursor_position = *position;
             }
             WindowEvent::CursorLeft { .. } => {
@@ -179,6 +190,8 @@ impl<A: Application> State<A> {
                 new_mode,
             ));
 
+            window.set_visible(conversion::visible(new_mode));
+
             self.mode = new_mode;
         }
 
@@ -197,6 +210,15 @@ impl<A: Application> State<A> {
             );
 
             self.scale_factor = new_scale_factor;
+        }
+
+        // Update menu
+        let new_menu = application.menu();
+
+        if self.menu != new_menu {
+            window.set_menu(Some(conversion::menu(&new_menu)));
+
+            self.menu = new_menu;
         }
     }
 }

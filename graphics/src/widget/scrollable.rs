@@ -134,8 +134,16 @@ where
                     Primitive::None
                 };
 
+                let scroll = Primitive::Clip {
+                    bounds,
+                    offset: Vector::new(0, 0),
+                    content: Box::new(Primitive::Group {
+                        primitives: vec![scrollbar, scroller],
+                    }),
+                };
+
                 Primitive::Group {
-                    primitives: vec![clip, scrollbar, scroller],
+                    primitives: vec![clip, scroll],
                 }
             } else {
                 content

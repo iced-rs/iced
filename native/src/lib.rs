@@ -33,6 +33,7 @@
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
+pub mod clipboard;
 pub mod event;
 pub mod keyboard;
 pub mod layout;
@@ -41,10 +42,10 @@ pub mod overlay;
 pub mod program;
 pub mod renderer;
 pub mod subscription;
+pub mod touch;
 pub mod widget;
 pub mod window;
 
-mod clipboard;
 mod element;
 mod hasher;
 mod runtime;
@@ -60,8 +61,8 @@ mod debug;
 mod debug;
 
 pub use iced_core::{
-    Align, Background, Color, Font, HorizontalAlignment, Length, Point,
-    Rectangle, Size, Vector, VerticalAlignment,
+    menu, Align, Background, Color, Font, HorizontalAlignment, Length, Menu,
+    Padding, Point, Rectangle, Size, Vector, VerticalAlignment,
 };
 pub use iced_futures::{executor, futures, Command};
 

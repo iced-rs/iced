@@ -1,6 +1,6 @@
 mod atlas;
 
-#[cfg(feature = "image")]
+#[cfg(feature = "image_rs")]
 mod raster;
 
 #[cfg(feature = "svg")]
@@ -16,7 +16,7 @@ use std::mem;
 
 use bytemuck::{Pod, Zeroable};
 
-#[cfg(feature = "image")]
+#[cfg(feature = "image_rs")]
 use iced_native::image;
 
 #[cfg(feature = "svg")]
@@ -24,7 +24,7 @@ use iced_native::svg;
 
 #[derive(Debug)]
 pub struct Pipeline {
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image_rs")]
     raster_cache: RefCell<raster::Cache>,
     #[cfg(feature = "svg")]
     vector_cache: RefCell<vector::Cache>,
@@ -62,8 +62,9 @@ impl Pipeline {
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
                         visibility: wgpu::ShaderStage::VERTEX,
-                        ty: wgpu::BindingType::UniformBuffer {
-                            dynamic: false,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
                             min_binding_size: wgpu::BufferSize::new(
                                 mem::size_of::<Uniforms>() as u64,
                             ),
@@ -73,7 +74,10 @@ impl Pipeline {
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStage::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler { comparison: false },
+                        ty: wgpu::BindingType::Sampler {
+                            comparison: false,
+                            filtering: true,
+                        },
                         count: None,
                     },
                 ],
@@ -94,7 +98,11 @@ impl Pipeline {
                     wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::Buffer(
-                            uniforms_buffer.slice(..),
+                            wgpu::BufferBinding {
+                                buffer: &uniforms_buffer,
+                                offset: 0,
+                                size: None,
+                            },
                         ),
                     },
                     wgpu::BindGroupEntry {
@@ -110,9 +118,11 @@ impl Pipeline {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        dimension: wgpu::TextureViewDimension::D2,
-                        component_type: wgpu::TextureComponentType::Float,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float {
+                            filterable: true,
+                        },
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
                         multisampled: false,
                     },
                     count: None,
@@ -126,95 +136,76 @@ impl Pipeline {
                 bind_group_layouts: &[&constant_layout, &texture_layout],
             });
 
-        let vs_module = device.create_shader_module(wgpu::include_spirv!(
-            "shader/image.vert.spv"
-        ));
-
-        let fs_module = device.create_shader_module(wgpu::include_spirv!(
-            "shader/image.frag.spv"
-        ));
+        let shader =
+            device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("iced_wgpu::image::shader"),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
+                    include_str!("shader/image.wgsl"),
+                )),
+                flags: wgpu::ShaderFlags::all(),
+            });
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some("iced_wgpu::image pipeline"),
                 layout: Some(&layout),
-                vertex_stage: wgpu::ProgrammableStageDescriptor {
-                    module: &vs_module,
-                    entry_point: "main",
-                },
-                fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
-                    module: &fs_module,
-                    entry_point: "main",
-                }),
-                rasterization_state: Some(wgpu::RasterizationStateDescriptor {
-                    front_face: wgpu::FrontFace::Cw,
-                    cull_mode: wgpu::CullMode::None,
-                    ..Default::default()
-                }),
-                primitive_topology: wgpu::PrimitiveTopology::TriangleList,
-                color_states: &[wgpu::ColorStateDescriptor {
-                    format,
-                    color_blend: wgpu::BlendDescriptor {
-                        src_factor: wgpu::BlendFactor::SrcAlpha,
-                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                        operation: wgpu::BlendOperation::Add,
-                    },
-                    alpha_blend: wgpu::BlendDescriptor {
-                        src_factor: wgpu::BlendFactor::One,
-                        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                        operation: wgpu::BlendOperation::Add,
-                    },
-                    write_mask: wgpu::ColorWrite::ALL,
-                }],
-                depth_stencil_state: None,
-                vertex_state: wgpu::VertexStateDescriptor {
-                    index_format: wgpu::IndexFormat::Uint16,
-                    vertex_buffers: &[
-                        wgpu::VertexBufferDescriptor {
-                            stride: mem::size_of::<Vertex>() as u64,
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+                    buffers: &[
+                        wgpu::VertexBufferLayout {
+                            array_stride: mem::size_of::<Vertex>() as u64,
                             step_mode: wgpu::InputStepMode::Vertex,
-                            attributes: &[wgpu::VertexAttributeDescriptor {
+                            attributes: &[wgpu::VertexAttribute {
                                 shader_location: 0,
-                                format: wgpu::VertexFormat::Float2,
+                                format: wgpu::VertexFormat::Float32x2,
                                 offset: 0,
                             }],
                         },
-                        wgpu::VertexBufferDescriptor {
-                            stride: mem::size_of::<Instance>() as u64,
+                        wgpu::VertexBufferLayout {
+                            array_stride: mem::size_of::<Instance>() as u64,
                             step_mode: wgpu::InputStepMode::Instance,
-                            attributes: &[
-                                wgpu::VertexAttributeDescriptor {
-                                    shader_location: 1,
-                                    format: wgpu::VertexFormat::Float2,
-                                    offset: 0,
-                                },
-                                wgpu::VertexAttributeDescriptor {
-                                    shader_location: 2,
-                                    format: wgpu::VertexFormat::Float2,
-                                    offset: 4 * 2,
-                                },
-                                wgpu::VertexAttributeDescriptor {
-                                    shader_location: 3,
-                                    format: wgpu::VertexFormat::Float2,
-                                    offset: 4 * 4,
-                                },
-                                wgpu::VertexAttributeDescriptor {
-                                    shader_location: 4,
-                                    format: wgpu::VertexFormat::Float2,
-                                    offset: 4 * 6,
-                                },
-                                wgpu::VertexAttributeDescriptor {
-                                    shader_location: 5,
-                                    format: wgpu::VertexFormat::Uint,
-                                    offset: 4 * 8,
-                                },
-                            ],
+                            attributes: &wgpu::vertex_attr_array!(
+                                1 => Float32x2,
+                                2 => Float32x2,
+                                3 => Float32x2,
+                                4 => Float32x2,
+                                5 => Sint32,
+                            ),
                         },
                     ],
                 },
-                sample_count: 1,
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[wgpu::ColorTargetState {
+                        format,
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::SrcAlpha,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::One,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                        }),
+                        write_mask: wgpu::ColorWrite::ALL,
+                    }],
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    front_face: wgpu::FrontFace::Cw,
+                    ..Default::default()
+                },
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
             });
 
         let vertices =
@@ -252,7 +243,7 @@ impl Pipeline {
         });
 
         Pipeline {
-            #[cfg(feature = "image")]
+            #[cfg(feature = "image_rs")]
             raster_cache: RefCell::new(raster::Cache::new()),
 
             #[cfg(feature = "svg")]
@@ -271,7 +262,7 @@ impl Pipeline {
         }
     }
 
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image_rs")]
     pub fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
         let mut cache = self.raster_cache.borrow_mut();
         let memory = cache.load(&handle);
@@ -300,7 +291,7 @@ impl Pipeline {
     ) {
         let instances: &mut Vec<Instance> = &mut Vec::new();
 
-        #[cfg(feature = "image")]
+        #[cfg(feature = "image_rs")]
         let mut raster_cache = self.raster_cache.borrow_mut();
 
         #[cfg(feature = "svg")]
@@ -308,7 +299,7 @@ impl Pipeline {
 
         for image in images {
             match &image {
-                #[cfg(feature = "image")]
+                #[cfg(feature = "image_rs")]
                 layer::Image::Raster { handle, bounds } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         handle,
@@ -324,7 +315,7 @@ impl Pipeline {
                         );
                     }
                 }
-                #[cfg(not(feature = "image"))]
+                #[cfg(not(feature = "image_rs"))]
                 layer::Image::Raster { .. } => {}
 
                 #[cfg(feature = "svg")]
@@ -415,23 +406,25 @@ impl Pipeline {
 
             let mut render_pass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    color_attachments: &[
-                        wgpu::RenderPassColorAttachmentDescriptor {
-                            attachment: target,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: true,
-                            },
+                    label: Some("iced_wgpu::image render pass"),
+                    color_attachments: &[wgpu::RenderPassColorAttachment {
+                        view: target,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: true,
                         },
-                    ],
+                    }],
                     depth_stencil_attachment: None,
                 });
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, &self.constants, &[]);
             render_pass.set_bind_group(1, &self.texture, &[]);
-            render_pass.set_index_buffer(self.indices.slice(..));
+            render_pass.set_index_buffer(
+                self.indices.slice(..),
+                wgpu::IndexFormat::Uint16,
+            );
             render_pass.set_vertex_buffer(0, self.vertices.slice(..));
             render_pass.set_vertex_buffer(1, self.instances.slice(..));
 
@@ -453,7 +446,7 @@ impl Pipeline {
     }
 
     pub fn trim_cache(&mut self) {
-        #[cfg(feature = "image")]
+        #[cfg(feature = "image_rs")]
         self.raster_cache.borrow_mut().trim(&mut self.texture_atlas);
 
         #[cfg(feature = "svg")]

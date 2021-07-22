@@ -3,7 +3,7 @@ use std::path::PathBuf;
 /// A window-related event.
 #[derive(PartialEq, Clone, Debug)]
 pub enum Event {
-    /// A window was resized
+    /// A window was resized.
     Resized {
         /// The new width of the window (in units)
         width: u32,
@@ -11,6 +11,18 @@ pub enum Event {
         /// The new height of the window (in units)
         height: u32,
     },
+
+    /// The user has requested for the window to close.
+    ///
+    /// Usually, you will want to terminate the execution whenever this event
+    /// occurs.
+    CloseRequested,
+
+    /// A window was focused.
+    Focused,
+
+    /// A window was unfocused.
+    Unfocused,
 
     /// A file is being hovered over the window.
     ///

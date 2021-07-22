@@ -1,7 +1,8 @@
 use iced::{
     button, executor, keyboard, pane_grid, scrollable, Align, Application,
-    Button, Column, Command, Container, Element, HorizontalAlignment, Length,
-    PaneGrid, Scrollable, Settings, Subscription, Text,
+    Button, Clipboard, Color, Column, Command, Container, Element,
+    HorizontalAlignment, Length, PaneGrid, Row, Scrollable, Settings,
+    Subscription, Text,
 };
 use iced_native::{event, subscription, Event};
 
@@ -10,7 +11,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
-    panes: pane_grid::State<Content>,
+    panes: pane_grid::State<Pane>,
     panes_created: usize,
     focus: Option<pane_grid::Pane>,
 }
@@ -23,6 +24,7 @@ enum Message {
     Clicked(pane_grid::Pane),
     Dragged(pane_grid::DragEvent),
     Resized(pane_grid::ResizeEvent),
+    TogglePin(pane_grid::Pane),
     Close(pane_grid::Pane),
     CloseFocused,
 }
@@ -33,7 +35,7 @@ impl Application for Example {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let (panes, _) = pane_grid::State::new(Content::new(0));
+        let (panes, _) = pane_grid::State::new(Pane::new(0));
 
         (
             Example {
@@ -49,13 +51,17 @@ impl Application for Example {
         String::from("Pane grid - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match message {
             Message::Split(axis, pane) => {
                 let result = self.panes.split(
                     axis,
                     &pane,
-                    Content::new(self.panes_created),
+                    Pane::new(self.panes_created),
                 );
 
                 if let Some((pane, _)) = result {
@@ -69,7 +75,7 @@ impl Application for Example {
                     let result = self.panes.split(
                         axis,
                         &pane,
-                        Content::new(self.panes_created),
+                        Pane::new(self.panes_created),
                     );
 
                     if let Some((pane, _)) = result {
@@ -101,6 +107,12 @@ impl Application for Example {
                 self.panes.swap(&pane, &target);
             }
             Message::Dragged(_) => {}
+            Message::TogglePin(pane) => {
+                if let Some(Pane { is_pinned, .. }) = self.panes.get_mut(&pane)
+                {
+                    *is_pinned = !*is_pinned;
+                }
+            }
             Message::Close(pane) => {
                 if let Some((_, sibling)) = self.panes.close(&pane) {
                     self.focus = Some(sibling);
@@ -108,8 +120,14 @@ impl Application for Example {
             }
             Message::CloseFocused => {
                 if let Some(pane) = self.focus {
-                    if let Some((_, sibling)) = self.panes.close(&pane) {
-                        self.focus = Some(sibling);
+                    if let Some(Pane { is_pinned, .. }) = self.panes.get(&pane)
+                    {
+                        if !is_pinned {
+                            if let Some((_, sibling)) = self.panes.close(&pane)
+                            {
+                                self.focus = Some(sibling);
+                            }
+                        }
                     }
                 }
             }
@@ -128,7 +146,7 @@ impl Application for Example {
                 Event::Keyboard(keyboard::Event::KeyPressed {
                     modifiers,
                     key_code,
-                }) if modifiers.is_command_pressed() => handle_hotkey(key_code),
+                }) if modifiers.command() => handle_hotkey(key_code),
                 _ => None,
             }
         })
@@ -138,17 +156,41 @@ impl Application for Example {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
-        let pane_grid = PaneGrid::new(&mut self.panes, |pane, content| {
-            let is_focused = focus == Some(pane);
+        let pane_grid = PaneGrid::new(&mut self.panes, |id, pane| {
+            let is_focused = focus == Some(id);
 
-            let title_bar =
-                pane_grid::TitleBar::new(format!("Pane {}", content.id))
-                    .padding(10)
-                    .style(style::TitleBar { is_focused });
+            let text = if pane.is_pinned { "Unpin" } else { "Pin" };
+            let pin_button =
+                Button::new(&mut pane.pin_button, Text::new(text).size(14))
+                    .on_press(Message::TogglePin(id))
+                    .style(style::Button::Pin)
+                    .padding(3);
 
-            pane_grid::Content::new(content.view(pane, total_panes))
-                .title_bar(title_bar)
-                .style(style::Pane { is_focused })
+            let title = Row::with_children(vec![
+                pin_button.into(),
+                Text::new("Pane").into(),
+                Text::new(pane.content.id.to_string())
+                    .color(if is_focused {
+                        PANE_ID_COLOR_FOCUSED
+                    } else {
+                        PANE_ID_COLOR_UNFOCUSED
+                    })
+                    .into(),
+            ])
+            .spacing(5);
+
+            let title_bar = pane_grid::TitleBar::new(title)
+                .controls(pane.controls.view(id, total_panes, pane.is_pinned))
+                .padding(10)
+                .style(style::TitleBar { is_focused });
+
+            pane_grid::Content::new(pane.content.view(
+                id,
+                total_panes,
+                pane.is_pinned,
+            ))
+            .title_bar(title_bar)
+            .style(style::Pane { is_focused })
         })
         .width(Length::Fill)
         .height(Length::Fill)
@@ -164,6 +206,17 @@ impl Application for Example {
             .into()
     }
 }
+
+const PANE_ID_COLOR_UNFOCUSED: Color = Color::from_rgb(
+    0xFF as f32 / 255.0,
+    0xC7 as f32 / 255.0,
+    0xC7 as f32 / 255.0,
+);
+const PANE_ID_COLOR_FOCUSED: Color = Color::from_rgb(
+    0xFF as f32 / 255.0,
+    0x47 as f32 / 255.0,
+    0x47 as f32 / 255.0,
+);
 
 fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     use keyboard::KeyCode;
@@ -185,12 +238,34 @@ fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     }
 }
 
+struct Pane {
+    pub is_pinned: bool,
+    pub pin_button: button::State,
+    pub content: Content,
+    pub controls: Controls,
+}
+
 struct Content {
     id: usize,
     scroll: scrollable::State,
     split_horizontally: button::State,
     split_vertically: button::State,
     close: button::State,
+}
+
+struct Controls {
+    close: button::State,
+}
+
+impl Pane {
+    fn new(id: usize) -> Self {
+        Self {
+            is_pinned: false,
+            pin_button: button::State::new(),
+            content: Content::new(id),
+            controls: Controls::new(),
+        }
+    }
 }
 
 impl Content {
@@ -207,6 +282,7 @@ impl Content {
         &mut self,
         pane: pane_grid::Pane,
         total_panes: usize,
+        is_pinned: bool,
     ) -> Element<Message> {
         let Content {
             scroll,
@@ -246,7 +322,7 @@ impl Content {
                 style::Button::Primary,
             ));
 
-        if total_panes > 1 {
+        if total_panes > 1 && !is_pinned {
             controls = controls.push(button(
                 close,
                 "Close",
@@ -270,7 +346,32 @@ impl Content {
     }
 }
 
+impl Controls {
+    fn new() -> Self {
+        Self {
+            close: button::State::new(),
+        }
+    }
+
+    pub fn view(
+        &mut self,
+        pane: pane_grid::Pane,
+        total_panes: usize,
+        is_pinned: bool,
+    ) -> Element<Message> {
+        let mut button =
+            Button::new(&mut self.close, Text::new("Close").size(14))
+                .style(style::Button::Control)
+                .padding(3);
+        if total_panes > 1 && !is_pinned {
+            button = button.on_press(Message::Close(pane));
+        }
+        button.into()
+    }
+}
+
 mod style {
+    use crate::PANE_ID_COLOR_FOCUSED;
     use iced::{button, container, Background, Color, Vector};
 
     const SURFACE: Color = Color::from_rgb(
@@ -332,6 +433,8 @@ mod style {
     pub enum Button {
         Primary,
         Destructive,
+        Control,
+        Pin,
     }
 
     impl button::StyleSheet for Button {
@@ -341,6 +444,8 @@ mod style {
                 Button::Destructive => {
                     (None, Color::from_rgb8(0xFF, 0x47, 0x47))
                 }
+                Button::Control => (Some(PANE_ID_COLOR_FOCUSED), Color::WHITE),
+                Button::Pin => (Some(ACTIVE), Color::WHITE),
             };
 
             button::Style {
@@ -361,6 +466,8 @@ mod style {
                     a: 0.2,
                     ..active.text_color
                 }),
+                Button::Control => Some(PANE_ID_COLOR_FOCUSED),
+                Button::Pin => Some(HOVERED),
             };
 
             button::Style {

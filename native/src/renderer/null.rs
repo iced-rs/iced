@@ -1,7 +1,7 @@
 use crate::{
     button, checkbox, column, container, pane_grid, progress_bar, radio, row,
-    scrollable, slider, text, text_input, Color, Element, Font,
-    HorizontalAlignment, Layout, Point, Rectangle, Renderer, Size,
+    scrollable, slider, text, text_input, toggler, Color, Element, Font,
+    HorizontalAlignment, Layout, Padding, Point, Rectangle, Renderer, Size,
     VerticalAlignment,
 };
 
@@ -145,7 +145,7 @@ impl text_input::Renderer for Null {
 }
 
 impl button::Renderer for Null {
-    const DEFAULT_PADDING: u16 = 0;
+    const DEFAULT_PADDING: Padding = Padding::ZERO;
 
     type Style = ();
 
@@ -246,14 +246,18 @@ impl container::Renderer for Null {
 }
 
 impl pane_grid::Renderer for Null {
+    type Style = ();
+
     fn draw<Message>(
         &mut self,
         _defaults: &Self::Defaults,
         _content: &[(pane_grid::Pane, pane_grid::Content<'_, Message, Self>)],
         _dragging: Option<(pane_grid::Pane, Point)>,
-        _resizing: Option<pane_grid::Axis>,
+        _resizing: Option<(pane_grid::Axis, Rectangle, bool)>,
         _layout: Layout<'_>,
+        _style: &<Self as pane_grid::Renderer>::Style,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 
@@ -261,13 +265,14 @@ impl pane_grid::Renderer for Null {
         &mut self,
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
-        _style: &Self::Style,
+        _style: &<Self as container::Renderer>::Style,
         _title_bar: Option<(
             &pane_grid::TitleBar<'_, Message, Self>,
             Layout<'_>,
         )>,
         _body: (&Element<'_, Message, Self>, Layout<'_>),
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) {
     }
 
@@ -275,13 +280,27 @@ impl pane_grid::Renderer for Null {
         &mut self,
         _defaults: &Self::Defaults,
         _bounds: Rectangle,
-        _style: &Self::Style,
-        _title: &str,
-        _title_size: u16,
-        _title_font: Self::Font,
-        _title_bounds: Rectangle,
+        _style: &<Self as container::Renderer>::Style,
+        _content: (&Element<'_, Message, Self>, Layout<'_>),
         _controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         _cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+    }
+}
+
+impl toggler::Renderer for Null {
+    type Style = ();
+
+    const DEFAULT_SIZE: u16 = 20;
+
+    fn draw(
+        &mut self,
+        _bounds: Rectangle,
+        _is_checked: bool,
+        _is_mouse_over: bool,
+        _label: Option<Self::Output>,
+        _style: &Self::Style,
     ) {
     }
 }

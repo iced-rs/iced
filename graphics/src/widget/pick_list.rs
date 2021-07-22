@@ -2,7 +2,8 @@
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
 use iced_native::{
-    mouse, Font, HorizontalAlignment, Point, Rectangle, VerticalAlignment,
+    mouse, Font, HorizontalAlignment, Padding, Point, Rectangle,
+    VerticalAlignment,
 };
 use iced_style::menu;
 
@@ -19,7 +20,7 @@ where
 {
     type Style = Box<dyn StyleSheet>;
 
-    const DEFAULT_PADDING: u16 = 5;
+    const DEFAULT_PADDING: Padding = Padding::new(5);
 
     fn menu_style(style: &Box<dyn StyleSheet>) -> menu::Style {
         style.menu()
@@ -30,12 +31,14 @@ where
         bounds: Rectangle,
         cursor_position: Point,
         selected: Option<String>,
-        padding: u16,
+        placeholder: Option<&str>,
+        padding: Padding,
         text_size: u16,
         font: Font,
         style: &Box<dyn StyleSheet>,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
+        let is_selected = selected.is_some();
 
         let style = if is_mouse_over {
             style.hovered()
@@ -56,7 +59,7 @@ where
             font: B::ICON_FONT,
             size: bounds.height * style.icon_size,
             bounds: Rectangle {
-                x: bounds.x + bounds.width - f32::from(padding) * 2.0,
+                x: bounds.x + bounds.width - f32::from(padding.horizontal()),
                 y: bounds.center_y(),
                 ..bounds
             },
@@ -67,14 +70,18 @@ where
 
         (
             Primitive::Group {
-                primitives: if let Some(label) = selected {
+                primitives: if let Some(label) =
+                    selected.or_else(|| placeholder.map(str::to_string))
+                {
                     let label = Primitive::Text {
                         content: label,
                         size: f32::from(text_size),
                         font,
-                        color: style.text_color,
+                        color: is_selected
+                            .then(|| style.text_color)
+                            .unwrap_or(style.placeholder_color),
                         bounds: Rectangle {
-                            x: bounds.x + f32::from(padding),
+                            x: bounds.x + f32::from(padding.left),
                             y: bounds.center_y(),
                             ..bounds
                         },

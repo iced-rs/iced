@@ -1,6 +1,6 @@
 use iced::{
-    button, futures, image, Align, Application, Button, Column, Command,
-    Container, Element, Image, Length, Row, Settings, Text,
+    button, futures, image, Align, Application, Button, Clipboard, Column,
+    Command, Container, Element, Length, Row, Settings, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -48,7 +48,11 @@ impl Application for Pokedex {
         format!("{} - Pokédex", subtitle)
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match message {
             Message::PokemonFound(Ok(pokemon)) => {
                 *self = Pokedex::Loaded {
@@ -112,16 +116,20 @@ struct Pokemon {
     name: String,
     description: String,
     image: image::Handle,
+    image_viewer: image::viewer::State,
 }
 
 impl Pokemon {
     const TOTAL: u16 = 807;
 
-    fn view(&self) -> Element<Message> {
+    fn view(&mut self) -> Element<Message> {
         Row::new()
             .spacing(20)
             .align_items(Align::Center)
-            .push(Image::new(self.image.clone()))
+            .push(image::Viewer::new(
+                &mut self.image_viewer,
+                self.image.clone(),
+            ))
             .push(
                 Column::new()
                     .spacing(20)
@@ -200,11 +208,15 @@ impl Pokemon {
                 .map(|c| if c.is_control() { ' ' } else { c })
                 .collect(),
             image,
+            image_viewer: image::viewer::State::new(),
         })
     }
 
     async fn fetch_image(id: u16) -> Result<image::Handle, reqwest::Error> {
-        let url = format!("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png", id);
+        let url = format!(
+            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png",
+            id
+        );
 
         #[cfg(not(target_arch = "wasm32"))]
         {

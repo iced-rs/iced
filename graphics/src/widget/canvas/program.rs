@@ -34,7 +34,7 @@ pub trait Program<Message> {
     /// [`Geometry`] can be easily generated with a [`Frame`] or stored in a
     /// [`Cache`].
     ///
-    /// [`Frame`]: crate::widget::canvas::Cache
+    /// [`Frame`]: crate::widget::canvas::Frame
     /// [`Cache`]: crate::widget::canvas::Cache
     fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry>;
 

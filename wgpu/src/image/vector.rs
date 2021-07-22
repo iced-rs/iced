@@ -1,9 +1,10 @@
-use crate::image::atlas::{self, Atlas};
 use iced_native::svg;
 use std::collections::{HashMap, HashSet};
 
+use crate::image::atlas::{self, Atlas};
+
 pub enum Svg {
-    Loaded(resvg::usvg::Tree),
+    Loaded(usvg::Tree),
     NotFound,
 }
 
@@ -43,17 +44,15 @@ impl Cache {
             return self.svgs.get(&handle.id()).unwrap();
         }
 
-        let opt = resvg::Options::default();
-
         let svg = match handle.data() {
             svg::Data::Path(path) => {
-                match resvg::usvg::Tree::from_file(path, &opt.usvg) {
+                match usvg::Tree::from_file(path, &Default::default()) {
                     Ok(tree) => Svg::Loaded(tree),
                     Err(_) => Svg::NotFound,
                 }
             }
             svg::Data::Bytes(bytes) => {
-                match resvg::usvg::Tree::from_data(&bytes, &opt.usvg) {
+                match usvg::Tree::from_data(&bytes, &Default::default()) {
                     Ok(tree) => Svg::Loaded(tree),
                     Err(_) => Svg::NotFound,
                 }
@@ -76,8 +75,8 @@ impl Cache {
         let id = handle.id();
 
         let (width, height) = (
-            (scale * width).round() as u32,
-            (scale * height).round() as u32,
+            (scale * width).ceil() as u32,
+            (scale * height).ceil() as u32,
         );
 
         // TODO: Optimize!
@@ -101,26 +100,29 @@ impl Cache {
                 // We currently rerasterize the SVG when its size changes. This is slow
                 // as heck. A GPU rasterizer like `pathfinder` may perform better.
                 // It would be cool to be able to smooth resize the `svg` example.
-                let screen_size =
-                    resvg::ScreenSize::new(width, height).unwrap();
-
-                let mut canvas =
-                    resvg::raqote::DrawTarget::new(width as i32, height as i32);
-
-                resvg::backend_raqote::render_to_canvas(
+                let img = resvg::render(
                     tree,
-                    &resvg::Options::default(),
-                    screen_size,
-                    &mut canvas,
-                );
+                    if width > height {
+                        usvg::FitTo::Width(width)
+                    } else {
+                        usvg::FitTo::Height(height)
+                    },
+                    None,
+                )?;
+                let width = img.width();
+                let height = img.height();
+
+                let mut rgba = img.take();
+                rgba.chunks_exact_mut(4).for_each(|rgba| rgba.swap(0, 2));
 
                 let allocation = texture_atlas.upload(
                     width,
                     height,
-                    bytemuck::cast_slice(canvas.get_data()),
+                    bytemuck::cast_slice(rgba.as_slice()),
                     device,
                     encoder,
                 )?;
+                log::debug!("allocating {} {}x{}", id, width, height);
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert((id, width, height));

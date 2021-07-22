@@ -14,6 +14,7 @@ use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
+use iced_native::Menu;
 use iced_native::{Cache, UserInterface};
 
 use std::mem::ManuallyDrop;
@@ -29,7 +30,7 @@ use std::mem::ManuallyDrop;
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-pub trait Application: Program {
+pub trait Application: Program<Clipboard = Clipboard> {
     /// The data needed to initialize your [`Application`].
     type Flags;
 
@@ -91,6 +92,20 @@ pub trait Application: Program {
     fn scale_factor(&self) -> f64 {
         1.0
     }
+
+    /// Returns whether the [`Application`] should be terminated.
+    ///
+    /// By default, it returns `false`.
+    fn should_exit(&self) -> bool {
+        false
+    }
+
+    /// Returns the current system [`Menu`] of the [`Application`].
+    ///
+    /// By default, it returns an empty [`Menu`].
+    fn menu(&self) -> Menu<Self::Message> {
+        Menu::new()
+    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -110,8 +125,6 @@ where
 
     let mut debug = Debug::new();
     debug.startup_started();
-
-    let (compositor, renderer) = C::new(compositor_settings)?;
 
     let event_loop = EventLoop::with_user_event();
 
@@ -140,8 +153,11 @@ where
             application.mode(),
             event_loop.primary_monitor(),
         )
+        .with_menu(Some(conversion::menu(&application.menu())))
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
+
+    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
     let (mut sender, receiver) = mpsc::unbounded();
 
@@ -149,10 +165,11 @@ where
         application,
         compositor,
         renderer,
-        window,
         runtime,
         debug,
         receiver,
+        window,
+        settings.exit_on_close_request,
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
@@ -164,7 +181,22 @@ where
             return;
         }
 
-        if let Some(event) = event.to_static() {
+        let event = match event {
+            winit::event::Event::WindowEvent {
+                event:
+                    winit::event::WindowEvent::ScaleFactorChanged {
+                        new_inner_size,
+                        ..
+                    },
+                window_id,
+            } => Some(winit::event::Event::WindowEvent {
+                event: winit::event::WindowEvent::Resized(*new_inner_size),
+                window_id,
+            }),
+            _ => event.to_static(),
+        };
+
+        if let Some(event) = event {
             sender.start_send(event).expect("Send event");
 
             let poll = instance.as_mut().poll(&mut context);
@@ -181,10 +213,11 @@ async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
     mut renderer: A::Renderer,
-    window: winit::window::Window,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
+    window: winit::window::Window,
+    exit_on_close_request: bool,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -194,7 +227,7 @@ async fn run_instance<A, E, C>(
     use winit::event;
 
     let surface = compositor.create_surface(&window);
-    let clipboard = Clipboard::new(&window);
+    let mut clipboard = Clipboard::connect(&window);
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -237,8 +270,8 @@ async fn run_instance<A, E, C>(
                 let statuses = user_interface.update(
                     &events,
                     state.cursor_position(),
-                    clipboard.as_ref().map(|c| c as _),
                     &mut renderer,
+                    &mut clipboard,
                     &mut messages,
                 );
 
@@ -257,11 +290,14 @@ async fn run_instance<A, E, C>(
                         &mut application,
                         &mut runtime,
                         &mut debug,
+                        &mut clipboard,
                         &mut messages,
                     );
 
                     // Update window
                     state.synchronize(&application, &window);
+
+                    let should_exit = application.should_exit();
 
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &mut application,
@@ -270,6 +306,10 @@ async fn run_instance<A, E, C>(
                         state.logical_size(),
                         &mut debug,
                     ));
+
+                    if should_exit {
+                        break;
+                    }
                 }
 
                 debug.draw_started();
@@ -279,15 +319,30 @@ async fn run_instance<A, E, C>(
 
                 window.request_redraw();
             }
+            event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
+                event::MacOS::ReceivedUrl(url),
+            )) => {
+                use iced_native::event;
+                events.push(iced_native::Event::PlatformSpecific(
+                    event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
+                        url,
+                    )),
+                ));
+            }
             event::Event::UserEvent(message) => {
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
+                let physical_size = state.physical_size();
+
+                if physical_size.width == 0 || physical_size.height == 0 {
+                    continue;
+                }
+
                 debug.render_started();
                 let current_viewport_version = state.viewport_version();
 
                 if viewport_version != current_viewport_version {
-                    let physical_size = state.physical_size();
                     let logical_size = state.logical_size();
 
                     debug.layout_started();
@@ -339,10 +394,22 @@ async fn run_instance<A, E, C>(
                 }
             }
             event::Event::WindowEvent {
+                event: event::WindowEvent::MenuEntryActivated(entry_id),
+                ..
+            } => {
+                if let Some(message) =
+                    conversion::menu_message(state.menu(), entry_id)
+                {
+                    messages.push(message);
+                }
+            }
+            event::Event::WindowEvent {
                 event: window_event,
                 ..
             } => {
-                if requests_exit(&window_event, state.modifiers()) {
+                if requests_exit(&window_event, state.modifiers())
+                    && exit_on_close_request
+                {
                     break;
                 }
 
@@ -414,13 +481,14 @@ pub fn update<A: Application, E: Executor>(
     application: &mut A,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     debug: &mut Debug,
+    clipboard: &mut A::Clipboard,
     messages: &mut Vec<A::Message>,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
 
         debug.update_started();
-        let command = runtime.enter(|| application.update(message));
+        let command = runtime.enter(|| application.update(message, clipboard));
         debug.update_finished();
 
         runtime.spawn(command);

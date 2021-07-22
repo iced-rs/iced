@@ -1,5 +1,7 @@
 //! Navigate an endless amount of content with a scrollbar.
-use crate::{bumpalo, css, Align, Bus, Column, Css, Element, Length, Widget};
+use crate::{
+    bumpalo, css, Align, Bus, Column, Css, Element, Length, Padding, Widget,
+};
 
 pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
 
@@ -11,6 +13,7 @@ pub struct Scrollable<'a, Message> {
     height: Length,
     max_height: u32,
     content: Column<'a, Message>,
+    #[allow(dead_code)]
     style: Box<dyn StyleSheet>,
 }
 
@@ -38,9 +41,9 @@ impl<'a, Message> Scrollable<'a, Message> {
         self
     }
 
-    /// Sets the padding of the [`Scrollable`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.content = self.content.padding(units);
+    /// Sets the [`Padding`] of the [`Scrollable`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.content = self.content.padding(padding);
         self
     }
 

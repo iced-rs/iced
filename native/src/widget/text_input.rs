@@ -16,8 +16,10 @@ use crate::keyboard;
 use crate::layout;
 use crate::mouse::{self, click};
 use crate::text;
+use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
+    Size, Widget,
 };
 
 use std::u32;
@@ -55,7 +57,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     font: Renderer::Font,
     width: Length,
     max_width: u32,
-    padding: u16,
+    padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
@@ -91,7 +93,7 @@ where
             font: Default::default(),
             width: Length::Fill,
             max_width: u32::MAX,
-            padding: 0,
+            padding: Padding::ZERO,
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
@@ -125,9 +127,9 @@ where
         self
     }
 
-    /// Sets the padding of the [`TextInput`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    /// Sets the [`Padding`] of the [`TextInput`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -222,19 +224,21 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let padding = self.padding as f32;
         let text_size = self.size.unwrap_or(renderer.default_size());
 
         let limits = limits
-            .pad(padding)
+            .pad(self.padding)
             .width(self.width)
             .max_width(self.max_width)
             .height(Length::Units(text_size));
 
         let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-        text.move_to(Point::new(padding, padding));
+        text.move_to(Point::new(
+            self.padding.left.into(),
+            self.padding.top.into(),
+        ));
 
-        layout::Node::with_children(text.size().pad(padding), vec![text])
+        layout::Node::with_children(text.size().pad(self.padding), vec![text])
     }
 
     fn on_event(
@@ -242,12 +246,13 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let is_clicked = layout.bounds().contains(cursor_position);
 
                 self.state.is_focused = is_clicked;
@@ -318,13 +323,16 @@ where
                     return event::Status::Captured;
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. })
+            | Event::Touch(touch::Event::FingerLost { .. }) => {
                 self.state.is_dragging = false;
             }
-            Event::Mouse(mouse::Event::CursorMoved { x, .. }) => {
+            Event::Mouse(mouse::Event::CursorMoved { position })
+            | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
                 if self.state.is_dragging {
                     let text_layout = layout.children().next().unwrap();
-                    let target = x - text_layout.bounds().x;
+                    let target = position.x - text_layout.bounds().x;
 
                     if target > 0.0 {
                         let value = if self.is_secure {
@@ -354,7 +362,7 @@ where
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
                     && self.state.is_pasting.is_none()
-                    && !self.state.keyboard_modifiers.is_command_pressed()
+                    && !self.state.keyboard_modifiers.command()
                     && !c.is_control() =>
             {
                 let mut editor =
@@ -442,7 +450,7 @@ where
                         if platform::is_jump_modifier_pressed(modifiers)
                             && !self.is_secure
                         {
-                            if modifiers.shift {
+                            if modifiers.shift() {
                                 self.state
                                     .cursor
                                     .select_left_by_words(&self.value);
@@ -451,7 +459,7 @@ where
                                     .cursor
                                     .move_left_by_words(&self.value);
                             }
-                        } else if modifiers.shift {
+                        } else if modifiers.shift() {
                             self.state.cursor.select_left(&self.value)
                         } else {
                             self.state.cursor.move_left(&self.value);
@@ -461,7 +469,7 @@ where
                         if platform::is_jump_modifier_pressed(modifiers)
                             && !self.is_secure
                         {
-                            if modifiers.shift {
+                            if modifiers.shift() {
                                 self.state
                                     .cursor
                                     .select_right_by_words(&self.value);
@@ -470,14 +478,14 @@ where
                                     .cursor
                                     .move_right_by_words(&self.value);
                             }
-                        } else if modifiers.shift {
+                        } else if modifiers.shift() {
                             self.state.cursor.select_right(&self.value)
                         } else {
                             self.state.cursor.move_right(&self.value);
                         }
                     }
                     keyboard::KeyCode::Home => {
-                        if modifiers.shift {
+                        if modifiers.shift() {
                             self.state.cursor.select_range(
                                 self.state.cursor.start(&self.value),
                                 0,
@@ -487,7 +495,7 @@ where
                         }
                     }
                     keyboard::KeyCode::End => {
-                        if modifiers.shift {
+                        if modifiers.shift() {
                             self.state.cursor.select_range(
                                 self.state.cursor.start(&self.value),
                                 self.value.len(),
@@ -496,45 +504,75 @@ where
                             self.state.cursor.move_to(self.value.len());
                         }
                     }
-                    keyboard::KeyCode::V => {
-                        if self.state.keyboard_modifiers.is_command_pressed() {
-                            if let Some(clipboard) = clipboard {
-                                let content = match self.state.is_pasting.take()
-                                {
-                                    Some(content) => content,
-                                    None => {
-                                        let content: String = clipboard
-                                            .content()
-                                            .unwrap_or(String::new())
-                                            .chars()
-                                            .filter(|c| !c.is_control())
-                                            .collect();
-
-                                        Value::new(&content)
-                                    }
-                                };
-
-                                let mut editor = Editor::new(
-                                    &mut self.value,
-                                    &mut self.state.cursor,
+                    keyboard::KeyCode::C
+                        if self.state.keyboard_modifiers.command() =>
+                    {
+                        match self.state.cursor.selection(&self.value) {
+                            Some((start, end)) => {
+                                clipboard.write(
+                                    self.value.select(start, end).to_string(),
                                 );
-
-                                editor.paste(content.clone());
-
-                                let message =
-                                    (self.on_change)(editor.contents());
-                                messages.push(message);
-
-                                self.state.is_pasting = Some(content);
                             }
+                            None => {}
+                        }
+                    }
+                    keyboard::KeyCode::X
+                        if self.state.keyboard_modifiers.command() =>
+                    {
+                        match self.state.cursor.selection(&self.value) {
+                            Some((start, end)) => {
+                                clipboard.write(
+                                    self.value.select(start, end).to_string(),
+                                );
+                            }
+                            None => {}
+                        }
+
+                        let mut editor = Editor::new(
+                            &mut self.value,
+                            &mut self.state.cursor,
+                        );
+
+                        editor.delete();
+
+                        let message = (self.on_change)(editor.contents());
+                        messages.push(message);
+                    }
+                    keyboard::KeyCode::V => {
+                        if self.state.keyboard_modifiers.command() {
+                            let content = match self.state.is_pasting.take() {
+                                Some(content) => content,
+                                None => {
+                                    let content: String = clipboard
+                                        .read()
+                                        .unwrap_or(String::new())
+                                        .chars()
+                                        .filter(|c| !c.is_control())
+                                        .collect();
+
+                                    Value::new(&content)
+                                }
+                            };
+
+                            let mut editor = Editor::new(
+                                &mut self.value,
+                                &mut self.state.cursor,
+                            );
+
+                            editor.paste(content.clone());
+
+                            let message = (self.on_change)(editor.contents());
+                            messages.push(message);
+
+                            self.state.is_pasting = Some(content);
                         } else {
                             self.state.is_pasting = None;
                         }
                     }
-                    keyboard::KeyCode::A => {
-                        if self.state.keyboard_modifiers.is_command_pressed() {
-                            self.state.cursor.select_all(&self.value);
-                        }
+                    keyboard::KeyCode::A
+                        if self.state.keyboard_modifiers.command() =>
+                    {
+                        self.state.cursor.select_all(&self.value);
                     }
                     keyboard::KeyCode::Escape => {
                         self.state.is_focused = false;
@@ -748,6 +786,11 @@ impl State {
     pub fn move_cursor_to(&mut self, position: usize) {
         self.cursor.move_to(position);
     }
+
+    /// Selects all the content of the [`TextInput`].
+    pub fn select_all(&mut self) {
+        self.cursor.select_range(0, usize::MAX);
+    }
 }
 
 // TODO: Reduce allocations
@@ -811,9 +854,9 @@ mod platform {
 
     pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
         if cfg!(target_os = "macos") {
-            modifiers.alt
+            modifiers.alt()
         } else {
-            modifiers.control
+            modifiers.control()
         }
     }
 }

@@ -1,7 +1,7 @@
 use iced::{
     button, scrollable, slider, text_input, Button, Checkbox, Color, Column,
     Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
-    Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput,
+    Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput, Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -135,6 +135,9 @@ impl Steps {
                     color: Color::BLACK,
                 },
                 Step::Radio { selection: None },
+                Step::Toggler {
+                    can_continue: false,
+                },
                 Step::Image {
                     width: 300,
                     slider: slider::State::new(),
@@ -206,6 +209,9 @@ enum Step {
     Radio {
         selection: Option<Language>,
     },
+    Toggler {
+        can_continue: bool,
+    },
     Image {
         width: u16,
         slider: slider::State,
@@ -232,6 +238,7 @@ pub enum StepMessage {
     InputChanged(String),
     ToggleSecureInput(bool),
     DebugToggled(bool),
+    TogglerChanged(bool),
 }
 
 impl<'a> Step {
@@ -287,6 +294,11 @@ impl<'a> Step {
                     *is_secure = toggle;
                 }
             }
+            StepMessage::TogglerChanged(value) => {
+                if let Step::Toggler { can_continue, .. } = self {
+                    *can_continue = value;
+                }
+            }
         };
     }
 
@@ -294,6 +306,7 @@ impl<'a> Step {
         match self {
             Step::Welcome => "Welcome",
             Step::Radio { .. } => "Radio button",
+            Step::Toggler { .. } => "Toggler",
             Step::Slider { .. } => "Slider",
             Step::Text { .. } => "Text",
             Step::Image { .. } => "Image",
@@ -309,6 +322,7 @@ impl<'a> Step {
         match self {
             Step::Welcome => true,
             Step::Radio { selection } => *selection == Some(Language::Rust),
+            Step::Toggler { can_continue } => *can_continue,
             Step::Slider { .. } => true,
             Step::Text { .. } => true,
             Step::Image { .. } => true,
@@ -324,6 +338,7 @@ impl<'a> Step {
         match self {
             Step::Welcome => Self::welcome(),
             Step::Radio { selection } => Self::radio(*selection),
+            Step::Toggler { can_continue } => Self::toggler(*can_continue),
             Step::Slider { state, value } => Self::slider(state, *value),
             Step::Text {
                 size_slider,
@@ -543,6 +558,21 @@ impl<'a> Step {
                  basically created by folding a column over the different \
                  choices, creating a radio button for each one of them!",
             ))
+    }
+
+    fn toggler(can_continue: bool) -> Column<'a, StepMessage> {
+        Self::container("Toggler")
+            .push(Text::new(
+                "A toggler is mostly used to enable or disable something.",
+            ))
+            .push(
+                Container::new(Toggler::new(
+                    can_continue,
+                    String::from("Toggle me to continue..."),
+                    StepMessage::TogglerChanged,
+                ))
+                .padding([0, 40]),
+            )
     }
 
     fn image(

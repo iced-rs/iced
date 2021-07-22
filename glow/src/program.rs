@@ -17,7 +17,7 @@ pub unsafe fn create(
         gl.compile_shader(shader);
 
         if !gl.get_shader_compile_status(shader) {
-            panic!(gl.get_shader_info_log(shader));
+            panic!("{}", gl.get_shader_info_log(shader));
         }
 
         gl.attach_shader(program, shader);
@@ -27,7 +27,7 @@ pub unsafe fn create(
 
     gl.link_program(program);
     if !gl.get_program_link_status(program) {
-        panic!(gl.get_program_info_log(program));
+        panic!("{}", gl.get_program_info_log(program));
     }
 
     for shader in shaders {

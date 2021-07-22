@@ -1,6 +1,6 @@
 [package]
 name = "iced"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A cross-platform GUI library inspired by Elm"
@@ -41,6 +41,8 @@ tokio = ["iced_futures/tokio"]
 tokio_old = ["iced_futures/tokio_old"]
 # Enables `async-std` as the `executor::Default` on native platforms
 async-std = ["iced_futures/async-std"]
+# Enables `smol` as the `executor::Default` on native platforms
+smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
 
@@ -81,22 +83,25 @@ members = [
     "examples/svg",
     "examples/todos",
     "examples/tour",
+    "examples/tooltip",
+    "examples/url_handler",
+    "examples/menu",
 ]
 
 [dependencies]
-iced_core = { version = "0.3", path = "core" }
-iced_futures = { version = "0.2", path = "futures" }
+iced_core = { version = "0.4", path = "core" }
+iced_futures = { version = "0.3", path = "futures" }
 thiserror = "1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iced_winit = { version = "0.2", path = "winit" }
-iced_glutin = { version = "0.1", path = "glutin", optional = true }
-iced_wgpu = { version = "0.3", path = "wgpu", optional = true }
-iced_glow = { version = "0.1", path = "glow", optional = true}
+iced_winit = { version = "0.3", path = "winit" }
+iced_glutin = { version = "0.2", path = "glutin", optional = true }
+iced_wgpu = { version = "0.4", path = "wgpu", optional = true }
+iced_glow = { version = "0.2", path = "glow", optional = true}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-iced_web = { version = "0.3", path = "web" }
+iced_web = { version = "0.4", path = "web" }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
-features = ["image", "svg", "canvas"]
+features = ["image", "svg", "canvas", "qr_code"]

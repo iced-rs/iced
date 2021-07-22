@@ -2,7 +2,7 @@
 use iced_core::{Background, Color, Vector};
 
 /// The appearance of a button.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Style {
     pub shadow_offset: Vector,
     pub background: Option<Background>,

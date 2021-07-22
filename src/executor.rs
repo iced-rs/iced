@@ -10,19 +10,30 @@ mod platform {
     #[cfg(feature = "tokio_old")]
     type Executor = executor::TokioOld;
 
-    #[cfg(all(not(feature = "tokio_old"), feature = "tokio"))]
+    #[cfg(all(feature = "tokio", not(feature = "tokio_old")))]
     type Executor = executor::Tokio;
 
     #[cfg(all(
+        feature = "async-std",
         not(any(feature = "tokio_old", feature = "tokio")),
-        feature = "async-std"
     ))]
     type Executor = executor::AsyncStd;
+
+    #[cfg(all(
+        feature = "smol",
+        not(any(
+            feature = "tokio_old",
+            feature = "tokio",
+            feature = "async-std"
+        )),
+    ))]
+    type Executor = executor::Smol;
 
     #[cfg(not(any(
         feature = "tokio_old",
         feature = "tokio",
-        feature = "async-std"
+        feature = "async-std",
+        feature = "smol",
     )))]
     type Executor = executor::ThreadPool;
 

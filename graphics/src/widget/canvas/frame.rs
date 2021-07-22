@@ -54,7 +54,7 @@ impl Frame {
         self.size.width
     }
 
-    /// Returns the width of the [`Frame`].
+    /// Returns the height of the [`Frame`].
     #[inline]
     pub fn height(&self) -> f32 {
         self.size.height

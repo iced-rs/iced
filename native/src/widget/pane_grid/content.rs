@@ -3,7 +3,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::pane_grid::{self, TitleBar};
-use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
+use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The content of a [`Pane`].
 ///
@@ -12,7 +12,7 @@ use crate::{Clipboard, Element, Hasher, Layout, Point, Size};
 pub struct Content<'a, Message, Renderer: pane_grid::Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
     body: Element<'a, Message, Renderer>,
-    style: Renderer::Style,
+    style: <Renderer as container::Renderer>::Style,
 }
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
@@ -24,7 +24,7 @@ where
         Self {
             title_bar: None,
             body: body.into(),
-            style: Renderer::Style::default(),
+            style: Default::default(),
         }
     }
 
@@ -38,7 +38,10 @@ where
     }
 
     /// Sets the style of the [`Content`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer as container::Renderer>::Style>,
+    ) -> Self {
         self.style = style.into();
         self
     }
@@ -57,6 +60,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Renderer::Output {
         if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();
@@ -70,6 +74,7 @@ where
                 Some((title_bar, title_bar_layout)),
                 (&self.body, body_layout),
                 cursor_position,
+                viewport,
             )
         } else {
             renderer.draw_pane(
@@ -79,6 +84,7 @@ where
                 None,
                 (&self.body, layout),
                 cursor_position,
+                viewport,
             )
         }
     }
@@ -140,9 +146,9 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
         renderer: &Renderer,
-        clipboard: Option<&dyn Clipboard>,
+        clipboard: &mut dyn Clipboard,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
 
@@ -153,9 +159,9 @@ where
                 event.clone(),
                 children.next().unwrap(),
                 cursor_position,
-                messages,
                 renderer,
                 clipboard,
+                messages,
             );
 
             children.next().unwrap()
@@ -167,9 +173,9 @@ where
             event,
             body_layout,
             cursor_position,
-            messages,
             renderer,
             clipboard,
+            messages,
         );
 
         event_status.merge(body_status)
@@ -187,18 +193,17 @@ where
         &mut self,
         layout: Layout<'_>,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        let body_layout = if self.title_bar.is_some() {
+        if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
+            let title_bar_layout = children.next()?;
 
-            // Overlays only allowed in the pane body, for now at least.
-            let _title_bar_layout = children.next();
-
-            children.next()?
+            match title_bar.overlay(title_bar_layout) {
+                Some(overlay) => Some(overlay),
+                None => self.body.overlay(children.next()?),
+            }
         } else {
-            layout
-        };
-
-        self.body.overlay(body_layout)
+            self.body.overlay(layout)
+        }
     }
 }
 

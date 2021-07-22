@@ -21,29 +21,38 @@ impl Compositor {
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
-    pub async fn request(settings: Settings) -> Option<Self> {
-        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+    pub async fn request<W: HasRawWindowHandle>(
+        settings: Settings,
+        compatible_window: Option<&W>,
+    ) -> Option<Self> {
+        let instance = wgpu::Instance::new(settings.internal_backend);
+
+        #[allow(unsafe_code)]
+        let compatible_surface = compatible_window
+            .map(|window| unsafe { instance.create_surface(window) });
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: if settings.antialiasing.is_none() {
-                    wgpu::PowerPreference::Default
+                    wgpu::PowerPreference::LowPower
                 } else {
                     wgpu::PowerPreference::HighPerformance
                 },
-                compatible_surface: None,
+                compatible_surface: compatible_surface.as_ref(),
             })
             .await?;
 
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
+                    label: Some(
+                        "iced_wgpu::window::compositor device descriptor",
+                    ),
                     features: wgpu::Features::empty(),
                     limits: wgpu::Limits {
                         max_bind_groups: 2,
                         ..wgpu::Limits::default()
                     },
-                    shader_validation: false,
                 },
                 None,
             )
@@ -75,9 +84,15 @@ impl iced_graphics::window::Compositor for Compositor {
     type Surface = wgpu::Surface;
     type SwapChain = wgpu::SwapChain;
 
-    fn new(settings: Self::Settings) -> Result<(Self, Renderer), Error> {
-        let compositor = futures::executor::block_on(Self::request(settings))
-            .ok_or(Error::AdapterNotFound)?;
+    fn new<W: HasRawWindowHandle>(
+        settings: Self::Settings,
+        compatible_window: Option<&W>,
+    ) -> Result<(Self, Renderer), Error> {
+        let compositor = futures::executor::block_on(Self::request(
+            settings,
+            compatible_window,
+        ))
+        .ok_or(Error::AdapterNotFound)?;
 
         let backend = compositor.create_backend();
 
@@ -103,7 +118,7 @@ impl iced_graphics::window::Compositor for Compositor {
         self.device.create_swap_chain(
             surface,
             &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
                 format: self.settings.format,
                 present_mode: self.settings.present_mode,
                 width,
@@ -129,31 +144,28 @@ impl iced_graphics::window::Compositor for Compositor {
                     },
                 );
 
-                let _ =
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        color_attachments: &[
-                            wgpu::RenderPassColorAttachmentDescriptor {
-                                attachment: &frame.output.view,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Clear({
-                                        let [r, g, b, a] =
-                                            background_color.into_linear();
-
-                                        wgpu::Color {
-                                            r: f64::from(r),
-                                            g: f64::from(g),
-                                            b: f64::from(b),
-                                            a: f64::from(a),
-                                        }
-                                    }),
-                                    store: true,
-                                },
-                            },
-                        ],
-                        depth_stencil_attachment: None,
-                    });
-
+                let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("iced_wgpu::window::Compositor render pass"),
+                    color_attachments: &[wgpu::RenderPassColorAttachment {
+                        view: &frame.output.view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear({
+                                let [r, g, b, a] = background_color.into_linear();
+        
+                                wgpu::Color {
+                                    r: f64::from(r),
+                                    g: f64::from(g),
+                                    b: f64::from(b),
+                                    a: f64::from(a),
+                                }
+                            }),
+                            store: true,
+                        },
+                    }],
+                    depth_stencil_attachment: None,
+                });
+        
                 let mouse_interaction = renderer.backend_mut().draw(
                     &mut self.device,
                     &mut self.staging_belt,
@@ -163,27 +175,29 @@ impl iced_graphics::window::Compositor for Compositor {
                     output,
                     overlay,
                 );
-
+        
                 // Submit work
                 self.staging_belt.finish();
                 self.queue.submit(Some(encoder.finish()));
-
+        
                 // Recall staging buffers
                 self.local_pool
                     .spawner()
                     .spawn(self.staging_belt.recall())
                     .expect("Recall staging belt");
-
+        
                 self.local_pool.run_until_stalled();
-
+        
                 Ok(mouse_interaction)
             }
             Err(error) => match error {
-                wgpu::SwapChainError::Outdated => {
+                wgpu::SwapChainError::OutOfMemory => {
+                    panic!("Swapchain error: {:?}", error);
+                }
+                _ => {
                     // Try again next frame.
                     Err(())
                 }
-                _ => panic!("Swapchain error: {:?}", error),
             },
         }
     }

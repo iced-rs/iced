@@ -20,6 +20,8 @@ pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod text_input;
+pub mod toggler;
+pub mod tooltip;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -43,6 +45,10 @@ pub use scrollable::Scrollable;
 pub use slider::Slider;
 #[doc(no_inline)]
 pub use text_input::TextInput;
+#[doc(no_inline)]
+pub use toggler::Toggler;
+#[doc(no_inline)]
+pub use tooltip::Tooltip;
 
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]

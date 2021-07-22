@@ -6,22 +6,20 @@
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
 //! drag and drop, and hotkey support.
 //!
-//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
-use crate::backend::{self, Backend};
+//! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.3/examples/pane_grid
 use crate::defaults;
-use crate::{Primitive, Renderer};
+use crate::{Backend, Color, Primitive, Renderer};
+use iced_native::container;
 use iced_native::mouse;
 use iced_native::pane_grid;
-use iced_native::text;
-use iced_native::{
-    Element, HorizontalAlignment, Layout, Point, Rectangle, Vector,
-    VerticalAlignment,
-};
+use iced_native::{Element, Layout, Point, Rectangle, Vector};
 
 pub use iced_native::pane_grid::{
-    Axis, Configuration, Content, Direction, DragEvent, Pane, ResizeEvent,
-    Split, State, TitleBar,
+    Axis, Configuration, Content, Direction, DragEvent, Node, Pane,
+    ResizeEvent, Split, State, TitleBar,
 };
+
+pub use iced_style::pane_grid::{Line, StyleSheet};
 
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
@@ -34,16 +32,20 @@ pub type PaneGrid<'a, Message, Backend> =
 
 impl<B> pane_grid::Renderer for Renderer<B>
 where
-    B: Backend + backend::Text,
+    B: Backend,
 {
+    type Style = Box<dyn StyleSheet>;
+
     fn draw<Message>(
         &mut self,
         defaults: &Self::Defaults,
         content: &[(Pane, Content<'_, Message, Self>)],
         dragging: Option<(Pane, Point)>,
-        resizing: Option<Axis>,
+        resizing: Option<(Axis, Rectangle, bool)>,
         layout: Layout<'_>,
+        style_sheet: &<Self as pane_grid::Renderer>::Style,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output {
         let pane_cursor_position = if dragging.is_some() {
             // TODO: Remove once cursor availability is encoded in the type
@@ -61,8 +63,13 @@ where
             .zip(layout.children())
             .enumerate()
             .map(|(i, ((id, pane), layout))| {
-                let (primitive, new_mouse_interaction) =
-                    pane.draw(self, defaults, layout, pane_cursor_position);
+                let (primitive, new_mouse_interaction) = pane.draw(
+                    self,
+                    defaults,
+                    layout,
+                    pane_cursor_position,
+                    viewport,
+                );
 
                 if new_mouse_interaction > mouse_interaction {
                     mouse_interaction = new_mouse_interaction;
@@ -78,7 +85,8 @@ where
             })
             .collect();
 
-        let primitives = if let Some((index, layout, origin)) = dragged_pane {
+        let mut primitives = if let Some((index, layout, origin)) = dragged_pane
+        {
             let pane = panes.remove(index);
             let bounds = layout.bounds();
 
@@ -108,15 +116,62 @@ where
             panes
         };
 
+        let (primitives, mouse_interaction) =
+            if let Some((axis, split_region, is_picked)) = resizing {
+                let highlight = if is_picked {
+                    style_sheet.picked_split()
+                } else {
+                    style_sheet.hovered_split()
+                };
+
+                if let Some(highlight) = highlight {
+                    primitives.push(Primitive::Quad {
+                        bounds: match axis {
+                            Axis::Horizontal => Rectangle {
+                                x: split_region.x,
+                                y: (split_region.y
+                                    + (split_region.height - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                width: split_region.width,
+                                height: highlight.width,
+                            },
+                            Axis::Vertical => Rectangle {
+                                x: (split_region.x
+                                    + (split_region.width - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                y: split_region.y,
+                                width: highlight.width,
+                                height: split_region.height,
+                            },
+                        },
+                        background: highlight.color.into(),
+                        border_radius: 0.0,
+                        border_width: 0.0,
+                        border_color: Color::TRANSPARENT,
+                    });
+                }
+
+                (
+                    primitives,
+                    match axis {
+                        Axis::Horizontal => {
+                            mouse::Interaction::ResizingVertically
+                        }
+                        Axis::Vertical => {
+                            mouse::Interaction::ResizingHorizontally
+                        }
+                    },
+                )
+            } else {
+                (primitives, mouse_interaction)
+            };
+
         (
             Primitive::Group { primitives },
             if dragging.is_some() {
                 mouse::Interaction::Grabbing
-            } else if let Some(axis) = resizing {
-                match axis {
-                    Axis::Horizontal => mouse::Interaction::ResizingVertically,
-                    Axis::Vertical => mouse::Interaction::ResizingHorizontally,
-                }
             } else {
                 mouse_interaction
             },
@@ -127,16 +182,17 @@ where
         &mut self,
         defaults: &Self::Defaults,
         bounds: Rectangle,
-        style_sheet: &Self::Style,
+        style_sheet: &<Self as container::Renderer>::Style,
         title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
         body: (&Element<'_, Message, Self>, Layout<'_>),
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output {
         let style = style_sheet.style();
         let (body, body_layout) = body;
 
         let (body_primitive, body_interaction) =
-            body.draw(self, defaults, body_layout, cursor_position, &bounds);
+            body.draw(self, defaults, body_layout, cursor_position, viewport);
 
         let background = crate::widget::container::background(bounds, &style);
 
@@ -150,6 +206,7 @@ where
                 defaults,
                 title_bar_layout,
                 cursor_position,
+                viewport,
                 show_controls,
             );
 
@@ -161,10 +218,10 @@ where
                         body_primitive,
                     ],
                 },
-                if is_over_pick_area {
-                    mouse::Interaction::Grab
-                } else if title_bar_interaction > body_interaction {
+                if title_bar_interaction > body_interaction {
                     title_bar_interaction
+                } else if is_over_pick_area {
+                    mouse::Interaction::Grab
                 } else {
                     body_interaction
                 },
@@ -187,15 +244,14 @@ where
         &mut self,
         defaults: &Self::Defaults,
         bounds: Rectangle,
-        style_sheet: &Self::Style,
-        title: &str,
-        title_size: u16,
-        title_font: Self::Font,
-        title_bounds: Rectangle,
+        style_sheet: &<Self as container::Renderer>::Style,
+        content: (&Element<'_, Message, Self>, Layout<'_>),
         controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> Self::Output {
         let style = style_sheet.style();
+        let (title_content, title_layout) = content;
 
         let defaults = Self::Defaults {
             text: defaults::Text {
@@ -205,16 +261,12 @@ where
 
         let background = crate::widget::container::background(bounds, &style);
 
-        let (title_primitive, _) = text::Renderer::draw(
+        let (title_primitive, title_interaction) = title_content.draw(
             self,
             &defaults,
-            title_bounds,
-            title,
-            title_size,
-            title_font,
-            None,
-            HorizontalAlignment::Left,
-            VerticalAlignment::Top,
+            title_layout,
+            cursor_position,
+            viewport,
         );
 
         if let Some((controls, controls_layout)) = controls {
@@ -223,7 +275,7 @@ where
                 &defaults,
                 controls_layout,
                 cursor_position,
-                &bounds,
+                viewport,
             );
 
             (
@@ -234,7 +286,7 @@ where
                         controls_primitive,
                     ],
                 },
-                controls_interaction,
+                controls_interaction.max(title_interaction),
             )
         } else {
             (
@@ -245,7 +297,7 @@ where
                 } else {
                     title_primitive
                 },
-                mouse::Interaction::default(),
+                title_interaction,
             )
         }
     }

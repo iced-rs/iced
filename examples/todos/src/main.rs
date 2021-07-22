@@ -1,7 +1,7 @@
 use iced::{
     button, scrollable, text_input, Align, Application, Button, Checkbox,
-    Column, Command, Container, Element, Font, HorizontalAlignment, Length,
-    Row, Scrollable, Settings, Text, TextInput,
+    Clipboard, Column, Command, Container, Element, Font, HorizontalAlignment,
+    Length, Row, Scrollable, Settings, Text, TextInput,
 };
 use serde::{Deserialize, Serialize};
 
@@ -58,7 +58,11 @@ impl Application for Todos {
         format!("Todos{} - Iced", if dirty { "*" } else { "" })
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Message> {
         match self {
             Todos::Loading => {
                 match message {
@@ -261,8 +265,11 @@ impl Task {
                 self.completed = completed;
             }
             TaskMessage::Edit => {
+                let mut text_input = text_input::State::focused();
+                text_input.select_all();
+
                 self.state = TaskState::Editing {
-                    text_input: text_input::State::focused(),
+                    text_input,
                     delete_button: button::State::new(),
                 };
             }
@@ -489,7 +496,6 @@ enum LoadError {
 
 #[derive(Debug, Clone)]
 enum SaveError {
-    DirectoryError,
     FileError,
     WriteError,
     FormatError,
@@ -538,7 +544,7 @@ impl SavedState {
         if let Some(dir) = path.parent() {
             async_std::fs::create_dir_all(dir)
                 .await
-                .map_err(|_| SaveError::DirectoryError)?;
+                .map_err(|_| SaveError::FileError)?;
         }
 
         {

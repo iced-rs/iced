@@ -1,4 +1,4 @@
-use crate::{css, Align, Bus, Css, Element, Length, Widget};
+use crate::{css, Align, Bus, Css, Element, Length, Padding, Widget};
 
 use dodrio::bumpalo;
 use std::u32;
@@ -9,7 +9,7 @@ use std::u32;
 #[allow(missing_debug_implementations)]
 pub struct Row<'a, Message> {
     spacing: u16,
-    padding: u16,
+    padding: Padding,
     width: Length,
     height: Length,
     max_width: u32,
@@ -28,7 +28,7 @@ impl<'a, Message> Row<'a, Message> {
     pub fn with_children(children: Vec<Element<'a, Message>>) -> Self {
         Row {
             spacing: 0,
-            padding: 0,
+            padding: Padding::ZERO,
             width: Length::Fill,
             height: Length::Shrink,
             max_width: u32::MAX,
@@ -48,9 +48,9 @@ impl<'a, Message> Row<'a, Message> {
         self
     }
 
-    /// Sets the padding of the [`Row`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    /// Sets the [`Padding`] of the [`Row`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
         self
     }
 
@@ -114,23 +114,21 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
         let spacing_class =
             style_sheet.insert(bump, css::Rule::Spacing(self.spacing));
 
-        let padding_class =
-            style_sheet.insert(bump, css::Rule::Padding(self.padding));
-
         // TODO: Complete styling
         div(bump)
             .attr(
                 "class",
-                bumpalo::format!(in bump, "{} {} {}", row_class, spacing_class, padding_class)
+                bumpalo::format!(in bump, "{} {}", row_class, spacing_class)
                     .into_bump_str(),
             )
             .attr("style", bumpalo::format!(
                     in bump,
-                    "width: {}; height: {}; max-width: {}; max-height: {}; align-items: {}",
+                    "width: {}; height: {}; max-width: {}; max-height: {}; padding: {}; align-items: {}",
                     css::length(self.width),
                     css::length(self.height),
                     css::max_length(self.max_width),
                     css::max_length(self.max_height),
+                    css::padding(self.padding),
                     css::align(self.align_items)
                 ).into_bump_str()
             )

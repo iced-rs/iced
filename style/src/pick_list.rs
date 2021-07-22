@@ -5,6 +5,7 @@ use iced_core::{Background, Color};
 #[derive(Debug, Clone, Copy)]
 pub struct Style {
     pub text_color: Color,
+    pub placeholder_color: Color,
     pub background: Background,
     pub border_radius: f32,
     pub border_width: f32,
@@ -16,6 +17,7 @@ impl std::default::Default for Style {
     fn default() -> Self {
         Self {
             text_color: Color::BLACK,
+            placeholder_color: [0.4, 0.4, 0.4].into(),
             background: Background::Color([0.87, 0.87, 0.87].into()),
             border_radius: 0.0,
             border_width: 1.0,

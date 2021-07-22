@@ -11,7 +11,7 @@ pub fn main() -> iced::Result {
 struct Example {
     scroll: scrollable::State,
     pick_list: pick_list::State<Language>,
-    selected_language: Language,
+    selected_language: Option<Language>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -33,7 +33,7 @@ impl Sandbox for Example {
     fn update(&mut self, message: Message) {
         match message {
             Message::LanguageSelected(language) => {
-                self.selected_language = language;
+                self.selected_language = Some(language);
             }
         }
     }
@@ -42,9 +42,10 @@ impl Sandbox for Example {
         let pick_list = PickList::new(
             &mut self.pick_list,
             &Language::ALL[..],
-            Some(self.selected_language),
+            self.selected_language,
             Message::LanguageSelected,
-        );
+        )
+        .placeholder("Choose a language...");
 
         let mut content = Scrollable::new(&mut self.scroll)
             .width(Length::Fill)
