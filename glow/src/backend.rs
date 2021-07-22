@@ -56,7 +56,9 @@ impl Backend {
         let mut layers = Layer::generate(primitive, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
-        unsafe{ gl.bind_framebuffer(glow::RENDERBUFFER, target); }
+        unsafe {
+            gl.bind_framebuffer(glow::RENDERBUFFER, target);
+        }
 
         for layer in layers {
             self.flush(

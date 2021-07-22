@@ -1,8 +1,8 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::{executor::block_on, task::SpawnExt};
+use iced_graphics::{Rectangle, Size};
 use iced_native::{futures, mouse};
-use iced_graphics::{Size, Rectangle};
 use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `wgpu`.
@@ -64,16 +64,20 @@ impl Compositor {
 
         #[cfg(feature = "offscreen")]
         let framebuffer = {
-            let size = BufferDimensions::new(viewport_size.width as usize, viewport_size.height as usize);
-            let output = device.create_buffer(&wgpu::BufferDescriptor{
+            let size = BufferDimensions::new(
+                viewport_size.width as usize,
+                viewport_size.height as usize,
+            );
+            let output = device.create_buffer(&wgpu::BufferDescriptor {
                 label: None,
                 size: (size.padded_bytes_per_row * size.height) as u64,
-                usage: wgpu::BufferUsage::MAP_READ | wgpu::BufferUsage::COPY_DST,
+                usage: wgpu::BufferUsage::MAP_READ
+                    | wgpu::BufferUsage::COPY_DST,
                 mapped_at_creation: false,
             });
 
-            let target = device.create_texture(&wgpu::TextureDescriptor{
-                size: wgpu::Extent3d{
+            let target = device.create_texture(&wgpu::TextureDescriptor {
+                size: wgpu::Extent3d {
                     width: size.width as u32,
                     height: size.height as u32,
                     depth_or_array_layers: 1,
@@ -83,17 +87,16 @@ impl Compositor {
                 dimension: wgpu::TextureDimension::D2,
                 // format: wgpu::TextureFormat::Rgba8UnormSrgb,
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                usage: wgpu::TextureUsage::COPY_SRC | wgpu::TextureUsage::RENDER_ATTACHMENT,
+                usage: wgpu::TextureUsage::COPY_SRC
+                    | wgpu::TextureUsage::RENDER_ATTACHMENT,
                 label: None,
             });
 
-            Some(
-                Framebuffer{
-                    target,
-                    output,
-                    size
-                }
-            )
+            Some(Framebuffer {
+                target,
+                output,
+                size,
+            })
         };
 
         #[cfg(not(feature = "offscreen"))]
@@ -183,12 +186,14 @@ impl iced_graphics::window::Compositor for Compositor {
         let frame = swap_chain.get_current_frame().expect("Next frame");
         #[cfg(feature = "offscreen")]
         let frame = self.framebuffer.as_ref().expect("No framebuffer");
-        
+
         #[cfg(not(feature = "offscreen"))]
         let view = &frame.output.view;
 
         #[cfg(feature = "offscreen")]
-        let view = &frame.target.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = &frame
+            .target
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = self.device.create_command_encoder(
             &wgpu::CommandEncoderDescriptor {
@@ -240,13 +245,15 @@ impl iced_graphics::window::Compositor for Compositor {
                 layout: wgpu::ImageDataLayout {
                     offset: 0,
                     bytes_per_row: Some(
-                        std::num::NonZeroU32::new(frame.size.padded_bytes_per_row as u32)
-                            .unwrap(),
+                        std::num::NonZeroU32::new(
+                            frame.size.padded_bytes_per_row as u32,
+                        )
+                        .unwrap(),
                     ),
                     rows_per_image: None,
                 },
             },
-            wgpu::Extent3d{
+            wgpu::Extent3d {
                 width: frame.size.width as u32,
                 height: frame.size.height as u32,
                 depth_or_array_layers: 1,
@@ -268,25 +275,25 @@ impl iced_graphics::window::Compositor for Compositor {
         mouse_interaction
     }
 
-    fn read(&self, buffer: &mut [u8]){
-        if let Some(frame) = &self.framebuffer{
+    fn read(&self, buffer: &mut [u8]) {
+        if let Some(frame) = &self.framebuffer {
             let buffer_slice = frame.output.slice(..);
             let buffer_future = buffer_slice.map_async(wgpu::MapMode::Read);
             self.device.poll(wgpu::Maintain::Wait);
 
-            if let Ok(()) = block_on(buffer_future){
+            if let Ok(()) = block_on(buffer_future) {
                 buffer.copy_from_slice(&buffer_slice.get_mapped_range());
             }
-            
+
             frame.output.unmap();
         }
     }
 }
 
 // TODO: This struct and Swapchain should be interchangeable, maybe an enum?
-struct Framebuffer{
+struct Framebuffer {
     target: wgpu::Texture,
-    output: wgpu::Buffer,   
+    output: wgpu::Buffer,
     size: BufferDimensions,
 }
 
@@ -303,8 +310,10 @@ impl BufferDimensions {
         let bytes_per_pixel = std::mem::size_of::<u32>();
         let unpadded_bytes_per_row = width * bytes_per_pixel;
         let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize;
-        let padded_bytes_per_row_padding = (align - unpadded_bytes_per_row % align) % align;
-        let padded_bytes_per_row = unpadded_bytes_per_row + padded_bytes_per_row_padding;
+        let padded_bytes_per_row_padding =
+            (align - unpadded_bytes_per_row % align) % align;
+        let padded_bytes_per_row =
+            unpadded_bytes_per_row + padded_bytes_per_row_padding;
         Self {
             width,
             height,

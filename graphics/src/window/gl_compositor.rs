@@ -1,4 +1,4 @@
-use crate::{Color, Error, Size, Viewport, Rectangle};
+use crate::{Color, Error, Rectangle, Size, Viewport};
 use iced_native::mouse;
 
 use core::ffi::c_void;

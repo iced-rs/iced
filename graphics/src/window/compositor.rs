@@ -1,4 +1,4 @@
-use crate::{Color, Error, Viewport, Rectangle, Size};
+use crate::{Color, Error, Rectangle, Size, Viewport};
 use iced_native::mouse;
 use raw_window_handle::HasRawWindowHandle;
 

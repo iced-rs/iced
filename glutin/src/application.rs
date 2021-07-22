@@ -81,7 +81,10 @@ where
         }
     };
 
-    let viewport_size = Size::new(context.window().inner_size().width, context.window().inner_size().height);
+    let viewport_size = Size::new(
+        context.window().inner_size().width,
+        context.window().inner_size().height,
+    );
 
     #[allow(unsafe_code)]
     let (compositor, renderer) = unsafe {
@@ -178,7 +181,13 @@ async fn run_instance<A, E, C>(
     let mut messages = Vec::new();
 
     #[cfg(feature = "offscreen")]
-    let (mut pixels, mut saved) = (Vec::with_capacity(3*state.viewport().physical_width() as usize*state.viewport().physical_height() as usize), false);
+    let (mut pixels, mut saved) = (
+        Vec::with_capacity(
+            3 * state.viewport().physical_width() as usize
+                * state.viewport().physical_height() as usize,
+        ),
+        false,
+    );
 
     debug.startup_finished();
 
@@ -296,20 +305,30 @@ async fn run_instance<A, E, C>(
                 );
 
                 #[cfg(feature = "offscreen")]
-                {                    
+                {
                     // Really simple "save on first frame"
-                    if !saved{
-                        let region = iced_graphics::Rectangle{
+                    if !saved {
+                        let region = iced_graphics::Rectangle {
                             width: state.viewport().physical_width(),
                             height: state.viewport().physical_height(),
-                            .. Default::default()
+                            ..Default::default()
                         };
-    
-                        pixels.resize(3*region.width as usize*region.height as usize, 0);
+
+                        pixels.resize(
+                            3 * region.width as usize * region.height as usize,
+                            0,
+                        );
                         compositor.read(region, &mut pixels);
-                                                
-                        let image = image::RgbImage::from_raw(region.width, region.height, pixels.clone()).unwrap();
-                        image::imageops::flip_vertical(&image).save("framebuffer.png").unwrap();
+
+                        let image = image::RgbImage::from_raw(
+                            region.width,
+                            region.height,
+                            pixels.clone(),
+                        )
+                        .unwrap();
+                        image::imageops::flip_vertical(&image)
+                            .save("framebuffer.png")
+                            .unwrap();
 
                         saved = true;
                     }
