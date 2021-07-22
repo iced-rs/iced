@@ -18,9 +18,13 @@ pub struct Settings {
 
     /// If enabled, spread text workload in multiple threads when multiple cores
     /// are available.
+    ///
+    /// By default, it is disabled.
     pub text_multithreading: bool,
 
     /// The antialiasing strategy that will be used for triangle primitives.
+    ///
+    /// By default, it is `None`.
     pub antialiasing: Option<Antialiasing>,
 }
 

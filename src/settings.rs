@@ -25,9 +25,11 @@ pub struct Settings<Flags> {
     /// The default value is 20.
     pub default_text_size: u16,
 
-    /// Whether the [`Application`] should exit when the user requests the
-    /// window to close (e.g. the user presses the close button).
-    pub exit_on_close_request: bool,
+    /// If enabled, spread text workload in multiple threads when multiple cores
+    /// are available.
+    ///
+    /// By default, it is disabled.
+    pub text_multithreading: bool,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -39,6 +41,12 @@ pub struct Settings<Flags> {
     ///
     /// [`Canvas`]: crate::widget::Canvas
     pub antialiasing: bool,
+
+    /// Whether the [`Application`] should exit when the user requests the
+    /// window to close (e.g. the user presses the close button).
+    ///
+    /// By default, it is enabled.
+    pub exit_on_close_request: bool,
 }
 
 impl<Flags> Settings<Flags> {
@@ -53,8 +61,9 @@ impl<Flags> Settings<Flags> {
             window: default_settings.window,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
-            exit_on_close_request: default_settings.exit_on_close_request,
+            text_multithreading: default_settings.text_multithreading,
             antialiasing: default_settings.antialiasing,
+            exit_on_close_request: default_settings.exit_on_close_request,
         }
     }
 }
@@ -69,8 +78,9 @@ where
             window: Default::default(),
             default_font: Default::default(),
             default_text_size: 20,
-            exit_on_close_request: true,
+            text_multithreading: false,
             antialiasing: false,
+            exit_on_close_request: true,
         }
     }
 }
