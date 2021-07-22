@@ -219,6 +219,8 @@ where
 
         match self.width {
             Length::Shrink => {
+                self.placeholder.hash(state);
+
                 self.options
                     .iter()
                     .map(ToString::to_string)
