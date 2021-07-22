@@ -256,37 +256,33 @@ where
                     | mouse::ScrollDelta::Pixels { y, .. } => y,
                 };
 
-                if y.is_sign_negative() {
-                    let mut options_iter = self.options.iter();
+                fn find_next<'a, T: PartialEq>(
+                    selected: &'a T,
+                    mut options: impl Iterator<Item = &'a T>,
+                ) -> Option<&'a T> {
+                    let _ = options.find(|&option| option == selected);
+
+                    options.next()
+                }
+
+                let next_option = if y < 0.0 {
                     if let Some(selected) = self.selected.as_ref() {
-                        if let Some(_) =
-                            options_iter.position(|o| o == selected)
-                        {
-                            if let Some(prev_val) = options_iter.next() {
-                                messages
-                                    .push((self.on_selected)(prev_val.clone()));
-                            }
-                        }
+                        find_next(selected, self.options.iter())
                     } else {
-                        messages
-                            .push((self.on_selected)(self.options[0].clone()));
+                        self.options.first()
+                    }
+                } else if y > 0.0 {
+                    if let Some(selected) = self.selected.as_ref() {
+                        find_next(selected, self.options.iter().rev())
+                    } else {
+                        self.options.last()
                     }
                 } else {
-                    let mut options_iter = self.options.iter().rev();
-                    if let Some(selected) = self.selected.as_ref() {
-                        if let Some(_) =
-                            options_iter.position(|o| o == selected)
-                        {
-                            if let Some(next_val) = options_iter.next() {
-                                messages
-                                    .push((self.on_selected)(next_val.clone()));
-                            }
-                        }
-                    } else {
-                        messages.push((self.on_selected)(
-                            self.options[self.options.len() - 1].clone(),
-                        ));
-                    }
+                    None
+                };
+
+                if let Some(next_option) = next_option {
+                    messages.push((self.on_selected)(next_option.clone()));
                 }
 
                 return event::Status::Captured;
