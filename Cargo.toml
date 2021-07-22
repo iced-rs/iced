@@ -46,7 +46,7 @@ smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
 # Enables offscreen rendering
-offscreen = ["iced_glutin/offscreen", "iced_glow/offscreen"]
+offscreen = ["iced_glutin/offscreen", "iced_glow/offscreen", "iced_winit/offscreen", "iced_wgpu/offscreen"]
 
 [badges]
 maintenance = { status = "actively-developed" }

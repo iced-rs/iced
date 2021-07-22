@@ -157,7 +157,9 @@ where
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
-    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
+    let viewport_size = Size::new(window.inner_size().width, window.inner_size().height);
+
+    let (compositor, renderer) = C::new(compositor_settings, viewport_size, Some(&window))?;
 
     let (mut sender, receiver) = mpsc::unbounded();
 
@@ -255,6 +257,9 @@ async fn run_instance<A, E, C>(
 
     let mut events = Vec::new();
     let mut messages = Vec::new();
+
+    #[cfg(feature = "offscreen")]
+    let (mut pixels, mut saved) = (Vec::with_capacity(4*state.viewport().physical_width() as usize*state.viewport().physical_height() as usize), false);
 
     debug.startup_finished();
 
@@ -374,6 +379,17 @@ async fn run_instance<A, E, C>(
                     &primitive,
                     &debug.overlay(),
                 );
+
+                #[cfg(feature = "offscreen")]                
+                if !saved{
+                    let (width, height) = (state.viewport().physical_width(), state.viewport().physical_height());
+                    pixels.resize(4*width as usize*height as usize, 0);                    
+                    compositor.read(&mut pixels);                    
+                    let image = image::RgbaImage::from_raw(width, height, pixels.clone()).unwrap();
+                    image.save("framebuffer.png").unwrap();
+
+                    saved = true;
+                }
 
                 debug.render_finished();
 

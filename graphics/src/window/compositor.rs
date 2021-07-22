@@ -1,4 +1,4 @@
-use crate::{Color, Error, Viewport};
+use crate::{Color, Error, Viewport, Rectangle, Size};
 use iced_native::mouse;
 use raw_window_handle::HasRawWindowHandle;
 
@@ -19,6 +19,7 @@ pub trait Compositor: Sized {
     /// Creates a new [`Compositor`].
     fn new<W: HasRawWindowHandle>(
         settings: Self::Settings,
+        viewport_size: Size<u32>,
         compatible_window: Option<&W>,
     ) -> Result<(Self, Self::Renderer), Error>;
 
@@ -53,4 +54,7 @@ pub trait Compositor: Sized {
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction;
+
+    /// Reads the framebuffer pixels on the provided region into the provided buffer.
+    fn read(&self, buffer: &mut [u8]);
 }
