@@ -135,7 +135,8 @@ impl iced_graphics::window::Compositor for Compositor {
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, ()> {
+    ) -> Result<mouse::Interaction, iced_graphics::window::CompositorDrawError>
+    {
         match swap_chain.get_current_frame() {
             Ok(frame) => {
                 let mut encoder = self.device.create_command_encoder(
@@ -152,7 +153,7 @@ impl iced_graphics::window::Compositor for Compositor {
                         ops: wgpu::Operations {
                             load: wgpu::LoadOp::Clear({
                                 let [r, g, b, a] = background_color.into_linear();
-        
+
                                 wgpu::Color {
                                     r: f64::from(r),
                                     g: f64::from(g),
@@ -165,7 +166,7 @@ impl iced_graphics::window::Compositor for Compositor {
                     }],
                     depth_stencil_attachment: None,
                 });
-        
+
                 let mouse_interaction = renderer.backend_mut().draw(
                     &mut self.device,
                     &mut self.staging_belt,
@@ -175,28 +176,28 @@ impl iced_graphics::window::Compositor for Compositor {
                     output,
                     overlay,
                 );
-        
+
                 // Submit work
                 self.staging_belt.finish();
                 self.queue.submit(Some(encoder.finish()));
-        
+
                 // Recall staging buffers
                 self.local_pool
                     .spawner()
                     .spawn(self.staging_belt.recall())
                     .expect("Recall staging belt");
-        
+
                 self.local_pool.run_until_stalled();
-        
+
                 Ok(mouse_interaction)
             }
             Err(error) => match error {
                 wgpu::SwapChainError::OutOfMemory => {
-                    panic!("Wgpu swapchain error: {:?}", error);
+                    Err(iced_graphics::window::CompositorDrawError::FatalSwapchainError(Box::new(error)))
                 }
                 _ => {
                     // Try again next frame.
-                    Err(())
+                    Err(iced_graphics::window::CompositorDrawError::SwapchainOutdated(Box::new(error)))
                 }
             },
         }

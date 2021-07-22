@@ -220,11 +220,13 @@ pub fn main() {
                         local_pool.run_until_stalled();
                     }
                     Err(error) => match error {
-                        wgpu::SwapChainError::Outdated => {
+                        wgpu::SwapChainError::OutOfMemory => {
+                            panic!("Swapchain error: {}. Rendering cannot continue.", error)
+                        }
+                        _ => {
                             // Try rendering again next frame.
                             window.request_redraw();
                         }
-                        _ => panic!("Swapchain error: {:?}", error),
                     },
                 }
             }

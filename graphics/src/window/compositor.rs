@@ -43,9 +43,6 @@ pub trait Compositor: Sized {
 
     /// Draws the output primitives to the next frame of the given [`SwapChain`].
     ///
-    /// This will return an error if drawing could not be completed on this frame.
-    /// If an error occurs, try calling this again on the next frame.
-    ///
     /// [`SwapChain`]: Self::SwapChain
     fn draw<T: AsRef<str>>(
         &mut self,
@@ -55,5 +52,33 @@ pub trait Compositor: Sized {
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, ()>;
+    ) -> Result<mouse::Interaction, CompositorDrawError>;
+}
+
+/// Result of an unsuccessful call to [`Compositor::draw`].
+#[derive(Debug)]
+pub enum CompositorDrawError {
+    /// The swapchain is outdated. Try rendering again next frame.
+    SwapchainOutdated(Box<dyn std::error::Error>),
+    /// A fatal swapchain error occured. Rendering cannot continue.
+    FatalSwapchainError(Box<dyn std::error::Error>),
+}
+
+impl std::error::Error for CompositorDrawError {}
+
+impl std::fmt::Display for CompositorDrawError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CompositorDrawError::SwapchainOutdated(e) => write!(
+                f,
+                "Swapchain is outdated: {}. Try rendering next frame.",
+                e
+            ),
+            CompositorDrawError::FatalSwapchainError(e) => write!(
+                f,
+                "Fatal swapchain error: {}. Rendering cannot continue.",
+                e
+            ),
+        }
+    }
 }
