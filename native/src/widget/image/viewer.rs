@@ -132,19 +132,30 @@ where
     ) -> layout::Node {
         let (width, height) = renderer.dimensions(&self.handle);
 
-        let aspect_ratio = width as f32 / height as f32;
-
         let mut size = limits
             .width(self.width)
             .height(self.height)
             .resolve(Size::new(width as f32, height as f32));
 
-        let viewport_aspect_ratio = size.width / size.height;
-
-        if viewport_aspect_ratio > aspect_ratio {
-            size.width = width as f32 * size.height / height as f32;
+        let expansion_size = if height > width {
+            self.width
         } else {
-            size.height = height as f32 * size.width / width as f32;
+            self.height
+        };
+
+        // Only calculate viewport sizes if the images are constrained to a limited space.
+        // If they are Fill|Portion let them expand within their alotted space.
+        match expansion_size {
+            Length::Shrink | Length::Units(_) => {
+                let aspect_ratio = width as f32 / height as f32;
+                let viewport_aspect_ratio = size.width / size.height;
+                if viewport_aspect_ratio > aspect_ratio {
+                    size.width = width as f32 * size.height / height as f32;
+                } else {
+                    size.height = height as f32 * size.width / width as f32;
+                }
+            }
+            Length::Fill | Length::FillPortion(_) => {}
         }
 
         layout::Node::new(size)
