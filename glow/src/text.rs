@@ -11,7 +11,11 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(gl: &glow::Context, default_font: Option<&[u8]>) -> Self {
+    pub fn new(
+        gl: &glow::Context,
+        default_font: Option<&[u8]>,
+        multithreading: bool,
+    ) -> Self {
         let default_font = default_font.map(|slice| slice.to_vec());
 
         // TODO: Font customization
@@ -41,7 +45,7 @@ impl Pipeline {
         let draw_brush =
             glow_glyph::GlyphBrushBuilder::using_font(font.clone())
                 .initial_cache_size((2048, 2048))
-                .draw_cache_multithread(false) // TODO: Expose as a configuration flag
+                .draw_cache_multithread(multithreading)
                 .build(&gl);
 
         let measure_brush =
