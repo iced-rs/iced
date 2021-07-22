@@ -192,7 +192,7 @@ impl iced_graphics::window::Compositor for Compositor {
             }
             Err(error) => match error {
                 wgpu::SwapChainError::OutOfMemory => {
-                    panic!("Swapchain error: {:?}", error);
+                    panic!("Wgpu swapchain error: {:?}", error);
                 }
                 _ => {
                     // Try again next frame.
