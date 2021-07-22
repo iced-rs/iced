@@ -171,6 +171,7 @@ impl pick_list::StyleSheet for PickList {
             },
             border_radius: 2.0,
             icon_size: 0.5,
+            ..pick_list::Style::default()
         }
     }
 
