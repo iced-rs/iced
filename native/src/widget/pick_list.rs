@@ -247,15 +247,11 @@ where
                     event_status
                 }
             }
-            Event::Mouse(mouse::Event::WheelScrolled { delta })
-                if layout.bounds().contains(cursor_position)
-                    && !*self.is_open =>
+            Event::Mouse(mouse::Event::WheelScrolled {
+                delta: mouse::ScrollDelta::Lines { y, .. },
+            }) if layout.bounds().contains(cursor_position)
+                && !*self.is_open =>
             {
-                let y = match delta {
-                    mouse::ScrollDelta::Lines { y, .. }
-                    | mouse::ScrollDelta::Pixels { y, .. } => y,
-                };
-
                 fn find_next<'a, T: PartialEq>(
                     selected: &'a T,
                     mut options: impl Iterator<Item = &'a T>,
