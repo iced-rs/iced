@@ -38,6 +38,7 @@ where
         style: &Box<dyn StyleSheet>,
     ) -> Self::Output {
         let is_mouse_over = bounds.contains(cursor_position);
+        let is_selected = selected.is_some();
 
         let style = if is_mouse_over {
             style.hovered()
@@ -74,7 +75,9 @@ where
                         content: label,
                         size: f32::from(text_size),
                         font,
-                        color: style.text_color,
+                        color: is_selected
+                            .then(|| style.text_color)
+                            .unwrap_or(style.placeholder_color),
                         bounds: Rectangle {
                             x: bounds.x + f32::from(padding.left),
                             y: bounds.center_y(),
