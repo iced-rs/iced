@@ -267,6 +267,7 @@ impl Task {
             TaskMessage::Edit => {
                 let mut text_input = text_input::State::focused();
                 text_input.select_all();
+
                 self.state = TaskState::Editing {
                     text_input,
                     delete_button: button::State::new(),
