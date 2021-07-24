@@ -6,9 +6,11 @@ mod style;
 use grid::Grid;
 use iced::button::{self, Button};
 use iced::executor;
+use iced::menu::{self, Menu};
 use iced::pick_list::{self, PickList};
 use iced::slider::{self, Slider};
 use iced::time;
+use iced::window;
 use iced::{
     Align, Application, Checkbox, Clipboard, Column, Command, Container,
     Element, Length, Row, Settings, Subscription, Text,
@@ -19,6 +21,10 @@ use std::time::{Duration, Instant};
 pub fn main() -> iced::Result {
     GameOfLife::run(Settings {
         antialiasing: true,
+        window: window::Settings {
+            position: window::Position::Centered,
+            ..window::Settings::default()
+        },
         ..Settings::default()
     })
 }
@@ -126,6 +132,13 @@ impl Application for GameOfLife {
         } else {
             Subscription::none()
         }
+    }
+
+    fn menu(&self) -> Menu<Message> {
+        Menu::with_entries(vec![menu::Entry::dropdown(
+            "Presets",
+            Preset::menu().map(Message::PresetPicked),
+        )])
     }
 
     fn view(&mut self) -> Element<Message> {

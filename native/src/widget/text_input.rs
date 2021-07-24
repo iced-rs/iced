@@ -381,7 +381,7 @@ where
             Event::Keyboard(keyboard::Event::CharacterReceived(c))
                 if self.state.is_focused
                     && self.state.is_pasting.is_none()
-                    && !self.state.keyboard_modifiers.is_command_pressed()
+                    && !self.state.keyboard_modifiers.command()
                     && !c.is_control() =>
             {
                 let mut editor =
@@ -469,7 +469,7 @@ where
                         if platform::is_jump_modifier_pressed(modifiers)
                             && !self.is_secure
                         {
-                            if modifiers.shift {
+                            if modifiers.shift() {
                                 self.state
                                     .cursor
                                     .select_left_by_words(&self.value);
@@ -478,7 +478,7 @@ where
                                     .cursor
                                     .move_left_by_words(&self.value);
                             }
-                        } else if modifiers.shift {
+                        } else if modifiers.shift() {
                             self.state.cursor.select_left(&self.value)
                         } else {
                             self.state.cursor.move_left(&self.value);
@@ -488,7 +488,7 @@ where
                         if platform::is_jump_modifier_pressed(modifiers)
                             && !self.is_secure
                         {
-                            if modifiers.shift {
+                            if modifiers.shift() {
                                 self.state
                                     .cursor
                                     .select_right_by_words(&self.value);
@@ -497,14 +497,14 @@ where
                                     .cursor
                                     .move_right_by_words(&self.value);
                             }
-                        } else if modifiers.shift {
+                        } else if modifiers.shift() {
                             self.state.cursor.select_right(&self.value)
                         } else {
                             self.state.cursor.move_right(&self.value);
                         }
                     }
                     keyboard::KeyCode::Home => {
-                        if modifiers.shift {
+                        if modifiers.shift() {
                             self.state.cursor.select_range(
                                 self.state.cursor.start(&self.value),
                                 0,
@@ -514,7 +514,7 @@ where
                         }
                     }
                     keyboard::KeyCode::End => {
-                        if modifiers.shift {
+                        if modifiers.shift() {
                             self.state.cursor.select_range(
                                 self.state.cursor.start(&self.value),
                                 self.value.len(),
@@ -524,10 +524,7 @@ where
                         }
                     }
                     keyboard::KeyCode::C
-                        if self
-                            .state
-                            .keyboard_modifiers
-                            .is_command_pressed() =>
+                        if self.state.keyboard_modifiers.command() =>
                     {
                         match self.state.cursor.selection(&self.value) {
                             Some((start, end)) => {
@@ -539,10 +536,7 @@ where
                         }
                     }
                     keyboard::KeyCode::X
-                        if self
-                            .state
-                            .keyboard_modifiers
-                            .is_command_pressed() =>
+                        if self.state.keyboard_modifiers.command() =>
                     {
                         match self.state.cursor.selection(&self.value) {
                             Some((start, end)) => {
@@ -564,7 +558,7 @@ where
                         messages.push(message);
                     }
                     keyboard::KeyCode::V => {
-                        if self.state.keyboard_modifiers.is_command_pressed() {
+                        if self.state.keyboard_modifiers.command() {
                             let content = match self.state.is_pasting.take() {
                                 Some(content) => content,
                                 None => {
@@ -595,10 +589,7 @@ where
                         }
                     }
                     keyboard::KeyCode::A
-                        if self
-                            .state
-                            .keyboard_modifiers
-                            .is_command_pressed() =>
+                        if self.state.keyboard_modifiers.command() =>
                     {
                         self.state.cursor.select_all(&self.value);
                     }
@@ -816,6 +807,11 @@ impl State {
     pub fn move_cursor_to(&mut self, position: usize) {
         self.cursor.move_to(position);
     }
+
+    /// Selects all the content of the [`TextInput`].
+    pub fn select_all(&mut self) {
+        self.cursor.select_range(0, usize::MAX);
+    }
 }
 
 // TODO: Reduce allocations
@@ -879,9 +875,9 @@ mod platform {
 
     pub fn is_jump_modifier_pressed(modifiers: keyboard::Modifiers) -> bool {
         if cfg!(target_os = "macos") {
-            modifiers.alt
+            modifiers.alt()
         } else {
-            modifiers.control
+            modifiers.control()
         }
     }
 }

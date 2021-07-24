@@ -1,6 +1,6 @@
 use crate::window;
 use crate::{
-    Clipboard, Color, Command, Element, Executor, Settings, Subscription,
+    Clipboard, Color, Command, Element, Executor, Menu, Settings, Subscription,
 };
 
 /// An interactive cross-platform application.
@@ -99,7 +99,7 @@ pub trait Application: Sized {
     type Executor: Executor;
 
     /// The type of __messages__ your [`Application`] will produce.
-    type Message: std::fmt::Debug + Send;
+    type Message: std::fmt::Debug + Clone + Send;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -191,6 +191,13 @@ pub trait Application: Sized {
         false
     }
 
+    /// Returns the current system [`Menu`] of the [`Application`].
+    ///
+    /// By default, it returns an empty [`Menu`].
+    fn menu(&self) -> Menu<Self::Message> {
+        Menu::new()
+    }
+
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -208,6 +215,7 @@ pub trait Application: Sized {
             let renderer_settings = crate::renderer::Settings {
                 default_font: settings.default_font,
                 default_text_size: settings.default_text_size,
+                text_multithreading: settings.text_multithreading,
                 antialiasing: if settings.antialiasing {
                     Some(crate::renderer::settings::Antialiasing::MSAAx4)
                 } else {
@@ -295,6 +303,10 @@ where
 
     fn should_exit(&self) -> bool {
         self.0.should_exit()
+    }
+
+    fn menu(&self) -> Menu<Self::Message> {
+        self.0.menu()
     }
 }
 

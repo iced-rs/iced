@@ -52,11 +52,14 @@ where
     runtime.track(subscription);
 
     let context = {
-        let builder = settings.window.into_builder(
-            &application.title(),
-            application.mode(),
-            event_loop.primary_monitor(),
-        );
+        let builder = settings
+            .window
+            .into_builder(
+                &application.title(),
+                application.mode(),
+                event_loop.primary_monitor(),
+            )
+            .with_menu(Some(conversion::menu(&application.menu())));
 
         let context = ContextBuilder::new()
             .with_vsync(true)
@@ -302,6 +305,16 @@ async fn run_instance<A, E, C>(
 
                 // TODO: Handle animations!
                 // Maybe we can use `ControlFlow::WaitUntil` for this.
+            }
+            event::Event::WindowEvent {
+                event: event::WindowEvent::MenuEntryActivated(entry_id),
+                ..
+            } => {
+                if let Some(message) =
+                    conversion::menu_message(state.menu(), entry_id)
+                {
+                    messages.push(message);
+                }
             }
             event::Event::WindowEvent {
                 event: window_event,
