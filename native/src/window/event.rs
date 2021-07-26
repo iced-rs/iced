@@ -3,6 +3,14 @@ use std::path::PathBuf;
 /// A window-related event.
 #[derive(PartialEq, Clone, Debug)]
 pub enum Event {
+    /// A window was moved.
+    Moved {
+        /// The new logical x location of the window
+        x: i32,
+        /// The new logical y location of the window
+        y: i32,
+    },
+
     /// A window was resized.
     Resized {
         /// The new width of the window (in units)
