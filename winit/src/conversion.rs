@@ -130,6 +130,12 @@ pub fn window_event(
         WindowEvent::Touch(touch) => {
             Some(Event::Touch(touch_event(*touch, scale_factor)))
         }
+        WindowEvent::Moved(position) => {
+            let winit::dpi::LogicalPosition { x, y } =
+                position.to_logical(scale_factor);
+
+            Some(Event::Window(window::Event::Moved { x, y }))
+        }
         _ => None,
     }
 }
