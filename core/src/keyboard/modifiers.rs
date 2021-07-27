@@ -28,6 +28,18 @@ bitflags! {
 }
 
 impl Modifiers {
+    /// The "command" key.
+    ///
+    /// This is normally the main modifier to be used for hotkeys.
+    ///
+    /// On macOS, this is equivalent to `Self::LOGO`.
+    /// Ohterwise, this is equivalent to `Self::CTRL`.
+    pub const COMMAND: Self = if cfg!(target_os = "macos") {
+        Self::LOGO
+    } else {
+        Self::CTRL
+    };
+
     /// Returns true if the [`SHIFT`] key is pressed in the [`Modifiers`].
     pub fn shift(self) -> bool {
         self.contains(Self::SHIFT)
