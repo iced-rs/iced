@@ -452,17 +452,26 @@ where
             _ => {}
         }
 
+        let picked_pane = self.state.picked_pane().map(|(pane, _)| pane);
+
         self.elements
             .iter_mut()
             .zip(layout.children())
-            .map(|((_, pane), layout)| {
-                pane.on_event(
+            .map(|((pane, content), layout)| {
+                let is_picked = if let Some(picked_pane) = picked_pane {
+                    picked_pane == *pane
+                } else {
+                    false
+                };
+
+                content.on_event(
                     event.clone(),
                     layout,
                     cursor_position,
                     renderer,
                     clipboard,
                     messages,
+                    is_picked,
                 )
             })
             .fold(event_status, event::Status::merge)
