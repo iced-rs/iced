@@ -452,24 +452,20 @@ where
             _ => {}
         }
 
-        if self.state.picked_pane().is_none() {
-            self.elements
-                .iter_mut()
-                .zip(layout.children())
-                .map(|((_, pane), layout)| {
-                    pane.on_event(
-                        event.clone(),
-                        layout,
-                        cursor_position,
-                        renderer,
-                        clipboard,
-                        messages,
-                    )
-                })
-                .fold(event_status, event::Status::merge)
-        } else {
-            event::Status::Captured
-        }
+        self.elements
+            .iter_mut()
+            .zip(layout.children())
+            .map(|((_, pane), layout)| {
+                pane.on_event(
+                    event.clone(),
+                    layout,
+                    cursor_position,
+                    renderer,
+                    clipboard,
+                    messages,
+                )
+            })
+            .fold(event_status, event::Status::merge)
     }
 
     fn draw(
