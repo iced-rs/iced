@@ -1,5 +1,6 @@
 //! Display a dropdown list of selectable values.
 use crate::event::{self, Event};
+use crate::keyboard;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -20,6 +21,7 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
 {
     menu: &'a mut menu::State,
+    keyboard_modifiers: &'a mut keyboard::Modifiers,
     is_open: &'a mut bool,
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
@@ -38,6 +40,7 @@ where
 #[derive(Debug, Clone)]
 pub struct State<T> {
     menu: menu::State,
+    keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
     last_selection: Option<T>,
@@ -47,6 +50,7 @@ impl<T> Default for State<T> {
     fn default() -> Self {
         Self {
             menu: menu::State::default(),
+            keyboard_modifiers: keyboard::Modifiers::default(),
             is_open: bool::default(),
             hovered_option: Option::default(),
             last_selection: Option::default(),
@@ -71,6 +75,7 @@ where
     ) -> Self {
         let State {
             menu,
+            keyboard_modifiers,
             is_open,
             hovered_option,
             last_selection,
@@ -78,6 +83,7 @@ where
 
         Self {
             menu,
+            keyboard_modifiers,
             is_open,
             hovered_option,
             last_selection,
@@ -270,7 +276,8 @@ where
             }
             Event::Mouse(mouse::Event::WheelScrolled {
                 delta: mouse::ScrollDelta::Lines { y, .. },
-            }) if layout.bounds().contains(cursor_position)
+            }) if self.keyboard_modifiers.command()
+                && layout.bounds().contains(cursor_position)
                 && !*self.is_open =>
             {
                 fn find_next<'a, T: PartialEq>(
@@ -302,9 +309,13 @@ where
                     messages.push((self.on_selected)(next_option.clone()));
                 }
 
-                return event::Status::Captured;
+                event::Status::Captured
             }
+            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+                *self.keyboard_modifiers = modifiers;
 
+                event::Status::Ignored
+            }
             _ => event::Status::Ignored,
         }
     }
