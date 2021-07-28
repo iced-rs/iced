@@ -458,11 +458,7 @@ where
             .iter_mut()
             .zip(layout.children())
             .map(|((pane, content), layout)| {
-                let is_picked = if let Some(picked_pane) = picked_pane {
-                    picked_pane == *pane
-                } else {
-                    false
-                };
+                let is_picked = picked_pane == Some(*pane);
 
                 content.on_event(
                     event.clone(),
