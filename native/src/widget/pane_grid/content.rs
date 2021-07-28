@@ -149,6 +149,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
+        is_picked: bool,
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
 
@@ -169,14 +170,18 @@ where
             layout
         };
 
-        let body_status = self.body.on_event(
-            event,
-            body_layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            messages,
-        );
+        let body_status = if is_picked {
+            event::Status::Ignored
+        } else {
+            self.body.on_event(
+                event,
+                body_layout,
+                cursor_position,
+                renderer,
+                clipboard,
+                messages,
+            )
+        };
 
         event_status.merge(body_status)
     }
