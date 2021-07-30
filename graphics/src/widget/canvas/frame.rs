@@ -4,16 +4,18 @@ use crate::{
     canvas::{Fill, Geometry, Path, Stroke, Text},
     triangle, Primitive,
 };
+use lyon::tessellation::FillTessellator;
 
 /// The frame of a [`Canvas`].
 ///
 /// [`Canvas`]: crate::widget::Canvas
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
     primitives: Vec<Primitive>,
     transforms: Transforms,
+    fill_tessellator: FillTessellator,
 }
 
 #[derive(Debug)]
@@ -45,7 +47,13 @@ impl Frame {
                     is_identity: true,
                 },
             },
+            fill_tessellator: FillTessellator::new(),
         }
+    }
+
+    /// Set the size of the [`Frame`].
+    pub fn resize(&mut self, size: Size) {
+        self.size = size;
     }
 
     /// Returns the width of the [`Frame`].
@@ -75,9 +83,7 @@ impl Frame {
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        use lyon::tessellation::{
-            BuffersBuilder, FillOptions, FillTessellator,
-        };
+        use lyon::tessellation::{BuffersBuilder, FillOptions};
 
         let Fill { color, rule } = fill.into();
 
@@ -86,8 +92,7 @@ impl Frame {
             FillVertex(color.into_linear()),
         );
 
-        let mut tessellator = FillTessellator::new();
-        let options = FillOptions::default().with_fill_rule(rule.into());
+        let mut tessellator = &mut self.fill_tessellator;
 
         let result = if self.transforms.current.is_identity {
             tessellator.tessellate_path(path.raw(), &options, &mut buffers)
@@ -260,6 +265,30 @@ impl Frame {
         self.transforms.current.raw =
             self.transforms.current.raw.pre_scale(scale, scale);
         self.transforms.current.is_identity = false;
+    }
+
+    /// Produces a [`Geometry`] representing everything drawn on the [`Frame`], clears the current
+    /// primitives.
+    pub fn geometry(&mut self) -> Geometry {
+        if !self.buffers.indices.is_empty() {
+            self.primitives.push(Primitive::Mesh2D {
+                buffers: triangle::Mesh2D {
+                    vertices: self.buffers.vertices.clone(),
+                    indices: self.buffers.indices.clone(),
+                },
+                size: self.size,
+            });
+        }
+
+        let g = Geometry::from_primitive(Primitive::Group {
+            primitives: self.primitives.clone(),
+        });
+
+        self.primitives.clear();
+        self.buffers.indices.clear();
+        self.buffers.vertices.clear();
+
+        g
     }
 
     /// Produces the [`Geometry`] representing everything drawn on the [`Frame`].
