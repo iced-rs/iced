@@ -30,23 +30,24 @@ pub struct Backend {
 
 impl Backend {
     /// Creates a new [`Backend`].
-    pub fn new(device: &wgpu::Device, settings: Settings) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        settings: Settings,
+        format: wgpu::TextureFormat,
+    ) -> Self {
         let text_pipeline = text::Pipeline::new(
             device,
-            settings.format,
+            format,
             settings.default_font,
             settings.text_multithreading,
         );
 
-        let quad_pipeline = quad::Pipeline::new(device, settings.format);
-        let triangle_pipeline = triangle::Pipeline::new(
-            device,
-            settings.format,
-            settings.antialiasing,
-        );
+        let quad_pipeline = quad::Pipeline::new(device, format);
+        let triangle_pipeline =
+            triangle::Pipeline::new(device, format, settings.antialiasing);
 
         #[cfg(any(feature = "image_rs", feature = "svg"))]
-        let image_pipeline = image::Pipeline::new(device, settings.format);
+        let image_pipeline = image::Pipeline::new(device, format);
 
         Self {
             quad_pipeline,

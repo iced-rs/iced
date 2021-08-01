@@ -6,11 +6,6 @@ pub use crate::Antialiasing;
 /// [`Backend`]: crate::Backend
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Settings {
-    /// The output format of the [`Backend`].
-    ///
-    /// [`Backend`]: crate::Backend
-    pub format: wgpu::TextureFormat,
-
     /// The present mode of the [`Backend`].
     ///
     /// [`Backend`]: crate::Backend
@@ -68,7 +63,6 @@ impl Settings {
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
             present_mode: wgpu::PresentMode::Mailbox,
             internal_backend: wgpu::BackendBit::PRIMARY,
             default_font: None,

@@ -34,7 +34,7 @@ pub fn main() {
     let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
     let surface = unsafe { instance.create_surface(&window) };
 
-    let (mut device, queue) = futures::executor::block_on(async {
+    let (format, (mut device, queue)) = futures::executor::block_on(async {
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
@@ -43,20 +43,23 @@ pub fn main() {
             .await
             .expect("Request adapter");
 
-        adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits::default(),
-                },
-                None,
-            )
-            .await
-            .expect("Request device")
+        (
+            adapter
+                .get_swap_chain_preferred_format(&surface)
+                .expect("Preffered format"),
+            adapter
+                .request_device(
+                    &wgpu::DeviceDescriptor {
+                        label: None,
+                        features: wgpu::Features::empty(),
+                        limits: wgpu::Limits::default(),
+                    },
+                    None,
+                )
+                .await
+                .expect("Request device"),
+        )
     });
-
-    let format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
     let mut swap_chain = {
         let size = window.inner_size();
@@ -65,7 +68,7 @@ pub fn main() {
             &surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-                format: format,
+                format,
                 width: size.width,
                 height: size.height,
                 present_mode: wgpu::PresentMode::Mailbox,
@@ -85,7 +88,7 @@ pub fn main() {
     // Initialize iced
     let mut debug = Debug::new();
     let mut renderer =
-        Renderer::new(Backend::new(&mut device, Settings::default()));
+        Renderer::new(Backend::new(&mut device, Settings::default(), format));
 
     let mut state = program::State::new(
         controls,
