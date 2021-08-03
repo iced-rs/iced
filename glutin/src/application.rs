@@ -146,7 +146,7 @@ async fn run_instance<A, E, C>(
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<glutin::event::Event<'_, A::Message>>,
-    context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
+    mut context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
@@ -255,6 +255,16 @@ async fn run_instance<A, E, C>(
             }
             event::Event::RedrawRequested(_) => {
                 debug.render_started();
+
+                #[allow(unsafe_code)]
+                unsafe {
+                    if !context.is_current() {
+                        context = context
+                            .make_current()
+                            .expect("Make OpenGL context current");
+                    }
+                }
+
                 let current_viewport_version = state.viewport_version();
 
                 if viewport_version != current_viewport_version {
