@@ -1,6 +1,9 @@
 use crate::{Color, Error, Viewport};
+
 use iced_native::mouse;
+
 use raw_window_handle::HasRawWindowHandle;
+use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
@@ -56,27 +59,22 @@ pub trait Compositor: Sized {
 }
 
 /// Result of an unsuccessful call to [`Compositor::draw`].
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum SwapChainError {
     /// A timeout was encountered while trying to acquire the next frame.
+    #[error(
+        "A timeout was encountered while trying to acquire the next frame"
+    )]
     Timeout,
     /// The underlying surface has changed, and therefore the swap chain must be updated.
+    #[error(
+        "The underlying surface has changed, and therefore the swap chain must be updated."
+    )]
     Outdated,
     /// The swap chain has been lost and needs to be recreated.
+    #[error("The swap chain has been lost and needs to be recreated")]
     Lost,
     /// There is no more memory left to allocate a new frame.
+    #[error("There is no more memory left to allocate a new frame")]
     OutOfMemory,
-}
-
-impl std::error::Error for SwapChainError {}
-
-impl std::fmt::Display for SwapChainError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::Timeout => "A timeout was encountered while trying to acquire the next frame",
-            Self::Outdated => "The underlying surface has changed, and therefore the swap chain must be updated",
-            Self::Lost =>  "The swap chain has been lost and needs to be recreated",
-            Self::OutOfMemory => "There is no more memory left to allocate a new frame",
-        })
-    }
 }
