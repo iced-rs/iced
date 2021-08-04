@@ -46,7 +46,7 @@ pub fn main() {
         (
             adapter
                 .get_swap_chain_preferred_format(&surface)
-                .expect("Preffered format"),
+                .expect("Get preferred format"),
             adapter
                 .request_device(
                     &wgpu::DeviceDescriptor {
