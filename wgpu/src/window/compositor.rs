@@ -13,6 +13,7 @@ pub struct Compositor {
     queue: wgpu::Queue,
     staging_belt: wgpu::util::StagingBelt,
     local_pool: futures::executor::LocalPool,
+    format: wgpu::TextureFormat,
 }
 
 impl Compositor {
@@ -42,6 +43,10 @@ impl Compositor {
             })
             .await?;
 
+        let format = compatible_surface
+            .as_ref()
+            .and_then(|surf| adapter.get_swap_chain_preferred_format(surf))?;
+
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
@@ -69,12 +74,13 @@ impl Compositor {
             queue,
             staging_belt,
             local_pool,
+            format,
         })
     }
 
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
     pub fn create_backend(&self) -> Backend {
-        Backend::new(&self.device, self.settings)
+        Backend::new(&self.device, self.settings, self.format)
     }
 }
 
@@ -119,7 +125,7 @@ impl iced_graphics::window::Compositor for Compositor {
             surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-                format: self.settings.format,
+                format: self.format,
                 present_mode: self.settings.present_mode,
                 width,
                 height,
