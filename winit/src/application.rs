@@ -366,27 +366,43 @@ async fn run_instance<A, E, C>(
                     viewport_version = current_viewport_version;
                 }
 
-                let new_mouse_interaction = compositor.draw(
+                match compositor.draw(
                     &mut renderer,
                     &mut swap_chain,
                     state.viewport(),
                     state.background_color(),
                     &primitive,
                     &debug.overlay(),
-                );
+                ) {
+                    Ok(new_mouse_interaction) => {
+                        debug.render_finished();
 
-                debug.render_finished();
+                        if new_mouse_interaction != mouse_interaction {
+                            window.set_cursor_icon(
+                                conversion::mouse_interaction(
+                                    new_mouse_interaction,
+                                ),
+                            );
 
-                if new_mouse_interaction != mouse_interaction {
-                    window.set_cursor_icon(conversion::mouse_interaction(
-                        new_mouse_interaction,
-                    ));
+                            mouse_interaction = new_mouse_interaction;
+                        }
 
-                    mouse_interaction = new_mouse_interaction;
+                        // TODO: Handle animations!
+                        // Maybe we can use `ControlFlow::WaitUntil` for this.
+                    }
+                    Err(error) => match error {
+                        // This is an unrecoverable error.
+                        window::SwapChainError::OutOfMemory => {
+                            panic!("{}", error);
+                        }
+                        _ => {
+                            debug.render_finished();
+
+                            // Try rendering again next frame.
+                            window.request_redraw();
+                        }
+                    },
                 }
-
-                // TODO: Handle animations!
-                // Maybe we can use `ControlFlow::WaitUntil` for this.
             }
             event::Event::WindowEvent {
                 event: event::WindowEvent::MenuEntryActivated(entry_id),
