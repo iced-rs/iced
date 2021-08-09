@@ -1,10 +1,10 @@
 use iced_native::{Point, Rectangle, Size, Vector};
+use lyon::tessellation::{FillTessellator, StrokeTessellator};
 
 use crate::{
     canvas::{Fill, Geometry, Path, Stroke, Text},
     triangle, Primitive,
 };
-use lyon::tessellation::FillTessellator;
 
 /// The frame of a [`Canvas`].
 ///
@@ -16,6 +16,7 @@ pub struct Frame {
     primitives: Vec<Primitive>,
     transforms: Transforms,
     fill_tessellator: FillTessellator,
+    stroke_tessellator: StrokeTessellator,
 }
 
 #[derive(Debug)]
@@ -48,6 +49,7 @@ impl Frame {
                 },
             },
             fill_tessellator: FillTessellator::new(),
+            stroke_tessellator: StrokeTessellator::new(),
         }
     }
 
@@ -92,7 +94,7 @@ impl Frame {
             FillVertex(color.into_linear()),
         );
 
-        let mut tessellator = &mut self.fill_tessellator;
+        let tessellator = &mut self.fill_tessellator;
         let options = FillOptions::default().with_fill_rule(rule.into());
 
         let result = if self.transforms.current.is_identity {
@@ -144,9 +146,7 @@ impl Frame {
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
     pub fn stroke(&mut self, path: &Path, stroke: impl Into<Stroke>) {
-        use lyon::tessellation::{
-            BuffersBuilder, StrokeOptions, StrokeTessellator,
-        };
+        use lyon::tessellation::{BuffersBuilder, StrokeOptions};
 
         let stroke = stroke.into();
 
@@ -155,7 +155,7 @@ impl Frame {
             StrokeVertex(stroke.color.into_linear()),
         );
 
-        let mut tessellator = StrokeTessellator::new();
+        let tessellator = &mut self.stroke_tessellator;
 
         let mut options = StrokeOptions::default();
         options.line_width = stroke.width;
