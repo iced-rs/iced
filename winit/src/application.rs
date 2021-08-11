@@ -152,6 +152,7 @@ where
             &application.title(),
             application.mode(),
             event_loop.primary_monitor(),
+            settings.id,
         )
         .with_menu(Some(conversion::menu(&application.menu())))
         .build(&event_loop)
