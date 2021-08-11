@@ -170,37 +170,45 @@ where
         let text_size = self.text_size.unwrap_or(renderer.default_size());
         let font = self.font;
 
+        let measure = |label: &str| -> u32 {
+            let (width, _) = renderer.measure(
+                label,
+                text_size,
+                font,
+                Size::new(f32::INFINITY, f32::INFINITY),
+            );
+
+            width.round() as u32
+        };
+        let placeholder_width = self
+            .placeholder
+            .as_ref()
+            .map(String::as_str)
+            .map(measure)
+            .unwrap_or(100);
+        let selected_width = match self.width {
+            Length::Shrink => {
+                let selected = self.selected.as_ref().map(ToString::to_string);
+                let selected_width =
+                    selected.map(|label| measure(&label)).unwrap_or(100);
+
+                selected_width.max(placeholder_width)
+            }
+            _ => 0,
+        };
         let max_width = match self.width {
             Length::Shrink => {
-                let measure = |label: &str| -> u32 {
-                    let (width, _) = renderer.measure(
-                        label,
-                        text_size,
-                        font,
-                        Size::new(f32::INFINITY, f32::INFINITY),
-                    );
-
-                    width.round() as u32
-                };
-
                 let labels = self.options.iter().map(ToString::to_string);
 
                 let labels_width =
                     labels.map(|label| measure(&label)).max().unwrap_or(100);
-
-                let placeholder_width = self
-                    .placeholder
-                    .as_ref()
-                    .map(String::as_str)
-                    .map(measure)
-                    .unwrap_or(100);
 
                 labels_width.max(placeholder_width)
             }
             _ => 0,
         };
 
-        let size = {
+        let compute_size = |max_width| {
             let intrinsic = Size::new(
                 max_width as f32
                     + f32::from(text_size)
@@ -210,8 +218,10 @@ where
 
             limits.resolve(intrinsic).pad(self.padding)
         };
+        let size = compute_size(selected_width);
+        let menu_size = compute_size(max_width);
 
-        layout::Node::new(size)
+        layout::Node::with_children(size, vec![layout::Node::new(menu_size)])
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -346,6 +356,7 @@ where
         layout: Layout<'_>,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         if *self.is_open {
+            let layout = layout.children().next().unwrap();
             let bounds = layout.bounds();
 
             let mut menu = Menu::new(
