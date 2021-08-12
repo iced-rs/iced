@@ -82,10 +82,10 @@ pub struct Style {
 impl std::default::Default for Style {
     fn default() -> Self {
         Style {
-            color: [0.6, 0.6, 0.6, 0.51].into(),
+            color: [0.6, 0.6, 0.6, 0.6].into(),
             width: 1,
             radius: 0.0,
-            fill_mode: FillMode::Percent(90.0),
+            fill_mode: FillMode::Full,
         }
     }
 }
