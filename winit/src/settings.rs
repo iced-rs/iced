@@ -2,12 +2,15 @@
 #[cfg(target_os = "windows")]
 #[path = "settings/windows.rs"]
 mod platform;
+
 #[cfg(target_os = "macos")]
 #[path = "settings/macos.rs"]
 mod platform;
+
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 #[path = "settings/other.rs"]
 mod platform;
+
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
