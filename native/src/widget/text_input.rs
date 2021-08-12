@@ -582,6 +582,11 @@ where
                         self.state.keyboard_modifiers =
                             keyboard::Modifiers::default();
                     }
+                    keyboard::KeyCode::Tab
+                    | keyboard::KeyCode::Up
+                    | keyboard::KeyCode::Down => {
+                        return event::Status::Ignored;
+                    }
                     _ => {}
                 }
 
@@ -593,6 +598,11 @@ where
                 match key_code {
                     keyboard::KeyCode::V => {
                         self.state.is_pasting = None;
+                    }
+                    keyboard::KeyCode::Tab
+                    | keyboard::KeyCode::Up
+                    | keyboard::KeyCode::Down => {
+                        return event::Status::Ignored;
                     }
                     _ => {}
                 }
