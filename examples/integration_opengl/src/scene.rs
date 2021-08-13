@@ -46,7 +46,10 @@ impl Scene {
                 let shader = gl
                     .create_shader(*shader_type)
                     .expect("Cannot create shader");
-                gl.shader_source(shader, &format!("{}\n{}", shader_version, shader_source));
+                gl.shader_source(
+                    shader,
+                    &format!("{}\n{}", shader_version, shader_source),
+                );
                 gl.compile_shader(shader);
                 if !gl.get_shader_compile_status(shader) {
                     panic!(gl.get_shader_info_log(shader));
@@ -66,7 +69,10 @@ impl Scene {
             }
 
             gl.use_program(Some(program));
-            Self { program, vertex_array }
+            Self {
+                program,
+                vertex_array,
+            }
         }
     }
 
