@@ -231,7 +231,7 @@ use iced_wgpu as renderer;
 use iced_glow as renderer;
 
 #[cfg(target_arch = "wasm32")]
-use iced_web as runtime;
+pub use iced_web as runtime;
 
 #[doc(no_inline)]
 pub use widget::*;
