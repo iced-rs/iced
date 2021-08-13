@@ -1,7 +1,6 @@
 ## `wgpu` integration
 
-A demonstration of how to integrate Iced in an existing graphical application
-that leverages [`wgpu`].
+A demonstration of how to integrate Iced in an existing [`wgpu`] application.
 
 The __[`main`]__ file contains all the code of the example.
 
