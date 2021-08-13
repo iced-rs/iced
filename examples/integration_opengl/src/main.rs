@@ -19,18 +19,23 @@ pub fn main() {
     env_logger::init();
     let (gl, event_loop, windowed_context, shader_version) = {
         let el = glutin::event_loop::EventLoop::new();
+
         let wb = glutin::window::WindowBuilder::new()
             .with_title("OpenGL integration example")
             .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0));
+
         let windowed_context = glutin::ContextBuilder::new()
             .with_vsync(true)
             .build_windowed(wb, &el)
             .unwrap();
+
         unsafe {
             let windowed_context = windowed_context.make_current().unwrap();
+
             let gl = glow::Context::from_loader_function(|s| {
                 windowed_context.get_proc_address(s) as *const _
             });
+
             // Enable auto-conversion from/to sRGB
             gl.enable(glow::FRAMEBUFFER_SRGB);
 
@@ -40,6 +45,7 @@ pub fn main() {
 
             // Disable multisampling by default
             gl.disable(glow::MULTISAMPLE);
+
             (gl, el, windowed_context, "#version 410")
         }
     };
