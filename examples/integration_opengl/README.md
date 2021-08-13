@@ -1,4 +1,4 @@
-## Integration
+## OpenGL integration
 
 A demonstration of how to integrate Iced in an existing graphical OpenGL application.
 

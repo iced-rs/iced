@@ -70,7 +70,8 @@ members = [
     "examples/events",
     "examples/game_of_life",
     "examples/geometry",
-    "examples/integration",
+    "examples/integration_wgpu",
+    "examples/integration_opengl",
     "examples/pane_grid",
     "examples/pick_list",
     "examples/pokedex",
@@ -86,7 +87,6 @@ members = [
     "examples/tooltip",
     "examples/url_handler",
     "examples/menu",
-    "examples/integration_gl",
 ]
 
 [dependencies]

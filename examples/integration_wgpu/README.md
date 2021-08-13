@@ -1,6 +1,7 @@
-## Integration
+## `wgpu` integration
 
-A demonstration of how to integrate Iced in an existing graphical application.
+A demonstration of how to integrate Iced in an existing graphical application
+that leverages [`wgpu`].
 
 The __[`main`]__ file contains all the code of the example.
 
@@ -16,3 +17,4 @@ cargo run --package integration
 ```
 
 [`main`]: src/main.rs
+[`wgpu`]: https://github.com/gfx-rs/wgpu
