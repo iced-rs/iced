@@ -4,14 +4,14 @@
 //!
 //! [`glow`]: https://github.com/grovesNL/glow
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod backend;
-mod program;
+pub mod program;
 mod quad;
 mod text;
 mod triangle;
