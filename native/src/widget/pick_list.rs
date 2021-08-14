@@ -32,7 +32,9 @@ where
     width: Length,
     padding: Padding,
     text_size: Option<u16>,
+    menu_text_size: Option<u16>,
     font: Renderer::Font,
+    menu_font: Option<Renderer::Font>,
     style: <Renderer as self::Renderer>::Style,
 }
 
@@ -93,8 +95,10 @@ where
             selected,
             width: Length::Shrink,
             text_size: None,
+            menu_text_size: None,
             padding: Renderer::DEFAULT_PADDING,
             font: Default::default(),
+            menu_font: None,
             style: Default::default(),
         }
     }
@@ -126,6 +130,18 @@ where
     /// Sets the font of the [`PickList`].
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
+        self
+    }
+
+    /// Sets the menu text size of the [`PickList`].
+    pub fn menu_text_size(mut self, size: u16) -> Self {
+        self.menu_text_size = Some(size);
+        self
+    }
+
+    /// Sets the menu font of the [`PickList`].
+    pub fn menu_font(mut self, font: Renderer::Font) -> Self {
+        self.menu_font = Some(font);
         self
     }
 
@@ -168,9 +184,11 @@ where
             .pad(self.padding);
 
         let text_size = self.text_size.unwrap_or(renderer.default_size());
+        let menu_text_size = self.menu_text_size.unwrap_or(text_size);
         let font = self.font;
+        let menu_font = self.menu_font.unwrap_or(font);
 
-        let measure = |label: &str| -> u32 {
+        let measure = |label: &str, text_size, font| -> u32 {
             let (width, _) = renderer.measure(
                 label,
                 text_size,
@@ -184,42 +202,43 @@ where
             .placeholder
             .as_ref()
             .map(String::as_str)
-            .map(measure)
+            .map(|s| measure(s, text_size, font))
             .unwrap_or(100);
         let selected_width = match self.width {
             Length::Shrink => {
                 let selected = self.selected.as_ref().map(ToString::to_string);
-                let selected_width =
-                    selected.map(|label| measure(&label)).unwrap_or(100);
+                let selected_width = selected
+                    .map(|label| measure(&label, text_size, font))
+                    .unwrap_or(100);
 
                 selected_width.max(placeholder_width)
             }
             _ => 0,
         };
-        let max_width = match self.width {
-            Length::Shrink => {
-                let labels = self.options.iter().map(ToString::to_string);
+        let max_width = {
+            let labels = self.options.iter().map(ToString::to_string);
 
-                let labels_width =
-                    labels.map(|label| measure(&label)).max().unwrap_or(100);
+            let labels_width = labels
+                .map(|label| measure(&label, menu_text_size, menu_font))
+                .max()
+                .unwrap_or(100);
 
-                labels_width.max(placeholder_width)
-            }
-            _ => 0,
+            labels_width.max(placeholder_width)
         };
 
-        let compute_size = |max_width| {
-            let intrinsic = Size::new(
+        let compute_size = |max_width, text_size| {
+            Size::new(
                 max_width as f32
                     + f32::from(text_size)
                     + f32::from(self.padding.left),
                 f32::from(text_size),
-            );
-
-            limits.resolve(intrinsic).pad(self.padding)
+            )
         };
-        let size = compute_size(selected_width);
-        let menu_size = compute_size(max_width);
+        let size = limits
+            .resolve(compute_size(selected_width, text_size))
+            .pad(self.padding);
+        let menu_size =
+            compute_size(max_width, menu_text_size).pad(self.padding);
 
         layout::Node::with_children(size, vec![layout::Node::new(menu_size)])
     }
@@ -367,10 +386,10 @@ where
             )
             .width(bounds.width.round() as u16)
             .padding(self.padding)
-            .font(self.font)
+            .font(self.menu_font.unwrap_or(self.font))
             .style(Renderer::menu_style(&self.style));
 
-            if let Some(text_size) = self.text_size {
+            if let Some(text_size) = self.menu_text_size.or(self.text_size) {
                 menu = menu.text_size(text_size);
             }
 
