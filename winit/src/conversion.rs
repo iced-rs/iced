@@ -229,9 +229,9 @@ fn hotkey(hotkey: keyboard::Hotkey) -> winit::window::Hotkey {
 pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
     fn menu_i<Message>(
         converted: &mut winit::window::Menu,
-        starting_id: usize,
+        starting_id: u16,
         menu: &Menu<Message>,
-    ) -> usize {
+    ) -> u16 {
         let mut id = starting_id;
 
         for item in menu.iter() {
@@ -267,15 +267,15 @@ pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
 
 /// Given a [`Menu`] and an identifier of a [`menu::Entry`], it returns the
 /// `Message` that should be produced when that entry is activated.
-pub fn menu_message<Message>(menu: &Menu<Message>, id: u32) -> Option<Message>
+pub fn menu_message<Message>(menu: &Menu<Message>, id: u16) -> Option<Message>
 where
     Message: Clone,
 {
     fn find_message<Message>(
-        target: u32,
-        starting_id: u32,
+        target: u16,
+        starting_id: u16,
         menu: &Menu<Message>,
-    ) -> Result<Message, u32>
+    ) -> Result<Message, u16>
     where
         Message: Clone,
     {
