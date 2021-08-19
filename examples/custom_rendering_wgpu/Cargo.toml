@@ -1,0 +1,18 @@
+[package]
+name = "custom_rendering_wgpu"
+version = "0.1.0"
+authors = ["Michael Vilim <michael.vilim@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+iced_winit = { path = "../../winit" }
+iced_wgpu = { path = "../../wgpu" }
+iced_native = { path = "../../native" }
+iced_graphics = { path = "../../graphics" }
+env_logger = "0.8"
+
+[dependencies.bytemuck]
+version = "1.4"
+features = ["derive"]
+
