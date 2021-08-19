@@ -10,6 +10,7 @@ documentation = "https://docs.rs/iced"
 readme = "README.md"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
+resolver = "2"
 
 [features]
 default = ["wgpu", "default_system_font"]

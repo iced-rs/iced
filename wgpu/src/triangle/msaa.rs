@@ -31,7 +31,7 @@ impl Blit {
                 label: Some("iced_wgpu::triangle:msaa uniforms layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler {
                         comparison: false,
                         filtering: false,
@@ -55,7 +55,7 @@ impl Blit {
                 label: Some("iced_wgpu::triangle::msaa texture layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float {
                             filterable: false,
@@ -80,7 +80,6 @@ impl Blit {
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     include_str!("../shader/blit.wgsl"),
                 )),
-                flags: wgpu::ShaderFlags::all(),
             });
 
         let pipeline =
@@ -109,7 +108,7 @@ impl Blit {
                                 operation: wgpu::BlendOperation::Add,
                             },
                         }),
-                        write_mask: wgpu::ColorWrite::ALL,
+                        write_mask: wgpu::ColorWrites::ALL,
                     }],
                 }),
                 primitive: wgpu::PrimitiveState {
@@ -232,7 +231,7 @@ impl Targets {
             sample_count,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         });
 
         let resolve = device.create_texture(&wgpu::TextureDescriptor {
@@ -242,8 +241,8 @@ impl Targets {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsage::RENDER_ATTACHMENT
-                | wgpu::TextureUsage::SAMPLED,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING,
         });
 
         let attachment =

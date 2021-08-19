@@ -227,7 +227,7 @@ async fn run_instance<A, E, C>(
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    let surface = compositor.create_surface(&window);
+    let mut surface = compositor.create_surface(&window);
     let mut clipboard = Clipboard::connect(&window);
 
     let mut state = State::new(&application, &window);
@@ -370,6 +370,7 @@ async fn run_instance<A, E, C>(
                 match compositor.draw(
                     &mut renderer,
                     &mut swap_chain,
+                    &mut surface,
                     state.viewport(),
                     state.background_color(),
                     &primitive,

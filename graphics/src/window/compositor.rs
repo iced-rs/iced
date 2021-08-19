@@ -51,6 +51,7 @@ pub trait Compositor: Sized {
         &mut self,
         renderer: &mut Self::Renderer,
         swap_chain: &mut Self::SwapChain,
+        surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,

@@ -31,7 +31,7 @@ pub fn main() {
     let mut clipboard = Clipboard::connect(&window);
 
     // Initialize wgpu
-    let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+    let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
     let surface = unsafe { instance.create_surface(&window) };
 
     let (format, (mut device, queue)) = futures::executor::block_on(async {
@@ -44,8 +44,8 @@ pub fn main() {
             .expect("Request adapter");
 
         (
-            adapter
-                .get_swap_chain_preferred_format(&surface)
+            surface
+                .get_preferred_format(&adapter)
                 .expect("Get preferred format"),
             adapter
                 .request_device(
@@ -61,13 +61,13 @@ pub fn main() {
         )
     });
 
-    let mut swap_chain = {
+    {
         let size = window.inner_size();
 
-        device.create_swap_chain(
-            &surface,
-            &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+        surface.configure(
+            &device,
+            &wgpu::SurfaceConfiguration {
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                 format,
                 width: size.width,
                 height: size.height,
@@ -158,10 +158,10 @@ pub fn main() {
                 if resized {
                     let size = window.inner_size();
 
-                    swap_chain = device.create_swap_chain(
-                        &surface,
-                        &wgpu::SwapChainDescriptor {
-                            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+                    surface.configure(
+                        &device,
+                        &wgpu::SurfaceConfiguration {
+                            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                             format: format,
                             width: size.width,
                             height: size.height,
@@ -172,7 +172,7 @@ pub fn main() {
                     resized = false;
                 }
 
-                match swap_chain.get_current_frame() {
+                match surface.get_current_frame() {
                     Ok(frame) => {
                         let mut encoder = device.create_command_encoder(
                             &wgpu::CommandEncoderDescriptor { label: None },
@@ -180,10 +180,12 @@ pub fn main() {
 
                         let program = state.program();
 
+                        let view = frame.output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
                         {
                             // We clear the frame
                             let mut render_pass = scene.clear(
-                                &frame.output.view,
+                                &view,
                                 &mut encoder,
                                 program.background_color(),
                             );
@@ -197,7 +199,7 @@ pub fn main() {
                             &mut device,
                             &mut staging_belt,
                             &mut encoder,
-                            &frame.output.view,
+                            &view,
                             &viewport,
                             state.primitive(),
                             &debug.overlay(),
@@ -223,7 +225,7 @@ pub fn main() {
                         local_pool.run_until_stalled();
                     }
                     Err(error) => match error {
-                        wgpu::SwapChainError::OutOfMemory => {
+                        wgpu::SurfaceError::OutOfMemory => {
                             panic!("Swapchain error: {}. Rendering cannot continue.", error)
                         }
                         _ => {
