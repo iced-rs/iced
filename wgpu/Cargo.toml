@@ -28,7 +28,7 @@ spirv = ["wgpu/spirv"]
 
 [dependencies]
 wgpu = "0.10"
-wgpu_glyph = {git="https://github.com/rukai/wgpu_glyph.git", branch="update_wgpu_0.10"}
+wgpu_glyph = "0.14"
 glyph_brush = "0.7"
 raw-window-handle = "0.3"
 log = "0.4"
