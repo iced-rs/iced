@@ -232,15 +232,14 @@ async fn run_instance<A, E, C>(
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
-    let mut swap_chain = {
-        let physical_size = state.physical_size();
 
-        compositor.create_swap_chain(
-            &surface,
-            physical_size.width,
-            physical_size.height,
-        )
-    };
+    let physical_size = state.physical_size();
+
+    compositor.configure_surface(
+        &mut surface,
+        physical_size.width,
+        physical_size.height,
+    );
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &mut application,
@@ -358,8 +357,8 @@ async fn run_instance<A, E, C>(
                         .draw(&mut renderer, state.cursor_position());
                     debug.draw_finished();
 
-                    swap_chain = compositor.create_swap_chain(
-                        &surface,
+                    compositor.configure_surface(
+                        &mut surface,
                         physical_size.width,
                         physical_size.height,
                     );
@@ -369,7 +368,6 @@ async fn run_instance<A, E, C>(
 
                 match compositor.draw(
                     &mut renderer,
-                    &mut swap_chain,
                     &mut surface,
                     state.viewport(),
                     state.background_color(),

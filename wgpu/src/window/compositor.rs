@@ -88,7 +88,6 @@ impl iced_graphics::window::Compositor for Compositor {
     type Settings = Settings;
     type Renderer = Renderer;
     type Surface = wgpu::Surface;
-    type SwapChain = ();
 
     fn new<W: HasRawWindowHandle>(
         settings: Self::Settings,
@@ -115,12 +114,12 @@ impl iced_graphics::window::Compositor for Compositor {
         }
     }
 
-    fn create_swap_chain(
+    fn configure_surface(
         &mut self,
-        surface: &Self::Surface,
+        surface: &mut Self::Surface,
         width: u32,
         height: u32,
-    ) -> Self::SwapChain {
+    ) {
         surface.configure(
             &self.device,
             &wgpu::SurfaceConfiguration {
@@ -130,13 +129,12 @@ impl iced_graphics::window::Compositor for Compositor {
                 width,
                 height,
             },
-        )
+        );
     }
 
     fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        _swap_chain: &mut Self::SwapChain,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,

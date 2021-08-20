@@ -16,9 +16,6 @@ pub trait Compositor: Sized {
     /// The surface of the backend.
     type Surface;
 
-    /// The swap chain of the backend.
-    type SwapChain;
-
     /// Creates a new [`Compositor`].
     fn new<W: HasRawWindowHandle>(
         settings: Self::Settings,
@@ -37,12 +34,12 @@ pub trait Compositor: Sized {
     ///
     /// [`SwapChain`]: Self::SwapChain
     /// [`Surface`]: Self::Surface
-    fn create_swap_chain(
+    fn configure_surface(
         &mut self,
-        surface: &Self::Surface,
+        surface: &mut Self::Surface,
         width: u32,
         height: u32,
-    ) -> Self::SwapChain;
+    );
 
     /// Draws the output primitives to the next frame of the given [`SwapChain`].
     ///
@@ -50,7 +47,6 @@ pub trait Compositor: Sized {
     fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        swap_chain: &mut Self::SwapChain,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
