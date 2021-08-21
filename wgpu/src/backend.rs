@@ -7,7 +7,9 @@ use iced_graphics::font;
 use iced_graphics::layer::Layer;
 use iced_graphics::{Primitive, Viewport};
 use iced_native::mouse;
-use iced_native::{Font, HorizontalAlignment, Size, VerticalAlignment};
+use iced_native::{
+    Font, HitTestResult, HorizontalAlignment, Size, VerticalAlignment,
+};
 
 #[cfg(any(feature = "image_rs", feature = "svg"))]
 use crate::image;
@@ -273,6 +275,25 @@ impl backend::Text for Backend {
         bounds: Size,
     ) -> (f32, f32) {
         self.text_pipeline.measure(contents, size, font, bounds)
+    }
+
+    fn hit_test(
+        &self,
+        contents: &str,
+        size: f32,
+        font: Font,
+        bounds: Size,
+        point: iced_native::Point,
+        nearest_only: bool,
+    ) -> HitTestResult {
+        self.text_pipeline.hit_test(
+            contents,
+            size,
+            font,
+            bounds,
+            point,
+            nearest_only,
+        )
     }
 }
 

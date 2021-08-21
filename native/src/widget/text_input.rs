@@ -707,15 +707,15 @@ pub trait Renderer: text::Renderer + Sized {
 
         let offset = self.offset(text_bounds, font, size, &value, &state);
 
-        find_cursor_position(
-            self,
-            &value,
+        self.hit_test(
+            &value.to_string(),
+            size.into(),
             font,
-            size,
-            x + offset,
-            0,
-            value.len(),
+            Size::INFINITY,
+            Point::new(x + offset, text_bounds.height / 2.0),
+            true,
         )
+        .cursor()
     }
 }
 
@@ -800,62 +800,6 @@ impl State {
     /// Selects all the content of the [`TextInput`].
     pub fn select_all(&mut self) {
         self.cursor.select_range(0, usize::MAX);
-    }
-}
-
-// TODO: Reduce allocations
-fn find_cursor_position<Renderer: self::Renderer>(
-    renderer: &Renderer,
-    value: &Value,
-    font: Renderer::Font,
-    size: u16,
-    target: f32,
-    start: usize,
-    end: usize,
-) -> usize {
-    if start >= end {
-        if start == 0 {
-            return 0;
-        }
-
-        let prev = value.until(start - 1);
-        let next = value.until(start);
-
-        let prev_width = renderer.measure_value(&prev.to_string(), size, font);
-        let next_width = renderer.measure_value(&next.to_string(), size, font);
-
-        if next_width - target > target - prev_width {
-            return start - 1;
-        } else {
-            return start;
-        }
-    }
-
-    let index = (end - start) / 2;
-    let subvalue = value.until(start + index);
-
-    let width = renderer.measure_value(&subvalue.to_string(), size, font);
-
-    if width > target {
-        find_cursor_position(
-            renderer,
-            value,
-            font,
-            size,
-            target,
-            start,
-            start + index,
-        )
-    } else {
-        find_cursor_position(
-            renderer,
-            value,
-            font,
-            size,
-            target,
-            start + index + 1,
-            end,
-        )
     }
 }
 
