@@ -237,7 +237,11 @@ pub fn menu<Message>(menu: &Menu<Message>) -> winit::window::Menu {
         for item in menu.iter() {
             match item {
                 menu::Entry::Item { title, hotkey, .. } => {
-                    converted.add_item(id, title, hotkey.map(self::hotkey));
+                    converted.add_item(
+                        id.into(),
+                        title,
+                        hotkey.map(self::hotkey),
+                    );
 
                     id += 1;
                 }
