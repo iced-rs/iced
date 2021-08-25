@@ -45,7 +45,7 @@ impl Compositor {
 
         let format = compatible_surface
             .as_ref()
-            .and_then(|surf| adapter.get_swap_chain_preferred_format(surf))?;
+            .and_then(|surface| surface.get_preferred_format(&adapter))?;
 
         let (device, queue) = adapter
             .request_device(
@@ -88,7 +88,6 @@ impl iced_graphics::window::Compositor for Compositor {
     type Settings = Settings;
     type Renderer = Renderer;
     type Surface = wgpu::Surface;
-    type SwapChain = wgpu::SwapChain;
 
     fn new<W: HasRawWindowHandle>(
         settings: Self::Settings,
@@ -115,34 +114,34 @@ impl iced_graphics::window::Compositor for Compositor {
         }
     }
 
-    fn create_swap_chain(
+    fn configure_surface(
         &mut self,
-        surface: &Self::Surface,
+        surface: &mut Self::Surface,
         width: u32,
         height: u32,
-    ) -> Self::SwapChain {
-        self.device.create_swap_chain(
-            surface,
-            &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+    ) {
+        surface.configure(
+            &self.device,
+            &wgpu::SurfaceConfiguration {
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                 format: self.format,
                 present_mode: self.settings.present_mode,
                 width,
                 height,
             },
-        )
+        );
     }
 
     fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        swap_chain: &mut Self::SwapChain,
+        surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, iced_graphics::window::SwapChainError> {
-        match swap_chain.get_current_frame() {
+    ) -> Result<mouse::Interaction, iced_graphics::window::SurfaceError> {
+        match surface.get_current_frame() {
             Ok(frame) => {
                 let mut encoder = self.device.create_command_encoder(
                     &wgpu::CommandEncoderDescriptor {
@@ -150,13 +149,18 @@ impl iced_graphics::window::Compositor for Compositor {
                     },
                 );
 
+                let view = &frame
+                    .output
+                    .texture
+                    .create_view(&wgpu::TextureViewDescriptor::default());
+
                 let _ =
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some(
                             "iced_wgpu::window::Compositor render pass",
                         ),
                         color_attachments: &[wgpu::RenderPassColorAttachment {
-                            view: &frame.output.view,
+                            view,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Clear({
@@ -180,7 +184,7 @@ impl iced_graphics::window::Compositor for Compositor {
                     &mut self.device,
                     &mut self.staging_belt,
                     &mut encoder,
-                    &frame.output.view,
+                    view,
                     viewport,
                     output,
                     overlay,
@@ -201,17 +205,17 @@ impl iced_graphics::window::Compositor for Compositor {
                 Ok(mouse_interaction)
             }
             Err(error) => match error {
-                wgpu::SwapChainError::Timeout => {
-                    Err(iced_graphics::window::SwapChainError::Timeout)
+                wgpu::SurfaceError::Timeout => {
+                    Err(iced_graphics::window::SurfaceError::Timeout)
                 }
-                wgpu::SwapChainError::Outdated => {
-                    Err(iced_graphics::window::SwapChainError::Outdated)
+                wgpu::SurfaceError::Outdated => {
+                    Err(iced_graphics::window::SurfaceError::Outdated)
                 }
-                wgpu::SwapChainError::Lost => {
-                    Err(iced_graphics::window::SwapChainError::Lost)
+                wgpu::SurfaceError::Lost => {
+                    Err(iced_graphics::window::SurfaceError::Lost)
                 }
-                wgpu::SwapChainError::OutOfMemory => {
-                    Err(iced_graphics::window::SwapChainError::OutOfMemory)
+                wgpu::SurfaceError::OutOfMemory => {
+                    Err(iced_graphics::window::SurfaceError::OutOfMemory)
                 }
             },
         }

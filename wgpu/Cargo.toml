@@ -24,10 +24,11 @@ farbfeld = ["image_rs/farbfeld"]
 canvas = ["iced_graphics/canvas"]
 qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
+spirv = ["wgpu/spirv"]
 
 [dependencies]
-wgpu = "0.9"
-wgpu_glyph = "0.13"
+wgpu = "0.10"
+wgpu_glyph = "0.14"
 glyph_brush = "0.7"
 raw-window-handle = "0.3"
 log = "0.4"

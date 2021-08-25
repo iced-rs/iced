@@ -36,9 +36,9 @@ impl Atlas {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
-            usage: wgpu::TextureUsage::COPY_DST
-                | wgpu::TextureUsage::COPY_SRC
-                | wgpu::TextureUsage::SAMPLED,
+            usage: wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::TEXTURE_BINDING,
         });
 
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor {
@@ -107,7 +107,7 @@ impl Atlas {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image staging buffer"),
                 contents: &padded_data,
-                usage: wgpu::BufferUsage::COPY_SRC,
+                usage: wgpu::BufferUsages::COPY_SRC,
             });
 
         match &entry {
@@ -316,6 +316,7 @@ impl Atlas {
                     y,
                     z: layer as u32,
                 },
+                aspect: wgpu::TextureAspect::default(),
             },
             extent,
         );
@@ -342,9 +343,9 @@ impl Atlas {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
-            usage: wgpu::TextureUsage::COPY_DST
-                | wgpu::TextureUsage::COPY_SRC
-                | wgpu::TextureUsage::SAMPLED,
+            usage: wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::TEXTURE_BINDING,
         });
 
         let amount_to_copy = self.layers.len() - amount;
@@ -365,6 +366,7 @@ impl Atlas {
                         y: 0,
                         z: i as u32,
                     },
+                    aspect: wgpu::TextureAspect::default(),
                 },
                 wgpu::ImageCopyTexture {
                     texture: &new_texture,
@@ -374,6 +376,7 @@ impl Atlas {
                         y: 0,
                         z: i as u32,
                     },
+                    aspect: wgpu::TextureAspect::default(),
                 },
                 wgpu::Extent3d {
                     width: SIZE,

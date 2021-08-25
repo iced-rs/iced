@@ -61,7 +61,7 @@ impl Pipeline {
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
-                        visibility: wgpu::ShaderStage::VERTEX,
+                        visibility: wgpu::ShaderStages::VERTEX,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: false,
@@ -73,7 +73,7 @@ impl Pipeline {
                     },
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
-                        visibility: wgpu::ShaderStage::FRAGMENT,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Sampler {
                             comparison: false,
                             filtering: true,
@@ -86,7 +86,7 @@ impl Pipeline {
         let uniforms_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("iced_wgpu::image uniforms buffer"),
             size: mem::size_of::<Uniforms>() as u64,
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
@@ -117,7 +117,7 @@ impl Pipeline {
                 label: Some("iced_wgpu::image texture atlas layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float {
                             filterable: true,
@@ -142,7 +142,6 @@ impl Pipeline {
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     include_str!("shader/image.wgsl"),
                 )),
-                flags: wgpu::ShaderFlags::all(),
             });
 
         let pipeline =
@@ -155,7 +154,7 @@ impl Pipeline {
                     buffers: &[
                         wgpu::VertexBufferLayout {
                             array_stride: mem::size_of::<Vertex>() as u64,
-                            step_mode: wgpu::InputStepMode::Vertex,
+                            step_mode: wgpu::VertexStepMode::Vertex,
                             attributes: &[wgpu::VertexAttribute {
                                 shader_location: 0,
                                 format: wgpu::VertexFormat::Float32x2,
@@ -164,7 +163,7 @@ impl Pipeline {
                         },
                         wgpu::VertexBufferLayout {
                             array_stride: mem::size_of::<Instance>() as u64,
-                            step_mode: wgpu::InputStepMode::Instance,
+                            step_mode: wgpu::VertexStepMode::Instance,
                             attributes: &wgpu::vertex_attr_array!(
                                 1 => Float32x2,
                                 2 => Float32x2,
@@ -192,7 +191,7 @@ impl Pipeline {
                                 operation: wgpu::BlendOperation::Add,
                             },
                         }),
-                        write_mask: wgpu::ColorWrite::ALL,
+                        write_mask: wgpu::ColorWrites::ALL,
                     }],
                 }),
                 primitive: wgpu::PrimitiveState {
@@ -212,20 +211,20 @@ impl Pipeline {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image vertex buffer"),
                 contents: bytemuck::cast_slice(&QUAD_VERTS),
-                usage: wgpu::BufferUsage::VERTEX,
+                usage: wgpu::BufferUsages::VERTEX,
             });
 
         let indices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image index buffer"),
                 contents: bytemuck::cast_slice(&QUAD_INDICES),
-                usage: wgpu::BufferUsage::INDEX,
+                usage: wgpu::BufferUsages::INDEX,
             });
 
         let instances = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("iced_wgpu::image instance buffer"),
             size: mem::size_of::<Instance>() as u64 * Instance::MAX as u64,
-            usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
