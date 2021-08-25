@@ -140,7 +140,7 @@ impl iced_graphics::window::Compositor for Compositor {
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, iced_graphics::window::SwapChainError> {
+    ) -> Result<mouse::Interaction, iced_graphics::window::SurfaceError> {
         match surface.get_current_frame() {
             Ok(frame) => {
                 let mut encoder = self.device.create_command_encoder(
@@ -206,16 +206,16 @@ impl iced_graphics::window::Compositor for Compositor {
             }
             Err(error) => match error {
                 wgpu::SurfaceError::Timeout => {
-                    Err(iced_graphics::window::SwapChainError::Timeout)
+                    Err(iced_graphics::window::SurfaceError::Timeout)
                 }
                 wgpu::SurfaceError::Outdated => {
-                    Err(iced_graphics::window::SwapChainError::Outdated)
+                    Err(iced_graphics::window::SurfaceError::Outdated)
                 }
                 wgpu::SurfaceError::Lost => {
-                    Err(iced_graphics::window::SwapChainError::Lost)
+                    Err(iced_graphics::window::SurfaceError::Lost)
                 }
                 wgpu::SurfaceError::OutOfMemory => {
-                    Err(iced_graphics::window::SwapChainError::OutOfMemory)
+                    Err(iced_graphics::window::SurfaceError::OutOfMemory)
                 }
             },
         }

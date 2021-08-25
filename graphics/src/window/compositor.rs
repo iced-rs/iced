@@ -52,12 +52,12 @@ pub trait Compositor: Sized {
         background_color: Color,
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, SwapChainError>;
+    ) -> Result<mouse::Interaction, SurfaceError>;
 }
 
 /// Result of an unsuccessful call to [`Compositor::draw`].
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
-pub enum SwapChainError {
+pub enum SurfaceError {
     /// A timeout was encountered while trying to acquire the next frame.
     #[error(
         "A timeout was encountered while trying to acquire the next frame"

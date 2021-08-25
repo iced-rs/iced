@@ -392,7 +392,7 @@ async fn run_instance<A, E, C>(
                     }
                     Err(error) => match error {
                         // This is an unrecoverable error.
-                        window::SwapChainError::OutOfMemory => {
+                        window::SurfaceError::OutOfMemory => {
                             panic!("{}", error);
                         }
                         _ => {
