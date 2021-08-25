@@ -45,7 +45,7 @@ impl Compositor {
 
         let format = compatible_surface
             .as_ref()
-            .and_then(|surf| surf.get_preferred_format(&adapter))?;
+            .and_then(|surface| surface.get_preferred_format(&adapter))?;
 
         let (device, queue) = adapter
             .request_device(
