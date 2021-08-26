@@ -5,15 +5,19 @@ use crate::{
     triangle, Primitive,
 };
 
+use lyon::tessellation;
+
 /// The frame of a [`Canvas`].
 ///
 /// [`Canvas`]: crate::widget::Canvas
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
     buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
     primitives: Vec<Primitive>,
     transforms: Transforms,
+    fill_tessellator: tessellation::FillTessellator,
+    stroke_tessellator: tessellation::StrokeTessellator,
 }
 
 #[derive(Debug)]
@@ -45,6 +49,8 @@ impl Frame {
                     is_identity: true,
                 },
             },
+            fill_tessellator: tessellation::FillTessellator::new(),
+            stroke_tessellator: tessellation::StrokeTessellator::new(),
         }
     }
 
@@ -75,26 +81,30 @@ impl Frame {
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        use lyon::tessellation::{
-            BuffersBuilder, FillOptions, FillTessellator,
-        };
-
         let Fill { color, rule } = fill.into();
 
-        let mut buffers = BuffersBuilder::new(
+        let mut buffers = tessellation::BuffersBuilder::new(
             &mut self.buffers,
             FillVertex(color.into_linear()),
         );
 
-        let mut tessellator = FillTessellator::new();
-        let options = FillOptions::default().with_fill_rule(rule.into());
+        let options =
+            tessellation::FillOptions::default().with_fill_rule(rule.into());
 
         let result = if self.transforms.current.is_identity {
-            tessellator.tessellate_path(path.raw(), &options, &mut buffers)
+            self.fill_tessellator.tessellate_path(
+                path.raw(),
+                &options,
+                &mut buffers,
+            )
         } else {
             let path = path.transformed(&self.transforms.current.raw);
 
-            tessellator.tessellate_path(path.raw(), &options, &mut buffers)
+            self.fill_tessellator.tessellate_path(
+                path.raw(),
+                &options,
+                &mut buffers,
+            )
         };
 
         let _ = result.expect("Tessellate path");
@@ -109,13 +119,10 @@ impl Frame {
         fill: impl Into<Fill>,
     ) {
         use lyon::path::builder::PathBuilder;
-        use lyon::tessellation::{
-            BuffersBuilder, FillOptions, FillTessellator,
-        };
 
         let Fill { color, rule } = fill.into();
 
-        let mut buffers = BuffersBuilder::new(
+        let mut buffers = tessellation::BuffersBuilder::new(
             &mut self.buffers,
             FillVertex(color.into_linear()),
         );
@@ -130,10 +137,10 @@ impl Frame {
                 lyon::math::Vector::new(size.width, size.height),
             );
 
-        let mut tessellator = FillTessellator::new();
-        let options = FillOptions::default().with_fill_rule(rule.into());
+        let options =
+            tessellation::FillOptions::default().with_fill_rule(rule.into());
 
-        let mut builder = tessellator.builder(&options, &mut buffers);
+        let mut builder = self.fill_tessellator.builder(&options, &mut buffers);
 
         builder.add_rectangle(
             &lyon::math::Rect::new(top_left, size.into()),
@@ -146,31 +153,33 @@ impl Frame {
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
     pub fn stroke(&mut self, path: &Path, stroke: impl Into<Stroke>) {
-        use lyon::tessellation::{
-            BuffersBuilder, StrokeOptions, StrokeTessellator,
-        };
-
         let stroke = stroke.into();
 
-        let mut buffers = BuffersBuilder::new(
+        let mut buffers = tessellation::BuffersBuilder::new(
             &mut self.buffers,
             StrokeVertex(stroke.color.into_linear()),
         );
 
-        let mut tessellator = StrokeTessellator::new();
-
-        let mut options = StrokeOptions::default();
+        let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
         options.start_cap = stroke.line_cap.into();
         options.end_cap = stroke.line_cap.into();
         options.line_join = stroke.line_join.into();
 
         let result = if self.transforms.current.is_identity {
-            tessellator.tessellate_path(path.raw(), &options, &mut buffers)
+            self.stroke_tessellator.tessellate_path(
+                path.raw(),
+                &options,
+                &mut buffers,
+            )
         } else {
             let path = path.transformed(&self.transforms.current.raw);
 
-            tessellator.tessellate_path(path.raw(), &options, &mut buffers)
+            self.stroke_tessellator.tessellate_path(
+                path.raw(),
+                &options,
+                &mut buffers,
+            )
         };
 
         let _ = result.expect("Stroke path");
