@@ -4,8 +4,7 @@ use crate::{Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::text;
 use iced_native::{
-    Color, Font, HitTestResult, HorizontalAlignment, Point, Rectangle, Size,
-    VerticalAlignment,
+    Color, Font, HorizontalAlignment, Point, Rectangle, Size, VerticalAlignment,
 };
 
 /// A paragraph of text.
@@ -44,7 +43,7 @@ where
         bounds: Size,
         point: Point,
         nearest_only: bool,
-    ) -> HitTestResult {
+    ) -> text::Hit {
         self.backend().hit_test(
             content,
             size,

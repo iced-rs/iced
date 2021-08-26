@@ -17,12 +17,12 @@
 pub mod keyboard;
 pub mod menu;
 pub mod mouse;
+pub mod text;
 
 mod align;
 mod background;
 mod color;
 mod font;
-mod hit_test;
 mod length;
 mod padding;
 mod point;
@@ -34,7 +34,6 @@ pub use align::{Align, HorizontalAlignment, VerticalAlignment};
 pub use background::Background;
 pub use color::Color;
 pub use font::Font;
-pub use hit_test::HitTestResult;
 pub use length::Length;
 pub use menu::Menu;
 pub use padding::Padding;

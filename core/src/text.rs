@@ -1,8 +1,9 @@
+//! Draw and interact with text.
 use crate::Vector;
 
 /// The result of hit testing on text.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum HitTestResult {
+pub enum Hit {
     /// The point was within the bounds of the returned character index.
     CharOffset(usize),
     /// The provided point was not within the bounds of a glyph. The index
@@ -11,12 +12,12 @@ pub enum HitTestResult {
     NearestCharOffset(usize, Vector),
 }
 
-impl HitTestResult {
+impl Hit {
     /// Computes the cursor position corresponding to this [`HitTestResult`] .
     pub fn cursor(&self) -> usize {
         match self {
-            HitTestResult::CharOffset(i) => *i,
-            HitTestResult::NearestCharOffset(i, delta) => {
+            Self::CharOffset(i) => *i,
+            Self::NearestCharOffset(i, delta) => {
                 if delta.x > f32::EPSILON {
                     i + 1
                 } else {

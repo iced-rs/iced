@@ -1,7 +1,8 @@
 //! Write a graphics backend.
 use iced_native::image;
 use iced_native::svg;
-use iced_native::{Font, HitTestResult, Point, Size};
+use iced_native::text;
+use iced_native::{Font, Point, Size};
 
 /// The graphics backend of a [`Renderer`].
 ///
@@ -59,7 +60,7 @@ pub trait Text {
         bounds: Size,
         point: Point,
         nearest_only: bool,
-    ) -> HitTestResult;
+    ) -> text::Hit;
 }
 
 /// A graphics backend that supports image rendering.

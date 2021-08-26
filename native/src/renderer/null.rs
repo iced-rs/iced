@@ -1,8 +1,8 @@
 use crate::{
     button, checkbox, column, container, pane_grid, progress_bar, radio, row,
     scrollable, slider, text, text_input, toggler, Color, Element, Font,
-    HitTestResult, HorizontalAlignment, Layout, Padding, Point, Rectangle,
-    Renderer, Size, Vector, VerticalAlignment,
+    HorizontalAlignment, Layout, Padding, Point, Rectangle, Renderer, Size,
+    Vector, VerticalAlignment,
 };
 
 /// A renderer that does nothing.
@@ -75,8 +75,8 @@ impl text::Renderer for Null {
         _bounds: Size,
         _point: Point,
         _nearest_only: bool,
-    ) -> HitTestResult {
-        HitTestResult::NearestCharOffset(0, Vector::new(0., 0.))
+    ) -> text::Hit {
+        text::Hit::NearestCharOffset(0, Vector::new(0., 0.))
     }
 
     fn draw(

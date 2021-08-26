@@ -2,14 +2,13 @@ use crate::quad;
 use crate::text;
 use crate::triangle;
 use crate::{Settings, Transformation};
+
 use iced_graphics::backend;
 use iced_graphics::font;
 use iced_graphics::layer::Layer;
 use iced_graphics::{Primitive, Viewport};
 use iced_native::mouse;
-use iced_native::{
-    Font, HitTestResult, HorizontalAlignment, Size, VerticalAlignment,
-};
+use iced_native::{Font, HorizontalAlignment, Size, VerticalAlignment};
 
 #[cfg(any(feature = "image_rs", feature = "svg"))]
 use crate::image;
@@ -285,7 +284,7 @@ impl backend::Text for Backend {
         bounds: Size,
         point: iced_native::Point,
         nearest_only: bool,
-    ) -> HitTestResult {
+    ) -> text::Hit {
         self.text_pipeline.hit_test(
             contents,
             size,

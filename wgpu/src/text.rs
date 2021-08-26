@@ -1,8 +1,11 @@
 use crate::Transformation;
+
 use iced_graphics::font;
-use iced_native::HitTestResult;
+
 use std::{cell::RefCell, collections::HashMap};
 use wgpu_glyph::ab_glyph;
+
+pub use iced_native::text::Hit;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -126,7 +129,7 @@ impl Pipeline {
         bounds: iced_native::Size,
         point: iced_native::Point,
         nearest_only: bool,
-    ) -> HitTestResult {
+    ) -> Hit {
         use wgpu_glyph::GlyphCruncher;
 
         let wgpu_glyph::FontId(font_id) = self.find_font(font);
@@ -187,7 +190,7 @@ impl Pipeline {
         if !nearest_only {
             for (idx, bounds) in bounds.clone() {
                 if bounds.contains(point) {
-                    return HitTestResult::CharOffset(char_index(idx));
+                    return Hit::CharOffset(char_index(idx));
                 }
             }
         }
@@ -203,10 +206,7 @@ impl Pipeline {
             },
         );
 
-        HitTestResult::NearestCharOffset(
-            char_index(idx),
-            (point - nearest).into(),
-        )
+        Hit::NearestCharOffset(char_index(idx), (point - nearest).into())
     }
 
     pub fn trim_measurement_cache(&mut self) {

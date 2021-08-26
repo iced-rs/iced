@@ -1,8 +1,10 @@
 //! Write some text for your users to read.
 use crate::{
-    layout, Color, Element, Hasher, HitTestResult, HorizontalAlignment, Layout,
-    Length, Point, Rectangle, Size, VerticalAlignment, Widget,
+    layout, Color, Element, Hasher, HorizontalAlignment, Layout, Length, Point,
+    Rectangle, Size, VerticalAlignment, Widget,
 };
+
+pub use iced_core::text::Hit;
 
 use std::hash::Hash;
 
@@ -183,7 +185,7 @@ pub trait Renderer: crate::Renderer {
     /// laid out with the given parameters, returning information about
     /// the nearest character.
     ///
-    /// If nearest_only is true, the hit test does not consider whether the
+    /// If `nearest_only` is true, the hit test does not consider whether the
     /// the point is interior to any glyph bounds, returning only the character
     /// with the nearest centeroid.
     fn hit_test(
@@ -194,7 +196,7 @@ pub trait Renderer: crate::Renderer {
         bounds: Size,
         point: Point,
         nearest_only: bool,
-    ) -> HitTestResult;
+    ) -> Hit;
 
     /// Draws a [`Text`] fragment.
     ///
