@@ -17,6 +17,7 @@
 pub mod keyboard;
 pub mod menu;
 pub mod mouse;
+pub mod text;
 
 mod align;
 mod background;

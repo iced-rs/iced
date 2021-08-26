@@ -4,6 +4,8 @@ use crate::{
     Rectangle, Size, VerticalAlignment, Widget,
 };
 
+pub use iced_core::text::Hit;
+
 use std::hash::Hash;
 
 /// A paragraph of text.
@@ -178,6 +180,23 @@ pub trait Renderer: crate::Renderer {
         font: Self::Font,
         bounds: Size,
     ) -> (f32, f32);
+
+    /// Tests whether the provided point is within the boundaries of [`Text`]
+    /// laid out with the given parameters, returning information about
+    /// the nearest character.
+    ///
+    /// If `nearest_only` is true, the hit test does not consider whether the
+    /// the point is interior to any glyph bounds, returning only the character
+    /// with the nearest centeroid.
+    fn hit_test(
+        &self,
+        contents: &str,
+        size: f32,
+        font: Self::Font,
+        bounds: Size,
+        point: Point,
+        nearest_only: bool,
+    ) -> Hit;
 
     /// Draws a [`Text`] fragment.
     ///

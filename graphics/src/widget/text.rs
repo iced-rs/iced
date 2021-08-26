@@ -4,7 +4,7 @@ use crate::{Primitive, Renderer};
 use iced_native::mouse;
 use iced_native::text;
 use iced_native::{
-    Color, Font, HorizontalAlignment, Rectangle, Size, VerticalAlignment,
+    Color, Font, HorizontalAlignment, Point, Rectangle, Size, VerticalAlignment,
 };
 
 /// A paragraph of text.
@@ -33,6 +33,25 @@ where
     ) -> (f32, f32) {
         self.backend()
             .measure(content, f32::from(size), font, bounds)
+    }
+
+    fn hit_test(
+        &self,
+        content: &str,
+        size: f32,
+        font: Font,
+        bounds: Size,
+        point: Point,
+        nearest_only: bool,
+    ) -> text::Hit {
+        self.backend().hit_test(
+            content,
+            size,
+            font,
+            bounds,
+            point,
+            nearest_only,
+        )
     }
 
     fn draw(
