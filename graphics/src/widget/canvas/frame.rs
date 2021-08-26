@@ -118,8 +118,6 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        use lyon::path::builder::PathBuilder;
-
         let Fill { color, rule } = fill.into();
 
         let mut buffers = tessellation::BuffersBuilder::new(
@@ -140,14 +138,14 @@ impl Frame {
         let options =
             tessellation::FillOptions::default().with_fill_rule(rule.into());
 
-        let mut builder = self.fill_tessellator.builder(&options, &mut buffers);
-
-        builder.add_rectangle(
-            &lyon::math::Rect::new(top_left, size.into()),
-            lyon::path::Winding::Positive,
-        );
-
-        let _ = builder.build().expect("Fill rectangle");
+        let _ = self
+            .fill_tessellator
+            .tessellate_rectangle(
+                &lyon::math::Rect::new(top_left, size.into()),
+                &options,
+                &mut buffers,
+            )
+            .expect("Fill rectangle");
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
