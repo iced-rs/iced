@@ -21,7 +21,7 @@ thiserror = "1.0"
 [dependencies.winit]
 version = "0.25"
 git = "https://github.com/iced-rs/winit"
-rev = "fea65a7f852fb36956adc0b13b6647e25eec33ec"
+rev = "24a75a7bdc10d2dc2f520c36284618e9ae6c2568"
 
 [dependencies.iced_native]
 version = "0.4"
