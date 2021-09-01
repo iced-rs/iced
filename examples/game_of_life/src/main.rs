@@ -12,8 +12,8 @@ use iced::slider::{self, Slider};
 use iced::time;
 use iced::window;
 use iced::{
-    Align, Application, Checkbox, Clipboard, Column, Command, Container,
-    Element, Length, Row, Settings, Subscription, Text,
+    Align, Application, Checkbox, Column, Command, Container, Element, Length,
+    Row, Settings, Subscription, Text,
 };
 use preset::Preset;
 use std::time::{Duration, Instant};
@@ -71,11 +71,7 @@ impl Application for GameOfLife {
         String::from("Game of Life - Iced")
     }
 
-    fn update(
-        &mut self,
-        message: Message,
-        _clipboard: &mut Clipboard,
-    ) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Grid(message, version) => {
                 if version == self.version {

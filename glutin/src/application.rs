@@ -48,7 +48,7 @@ where
 
     let subscription = application.subscription();
 
-    runtime.spawn(init_command);
+    application::run_command(init_command, &mut runtime);
     runtime.track(subscription);
 
     let context = {
@@ -211,7 +211,6 @@ async fn run_instance<A, E, C>(
                         &mut application,
                         &mut runtime,
                         &mut debug,
-                        &mut clipboard,
                         &mut messages,
                     );
 

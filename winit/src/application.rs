@@ -30,7 +30,7 @@ use std::mem::ManuallyDrop;
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-pub trait Application: Program<Clipboard = Clipboard> {
+pub trait Application: Program {
     /// The data needed to initialize your [`Application`].
     type Flags;
 
@@ -143,7 +143,7 @@ where
 
     let subscription = application.subscription();
 
-    runtime.spawn(init_command);
+    run_command(init_command, &mut runtime);
     runtime.track(subscription);
 
     let window = settings
@@ -290,7 +290,6 @@ async fn run_instance<A, E, C>(
                         &mut application,
                         &mut runtime,
                         &mut debug,
-                        &mut clipboard,
                         &mut messages,
                     );
 
@@ -492,19 +491,36 @@ pub fn update<A: Application, E: Executor>(
     application: &mut A,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     debug: &mut Debug,
-    clipboard: &mut A::Clipboard,
     messages: &mut Vec<A::Message>,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
 
         debug.update_started();
-        let command = runtime.enter(|| application.update(message, clipboard));
+        let command = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        runtime.spawn(command);
+        run_command(command, runtime);
     }
 
     let subscription = application.subscription();
     runtime.track(subscription);
+}
+
+/// Runs the actions of a [`Command`].
+pub fn run_command<Message: 'static + Send, E: Executor>(
+    command: Command<Message>,
+    runtime: &mut Runtime<E, Proxy<Message>, Message>,
+) {
+    use iced_native::command;
+
+    for action in command.actions() {
+        match action {
+            command::Action::Future(future) => {
+                runtime.spawn(future);
+            }
+            command::Action::Clipboard(_action) => unimplemented! {},
+            command::Action::Window(_action) => unimplemented! {},
+        }
+    }
 }

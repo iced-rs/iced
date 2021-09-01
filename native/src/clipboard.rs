@@ -21,3 +21,20 @@ impl Clipboard for Null {
 
     fn write(&mut self, _contents: String) {}
 }
+
+pub enum Action<T> {
+    Read(Box<dyn Fn(Option<String>) -> T>),
+    Write(Box<dyn Fn(String) -> T>),
+}
+
+impl<T> Action<T> {
+    pub fn map<A>(self, f: impl Fn(T) -> A + 'static + Send + Sync) -> Action<A>
+    where
+        T: 'static,
+    {
+        match self {
+            Self::Read(o) => Action::Read(Box::new(move |s| f(o(s)))),
+            Self::Write(o) => Action::Write(Box::new(move |s| f(o(s)))),
+        }
+    }
+}

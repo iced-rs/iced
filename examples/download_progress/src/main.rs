@@ -1,6 +1,6 @@
 use iced::{
-    button, executor, Align, Application, Button, Clipboard, Column, Command,
-    Container, Element, Length, ProgressBar, Settings, Subscription, Text,
+    button, executor, Align, Application, Button, Column, Command, Container,
+    Element, Length, ProgressBar, Settings, Subscription, Text,
 };
 
 mod download;
@@ -43,11 +43,7 @@ impl Application for Example {
         String::from("Download progress - Iced")
     }
 
-    fn update(
-        &mut self,
-        message: Message,
-        _clipboard: &mut Clipboard,
-    ) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Add => {
                 self.last_id = self.last_id + 1;

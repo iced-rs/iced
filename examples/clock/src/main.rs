@@ -1,7 +1,7 @@
 use iced::{
     canvas::{self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke},
-    executor, time, Application, Clipboard, Color, Command, Container, Element,
-    Length, Point, Rectangle, Settings, Subscription, Vector,
+    executor, time, Application, Color, Command, Container, Element, Length,
+    Point, Rectangle, Settings, Subscription, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -40,11 +40,7 @@ impl Application for Clock {
         String::from("Clock - Iced")
     }
 
-    fn update(
-        &mut self,
-        message: Message,
-        _clipboard: &mut Clipboard,
-    ) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Tick(local_time) => {
                 let now = local_time;

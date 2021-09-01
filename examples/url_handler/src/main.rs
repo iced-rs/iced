@@ -1,6 +1,6 @@
 use iced::{
-    executor, Application, Clipboard, Command, Container, Element, Length,
-    Settings, Subscription, Text,
+    executor, Application, Command, Container, Element, Length, Settings,
+    Subscription, Text,
 };
 use iced_native::{
     event::{MacOS, PlatformSpecific},
@@ -34,11 +34,7 @@ impl Application for App {
         String::from("Url - Iced")
     }
 
-    fn update(
-        &mut self,
-        message: Message,
-        _clipboard: &mut Clipboard,
-    ) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::EventOccurred(event) => {
                 if let Event::PlatformSpecific(PlatformSpecific::MacOS(
