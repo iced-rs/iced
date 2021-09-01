@@ -62,7 +62,7 @@ impl Path {
         transform: &lyon::math::Transform,
     ) -> Path {
         Path {
-            raw: self.raw.transformed(transform),
+            raw: self.raw.clone().transformed(transform),
         }
     }
 }
