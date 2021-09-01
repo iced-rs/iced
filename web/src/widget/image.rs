@@ -72,12 +72,15 @@ impl<Message> Widget<Message> for Image {
         use dodrio::builder::*;
         use dodrio::bumpalo::collections::String;
 
-        let src = String::from_str_in(
-            match self.handle.data.as_ref() {
-                Data::Path(path) => path.to_str().unwrap_or(""),
+        let src = match self.handle.data.as_ref() {
+            Data::Path(path) => {
+                String::from_str_in(path.to_str().unwrap_or(""), bump)
+            }
+            Data::Bytes(bytes) => {
+                // The web is able to infer the kind of image, so we don't have to add a dependency on image-rs to guess the mime type.
+                bumpalo::format!(in bump, "data:;base64,{}", base64::encode(bytes))
             },
-            bump,
-        )
+        }
         .into_bump_str();
 
         let alt = String::from_str_in(&self.alt, bump).into_bump_str();
@@ -122,6 +125,14 @@ impl Handle {
         Self::from_data(Data::Path(path.into()))
     }
 
+    /// Creates an image [`Handle`] containing the image data directly.
+    ///
+    /// This is useful if you already have your image loaded in-memory, maybe
+    /// because you downloaded or generated it procedurally.
+    pub fn from_memory(bytes: Vec<u8>) -> Handle {
+        Self::from_data(Data::Bytes(bytes))
+    }
+
     fn from_data(data: Data) -> Handle {
         let mut hasher = Hasher::default();
         data.hash(&mut hasher);
@@ -160,12 +171,16 @@ impl From<&str> for Handle {
 pub enum Data {
     /// A remote image
     Path(PathBuf),
+
+    /// In-memory data
+    Bytes(Vec<u8>),
 }
 
 impl std::fmt::Debug for Data {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Data::Path(path) => write!(f, "Path({:?})", path),
+            Data::Bytes(_) => write!(f, "Bytes(...)"),
         }
     }
 }
