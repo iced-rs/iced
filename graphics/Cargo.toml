@@ -37,8 +37,6 @@ path = "../style"
 
 [dependencies.lyon]
 version = "0.17"
-git = "https://github.com/nical/lyon.git"
-rev = "7cf55e76786602e1af767aeec0eccacc783d9d4b"
 optional = true
 
 [dependencies.qrcode]
