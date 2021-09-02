@@ -26,7 +26,12 @@ impl iced_graphics::window::GLCompositor for Compositor {
 
         // Enable alpha blending
         gl.enable(glow::BLEND);
-        gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
+        gl.blend_func_separate(
+            glow::SRC_ALPHA,
+            glow::ONE_MINUS_SRC_ALPHA,
+            glow::ONE,
+            glow::ONE_MINUS_SRC_ALPHA,
+        );
 
         // Disable multisampling by default
         gl.disable(glow::MULTISAMPLE);
