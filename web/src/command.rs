@@ -33,7 +33,7 @@ impl<T> Command<T> {
 
     /// Applies a transformation to the result of a [`Command`].
     #[cfg(target_arch = "wasm32")]
-    pub fn map<A>(mut self, f: impl Fn(T) -> A + 'static + Clone) -> Command<A>
+    pub fn map<A>(self, f: impl Fn(T) -> A + 'static + Clone) -> Command<A>
     where
         T: 'static,
     {
