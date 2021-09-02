@@ -62,10 +62,10 @@ impl iced_native::Clipboard for Clipboard {
 pub fn read<Message>(
     f: impl Fn(Option<String>) -> Message + 'static,
 ) -> Command<Message> {
-    Command::Single(command::Action::Clipboard(Action::Read(Box::new(f))))
+    Command::single(command::Action::Clipboard(Action::Read(Box::new(f))))
 }
 
 /// Write the given contents to the clipboard.
 pub fn write<Message>(contents: String) -> Command<Message> {
-    Command::Single(command::Action::Clipboard(Action::Write(contents)))
+    Command::single(command::Action::Clipboard(Action::Write(contents)))
 }
