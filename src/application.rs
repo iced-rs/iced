@@ -57,7 +57,7 @@ use crate::{Color, Command, Element, Executor, Menu, Settings, Subscription};
 /// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::{executor, Application, Clipboard, Command, Element, Settings, Text};
+/// use iced::{executor, Application, Command, Element, Settings, Text};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
