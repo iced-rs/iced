@@ -24,7 +24,7 @@ impl Clipboard for Null {
 
 pub enum Action<T> {
     Read(Box<dyn Fn(Option<String>) -> T>),
-    Write(Box<dyn Fn(String) -> T>),
+    Write(String),
 }
 
 impl<T> Action<T> {
@@ -34,7 +34,7 @@ impl<T> Action<T> {
     {
         match self {
             Self::Read(o) => Action::Read(Box::new(move |s| f(o(s)))),
-            Self::Write(o) => Action::Write(Box::new(move |s| f(o(s)))),
+            Self::Write(content) => Action::Write(content),
         }
     }
 }

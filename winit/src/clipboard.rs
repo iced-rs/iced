@@ -1,3 +1,6 @@
+//! Access the clipboard.
+pub use iced_native::clipboard::Action;
+
 /// A buffer for short-term storage and transfer within and between
 /// applications.
 #[allow(missing_debug_implementations)]

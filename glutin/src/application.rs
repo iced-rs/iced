@@ -33,6 +33,8 @@ where
     debug.startup_started();
 
     let event_loop = EventLoop::with_user_event();
+    let mut proxy = event_loop.create_proxy();
+
     let mut runtime = {
         let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
         let proxy = Proxy::new(event_loop.create_proxy());
@@ -47,9 +49,6 @@ where
     };
 
     let subscription = application.subscription();
-
-    application::run_command(init_command, &mut runtime);
-    runtime.track(subscription);
 
     let context = {
         let builder = settings
@@ -90,6 +89,16 @@ where
         })?
     };
 
+    let mut clipboard = Clipboard::connect(context.window());
+
+    application::run_command(
+        init_command,
+        &mut runtime,
+        &mut clipboard,
+        &mut proxy,
+    );
+    runtime.track(subscription);
+
     let (mut sender, receiver) = mpsc::unbounded();
 
     let mut instance = Box::pin(run_instance::<A, E, C>(
@@ -97,6 +106,8 @@ where
         compositor,
         renderer,
         runtime,
+        clipboard,
+        proxy,
         debug,
         receiver,
         context,
@@ -145,6 +156,8 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
+    mut clipboard: Clipboard,
+    mut proxy: glutin::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<glutin::event::Event<'_, A::Message>>,
     mut context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
@@ -156,8 +169,6 @@ async fn run_instance<A, E, C>(
 {
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
-
-    let mut clipboard = Clipboard::connect(context.window());
 
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
@@ -210,6 +221,8 @@ async fn run_instance<A, E, C>(
                     application::update(
                         &mut application,
                         &mut runtime,
+                        &mut clipboard,
+                        &mut proxy,
                         &mut debug,
                         &mut messages,
                     );

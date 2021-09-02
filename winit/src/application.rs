@@ -3,11 +3,12 @@ mod state;
 
 pub use state::State;
 
+use crate::clipboard::{self, Clipboard};
 use crate::conversion;
 use crate::mouse;
 use crate::{
-    Clipboard, Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime,
-    Settings, Size, Subscription,
+    Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings,
+    Size, Subscription,
 };
 
 use iced_futures::futures;
@@ -127,6 +128,7 @@ where
     debug.startup_started();
 
     let event_loop = EventLoop::with_user_event();
+    let mut proxy = event_loop.create_proxy();
 
     let mut runtime = {
         let proxy = Proxy::new(event_loop.create_proxy());
@@ -143,9 +145,6 @@ where
 
     let subscription = application.subscription();
 
-    run_command(init_command, &mut runtime);
-    runtime.track(subscription);
-
     let window = settings
         .window
         .into_builder(
@@ -158,6 +157,11 @@ where
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
+    let mut clipboard = Clipboard::connect(&window);
+
+    run_command(init_command, &mut runtime, &mut clipboard, &mut proxy);
+    runtime.track(subscription);
+
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
     let (mut sender, receiver) = mpsc::unbounded();
@@ -167,6 +171,8 @@ where
         compositor,
         renderer,
         runtime,
+        clipboard,
+        proxy,
         debug,
         receiver,
         window,
@@ -215,6 +221,8 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
+    mut clipboard: Clipboard,
+    mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
     window: winit::window::Window,
@@ -228,7 +236,6 @@ async fn run_instance<A, E, C>(
     use winit::event;
 
     let mut surface = compositor.create_surface(&window);
-    let mut clipboard = Clipboard::connect(&window);
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -289,6 +296,8 @@ async fn run_instance<A, E, C>(
                     update(
                         &mut application,
                         &mut runtime,
+                        &mut clipboard,
+                        &mut proxy,
                         &mut debug,
                         &mut messages,
                     );
@@ -490,6 +499,8 @@ pub fn build_user_interface<'a, A: Application>(
 pub fn update<A: Application, E: Executor>(
     application: &mut A,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
+    clipboard: &mut Clipboard,
+    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
 ) {
@@ -500,7 +511,7 @@ pub fn update<A: Application, E: Executor>(
         let command = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        run_command(command, runtime);
+        run_command(command, runtime, clipboard, proxy);
     }
 
     let subscription = application.subscription();
@@ -508,9 +519,11 @@ pub fn update<A: Application, E: Executor>(
 }
 
 /// Runs the actions of a [`Command`].
-pub fn run_command<Message: 'static + Send, E: Executor>(
+pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     command: Command<Message>,
     runtime: &mut Runtime<E, Proxy<Message>, Message>,
+    clipboard: &mut Clipboard,
+    proxy: &mut winit::event_loop::EventLoopProxy<Message>,
 ) {
     use iced_native::command;
 
@@ -519,7 +532,18 @@ pub fn run_command<Message: 'static + Send, E: Executor>(
             command::Action::Future(future) => {
                 runtime.spawn(future);
             }
-            command::Action::Clipboard(_action) => unimplemented! {},
+            command::Action::Clipboard(action) => match action {
+                clipboard::Action::Read(tag) => {
+                    let message = tag(clipboard.read());
+
+                    proxy
+                        .send_event(message)
+                        .expect("Send message to event loop");
+                }
+                clipboard::Action::Write(contents) => {
+                    clipboard.write(contents);
+                }
+            },
             command::Action::Window(_action) => unimplemented! {},
         }
     }
