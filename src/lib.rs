@@ -183,6 +183,7 @@ mod error;
 mod result;
 mod sandbox;
 
+pub mod clipboard;
 pub mod executor;
 pub mod keyboard;
 pub mod mouse;
