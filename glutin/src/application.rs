@@ -96,6 +96,7 @@ where
         &mut runtime,
         &mut clipboard,
         &mut proxy,
+        context.window(),
     );
     runtime.track(subscription);
 
@@ -225,6 +226,7 @@ async fn run_instance<A, E, C>(
                         &mut proxy,
                         &mut debug,
                         &mut messages,
+                        context.window(),
                     );
 
                     // Update window

@@ -159,7 +159,13 @@ where
 
     let mut clipboard = Clipboard::connect(&window);
 
-    run_command(init_command, &mut runtime, &mut clipboard, &mut proxy);
+    run_command(
+        init_command,
+        &mut runtime,
+        &mut clipboard,
+        &mut proxy,
+        &window,
+    );
     runtime.track(subscription);
 
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
@@ -300,6 +306,7 @@ async fn run_instance<A, E, C>(
                         &mut proxy,
                         &mut debug,
                         &mut messages,
+                        &window,
                     );
 
                     // Update window
@@ -503,6 +510,7 @@ pub fn update<A: Application, E: Executor>(
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
+    window: &winit::window::Window,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -511,7 +519,7 @@ pub fn update<A: Application, E: Executor>(
         let command = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        run_command(command, runtime, clipboard, proxy);
+        run_command(command, runtime, clipboard, proxy, window);
     }
 
     let subscription = application.subscription();
@@ -524,8 +532,10 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     runtime: &mut Runtime<E, Proxy<Message>, Message>,
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
+    window: &winit::window::Window,
 ) {
     use iced_native::command;
+    use iced_native::window;
 
     for action in command.actions() {
         match action {
@@ -544,7 +554,20 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                     clipboard.write(contents);
                 }
             },
-            command::Action::Window(_action) => unimplemented! {},
+            command::Action::Window(action) => match action {
+                window::Action::Resize { width, height } => {
+                    window.set_inner_size(winit::dpi::LogicalSize {
+                        width,
+                        height,
+                    });
+                }
+                window::Action::Move { x, y } => {
+                    window.set_outer_position(winit::dpi::LogicalPosition {
+                        x,
+                        y,
+                    });
+                }
+            },
         }
     }
 }
