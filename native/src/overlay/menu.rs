@@ -19,7 +19,7 @@ pub struct Menu<'a, T, Renderer: self::Renderer> {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
-    width: u16,
+    width: Option<u16>,
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
@@ -44,7 +44,7 @@ where
             options,
             hovered_option,
             last_selection,
-            width: 0,
+            width: None,
             padding: Padding::ZERO,
             text_size: None,
             font: Default::default(),
@@ -54,7 +54,7 @@ where
 
     /// Sets the width of the [`Menu`].
     pub fn width(mut self, width: u16) -> Self {
-        self.width = width;
+        self.width = Some(width);
         self
     }
 
@@ -116,22 +116,24 @@ impl State {
     }
 }
 
-struct Overlay<'a, Message, Renderer: self::Renderer> {
+struct Overlay<'a, T: Clone + ToString, Message, Renderer: self::Renderer> {
     container: Container<'a, Message, Renderer>,
-    width: u16,
+    options: &'a [T],
+    padding: Padding,
+    text_size: Option<u16>,
+    font: Renderer::Font,
+    width: Option<u16>,
     target_height: f32,
     style: <Renderer as self::Renderer>::Style,
 }
 
-impl<'a, Message, Renderer: self::Renderer> Overlay<'a, Message, Renderer>
+impl<'a, T, Message, Renderer: self::Renderer> Overlay<'a, T, Message, Renderer>
 where
+    T: 'a + Clone + ToString,
     Message: 'a,
     Renderer: 'a,
 {
-    pub fn new<T>(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self
-    where
-        T: Clone + ToString,
-    {
+    pub fn new(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self {
         let Menu {
             state,
             options,
@@ -157,18 +159,23 @@ where
             .padding(1);
 
         Self {
+            options,
+            padding,
+            text_size,
+            font,
             container,
-            width: width,
+            width,
             target_height,
-            style: style,
+            style,
         }
     }
 }
 
-impl<'a, Message, Renderer> crate::Overlay<Message, Renderer>
-    for Overlay<'a, Message, Renderer>
+impl<'a, T, Message, Renderer> crate::Overlay<Message, Renderer>
+    for Overlay<'a, T, Message, Renderer>
 where
     Renderer: self::Renderer,
+    T: Clone + ToString,
 {
     fn layout(
         &self,
@@ -176,6 +183,31 @@ where
         bounds: Size,
         position: Point,
     ) -> layout::Node {
+        let width = self.width.unwrap_or_else(|| {
+            let text_size = self.text_size.unwrap_or(renderer.default_size());
+            let measure = |label: &str| -> u16 {
+                let (width, _) = renderer.measure(
+                    label,
+                    text_size,
+                    self.font,
+                    Size::new(f32::INFINITY, f32::INFINITY),
+                );
+
+                width.round() as u16
+            };
+
+            let max_width = {
+                let labels = self.options.iter().map(ToString::to_string);
+
+                labels.map(|label| measure(&label)).max().unwrap_or(100)
+            };
+
+            max_width as u16
+                + text_size
+                + self.padding.left
+                + self.padding.horizontal()
+        });
+
         let space_below = bounds.height - (position.y + self.target_height);
         let space_above = position.y;
 
@@ -190,7 +222,7 @@ where
                 },
             ),
         )
-        .width(Length::Units(self.width));
+        .width(Length::Units(width));
 
         let mut node = self.container.layout(renderer, &limits);
 
@@ -224,7 +256,7 @@ where
         messages: &mut Vec<Message>,
     ) -> event::Status {
         self.container.on_event(
-            event.clone(),
+            event,
             layout,
             cursor_position,
             renderer,

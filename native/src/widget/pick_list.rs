@@ -30,6 +30,7 @@ where
     placeholder: Option<String>,
     selected: Option<T>,
     width: Length,
+    menu_width: Option<u16>,
     padding: Padding,
     text_size: Option<u16>,
     menu_text_size: Option<u16>,
@@ -94,6 +95,7 @@ where
             placeholder: None,
             selected,
             width: Length::Shrink,
+            menu_width: None,
             text_size: None,
             menu_text_size: None,
             padding: Renderer::DEFAULT_PADDING,
@@ -112,6 +114,12 @@ where
     /// Sets the width of the [`PickList`].
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the menu width of the [`PickList`].
+    pub fn menu_width(mut self, width: u16) -> Self {
+        self.menu_width = Some(width);
         self
     }
 
@@ -184,11 +192,9 @@ where
             .pad(self.padding);
 
         let text_size = self.text_size.unwrap_or(renderer.default_size());
-        let menu_text_size = self.menu_text_size.unwrap_or(text_size);
         let font = self.font;
-        let menu_font = self.menu_font.unwrap_or(font);
 
-        let measure = |label: &str, text_size, font| -> u32 {
+        let measure = |label: &str| -> u32 {
             let (width, _) = renderer.measure(
                 label,
                 text_size,
@@ -198,49 +204,31 @@ where
 
             width.round() as u32
         };
-        let placeholder_width = self
-            .placeholder
-            .as_ref()
-            .map(String::as_str)
-            .map(|s| measure(s, text_size, font))
-            .unwrap_or(100);
-        let selected_width = match self.width {
+
+        let placeholder_width =
+            self.placeholder.as_deref().map(measure).unwrap_or(100);
+
+        let selected_max_width = match self.width {
             Length::Shrink => {
                 let selected = self.selected.as_ref().map(ToString::to_string);
-                let selected_width = selected
-                    .map(|label| measure(&label, text_size, font))
-                    .unwrap_or(100);
+                let selected_width =
+                    selected.map(|label| measure(&label)).unwrap_or(100);
 
                 selected_width.max(placeholder_width)
             }
             _ => 0,
         };
-        let max_width = {
-            let labels = self.options.iter().map(ToString::to_string);
 
-            let labels_width = labels
-                .map(|label| measure(&label, menu_text_size, menu_font))
-                .max()
-                .unwrap_or(100);
-
-            labels_width.max(placeholder_width)
-        };
-
-        let compute_size = |max_width, text_size| {
-            Size::new(
-                max_width as f32
+        let size = limits
+            .resolve(Size::new(
+                selected_max_width as f32
                     + f32::from(text_size)
                     + f32::from(self.padding.left),
                 f32::from(text_size),
-            )
-        };
-        let size = limits
-            .resolve(compute_size(selected_width, text_size))
+            ))
             .pad(self.padding);
-        let menu_size =
-            compute_size(max_width, menu_text_size).pad(self.padding);
 
-        layout::Node::with_children(size, vec![layout::Node::new(menu_size)])
+        layout::Node::new(size)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -362,7 +350,7 @@ where
             layout.bounds(),
             cursor_position,
             self.selected.as_ref().map(ToString::to_string),
-            self.placeholder.as_ref().map(String::as_str),
+            self.placeholder.as_deref(),
             self.padding,
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
@@ -375,7 +363,6 @@ where
         layout: Layout<'_>,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         if *self.is_open {
-            let layout = layout.children().next().unwrap();
             let bounds = layout.bounds();
 
             let mut menu = Menu::new(
@@ -384,10 +371,13 @@ where
                 &mut self.hovered_option,
                 &mut self.last_selection,
             )
-            .width(bounds.width.round() as u16)
             .padding(self.padding)
             .font(self.menu_font.unwrap_or(self.font))
             .style(Renderer::menu_style(&self.style));
+
+            if let Some(width) = self.menu_width {
+                menu = menu.width(width);
+            }
 
             if let Some(text_size) = self.menu_text_size.or(self.text_size) {
                 menu = menu.text_size(text_size);
