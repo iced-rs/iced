@@ -45,6 +45,8 @@ impl Sandbox for Example {
             self.selected_language,
             Message::LanguageSelected,
         )
+        // Menu width can be made independent from PickList width
+        // .menu_width(pick_list::MenuWidth::Independent)
         .placeholder("Choose a language...");
 
         let mut content = Scrollable::new(&mut self.scroll)

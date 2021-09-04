@@ -1,5 +1,5 @@
 //! Display a dropdown list of selectable values.
-pub use iced_native::pick_list::State;
+pub use iced_native::pick_list::{MenuWidth, State};
 
 pub use iced_graphics::overlay::menu::Style as Menu;
 pub use iced_graphics::pick_list::{Style, StyleSheet};

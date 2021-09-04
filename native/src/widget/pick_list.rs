@@ -14,6 +14,17 @@ use crate::{
 };
 use std::borrow::Cow;
 
+/// Enum for declaring a menu's width.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MenuWidth {
+    /// Menu width will follow the [`PickList`] width.
+    FollowPickList,
+    /// Menu width will be independent from [`PickList`] width.
+    Independent,
+    /// Menu width will be set to these specific units.
+    Units(u16),
+}
+
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
 pub struct PickList<'a, T, Message, Renderer: self::Renderer>
@@ -30,7 +41,7 @@ where
     placeholder: Option<String>,
     selected: Option<T>,
     width: Length,
-    menu_width: Option<u16>,
+    menu_width: MenuWidth,
     padding: Padding,
     text_size: Option<u16>,
     menu_text_size: Option<u16>,
@@ -95,7 +106,7 @@ where
             placeholder: None,
             selected,
             width: Length::Shrink,
-            menu_width: None,
+            menu_width: MenuWidth::FollowPickList,
             text_size: None,
             menu_text_size: None,
             padding: Renderer::DEFAULT_PADDING,
@@ -118,8 +129,8 @@ where
     }
 
     /// Sets the menu width of the [`PickList`].
-    pub fn menu_width(mut self, width: u16) -> Self {
-        self.menu_width = Some(width);
+    pub fn menu_width(mut self, width: MenuWidth) -> Self {
+        self.menu_width = width;
         self
     }
 
@@ -375,9 +386,13 @@ where
             .font(self.menu_font.unwrap_or(self.font))
             .style(Renderer::menu_style(&self.style));
 
-            if let Some(width) = self.menu_width {
-                menu = menu.width(width);
-            }
+            menu = match self.menu_width {
+                MenuWidth::FollowPickList => {
+                    menu.width(bounds.width.round() as u16)
+                }
+                MenuWidth::Units(width) => menu.width(width),
+                MenuWidth::Independent => menu,
+            };
 
             if let Some(text_size) = self.menu_text_size.or(self.text_size) {
                 menu = menu.text_size(text_size);

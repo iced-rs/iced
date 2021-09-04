@@ -202,10 +202,7 @@ where
                 labels.map(|label| measure(&label)).max().unwrap_or(100)
             };
 
-            max_width as u16
-                + text_size
-                + self.padding.left
-                + self.padding.horizontal()
+            max_width as u16 + text_size + self.padding.horizontal()
         });
 
         let space_below = bounds.height - (position.y + self.target_height);

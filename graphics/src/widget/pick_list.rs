@@ -7,7 +7,7 @@ use iced_native::{
 };
 use iced_style::menu;
 
-pub use iced_native::pick_list::State;
+pub use iced_native::pick_list::{MenuWidth, State};
 pub use iced_style::pick_list::{Style, StyleSheet};
 
 /// A widget allowing the selection of a single value from a list of options.
