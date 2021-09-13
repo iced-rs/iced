@@ -59,7 +59,7 @@ use dodrio::bumpalo;
 use std::{cell::RefCell, rc::Rc};
 
 mod bus;
-mod clipboard;
+mod command;
 mod element;
 mod hasher;
 
@@ -68,7 +68,7 @@ pub mod subscription;
 pub mod widget;
 
 pub use bus::Bus;
-pub use clipboard::Clipboard;
+pub use command::Command;
 pub use css::Css;
 pub use dodrio;
 pub use element::Element;
@@ -77,7 +77,7 @@ pub use iced_core::{
     keyboard, menu, mouse, Align, Background, Color, Font, HorizontalAlignment,
     Length, Menu, Padding, Point, Rectangle, Size, Vector, VerticalAlignment,
 };
-pub use iced_futures::{executor, futures, Command};
+pub use iced_futures::{executor, futures};
 pub use subscription::Subscription;
 
 #[doc(no_inline)]
@@ -128,11 +128,7 @@ pub trait Application {
     /// this method.
     ///
     /// Any [`Command`] returned will be executed immediately in the background.
-    fn update(
-        &mut self,
-        message: Self::Message,
-        clipboard: &mut Clipboard,
-    ) -> Command<Self::Message>;
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
     /// Returns the widgets to display in the [`Application`].
     ///
@@ -162,8 +158,6 @@ pub trait Application {
         let document = window.document().unwrap();
         let body = document.body().unwrap();
 
-        let mut clipboard = Clipboard::new();
-
         let (sender, receiver) =
             iced_futures::futures::channel::mpsc::unbounded();
 
@@ -177,7 +171,7 @@ pub trait Application {
         let mut title = app.title();
         document.set_title(&title);
 
-        runtime.spawn(command);
+        run_command(command, &mut runtime);
 
         let application = Rc::new(RefCell::new(app));
 
@@ -190,8 +184,7 @@ pub trait Application {
 
         let event_loop = receiver.for_each(move |message| {
             let (command, subscription) = runtime.enter(|| {
-                let command =
-                    application.borrow_mut().update(message, &mut clipboard);
+                let command = application.borrow_mut().update(message);
                 let subscription = application.borrow().subscription();
 
                 (command, subscription)
@@ -199,7 +192,7 @@ pub trait Application {
 
             let new_title = application.borrow().title();
 
-            runtime.spawn(command);
+            run_command(command, &mut runtime);
             runtime.track(subscription);
 
             if title != new_title {
@@ -350,8 +343,7 @@ pub trait Embedded {
         );
 
         let (app, command) = runtime.enter(|| Self::new(flags));
-
-        runtime.spawn(command);
+        run_command(command, &mut runtime);
 
         let application = Rc::new(RefCell::new(app));
 
@@ -370,7 +362,7 @@ pub trait Embedded {
                 (command, subscription)
             });
 
-            runtime.spawn(command);
+            run_command(command, &mut runtime);
             runtime.track(subscription);
 
             vdom.weak().schedule_render();
@@ -379,6 +371,25 @@ pub trait Embedded {
         });
 
         wasm_bindgen_futures::spawn_local(event_loop);
+    }
+}
+
+fn run_command<Message: 'static + Send, E: Executor>(
+    command: Command<Message>,
+    runtime: &mut iced_futures::Runtime<
+        Hasher,
+        (),
+        E,
+        iced_futures::futures::channel::mpsc::UnboundedSender<Message>,
+        Message,
+    >,
+) {
+    for action in command.actions() {
+        match action {
+            command::Action::Future(future) => {
+                runtime.spawn(future);
+            }
+        }
     }
 }
 

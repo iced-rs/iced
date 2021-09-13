@@ -1,7 +1,6 @@
 use iced::menu::{self, Menu};
 use iced::{
-    executor, Application, Clipboard, Command, Container, Element, Length,
-    Settings, Text,
+    executor, Application, Command, Container, Element, Length, Settings, Text,
 };
 use iced_native::keyboard::{Hotkey, KeyCode, Modifiers};
 
@@ -92,11 +91,7 @@ impl Application for App {
         ])
     }
 
-    fn update(
-        &mut self,
-        message: Message,
-        _clipboard: &mut Clipboard,
-    ) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::MenuActivated(entry) => self.selected = Some(entry),
         }

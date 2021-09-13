@@ -16,10 +16,14 @@ pub use iced_native::*;
 
 pub mod application;
 
+pub use iced_winit::clipboard;
 pub use iced_winit::settings;
-pub use iced_winit::{Clipboard, Error, Mode};
+pub use iced_winit::window;
+pub use iced_winit::{Error, Mode};
 
 #[doc(no_inline)]
 pub use application::Application;
+#[doc(no_inline)]
+pub use clipboard::Clipboard;
 #[doc(no_inline)]
 pub use settings::Settings;

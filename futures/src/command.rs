@@ -1,91 +1,25 @@
-use crate::BoxFuture;
-use futures::future::{Future, FutureExt};
+/// A set of asynchronous actions to be performed by some runtime.
+#[derive(Debug)]
+pub struct Command<T>(Internal<T>);
 
-/// A collection of async operations.
-///
-/// You should be able to turn a future easily into a [`Command`], either by
-/// using the `From` trait or [`Command::perform`].
-pub struct Command<T> {
-    futures: Vec<BoxFuture<T>>,
+#[derive(Debug)]
+enum Internal<T> {
+    None,
+    Single(T),
+    Batch(Vec<T>),
 }
 
 impl<T> Command<T> {
     /// Creates an empty [`Command`].
     ///
     /// In other words, a [`Command`] that does nothing.
-    pub fn none() -> Self {
-        Self {
-            futures: Vec::new(),
-        }
+    pub const fn none() -> Self {
+        Self(Internal::None)
     }
 
-    /// Creates a [`Command`] that performs the action of the given future.
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn perform<A>(
-        future: impl Future<Output = T> + 'static + Send,
-        f: impl Fn(T) -> A + 'static + Send,
-    ) -> Command<A> {
-        Command {
-            futures: vec![Box::pin(future.map(f))],
-        }
-    }
-
-    /// Creates a [`Command`] that performs the action of the given future.
-    #[cfg(target_arch = "wasm32")]
-    pub fn perform<A>(
-        future: impl Future<Output = T> + 'static,
-        f: impl Fn(T) -> A + 'static + Send,
-    ) -> Command<A> {
-        Command {
-            futures: vec![Box::pin(future.map(f))],
-        }
-    }
-
-    /// Applies a transformation to the result of a [`Command`].
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn map<A>(
-        mut self,
-        f: impl Fn(T) -> A + 'static + Send + Sync,
-    ) -> Command<A>
-    where
-        T: 'static,
-    {
-        let f = std::sync::Arc::new(f);
-
-        Command {
-            futures: self
-                .futures
-                .drain(..)
-                .map(|future| {
-                    let f = f.clone();
-
-                    Box::pin(future.map(move |result| f(result)))
-                        as BoxFuture<A>
-                })
-                .collect(),
-        }
-    }
-
-    /// Applies a transformation to the result of a [`Command`].
-    #[cfg(target_arch = "wasm32")]
-    pub fn map<A>(mut self, f: impl Fn(T) -> A + 'static) -> Command<A>
-    where
-        T: 'static,
-    {
-        let f = std::rc::Rc::new(f);
-
-        Command {
-            futures: self
-                .futures
-                .drain(..)
-                .map(|future| {
-                    let f = f.clone();
-
-                    Box::pin(future.map(move |result| f(result)))
-                        as BoxFuture<A>
-                })
-                .collect(),
-        }
+    /// Creates a [`Command`] that performs a single [`Action`].
+    pub const fn single(action: T) -> Self {
+        Self(Internal::Single(action))
     }
 
     /// Creates a [`Command`] that performs the actions of all the given
@@ -93,46 +27,43 @@ impl<T> Command<T> {
     ///
     /// Once this command is run, all the commands will be executed at once.
     pub fn batch(commands: impl IntoIterator<Item = Command<T>>) -> Self {
-        Self {
-            futures: commands
-                .into_iter()
-                .flat_map(|command| command.futures)
-                .collect(),
+        let mut batch = Vec::new();
+
+        for Command(command) in commands {
+            match command {
+                Internal::None => {}
+                Internal::Single(command) => batch.push(command),
+                Internal::Batch(commands) => batch.extend(commands),
+            }
+        }
+
+        Self(Internal::Batch(batch))
+    }
+
+    /// Applies a transformation to the result of a [`Command`].
+    pub fn map<A>(self, f: impl Fn(T) -> A) -> Command<A>
+    where
+        T: 'static,
+    {
+        let Command(command) = self;
+
+        match command {
+            Internal::None => Command::none(),
+            Internal::Single(action) => Command::single(f(action)),
+            Internal::Batch(batch) => {
+                Command(Internal::Batch(batch.into_iter().map(f).collect()))
+            }
         }
     }
 
-    /// Converts a [`Command`] into its underlying list of futures.
-    pub fn futures(self) -> Vec<BoxFuture<T>> {
-        self.futures
-    }
-}
+    /// Returns all of the actions of the [`Command`].
+    pub fn actions(self) -> Vec<T> {
+        let Command(command) = self;
 
-#[cfg(not(target_arch = "wasm32"))]
-impl<T, A> From<A> for Command<T>
-where
-    A: Future<Output = T> + 'static + Send,
-{
-    fn from(future: A) -> Self {
-        Self {
-            futures: vec![future.boxed()],
+        match command {
+            Internal::None => Vec::new(),
+            Internal::Single(action) => vec![action],
+            Internal::Batch(batch) => batch,
         }
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-impl<T, A> From<A> for Command<T>
-where
-    A: Future<Output = T> + 'static,
-{
-    fn from(future: A) -> Self {
-        Self {
-            futures: vec![future.boxed_local()],
-        }
-    }
-}
-
-impl<T> std::fmt::Debug for Command<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Command").finish()
     }
 }

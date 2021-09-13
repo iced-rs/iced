@@ -183,6 +183,7 @@ mod error;
 mod result;
 mod sandbox;
 
+pub mod clipboard;
 pub mod executor;
 pub mod keyboard;
 pub mod mouse;
@@ -245,7 +246,7 @@ pub use sandbox::Sandbox;
 pub use settings::Settings;
 
 pub use runtime::{
-    futures, menu, Align, Background, Clipboard, Color, Command, Font,
+    futures, menu, Align, Background, Color, Command, Font,
     HorizontalAlignment, Length, Menu, Point, Rectangle, Size, Subscription,
     Vector, VerticalAlignment,
 };

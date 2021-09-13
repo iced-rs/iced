@@ -1,7 +1,7 @@
 use iced::{
     button, scrollable, text_input, Align, Application, Button, Checkbox,
-    Clipboard, Column, Command, Container, Element, Font, HorizontalAlignment,
-    Length, Row, Scrollable, Settings, Text, TextInput,
+    Column, Command, Container, Element, Font, HorizontalAlignment, Length,
+    Row, Scrollable, Settings, Text, TextInput,
 };
 use serde::{Deserialize, Serialize};
 
@@ -58,11 +58,7 @@ impl Application for Todos {
         format!("Todos{} - Iced", if dirty { "*" } else { "" })
     }
 
-    fn update(
-        &mut self,
-        message: Message,
-        _clipboard: &mut Clipboard,
-    ) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match self {
             Todos::Loading => {
                 match message {

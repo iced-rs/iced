@@ -34,6 +34,7 @@
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 pub mod clipboard;
+pub mod command;
 pub mod event;
 pub mod keyboard;
 pub mod layout;
@@ -64,12 +65,13 @@ pub use iced_core::{
     menu, Align, Background, Color, Font, HorizontalAlignment, Length, Menu,
     Padding, Point, Rectangle, Size, Vector, VerticalAlignment,
 };
-pub use iced_futures::{executor, futures, Command};
+pub use iced_futures::{executor, futures};
 
 #[doc(no_inline)]
 pub use executor::Executor;
 
 pub use clipboard::Clipboard;
+pub use command::Command;
 pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;

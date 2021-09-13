@@ -1,5 +1,6 @@
 //! Run commands and keep track of subscriptions.
-use crate::{subscription, Command, Executor, Subscription};
+use crate::BoxFuture;
+use crate::{subscription, Executor, Subscription};
 
 use futures::{channel::mpsc, Sink};
 use std::marker::PhantomData;
@@ -51,22 +52,18 @@ where
     ///
     /// The resulting `Message` will be forwarded to the `Sender` of the
     /// [`Runtime`].
-    pub fn spawn(&mut self, command: Command<Message>) {
+    pub fn spawn(&mut self, future: BoxFuture<Message>) {
         use futures::{FutureExt, SinkExt};
 
-        let futures = command.futures();
+        let mut sender = self.sender.clone();
 
-        for future in futures {
-            let mut sender = self.sender.clone();
+        let future = future.then(|message| async move {
+            let _ = sender.send(message).await;
 
-            let future = future.then(|message| async move {
-                let _ = sender.send(message).await;
+            ()
+        });
 
-                ()
-            });
-
-            self.executor.spawn(future);
-        }
+        self.executor.spawn(future);
     }
 
     /// Tracks a [`Subscription`] in the [`Runtime`].

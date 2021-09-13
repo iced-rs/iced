@@ -25,10 +25,11 @@ pub use iced_native::*;
 pub use winit;
 
 pub mod application;
+pub mod clipboard;
 pub mod conversion;
 pub mod settings;
+pub mod window;
 
-mod clipboard;
 mod error;
 mod mode;
 mod position;

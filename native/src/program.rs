@@ -1,5 +1,5 @@
 //! Build interactive programs using The Elm Architecture.
-use crate::{Clipboard, Command, Element, Renderer};
+use crate::{Command, Element, Renderer};
 
 mod state;
 
@@ -13,9 +13,6 @@ pub trait Program: Sized {
     /// The type of __messages__ your [`Program`] will produce.
     type Message: std::fmt::Debug + Clone + Send;
 
-    /// The type of [`Clipboard`] your [`Program`] will use.
-    type Clipboard: Clipboard;
-
     /// Handles a __message__ and updates the state of the [`Program`].
     ///
     /// This is where you define your __update logic__. All the __messages__,
@@ -24,11 +21,7 @@ pub trait Program: Sized {
     ///
     /// Any [`Command`] returned will be executed immediately in the
     /// background by shells.
-    fn update(
-        &mut self,
-        message: Self::Message,
-        clipboard: &mut Self::Clipboard,
-    ) -> Command<Self::Message>;
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`].
     ///

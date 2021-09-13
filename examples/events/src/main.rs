@@ -1,7 +1,7 @@
 use iced::{
-    button, executor, Align, Application, Button, Checkbox, Clipboard, Column,
-    Command, Container, Element, HorizontalAlignment, Length, Settings,
-    Subscription, Text,
+    button, executor, Align, Application, Button, Checkbox, Column, Command,
+    Container, Element, HorizontalAlignment, Length, Settings, Subscription,
+    Text,
 };
 use iced_native::{window, Event};
 
@@ -40,11 +40,7 @@ impl Application for Events {
         String::from("Events - Iced")
     }
 
-    fn update(
-        &mut self,
-        message: Message,
-        _clipboard: &mut Clipboard,
-    ) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::EventOccurred(event) if self.enabled => {
                 self.last.push(event);

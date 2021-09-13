@@ -13,10 +13,9 @@ pub enum Event {
 
     /// A window was resized.
     Resized {
-        /// The new width of the window (in units)
+        /// The new logical width of the window
         width: u32,
-
-        /// The new height of the window (in units)
+        /// The new logical height of the window
         height: u32,
     },
 
