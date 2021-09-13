@@ -50,8 +50,8 @@
 //! [`wasm-pack`]: https://github.com/rustwasm/wasm-pack
 //! [`wasm-bindgen`]: https://github.com/rustwasm/wasm-bindgen
 //! [`tour` example]: https://github.com/hecrj/iced/tree/0.3/examples/tour
-//#![deny(missing_docs)]
-//#![deny(missing_debug_implementations)]
+#![deny(missing_docs)]
+#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]

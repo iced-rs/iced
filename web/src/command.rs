@@ -2,6 +2,8 @@ mod action;
 
 pub use action::Action;
 
+use std::fmt;
+
 #[cfg(target_arch = "wasm32")]
 use std::future::Future;
 
@@ -58,5 +60,13 @@ impl<T> Command<T> {
         let Command(command) = self;
 
         command.actions()
+    }
+}
+
+impl<T> fmt::Debug for Command<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Command(command) = self;
+
+        command.fmt(f)
     }
 }
