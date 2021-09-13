@@ -1,7 +1,9 @@
+//! Run asynchronous actions.
 mod action;
 
 pub use action::Action;
 
+use std::fmt;
 use std::future::Future;
 
 /// A set of asynchronous actions to be performed by some runtime.
@@ -58,5 +60,13 @@ impl<T> Command<T> {
         let Command(command) = self;
 
         command.actions()
+    }
+}
+
+impl<T> fmt::Debug for Command<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Command(command) = self;
+
+        command.fmt(f)
     }
 }

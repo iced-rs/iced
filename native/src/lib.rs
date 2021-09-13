@@ -28,8 +28,8 @@
 //! [`druid`]: https://github.com/xi-editor/druid
 //! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
 //! [renderer]: crate::renderer
-//#![deny(missing_docs)]
-//#![deny(missing_debug_implementations)]
+#![deny(missing_docs)]
+#![deny(missing_debug_implementations)]
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
