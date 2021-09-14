@@ -76,7 +76,11 @@ where
     let max_cross = axis.cross(limits.max());
 
     let mut fill_sum = 0;
-    let mut cross = axis.cross(limits.min()).max(axis.cross(limits.fill()));
+    let mut cross = if align_items == Align::Fill {
+        axis.cross(limits.min())
+    } else {
+        axis.cross(limits.min()).max(axis.cross(limits.fill()))
+    };
     let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
@@ -89,17 +93,34 @@ where
         }
         .fill_factor();
 
-        if fill_factor == 0 {
-            let (max_width, max_height) = axis.pack(available, max_cross);
+        let cross_fill_factor = match axis {
+            Axis::Horizontal => child.height(),
+            Axis::Vertical => child.width(),
+        }
+        .fill_factor();
 
-            let child_limits =
-                Limits::new(Size::ZERO, Size::new(max_width, max_height));
+        if align_items != Align::Fill && fill_factor != 0 {
+            fill_sum += fill_factor;
 
-            let layout = child.layout(renderer, &child_limits);
-            let size = layout.size();
+            continue;
+        }
 
-            available -= axis.main(size);
+        let (max_width, max_height) = axis.pack(available, max_cross);
+
+        let child_limits =
+            Limits::new(Size::ZERO, Size::new(max_width, max_height));
+
+        let layout = child.layout(renderer, &child_limits);
+        let size = layout.size();
+
+        if align_items != Align::Fill
+            || cross_fill_factor == 0 && align_items == Align::Fill
+        {
             cross = cross.max(axis.cross(size));
+        }
+
+        if fill_factor == 0 {
+            available -= axis.main(size);
 
             nodes[i] = layout;
         } else {
@@ -124,11 +145,23 @@ where
                 max_main
             };
 
-            let (min_main, min_cross) =
-                axis.pack(min_main, axis.cross(limits.min()));
+            let (min_main, min_cross) = axis.pack(
+                min_main,
+                if align_items == Align::Fill {
+                    cross
+                } else {
+                    axis.cross(limits.min())
+                },
+            );
 
-            let (max_main, max_cross) =
-                axis.pack(max_main, axis.cross(limits.max()));
+            let (max_main, max_cross) = axis.pack(
+                max_main,
+                if align_items == Align::Fill {
+                    cross
+                } else {
+                    axis.cross(limits.max())
+                },
+            );
 
             let child_limits = Limits::new(
                 Size::new(min_main, min_cross),
@@ -136,7 +169,10 @@ where
             );
 
             let layout = child.layout(renderer, &child_limits);
-            cross = cross.max(axis.cross(layout.size()));
+
+            if align_items != Align::Fill {
+                cross = cross.max(axis.cross(layout.size()));
+            }
 
             nodes[i] = layout;
         }

@@ -56,6 +56,9 @@ impl Node {
             Align::End => {
                 self.bounds.x += space.width - self.bounds.width;
             }
+            Align::Fill => {
+                self.bounds.width = space.width;
+            }
         }
 
         match vertical_alignment {
@@ -65,6 +68,9 @@ impl Node {
             }
             Align::End => {
                 self.bounds.y += space.height - self.bounds.height;
+            }
+            Align::Fill => {
+                self.bounds.height = space.height;
             }
         }
     }

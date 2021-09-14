@@ -9,6 +9,9 @@ pub enum Align {
 
     /// Align at the end of the axis.
     End,
+
+    /// Fill the entire axis.
+    Fill,
 }
 
 /// The horizontal alignment of some resource.

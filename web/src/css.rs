@@ -201,6 +201,7 @@ pub fn align(align: Align) -> &'static str {
         Align::Start => "flex-start",
         Align::Center => "center",
         Align::End => "flex-end",
+        Align::Fill => "stretch",
     }
 }
 
