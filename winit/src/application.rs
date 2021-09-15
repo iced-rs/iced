@@ -15,7 +15,6 @@ use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
-use iced_native::Menu;
 use iced_native::{Cache, UserInterface};
 
 use std::mem::ManuallyDrop;
@@ -100,13 +99,6 @@ pub trait Application: Program {
     fn should_exit(&self) -> bool {
         false
     }
-
-    /// Returns the current system [`Menu`] of the [`Application`].
-    ///
-    /// By default, it returns an empty [`Menu`].
-    fn menu(&self) -> Menu<Self::Message> {
-        Menu::new()
-    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -153,7 +145,6 @@ where
             event_loop.primary_monitor(),
             settings.id,
         )
-        .with_menu(Some(conversion::menu(&application.menu())))
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
@@ -417,16 +408,6 @@ async fn run_instance<A, E, C>(
                             window.request_redraw();
                         }
                     },
-                }
-            }
-            event::Event::WindowEvent {
-                event: event::WindowEvent::MenuEntryActivated(entry_id),
-                ..
-            } => {
-                if let Some(message) =
-                    conversion::menu_message(state.menu(), entry_id)
-                {
-                    messages.push(message);
                 }
             }
             event::Event::WindowEvent {

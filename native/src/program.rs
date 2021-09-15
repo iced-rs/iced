@@ -11,7 +11,7 @@ pub trait Program: Sized {
     type Renderer: Renderer;
 
     /// The type of __messages__ your [`Program`] will produce.
-    type Message: std::fmt::Debug + Clone + Send;
+    type Message: std::fmt::Debug + Send;
 
     /// Handles a __message__ and updates the state of the [`Program`].
     ///

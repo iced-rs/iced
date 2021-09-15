@@ -73,7 +73,6 @@ members = [
     "examples/geometry",
     "examples/integration_opengl",
     "examples/integration_wgpu",
-    "examples/menu",
     "examples/pane_grid",
     "examples/pick_list",
     "examples/pokedex",

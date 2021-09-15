@@ -62,8 +62,8 @@ mod debug;
 mod debug;
 
 pub use iced_core::{
-    menu, Align, Background, Color, Font, HorizontalAlignment, Length, Menu,
-    Padding, Point, Rectangle, Size, Vector, VerticalAlignment,
+    Align, Background, Color, Font, HorizontalAlignment, Length, Padding,
+    Point, Rectangle, Size, Vector, VerticalAlignment,
 };
 pub use iced_futures::{executor, futures};
 

@@ -1,5 +1,5 @@
 use crate::window;
-use crate::{Color, Command, Element, Executor, Menu, Settings, Subscription};
+use crate::{Color, Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -97,7 +97,7 @@ pub trait Application: Sized {
     type Executor: Executor;
 
     /// The type of __messages__ your [`Application`] will produce.
-    type Message: std::fmt::Debug + Clone + Send;
+    type Message: std::fmt::Debug + Send;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -183,13 +183,6 @@ pub trait Application: Sized {
     /// By default, it returns `false`.
     fn should_exit(&self) -> bool {
         false
-    }
-
-    /// Returns the current system [`Menu`] of the [`Application`].
-    ///
-    /// By default, it returns an empty [`Menu`].
-    fn menu(&self) -> Menu<Self::Message> {
-        Menu::new()
     }
 
     /// Runs the [`Application`].
@@ -292,10 +285,6 @@ where
 
     fn should_exit(&self) -> bool {
         self.0.should_exit()
-    }
-
-    fn menu(&self) -> Menu<Self::Message> {
-        self.0.menu()
     }
 }
 
