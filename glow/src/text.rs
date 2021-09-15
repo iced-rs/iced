@@ -187,20 +187,18 @@ impl Pipeline {
             }
         }
 
-        let (idx, nearest) = bounds.fold(
-            (None, iced_native::Point::ORIGIN),
-            |best, (idx, bounds)| {
-                let center = bounds.center();
+        let nearest = bounds
+            .map(|(index, bounds)| (index, bounds.center()))
+            .min_by(|(_, center_a), (_, center_b)| {
+                center_a
+                    .distance(point)
+                    .partial_cmp(&center_b.distance(point))
+                    .unwrap_or(std::cmp::Ordering::Greater)
+            });
 
-                if center.distance(point) < best.1.distance(point) {
-                    (Some(idx), center)
-                } else {
-                    best
-                }
-            },
-        );
-
-        idx.map(|idx| Hit::NearestCharOffset(char_index(idx), point - nearest))
+        nearest.map(|(idx, center)| {
+            Hit::NearestCharOffset(char_index(idx), point - center)
+        })
     }
 
     pub fn trim_measurement_cache(&mut self) {
