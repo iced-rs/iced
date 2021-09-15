@@ -196,7 +196,7 @@ pub trait Renderer: crate::Renderer {
         bounds: Size,
         point: Point,
         nearest_only: bool,
-    ) -> Hit;
+    ) -> Option<Hit>;
 
     /// Draws a [`Text`] fragment.
     ///

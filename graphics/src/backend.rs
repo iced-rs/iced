@@ -60,7 +60,7 @@ pub trait Text {
         bounds: Size,
         point: Point,
         nearest_only: bool,
-    ) -> text::Hit;
+    ) -> Option<text::Hit>;
 }
 
 /// A graphics backend that supports image rendering.

@@ -221,7 +221,7 @@ impl backend::Text for Backend {
         bounds: Size,
         point: iced_native::Point,
         nearest_only: bool,
-    ) -> text::Hit {
+    ) -> Option<text::Hit> {
         self.text_pipeline.hit_test(
             contents,
             size,

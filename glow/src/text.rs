@@ -121,7 +121,7 @@ impl Pipeline {
         bounds: iced_native::Size,
         point: iced_native::Point,
         nearest_only: bool,
-    ) -> Hit {
+    ) -> Option<Hit> {
         use glow_glyph::GlyphCruncher;
 
         let glow_glyph::FontId(font_id) = self.find_font(font);
@@ -182,23 +182,23 @@ impl Pipeline {
         if !nearest_only {
             for (idx, bounds) in bounds.clone() {
                 if bounds.contains(point) {
-                    return Hit::CharOffset(char_index(idx));
+                    return Some(Hit::CharOffset(char_index(idx)));
                 }
             }
         }
 
-        let (idx, nearest) = bounds.fold(
-            (0usize, iced_native::Point::ORIGIN),
-            |acc: (usize, iced_native::Point), (idx, bounds)| {
-                if bounds.center().distance(point) < acc.1.distance(point) {
-                    (idx, bounds.center())
-                } else {
-                    acc
-                }
-            },
-        );
+        let nearest = bounds
+            .map(|(index, bounds)| (index, bounds.center()))
+            .min_by(|(_, center_a), (_, center_b)| {
+                center_a
+                    .distance(point)
+                    .partial_cmp(&center_b.distance(point))
+                    .unwrap_or(std::cmp::Ordering::Greater)
+            });
 
-        Hit::NearestCharOffset(char_index(idx), (point - nearest).into())
+        nearest.map(|(idx, center)| {
+            Hit::NearestCharOffset(char_index(idx), point - center)
+        })
     }
 
     pub fn trim_measurement_cache(&mut self) {
