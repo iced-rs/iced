@@ -116,23 +116,17 @@ where
         .fill_factor();
 
         if fill_factor == 0 {
-            let (min_width, min_height) = axis.pack(
-                0.0,
-                if align_items == Align::Fill {
-                    cross
-                } else {
-                    0.0
-                },
-            );
+            let (min_width, min_height) = if align_items == Align::Fill {
+                axis.pack(0.0, cross)
+            } else {
+                axis.pack(0.0, 0.0)
+            };
 
-            let (max_width, max_height) = axis.pack(
-                available,
-                if align_items == Align::Fill {
-                    cross
-                } else {
-                    max_cross
-                },
-            );
+            let (max_width, max_height) = if align_items == Align::Fill {
+                axis.pack(available, cross)
+            } else {
+                axis.pack(available, max_cross)
+            };
 
             let child_limits = Limits::new(
                 Size::new(min_width, min_height),
@@ -171,27 +165,21 @@ where
                 max_main
             };
 
-            let (min_main, min_cross) = axis.pack(
-                min_main,
-                if align_items == Align::Fill {
-                    cross
-                } else {
-                    axis.cross(limits.min())
-                },
-            );
+            let (min_width, min_height) = if align_items == Align::Fill {
+                axis.pack(min_main, cross)
+            } else {
+                axis.pack(min_main, axis.cross(limits.min()))
+            };
 
-            let (max_main, max_cross) = axis.pack(
-                max_main,
-                if align_items == Align::Fill {
-                    cross
-                } else {
-                    max_cross
-                },
-            );
+            let (max_width, max_height) = if align_items == Align::Fill {
+                axis.pack(max_main, cross)
+            } else {
+                axis.pack(max_main, max_cross)
+            };
 
             let child_limits = Limits::new(
-                Size::new(min_main, min_cross),
-                Size::new(max_main, max_cross),
+                Size::new(min_width, min_height),
+                Size::new(max_width, max_height),
             );
 
             let layout = child.layout(renderer, &child_limits);
