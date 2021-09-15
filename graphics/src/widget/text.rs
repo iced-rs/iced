@@ -43,7 +43,7 @@ where
         bounds: Size,
         point: Point,
         nearest_only: bool,
-    ) -> text::Hit {
+    ) -> Option<text::Hit> {
         self.backend().hit_test(
             content,
             size,

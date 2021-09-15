@@ -14,14 +14,14 @@ pub enum Hit {
 
 impl Hit {
     /// Computes the cursor position corresponding to this [`HitTestResult`] .
-    pub fn cursor(&self) -> usize {
+    pub fn cursor(self) -> usize {
         match self {
-            Self::CharOffset(i) => *i,
+            Self::CharOffset(i) => i,
             Self::NearestCharOffset(i, delta) => {
                 if delta.x > f32::EPSILON {
                     i + 1
                 } else {
-                    *i
+                    i
                 }
             }
         }

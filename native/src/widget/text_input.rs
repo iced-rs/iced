@@ -268,41 +268,42 @@ where
 
                     match click.kind() {
                         click::Kind::Single => {
-                            if target > 0.0 {
+                            let position = if target > 0.0 {
                                 let value = if self.is_secure {
                                     self.value.secure()
                                 } else {
                                     self.value.clone()
                                 };
 
-                                let position = renderer.find_cursor_position(
+                                renderer.find_cursor_position(
                                     text_layout.bounds(),
                                     self.font,
                                     self.size,
                                     &value,
                                     &self.state,
                                     target,
-                                );
-
-                                self.state.cursor.move_to(position);
+                                )
                             } else {
-                                self.state.cursor.move_to(0);
-                            }
+                                None
+                            };
 
+                            self.state.cursor.move_to(position.unwrap_or(0));
                             self.state.is_dragging = true;
                         }
                         click::Kind::Double => {
                             if self.is_secure {
                                 self.state.cursor.select_all(&self.value);
                             } else {
-                                let position = renderer.find_cursor_position(
-                                    text_layout.bounds(),
-                                    self.font,
-                                    self.size,
-                                    &self.value,
-                                    &self.state,
-                                    target,
-                                );
+                                let position = renderer
+                                    .find_cursor_position(
+                                        text_layout.bounds(),
+                                        self.font,
+                                        self.size,
+                                        &self.value,
+                                        &self.state,
+                                        target,
+                                    )
+                                    .unwrap_or(0);
 
                                 self.state.cursor.select_range(
                                     self.value.previous_start_of_word(position),
@@ -341,14 +342,16 @@ where
                             self.value.clone()
                         };
 
-                        let position = renderer.find_cursor_position(
-                            text_layout.bounds(),
-                            self.font,
-                            self.size,
-                            &value,
-                            &self.state,
-                            target,
-                        );
+                        let position = renderer
+                            .find_cursor_position(
+                                text_layout.bounds(),
+                                self.font,
+                                self.size,
+                                &value,
+                                &self.state,
+                                target,
+                            )
+                            .unwrap_or(0);
 
                         self.state.cursor.select_range(
                             self.state.cursor.start(&value),
@@ -702,7 +705,7 @@ pub trait Renderer: text::Renderer + Sized {
         value: &Value,
         state: &State,
         x: f32,
-    ) -> usize {
+    ) -> Option<usize> {
         let size = size.unwrap_or(self.default_size());
 
         let offset = self.offset(text_bounds, font, size, &value, &state);
@@ -715,7 +718,7 @@ pub trait Renderer: text::Renderer + Sized {
             Point::new(x + offset, text_bounds.height / 2.0),
             true,
         )
-        .cursor()
+        .map(text::Hit::cursor)
     }
 }
 
