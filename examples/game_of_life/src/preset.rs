@@ -1,5 +1,3 @@
-use iced::menu::{self, Menu};
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Preset {
     Custom,
@@ -28,17 +26,6 @@ pub static ALL: &[Preset] = &[
 ];
 
 impl Preset {
-    pub fn menu() -> Menu<Self> {
-        Menu::with_entries(
-            ALL.iter()
-                .copied()
-                .map(|preset| {
-                    menu::Entry::item(preset.to_string(), None, preset)
-                })
-                .collect(),
-        )
-    }
-
     pub fn life(self) -> Vec<(isize, isize)> {
         #[rustfmt::skip]
         let cells = match self {
