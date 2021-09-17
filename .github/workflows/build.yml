@@ -51,6 +51,9 @@ jobs:
         mkdir .cargo
         echo '[target.x86_64-pc-windows-msvc]' >> .cargo/config
         echo 'rustflags = ["-Ctarget-feature=+crt-static"]' >> .cargo/config
+    - name: Run the application without starting the shell
+      run: |
+        sed -i '1 i\#![windows_subsystem = \"windows\"]' examples/todos/src/main.rs
     - name: Build todos binary
       run: cargo build --verbose --release --package todos
     - name: Archive todos binary
