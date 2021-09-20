@@ -8,7 +8,7 @@ use crate::row;
 use crate::text;
 use crate::touch;
 use crate::{
-    Align, Clipboard, Color, Element, Hasher, HorizontalAlignment, Layout,
+    Clipboard, Color, CrossAlign, Element, Hasher, HorizontalAlignment, Layout,
     Length, Point, Rectangle, Row, Text, VerticalAlignment, Widget,
 };
 
@@ -138,7 +138,7 @@ where
         Row::<(), Renderer>::new()
             .width(self.width)
             .spacing(self.spacing)
-            .align_items(Align::Center)
+            .align_items(CrossAlign::Center)
             .push(
                 Row::new()
                     .width(Length::Units(self.size))

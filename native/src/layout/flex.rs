@@ -19,7 +19,7 @@
 
 use crate::{
     layout::{Limits, Node},
-    Align, Element, Padding, Point, Size,
+    CrossAlign, Element, Padding, Point, Size,
 };
 
 /// The main axis of a flex layout.
@@ -65,7 +65,7 @@ pub fn resolve<Message, Renderer>(
     limits: &Limits,
     padding: Padding,
     spacing: f32,
-    align_items: Align,
+    align_items: CrossAlign,
     items: &[Element<'_, Message, Renderer>],
 ) -> Node
 where
@@ -82,7 +82,7 @@ where
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
 
-    if align_items == Align::Fill {
+    if align_items == CrossAlign::Fill {
         let mut fill_cross = axis.cross(limits.min());
 
         items.iter().for_each(|child| {
@@ -116,13 +116,13 @@ where
         .fill_factor();
 
         if fill_factor == 0 {
-            let (min_width, min_height) = if align_items == Align::Fill {
+            let (min_width, min_height) = if align_items == CrossAlign::Fill {
                 axis.pack(0.0, cross)
             } else {
                 axis.pack(0.0, 0.0)
             };
 
-            let (max_width, max_height) = if align_items == Align::Fill {
+            let (max_width, max_height) = if align_items == CrossAlign::Fill {
                 axis.pack(available, cross)
             } else {
                 axis.pack(available, max_cross)
@@ -138,7 +138,7 @@ where
 
             available -= axis.main(size);
 
-            if align_items != Align::Fill {
+            if align_items != CrossAlign::Fill {
                 cross = cross.max(axis.cross(size));
             }
 
@@ -165,13 +165,13 @@ where
                 max_main
             };
 
-            let (min_width, min_height) = if align_items == Align::Fill {
+            let (min_width, min_height) = if align_items == CrossAlign::Fill {
                 axis.pack(min_main, cross)
             } else {
                 axis.pack(min_main, axis.cross(limits.min()))
             };
 
-            let (max_width, max_height) = if align_items == Align::Fill {
+            let (max_width, max_height) = if align_items == CrossAlign::Fill {
                 axis.pack(max_main, cross)
             } else {
                 axis.pack(max_main, max_cross)
@@ -184,7 +184,7 @@ where
 
             let layout = child.layout(renderer, &child_limits);
 
-            if align_items != Align::Fill {
+            if align_items != CrossAlign::Fill {
                 cross = cross.max(axis.cross(layout.size()));
             }
 
@@ -206,10 +206,18 @@ where
 
         match axis {
             Axis::Horizontal => {
-                node.align(Align::Start, align_items, Size::new(0.0, cross));
+                node.align(
+                    CrossAlign::Start,
+                    align_items,
+                    Size::new(0.0, cross),
+                );
             }
             Axis::Vertical => {
-                node.align(align_items, Align::Start, Size::new(cross, 0.0));
+                node.align(
+                    align_items,
+                    CrossAlign::Start,
+                    Size::new(cross, 0.0),
+                );
             }
         }
 

@@ -246,6 +246,7 @@ pub use sandbox::Sandbox;
 pub use settings::Settings;
 
 pub use runtime::{
-    futures, Align, Background, Color, Command, Font, HorizontalAlignment,
-    Length, Point, Rectangle, Size, Subscription, Vector, VerticalAlignment,
+    futures, Align, Background, Color, Command, CrossAlign, Font,
+    HorizontalAlignment, Length, Point, Rectangle, Size, Subscription, Vector,
+    VerticalAlignment,
 };

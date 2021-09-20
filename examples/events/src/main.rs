@@ -1,7 +1,7 @@
 use iced::{
-    button, executor, Align, Application, Button, Checkbox, Column, Command,
-    Container, Element, HorizontalAlignment, Length, Settings, Subscription,
-    Text,
+    button, executor, Application, Button, Checkbox, Column, Command,
+    Container, CrossAlign, Element, HorizontalAlignment, Length, Settings,
+    Subscription, Text,
 };
 use iced_native::{window, Event};
 
@@ -98,7 +98,7 @@ impl Application for Events {
         .on_press(Message::Exit);
 
         let content = Column::new()
-            .align_items(Align::Center)
+            .align_items(CrossAlign::Center)
             .spacing(20)
             .push(events)
             .push(toggle)

@@ -11,8 +11,8 @@ use iced::slider::{self, Slider};
 use iced::time;
 use iced::window;
 use iced::{
-    Align, Application, Checkbox, Column, Command, Container, Element, Length,
-    Row, Settings, Subscription, Text,
+    Application, Checkbox, Column, Command, Container, CrossAlign, Element,
+    Length, Row, Settings, Subscription, Text,
 };
 use preset::Preset;
 use std::time::{Duration, Instant};
@@ -844,7 +844,7 @@ impl Controls {
 
         let speed_controls = Row::new()
             .width(Length::Fill)
-            .align_items(Align::Center)
+            .align_items(CrossAlign::Center)
             .spacing(10)
             .push(
                 Slider::new(
@@ -860,7 +860,7 @@ impl Controls {
         Row::new()
             .padding(10)
             .spacing(20)
-            .align_items(Align::Center)
+            .align_items(CrossAlign::Center)
             .push(playback_controls)
             .push(speed_controls)
             .push(

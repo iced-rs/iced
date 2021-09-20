@@ -2,8 +2,8 @@
 use std::hash::Hash;
 
 use crate::{
-    event, layout, mouse, row, text, Align, Clipboard, Element, Event, Hasher,
-    HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
+    event, layout, mouse, row, text, Clipboard, CrossAlign, Element, Event,
+    Hasher, HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
     VerticalAlignment, Widget,
 };
 
@@ -132,7 +132,7 @@ where
         let mut row = Row::<(), Renderer>::new()
             .width(self.width)
             .spacing(self.spacing)
-            .align_items(Align::Center);
+            .align_items(CrossAlign::Center);
 
         if let Some(label) = &self.label {
             row = row.push(

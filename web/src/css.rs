@@ -1,5 +1,5 @@
 //! Style your widgets.
-use crate::{bumpalo, Align, Background, Color, Length, Padding};
+use crate::{bumpalo, Align, Background, Color, CrossAlign, Length, Padding};
 
 use std::collections::BTreeMap;
 
@@ -201,7 +201,16 @@ pub fn align(align: Align) -> &'static str {
         Align::Start => "flex-start",
         Align::Center => "center",
         Align::End => "flex-end",
-        Align::Fill => "stretch",
+    }
+}
+
+/// Returns the style value for the given [`CrossAlign`].
+pub fn cross_align(align: CrossAlign) -> &'static str {
+    match align {
+        CrossAlign::Start => "flex-start",
+        CrossAlign::Center => "center",
+        CrossAlign::End => "flex-end",
+        CrossAlign::Fill => "stretch",
     }
 }
 

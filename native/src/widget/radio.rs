@@ -8,8 +8,8 @@ use crate::text;
 use crate::touch;
 use crate::{layout, Color};
 use crate::{
-    Align, Clipboard, Element, Hasher, HorizontalAlignment, Layout, Length,
-    Point, Rectangle, Row, Text, VerticalAlignment, Widget,
+    Clipboard, CrossAlign, Element, Hasher, HorizontalAlignment, Layout,
+    Length, Point, Rectangle, Row, Text, VerticalAlignment, Widget,
 };
 
 /// A circular button representing a choice.
@@ -153,7 +153,7 @@ where
         Row::<(), Renderer>::new()
             .width(self.width)
             .spacing(self.spacing)
-            .align_items(Align::Center)
+            .align_items(CrossAlign::Center)
             .push(
                 Row::new()
                     .width(Length::Units(self.size))

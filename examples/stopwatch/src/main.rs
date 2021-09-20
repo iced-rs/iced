@@ -1,6 +1,6 @@
 use iced::{
-    button, executor, time, Align, Application, Button, Column, Command,
-    Container, Element, HorizontalAlignment, Length, Row, Settings,
+    button, executor, time, Application, Button, Column, Command, Container,
+    CrossAlign, Element, HorizontalAlignment, Length, Row, Settings,
     Subscription, Text,
 };
 use std::time::{Duration, Instant};
@@ -130,7 +130,7 @@ impl Application for Stopwatch {
             .push(reset_button);
 
         let content = Column::new()
-            .align_items(Align::Center)
+            .align_items(CrossAlign::Center)
             .spacing(20)
             .push(duration)
             .push(controls);

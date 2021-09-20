@@ -1,8 +1,8 @@
 use iced::canvas::{self, Cursor, Frame, Geometry, Path};
 use iced::{
-    slider, Align, Canvas, Color, Column, Element, HorizontalAlignment, Length,
-    Point, Rectangle, Row, Sandbox, Settings, Size, Slider, Text, Vector,
-    VerticalAlignment,
+    slider, Canvas, Color, Column, CrossAlign, Element, HorizontalAlignment,
+    Length, Point, Rectangle, Row, Sandbox, Settings, Size, Slider, Text,
+    Vector, VerticalAlignment,
 };
 use palette::{self, Hsl, Limited, Srgb};
 use std::marker::PhantomData;
@@ -298,7 +298,7 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
 
         Row::new()
             .spacing(10)
-            .align_items(Align::Center)
+            .align_items(CrossAlign::Center)
             .push(Text::new(C::LABEL).width(Length::Units(50)))
             .push(slider(s1, cr1, c1, move |v| C::new(v, c2, c3)))
             .push(slider(s2, cr2, c2, move |v| C::new(c1, v, c3)))

@@ -1,6 +1,6 @@
 use iced_glow::Renderer;
 use iced_glutin::{
-    slider, Align, Color, Column, Command, Element, Length, Program, Row,
+    slider, Color, Column, Command, CrossAlign, Element, Length, Program, Row,
     Slider, Text,
 };
 
@@ -79,11 +79,11 @@ impl Program for Controls {
         Row::new()
             .width(Length::Fill)
             .height(Length::Fill)
-            .align_items(Align::End)
+            .align_items(CrossAlign::End)
             .push(
                 Column::new()
                     .width(Length::Fill)
-                    .align_items(Align::End)
+                    .align_items(CrossAlign::End)
                     .push(
                         Column::new()
                             .padding(10)

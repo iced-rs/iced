@@ -5,8 +5,8 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Align, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Widget,
+    Align, Clipboard, CrossAlign, Element, Hasher, Layout, Length, Padding,
+    Point, Rectangle, Widget,
 };
 
 use std::u32;
@@ -143,7 +143,11 @@ where
             self.padding.left.into(),
             self.padding.top.into(),
         ));
-        content.align(self.horizontal_alignment, self.vertical_alignment, size);
+        content.align(
+            CrossAlign::from(self.horizontal_alignment),
+            CrossAlign::from(self.vertical_alignment),
+            size,
+        );
 
         layout::Node::with_children(size.pad(self.padding), vec![content])
     }

@@ -1,6 +1,6 @@
 use iced::{
-    button, scrollable, text_input, Align, Application, Button, Checkbox,
-    Column, Command, Container, Element, Font, HorizontalAlignment, Length,
+    button, scrollable, text_input, Application, Button, Checkbox, Column,
+    Command, Container, CrossAlign, Element, Font, HorizontalAlignment, Length,
     Row, Scrollable, Settings, Text, TextInput,
 };
 use serde::{Deserialize, Serialize};
@@ -295,7 +295,7 @@ impl Task {
 
                 Row::new()
                     .spacing(20)
-                    .align_items(Align::Center)
+                    .align_items(CrossAlign::Center)
                     .push(checkbox)
                     .push(
                         Button::new(edit_button, edit_icon())
@@ -320,7 +320,7 @@ impl Task {
 
                 Row::new()
                     .spacing(20)
-                    .align_items(Align::Center)
+                    .align_items(CrossAlign::Center)
                     .push(text_input)
                     .push(
                         Button::new(
@@ -369,7 +369,7 @@ impl Controls {
 
         Row::new()
             .spacing(20)
-            .align_items(Align::Center)
+            .align_items(CrossAlign::Center)
             .push(
                 Text::new(&format!(
                     "{} {} left",

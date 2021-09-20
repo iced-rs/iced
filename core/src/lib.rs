@@ -29,7 +29,7 @@ mod rectangle;
 mod size;
 mod vector;
 
-pub use align::{Align, HorizontalAlignment, VerticalAlignment};
+pub use align::{Align, CrossAlign, HorizontalAlignment, VerticalAlignment};
 pub use background::Background;
 pub use color::Color;
 pub use font::Font;
