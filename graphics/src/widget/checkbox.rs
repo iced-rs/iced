@@ -1,9 +1,10 @@
 //! Show toggle controls using checkboxes.
+use crate::alignment;
 use crate::backend::{self, Backend};
-use crate::{Primitive, Renderer};
+use crate::{Primitive, Rectangle, Renderer};
+
 use iced_native::checkbox;
 use iced_native::mouse;
-use iced_native::{HorizontalAlignment, Rectangle, VerticalAlignment};
 
 pub use iced_style::checkbox::{Style, StyleSheet};
 
@@ -57,8 +58,8 @@ where
                             ..bounds
                         },
                         color: style.checkmark_color,
-                        horizontal_alignment: HorizontalAlignment::Center,
-                        vertical_alignment: VerticalAlignment::Center,
+                        horizontal_alignment: alignment::Horizontal::Center,
+                        vertical_alignment: alignment::Vertical::Center,
                     };
 
                     vec![checkbox, check, label]

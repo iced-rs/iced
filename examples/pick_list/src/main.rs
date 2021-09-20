@@ -1,5 +1,5 @@
 use iced::{
-    pick_list, scrollable, Align, Container, Element, Length, PickList,
+    pick_list, scrollable, Alignment, Container, Element, Length, PickList,
     Sandbox, Scrollable, Settings, Space, Text,
 };
 
@@ -49,7 +49,7 @@ impl Sandbox for Example {
 
         let mut content = Scrollable::new(&mut self.scroll)
             .width(Length::Fill)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .spacing(10)
             .push(Space::with_height(Length::Units(600)))
             .push(Text::new("Which is your favorite language?"))

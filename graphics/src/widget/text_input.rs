@@ -1,14 +1,15 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
+use crate::alignment;
 use crate::backend::{self, Backend};
-use crate::{Primitive, Renderer};
+use crate::{
+    Background, Color, Font, Point, Primitive, Rectangle, Renderer, Size,
+    Vector,
+};
+
 use iced_native::mouse;
 use iced_native::text_input::{self, cursor};
-use iced_native::{
-    Background, Color, Font, HorizontalAlignment, Point, Rectangle, Size,
-    Vector, VerticalAlignment,
-};
 use std::f32;
 
 pub use iced_native::text_input::State;
@@ -116,8 +117,8 @@ where
                 ..text_bounds
             },
             size: f32::from(size),
-            horizontal_alignment: HorizontalAlignment::Left,
-            vertical_alignment: VerticalAlignment::Center,
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Center,
         };
 
         let (contents_primitive, offset) = if state.is_focused() {

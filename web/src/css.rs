@@ -1,5 +1,6 @@
 //! Style your widgets.
-use crate::{bumpalo, Align, Background, Color, Length, Padding};
+use crate::bumpalo;
+use crate::{Alignment, Background, Color, Length, Padding};
 
 use std::collections::BTreeMap;
 
@@ -195,12 +196,13 @@ pub fn background(background: Background) -> String {
     }
 }
 
-/// Returns the style value for the given [`Align`].
-pub fn align(align: Align) -> &'static str {
-    match align {
-        Align::Start => "flex-start",
-        Align::Center => "center",
-        Align::End => "flex-end",
+/// Returns the style value for the given [`Alignment`].
+pub fn alignment(alignment: Alignment) -> &'static str {
+    match alignment {
+        Alignment::Start => "flex-start",
+        Alignment::Center => "center",
+        Alignment::End => "flex-end",
+        Alignment::Fill => "stretch",
     }
 }
 

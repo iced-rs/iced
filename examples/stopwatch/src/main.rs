@@ -1,7 +1,6 @@
 use iced::{
-    button, executor, time, Align, Application, Button, Column, Command,
-    Container, Element, HorizontalAlignment, Length, Row, Settings,
-    Subscription, Text,
+    alignment, button, executor, time, Alignment, Application, Button, Column,
+    Command, Container, Element, Length, Row, Settings, Subscription, Text,
 };
 use std::time::{Duration, Instant};
 
@@ -104,7 +103,7 @@ impl Application for Stopwatch {
             Button::new(
                 state,
                 Text::new(label)
-                    .horizontal_alignment(HorizontalAlignment::Center),
+                    .horizontal_alignment(alignment::Horizontal::Center),
             )
             .min_width(80)
             .padding(10)
@@ -130,7 +129,7 @@ impl Application for Stopwatch {
             .push(reset_button);
 
         let content = Column::new()
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .spacing(20)
             .push(duration)
             .push(controls);

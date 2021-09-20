@@ -1,6 +1,6 @@
 use iced::{
-    button, executor, Align, Application, Button, Column, Command, Container,
-    Element, Length, ProgressBar, Settings, Subscription, Text,
+    button, executor, Alignment, Application, Button, Column, Command,
+    Container, Element, Length, ProgressBar, Settings, Subscription, Text,
 };
 
 mod download;
@@ -83,7 +83,7 @@ impl Application for Example {
                     .on_press(Message::Add)
                     .padding(10),
             )
-            .align_items(Align::End);
+            .align_items(Alignment::End);
 
         Container::new(downloads)
             .width(Length::Fill)
@@ -182,7 +182,7 @@ impl Download {
             }
             State::Finished { button } => Column::new()
                 .spacing(10)
-                .align_items(Align::Center)
+                .align_items(Alignment::Center)
                 .push(Text::new("Download finished!"))
                 .push(
                     Button::new(button, Text::new("Start again"))
@@ -195,7 +195,7 @@ impl Download {
             }
             State::Errored { button } => Column::new()
                 .spacing(10)
-                .align_items(Align::Center)
+                .align_items(Alignment::Center)
                 .push(Text::new("Something went wrong :("))
                 .push(
                     Button::new(button, Text::new("Try again"))
@@ -207,7 +207,7 @@ impl Download {
         Column::new()
             .spacing(10)
             .padding(10)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(progress_bar)
             .push(control)
             .into()

@@ -73,12 +73,18 @@ pub use css::Css;
 pub use dodrio;
 pub use element::Element;
 pub use hasher::Hasher;
-pub use iced_core::{
-    keyboard, mouse, Align, Background, Color, Font, HorizontalAlignment,
-    Length, Padding, Point, Rectangle, Size, Vector, VerticalAlignment,
-};
-pub use iced_futures::{executor, futures};
 pub use subscription::Subscription;
+
+pub use iced_core::alignment;
+pub use iced_core::keyboard;
+pub use iced_core::mouse;
+pub use iced_futures::executor;
+pub use iced_futures::futures;
+
+pub use iced_core::{
+    Alignment, Background, Color, Font, Length, Padding, Point, Rectangle,
+    Size, Vector,
+};
 
 #[doc(no_inline)]
 pub use widget::*;

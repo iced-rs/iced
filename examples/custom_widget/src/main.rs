@@ -84,7 +84,7 @@ mod circle {
 
 use circle::Circle;
 use iced::{
-    slider, Align, Column, Container, Element, Length, Sandbox, Settings,
+    slider, Alignment, Column, Container, Element, Length, Sandbox, Settings,
     Slider, Text,
 };
 
@@ -129,7 +129,7 @@ impl Sandbox for Example {
             .padding(20)
             .spacing(20)
             .max_width(500)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(Circle::new(self.radius))
             .push(Text::new(format!("Radius: {:.2}", self.radius)))
             .push(

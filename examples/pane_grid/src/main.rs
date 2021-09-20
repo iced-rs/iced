@@ -1,7 +1,7 @@
 use iced::{
-    button, executor, keyboard, pane_grid, scrollable, Align, Application,
-    Button, Color, Column, Command, Container, Element, HorizontalAlignment,
-    Length, PaneGrid, Row, Scrollable, Settings, Subscription, Text,
+    alignment, button, executor, keyboard, pane_grid, scrollable, Alignment,
+    Application, Button, Color, Column, Command, Container, Element, Length,
+    PaneGrid, Row, Scrollable, Settings, Subscription, Text,
 };
 use iced_native::{event, subscription, Event};
 
@@ -292,7 +292,7 @@ impl Content {
                 state,
                 Text::new(label)
                     .width(Length::Fill)
-                    .horizontal_alignment(HorizontalAlignment::Center)
+                    .horizontal_alignment(alignment::Horizontal::Center)
                     .size(16),
             )
             .width(Length::Fill)
@@ -329,7 +329,7 @@ impl Content {
         let content = Scrollable::new(scroll)
             .width(Length::Fill)
             .spacing(10)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(controls);
 
         Container::new(content)

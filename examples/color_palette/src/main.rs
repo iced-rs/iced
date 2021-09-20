@@ -1,8 +1,7 @@
 use iced::canvas::{self, Cursor, Frame, Geometry, Path};
 use iced::{
-    slider, Align, Canvas, Color, Column, Element, HorizontalAlignment, Length,
+    alignment, slider, Alignment, Canvas, Color, Column, Element, Length,
     Point, Rectangle, Row, Sandbox, Settings, Size, Slider, Text, Vector,
-    VerticalAlignment,
 };
 use palette::{self, Hsl, Limited, Srgb};
 use std::marker::PhantomData;
@@ -163,8 +162,8 @@ impl Theme {
         });
 
         let mut text = canvas::Text {
-            horizontal_alignment: HorizontalAlignment::Center,
-            vertical_alignment: VerticalAlignment::Top,
+            horizontal_alignment: alignment::Horizontal::Center,
+            vertical_alignment: alignment::Vertical::Top,
             size: 15.0,
             ..canvas::Text::default()
         };
@@ -206,7 +205,7 @@ impl Theme {
             });
         }
 
-        text.vertical_alignment = VerticalAlignment::Bottom;
+        text.vertical_alignment = alignment::Vertical::Bottom;
 
         let hsl = Hsl::from(Srgb::from(self.base));
         for i in 0..self.len() {
@@ -298,7 +297,7 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
 
         Row::new()
             .spacing(10)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(Text::new(C::LABEL).width(Length::Units(50)))
             .push(slider(s1, cr1, c1, move |v| C::new(v, c2, c3)))
             .push(slider(s2, cr2, c2, move |v| C::new(c1, v, c3)))

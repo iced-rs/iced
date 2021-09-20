@@ -6,8 +6,8 @@ use crate::mouse;
 use crate::overlay;
 use crate::touch;
 use crate::{
-    Align, Clipboard, Column, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Size, Vector, Widget,
+    Alignment, Clipboard, Column, Element, Hasher, Layout, Length, Padding,
+    Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -84,7 +84,7 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     }
 
     /// Sets the horizontal alignment of the contents of the [`Scrollable`] .
-    pub fn align_items(mut self, align_items: Align) -> Self {
+    pub fn align_items(mut self, align_items: Alignment) -> Self {
         self.content = self.content.align_items(align_items);
         self
     }

@@ -1,7 +1,6 @@
 use iced::{
-    button, executor, Align, Application, Button, Checkbox, Column, Command,
-    Container, Element, HorizontalAlignment, Length, Settings, Subscription,
-    Text,
+    alignment, button, executor, Alignment, Application, Button, Checkbox,
+    Column, Command, Container, Element, Length, Settings, Subscription, Text,
 };
 use iced_native::{window, Event};
 
@@ -91,14 +90,14 @@ impl Application for Events {
             &mut self.exit,
             Text::new("Exit")
                 .width(Length::Fill)
-                .horizontal_alignment(HorizontalAlignment::Center),
+                .horizontal_alignment(alignment::Horizontal::Center),
         )
         .width(Length::Units(100))
         .padding(10)
         .on_press(Message::Exit);
 
         let content = Column::new()
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .spacing(20)
             .push(events)
             .push(toggle)

@@ -1,5 +1,5 @@
 use iced::{
-    button, futures, image, Align, Application, Button, Column, Command,
+    button, futures, image, Alignment, Application, Button, Column, Command,
     Container, Element, Length, Row, Settings, Text,
 };
 
@@ -85,14 +85,14 @@ impl Application for Pokedex {
             Pokedex::Loaded { pokemon, search } => Column::new()
                 .max_width(500)
                 .spacing(20)
-                .align_items(Align::End)
+                .align_items(Alignment::End)
                 .push(pokemon.view())
                 .push(
                     button(search, "Keep searching!").on_press(Message::Search),
                 ),
             Pokedex::Errored { try_again, .. } => Column::new()
                 .spacing(20)
-                .align_items(Align::End)
+                .align_items(Alignment::End)
                 .push(Text::new("Whoops! Something went wrong...").size(40))
                 .push(button(try_again, "Try again").on_press(Message::Search)),
         };
@@ -121,7 +121,7 @@ impl Pokemon {
     fn view(&mut self) -> Element<Message> {
         Row::new()
             .spacing(20)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(image::Viewer::new(
                 &mut self.image_viewer,
                 self.image.clone(),
@@ -131,7 +131,7 @@ impl Pokemon {
                     .spacing(20)
                     .push(
                         Row::new()
-                            .align_items(Align::Center)
+                            .align_items(Alignment::Center)
                             .spacing(20)
                             .push(
                                 Text::new(&self.name)

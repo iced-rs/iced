@@ -61,9 +61,10 @@ mod debug;
 #[path = "debug/null.rs"]
 mod debug;
 
+pub use iced_core::alignment;
 pub use iced_core::{
-    Align, Background, Color, Font, HorizontalAlignment, Length, Padding,
-    Point, Rectangle, Size, Vector, VerticalAlignment,
+    Alignment, Background, Color, Font, Length, Padding, Point, Rectangle,
+    Size, Vector,
 };
 pub use iced_futures::{executor, futures};
 

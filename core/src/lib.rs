@@ -14,11 +14,11 @@
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
+pub mod alignment;
 pub mod keyboard;
 pub mod mouse;
 pub mod text;
 
-mod align;
 mod background;
 mod color;
 mod font;
@@ -29,7 +29,7 @@ mod rectangle;
 mod size;
 mod vector;
 
-pub use align::{Align, HorizontalAlignment, VerticalAlignment};
+pub use alignment::Alignment;
 pub use background::Background;
 pub use color::Color;
 pub use font::Font;

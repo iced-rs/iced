@@ -1,7 +1,10 @@
+use iced::alignment::{self, Alignment};
+use iced::button::{self, Button};
+use iced::scrollable::{self, Scrollable};
+use iced::text_input::{self, TextInput};
 use iced::{
-    button, scrollable, text_input, Align, Application, Button, Checkbox,
-    Column, Command, Container, Element, Font, HorizontalAlignment, Length,
-    Row, Scrollable, Settings, Text, TextInput,
+    Application, Checkbox, Column, Command, Container, Element, Font, Length,
+    Row, Settings, Text,
 };
 use serde::{Deserialize, Serialize};
 
@@ -151,7 +154,7 @@ impl Application for Todos {
                     .width(Length::Fill)
                     .size(100)
                     .color([0.5, 0.5, 0.5])
-                    .horizontal_alignment(HorizontalAlignment::Center);
+                    .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = TextInput::new(
                     input,
@@ -295,7 +298,7 @@ impl Task {
 
                 Row::new()
                     .spacing(20)
-                    .align_items(Align::Center)
+                    .align_items(Alignment::Center)
                     .push(checkbox)
                     .push(
                         Button::new(edit_button, edit_icon())
@@ -320,7 +323,7 @@ impl Task {
 
                 Row::new()
                     .spacing(20)
-                    .align_items(Align::Center)
+                    .align_items(Alignment::Center)
                     .push(text_input)
                     .push(
                         Button::new(
@@ -369,7 +372,7 @@ impl Controls {
 
         Row::new()
             .spacing(20)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(
                 Text::new(&format!(
                     "{} {} left",
@@ -431,7 +434,7 @@ impl Filter {
 fn loading_message<'a>() -> Element<'a, Message> {
     Container::new(
         Text::new("Loading...")
-            .horizontal_alignment(HorizontalAlignment::Center)
+            .horizontal_alignment(alignment::Horizontal::Center)
             .size(50),
     )
     .width(Length::Fill)
@@ -445,7 +448,7 @@ fn empty_message<'a>(message: &str) -> Element<'a, Message> {
         Text::new(message)
             .width(Length::Fill)
             .size(25)
-            .horizontal_alignment(HorizontalAlignment::Center)
+            .horizontal_alignment(alignment::Horizontal::Center)
             .color([0.7, 0.7, 0.7]),
     )
     .width(Length::Fill)
@@ -464,7 +467,7 @@ fn icon(unicode: char) -> Text {
     Text::new(&unicode.to_string())
         .font(ICONS)
         .width(Length::Units(20))
-        .horizontal_alignment(HorizontalAlignment::Center)
+        .horizontal_alignment(alignment::Horizontal::Center)
         .size(20)
 }
 

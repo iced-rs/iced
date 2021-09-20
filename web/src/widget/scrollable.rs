@@ -1,7 +1,7 @@
 //! Navigate an endless amount of content with a scrollbar.
-use crate::{
-    bumpalo, css, Align, Bus, Column, Css, Element, Length, Padding, Widget,
-};
+use crate::bumpalo;
+use crate::css;
+use crate::{Alignment, Bus, Column, Css, Element, Length, Padding, Widget};
 
 pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
 
@@ -72,7 +72,7 @@ impl<'a, Message> Scrollable<'a, Message> {
     }
 
     /// Sets the horizontal alignment of the contents of the [`Scrollable`] .
-    pub fn align_items(mut self, align_items: Align) -> Self {
+    pub fn align_items(mut self, align_items: Alignment) -> Self {
         self.content = self.content.align_items(align_items);
         self
     }

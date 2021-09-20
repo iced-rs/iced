@@ -1,7 +1,6 @@
-use crate::{
-    css, Bus, Color, Css, Element, Font, HorizontalAlignment, Length,
-    VerticalAlignment, Widget,
-};
+use crate::alignment;
+use crate::css;
+use crate::{Bus, Color, Css, Element, Font, Length, Widget};
 use dodrio::bumpalo;
 
 /// A paragraph of text.
@@ -22,8 +21,8 @@ pub struct Text {
     font: Font,
     width: Length,
     height: Length,
-    horizontal_alignment: HorizontalAlignment,
-    vertical_alignment: VerticalAlignment,
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
 }
 
 impl Text {
@@ -36,8 +35,8 @@ impl Text {
             font: Font::Default,
             width: Length::Shrink,
             height: Length::Shrink,
-            horizontal_alignment: HorizontalAlignment::Left,
-            vertical_alignment: VerticalAlignment::Top,
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Top,
         }
     }
 
@@ -74,14 +73,17 @@ impl Text {
     /// Sets the [`HorizontalAlignment`] of the [`Text`].
     pub fn horizontal_alignment(
         mut self,
-        alignment: HorizontalAlignment,
+        alignment: alignment::Horizontal,
     ) -> Self {
         self.horizontal_alignment = alignment;
         self
     }
 
     /// Sets the [`VerticalAlignment`] of the [`Text`].
-    pub fn vertical_alignment(mut self, alignment: VerticalAlignment) -> Self {
+    pub fn vertical_alignment(
+        mut self,
+        alignment: alignment::Vertical,
+    ) -> Self {
         self.vertical_alignment = alignment;
         self
     }
@@ -111,9 +113,9 @@ impl<'a, Message> Widget<Message> for Text {
         let height = css::length(self.height);
 
         let text_align = match self.horizontal_alignment {
-            HorizontalAlignment::Left => "left",
-            HorizontalAlignment::Center => "center",
-            HorizontalAlignment::Right => "right",
+            alignment::Horizontal::Left => "left",
+            alignment::Horizontal::Center => "center",
+            alignment::Horizontal::Right => "right",
         };
 
         let style = bumpalo::format!(

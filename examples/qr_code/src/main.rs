@@ -1,7 +1,7 @@
 use iced::qr_code::{self, QRCode};
 use iced::text_input::{self, TextInput};
 use iced::{
-    Align, Column, Container, Element, Length, Sandbox, Settings, Text,
+    Alignment, Column, Container, Element, Length, Sandbox, Settings, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -62,7 +62,7 @@ impl Sandbox for QRGenerator {
         let mut content = Column::new()
             .width(Length::Units(700))
             .spacing(20)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(title)
             .push(input);
 

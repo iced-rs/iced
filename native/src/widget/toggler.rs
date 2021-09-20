@@ -1,10 +1,15 @@
 //! Show toggle controls using togglers.
 use std::hash::Hash;
 
+use crate::alignment;
+use crate::event;
+use crate::layout;
+use crate::mouse;
+use crate::row;
+use crate::text;
 use crate::{
-    event, layout, mouse, row, text, Align, Clipboard, Element, Event, Hasher,
-    HorizontalAlignment, Layout, Length, Point, Rectangle, Row, Text,
-    VerticalAlignment, Widget,
+    Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
+    Rectangle, Row, Text, Widget,
 };
 
 /// A toggler widget
@@ -30,7 +35,7 @@ pub struct Toggler<Message, Renderer: self::Renderer + text::Renderer> {
     width: Length,
     size: u16,
     text_size: Option<u16>,
-    text_alignment: HorizontalAlignment,
+    text_alignment: alignment::Horizontal,
     spacing: u16,
     font: Renderer::Font,
     style: Renderer::Style,
@@ -62,7 +67,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
             width: Length::Fill,
             size: <Renderer as self::Renderer>::DEFAULT_SIZE,
             text_size: None,
-            text_alignment: HorizontalAlignment::Left,
+            text_alignment: alignment::Horizontal::Left,
             spacing: 0,
             font: Renderer::Font::default(),
             style: Renderer::Style::default(),
@@ -88,7 +93,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
     }
 
     /// Sets the horizontal alignment of the text of the [`Toggler`]
-    pub fn text_alignment(mut self, alignment: HorizontalAlignment) -> Self {
+    pub fn text_alignment(mut self, alignment: alignment::Horizontal) -> Self {
         self.text_alignment = alignment;
         self
     }
@@ -132,7 +137,7 @@ where
         let mut row = Row::<(), Renderer>::new()
             .width(self.width)
             .spacing(self.spacing)
-            .align_items(Align::Center);
+            .align_items(Alignment::Center);
 
         if let Some(label) = &self.label {
             row = row.push(
@@ -202,7 +207,7 @@ where
                     self.font,
                     None,
                     self.text_alignment,
-                    VerticalAlignment::Center,
+                    alignment::Vertical::Center,
                 ))
             }
 

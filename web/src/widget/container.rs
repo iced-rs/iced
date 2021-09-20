@@ -1,5 +1,8 @@
 //! Decorate content and apply alignment.
-use crate::{bumpalo, css, Align, Bus, Css, Element, Length, Padding, Widget};
+use crate::alignment::{self, Alignment};
+use crate::bumpalo;
+use crate::css;
+use crate::{Bus, Css, Element, Length, Padding, Widget};
 
 pub use iced_style::container::{Style, StyleSheet};
 
@@ -14,8 +17,8 @@ pub struct Container<'a, Message> {
     max_width: u32,
     #[allow(dead_code)]
     max_height: u32,
-    horizontal_alignment: Align,
-    vertical_alignment: Align,
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
     style_sheet: Box<dyn StyleSheet>,
     content: Element<'a, Message>,
 }
@@ -34,8 +37,8 @@ impl<'a, Message> Container<'a, Message> {
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
-            horizontal_alignment: Align::Start,
-            vertical_alignment: Align::Start,
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Top,
             style_sheet: Default::default(),
             content: content.into(),
         }
@@ -73,14 +76,14 @@ impl<'a, Message> Container<'a, Message> {
 
     /// Centers the contents in the horizontal axis of the [`Container`].
     pub fn center_x(mut self) -> Self {
-        self.horizontal_alignment = Align::Center;
+        self.horizontal_alignment = alignment::Horizontal::Center;
 
         self
     }
 
     /// Centers the contents in the vertical axis of the [`Container`].
     pub fn center_y(mut self) -> Self {
-        self.vertical_alignment = Align::Center;
+        self.vertical_alignment = alignment::Vertical::Center;
 
         self
     }
@@ -122,8 +125,8 @@ where
                     css::length(self.height),
                     css::max_length(self.max_width),
                     css::padding(self.padding),
-                    css::align(self.horizontal_alignment),
-                    css::align(self.vertical_alignment),
+                    css::alignment(Alignment::from(self.horizontal_alignment)),
+                    css::alignment(Alignment::from(self.vertical_alignment)),
                     style.background.map(css::background).unwrap_or(String::from("initial")),
                     style.text_color.map(css::color).unwrap_or(String::from("inherit")),
                     style.border_width,

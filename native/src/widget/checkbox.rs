@@ -1,6 +1,7 @@
 //! Show toggle controls using checkboxes.
 use std::hash::Hash;
 
+use crate::alignment::{self, Alignment};
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -8,8 +9,8 @@ use crate::row;
 use crate::text;
 use crate::touch;
 use crate::{
-    Align, Clipboard, Color, Element, Hasher, HorizontalAlignment, Layout,
-    Length, Point, Rectangle, Row, Text, VerticalAlignment, Widget,
+    Clipboard, Color, Element, Hasher, Layout, Length, Point, Rectangle, Row,
+    Text, Widget,
 };
 
 /// A box that can be checked.
@@ -138,7 +139,7 @@ where
         Row::<(), Renderer>::new()
             .width(self.width)
             .spacing(self.spacing)
-            .align_items(Align::Center)
+            .align_items(Alignment::Center)
             .push(
                 Row::new()
                     .width(Length::Units(self.size))
@@ -202,8 +203,8 @@ where
             self.text_size.unwrap_or(renderer.default_size()),
             self.font,
             self.text_color,
-            HorizontalAlignment::Left,
-            VerticalAlignment::Center,
+            alignment::Horizontal::Left,
+            alignment::Vertical::Center,
         );
 
         let is_mouse_over = bounds.contains(cursor_position);

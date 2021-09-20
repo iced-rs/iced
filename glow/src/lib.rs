@@ -29,10 +29,9 @@ pub(crate) use iced_graphics::Transformation;
 pub use widget::*;
 
 pub use iced_graphics::{Error, Viewport};
-pub use iced_native::{
-    Background, Color, Command, HorizontalAlignment, Length, Vector,
-    VerticalAlignment,
-};
+
+pub use iced_native::alignment;
+pub use iced_native::{Alignment, Background, Color, Command, Length, Vector};
 
 /// A [`glow`] graphics renderer for [`iced`].
 ///
