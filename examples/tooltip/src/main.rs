@@ -1,8 +1,7 @@
 use iced::tooltip::{self, Tooltip};
 use iced::{
-    button, Button, Column, Container, CrossAlign, Element,
-    HorizontalAlignment, Length, Row, Sandbox, Settings, Text,
-    VerticalAlignment,
+    alignment, button, Alignment, Button, Column, Container, Element, Length,
+    Row, Sandbox, Settings, Text,
 };
 
 pub fn main() {
@@ -61,7 +60,7 @@ impl Sandbox for Example {
         ])
         .width(Length::Fill)
         .height(Length::Fill)
-        .align_items(CrossAlign::Center)
+        .align_items(Alignment::Center)
         .spacing(50);
 
         let follow_cursor = tooltip(
@@ -105,8 +104,8 @@ fn tooltip<'a>(
                 .size(40)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .horizontal_alignment(HorizontalAlignment::Center)
-                .vertical_alignment(VerticalAlignment::Center),
+                .horizontal_alignment(alignment::Horizontal::Center)
+                .vertical_alignment(alignment::Vertical::Center),
         )
         .on_press(Message)
         .width(Length::Fill)

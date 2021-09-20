@@ -6,7 +6,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::touch;
 use crate::{
-    Clipboard, Column, CrossAlign, Element, Hasher, Layout, Length, Padding,
+    Alignment, Clipboard, Column, Element, Hasher, Layout, Length, Padding,
     Point, Rectangle, Size, Vector, Widget,
 };
 
@@ -84,7 +84,7 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     }
 
     /// Sets the horizontal alignment of the contents of the [`Scrollable`] .
-    pub fn align_items(mut self, align_items: CrossAlign) -> Self {
+    pub fn align_items(mut self, align_items: Alignment) -> Self {
         self.content = self.content.align_items(align_items);
         self
     }

@@ -3,7 +3,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Clipboard, CrossAlign, Element, Hasher, Layout, Length, Padding, Point,
+    Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
     Rectangle, Widget,
 };
 
@@ -19,7 +19,7 @@ pub struct Row<'a, Message, Renderer> {
     height: Length,
     max_width: u32,
     max_height: u32,
-    align_items: CrossAlign,
+    align_items: Alignment,
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
@@ -40,7 +40,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
-            align_items: CrossAlign::Start,
+            align_items: Alignment::Start,
             children,
         }
     }
@@ -86,7 +86,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     }
 
     /// Sets the vertical alignment of the contents of the [`Row`] .
-    pub fn align_items(mut self, align: CrossAlign) -> Self {
+    pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
         self
     }

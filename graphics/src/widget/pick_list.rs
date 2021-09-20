@@ -1,10 +1,9 @@
 //! Display a dropdown list of selectable values.
+use crate::alignment;
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
-use iced_native::{
-    mouse, Font, HorizontalAlignment, Padding, Point, Rectangle,
-    VerticalAlignment,
-};
+
+use iced_native::{mouse, Font, Padding, Point, Rectangle};
 use iced_style::menu;
 
 pub use iced_native::pick_list::State;
@@ -64,8 +63,8 @@ where
                 ..bounds
             },
             color: style.text_color,
-            horizontal_alignment: HorizontalAlignment::Right,
-            vertical_alignment: VerticalAlignment::Center,
+            horizontal_alignment: alignment::Horizontal::Right,
+            vertical_alignment: alignment::Vertical::Center,
         };
 
         (
@@ -85,8 +84,8 @@ where
                             y: bounds.center_y(),
                             ..bounds
                         },
-                        horizontal_alignment: HorizontalAlignment::Left,
-                        vertical_alignment: VerticalAlignment::Center,
+                        horizontal_alignment: alignment::Horizontal::Left,
+                        vertical_alignment: alignment::Vertical::Center,
                     };
 
                     vec![background, label, arrow_down]

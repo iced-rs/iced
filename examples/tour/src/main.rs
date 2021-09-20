@@ -1,7 +1,7 @@
 use iced::{
-    button, scrollable, slider, text_input, Button, Checkbox, Color, Column,
-    Container, Element, HorizontalAlignment, Image, Length, Radio, Row,
-    Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput, Toggler,
+    alignment, button, scrollable, slider, text_input, Button, Checkbox, Color,
+    Column, Container, Element, Image, Length, Radio, Row, Sandbox, Scrollable,
+    Settings, Slider, Space, Text, TextInput, Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -419,7 +419,7 @@ impl<'a> Step {
             .push(
                 Text::new(&value.to_string())
                     .width(Length::Fill)
-                    .horizontal_alignment(HorizontalAlignment::Center),
+                    .horizontal_alignment(alignment::Horizontal::Center),
             )
     }
 
@@ -466,7 +466,7 @@ impl<'a> Step {
             .push(
                 Text::new(&format!("{} px", spacing))
                     .width(Length::Fill)
-                    .horizontal_alignment(HorizontalAlignment::Center),
+                    .horizontal_alignment(alignment::Horizontal::Center),
             );
 
         Self::container("Rows and columns")
@@ -591,7 +591,7 @@ impl<'a> Step {
             .push(
                 Text::new(&format!("Width: {} px", width.to_string()))
                     .width(Length::Fill)
-                    .horizontal_alignment(HorizontalAlignment::Center),
+                    .horizontal_alignment(alignment::Horizontal::Center),
             )
     }
 
@@ -612,7 +612,7 @@ impl<'a> Step {
                 Text::new("You are halfway there!")
                     .width(Length::Fill)
                     .size(30)
-                    .horizontal_alignment(HorizontalAlignment::Center),
+                    .horizontal_alignment(alignment::Horizontal::Center),
             )
             .push(Column::new().height(Length::Units(4096)))
             .push(ferris(300))
@@ -620,7 +620,7 @@ impl<'a> Step {
                 Text::new("You made it!")
                     .width(Length::Fill)
                     .size(50)
-                    .horizontal_alignment(HorizontalAlignment::Center),
+                    .horizontal_alignment(alignment::Horizontal::Center),
             )
     }
 
@@ -662,7 +662,7 @@ impl<'a> Step {
                     value
                 })
                 .width(Length::Fill)
-                .horizontal_alignment(HorizontalAlignment::Center),
+                .horizontal_alignment(alignment::Horizontal::Center),
             )
     }
 
@@ -680,7 +680,7 @@ impl<'a> Step {
                 Element::new(
                     Text::new("Not available on web yet!")
                         .color([0.7, 0.7, 0.7])
-                        .horizontal_alignment(HorizontalAlignment::Center),
+                        .horizontal_alignment(alignment::Horizontal::Center),
                 )
             } else {
                 Element::new(Checkbox::new(
@@ -725,7 +725,7 @@ fn button<'a, Message: Clone>(
 ) -> Button<'a, Message> {
     Button::new(
         state,
-        Text::new(label).horizontal_alignment(HorizontalAlignment::Center),
+        Text::new(label).horizontal_alignment(alignment::Horizontal::Center),
     )
     .padding(12)
     .min_width(100)

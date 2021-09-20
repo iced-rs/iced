@@ -1,4 +1,4 @@
-use crate::{CrossAlign, Point, Rectangle, Size};
+use crate::{Alignment, Point, Rectangle, Size};
 
 /// The bounds of an element and its children.
 #[derive(Debug, Clone, Default)]
@@ -44,32 +44,32 @@ impl Node {
     /// Aligns the [`Node`] in the given space.
     pub fn align(
         &mut self,
-        horizontal_alignment: CrossAlign,
-        vertical_alignment: CrossAlign,
+        horizontal_alignment: Alignment,
+        vertical_alignment: Alignment,
         space: Size,
     ) {
         match horizontal_alignment {
-            CrossAlign::Start => {}
-            CrossAlign::Center => {
+            Alignment::Start => {}
+            Alignment::Center => {
                 self.bounds.x += (space.width - self.bounds.width) / 2.0;
             }
-            CrossAlign::End => {
+            Alignment::End => {
                 self.bounds.x += space.width - self.bounds.width;
             }
-            CrossAlign::Fill => {
+            Alignment::Fill => {
                 self.bounds.width = space.width;
             }
         }
 
         match vertical_alignment {
-            CrossAlign::Start => {}
-            CrossAlign::Center => {
+            Alignment::Start => {}
+            Alignment::Center => {
                 self.bounds.y += (space.height - self.bounds.height) / 2.0;
             }
-            CrossAlign::End => {
+            Alignment::End => {
                 self.bounds.y += space.height - self.bounds.height;
             }
-            CrossAlign::Fill => {
+            Alignment::Fill => {
                 self.bounds.height = space.height;
             }
         }

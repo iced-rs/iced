@@ -1,11 +1,10 @@
 //! Write some text for your users to read.
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
+use iced_native::alignment;
 use iced_native::mouse;
 use iced_native::text;
-use iced_native::{
-    Color, Font, HorizontalAlignment, Point, Rectangle, Size, VerticalAlignment,
-};
+use iced_native::{Color, Font, Point, Rectangle, Size};
 
 /// A paragraph of text.
 ///
@@ -62,19 +61,19 @@ where
         size: u16,
         font: Font,
         color: Option<Color>,
-        horizontal_alignment: HorizontalAlignment,
-        vertical_alignment: VerticalAlignment,
+        horizontal_alignment: alignment::Horizontal,
+        vertical_alignment: alignment::Vertical,
     ) -> Self::Output {
         let x = match horizontal_alignment {
-            iced_native::HorizontalAlignment::Left => bounds.x,
-            iced_native::HorizontalAlignment::Center => bounds.center_x(),
-            iced_native::HorizontalAlignment::Right => bounds.x + bounds.width,
+            alignment::Horizontal::Left => bounds.x,
+            alignment::Horizontal::Center => bounds.center_x(),
+            alignment::Horizontal::Right => bounds.x + bounds.width,
         };
 
         let y = match vertical_alignment {
-            iced_native::VerticalAlignment::Top => bounds.y,
-            iced_native::VerticalAlignment::Center => bounds.center_y(),
-            iced_native::VerticalAlignment::Bottom => bounds.y + bounds.height,
+            alignment::Vertical::Top => bounds.y,
+            alignment::Vertical::Center => bounds.center_y(),
+            alignment::Vertical::Bottom => bounds.y + bounds.height,
         };
 
         (

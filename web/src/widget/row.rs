@@ -1,4 +1,5 @@
-use crate::{css, Align, Bus, Css, Element, Length, Padding, Widget};
+use crate::css;
+use crate::{Alignment, Bus, Css, Element, Length, Padding, Widget};
 
 use dodrio::bumpalo;
 use std::u32;
@@ -14,7 +15,7 @@ pub struct Row<'a, Message> {
     height: Length,
     max_width: u32,
     max_height: u32,
-    align_items: Align,
+    align_items: Alignment,
     children: Vec<Element<'a, Message>>,
 }
 
@@ -33,7 +34,7 @@ impl<'a, Message> Row<'a, Message> {
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
-            align_items: Align::Start,
+            align_items: Alignment::Start,
             children,
         }
     }
@@ -79,7 +80,7 @@ impl<'a, Message> Row<'a, Message> {
     }
 
     /// Sets the vertical alignment of the contents of the [`Row`] .
-    pub fn align_items(mut self, align: Align) -> Self {
+    pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
         self
     }
@@ -129,7 +130,7 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
                     css::max_length(self.max_width),
                     css::max_length(self.max_height),
                     css::padding(self.padding),
-                    css::align(self.align_items)
+                    css::alignment(self.align_items)
                 ).into_bump_str()
             )
             .children(children)

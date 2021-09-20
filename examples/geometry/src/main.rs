@@ -161,7 +161,7 @@ mod rainbow {
 }
 
 use iced::{
-    scrollable, Column, Container, CrossAlign, Element, Length, Sandbox,
+    scrollable, Alignment, Column, Container, Element, Length, Sandbox,
     Scrollable, Settings, Text,
 };
 use rainbow::Rainbow;
@@ -194,7 +194,7 @@ impl Sandbox for Example {
             .padding(20)
             .spacing(20)
             .max_width(500)
-            .align_items(CrossAlign::Start)
+            .align_items(Alignment::Start)
             .push(Rainbow::new())
             .push(Text::new(
                 "In this example we draw a custom widget Rainbow, using \

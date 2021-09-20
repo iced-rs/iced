@@ -1,7 +1,7 @@
 use iced::{
-    button, scrollable, slider, text_input, Button, Checkbox, Column,
-    Container, CrossAlign, Element, Length, ProgressBar, Radio, Row, Rule,
-    Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput, Toggler,
+    button, scrollable, slider, text_input, Alignment, Button, Checkbox,
+    Column, Container, Element, Length, ProgressBar, Radio, Row, Rule, Sandbox,
+    Scrollable, Settings, Slider, Space, Text, TextInput, Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -132,7 +132,7 @@ impl Sandbox for Styling {
                 Row::new()
                     .spacing(10)
                     .height(Length::Units(100))
-                    .align_items(CrossAlign::Center)
+                    .align_items(Alignment::Center)
                     .push(scrollable)
                     .push(Rule::vertical(38).style(self.theme))
                     .push(

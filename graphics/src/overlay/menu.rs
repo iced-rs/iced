@@ -1,10 +1,9 @@
 //! Build and show dropdown menus.
+use crate::alignment;
 use crate::backend::{self, Backend};
 use crate::{Primitive, Renderer};
-use iced_native::{
-    mouse, overlay, Color, Font, HorizontalAlignment, Padding, Point,
-    Rectangle, VerticalAlignment,
-};
+
+use iced_native::{mouse, overlay, Color, Font, Padding, Point, Rectangle};
 
 pub use iced_style::menu::Style;
 
@@ -100,8 +99,8 @@ where
                 } else {
                     style.text_color
                 },
-                horizontal_alignment: HorizontalAlignment::Left,
-                vertical_alignment: VerticalAlignment::Center,
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
             });
         }
 

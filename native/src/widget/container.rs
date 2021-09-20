@@ -1,12 +1,13 @@
 //! Decorate content and apply alignment.
 use std::hash::Hash;
 
+use crate::alignment::{self, Alignment};
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Align, Clipboard, CrossAlign, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
+    Widget,
 };
 
 use std::u32;
@@ -21,8 +22,8 @@ pub struct Container<'a, Message, Renderer: self::Renderer> {
     height: Length,
     max_width: u32,
     max_height: u32,
-    horizontal_alignment: Align,
-    vertical_alignment: Align,
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
     style: Renderer::Style,
     content: Element<'a, Message, Renderer>,
 }
@@ -42,8 +43,8 @@ where
             height: Length::Shrink,
             max_width: u32::MAX,
             max_height: u32::MAX,
-            horizontal_alignment: Align::Start,
-            vertical_alignment: Align::Start,
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Top,
             style: Renderer::Style::default(),
             content: content.into(),
         }
@@ -80,26 +81,26 @@ where
     }
 
     /// Sets the content alignment for the horizontal axis of the [`Container`].
-    pub fn align_x(mut self, alignment: Align) -> Self {
+    pub fn align_x(mut self, alignment: alignment::Horizontal) -> Self {
         self.horizontal_alignment = alignment;
         self
     }
 
     /// Sets the content alignment for the vertical axis of the [`Container`].
-    pub fn align_y(mut self, alignment: Align) -> Self {
+    pub fn align_y(mut self, alignment: alignment::Vertical) -> Self {
         self.vertical_alignment = alignment;
         self
     }
 
     /// Centers the contents in the horizontal axis of the [`Container`].
     pub fn center_x(mut self) -> Self {
-        self.horizontal_alignment = Align::Center;
+        self.horizontal_alignment = alignment::Horizontal::Center;
         self
     }
 
     /// Centers the contents in the vertical axis of the [`Container`].
     pub fn center_y(mut self) -> Self {
-        self.vertical_alignment = Align::Center;
+        self.vertical_alignment = alignment::Vertical::Center;
         self
     }
 
@@ -144,8 +145,8 @@ where
             self.padding.top.into(),
         ));
         content.align(
-            CrossAlign::from(self.horizontal_alignment),
-            CrossAlign::from(self.vertical_alignment),
+            Alignment::from(self.horizontal_alignment),
+            Alignment::from(self.vertical_alignment),
             size,
         );
 
