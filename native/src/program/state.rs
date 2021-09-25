@@ -129,14 +129,14 @@ where
         } else {
             // When there are messages, we are forced to rebuild twice
             // for now :^)
-            let temp_cache = user_interface.into_cache();
+            let mut temp_cache = user_interface.into_cache();
 
             let commands =
                 Command::batch(messages.into_iter().map(|message| {
                     debug.log_message(&message);
 
                     debug.update_started();
-                    let command = self.program.update(message);
+                    let command = self.program.update(message, temp_cache.widget_states_storage());
                     debug.update_finished();
 
                     command

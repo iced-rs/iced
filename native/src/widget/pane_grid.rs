@@ -36,7 +36,7 @@ use crate::row;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
-    Widget,
+    Widget, StateStorage,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -90,7 +90,8 @@ use crate::{
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
-    state: &'a mut state::Internal,
+    state: Box<state::Internal>,
+    id: Option<String>,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
@@ -110,8 +111,8 @@ where
     /// The view function will be called to display each [`Pane`] present in the
     /// [`State`].
     pub fn new<T>(
-        state: &'a mut State<T>,
-        view: impl Fn(Pane, &'a mut T) -> Content<'a, Message, Renderer>,
+        mut state: State<T>,
+        view: impl Fn(Pane, &mut T) -> Content<'a, Message, Renderer>,
     ) -> Self {
         let elements = {
             state
@@ -122,7 +123,8 @@ where
         };
 
         Self {
-            state: &mut state.internal,
+            state: Box::new(state.internal),
+            id: None,
             elements,
             width: Length::Fill,
             height: Length::Fill,
@@ -134,6 +136,22 @@ where
         }
     }
 
+    /// Sets the id of the [`TextInput`].
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+    
+    fn get_id_or_hash(&self, mut hash: Hasher) -> String {
+        use std::hash::{Hash, Hasher};
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(&mut hash);
+        self.width.hash(&mut hash);
+        self.height.hash(&mut hash);
+        let hash = hash.finish();
+        self.id.clone().unwrap_or(format!("id_{}", hash))
+    }
+    
     /// Sets the width of the [`PaneGrid`].
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
@@ -554,6 +572,27 @@ where
 
         for (_, element) in &self.elements {
             element.hash_layout(state);
+        }
+    }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        use std::hash::Hash;
+        states.insert(&self.get_id_or_hash(hash.clone()), self.state);
+        for (i, (_, child)) in self.elements.into_iter().enumerate() {
+            let mut k = hash.clone();
+            i.hash(&mut k);
+            child.into_states(k, states);
+        }
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        use std::hash::Hash;
+        if let Some(state) = states.take_state(&self.get_id_or_hash(hash.clone())) {
+            self.state = state;
+        }
+        for (i, (_, child)) in self.elements.iter_mut().enumerate() {
+            let mut k = hash.clone();
+            i.hash(&mut k);
+            child.apply_states(k, states);
         }
     }
 

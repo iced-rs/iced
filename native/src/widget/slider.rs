@@ -6,7 +6,7 @@ use crate::layout;
 use crate::mouse;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget, StateStorage,
 };
 
 use std::{hash::Hash, ops::RangeInclusive};
@@ -37,8 +37,9 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
-    state: &'a mut State,
+pub struct Slider<T, Message, Renderer: self::Renderer> {
+    state: Box<State>,
+    id: Option<String>,
     range: RangeInclusive<T>,
     step: T,
     value: T,
@@ -49,9 +50,9 @@ pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
     style: Renderer::Style,
 }
 
-impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
+impl<T, Message, Renderer> Slider<T, Message, Renderer>
 where
-    T: Copy + From<u8> + std::cmp::PartialOrd,
+    T: Copy,
     Message: Clone,
     Renderer: self::Renderer,
 {
@@ -65,13 +66,13 @@ where
     ///   It receives the new value of the [`Slider`] and must produce a
     ///   `Message`.
     pub fn new<F>(
-        state: &'a mut State,
         range: RangeInclusive<T>,
         value: T,
         on_change: F,
     ) -> Self
     where
         F: 'static + Fn(T) -> Message,
+        T: From<u8> + std::cmp::PartialOrd,
     {
         let value = if value >= *range.start() {
             value
@@ -86,7 +87,8 @@ where
         };
 
         Slider {
-            state,
+            state: Box::new(State::default()),
+            id: None,
             value,
             range,
             step: T::from(1),
@@ -98,6 +100,21 @@ where
         }
     }
 
+    /// Sets the id of the [`TextInput`].
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+    
+    fn get_id_or_hash(&self, mut hash: Hasher) -> String {
+        use std::hash::{Hash, Hasher};
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(&mut hash);
+        self.width.hash(&mut hash);
+        let hash = hash.finish();
+        self.id.clone().unwrap_or(format!("id_{}", hash))
+    }
+    
     /// Sets the release message of the [`Slider`].
     /// This is called when the mouse is released from the slider.
     ///
@@ -147,8 +164,8 @@ impl State {
     }
 }
 
-impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, T, Message, Renderer>
+impl<T, Message, Renderer> Widget<Message, Renderer>
+    for Slider<T, Message, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
@@ -270,6 +287,15 @@ where
 
         self.width.hash(state);
     }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        states.insert(&self.get_id_or_hash(hash), self.state);
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        if let Some(state) = states.take_state(&self.get_id_or_hash(hash)) {
+            self.state = state;
+        }
+    }
 }
 
 /// The renderer of a [`Slider`].
@@ -304,7 +330,7 @@ pub trait Renderer: crate::Renderer {
     ) -> Self::Output;
 }
 
-impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
+impl<'a, T, Message, Renderer> From<Slider<T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
@@ -312,7 +338,7 @@ where
     Renderer: 'a + self::Renderer,
 {
     fn from(
-        slider: Slider<'a, T, Message, Renderer>,
+        slider: Slider<T, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }

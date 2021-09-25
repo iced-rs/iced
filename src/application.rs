@@ -1,5 +1,5 @@
 use crate::window;
-use crate::{Color, Command, Element, Executor, Settings, Subscription};
+use crate::{Color, Command, StateStorage, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -127,7 +127,7 @@ pub trait Application: Sized {
     /// this method.
     ///
     /// Any [`Command`] returned will be executed immediately in the background.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
+    fn update(&mut self, message: Self::Message, states: &mut StateStorage) -> Command<Self::Message>;
 
     /// Returns the event [`Subscription`] for the current state of the
     /// application.
@@ -144,7 +144,7 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message>;
+    fn view(&self) -> Element<'_, Self::Message>;
 
     /// Returns the current [`Application`] mode.
     ///
@@ -237,11 +237,11 @@ where
     type Renderer = crate::renderer::Renderer;
     type Message = A::Message;
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
+    fn update(&mut self, message: Self::Message, states: &mut StateStorage) -> Command<Self::Message> {
+        self.0.update(message, states)
     }
 
-    fn view(&mut self) -> Element<'_, Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message> {
         self.0.view()
     }
 }

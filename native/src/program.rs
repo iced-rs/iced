@@ -1,5 +1,5 @@
 //! Build interactive programs using The Elm Architecture.
-use crate::{Command, Element, Renderer};
+use crate::{Command, Element, Renderer, StateStorage};
 
 mod state;
 
@@ -21,10 +21,10 @@ pub trait Program: Sized {
     ///
     /// Any [`Command`] returned will be executed immediately in the
     /// background by shells.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
+    fn update(&mut self, message: Self::Message, states: &mut StateStorage) -> Command<Self::Message>;
 
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer>;
+    fn view(&self) -> Element<'_, Self::Message, Self::Renderer>;
 }

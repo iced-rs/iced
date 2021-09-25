@@ -4,7 +4,7 @@ use crate::layout;
 use crate::overlay;
 use crate::{
     Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Widget,
+    Rectangle, Widget, StateStorage,
 };
 
 use std::hash::Hash;
@@ -195,6 +195,21 @@ where
         }
     }
 
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        for (i, child) in self.children.into_iter().enumerate() {
+            let mut h = hash.clone();
+            i.hash(&mut h);
+            child.widget.into_states(h, states);
+        }
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        for (i, child) in self.children.iter_mut().enumerate() {
+            let mut h = hash.clone();
+            i.hash(&mut h);
+            child.widget.apply_states(h, states);
+        }
+    }
+    
     fn overlay(
         &mut self,
         layout: Layout<'_>,

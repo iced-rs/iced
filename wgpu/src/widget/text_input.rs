@@ -9,4 +9,4 @@ pub use iced_native::text_input::State;
 /// A field that can be filled with text.
 ///
 /// This is an alias of an `iced_native` text input with an `iced_wgpu::Renderer`.
-pub type TextInput<'a, Message> = iced_native::TextInput<'a, Message, Renderer>;
+pub type TextInput<Message> = iced_native::TextInput<Message, Renderer>;

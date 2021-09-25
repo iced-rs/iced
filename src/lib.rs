@@ -249,5 +249,5 @@ pub use runtime::alignment;
 pub use runtime::futures;
 pub use runtime::{
     Alignment, Background, Color, Command, Font, Length, Point, Rectangle,
-    Size, Subscription, Vector,
+    Size, Subscription, Vector, StateStorage,
 };

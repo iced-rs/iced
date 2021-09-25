@@ -2,7 +2,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Widget,
+    Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Widget, StateStorage,
 };
 
 /// A generic [`Widget`].
@@ -17,6 +17,7 @@ use crate::{
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Renderer> {
     pub(crate) widget: Box<dyn Widget<Message, Renderer> + 'a>,
+    root_id: Option<String>,
 }
 
 impl<'a, Message, Renderer> Element<'a, Message, Renderer>
@@ -29,6 +30,7 @@ where
     ) -> Element<'a, Message, Renderer> {
         Element {
             widget: Box::new(widget),
+            root_id: None,
         }
     }
 
@@ -174,6 +176,7 @@ where
     {
         Element {
             widget: Box::new(Map::new(self.widget, f)),
+            root_id: self.root_id,
         }
     }
 
@@ -193,7 +196,14 @@ where
     {
         Element {
             widget: Box::new(Explain::new(self, color.into())),
+            root_id: None,
         }
+    }
+    
+    /// Присвоить id корневому элементу
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.root_id = Some(id.into());
+        self
     }
 
     /// Returns the width of the [`Element`].
@@ -253,6 +263,28 @@ where
     /// Computes the _layout_ hash of the [`Element`].
     pub fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
+    }
+    
+    /// Making State Array of Widget for saving
+    pub fn into_states(self, hash: Hasher, states: &mut StateStorage) {
+        if let Some(id) = &self.root_id {
+            states.enter(&id);
+        }
+        self.widget.into_states(hash, states);
+        if self.root_id.is_some() {
+            states.exit();
+        }
+    }
+    
+    /// Apply States for widget
+    pub fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        if let Some(id) = &self.root_id {
+            states.enter(&id);
+        }
+        self.widget.apply_states(hash, states);
+        if self.root_id.is_some() {
+            states.exit();
+        }
     }
 
     /// Returns the overlay of the [`Element`], if there is any.
@@ -348,6 +380,13 @@ where
     fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        self.widget.into_states(hash, states);
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        self.widget.apply_states(hash, states);
+    }
 
     fn overlay(
         &mut self,
@@ -435,6 +474,13 @@ where
 
     fn hash_layout(&self, state: &mut Hasher) {
         self.element.widget.hash_layout(state);
+    }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        self.element.into_states(hash, states);
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        self.element.apply_states(hash, states);
     }
 
     fn overlay(

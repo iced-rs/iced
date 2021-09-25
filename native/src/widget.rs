@@ -81,7 +81,7 @@ pub use tooltip::Tooltip;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
-use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle};
+use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle, StateStorage};
 
 /// A component that displays information and allows interaction.
 ///
@@ -149,6 +149,16 @@ where
     ///
     /// [`Text`]: crate::widget::Text
     fn hash_layout(&self, state: &mut Hasher);
+
+    /// Making the [`StateStorage`] of the [`Widget`] for saving
+    fn into_states(self: Box<Self>, _hash: Hasher, _states: &mut StateStorage) {
+    
+    }
+    
+    /// Apply States for the [`Widget`]
+    fn apply_states(&mut self, _hash: Hasher, _states: &mut StateStorage) {
+        
+    }
 
     /// Processes a runtime [`Event`].
     ///

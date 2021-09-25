@@ -6,7 +6,7 @@ use crate::layout;
 use crate::overlay;
 use crate::{
     Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Widget,
+    Rectangle, Widget, StateStorage,
 };
 
 use std::u32;
@@ -99,6 +99,16 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     {
         self.children.push(child.into());
         self
+    }
+    
+    pub(crate) fn into_states(self, hash: Hasher, states: &mut StateStorage)
+        where Renderer: self::Renderer
+    {
+        for (i, child) in self.children.into_iter().enumerate() {
+            let mut h = hash.clone();
+            i.hash(&mut h);
+            child.into_states(h, states);
+        }
     }
 }
 
@@ -193,6 +203,21 @@ where
 
         for child in &self.children {
             child.widget.hash_layout(state);
+        }
+    }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        for (i, child) in self.children.into_iter().enumerate() {
+            let mut h = hash.clone();
+            i.hash(&mut h);
+            child.into_states(h, states);
+        }
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        for (i, child) in self.children.iter_mut().enumerate() {
+            let mut h = hash.clone();
+            i.hash(&mut h);
+            child.apply_states(h, states);
         }
     }
 

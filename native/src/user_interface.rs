@@ -1,9 +1,10 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
-use crate::{Clipboard, Element, Layout, Point, Rectangle, Size};
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Size, StateStorage};
 
 use std::hash::Hasher;
+use std::rc::Rc;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -85,11 +86,14 @@ where
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
         bounds: Size,
-        cache: Cache,
+        mut cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let root = root.into();
-
+        let mut root = root.into();
+        
+        let hasher = crate::Hasher::default();
+        root.apply_states(hasher, cache.widget_states_storage());
+        
         let (base, overlay) = {
             let hash = {
                 let hasher = &mut crate::Hasher::default();
@@ -403,6 +407,7 @@ where
                 base: self.base,
                 overlay: self.overlay,
                 bounds: self.bounds,
+                states: Rc::new(StateStorage::default()),
             },
             renderer,
         )
@@ -411,10 +416,14 @@ where
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
     pub fn into_cache(self) -> Cache {
+        let mut states = StateStorage::default();
+        let hasher = crate::Hasher::default();
+        self.root.into_states(hasher, &mut states);
         Cache {
             base: self.base,
             overlay: self.overlay,
             bounds: self.bounds,
+            states: Rc::new(states),
         }
     }
 
@@ -455,6 +464,7 @@ pub struct Cache {
     base: Layer,
     overlay: Option<Layer>,
     bounds: Size,
+    states: Rc<StateStorage>, // why is Clone trait implemented?
 }
 
 impl Cache {
@@ -470,7 +480,13 @@ impl Cache {
             },
             overlay: None,
             bounds: Size::ZERO,
+            states: Rc::new(StateStorage::default()),
         }
+    }
+    
+    /// Get a mutable reference to [StateStorage]
+    pub fn widget_states_storage(&mut self) -> &mut super::StateStorage {
+        Rc::get_mut(&mut self.states).unwrap()
     }
 }
 

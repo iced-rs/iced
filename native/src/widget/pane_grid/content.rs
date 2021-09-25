@@ -3,7 +3,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::pane_grid::{self, TitleBar};
-use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
+use crate::{Clipboard, Element, Hasher, StateStorage, Layout, Point, Rectangle, Size};
 
 /// The content of a [`Pane`].
 ///
@@ -192,6 +192,13 @@ where
         }
 
         self.body.hash_layout(state);
+    }
+    
+    pub(crate) fn into_states(self, hash: Hasher, states: &mut StateStorage) {
+        self.body.into_states(hash, states);
+    }
+    pub(crate) fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        self.body.apply_states(hash, states);
     }
 
     pub(crate) fn overlay(

@@ -20,7 +20,6 @@ pub struct PickList<'a, T, Message, Renderer: self::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
 {
-    menu: &'a mut menu::State,
     keyboard_modifiers: &'a mut keyboard::Modifiers,
     is_open: &'a mut bool,
     hovered_option: &'a mut Option<usize>,
@@ -39,7 +38,6 @@ where
 /// The local state of a [`PickList`].
 #[derive(Debug, Clone)]
 pub struct State<T> {
-    menu: menu::State,
     keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
@@ -49,7 +47,6 @@ pub struct State<T> {
 impl<T> Default for State<T> {
     fn default() -> Self {
         Self {
-            menu: menu::State::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
             is_open: bool::default(),
             hovered_option: Option::default(),
@@ -74,7 +71,6 @@ where
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
         let State {
-            menu,
             keyboard_modifiers,
             is_open,
             hovered_option,
@@ -82,7 +78,6 @@ where
         } = state;
 
         Self {
-            menu,
             keyboard_modifiers,
             is_open,
             hovered_option,
@@ -349,7 +344,6 @@ where
             let bounds = layout.bounds();
 
             let mut menu = Menu::new(
-                &mut self.menu,
                 &self.options,
                 &mut self.hovered_option,
                 &mut self.last_selection,

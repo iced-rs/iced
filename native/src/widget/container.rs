@@ -6,8 +6,8 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Widget,
+    Clipboard, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Widget, StateStorage,
 };
 
 use std::u32;
@@ -202,6 +202,13 @@ where
         self.max_height.hash(state);
 
         self.content.hash_layout(state);
+    }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        self.content.widget.into_states(hash, states);
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        self.content.widget.apply_states(hash, states);
     }
 
     fn overlay(

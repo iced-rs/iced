@@ -46,6 +46,7 @@ pub mod subscription;
 pub mod touch;
 pub mod widget;
 pub mod window;
+pub mod state_storage;
 
 mod element;
 mod hasher;
@@ -85,3 +86,4 @@ pub use runtime::Runtime;
 pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::*;
+pub use state_storage::StateStorage;

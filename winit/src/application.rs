@@ -15,7 +15,7 @@ use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
-use iced_native::{Cache, UserInterface};
+use iced_native::{Cache, UserInterface, StateStorage};
 
 use std::mem::ManuallyDrop;
 
@@ -286,7 +286,7 @@ async fn run_instance<A, E, C>(
                 }
 
                 if !messages.is_empty() {
-                    let cache =
+                    let mut cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
 
                     // Update application
@@ -297,6 +297,7 @@ async fn run_instance<A, E, C>(
                         &mut proxy,
                         &mut debug,
                         &mut messages,
+                        cache.widget_states_storage(),
                         &window,
                     );
 
@@ -491,13 +492,14 @@ pub fn update<A: Application, E: Executor>(
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
+    states: &mut StateStorage,
     window: &winit::window::Window,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
 
         debug.update_started();
-        let command = runtime.enter(|| application.update(message));
+        let command = runtime.enter(|| application.update(message, states));
         debug.update_finished();
 
         run_command(command, runtime, clipboard, proxy, window);

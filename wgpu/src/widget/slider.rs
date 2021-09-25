@@ -10,4 +10,4 @@ pub use iced_native::slider::State;
 /// values.
 ///
 /// This is an alias of an `iced_native` slider with an `iced_wgpu::Renderer`.
-pub type Slider<'a, T, Message> = iced_native::Slider<'a, T, Message, Renderer>;
+pub type Slider<T, Message> = iced_native::Slider<T, Message, Renderer>;

@@ -19,7 +19,7 @@ use crate::text;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Size, Widget,
+    Size, Widget, StateStorage,
 };
 
 use std::u32;
@@ -49,8 +49,9 @@ use std::u32;
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message, Renderer: self::Renderer> {
-    state: &'a mut State,
+pub struct TextInput<Message, Renderer: self::Renderer> {
+    state: Box<State>,
+    id: Option<String>,
     placeholder: String,
     value: Value,
     is_secure: bool,
@@ -64,7 +65,7 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     style: Renderer::Style,
 }
 
-impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
+impl<Message, Renderer> TextInput<Message, Renderer>
 where
     Message: Clone,
     Renderer: self::Renderer,
@@ -77,7 +78,6 @@ where
     /// - the current value
     /// - a function that produces a message when the [`TextInput`] changes
     pub fn new<F>(
-        state: &'a mut State,
         placeholder: &str,
         value: &str,
         on_change: F,
@@ -86,7 +86,8 @@ where
         F: 'static + Fn(String) -> Message,
     {
         TextInput {
-            state,
+            state: Box::new(State::default()),
+            id: None,
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
@@ -99,6 +100,24 @@ where
             on_submit: None,
             style: Renderer::Style::default(),
         }
+    }
+    
+    /// Sets the id of the [`TextInput`].
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+    
+    fn get_id_or_hash(&self, mut hash: Hasher) -> String {
+        use std::hash::{Hash, Hasher};
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(&mut hash);
+        self.width.hash(&mut hash);
+        self.max_width.hash(&mut hash);
+        self.padding.hash(&mut hash);
+        self.size.hash(&mut hash);
+        let hash = hash.finish();
+        self.id.clone().unwrap_or(format!("id_{}", hash))
     }
 
     /// Converts the [`TextInput`] into a secure password input.
@@ -154,11 +173,11 @@ where
 
     /// Returns the current [`State`] of the [`TextInput`].
     pub fn state(&self) -> &State {
-        self.state
+        &self.state
     }
 }
 
-impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
+impl<Message, Renderer> TextInput<Message, Renderer>
 where
     Renderer: self::Renderer,
 {
@@ -205,8 +224,8 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for TextInput<'a, Message, Renderer>
+impl<Message, Renderer> Widget<Message, Renderer>
+    for TextInput<Message, Renderer>
 where
     Message: Clone,
     Renderer: self::Renderer,
@@ -644,6 +663,16 @@ where
         self.padding.hash(state);
         self.size.hash(state);
     }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        states.insert(&self.get_id_or_hash(hash), self.state);
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        let id = self.get_id_or_hash(hash);
+        if let Some(state) = states.take_state(&id) {
+            self.state = state;
+        }
+    }
 }
 
 /// The renderer of a [`TextInput`].
@@ -722,14 +751,14 @@ pub trait Renderer: text::Renderer + Sized {
     }
 }
 
-impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
+impl<'a, Message, Renderer> From<TextInput<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + self::Renderer,
 {
     fn from(
-        text_input: TextInput<'a, Message, Renderer>,
+        text_input: TextInput<Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(text_input)
     }

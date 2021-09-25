@@ -1,5 +1,5 @@
 /// The hasher used to compare layouts.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Hasher(twox_hash::XxHash64);
 
 impl Default for Hasher {

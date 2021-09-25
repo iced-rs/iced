@@ -1,5 +1,5 @@
 use crate::{
-    Application, Color, Command, Element, Error, Settings, Subscription,
+    Application, Color, Command, Element, Error, Settings, Subscription, StateStorage,
 };
 
 /// A sandboxed [`Application`].
@@ -109,7 +109,7 @@ pub trait Sandbox {
     /// Returns the widgets to display in the [`Sandbox`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message>;
+    fn view(&self) -> Element<'_, Self::Message>;
 
     /// Returns the background color of the [`Sandbox`].
     ///
@@ -161,7 +161,7 @@ where
         T::title(self)
     }
 
-    fn update(&mut self, message: T::Message) -> Command<T::Message> {
+    fn update(&mut self, message: T::Message, _states: &mut StateStorage) -> Command<T::Message> {
         T::update(self, message);
 
         Command::none()
@@ -171,7 +171,7 @@ where
         Subscription::none()
     }
 
-    fn view(&mut self) -> Element<'_, T::Message> {
+    fn view(&self) -> Element<'_, T::Message> {
         T::view(self)
     }
 

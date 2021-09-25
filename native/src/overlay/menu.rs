@@ -15,7 +15,6 @@ use crate::{
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
 pub struct Menu<'a, T, Renderer: self::Renderer> {
-    state: &'a mut State,
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
@@ -34,13 +33,11 @@ where
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
     /// the message to produced when an option is selected.
     pub fn new(
-        state: &'a mut State,
         options: &'a [T],
         hovered_option: &'a mut Option<usize>,
         last_selection: &'a mut Option<T>,
     ) -> Self {
         Menu {
-            state,
             options,
             hovered_option,
             last_selection,
@@ -103,19 +100,6 @@ where
     }
 }
 
-/// The local state of a [`Menu`].
-#[derive(Debug, Clone, Default)]
-pub struct State {
-    scrollable: scrollable::State,
-}
-
-impl State {
-    /// Creates a new [`State`] for a [`Menu`].
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
 struct Overlay<'a, Message, Renderer: self::Renderer> {
     container: Container<'a, Message, Renderer>,
     width: u16,
@@ -133,7 +117,6 @@ where
         T: Clone + ToString,
     {
         let Menu {
-            state,
             options,
             hovered_option,
             last_selection,
@@ -145,7 +128,7 @@ where
         } = menu;
 
         let container =
-            Container::new(Scrollable::new(&mut state.scrollable).push(List {
+            Container::new(Scrollable::new().push(List {
                 options,
                 hovered_option,
                 last_selection,

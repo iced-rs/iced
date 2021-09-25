@@ -1,10 +1,9 @@
 use iced::alignment::{self, Alignment};
-use iced::button::{self, Button};
-use iced::scrollable::{self, Scrollable};
 use iced::text_input::{self, TextInput};
 use iced::{
-    Application, Checkbox, Column, Command, Container, Element, Font, Length,
-    Row, Settings, Text,
+    Application, Button, Checkbox,
+    Column, Command, Container, Element, Font, Length,
+    Row, Scrollable, Settings, Text, StateStorage,
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,8 +19,6 @@ enum Todos {
 
 #[derive(Debug, Default)]
 struct State {
-    scroll: scrollable::State,
-    input: text_input::State,
     input_value: String,
     filter: Filter,
     tasks: Vec<Task>,
@@ -61,7 +58,7 @@ impl Application for Todos {
         format!("Todos{} - Iced", if dirty { "*" } else { "" })
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, states: &mut StateStorage) -> Command<Message> {
         match self {
             Todos::Loading => {
                 match message {
@@ -104,7 +101,9 @@ impl Application for Todos {
                     }
                     Message::TaskMessage(i, task_message) => {
                         if let Some(task) = state.tasks.get_mut(i) {
-                            task.update(task_message);
+                            states.enter(&format!("task_{}", i));
+                            task.update(task_message, states);
+                            states.exit();
                         }
                     }
                     Message::Saved(_) => {
@@ -138,12 +137,10 @@ impl Application for Todos {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         match self {
             Todos::Loading => loading_message(),
             Todos::Loaded(State {
-                scroll,
-                input,
                 input_value,
                 filter,
                 tasks,
@@ -157,7 +154,6 @@ impl Application for Todos {
                     .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = TextInput::new(
-                    input,
                     "What needs to be done?",
                     input_value,
                     Message::InputChanged,
@@ -172,13 +168,13 @@ impl Application for Todos {
 
                 let tasks: Element<_> = if filtered_tasks.count() > 0 {
                     tasks
-                        .iter_mut()
+                        .iter()
                         .enumerate()
                         .filter(|(_, task)| filter.matches(task))
                         .fold(Column::new().spacing(20), |column, (i, task)| {
                             column.push(task.view().map(move |message| {
                                 Message::TaskMessage(i, message)
-                            }))
+                            }).id(format!("task_{}", i)) )
                         })
                         .into()
                 } else {
@@ -199,7 +195,7 @@ impl Application for Todos {
                     .push(controls)
                     .push(tasks);
 
-                Scrollable::new(scroll)
+                Scrollable::new()
                     .padding(40)
                     .push(
                         Container::new(content).width(Length::Fill).center_x(),
@@ -221,20 +217,13 @@ struct Task {
 
 #[derive(Debug, Clone)]
 pub enum TaskState {
-    Idle {
-        edit_button: button::State,
-    },
-    Editing {
-        text_input: text_input::State,
-        delete_button: button::State,
-    },
+    Idle,
+    Editing,
 }
 
 impl Default for TaskState {
     fn default() -> Self {
-        TaskState::Idle {
-            edit_button: button::State::new(),
-        }
+        TaskState::Idle
     }
 }
 
@@ -252,43 +241,37 @@ impl Task {
         Task {
             description,
             completed: false,
-            state: TaskState::Idle {
-                edit_button: button::State::new(),
-            },
+            state: TaskState::Idle,
         }
     }
 
-    fn update(&mut self, message: TaskMessage) {
+    fn update(&mut self, message: TaskMessage, states: &mut StateStorage) {
         match message {
             TaskMessage::Completed(completed) => {
                 self.completed = completed;
             }
             TaskMessage::Edit => {
-                let mut text_input = text_input::State::focused();
+                let text_input: &mut text_input::State = states
+                    .get_mut_or_insert("text_input", text_input::State::focused()).unwrap();
                 text_input.select_all();
 
-                self.state = TaskState::Editing {
-                    text_input,
-                    delete_button: button::State::new(),
-                };
+                self.state = TaskState::Editing;
             }
             TaskMessage::DescriptionEdited(new_description) => {
                 self.description = new_description;
             }
             TaskMessage::FinishEdition => {
                 if !self.description.is_empty() {
-                    self.state = TaskState::Idle {
-                        edit_button: button::State::new(),
-                    }
+                    self.state = TaskState::Idle;
                 }
             }
             TaskMessage::Delete => {}
         }
     }
 
-    fn view(&mut self) -> Element<TaskMessage> {
-        match &mut self.state {
-            TaskState::Idle { edit_button } => {
+    fn view(&self) -> Element<TaskMessage> {
+        match &self.state {
+            TaskState::Idle => {
                 let checkbox = Checkbox::new(
                     self.completed,
                     &self.description,
@@ -301,23 +284,20 @@ impl Task {
                     .align_items(Alignment::Center)
                     .push(checkbox)
                     .push(
-                        Button::new(edit_button, edit_icon())
+                        Button::new(edit_icon())
                             .on_press(TaskMessage::Edit)
                             .padding(10)
                             .style(style::Button::Icon),
                     )
                     .into()
             }
-            TaskState::Editing {
-                text_input,
-                delete_button,
-            } => {
+            TaskState::Editing => {
                 let text_input = TextInput::new(
-                    text_input,
                     "Describe your task...",
                     &self.description,
                     TaskMessage::DescriptionEdited,
                 )
+                .id("text_input")
                 .on_submit(TaskMessage::FinishEdition)
                 .padding(10);
 
@@ -327,7 +307,6 @@ impl Task {
                     .push(text_input)
                     .push(
                         Button::new(
-                            delete_button,
                             Row::new()
                                 .spacing(10)
                                 .push(delete_icon())
@@ -344,26 +323,17 @@ impl Task {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Controls {
-    all_button: button::State,
-    active_button: button::State,
-    completed_button: button::State,
-}
+pub struct Controls;
 
 impl Controls {
-    fn view(&mut self, tasks: &[Task], current_filter: Filter) -> Row<Message> {
-        let Controls {
-            all_button,
-            active_button,
-            completed_button,
-        } = self;
-
+    fn view(&self, tasks: &[Task], current_filter: Filter) -> Row<Message> {
+    
         let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
-        let filter_button = |state, label, filter, current_filter| {
-            let label = Text::new(label).size(16);
+        let filter_button = |lb, filter, current_filter| {
+            let label = Text::new(lb).size(16);
             let button =
-                Button::new(state, label).style(style::Button::Filter {
+                Button::new(label).style(style::Button::Filter {
                     selected: filter == current_filter,
                 });
 
@@ -387,19 +357,16 @@ impl Controls {
                     .width(Length::Shrink)
                     .spacing(10)
                     .push(filter_button(
-                        all_button,
                         "All",
                         Filter::All,
                         current_filter,
                     ))
                     .push(filter_button(
-                        active_button,
                         "Active",
                         Filter::Active,
                         current_filter,
                     ))
                     .push(filter_button(
-                        completed_button,
                         "Completed",
                         Filter::Completed,
                         current_filter,

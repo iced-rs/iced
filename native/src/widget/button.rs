@@ -8,7 +8,7 @@ use crate::overlay;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Widget,
+    Widget, StateStorage,
 };
 use std::hash::Hash;
 
@@ -54,7 +54,8 @@ use std::hash::Hash;
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer: self::Renderer> {
-    state: &'a mut State,
+    state: Box<State>,
+    id: Option<String>,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
     width: Length,
@@ -72,12 +73,13 @@ where
 {
     /// Creates a new [`Button`] with some local [`State`] and the given
     /// content.
-    pub fn new<E>(state: &'a mut State, content: E) -> Self
+    pub fn new<E>(content: E) -> Self
     where
         E: Into<Element<'a, Message, Renderer>>,
     {
         Button {
-            state,
+            state: Box::new(State::default()),
+            id: None,
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
@@ -87,6 +89,21 @@ where
             padding: Renderer::DEFAULT_PADDING,
             style: Renderer::Style::default(),
         }
+    }
+    
+    /// Sets the id of the [`TextInput`].
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+    
+    fn get_id_or_hash(&self, mut hash: Hasher) -> String {
+        use std::hash::{Hash, Hasher};
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(&mut hash);
+        self.width.hash(&mut hash);
+        let hash = hash.finish();
+        self.id.clone().unwrap_or(format!("id_{}", hash))
     }
 
     /// Sets the width of the [`Button`].
@@ -139,12 +156,18 @@ pub struct State {
     is_pressed: bool,
 }
 
+// impl WidgetState for State {}
+
 impl State {
     /// Creates a new [`State`].
     pub fn new() -> State {
         State::default()
     }
 }
+
+// impl <M,R> HasWidgetStates <M,R> for Button {
+// 
+// }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
@@ -267,6 +290,17 @@ where
 
         self.width.hash(state);
         self.content.hash_layout(state);
+    }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        states.insert(&self.get_id_or_hash(hash.clone()), self.state);
+        self.content.into_states(hash, states);
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        if let Some(state) = states.take_state(&self.get_id_or_hash(hash.clone())) {
+            self.state = state;
+        }
+        self.content.apply_states(hash, states);
     }
 
     fn overlay(

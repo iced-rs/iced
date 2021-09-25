@@ -6,8 +6,8 @@ use crate::mouse;
 use crate::overlay;
 use crate::touch;
 use crate::{
-    Alignment, Clipboard, Column, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Size, Vector, Widget,
+    Alignment, Clipboard, Column, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Size, Vector, Widget, StateStorage,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -16,7 +16,8 @@ use std::{f32, hash::Hash, u32};
 /// scrollbar.
 #[allow(missing_debug_implementations)]
 pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
-    state: &'a mut State,
+    state: Box<State>,
+    id: Option<String>,
     height: Length,
     max_height: u32,
     scrollbar_width: u16,
@@ -29,9 +30,10 @@ pub struct Scrollable<'a, Message, Renderer: self::Renderer> {
 
 impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
     /// Creates a new [`Scrollable`] with the given [`State`].
-    pub fn new(state: &'a mut State) -> Self {
+    pub fn new() -> Self {
         Scrollable {
-            state,
+            state: Box::new(State::default()),
+            id: None,
             height: Length::Shrink,
             max_height: u32::MAX,
             scrollbar_width: 10,
@@ -43,6 +45,23 @@ impl<'a, Message, Renderer: self::Renderer> Scrollable<'a, Message, Renderer> {
         }
     }
 
+    /// Sets the id of the [`TextInput`].
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+    
+    fn get_id_or_hash(&self, mut hash: Hasher) -> String {
+        use std::hash::{Hash, Hasher};
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(&mut hash);
+        self.height.hash(&mut hash);
+        self.max_height.hash(&mut hash);
+
+        let hash = hash.finish();
+        self.id.clone().unwrap_or(format!("id_{}", hash))
+    }
+    
     /// Sets the vertical spacing _between_ elements.
     ///
     /// Custom margins per element do not exist in Iced. You should use this
@@ -442,6 +461,17 @@ where
         self.max_height.hash(state);
 
         self.content.hash_layout(state)
+    }
+    
+    fn into_states(self: Box<Self>, hash: Hasher, states: &mut StateStorage) {
+        states.insert(&self.get_id_or_hash(hash.clone()), self.state);
+        self.content.into_states(hash, states);
+    }
+    fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
+        if let Some(state) = states.take_state(&self.get_id_or_hash(hash.clone())) {
+            self.state = state;
+        }
+        self.content.apply_states(hash, states);
     }
 
     fn overlay(
