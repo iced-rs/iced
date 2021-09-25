@@ -101,9 +101,10 @@ impl Application for Todos {
                     }
                     Message::TaskMessage(i, task_message) => {
                         if let Some(task) = state.tasks.get_mut(i) {
-                            states.enter(&format!("task_{}", i));
-                            task.update(task_message, states);
-                            states.exit();
+                            task.update(
+                                task_message, 
+                                &mut states.enter(&format!("task_{}", i))
+                            );
                         }
                     }
                     Message::Saved(_) => {

@@ -268,22 +268,18 @@ where
     /// Making State Array of Widget for saving
     pub fn into_states(self, hash: Hasher, states: &mut StateStorage) {
         if let Some(id) = &self.root_id {
-            states.enter(&id);
-        }
-        self.widget.into_states(hash, states);
-        if self.root_id.is_some() {
-            states.exit();
+            self.widget.into_states(hash, &mut states.enter(&id));
+        } else {
+            self.widget.into_states(hash, states);
         }
     }
     
     /// Apply States for widget
     pub fn apply_states(&mut self, hash: Hasher, states: &mut StateStorage) {
         if let Some(id) = &self.root_id {
-            states.enter(&id);
-        }
-        self.widget.apply_states(hash, states);
-        if self.root_id.is_some() {
-            states.exit();
+            self.widget.apply_states(hash, &mut states.enter(&id));
+        } else {
+            self.widget.apply_states(hash, states);
         }
     }
 

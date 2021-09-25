@@ -67,11 +67,52 @@ impl StateStorage {
     }
     
     /// Entering a state group
-    pub fn enter(&mut self, id: &str) {
-        self.path.push(id);
+    /// the function is called from [`Element`] and [`Application::update`]
+    pub fn enter(&mut self, id: &str) -> Entry<'_> {
+        Entry::new(self)
+            .enter(id)
     }
-    /// Exit from the group
-    pub fn exit(&mut self) {
-        let _ = self.path.pop();
+}
+
+/// Access to the state at a lower level
+/// This `struct` is constructed from the [`enter`] method on [`StateStorage`].
+#[derive(Debug)]
+pub struct Entry <'a> {
+    storage: &'a mut StateStorage,
+    is_enter: bool,
+}
+
+impl <'a> Entry<'a> {
+    fn new(storage: &'a mut StateStorage) -> Self {
+        Entry {
+            storage, 
+            is_enter: false,
+        }
+    }
+    fn enter(mut self, id: &str) -> Self {
+        self.storage.path.push(id);
+        self.is_enter = true;
+        self
+    }
+}
+
+impl <'a> Drop for Entry <'a> {
+    fn drop(&mut self) {
+        if self.is_enter {
+            let _ = self.path.pop();
+        }
+    }
+}
+
+impl <'a> std::ops::Deref for Entry<'a> {
+    type Target = StateStorage;
+    fn deref(&self) -> &StateStorage {
+        &self.storage
+    }
+}
+
+impl <'a> std::ops::DerefMut for Entry<'a> {
+    fn deref_mut(&mut self) -> &mut StateStorage {
+        &mut self.storage
     }
 }
