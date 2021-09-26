@@ -40,7 +40,7 @@ impl Application for Clock {
         String::from("Clock - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _clipboard: &mut Clipboard) -> Command<Message> {
         match message {
             Message::Tick(local_time) => {
                 let now = local_time;
