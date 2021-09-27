@@ -8,7 +8,7 @@ license = "MIT AND OFL-1.1"
 repository = "https://github.com/hecrj/iced"
 
 [features]
-svg = ["resvg", "usvg"]
+svg = ["resvg", "usvg", "tiny-skia"]
 image = ["png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp"]
 png = ["image_rs/png"]
 jpeg = ["image_rs/jpeg"]
@@ -55,11 +55,15 @@ default-features = false
 optional = true
 
 [dependencies.resvg]
-version = "0.12"
+version = "0.18"
 optional = true
 
 [dependencies.usvg]
-version = "0.12"
+version = "0.18"
+optional = true
+
+[dependencies.tiny-skia]
+version = "0.6"
 optional = true
 
 [package.metadata.docs.rs]
