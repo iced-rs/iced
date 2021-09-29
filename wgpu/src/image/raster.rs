@@ -43,14 +43,20 @@ impl Cache {
         let memory = match handle.data() {
             image::Data::Path(path) => {
                 if let Ok(image) = ::image_rs::open(path) {
-                    Memory::Host(image.to_bgra8())
+                    let orientation = std::fs::File::open(path)
+                        .ok()
+                        .map(std::io::BufReader::new)
+                        .and_then(|mut reader| exif_orientation(&mut reader));
+                    Memory::Host(fix_orientation(image.to_bgra8(), orientation))
                 } else {
                     Memory::NotFound
                 }
             }
             image::Data::Bytes(bytes) => {
                 if let Ok(image) = ::image_rs::load_from_memory(&bytes) {
-                    Memory::Host(image.to_bgra8())
+                    let orientation =
+                        exif_orientation(&mut std::io::Cursor::new(bytes));
+                    Memory::Host(fix_orientation(image.to_bgra8(), orientation))
                 } else {
                     Memory::Invalid
                 }
@@ -131,4 +137,40 @@ impl Cache {
     fn contains(&self, handle: &image::Handle) -> bool {
         self.map.contains_key(&handle.id())
     }
+}
+
+fn fix_orientation(
+    mut img: ::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>>,
+    orientation: Option<u32>,
+) -> ::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>> {
+    use ::image_rs::imageops::*;
+    match orientation.unwrap_or(1) {
+        2 => flip_horizontal_in_place(&mut img),
+        3 => rotate180_in_place(&mut img),
+        4 => flip_vertical_in_place(&mut img),
+        5 => {
+            img = rotate90(&img);
+            flip_horizontal_in_place(&mut img);
+        }
+        6 => img = rotate90(&img),
+        7 => {
+            img = rotate90(&img);
+            flip_vertical_in_place(&mut img);
+        }
+        8 => img = rotate270(&img),
+        _ => {}
+    };
+    img
+}
+
+// Meaning of the returned value is described e.g. at:
+// https://magnushoff.com/articles/jpeg-orientation/
+fn exif_orientation<R>(reader: &mut R) -> Option<u32>
+where
+    R: std::io::BufRead + std::io::Seek,
+{
+    let exif = ::exif::Reader::new().read_from_container(reader).ok()?;
+    exif.get_field(::exif::Tag::Orientation, ::exif::In::PRIMARY)?
+        .value
+        .get_uint(0)
 }
