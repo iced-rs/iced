@@ -1,6 +1,7 @@
 use iced::{
-    alignment, button, executor, Alignment, Application, Button, Checkbox,
-    Column, Command, Container, Element, Length, Settings, Subscription, Text,
+    button, executor, Align, Application, Button, Checkbox, Clipboard,
+    Column, Command, Container, Element, HorizontalAlignment, Length, Settings, Subscription, Text,
+
 };
 use iced_native::{window, Event};
 
@@ -39,7 +40,7 @@ impl Application for Events {
         String::from("Events - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, clipboard: &mut Clipboard) -> Command<Message> {
         match message {
             Message::EventOccurred(event) if self.enabled => {
                 self.last.push(event);
@@ -90,14 +91,14 @@ impl Application for Events {
             &mut self.exit,
             Text::new("Exit")
                 .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
+                .horizontal_alignment(HorizontalAlignment::Center),
         )
         .width(Length::Units(100))
         .padding(10)
         .on_press(Message::Exit);
 
         let content = Column::new()
-            .align_items(Alignment::Center)
+            .align_items(Align::Center)
             .spacing(20)
             .push(events)
             .push(toggle)
