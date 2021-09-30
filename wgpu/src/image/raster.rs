@@ -175,16 +175,20 @@ impl Operation {
             .unwrap_or_else(Self::empty))
     }
 
-    fn perform<I>(self, mut image: I) -> I
+    fn perform<P>(
+        self,
+        image: image_rs::ImageBuffer<P, Vec<P::Subpixel>>,
+    ) -> image_rs::ImageBuffer<P, Vec<P::Subpixel>>
     where
-        I: image_rs::GenericImage,
+        P: image_rs::Pixel + 'static,
     {
         use image_rs::imageops;
 
-        if self.contains(Self::FLIP_DIAGONALLY) {
-            imageops::flip_horizontal_in_place(&mut image);
-            imageops::flip_vertical_in_place(&mut image);
-        }
+        let mut image = if self.contains(Self::FLIP_DIAGONALLY) {
+            flip_diagonally(image)
+        } else {
+            image
+        };
 
         if self.contains(Self::ROTATE_180) {
             imageops::rotate180_in_place(&mut image);
@@ -196,4 +200,25 @@ impl Operation {
 
         image
     }
+}
+
+fn flip_diagonally<I>(
+    image: I,
+) -> image_rs::ImageBuffer<I::Pixel, Vec<<I::Pixel as image_rs::Pixel>::Subpixel>>
+where
+    I: image_rs::GenericImage,
+    I::Pixel: 'static,
+{
+    let (width, height) = image.dimensions();
+    let mut out = image_rs::ImageBuffer::new(height, width);
+
+    for x in 0..width {
+        for y in 0..height {
+            let p = image.get_pixel(x, y);
+
+            out.put_pixel(y, x, p);
+        }
+    }
+
+    out
 }
