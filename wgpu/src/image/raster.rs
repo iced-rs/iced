@@ -165,7 +165,7 @@ impl Orientation {
     where
         R: std::io::BufRead + std::io::Seek,
     {
-        let exif = ::exif::Reader::new().read_from_container(reader)?;
+        let exif = exif::Reader::new().read_from_container(reader)?;
 
         Ok(exif
             .get_field(::exif::Tag::Orientation, ::exif::In::PRIMARY)
@@ -186,8 +186,8 @@ impl Orientation {
     fn apply(
         self,
         mut img: ::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>>,
-    ) -> ::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>> {
-        use ::image_rs::imageops::*;
+    ) -> image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>> {
+        use image_rs::imageops::*;
 
         match self {
             Self::FlippedHorizontally => flip_horizontal_in_place(&mut img),
