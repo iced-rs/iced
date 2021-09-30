@@ -44,7 +44,7 @@ impl Cache {
 
         let memory = match handle.data() {
             image::Data::Path(path) => {
-                if let Ok(image) = ::image_rs::open(path) {
+                if let Ok(image) = image_rs::open(path) {
                     let operation = std::fs::File::open(path)
                         .ok()
                         .map(std::io::BufReader::new)
@@ -59,7 +59,7 @@ impl Cache {
                 }
             }
             image::Data::Bytes(bytes) => {
-                if let Ok(image) = ::image_rs::load_from_memory(&bytes) {
+                if let Ok(image) = image_rs::load_from_memory(&bytes) {
                     let operation =
                         Operation::from_exif(&mut std::io::Cursor::new(bytes))
                             .ok()
@@ -75,7 +75,7 @@ impl Cache {
                 height,
                 pixels,
             } => {
-                if let Some(image) = ::image_rs::ImageBuffer::from_vec(
+                if let Some(image) = image_rs::ImageBuffer::from_vec(
                     *width,
                     *height,
                     pixels.to_vec(),
@@ -168,7 +168,7 @@ impl Operation {
         let exif = exif::Reader::new().read_from_container(reader)?;
 
         Ok(exif
-            .get_field(::exif::Tag::Orientation, ::exif::In::PRIMARY)
+            .get_field(exif::Tag::Orientation, exif::In::PRIMARY)
             .and_then(|field| field.value.get_uint(0))
             .and_then(|value| u8::try_from(value).ok())
             .and_then(|value| Self::from_bits(value.saturating_sub(1)))
