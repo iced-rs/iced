@@ -46,17 +46,24 @@ impl Cache {
                     let orientation = std::fs::File::open(path)
                         .ok()
                         .map(std::io::BufReader::new)
-                        .and_then(|mut reader| exif_orientation(&mut reader));
-                    Memory::Host(fix_orientation(image.to_bgra8(), orientation))
+                        .and_then(|mut reader| {
+                            Orientation::from_exif(&mut reader).ok()
+                        })
+                        .unwrap_or(Orientation::Default);
+
+                    Memory::Host(orientation.apply(image.to_bgra8()))
                 } else {
                     Memory::NotFound
                 }
             }
             image::Data::Bytes(bytes) => {
                 if let Ok(image) = ::image_rs::load_from_memory(&bytes) {
-                    let orientation =
-                        exif_orientation(&mut std::io::Cursor::new(bytes));
-                    Memory::Host(fix_orientation(image.to_bgra8(), orientation))
+                    let orientation = Orientation::from_exif(
+                        &mut std::io::Cursor::new(bytes),
+                    )
+                    .unwrap_or(Orientation::Default);
+
+                    Memory::Host(orientation.apply(image.to_bgra8()))
                 } else {
                     Memory::Invalid
                 }
@@ -139,38 +146,66 @@ impl Cache {
     }
 }
 
-fn fix_orientation(
-    mut img: ::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>>,
-    orientation: Option<u32>,
-) -> ::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>> {
-    use ::image_rs::imageops::*;
-    match orientation.unwrap_or(1) {
-        2 => flip_horizontal_in_place(&mut img),
-        3 => rotate180_in_place(&mut img),
-        4 => flip_vertical_in_place(&mut img),
-        5 => {
-            img = rotate90(&img);
-            flip_horizontal_in_place(&mut img);
-        }
-        6 => img = rotate90(&img),
-        7 => {
-            img = rotate90(&img);
-            flip_vertical_in_place(&mut img);
-        }
-        8 => img = rotate270(&img),
-        _ => {}
-    };
-    img
+#[derive(Debug, Clone, Copy)]
+enum Orientation {
+    Default,
+    FlippedHorizontally,
+    FlippedVertically,
+    Rotated90,
+    Rotated180,
+    Rotated270,
+    Rotated90AndFlippedHorizontally,
+    Rotated90AndFlippedVertically,
 }
 
-// Meaning of the returned value is described e.g. at:
-// https://magnushoff.com/articles/jpeg-orientation/
-fn exif_orientation<R>(reader: &mut R) -> Option<u32>
-where
-    R: std::io::BufRead + std::io::Seek,
-{
-    let exif = ::exif::Reader::new().read_from_container(reader).ok()?;
-    exif.get_field(::exif::Tag::Orientation, ::exif::In::PRIMARY)?
-        .value
-        .get_uint(0)
+impl Orientation {
+    // Meaning of the returned value is described e.g. at:
+    // https://magnushoff.com/articles/jpeg-orientation/
+    fn from_exif<R>(reader: &mut R) -> Result<Self, exif::Error>
+    where
+        R: std::io::BufRead + std::io::Seek,
+    {
+        let exif = ::exif::Reader::new().read_from_container(reader)?;
+
+        Ok(exif
+            .get_field(::exif::Tag::Orientation, ::exif::In::PRIMARY)
+            .and_then(|field| field.value.get_uint(0))
+            .map(|value| match value {
+                2 => Orientation::FlippedHorizontally,
+                3 => Orientation::Rotated180,
+                4 => Orientation::FlippedVertically,
+                5 => Orientation::Rotated90AndFlippedHorizontally,
+                6 => Orientation::Rotated90,
+                7 => Orientation::Rotated90AndFlippedVertically,
+                8 => Orientation::Rotated270,
+                _ => Orientation::Default,
+            })
+            .unwrap_or(Orientation::Default))
+    }
+
+    fn apply(
+        self,
+        mut img: ::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>>,
+    ) -> ::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>> {
+        use ::image_rs::imageops::*;
+
+        match self {
+            Self::FlippedHorizontally => flip_horizontal_in_place(&mut img),
+            Self::Rotated180 => rotate180_in_place(&mut img),
+            Self::FlippedVertically => flip_vertical_in_place(&mut img),
+            Self::Rotated90AndFlippedHorizontally => {
+                img = rotate90(&img);
+                flip_horizontal_in_place(&mut img);
+            }
+            Self::Rotated90 => img = rotate90(&img),
+            Self::Rotated90AndFlippedVertically => {
+                img = rotate90(&img);
+                flip_vertical_in_place(&mut img);
+            }
+            Self::Rotated270 => img = rotate270(&img),
+            Self::Default => {}
+        };
+
+        img
+    }
 }
