@@ -34,6 +34,8 @@ raw-window-handle = "0.3"
 log = "0.4"
 guillotiere = "0.6"
 futures = "0.3"
+kamadak-exif = "0.5"
+bitflags = "1.2"
 
 [dependencies.bytemuck]
 version = "1.4"
