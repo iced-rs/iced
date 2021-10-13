@@ -10,7 +10,7 @@ The __[`main`]__ file contains all the code of the example.
 
 You can run it with `cargo run`:
 ```
-cargo run --package integration_gl
+cargo run --package integration_opengl
 ```
 
 [`main`]: src/main.rs
