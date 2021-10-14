@@ -180,7 +180,13 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        // TODO
+        self.content.draw(
+            renderer,
+            defaults,
+            layout.children().next().unwrap(),
+            cursor_position,
+            viewport,
+        );
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
