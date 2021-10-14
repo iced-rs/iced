@@ -19,13 +19,17 @@
 //! [`text::Renderer`]: crate::widget::text::Renderer
 //! [`Checkbox`]: crate::widget::Checkbox
 //! [`checkbox::Renderer`]: crate::widget::checkbox::Renderer
+pub mod text;
+
+pub use text::Text;
 
 #[cfg(debug_assertions)]
 mod null;
 #[cfg(debug_assertions)]
 pub use null::Null;
 
-use crate::{layout, Element, Rectangle};
+use crate::layout;
+use crate::{Element, Rectangle};
 
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
@@ -48,4 +52,6 @@ pub trait Renderer: Sized {
     }
 
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self));
+
+    fn clear(&mut self);
 }

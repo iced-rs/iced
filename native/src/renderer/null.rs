@@ -4,12 +4,13 @@ use crate::container;
 use crate::pane_grid;
 use crate::progress_bar;
 use crate::radio;
+use crate::renderer::{self, Renderer};
 use crate::scrollable;
 use crate::slider;
 use crate::text;
 use crate::text_input;
 use crate::toggler;
-use crate::{Font, Padding, Point, Rectangle, Renderer, Size};
+use crate::{Font, Padding, Point, Rectangle, Size};
 
 /// A renderer that does nothing.
 ///
@@ -28,11 +29,17 @@ impl Renderer for Null {
     type Defaults = ();
 
     fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
+
+    fn clear(&mut self) {}
+}
+
+impl renderer::Text for Null {
+    type Font = Font;
+
+    fn fill_text(&mut self, _text: renderer::text::Section<'_, Self::Font>) {}
 }
 
 impl text::Renderer for Null {
-    type Font = Font;
-
     fn default_size(&self) -> u16 {
         20
     }

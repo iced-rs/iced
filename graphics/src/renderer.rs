@@ -1,12 +1,14 @@
-use crate::{Backend, Defaults, Primitive};
+use crate::backend::{self, Backend};
+use crate::{Defaults, Primitive, Vector};
 use iced_native::layout;
-use iced_native::{Element, Rectangle};
+use iced_native::renderer;
+use iced_native::{Color, Element, Font, Rectangle};
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
 pub struct Renderer<B: Backend> {
     backend: B,
-    primitive: Primitive,
+    primitives: Vec<Primitive>,
 }
 
 impl<B: Backend> Renderer<B> {
@@ -14,7 +16,7 @@ impl<B: Backend> Renderer<B> {
     pub fn new(backend: B) -> Self {
         Self {
             backend,
-            primitive: Primitive::None,
+            primitives: Vec::new(),
         }
     }
 
@@ -22,8 +24,8 @@ impl<B: Backend> Renderer<B> {
         &self.backend
     }
 
-    pub fn present(&mut self, f: impl FnOnce(&mut B, &Primitive)) {
-        f(&mut self.backend, &self.primitive);
+    pub fn present(&mut self, f: impl FnOnce(&mut B, &[Primitive])) {
+        f(&mut self.backend, &self.primitives);
     }
 }
 
@@ -45,5 +47,44 @@ where
         layout
     }
 
-    fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
+    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
+        let current_primitives =
+            std::mem::replace(&mut self.primitives, Vec::new());
+
+        f(self);
+
+        let layer_primitives =
+            std::mem::replace(&mut self.primitives, current_primitives);
+
+        self.primitives.push(Primitive::Clip {
+            bounds,
+            offset: Vector::new(0, 0),
+            content: Box::new(Primitive::Group {
+                primitives: layer_primitives,
+            }),
+        });
+    }
+
+    fn clear(&mut self) {
+        self.primitives.clear();
+    }
+}
+
+impl<B> renderer::Text for Renderer<B>
+where
+    B: Backend + backend::Text,
+{
+    type Font = Font;
+
+    fn fill_text(&mut self, text: renderer::text::Section<'_, Self::Font>) {
+        self.primitives.push(Primitive::Text {
+            content: text.content.to_string(),
+            bounds: text.bounds,
+            size: text.size.unwrap_or(f32::from(self.backend.default_size())),
+            color: text.color.unwrap_or(Color::BLACK),
+            font: text.font,
+            horizontal_alignment: text.horizontal_alignment,
+            vertical_alignment: text.vertical_alignment,
+        });
+    }
 }

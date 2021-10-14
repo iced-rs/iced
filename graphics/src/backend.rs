@@ -16,7 +16,6 @@ pub trait Backend {
     fn trim_measurements(&mut self) {}
 }
 
-/// A graphics backend that supports text rendering.
 pub trait Text {
     /// The icon font of the backend.
     const ICON_FONT: Font;

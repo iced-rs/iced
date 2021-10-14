@@ -74,7 +74,7 @@ impl Backend {
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
-        primitive: &Primitive,
+        primitives: &[Primitive],
         viewport: &Viewport,
         overlay_text: &[T],
     ) {
@@ -84,7 +84,7 @@ impl Backend {
         let scale_factor = viewport.scale_factor() as f32;
         let transformation = viewport.projection();
 
-        let mut layers = Layer::generate(primitive, viewport);
+        let mut layers = Layer::generate(primitives, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
         for layer in layers {

@@ -48,7 +48,7 @@ impl Backend {
     pub fn present<T: AsRef<str>>(
         &mut self,
         gl: &glow::Context,
-        primitive: &Primitive,
+        primitives: &[Primitive],
         viewport: &Viewport,
         overlay_text: &[T],
     ) {
@@ -56,7 +56,7 @@ impl Backend {
         let scale_factor = viewport.scale_factor() as f32;
         let projection = viewport.projection();
 
-        let mut layers = Layer::generate(primitive, viewport);
+        let mut layers = Layer::generate(primitives, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
         for layer in layers {

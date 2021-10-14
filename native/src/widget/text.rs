@@ -1,6 +1,7 @@
 //! Write some text for your users to read.
 use crate::alignment;
 use crate::layout;
+use crate::renderer;
 use crate::{
     Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
@@ -133,13 +134,35 @@ where
 
     fn draw(
         &self,
-        _renderer: &mut Renderer,
+        renderer: &mut Renderer,
         _defaults: &Renderer::Defaults,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // TODO
+        let bounds = layout.bounds();
+
+        let x = match self.horizontal_alignment {
+            alignment::Horizontal::Left => bounds.x,
+            alignment::Horizontal::Center => bounds.center_x(),
+            alignment::Horizontal::Right => bounds.x + bounds.width,
+        };
+
+        let y = match self.vertical_alignment {
+            alignment::Vertical::Top => bounds.y,
+            alignment::Vertical::Center => bounds.center_y(),
+            alignment::Vertical::Bottom => bounds.y + bounds.height,
+        };
+
+        renderer.fill_text(renderer::text::Section {
+            content: &self.content,
+            size: self.size.map(f32::from),
+            bounds: Rectangle { x, y, ..bounds },
+            color: self.color,
+            font: self.font,
+            horizontal_alignment: self.horizontal_alignment,
+            vertical_alignment: self.vertical_alignment,
+        });
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -159,10 +182,7 @@ where
 /// able to use [`Text`] in your user interface.
 ///
 /// [renderer]: crate::Renderer
-pub trait Renderer: crate::Renderer {
-    /// The font type used for [`Text`].
-    type Font: Default + Copy;
-
+pub trait Renderer: renderer::Text {
     /// Returns the default size of [`Text`].
     fn default_size(&self) -> u16;
 

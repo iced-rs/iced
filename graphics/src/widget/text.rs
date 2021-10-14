@@ -15,8 +15,6 @@ impl<B> text::Renderer for Renderer<B>
 where
     B: Backend + backend::Text,
 {
-    type Font = Font;
-
     fn default_size(&self) -> u16 {
         self.backend().default_size()
     }

@@ -330,6 +330,9 @@ where
     /// }
     /// ```
     pub fn draw(&mut self, renderer: &mut Renderer, cursor_position: Point) {
+        // TODO: Move to shell level (?)
+        renderer.clear();
+
         let viewport = Rectangle::with_size(self.bounds);
 
         let overlay = if let Some(mut overlay) =
