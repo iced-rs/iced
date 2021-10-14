@@ -170,38 +170,39 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         value: Option<&Value>,
-    ) -> Renderer::Output {
-        let value = value.unwrap_or(&self.value);
-        let bounds = layout.bounds();
-        let text_bounds = layout.children().next().unwrap().bounds();
+    ) {
+        // TODO
+        // let value = value.unwrap_or(&self.value);
+        // let bounds = layout.bounds();
+        // let text_bounds = layout.children().next().unwrap().bounds();
 
-        if self.is_secure {
-            self::Renderer::draw(
-                renderer,
-                bounds,
-                text_bounds,
-                cursor_position,
-                self.font,
-                self.size.unwrap_or(renderer.default_size()),
-                &self.placeholder,
-                &value.secure(),
-                &self.state,
-                &self.style,
-            )
-        } else {
-            self::Renderer::draw(
-                renderer,
-                bounds,
-                text_bounds,
-                cursor_position,
-                self.font,
-                self.size.unwrap_or(renderer.default_size()),
-                &self.placeholder,
-                value,
-                &self.state,
-                &self.style,
-            )
-        }
+        // if self.is_secure {
+        //     self::Renderer::draw(
+        //         renderer,
+        //         bounds,
+        //         text_bounds,
+        //         cursor_position,
+        //         self.font,
+        //         self.size.unwrap_or(renderer.default_size()),
+        //         &self.placeholder,
+        //         &value.secure(),
+        //         &self.state,
+        //         &self.style,
+        //     )
+        // } else {
+        //     self::Renderer::draw(
+        //         renderer,
+        //         bounds,
+        //         text_bounds,
+        //         cursor_position,
+        //         self.font,
+        //         self.size.unwrap_or(renderer.default_size()),
+        //         &self.placeholder,
+        //         value,
+        //         &self.state,
+        //         &self.style,
+        //     )
+        // }
     }
 }
 
@@ -630,7 +631,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
+    ) {
         self.draw(renderer, layout, cursor_position, None)
     }
 
@@ -672,28 +673,6 @@ pub trait Renderer: text::Renderer + Sized {
         value: &Value,
         state: &State,
     ) -> f32;
-
-    /// Draws a [`TextInput`].
-    ///
-    /// It receives:
-    /// - the bounds of the [`TextInput`]
-    /// - the bounds of the text (i.e. the current value)
-    /// - the cursor position
-    /// - the placeholder to show when the value is empty
-    /// - the current [`Value`]
-    /// - the current [`State`]
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        text_bounds: Rectangle,
-        cursor_position: Point,
-        font: Self::Font,
-        size: u16,
-        placeholder: &str,
-        value: &Value,
-        state: &State,
-        style: &Self::Style,
-    ) -> Self::Output;
 
     /// Computes the position of the text cursor at the given X coordinate of
     /// a [`TextInput`].

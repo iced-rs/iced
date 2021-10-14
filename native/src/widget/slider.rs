@@ -250,18 +250,19 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        let start = *self.range.start();
-        let end = *self.range.end();
+    ) {
+        // TODO
+        // let start = *self.range.start();
+        // let end = *self.range.end();
 
-        renderer.draw(
-            layout.bounds(),
-            cursor_position,
-            start.into() as f32..=end.into() as f32,
-            self.value.into() as f32,
-            self.state.is_dragging,
-            &self.style,
-        )
+        // renderer.draw(
+        //     layout.bounds(),
+        //     cursor_position,
+        //     start.into() as f32..=end.into() as f32,
+        //     self.value.into() as f32,
+        //     self.state.is_dragging,
+        //     &self.style,
+        // )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -284,24 +285,6 @@ pub trait Renderer: crate::Renderer {
 
     /// The default height of a [`Slider`].
     const DEFAULT_HEIGHT: u16;
-
-    /// Draws a [`Slider`].
-    ///
-    /// It receives:
-    ///   * the current cursor position
-    ///   * the bounds of the [`Slider`]
-    ///   * the local state of the [`Slider`]
-    ///   * the range of values of the [`Slider`]
-    ///   * the current value of the [`Slider`]
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        cursor_position: Point,
-        range: RangeInclusive<f32>,
-        value: f32,
-        is_dragging: bool,
-        style: &Self::Style,
-    ) -> Self::Output;
 }
 
 impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>

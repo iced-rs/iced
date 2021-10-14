@@ -35,7 +35,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Output;
+    );
 
     /// Computes the _layout_ hash of the [`Overlay`].
     ///

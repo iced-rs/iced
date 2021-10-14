@@ -135,7 +135,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output;
+    );
 
     /// Computes the _layout_ hash of the [`Widget`].
     ///

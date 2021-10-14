@@ -329,11 +329,7 @@ where
     ///     // Flush rendering operations...
     /// }
     /// ```
-    pub fn draw(
-        &mut self,
-        renderer: &mut Renderer,
-        cursor_position: Point,
-    ) -> Renderer::Output {
+    pub fn draw(&mut self, renderer: &mut Renderer, cursor_position: Point) {
         let viewport = Rectangle::with_size(self.bounds);
 
         let overlay = if let Some(mut overlay) =
@@ -348,40 +344,36 @@ where
 
             let overlay_bounds = layer.layout.bounds();
 
-            let overlay_primitives = overlay.draw(
-                renderer,
-                &Renderer::Defaults::default(),
-                Layout::new(&layer.layout),
-                cursor_position,
-            );
+            renderer.with_layer(overlay_bounds, |renderer| {
+                overlay.draw(
+                    renderer,
+                    &Renderer::Defaults::default(),
+                    Layout::new(&layer.layout),
+                    cursor_position,
+                );
+            });
 
             self.overlay = Some(layer);
 
-            Some((overlay_primitives, overlay_bounds))
+            Some(overlay_bounds)
         } else {
             None
         };
 
-        if let Some((overlay_primitives, overlay_bounds)) = overlay {
+        if let Some(overlay_bounds) = overlay {
             let base_cursor = if overlay_bounds.contains(cursor_position) {
                 Point::new(-1.0, -1.0)
             } else {
                 cursor_position
             };
 
-            let base_primitives = self.root.widget.draw(
+            self.root.widget.draw(
                 renderer,
                 &Renderer::Defaults::default(),
                 Layout::new(&self.base.layout),
                 base_cursor,
                 &viewport,
             );
-
-            renderer.overlay(
-                base_primitives,
-                overlay_primitives,
-                overlay_bounds,
-            )
         } else {
             self.root.widget.draw(
                 renderer,
@@ -389,7 +381,7 @@ where
                 Layout::new(&self.base.layout),
                 cursor_position,
                 &viewport,
-            )
+            );
         }
     }
 

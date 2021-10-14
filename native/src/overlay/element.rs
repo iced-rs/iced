@@ -74,7 +74,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Output {
+    ) {
         self.overlay
             .draw(renderer, defaults, layout, cursor_position)
     }
@@ -145,7 +145,7 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Output {
+    ) {
         self.content
             .draw(renderer, defaults, layout, cursor_position)
     }

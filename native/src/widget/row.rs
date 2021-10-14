@@ -104,7 +104,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Row<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -168,14 +168,15 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            defaults,
-            &self.children,
-            layout,
-            cursor_position,
-            viewport,
-        )
+    ) {
+        // TODO
+        // renderer.draw(
+        //     defaults,
+        //     &self.children,
+        //     layout,
+        //     cursor_position,
+        //     viewport,
+        // )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -207,33 +208,10 @@ where
     }
 }
 
-/// The renderer of a [`Row`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Row`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + Sized {
-    /// Draws a [`Row`].
-    ///
-    /// It receives:
-    /// - the children of the [`Row`]
-    /// - the [`Layout`] of the [`Row`] and its children
-    /// - the cursor position
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        children: &[Element<'_, Message, Self>],
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-}
-
 impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(row: Row<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {

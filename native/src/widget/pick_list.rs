@@ -327,18 +327,8 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        self::Renderer::draw(
-            renderer,
-            layout.bounds(),
-            cursor_position,
-            self.selected.as_ref().map(ToString::to_string),
-            self.placeholder.as_ref().map(String::as_str),
-            self.padding,
-            self.text_size.unwrap_or(renderer.default_size()),
-            self.font,
-            &self.style,
-        )
+    ) {
+        // TODO
     }
 
     fn overlay(
@@ -387,19 +377,6 @@ pub trait Renderer: text::Renderer + menu::Renderer {
     fn menu_style(
         style: &<Self as Renderer>::Style,
     ) -> <Self as menu::Renderer>::Style;
-
-    /// Draws a [`PickList`].
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        cursor_position: Point,
-        selected: Option<String>,
-        placeholder: Option<&str>,
-        padding: Padding,
-        text_size: u16,
-        font: Self::Font,
-        style: &<Self as Renderer>::Style,
-    ) -> Self::Output;
 }
 
 impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>

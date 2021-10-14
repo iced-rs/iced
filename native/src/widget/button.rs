@@ -248,17 +248,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            defaults,
-            layout.bounds(),
-            cursor_position,
-            self.on_press.is_none(),
-            self.state.is_pressed,
-            &self.style,
-            &self.content,
-            layout.children().next().unwrap(),
-        )
+    ) {
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -289,19 +279,6 @@ pub trait Renderer: crate::Renderer + Sized {
 
     /// The style supported by this renderer.
     type Style: Default;
-
-    /// Draws a [`Button`].
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        bounds: Rectangle,
-        cursor_position: Point,
-        is_disabled: bool,
-        is_pressed: bool,
-        style: &Self::Style,
-        content: &Element<'_, Message, Self>,
-        content_layout: Layout<'_>,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>

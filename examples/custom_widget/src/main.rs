@@ -11,8 +11,7 @@ mod circle {
     // implemented by `iced_wgpu` and other renderers.
     use iced_graphics::{Backend, Defaults, Primitive, Renderer};
     use iced_native::{
-        layout, mouse, Background, Color, Element, Hasher, Layout, Length,
-        Point, Rectangle, Size, Widget,
+        layout, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
     };
 
     pub struct Circle {
@@ -55,20 +54,20 @@ mod circle {
             &self,
             _renderer: &mut Renderer<B>,
             _defaults: &Defaults,
-            layout: Layout<'_>,
+            _layout: Layout<'_>,
             _cursor_position: Point,
             _viewport: &Rectangle,
-        ) -> (Primitive, mouse::Interaction) {
-            (
-                Primitive::Quad {
-                    bounds: layout.bounds(),
-                    background: Background::Color(Color::BLACK),
-                    border_radius: self.radius,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                },
-                mouse::Interaction::default(),
-            )
+        ) {
+            // (
+            //     Primitive::Quad {
+            //         bounds: layout.bounds(),
+            //         background: Background::Color(Color::BLACK),
+            //         border_radius: self.radius,
+            //         border_width: 0.0,
+            //         border_color: Color::TRANSPARENT,
+            //     },
+            //     mouse::Interaction::default(),
+            // )
         }
     }
 

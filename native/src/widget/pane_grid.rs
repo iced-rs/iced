@@ -32,7 +32,6 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::row;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
@@ -480,66 +479,56 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
-        let picked_split = self
-            .state
-            .picked_split()
-            .and_then(|(split, axis)| {
-                let bounds = layout.bounds();
+    ) {
+        // let picked_split = self
+        //     .state
+        //     .picked_split()
+        //     .and_then(|(split, axis)| {
+        //         let bounds = layout.bounds();
 
-                let splits = self
-                    .state
-                    .split_regions(f32::from(self.spacing), bounds.size());
+        //         let splits = self
+        //             .state
+        //             .split_regions(f32::from(self.spacing), bounds.size());
 
-                let (_axis, region, ratio) = splits.get(&split)?;
+        //         let (_axis, region, ratio) = splits.get(&split)?;
 
-                let region = axis.split_line_bounds(
-                    *region,
-                    *ratio,
-                    f32::from(self.spacing),
-                );
+        //         let region = axis.split_line_bounds(
+        //             *region,
+        //             *ratio,
+        //             f32::from(self.spacing),
+        //         );
 
-                Some((axis, region + Vector::new(bounds.x, bounds.y), true))
-            })
-            .or_else(|| match self.on_resize {
-                Some((leeway, _)) => {
-                    let bounds = layout.bounds();
+        //         Some((axis, region + Vector::new(bounds.x, bounds.y), true))
+        //     })
+        //     .or_else(|| match self.on_resize {
+        //         Some((leeway, _)) => {
+        //             let bounds = layout.bounds();
 
-                    let relative_cursor = Point::new(
-                        cursor_position.x - bounds.x,
-                        cursor_position.y - bounds.y,
-                    );
+        //             let relative_cursor = Point::new(
+        //                 cursor_position.x - bounds.x,
+        //                 cursor_position.y - bounds.y,
+        //             );
 
-                    let splits = self
-                        .state
-                        .split_regions(f32::from(self.spacing), bounds.size());
+        //             let splits = self
+        //                 .state
+        //                 .split_regions(f32::from(self.spacing), bounds.size());
 
-                    let (_split, axis, region) = hovered_split(
-                        splits.iter(),
-                        f32::from(self.spacing + leeway),
-                        relative_cursor,
-                    )?;
+        //             let (_split, axis, region) = hovered_split(
+        //                 splits.iter(),
+        //                 f32::from(self.spacing + leeway),
+        //                 relative_cursor,
+        //             )?;
 
-                    Some((
-                        axis,
-                        region + Vector::new(bounds.x, bounds.y),
-                        false,
-                    ))
-                }
-                None => None,
-            });
+        //             Some((
+        //                 axis,
+        //                 region + Vector::new(bounds.x, bounds.y),
+        //                 false,
+        //             ))
+        //         }
+        //         None => None,
+        //     });
 
-        self::Renderer::draw(
-            renderer,
-            defaults,
-            &self.elements,
-            self.state.picked_pane(),
-            picked_split,
-            layout,
-            &self.style,
-            cursor_position,
-            viewport,
-        )
+        // TODO
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -578,69 +567,12 @@ where
 pub trait Renderer: crate::Renderer + container::Renderer + Sized {
     /// The style supported by this renderer.
     type Style: Default;
-
-    /// Draws a [`PaneGrid`].
-    ///
-    /// It receives:
-    /// - the elements of the [`PaneGrid`]
-    /// - the [`Pane`] that is currently being dragged
-    /// - the [`Axis`] that is currently being resized
-    /// - the [`Layout`] of the [`PaneGrid`] and its elements
-    /// - the cursor position
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        content: &[(Pane, Content<'_, Message, Self>)],
-        dragging: Option<(Pane, Point)>,
-        resizing: Option<(Axis, Rectangle, bool)>,
-        layout: Layout<'_>,
-        style: &<Self as self::Renderer>::Style,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-
-    /// Draws a [`Pane`].
-    ///
-    /// It receives:
-    /// - the [`TitleBar`] of the [`Pane`], if any
-    /// - the [`Content`] of the [`Pane`]
-    /// - the [`Layout`] of the [`Pane`] and its elements
-    /// - the cursor position
-    fn draw_pane<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        bounds: Rectangle,
-        style: &<Self as container::Renderer>::Style,
-        title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
-        body: (&Element<'_, Message, Self>, Layout<'_>),
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-
-    /// Draws a [`TitleBar`].
-    ///
-    /// It receives:
-    /// - the bounds, style of the [`TitleBar`]
-    /// - the style of the [`TitleBar`]
-    /// - the content of the [`TitleBar`] with its layout
-    /// - the controls of the [`TitleBar`] with their [`Layout`], if any
-    /// - the cursor position
-    fn draw_title_bar<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        bounds: Rectangle,
-        style: &<Self as container::Renderer>::Style,
-        content: (&Element<'_, Message, Self>, Layout<'_>),
-        controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + row::Renderer,
+    Renderer: 'a + self::Renderer,
     Message: 'a,
 {
     fn from(

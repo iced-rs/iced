@@ -1,7 +1,5 @@
 use crate::{Color, Error, Viewport};
 
-use iced_native::mouse;
-
 use raw_window_handle::HasRawWindowHandle;
 use thiserror::Error;
 
@@ -30,9 +28,8 @@ pub trait Compositor: Sized {
         window: &W,
     ) -> Self::Surface;
 
-    /// Crates a new [`SwapChain`] for the given [`Surface`].
+    /// Configures a new [`Surface`] with the given dimensions.
     ///
-    /// [`SwapChain`]: Self::SwapChain
     /// [`Surface`]: Self::Surface
     fn configure_surface(
         &mut self,
@@ -41,18 +38,17 @@ pub trait Compositor: Sized {
         height: u32,
     );
 
-    /// Draws the output primitives to the next frame of the given [`SwapChain`].
+    /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
     ///
     /// [`SwapChain`]: Self::SwapChain
-    fn draw<T: AsRef<str>>(
+    fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, SurfaceError>;
+    ) -> Result<(), SurfaceError>;
 }
 
 /// Result of an unsuccessful call to [`Compositor::draw`].
@@ -63,13 +59,13 @@ pub enum SurfaceError {
         "A timeout was encountered while trying to acquire the next frame"
     )]
     Timeout,
-    /// The underlying surface has changed, and therefore the swap chain must be updated.
+    /// The underlying surface has changed, and therefore the surface must be updated.
     #[error(
-        "The underlying surface has changed, and therefore the swap chain must be updated."
+        "The underlying surface has changed, and therefore the surface must be updated."
     )]
     Outdated,
     /// The swap chain has been lost and needs to be recreated.
-    #[error("The swap chain has been lost and needs to be recreated")]
+    #[error("The surface has been lost and needs to be recreated")]
     Lost,
     /// There is no more memory left to allocate a new frame.
     #[error("There is no more memory left to allocate a new frame")]

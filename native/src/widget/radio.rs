@@ -5,7 +5,6 @@ use crate::alignment::{self, Alignment};
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::row;
 use crate::text;
 use crate::touch;
 use crate::{
@@ -136,7 +135,7 @@ where
 impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
     Message: Clone,
-    Renderer: self::Renderer + text::Renderer + row::Renderer,
+    Renderer: self::Renderer + text::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -199,36 +198,37 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        let bounds = layout.bounds();
-        let mut children = layout.children();
+    ) {
+        // TODO
+        // let bounds = layout.bounds();
+        // let mut children = layout.children();
 
-        let radio_layout = children.next().unwrap();
-        let label_layout = children.next().unwrap();
-        let radio_bounds = radio_layout.bounds();
+        // let radio_layout = children.next().unwrap();
+        // let label_layout = children.next().unwrap();
+        // let radio_bounds = radio_layout.bounds();
 
-        let label = text::Renderer::draw(
-            renderer,
-            defaults,
-            label_layout.bounds(),
-            &self.label,
-            self.text_size.unwrap_or(renderer.default_size()),
-            self.font,
-            self.text_color,
-            alignment::Horizontal::Left,
-            alignment::Vertical::Center,
-        );
+        // let label = text::Renderer::draw(
+        //     renderer,
+        //     defaults,
+        //     label_layout.bounds(),
+        //     &self.label,
+        //     self.text_size.unwrap_or(renderer.default_size()),
+        //     self.font,
+        //     self.text_color,
+        //     alignment::Horizontal::Left,
+        //     alignment::Vertical::Center,
+        // );
 
-        let is_mouse_over = bounds.contains(cursor_position);
+        // let is_mouse_over = bounds.contains(cursor_position);
 
-        self::Renderer::draw(
-            renderer,
-            radio_bounds,
-            self.is_selected,
-            is_mouse_over,
-            label,
-            &self.style,
-        )
+        // self::Renderer::draw(
+        //     renderer,
+        //     radio_bounds,
+        //     self.is_selected,
+        //     is_mouse_over,
+        //     label,
+        //     &self.style,
+        // )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -254,29 +254,13 @@ pub trait Renderer: crate::Renderer {
 
     /// The default spacing of a [`Radio`] button.
     const DEFAULT_SPACING: u16;
-
-    /// Draws a [`Radio`] button.
-    ///
-    /// It receives:
-    ///   * the bounds of the [`Radio`]
-    ///   * whether the [`Radio`] is selected or not
-    ///   * whether the mouse is over the [`Radio`] or not
-    ///   * the drawn label of the [`Radio`]
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        is_selected: bool,
-        is_mouse_over: bool,
-        label: Self::Output,
-        style: &Self::Style,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + self::Renderer + row::Renderer + text::Renderer,
+    Renderer: 'a + self::Renderer + text::Renderer,
 {
     fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(radio)

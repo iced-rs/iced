@@ -94,8 +94,9 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(self.handle.clone(), layout)
+    ) {
+        // TODO
+        // renderer.draw(self.handle.clone(), layout)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -187,9 +188,6 @@ impl std::fmt::Debug for Data {
 pub trait Renderer: crate::Renderer {
     /// Returns the default dimensions of an [`Svg`] for the given [`Handle`].
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
-
-    /// Draws an [`Svg`].
-    fn draw(&mut self, handle: Handle, layout: Layout<'_>) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Svg> for Element<'a, Message, Renderer>

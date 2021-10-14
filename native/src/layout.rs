@@ -1,11 +1,9 @@
 //! Position your widgets properly.
-mod debugger;
 mod limits;
 mod node;
 
 pub mod flex;
 
-pub use debugger::Debugger;
 pub use limits::Limits;
 pub use node::Node;
 

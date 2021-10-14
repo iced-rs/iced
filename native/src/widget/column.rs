@@ -105,7 +105,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Column<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -169,14 +169,8 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            defaults,
-            &self.children,
-            layout,
-            cursor_position,
-            viewport,
-        )
+    ) {
+        // TODO
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -208,33 +202,10 @@ where
     }
 }
 
-/// The renderer of a [`Column`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Column`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + Sized {
-    /// Draws a [`Column`].
-    ///
-    /// It receives:
-    /// - the children of the [`Column`]
-    /// - the [`Layout`] of the [`Column`] and its children
-    /// - the cursor position
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        content: &[Element<'_, Message, Self>],
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-}
-
 impl<'a, Message, Renderer> From<Column<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(

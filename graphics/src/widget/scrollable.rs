@@ -1,8 +1,7 @@
 //! Navigate an endless amount of content with a scrollbar.
-use crate::{Backend, Primitive, Renderer};
-use iced_native::mouse;
+use crate::{Backend, Renderer};
 use iced_native::scrollable;
-use iced_native::{Background, Color, Rectangle, Vector};
+use iced_native::Rectangle;
 
 pub use iced_native::scrollable::State;
 pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
@@ -72,87 +71,5 @@ where
         } else {
             None
         }
-    }
-
-    fn draw(
-        &mut self,
-        state: &scrollable::State,
-        bounds: Rectangle,
-        _content_bounds: Rectangle,
-        is_mouse_over: bool,
-        is_mouse_over_scrollbar: bool,
-        scrollbar: Option<scrollable::Scrollbar>,
-        offset: u32,
-        style_sheet: &Self::Style,
-        (content, mouse_interaction): Self::Output,
-    ) -> Self::Output {
-        (
-            if let Some(scrollbar) = scrollbar {
-                let clip = Primitive::Clip {
-                    bounds,
-                    offset: Vector::new(0, offset),
-                    content: Box::new(content),
-                };
-
-                let style = if state.is_scroller_grabbed() {
-                    style_sheet.dragging()
-                } else if is_mouse_over_scrollbar {
-                    style_sheet.hovered()
-                } else {
-                    style_sheet.active()
-                };
-
-                let is_scrollbar_visible =
-                    style.background.is_some() || style.border_width > 0.0;
-
-                let scroller = if is_mouse_over
-                    || state.is_scroller_grabbed()
-                    || is_scrollbar_visible
-                {
-                    Primitive::Quad {
-                        bounds: scrollbar.scroller.bounds,
-                        background: Background::Color(style.scroller.color),
-                        border_radius: style.scroller.border_radius,
-                        border_width: style.scroller.border_width,
-                        border_color: style.scroller.border_color,
-                    }
-                } else {
-                    Primitive::None
-                };
-
-                let scrollbar = if is_scrollbar_visible {
-                    Primitive::Quad {
-                        bounds: scrollbar.bounds,
-                        background: style
-                            .background
-                            .unwrap_or(Background::Color(Color::TRANSPARENT)),
-                        border_radius: style.border_radius,
-                        border_width: style.border_width,
-                        border_color: style.border_color,
-                    }
-                } else {
-                    Primitive::None
-                };
-
-                let scroll = Primitive::Clip {
-                    bounds,
-                    offset: Vector::new(0, 0),
-                    content: Box::new(Primitive::Group {
-                        primitives: vec![scrollbar, scroller],
-                    }),
-                };
-
-                Primitive::Group {
-                    primitives: vec![clip, scroll],
-                }
-            } else {
-                content
-            },
-            if is_mouse_over_scrollbar || state.is_scroller_grabbed() {
-                mouse::Interaction::Idle
-            } else {
-                mouse_interaction
-            },
-        )
     }
 }

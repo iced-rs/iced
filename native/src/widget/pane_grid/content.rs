@@ -61,32 +61,33 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
-        if let Some(title_bar) = &self.title_bar {
-            let mut children = layout.children();
-            let title_bar_layout = children.next().unwrap();
-            let body_layout = children.next().unwrap();
+    ) {
+        // TODO
+        // if let Some(title_bar) = &self.title_bar {
+        //     let mut children = layout.children();
+        //     let title_bar_layout = children.next().unwrap();
+        //     let body_layout = children.next().unwrap();
 
-            renderer.draw_pane(
-                defaults,
-                layout.bounds(),
-                &self.style,
-                Some((title_bar, title_bar_layout)),
-                (&self.body, body_layout),
-                cursor_position,
-                viewport,
-            )
-        } else {
-            renderer.draw_pane(
-                defaults,
-                layout.bounds(),
-                &self.style,
-                None,
-                (&self.body, layout),
-                cursor_position,
-                viewport,
-            )
-        }
+        //     renderer.draw_pane(
+        //         defaults,
+        //         layout.bounds(),
+        //         &self.style,
+        //         Some((title_bar, title_bar_layout)),
+        //         (&self.body, body_layout),
+        //         cursor_position,
+        //         viewport,
+        //     )
+        // } else {
+        //     renderer.draw_pane(
+        //         defaults,
+        //         layout.bounds(),
+        //         &self.style,
+        //         None,
+        //         (&self.body, layout),
+        //         cursor_position,
+        //         viewport,
+        //     )
+        // }
     }
 
     /// Returns whether the [`Content`] with the given [`Layout`] can be picked

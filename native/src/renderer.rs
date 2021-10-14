@@ -30,12 +30,6 @@ use crate::{layout, Element, Rectangle};
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
 pub trait Renderer: Sized {
-    /// The type of output of the [`Renderer`].
-    ///
-    /// If you are implementing a graphical renderer, your output will most
-    /// likely be a tree of visual primitives.
-    type Output;
-
     /// The default styling attributes of the [`Renderer`].
     ///
     /// This type can be leveraged to implement style inheritance.
@@ -53,12 +47,5 @@ pub trait Renderer: Sized {
         element.layout(self, limits)
     }
 
-    /// Overlays the `overlay` output with the given bounds on top of the `base`
-    /// output.
-    fn overlay(
-        &mut self,
-        base: Self::Output,
-        overlay: Self::Output,
-        overlay_bounds: Rectangle,
-    ) -> Self::Output;
+    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self));
 }

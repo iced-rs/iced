@@ -239,21 +239,22 @@ where
         defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Output {
-        let primitives = self.container.draw(
-            renderer,
-            defaults,
-            layout,
-            cursor_position,
-            &layout.bounds(),
-        );
+    ) {
+        // TODO
+        // let primitives = self.container.draw(
+        //     renderer,
+        //     defaults,
+        //     layout,
+        //     cursor_position,
+        //     &layout.bounds(),
+        // );
 
-        renderer.decorate(
-            layout.bounds(),
-            cursor_position,
-            &self.style,
-            primitives,
-        )
+        // renderer.decorate(
+        //     layout.bounds(),
+        //     cursor_position,
+        //     &self.style,
+        //     primitives,
+        // )
     }
 }
 
@@ -378,24 +379,13 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
         _defaults: &Renderer::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Renderer::Output {
-        self::Renderer::draw(
-            renderer,
-            layout.bounds(),
-            cursor_position,
-            viewport,
-            self.options,
-            *self.hovered_option,
-            self.padding,
-            self.text_size.unwrap_or(renderer.default_size()),
-            self.font,
-            &self.style,
-        )
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        // TODO
     }
 }
 
@@ -410,31 +400,6 @@ pub trait Renderer:
 {
     /// The [`Menu`] style supported by this renderer.
     type Style: Default + Clone;
-
-    /// Decorates a the list of options of a [`Menu`].
-    ///
-    /// This method can be used to draw a background for the [`Menu`].
-    fn decorate(
-        &mut self,
-        bounds: Rectangle,
-        cursor_position: Point,
-        style: &<Self as Renderer>::Style,
-        primitive: Self::Output,
-    ) -> Self::Output;
-
-    /// Draws the list of options of a [`Menu`].
-    fn draw<T: ToString>(
-        &mut self,
-        bounds: Rectangle,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        options: &[T],
-        hovered_option: Option<usize>,
-        padding: Padding,
-        text_size: u16,
-        font: Self::Font,
-        style: &<Self as Renderer>::Style,
-    ) -> Self::Output;
 }
 
 impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>

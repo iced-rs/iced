@@ -1,5 +1,5 @@
 use crate::{
-    Cache, Clipboard, Command, Debug, Event, Point, Program, Renderer, Size,
+    Cache, Clipboard, Command, Debug, Event, Point, Program, Size,
     UserInterface,
 };
 
@@ -12,7 +12,6 @@ where
 {
     program: P,
     cache: Option<Cache>,
-    primitive: <P::Renderer as Renderer>::Output,
     queued_events: Vec<Event>,
     queued_messages: Vec<P::Message>,
 }
@@ -38,16 +37,11 @@ where
             debug,
         );
 
-        debug.draw_started();
-        let primitive = user_interface.draw(renderer, cursor_position);
-        debug.draw_finished();
-
         let cache = Some(user_interface.into_cache());
 
         State {
             program,
             cache,
-            primitive,
             queued_events: Vec::new(),
             queued_messages: Vec::new(),
         }
@@ -56,11 +50,6 @@ where
     /// Returns a reference to the [`Program`] of the [`State`].
     pub fn program(&self) -> &P {
         &self.program
-    }
-
-    /// Returns a reference to the current rendering primitive of the [`State`].
-    pub fn primitive(&self) -> &<P::Renderer as Renderer>::Output {
-        &self.primitive
     }
 
     /// Queues an event in the [`State`] for processing during an [`update`].
@@ -120,7 +109,7 @@ where
 
         if messages.is_empty() {
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer, cursor_position);
+            user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -151,7 +140,7 @@ where
             );
 
             debug.draw_started();
-            self.primitive = user_interface.draw(renderer, cursor_position);
+            user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());

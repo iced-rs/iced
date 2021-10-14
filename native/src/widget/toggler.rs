@@ -5,7 +5,6 @@ use crate::alignment;
 use crate::event;
 use crate::layout;
 use crate::mouse;
-use crate::row;
 use crate::text;
 use crate::{
     Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
@@ -119,7 +118,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
 
 impl<Message, Renderer> Widget<Message, Renderer> for Toggler<Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer + row::Renderer,
+    Renderer: self::Renderer + text::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -190,43 +189,35 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        let bounds = layout.bounds();
-        let mut children = layout.children();
+    ) {
+        // TODO
+        // let bounds = layout.bounds();
+        // let mut children = layout.children();
 
-        let label = match &self.label {
-            Some(label) => {
-                let label_layout = children.next().unwrap();
+        // let label = match &self.label {
+        //     Some(label) => {
+        //         let label_layout = children.next().unwrap();
 
-                Some(text::Renderer::draw(
-                    renderer,
-                    defaults,
-                    label_layout.bounds(),
-                    &label,
-                    self.text_size.unwrap_or(renderer.default_size()),
-                    self.font,
-                    None,
-                    self.text_alignment,
-                    alignment::Vertical::Center,
-                ))
-            }
+        //         Some(text::Renderer::draw(
+        //             renderer,
+        //             defaults,
+        //             label_layout.bounds(),
+        //             &label,
+        //             self.text_size.unwrap_or(renderer.default_size()),
+        //             self.font,
+        //             None,
+        //             self.text_alignment,
+        //             alignment::Vertical::Center,
+        //         ))
+        //     }
 
-            None => None,
-        };
+        //     None => None,
+        // };
 
-        let toggler_layout = children.next().unwrap();
-        let toggler_bounds = toggler_layout.bounds();
+        // let toggler_layout = children.next().unwrap();
+        // let toggler_bounds = toggler_layout.bounds();
 
-        let is_mouse_over = bounds.contains(cursor_position);
-
-        self::Renderer::draw(
-            renderer,
-            toggler_bounds,
-            self.is_active,
-            is_mouse_over,
-            label,
-            &self.style,
-        )
+        // let is_mouse_over = bounds.contains(cursor_position);
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -249,29 +240,12 @@ pub trait Renderer: crate::Renderer {
 
     /// The default size of a [`Toggler`].
     const DEFAULT_SIZE: u16;
-
-    /// Draws a [`Toggler`].
-    ///
-    /// It receives:
-    ///   * the bounds of the [`Toggler`]
-    ///   * whether the [`Toggler`] is activated or not
-    ///   * whether the mouse is over the [`Toggler`] or not
-    ///   * the drawn label of the [`Toggler`]
-    ///   * the style of the [`Toggler`]
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        is_active: bool,
-        is_mouse_over: bool,
-        label: Option<Self::Output>,
-        style: &Self::Style,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Toggler<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + text::Renderer + row::Renderer,
+    Renderer: 'a + self::Renderer + text::Renderer,
     Message: 'a,
 {
     fn from(

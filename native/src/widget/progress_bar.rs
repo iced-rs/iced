@@ -97,13 +97,8 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            layout.bounds(),
-            self.range.clone(),
-            self.value,
-            &self.style,
-        )
+    ) {
+        // TODO
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -127,22 +122,6 @@ pub trait Renderer: crate::Renderer {
 
     /// The default height of a [`ProgressBar`].
     const DEFAULT_HEIGHT: u16;
-
-    /// Draws a [`ProgressBar`].
-    ///
-    /// It receives:
-    ///   * the bounds of the [`ProgressBar`]
-    ///   * the range of values of the [`ProgressBar`]
-    ///   * the current value of the [`ProgressBar`]
-    ///   * maybe a specific background of the [`ProgressBar`]
-    ///   * maybe a specific active color of the [`ProgressBar`]
-    fn draw(
-        &self,
-        bounds: Rectangle,
-        range: RangeInclusive<f32>,
-        value: f32,
-        style: &Self::Style,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<ProgressBar<Renderer>>

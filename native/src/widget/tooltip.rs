@@ -136,25 +136,13 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Renderer::Output {
-        self::Renderer::draw(
-            renderer,
-            defaults,
-            cursor_position,
-            layout,
-            viewport,
-            &self.content,
-            &self.tooltip,
-            self.position,
-            &self.style,
-            self.gap,
-            self.padding,
-        )
+        _renderer: &mut Renderer,
+        _defaults: &Renderer::Defaults,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        // TODO
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -177,23 +165,6 @@ pub trait Renderer:
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16;
-
-    /// Draws a [`Tooltip`].
-    ///
-    /// [`Tooltip`]: struct.Tooltip.html
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        cursor_position: Point,
-        content_layout: Layout<'_>,
-        viewport: &Rectangle,
-        content: &Element<'_, Message, Self>,
-        tooltip: &Text<Self>,
-        position: Position,
-        style: &<Self as container::Renderer>::Style,
-        gap: u16,
-        padding: u16,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>

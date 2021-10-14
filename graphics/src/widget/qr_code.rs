@@ -1,10 +1,10 @@
 //! Encode and display information in a QR code.
 use crate::canvas;
-use crate::{Backend, Defaults, Primitive, Renderer, Vector};
+use crate::{Backend, Defaults, Renderer};
 
 use iced_native::{
-    layout, mouse, Color, Element, Hasher, Layout, Length, Point, Rectangle,
-    Size, Widget,
+    layout, Color, Element, Hasher, Layout, Length, Point, Rectangle, Size,
+    Widget,
 };
 use thiserror::Error;
 
@@ -82,53 +82,54 @@ where
         &self,
         _renderer: &mut Renderer<B>,
         _defaults: &Defaults,
-        layout: Layout<'_>,
+        _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> (Primitive, mouse::Interaction) {
-        let bounds = layout.bounds();
-        let side_length = self.state.width + 2 * QUIET_ZONE;
+    ) {
+        // let bounds = layout.bounds();
+        // let side_length = self.state.width + 2 * QUIET_ZONE;
 
-        // Reuse cache if possible
-        let geometry = self.state.cache.draw(bounds.size(), |frame| {
-            // Scale units to cell size
-            frame.scale(f32::from(self.cell_size));
+        // // Reuse cache if possible
+        // let geometry = self.state.cache.draw(bounds.size(), |frame| {
+        //     // Scale units to cell size
+        //     frame.scale(f32::from(self.cell_size));
 
-            // Draw background
-            frame.fill_rectangle(
-                Point::ORIGIN,
-                Size::new(side_length as f32, side_length as f32),
-                self.light,
-            );
+        //     // Draw background
+        //     frame.fill_rectangle(
+        //         Point::ORIGIN,
+        //         Size::new(side_length as f32, side_length as f32),
+        //         self.light,
+        //     );
 
-            // Avoid drawing on the quiet zone
-            frame.translate(Vector::new(QUIET_ZONE as f32, QUIET_ZONE as f32));
+        //     // Avoid drawing on the quiet zone
+        //     frame.translate(Vector::new(QUIET_ZONE as f32, QUIET_ZONE as f32));
 
-            // Draw contents
-            self.state
-                .contents
-                .iter()
-                .enumerate()
-                .filter(|(_, value)| **value == qrcode::Color::Dark)
-                .for_each(|(index, _)| {
-                    let row = index / self.state.width;
-                    let column = index % self.state.width;
+        //     // Draw contents
+        //     self.state
+        //         .contents
+        //         .iter()
+        //         .enumerate()
+        //         .filter(|(_, value)| **value == qrcode::Color::Dark)
+        //         .for_each(|(index, _)| {
+        //             let row = index / self.state.width;
+        //             let column = index % self.state.width;
 
-                    frame.fill_rectangle(
-                        Point::new(column as f32, row as f32),
-                        Size::UNIT,
-                        self.dark,
-                    );
-                });
-        });
+        //             frame.fill_rectangle(
+        //                 Point::new(column as f32, row as f32),
+        //                 Size::UNIT,
+        //                 self.dark,
+        //             );
+        //         });
+        // });
 
-        (
-            Primitive::Translate {
-                translation: Vector::new(bounds.x, bounds.y),
-                content: Box::new(geometry.into_primitive()),
-            },
-            mouse::Interaction::default(),
-        )
+        // (
+        //     Primitive::Translate {
+        //         translation: Vector::new(bounds.x, bounds.y),
+        //         content: Box::new(geometry.into_primitive()),
+        //     },
+        //     mouse::Interaction::default(),
+        // )
+        // TODO
     }
 }
 

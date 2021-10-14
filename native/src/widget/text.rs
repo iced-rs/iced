@@ -133,22 +133,13 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
-        layout: Layout<'_>,
+        _renderer: &mut Renderer,
+        _defaults: &Renderer::Defaults,
+        _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            defaults,
-            layout.bounds(),
-            &self.content,
-            self.size.unwrap_or(renderer.default_size()),
-            self.font,
-            self.color,
-            self.horizontal_alignment,
-            self.vertical_alignment,
-        )
+    ) {
+        // TODO
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -201,27 +192,6 @@ pub trait Renderer: crate::Renderer {
         point: Point,
         nearest_only: bool,
     ) -> Option<Hit>;
-
-    /// Draws a [`Text`] fragment.
-    ///
-    /// It receives:
-    ///   * the bounds of the [`Text`]
-    ///   * the contents of the [`Text`]
-    ///   * the size of the [`Text`]
-    ///   * the color of the [`Text`]
-    ///   * the [`HorizontalAlignment`] of the [`Text`]
-    ///   * the [`VerticalAlignment`] of the [`Text`]
-    fn draw(
-        &mut self,
-        defaults: &Self::Defaults,
-        bounds: Rectangle,
-        content: &str,
-        size: u16,
-        font: Self::Font,
-        color: Option<Color>,
-        horizontal_alignment: alignment::Horizontal,
-        vertical_alignment: alignment::Vertical,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Text<Renderer>>

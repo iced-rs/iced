@@ -72,8 +72,9 @@ where
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(layout.bounds(), &self.style, self.is_horizontal)
+    ) {
+        // TODO
+        // renderer.draw(layout.bounds(), &self.style, self.is_horizontal)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -89,19 +90,6 @@ where
 pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
-
-    /// Draws a [`Rule`].
-    ///
-    /// It receives:
-    ///   * the bounds of the [`Rule`]
-    ///   * the style of the [`Rule`]
-    ///   * whether the [`Rule`] is horizontal (true) or vertical (false)
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        style: &Self::Style,
-        is_horizontal: bool,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Rule<Renderer>>

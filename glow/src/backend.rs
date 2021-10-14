@@ -5,10 +5,8 @@ use crate::{Settings, Transformation, Viewport};
 
 use iced_graphics::backend;
 use iced_graphics::font;
-use iced_graphics::Layer;
-use iced_graphics::Primitive;
+use iced_graphics::{Layer, Primitive};
 use iced_native::alignment;
-use iced_native::mouse;
 use iced_native::{Font, Size};
 
 /// A [`glow`] graphics backend for [`iced`].
@@ -47,13 +45,13 @@ impl Backend {
     ///
     /// The text provided as overlay will be rendered on top of the primitives.
     /// This is useful for rendering debug information.
-    pub fn draw<T: AsRef<str>>(
+    pub fn present<T: AsRef<str>>(
         &mut self,
         gl: &glow::Context,
+        primitive: &Primitive,
         viewport: &Viewport,
-        (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
         overlay_text: &[T],
-    ) -> mouse::Interaction {
+    ) {
         let viewport_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
         let projection = viewport.projection();
@@ -70,8 +68,6 @@ impl Backend {
                 viewport_size.height,
             );
         }
-
-        *mouse_interaction
     }
 
     fn flush(

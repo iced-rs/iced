@@ -90,34 +90,34 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
         show_controls: bool,
-    ) -> Renderer::Output {
-        let mut children = layout.children();
-        let padded = children.next().unwrap();
+    ) {
+        // let mut children = layout.children();
+        // let padded = children.next().unwrap();
 
-        let mut children = padded.children();
-        let title_layout = children.next().unwrap();
+        // let mut children = padded.children();
+        // let title_layout = children.next().unwrap();
 
-        let controls = if let Some(controls) = &self.controls {
-            let controls_layout = children.next().unwrap();
+        // let controls = if let Some(controls) = &self.controls {
+        //     let controls_layout = children.next().unwrap();
 
-            if show_controls || self.always_show_controls {
-                Some((controls, controls_layout))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        //     if show_controls || self.always_show_controls {
+        //         Some((controls, controls_layout))
+        //     } else {
+        //         None
+        //     }
+        // } else {
+        //     None
+        // };
 
-        renderer.draw_title_bar(
-            defaults,
-            layout.bounds(),
-            &self.style,
-            (&self.content, title_layout),
-            controls,
-            cursor_position,
-            viewport,
-        )
+        // renderer.draw_title_bar(
+        //     defaults,
+        //     layout.bounds(),
+        //     &self.style,
+        //     (&self.content, title_layout),
+        //     controls,
+        //     cursor_position,
+        //     viewport,
+        // )
     }
 
     /// Returns whether the mouse cursor is over the pick area of the

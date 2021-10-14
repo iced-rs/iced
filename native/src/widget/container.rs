@@ -179,16 +179,8 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            defaults,
-            layout.bounds(),
-            cursor_position,
-            viewport,
-            &self.style,
-            &self.content,
-            layout.children().next().unwrap(),
-        )
+    ) {
+        // TODO
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -221,18 +213,6 @@ where
 pub trait Renderer: crate::Renderer {
     /// The style supported by this renderer.
     type Style: Default;
-
-    /// Draws a [`Container`].
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        bounds: Rectangle,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        style: &Self::Style,
-        content: &Element<'_, Message, Self>,
-        content_layout: Layout<'_>,
-    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>

@@ -160,18 +160,22 @@ pub fn main() {
                 }
 
                 // And then iced on top
-                let mouse_interaction = renderer.backend_mut().draw(
-                    &gl,
-                    &viewport,
-                    state.primitive(),
-                    &debug.overlay(),
-                );
+                renderer.present(|backend, primitive| {
+                    backend.present(
+                        &gl,
+                        primitive,
+                        &viewport,
+                        &debug.overlay(),
+                    );
+                });
+
                 // Update the mouse cursor
-                windowed_context.window().set_cursor_icon(
-                    iced_winit::conversion::mouse_interaction(
-                        mouse_interaction,
-                    ),
-                );
+                // TODO
+                // windowed_context.window().set_cursor_icon(
+                //     iced_winit::conversion::mouse_interaction(
+                //         mouse_interaction,
+                //     ),
+                // );
 
                 windowed_context.swap_buffers().unwrap();
             }

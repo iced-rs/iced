@@ -189,7 +189,7 @@ where
     ) -> Element<'a, Message, Renderer>
     where
         Message: 'static,
-        Renderer: 'a + layout::Debugger,
+        Renderer: 'a,
     {
         Element {
             widget: Box::new(Explain::new(self, color.into())),
@@ -245,7 +245,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
+    ) {
         self.widget
             .draw(renderer, defaults, layout, cursor_position, viewport)
     }
@@ -340,7 +340,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
+    ) {
         self.widget
             .draw(renderer, defaults, layout, cursor_position, viewport)
     }
@@ -378,7 +378,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Explain<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer + layout::Debugger,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.element.widget.width()
@@ -417,20 +417,12 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.explain(
-            defaults,
-            self.element.widget.as_ref(),
-            layout,
-            cursor_position,
-            viewport,
-            self.color,
-        )
+        _renderer: &mut Renderer,
+        _defaults: &Renderer::Defaults,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

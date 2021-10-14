@@ -1,7 +1,7 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::task::SpawnExt;
-use iced_native::{futures, mouse};
+use iced_native::futures;
 use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `wgpu`.
@@ -132,15 +132,14 @@ impl iced_graphics::window::Compositor for Compositor {
         );
     }
 
-    fn draw<T: AsRef<str>>(
+    fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<mouse::Interaction, iced_graphics::window::SurfaceError> {
+    ) -> Result<(), iced_graphics::window::SurfaceError> {
         match surface.get_current_frame() {
             Ok(frame) => {
                 let mut encoder = self.device.create_command_encoder(
@@ -180,15 +179,17 @@ impl iced_graphics::window::Compositor for Compositor {
                         depth_stencil_attachment: None,
                     });
 
-                let mouse_interaction = renderer.backend_mut().draw(
-                    &mut self.device,
-                    &mut self.staging_belt,
-                    &mut encoder,
-                    view,
-                    viewport,
-                    output,
-                    overlay,
-                );
+                renderer.present(|backend, primitive| {
+                    backend.present(
+                        &mut self.device,
+                        &mut self.staging_belt,
+                        &mut encoder,
+                        view,
+                        primitive,
+                        viewport,
+                        overlay,
+                    );
+                });
 
                 // Submit work
                 self.staging_belt.finish();
@@ -202,7 +203,7 @@ impl iced_graphics::window::Compositor for Compositor {
 
                 self.local_pool.run_until_stalled();
 
-                Ok(mouse_interaction)
+                Ok(())
             }
             Err(error) => match error {
                 wgpu::SurfaceError::Timeout => {
