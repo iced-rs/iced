@@ -170,7 +170,9 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        // TODO
+        for (child, layout) in self.children.iter().zip(layout.children()) {
+            child.draw(renderer, defaults, layout, cursor_position, viewport);
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
