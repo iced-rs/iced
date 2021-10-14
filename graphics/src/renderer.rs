@@ -47,7 +47,12 @@ where
         layout
     }
 
-    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
+    fn with_layer(
+        &mut self,
+        bounds: Rectangle,
+        offset: Vector<u32>,
+        f: impl FnOnce(&mut Self),
+    ) {
         let current_primitives =
             std::mem::replace(&mut self.primitives, Vec::new());
 
@@ -58,7 +63,7 @@ where
 
         self.primitives.push(Primitive::Clip {
             bounds,
-            offset: Vector::new(0, 0),
+            offset,
             content: Box::new(Primitive::Group {
                 primitives: layer_primitives,
             }),
@@ -77,6 +82,8 @@ where
     type Font = Font;
 
     fn fill_text(&mut self, text: renderer::text::Section<'_, Self::Font>) {
+        dbg!(text);
+
         self.primitives.push(Primitive::Text {
             content: text.content.to_string(),
             bounds: text.bounds,

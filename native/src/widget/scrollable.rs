@@ -381,44 +381,94 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // TODO
-        // let bounds = layout.bounds();
-        // let content_layout = layout.children().next().unwrap();
-        // let content_bounds = content_layout.bounds();
-        // let offset = self.state.offset(bounds, content_bounds);
-        // let scrollbar = renderer.scrollbar(
-        //     bounds,
-        //     content_bounds,
-        //     offset,
-        //     self.scrollbar_width,
-        //     self.scrollbar_margin,
-        //     self.scroller_width,
-        // );
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
+        let offset = self.state.offset(bounds, content_bounds);
+        let scrollbar = renderer.scrollbar(
+            bounds,
+            content_bounds,
+            offset,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+        );
 
-        // let is_mouse_over = bounds.contains(cursor_position);
-        // let is_mouse_over_scrollbar = scrollbar
-        //     .as_ref()
-        //     .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
-        //     .unwrap_or(false);
+        let is_mouse_over = bounds.contains(cursor_position);
+        let is_mouse_over_scrollbar = scrollbar
+            .as_ref()
+            .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+            .unwrap_or(false);
 
-        // let content = {
-        //     let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
-        //         Point::new(cursor_position.x, cursor_position.y + offset as f32)
-        //     } else {
-        //         Point::new(cursor_position.x, -1.0)
-        //     };
+        let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
+            Point::new(cursor_position.x, cursor_position.y + offset as f32)
+        } else {
+            Point::new(cursor_position.x, -1.0)
+        };
 
-        //     self.content.draw(
-        //         renderer,
-        //         defaults,
-        //         content_layout,
-        //         cursor_position,
-        //         &Rectangle {
-        //             y: bounds.y + offset as f32,
-        //             ..bounds
-        //         },
-        //     )
-        // };
+        if let Some(scrollbar) = scrollbar {
+            renderer.with_layer(bounds, Vector::new(0, offset), |renderer| {
+                self.content.draw(
+                    renderer,
+                    defaults,
+                    content_layout,
+                    cursor_position,
+                    &Rectangle {
+                        y: bounds.y + offset as f32,
+                        ..bounds
+                    },
+                );
+            });
+
+            // TODO: Draw scroller
+            // let style = if self.state.is_scroller_grabbed() {
+            //     style_sheet.dragging()
+            // } else if is_mouse_over_scrollbar {
+            //     style_sheet.hovered()
+            // } else {
+            //     style_sheet.active()
+            // };
+
+            // let is_scrollbar_visible =
+            //     style.background.is_some() || style.border_width > 0.0;
+
+            // if is_mouse_over
+            //     || self.state.is_scroller_grabbed()
+            //     || is_scrollbar_visible
+            // {
+            //     // Primitive::Quad {
+            //     //     bounds: scrollbar.scroller.bounds,
+            //     //     background: Background::Color(style.scroller.color),
+            //     //     border_radius: style.scroller.border_radius,
+            //     //     border_width: style.scroller.border_width,
+            //     //     border_color: style.scroller.border_color,
+            //     // }
+            // };
+
+            // TODO: Draw scrollbar
+            // if is_scrollbar_visible {
+            //    Primitive::Quad {
+            //        bounds: scrollbar.bounds,
+            //        background: style
+            //            .background
+            //            .unwrap_or(Background::Color(Color::TRANSPARENT)),
+            //        border_radius: style.border_radius,
+            //        border_width: style.border_width,
+            //        border_color: style.border_color,
+            //    }
+            //}
+        } else {
+            self.content.draw(
+                renderer,
+                defaults,
+                content_layout,
+                cursor_position,
+                &Rectangle {
+                    y: bounds.y + offset as f32,
+                    ..bounds
+                },
+            );
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

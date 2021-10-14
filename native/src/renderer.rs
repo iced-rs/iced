@@ -29,7 +29,7 @@ mod null;
 pub use null::Null;
 
 use crate::layout;
-use crate::{Element, Rectangle};
+use crate::{Element, Rectangle, Vector};
 
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
@@ -51,7 +51,12 @@ pub trait Renderer: Sized {
         element.layout(self, limits)
     }
 
-    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self));
+    fn with_layer(
+        &mut self,
+        bounds: Rectangle,
+        offset: Vector<u32>,
+        f: impl FnOnce(&mut Self),
+    );
 
     fn clear(&mut self);
 }

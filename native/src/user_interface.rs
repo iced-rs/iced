@@ -1,7 +1,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
-use crate::{Clipboard, Element, Layout, Point, Rectangle, Size};
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Size, Vector};
 
 use std::hash::Hasher;
 
@@ -347,14 +347,18 @@ where
 
             let overlay_bounds = layer.layout.bounds();
 
-            renderer.with_layer(overlay_bounds, |renderer| {
-                overlay.draw(
-                    renderer,
-                    &Renderer::Defaults::default(),
-                    Layout::new(&layer.layout),
-                    cursor_position,
-                );
-            });
+            renderer.with_layer(
+                overlay_bounds,
+                Vector::new(0, 0),
+                |renderer| {
+                    overlay.draw(
+                        renderer,
+                        &Renderer::Defaults::default(),
+                        Layout::new(&layer.layout),
+                        cursor_position,
+                    );
+                },
+            );
 
             self.overlay = Some(layer);
 

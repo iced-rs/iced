@@ -10,7 +10,7 @@ use crate::slider;
 use crate::text;
 use crate::text_input;
 use crate::toggler;
-use crate::{Font, Padding, Point, Rectangle, Size};
+use crate::{Font, Padding, Point, Rectangle, Size, Vector};
 
 /// A renderer that does nothing.
 ///
@@ -28,7 +28,13 @@ impl Null {
 impl Renderer for Null {
     type Defaults = ();
 
-    fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
+    fn with_layer(
+        &mut self,
+        _bounds: Rectangle,
+        _offset: Vector<u32>,
+        _f: impl FnOnce(&mut Self),
+    ) {
+    }
 
     fn clear(&mut self) {}
 }
