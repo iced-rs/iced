@@ -1,4 +1,4 @@
-var positions: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+var<private> positions: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
     vec2<f32>(-1.0, 1.0),
     vec2<f32>(-1.0, -1.0),
     vec2<f32>(1.0, -1.0),
@@ -7,7 +7,7 @@ var positions: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
     vec2<f32>(1.0, -1.0)
 );
 
-var uvs: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+var<private> uvs: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
     vec2<f32>(0.0, 0.0),
     vec2<f32>(0.0, 1.0),
     vec2<f32>(1.0, 1.0),
