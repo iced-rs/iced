@@ -3,6 +3,7 @@ use std::hash::Hash;
 
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
@@ -161,6 +162,26 @@ where
                 )
             })
             .fold(event::Status::Ignored, event::Status::merge)
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        self.children
+            .iter()
+            .zip(layout.children())
+            .map(|(child, layout)| {
+                child.widget.mouse_interaction(
+                    layout,
+                    viewport,
+                    cursor_position,
+                )
+            })
+            .max()
+            .unwrap_or_default()
     }
 
     fn draw(
