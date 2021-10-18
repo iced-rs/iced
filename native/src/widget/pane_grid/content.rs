@@ -13,7 +13,7 @@ use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 pub struct Content<'a, Message, Renderer: pane_grid::Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
     body: Element<'a, Message, Renderer>,
-    style: <Renderer as container::Renderer>::Style,
+    style: &'a dyn container::StyleSheet,
 }
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
@@ -39,11 +39,8 @@ where
     }
 
     /// Sets the style of the [`Content`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer as container::Renderer>::Style>,
-    ) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: &'a dyn container::StyleSheet) -> Self {
+        self.style = style;
         self
     }
 }
@@ -217,7 +214,7 @@ where
 impl<'a, T, Message, Renderer> From<T> for Content<'a, Message, Renderer>
 where
     T: Into<Element<'a, Message, Renderer>>,
-    Renderer: pane_grid::Renderer + container::Renderer,
+    Renderer: pane_grid::Renderer,
 {
     fn from(element: T) -> Self {
         Self::new(element)

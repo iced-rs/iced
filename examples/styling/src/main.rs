@@ -149,7 +149,7 @@ impl Sandbox for Styling {
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .style(self.theme)
+            .style(self.theme.into())
             .into()
     }
 }
@@ -176,11 +176,11 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn container::StyleSheet> {
+    impl From<Theme> for &'static dyn container::StyleSheet {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
-                Theme::Dark => dark::Container.into(),
+                Theme::Dark => &dark::Container,
             }
         }
     }

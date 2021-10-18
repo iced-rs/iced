@@ -16,7 +16,7 @@ pub struct Tooltip<'a, Message, Renderer: self::Renderer> {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
-    style: <Renderer as container::Renderer>::Style,
+    style: &'a dyn container::StyleSheet,
     gap: u16,
     padding: u16,
 }
@@ -70,11 +70,11 @@ where
     }
 
     /// Sets the style of the [`Tooltip`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer as container::Renderer>::Style>,
-    ) -> Self {
-        self.style = style.into();
+    pub fn style<'b>(mut self, style: &'b dyn container::StyleSheet) -> Self
+    where
+        'b: 'a,
+    {
+        self.style = style;
         self
     }
 }
@@ -160,9 +160,7 @@ where
 ///
 /// [`Tooltip`]: struct.Tooltip.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer:
-    crate::Renderer + text::Renderer + container::Renderer
-{
+pub trait Renderer: crate::Renderer + text::Renderer {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16;
 }

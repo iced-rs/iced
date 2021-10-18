@@ -150,7 +150,7 @@ impl Application for GameOfLife {
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(style::Container)
+            .style(&style::Container)
             .into()
     }
 }

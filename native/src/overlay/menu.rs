@@ -1,5 +1,4 @@
 //! Build and show dropdown menus.
-use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -396,7 +395,7 @@ where
 /// able to use a [`Menu`] in your user interface.
 ///
 /// [renderer]: crate::renderer
-pub trait Renderer: container::Renderer + text::Renderer {
+pub trait Renderer: text::Renderer {
     /// The [`Menu`] style supported by this renderer.
     type Style: Default + Clone;
 }

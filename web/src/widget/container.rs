@@ -19,7 +19,7 @@ pub struct Container<'a, Message> {
     max_height: u32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style_sheet: Box<dyn StyleSheet>,
+    style_sheet: &'a dyn StyleSheet,
     content: Element<'a, Message>,
 }
 
@@ -89,8 +89,8 @@ impl<'a, Message> Container<'a, Message> {
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
-        self.style_sheet = style.into();
+    pub fn style(mut self, style: &'a dyn StyleSheet) -> Self {
+        self.style_sheet = style;
         self
     }
 }

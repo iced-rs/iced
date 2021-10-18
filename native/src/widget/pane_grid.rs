@@ -27,7 +27,6 @@ pub use split::Split;
 pub use state::State;
 pub use title_bar::TitleBar;
 
-use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -318,7 +317,7 @@ pub struct ResizeEvent {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + container::Renderer,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -565,7 +564,7 @@ where
 /// able to use a [`PaneGrid`] in your user interface.
 ///
 /// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + container::Renderer + Sized {
+pub trait Renderer: crate::Renderer + Sized {
     /// The style supported by this renderer.
     type Style: Default;
 }

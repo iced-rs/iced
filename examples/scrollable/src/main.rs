@@ -164,7 +164,7 @@ impl Sandbox for ScrollableDemo {
                             Container::new(scrollable)
                                 .width(Length::Fill)
                                 .height(Length::Fill)
-                                .style(*theme),
+                                .style(theme.clone().into()),
                         )
                         .push(ProgressBar::new(
                             0.0..=1.0,
@@ -190,7 +190,7 @@ impl Sandbox for ScrollableDemo {
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .style(self.theme)
+            .style(self.theme.into())
             .into()
     }
 }

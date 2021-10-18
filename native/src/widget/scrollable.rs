@@ -122,10 +122,7 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
     }
 
     /// Sets the style of the [`Scrollable`] .
-    pub fn style<'b>(mut self, style_sheet: &'b dyn StyleSheet) -> Self
-    where
-        'b: 'a,
-    {
+    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
         self.style_sheet = style_sheet;
         self
     }

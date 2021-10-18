@@ -13,11 +13,13 @@ use crate::{
 
 use std::u32;
 
+pub use iced_style::container::{Style, StyleSheet};
+
 /// An element decorating some content.
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer: self::Renderer> {
+pub struct Container<'a, Message, Renderer> {
     padding: Padding,
     width: Length,
     height: Length,
@@ -25,13 +27,13 @@ pub struct Container<'a, Message, Renderer: self::Renderer> {
     max_height: u32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style: Renderer::Style,
+    style: &'a dyn StyleSheet,
     content: Element<'a, Message, Renderer>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
@@ -46,7 +48,7 @@ where
             max_height: u32::MAX,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style: Renderer::Style::default(),
+            style: Default::default(),
             content: content.into(),
         }
     }
@@ -106,8 +108,8 @@ where
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: &'a dyn StyleSheet) -> Self {
+        self.style = style;
         self
     }
 }
@@ -115,7 +117,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Container<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -211,21 +213,10 @@ where
     }
 }
 
-/// The renderer of a [`Container`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Container`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer {
-    /// The style supported by this renderer.
-    type Style: Default;
-}
-
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(

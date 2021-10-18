@@ -1,6 +1,5 @@
 use crate::button;
 use crate::checkbox;
-use crate::container;
 use crate::pane_grid;
 use crate::progress_bar;
 use crate::radio;
@@ -121,10 +120,6 @@ impl progress_bar::Renderer for Null {
     type Style = ();
 
     const DEFAULT_HEIGHT: u16 = 30;
-}
-
-impl container::Renderer for Null {
-    type Style = ();
 }
 
 impl pane_grid::Renderer for Null {
