@@ -4,6 +4,7 @@ use std::hash::Hash;
 use crate::alignment::{self, Alignment};
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
@@ -172,6 +173,19 @@ where
             renderer,
             clipboard,
             messages,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        self.content.widget.mouse_interaction(
+            layout.children().next().unwrap(),
+            viewport,
+            cursor_position,
         )
     }
 
