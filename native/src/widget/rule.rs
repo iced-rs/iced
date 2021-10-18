@@ -1,10 +1,9 @@
 //! Display a horizontal or vertical rule for dividing content.
+use crate::layout;
+use crate::renderer;
+use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
 
 use std::hash::Hash;
-
-use crate::{
-    layout, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
-};
 
 /// Display a horizontal or vertical rule for dividing content.
 #[derive(Debug, Copy, Clone)]
@@ -68,7 +67,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

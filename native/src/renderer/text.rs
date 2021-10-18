@@ -12,8 +12,8 @@ pub trait Text: Renderer {
 pub struct Section<'a, Font> {
     pub content: &'a str,
     pub bounds: Rectangle,
-    pub size: Option<f32>,
-    pub color: Option<Color>,
+    pub size: f32,
+    pub color: Color,
     pub font: Font,
     pub horizontal_alignment: alignment::Horizontal,
     pub vertical_alignment: alignment::Vertical,

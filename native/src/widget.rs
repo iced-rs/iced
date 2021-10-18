@@ -81,6 +81,7 @@ pub use tooltip::Tooltip;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
+use crate::renderer;
 use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle};
 
 /// A component that displays information and allows interaction.
@@ -131,7 +132,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,

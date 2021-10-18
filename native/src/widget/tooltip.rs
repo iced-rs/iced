@@ -3,12 +3,12 @@ use std::hash::Hash;
 
 use iced_core::Rectangle;
 
+use crate::event;
+use crate::layout;
+use crate::renderer;
 use crate::widget::container;
 use crate::widget::text::{self, Text};
-use crate::{
-    event, layout, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Widget,
-};
+use crate::{Clipboard, Element, Event, Hasher, Layout, Length, Point, Widget};
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
@@ -137,7 +137,7 @@ where
     fn draw(
         &self,
         _renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

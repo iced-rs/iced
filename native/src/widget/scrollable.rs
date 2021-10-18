@@ -425,7 +425,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -452,7 +452,7 @@ where
             renderer.with_layer(bounds, Vector::new(0, offset), |renderer| {
                 self.content.draw(
                     renderer,
-                    defaults,
+                    style,
                     content_layout,
                     cursor_position,
                     &Rectangle {
@@ -502,7 +502,7 @@ where
         } else {
             self.content.draw(
                 renderer,
-                defaults,
+                style,
                 content_layout,
                 cursor_position,
                 &Rectangle {

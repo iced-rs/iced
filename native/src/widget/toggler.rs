@@ -5,6 +5,7 @@ use crate::alignment;
 use crate::event;
 use crate::layout;
 use crate::mouse;
+use crate::renderer;
 use crate::text;
 use crate::{
     Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
@@ -185,7 +186,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,

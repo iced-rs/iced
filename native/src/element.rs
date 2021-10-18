@@ -1,6 +1,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
+use crate::renderer;
 use crate::{
     Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
@@ -241,13 +242,13 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         self.widget
-            .draw(renderer, defaults, layout, cursor_position, viewport)
+            .draw(renderer, style, layout, cursor_position, viewport)
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -336,13 +337,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         self.widget
-            .draw(renderer, defaults, layout, cursor_position, viewport)
+            .draw(renderer, style, layout, cursor_position, viewport)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -418,7 +419,7 @@ where
     fn draw(
         &self,
         _renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

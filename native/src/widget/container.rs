@@ -5,6 +5,7 @@ use crate::alignment::{self, Alignment};
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
+use crate::renderer;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
     Widget,
@@ -175,14 +176,14 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         self.content.draw(
             renderer,
-            defaults,
+            style,
             layout.children().next().unwrap(),
             cursor_position,
             viewport,

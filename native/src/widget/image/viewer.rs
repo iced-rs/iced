@@ -3,6 +3,7 @@ use crate::event::{self, Event};
 use crate::image;
 use crate::layout;
 use crate::mouse;
+use crate::renderer;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
     Widget,
@@ -283,7 +284,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,

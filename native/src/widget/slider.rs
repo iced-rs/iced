@@ -4,12 +4,14 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
+use crate::renderer;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 
-use std::{hash::Hash, ops::RangeInclusive};
+use std::hash::Hash;
+use std::ops::RangeInclusive;
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -246,7 +248,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,

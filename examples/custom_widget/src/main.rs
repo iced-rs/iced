@@ -9,7 +9,8 @@ mod circle {
     // Of course, you can choose to make the implementation renderer-agnostic,
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
-    use iced_graphics::{Backend, Defaults, Primitive, Renderer};
+    use iced_graphics::renderer::{self, Renderer};
+    use iced_graphics::Backend;
     use iced_native::{
         layout, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
     };
@@ -53,7 +54,7 @@ mod circle {
         fn draw(
             &self,
             _renderer: &mut Renderer<B>,
-            _defaults: &Defaults,
+            _style: &renderer::Style,
             _layout: Layout<'_>,
             _cursor_position: Point,
             _viewport: &Rectangle,

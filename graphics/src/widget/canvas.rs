@@ -3,7 +3,9 @@
 //! A [`Canvas`] widget can be used to draw different kinds of 2D shapes in a
 //! [`Frame`]. It can be used for animation, data visualization, game graphics,
 //! and more!
-use crate::{Backend, Defaults, Renderer};
+use crate::renderer::{self, Renderer};
+use crate::Backend;
+
 use iced_native::layout;
 use iced_native::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
@@ -187,7 +189,7 @@ where
     fn draw(
         &self,
         _renderer: &mut Renderer<B>,
-        _defaults: &Defaults,
+        _style: &renderer::Style,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

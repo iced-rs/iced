@@ -32,6 +32,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
+use crate::renderer;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
@@ -475,7 +476,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,

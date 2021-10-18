@@ -2,6 +2,7 @@ pub use crate::Overlay;
 
 use crate::event::{self, Event};
 use crate::layout;
+use crate::renderer;
 use crate::{Clipboard, Hasher, Layout, Point, Size, Vector};
 
 /// A generic [`Overlay`].
@@ -71,12 +72,11 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.overlay
-            .draw(renderer, defaults, layout, cursor_position)
+        self.overlay.draw(renderer, style, layout, cursor_position)
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -142,12 +142,11 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.content
-            .draw(renderer, defaults, layout, cursor_position)
+        self.content.draw(renderer, style, layout, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher, position: Point) {

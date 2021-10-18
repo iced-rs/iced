@@ -3,6 +3,7 @@ pub mod viewer;
 pub use viewer::Viewer;
 
 use crate::layout;
+use crate::renderer;
 use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
 
 use std::{
@@ -92,7 +93,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

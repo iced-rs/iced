@@ -5,6 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::overlay::menu::{self, Menu};
+use crate::renderer;
 use crate::text;
 use crate::touch;
 use crate::{
@@ -322,7 +323,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,

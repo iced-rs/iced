@@ -15,6 +15,7 @@ use crate::event::{self, Event};
 use crate::keyboard;
 use crate::layout;
 use crate::mouse::{self, click};
+use crate::renderer;
 use crate::text;
 use crate::touch;
 use crate::{
@@ -155,54 +156,6 @@ where
     /// Returns the current [`State`] of the [`TextInput`].
     pub fn state(&self) -> &State {
         self.state
-    }
-}
-
-impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
-where
-    Renderer: self::Renderer,
-{
-    /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
-    /// [`Value`] if provided.
-    pub fn draw(
-        &self,
-        renderer: &mut Renderer,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        value: Option<&Value>,
-    ) {
-        // TODO
-        // let value = value.unwrap_or(&self.value);
-        // let bounds = layout.bounds();
-        // let text_bounds = layout.children().next().unwrap().bounds();
-
-        // if self.is_secure {
-        //     self::Renderer::draw(
-        //         renderer,
-        //         bounds,
-        //         text_bounds,
-        //         cursor_position,
-        //         self.font,
-        //         self.size.unwrap_or(renderer.default_size()),
-        //         &self.placeholder,
-        //         &value.secure(),
-        //         &self.state,
-        //         &self.style,
-        //     )
-        // } else {
-        //     self::Renderer::draw(
-        //         renderer,
-        //         bounds,
-        //         text_bounds,
-        //         cursor_position,
-        //         self.font,
-        //         self.size.unwrap_or(renderer.default_size()),
-        //         &self.placeholder,
-        //         value,
-        //         &self.state,
-        //         &self.style,
-        //     )
-        // }
     }
 }
 
@@ -627,12 +580,44 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        self.draw(renderer, layout, cursor_position, None)
+
+        // TODO
+        // let value = value.unwrap_or(&self.value);
+        // let bounds = layout.bounds();
+        // let text_bounds = layout.children().next().unwrap().bounds();
+
+        // if self.is_secure {
+        //     self::Renderer::draw(
+        //         renderer,
+        //         bounds,
+        //         text_bounds,
+        //         cursor_position,
+        //         self.font,
+        //         self.size.unwrap_or(renderer.default_size()),
+        //         &self.placeholder,
+        //         &value.secure(),
+        //         &self.state,
+        //         &self.style,
+        //     )
+        // } else {
+        //     self::Renderer::draw(
+        //         renderer,
+        //         bounds,
+        //         text_bounds,
+        //         cursor_position,
+        //         self.font,
+        //         self.size.unwrap_or(renderer.default_size()),
+        //         &self.placeholder,
+        //         value,
+        //         &self.state,
+        //         &self.style,
+        //     )
+        // }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

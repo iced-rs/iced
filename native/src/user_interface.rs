@@ -1,6 +1,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
+use crate::renderer;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Size, Vector};
 
 use std::hash::Hasher;
@@ -353,7 +354,7 @@ where
                 |renderer| {
                     overlay.draw(
                         renderer,
-                        &Renderer::Defaults::default(),
+                        &renderer::Style::default(),
                         Layout::new(&layer.layout),
                         cursor_position,
                     );
@@ -376,7 +377,7 @@ where
 
             self.root.widget.draw(
                 renderer,
-                &Renderer::Defaults::default(),
+                &renderer::Style::default(),
                 Layout::new(&self.base.layout),
                 base_cursor,
                 &viewport,
@@ -384,7 +385,7 @@ where
         } else {
             self.root.widget.draw(
                 renderer,
-                &Renderer::Defaults::default(),
+                &renderer::Style::default(),
                 Layout::new(&self.base.layout),
                 cursor_position,
                 &viewport,

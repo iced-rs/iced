@@ -1,12 +1,11 @@
 //! Display vector graphics in your application.
 use crate::layout;
+use crate::renderer;
 use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
 
-use std::{
-    hash::{Hash, Hasher as _},
-    path::PathBuf,
-    sync::Arc,
-};
+use std::hash::{Hash, Hasher as _};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 /// A vector graphics image.
 ///
@@ -90,7 +89,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

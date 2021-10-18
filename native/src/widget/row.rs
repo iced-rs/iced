@@ -2,6 +2,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
+use crate::renderer;
 use crate::{
     Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
     Rectangle, Widget,
@@ -164,13 +165,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         for (child, layout) in self.children.iter().zip(layout.children()) {
-            child.draw(renderer, defaults, layout, cursor_position, viewport);
+            child.draw(renderer, style, layout, cursor_position, viewport);
         }
     }
 

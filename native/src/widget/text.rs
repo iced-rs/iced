@@ -135,7 +135,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -156,9 +156,9 @@ where
 
         renderer.fill_text(renderer::text::Section {
             content: &self.content,
-            size: self.size.map(f32::from),
+            size: f32::from(self.size.unwrap_or(renderer.default_size())),
             bounds: Rectangle { x, y, ..bounds },
-            color: self.color,
+            color: self.color.unwrap_or(style.text_color),
             font: self.font,
             horizontal_alignment: self.horizontal_alignment,
             vertical_alignment: self.vertical_alignment,

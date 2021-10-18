@@ -34,11 +34,6 @@ use crate::{Background, Color, Element, Rectangle, Vector};
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
 pub trait Renderer: Sized {
-    /// The default styling attributes of the [`Renderer`].
-    ///
-    /// This type can be leveraged to implement style inheritance.
-    type Defaults: Default;
-
     /// Lays out the elements of a user interface.
     ///
     /// You should override this if you need to perform any operations before or
@@ -70,4 +65,19 @@ pub struct Quad {
     pub border_radius: f32,
     pub border_width: f32,
     pub border_color: Color,
+}
+
+/// The styling attributes of a [`Renderer`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Style {
+    /// The text color
+    pub text_color: Color,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Style {
+            text_color: Color::BLACK,
+        }
+    }
 }

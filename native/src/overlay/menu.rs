@@ -4,6 +4,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
+use crate::renderer;
 use crate::scrollable;
 use crate::text;
 use crate::touch;
@@ -236,7 +237,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
@@ -380,7 +381,7 @@ where
     fn draw(
         &self,
         _renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        _style: &renderer::Style,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

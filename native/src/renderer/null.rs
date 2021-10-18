@@ -5,7 +5,6 @@ use crate::pane_grid;
 use crate::progress_bar;
 use crate::radio;
 use crate::renderer::{self, Renderer};
-use crate::scrollable;
 use crate::slider;
 use crate::text;
 use crate::text_input;
@@ -26,8 +25,6 @@ impl Null {
 }
 
 impl Renderer for Null {
-    type Defaults = ();
-
     fn with_layer(
         &mut self,
         _bounds: Rectangle,

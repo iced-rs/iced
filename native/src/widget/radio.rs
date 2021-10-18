@@ -1,15 +1,15 @@
 //! Create choices using radio buttons.
 use std::hash::Hash;
 
-use crate::alignment::{self, Alignment};
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
+use crate::renderer;
 use crate::text;
 use crate::touch;
 use crate::{
-    Clipboard, Color, Element, Hasher, Layout, Length, Point, Rectangle, Row,
-    Text, Widget,
+    Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
+    Rectangle, Row, Text, Widget,
 };
 
 /// A circular button representing a choice.
@@ -194,7 +194,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,

@@ -3,6 +3,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::overlay;
 use crate::pane_grid::{self, TitleBar};
+use crate::renderer;
 use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The content of a [`Pane`].
@@ -57,7 +58,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,

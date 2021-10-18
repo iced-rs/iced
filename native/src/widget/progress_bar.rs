@@ -1,7 +1,7 @@
 //! Provide progress feedback to your users.
-use crate::{
-    layout, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
-};
+use crate::layout;
+use crate::renderer;
+use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
 
 use std::{hash::Hash, ops::RangeInclusive};
 
@@ -93,7 +93,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

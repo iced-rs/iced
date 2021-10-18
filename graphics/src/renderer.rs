@@ -1,8 +1,10 @@
 use crate::backend::{self, Backend};
-use crate::{Defaults, Primitive, Vector};
+use crate::{Primitive, Vector};
 use iced_native::layout;
 use iced_native::renderer;
-use iced_native::{Color, Element, Font, Rectangle};
+use iced_native::{Element, Font, Rectangle};
+
+pub use iced_native::renderer::Style;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
@@ -33,8 +35,6 @@ impl<B> iced_native::Renderer for Renderer<B>
 where
     B: Backend,
 {
-    type Defaults = Defaults;
-
     fn layout<'a, Message>(
         &mut self,
         element: &Element<'a, Message, Self>,
@@ -97,8 +97,8 @@ where
         self.primitives.push(Primitive::Text {
             content: text.content.to_string(),
             bounds: text.bounds,
-            size: text.size.unwrap_or(f32::from(self.backend.default_size())),
-            color: text.color.unwrap_or(Color::BLACK),
+            size: text.size,
+            color: text.color,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
