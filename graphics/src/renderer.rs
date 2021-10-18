@@ -92,8 +92,6 @@ where
     type Font = Font;
 
     fn fill_text(&mut self, text: renderer::text::Section<'_, Self::Font>) {
-        dbg!(text);
-
         self.primitives.push(Primitive::Text {
             content: text.content.to_string(),
             bounds: text.bounds,
