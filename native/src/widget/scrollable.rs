@@ -419,6 +419,45 @@ where
         event::Status::Ignored
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        _viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
+        let scrollbar = self.scrollbar(bounds, content_bounds);
+
+        let is_mouse_over = bounds.contains(cursor_position);
+        let is_mouse_over_scrollbar = scrollbar
+            .as_ref()
+            .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+            .unwrap_or(false);
+
+        if is_mouse_over_scrollbar || self.state.is_scroller_grabbed() {
+            mouse::Interaction::Idle
+        } else {
+            let offset = self.state.offset(bounds, content_bounds);
+
+            let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
+                Point::new(cursor_position.x, cursor_position.y + offset as f32)
+            } else {
+                Point::new(cursor_position.x, -1.0)
+            };
+
+            self.content.mouse_interaction(
+                content_layout,
+                &Rectangle {
+                    y: bounds.y + offset as f32,
+                    ..bounds
+                },
+                cursor_position,
+            )
+        }
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
