@@ -304,7 +304,7 @@ impl Task {
                         Button::new(edit_button, edit_icon())
                             .on_press(TaskMessage::Edit)
                             .padding(10)
-                            .style(style::Button::Icon),
+                            .style(&style::Button::Icon),
                     )
                     .into()
             }
@@ -335,7 +335,7 @@ impl Task {
                         )
                         .on_press(TaskMessage::Delete)
                         .padding(10)
-                        .style(style::Button::Destructive),
+                        .style(&style::Button::Destructive),
                     )
                     .into()
             }
@@ -363,8 +363,10 @@ impl Controls {
         let filter_button = |state, label, filter, current_filter| {
             let label = Text::new(label).size(16);
             let button =
-                Button::new(state, label).style(style::Button::Filter {
-                    selected: filter == current_filter,
+                Button::new(state, label).style(if filter == current_filter {
+                    &style::Button::FilterSelected
+                } else {
+                    &style::Button::FilterActive
                 });
 
             button.on_press(Message::FilterChanged(filter)).padding(8)
@@ -602,7 +604,8 @@ mod style {
     use iced::{button, Background, Color, Vector};
 
     pub enum Button {
-        Filter { selected: bool },
+        FilterActive,
+        FilterSelected,
         Icon,
         Destructive,
     }
@@ -610,20 +613,15 @@ mod style {
     impl button::StyleSheet for Button {
         fn active(&self) -> button::Style {
             match self {
-                Button::Filter { selected } => {
-                    if *selected {
-                        button::Style {
-                            background: Some(Background::Color(
-                                Color::from_rgb(0.2, 0.2, 0.7),
-                            )),
-                            border_radius: 10.0,
-                            text_color: Color::WHITE,
-                            ..button::Style::default()
-                        }
-                    } else {
-                        button::Style::default()
-                    }
-                }
+                Button::FilterActive => button::Style::default(),
+                Button::FilterSelected => button::Style {
+                    background: Some(Background::Color(Color::from_rgb(
+                        0.2, 0.2, 0.7,
+                    ))),
+                    border_radius: 10.0,
+                    text_color: Color::WHITE,
+                    ..button::Style::default()
+                },
                 Button::Icon => button::Style {
                     text_color: Color::from_rgb(0.5, 0.5, 0.5),
                     ..button::Style::default()
@@ -646,9 +644,7 @@ mod style {
             button::Style {
                 text_color: match self {
                     Button::Icon => Color::from_rgb(0.2, 0.2, 0.7),
-                    Button::Filter { selected } if !selected => {
-                        Color::from_rgb(0.2, 0.2, 0.7)
-                    }
+                    Button::FilterActive => Color::from_rgb(0.2, 0.2, 0.7),
                     _ => active.text_color,
                 },
                 shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),

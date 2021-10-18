@@ -82,7 +82,7 @@ impl Sandbox for Styling {
         let button = Button::new(&mut self.button, Text::new("Submit"))
             .padding(10)
             .on_press(Message::ButtonPressed)
-            .style(self.theme);
+            .style(self.theme.into());
 
         let slider = Slider::new(
             &mut self.slider,
@@ -203,11 +203,11 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn button::StyleSheet> {
+    impl From<Theme> for &'static dyn button::StyleSheet {
         fn from(theme: Theme) -> Self {
             match theme {
-                Theme::Light => light::Button.into(),
-                Theme::Dark => dark::Button.into(),
+                Theme::Light => &light::Button,
+                Theme::Dark => &dark::Button,
             }
         }
     }

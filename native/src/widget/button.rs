@@ -11,7 +11,10 @@ use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
     Widget,
 };
+
 use std::hash::Hash;
+
+pub use iced_style::button::{Style, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -54,7 +57,7 @@ use std::hash::Hash;
 /// }
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer: self::Renderer> {
+pub struct Button<'a, Message, Renderer> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
@@ -63,13 +66,13 @@ pub struct Button<'a, Message, Renderer: self::Renderer> {
     min_width: u32,
     min_height: u32,
     padding: Padding,
-    style: Renderer::Style,
+    style: &'a dyn StyleSheet,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     /// Creates a new [`Button`] with some local [`State`] and the given
     /// content.
@@ -85,8 +88,8 @@ where
             height: Length::Shrink,
             min_width: 0,
             min_height: 0,
-            padding: Renderer::DEFAULT_PADDING,
-            style: Renderer::Style::default(),
+            padding: Padding::new(5),
+            style: Default::default(),
         }
     }
 
@@ -128,8 +131,8 @@ where
     }
 
     /// Sets the style of the [`Button`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: &'a dyn StyleSheet) -> Self {
+        self.style = style;
         self
     }
 }
@@ -151,7 +154,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -268,25 +271,11 @@ where
     }
 }
 
-/// The renderer of a [`Button`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Button`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + Sized {
-    /// The default padding of a [`Button`].
-    const DEFAULT_PADDING: Padding;
-
-    /// The style supported by this renderer.
-    type Style: Default;
-}
-
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
 {
     fn from(
         button: Button<'a, Message, Renderer>,

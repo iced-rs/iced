@@ -90,12 +90,6 @@ impl text_input::Renderer for Null {
     }
 }
 
-impl button::Renderer for Null {
-    const DEFAULT_PADDING: Padding = Padding::ZERO;
-
-    type Style = ();
-}
-
 impl radio::Renderer for Null {
     type Style = ();
 

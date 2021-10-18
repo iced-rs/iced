@@ -112,15 +112,15 @@ impl Application for Stopwatch {
 
         let toggle_button = {
             let (label, color) = match self.state {
-                State::Idle => ("Start", style::Button::Primary),
-                State::Ticking { .. } => ("Stop", style::Button::Destructive),
+                State::Idle => ("Start", &style::Button::Primary),
+                State::Ticking { .. } => ("Stop", &style::Button::Destructive),
             };
 
             button(&mut self.toggle, label, color).on_press(Message::Toggle)
         };
 
         let reset_button =
-            button(&mut self.reset, "Reset", style::Button::Secondary)
+            button(&mut self.reset, "Reset", &style::Button::Secondary)
                 .on_press(Message::Reset);
 
         let controls = Row::new()
