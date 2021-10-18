@@ -37,6 +37,8 @@ impl Renderer for Null {
     }
 
     fn clear(&mut self) {}
+
+    fn fill_rectangle(&mut self, _quad: renderer::Quad) {}
 }
 
 impl renderer::Text for Null {

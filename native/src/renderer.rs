@@ -29,7 +29,7 @@ mod null;
 pub use null::Null;
 
 use crate::layout;
-use crate::{Element, Rectangle, Vector};
+use crate::{Background, Color, Element, Rectangle, Vector};
 
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
@@ -59,4 +59,15 @@ pub trait Renderer: Sized {
     );
 
     fn clear(&mut self);
+
+    fn fill_rectangle(&mut self, quad: Quad);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Quad {
+    pub bounds: Rectangle,
+    pub background: Background,
+    pub border_radius: f32,
+    pub border_width: f32,
+    pub border_color: Color,
 }

@@ -70,6 +70,16 @@ where
         });
     }
 
+    fn fill_rectangle(&mut self, quad: renderer::Quad) {
+        self.primitives.push(Primitive::Quad {
+            bounds: quad.bounds,
+            background: quad.background,
+            border_radius: quad.border_radius,
+            border_width: quad.border_width,
+            border_color: quad.border_color,
+        });
+    }
+
     fn clear(&mut self) {
         self.primitives.clear();
     }
