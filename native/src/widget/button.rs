@@ -8,8 +8,8 @@ use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Widget,
+    Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
+    Point, Rectangle, Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -66,7 +66,7 @@ pub struct Button<'a, Message, Renderer> {
     min_width: u32,
     min_height: u32,
     padding: Padding,
-    style: &'a dyn StyleSheet,
+    style_sheet: &'a dyn StyleSheet,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -89,7 +89,7 @@ where
             min_width: 0,
             min_height: 0,
             padding: Padding::new(5),
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -131,8 +131,8 @@ where
     }
 
     /// Sets the style of the [`Button`].
-    pub fn style(mut self, style: &'a dyn StyleSheet) -> Self {
-        self.style = style;
+    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
+        self.style_sheet = style_sheet;
         self
     }
 }
@@ -248,11 +248,64 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        let styling = if self.on_press.is_none() {
+            self.style_sheet.disabled()
+        } else if is_mouse_over {
+            if self.state.is_pressed {
+                self.style_sheet.pressed()
+            } else {
+                self.style_sheet.hovered()
+            }
+        } else {
+            self.style_sheet.active()
+        };
+
+        if styling.background.is_some() || styling.border_width > 0.0 {
+            if styling.shadow_offset != Vector::default() {
+                // TODO: Implement proper shadow support
+                renderer.fill_rectangle(renderer::Quad {
+                    bounds: Rectangle {
+                        x: bounds.x + styling.shadow_offset.x,
+                        y: bounds.y + styling.shadow_offset.y,
+                        ..bounds
+                    },
+                    background: Background::Color([0.0, 0.0, 0.0, 0.5].into()),
+                    border_radius: styling.border_radius,
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                });
+            }
+
+            renderer.fill_rectangle(renderer::Quad {
+                bounds,
+                background: styling
+                    .background
+                    .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                border_radius: styling.border_radius,
+                border_width: styling.border_width,
+                border_color: styling.border_color,
+            });
+        }
+
+        self.content.draw(
+            renderer,
+            &renderer::Style {
+                text_color: styling.text_color,
+            },
+            content_layout,
+            cursor_position,
+            &bounds,
+        );
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
