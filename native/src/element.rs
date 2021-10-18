@@ -1,5 +1,6 @@
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
@@ -251,6 +252,16 @@ where
             .draw(renderer, style, layout, cursor_position, viewport)
     }
 
+    pub fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        self.widget
+            .mouse_interaction(layout, viewport, cursor_position)
+    }
+
     /// Computes the _layout_ hash of the [`Element`].
     pub fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
@@ -346,6 +357,16 @@ where
             .draw(renderer, style, layout, cursor_position, viewport)
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        self.widget
+            .mouse_interaction(layout, viewport, cursor_position)
+    }
+
     fn hash_layout(&self, state: &mut Hasher) {
         self.widget.hash_layout(state);
     }
@@ -424,6 +445,17 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        self.element
+            .widget
+            .mouse_interaction(layout, viewport, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

@@ -80,6 +80,7 @@ pub use tooltip::Tooltip;
 
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle};
@@ -173,6 +174,18 @@ where
         _messages: &mut Vec<Message>,
     ) -> event::Status {
         event::Status::Ignored
+    }
+
+    /// Returns the current [`mouse::Interaction`] of the [`Widget`].
+    ///
+    /// By default, it returns [`mouse::Interaction::Idle`].
+    fn mouse_interaction(
+        &self,
+        _layout: Layout<'_>,
+        _viewport: &Rectangle,
+        _cursor_position: Point,
+    ) -> mouse::Interaction {
+        mouse::Interaction::Idle
     }
 
     /// Returns the overlay of the [`Widget`], if there is any.

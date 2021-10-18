@@ -1,3 +1,4 @@
+use crate::mouse;
 use crate::{
     Cache, Clipboard, Command, Debug, Event, Point, Program, Size,
     UserInterface,
@@ -14,6 +15,7 @@ where
     cache: Option<Cache>,
     queued_events: Vec<Event>,
     queued_messages: Vec<P::Message>,
+    mouse_interaction: mouse::Interaction,
 }
 
 impl<P> State<P>
@@ -25,11 +27,10 @@ where
     pub fn new(
         mut program: P,
         bounds: Size,
-        cursor_position: Point,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Self {
-        let mut user_interface = build_user_interface(
+        let user_interface = build_user_interface(
             &mut program,
             Cache::default(),
             renderer,
@@ -44,6 +45,7 @@ where
             cache,
             queued_events: Vec::new(),
             queued_messages: Vec::new(),
+            mouse_interaction: mouse::Interaction::Idle,
         }
     }
 
@@ -69,6 +71,11 @@ where
     /// Returns whether the event queue of the [`State`] is empty or not.
     pub fn is_queue_empty(&self) -> bool {
         self.queued_events.is_empty() && self.queued_messages.is_empty()
+    }
+
+    /// Returns the current [`mouse::Interaction`] of the [`State`].
+    pub fn mouse_interaction(&self) -> mouse::Interaction {
+        self.mouse_interaction
     }
 
     /// Processes all the queued events and messages, rebuilding and redrawing
@@ -109,7 +116,8 @@ where
 
         if messages.is_empty() {
             debug.draw_started();
-            user_interface.draw(renderer, cursor_position);
+            self.mouse_interaction =
+                user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -140,7 +148,8 @@ where
             );
 
             debug.draw_started();
-            user_interface.draw(renderer, cursor_position);
+            self.mouse_interaction =
+                user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());

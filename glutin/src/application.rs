@@ -1,4 +1,5 @@
 //! Create interactive, native cross-platform applications.
+use crate::mouse;
 use crate::{Error, Executor, Runtime};
 
 pub use iced_winit::Application;
@@ -179,9 +180,7 @@ async fn run_instance<A, E, C>(
             &mut debug,
         ));
 
-    // TODO
-    // let mut mouse_interaction = mouse::Interaction::default();
-
+    let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
     let mut messages = Vec::new();
 
@@ -245,8 +244,17 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.draw_started();
-                user_interface.draw(&mut renderer, state.cursor_position());
+                let new_mouse_interaction =
+                    user_interface.draw(&mut renderer, state.cursor_position());
                 debug.draw_finished();
+
+                if new_mouse_interaction != mouse_interaction {
+                    context.window().set_cursor_icon(
+                        conversion::mouse_interaction(new_mouse_interaction),
+                    );
+
+                    mouse_interaction = new_mouse_interaction;
+                }
 
                 context.window().request_redraw();
             }
@@ -289,8 +297,19 @@ async fn run_instance<A, E, C>(
                     debug.layout_finished();
 
                     debug.draw_started();
-                    user_interface.draw(&mut renderer, state.cursor_position());
+                    let new_mouse_interaction = user_interface
+                        .draw(&mut renderer, state.cursor_position());
                     debug.draw_finished();
+
+                    if new_mouse_interaction != mouse_interaction {
+                        context.window().set_cursor_icon(
+                            conversion::mouse_interaction(
+                                new_mouse_interaction,
+                            ),
+                        );
+
+                        mouse_interaction = new_mouse_interaction;
+                    }
 
                     context.resize(glutin::dpi::PhysicalSize::new(
                         physical_size.width,

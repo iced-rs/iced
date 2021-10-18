@@ -93,7 +93,6 @@ pub fn main() {
     let mut state = program::State::new(
         controls,
         viewport.logical_size(),
-        conversion::cursor_position(cursor_position, viewport.scale_factor()),
         &mut renderer,
         &mut debug,
     );

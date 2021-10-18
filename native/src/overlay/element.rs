@@ -2,8 +2,9 @@ pub use crate::Overlay;
 
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::renderer;
-use crate::{Clipboard, Hasher, Layout, Point, Size, Vector};
+use crate::{Clipboard, Hasher, Layout, Point, Rectangle, Size, Vector};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -66,6 +67,16 @@ where
             clipboard,
             messages,
         )
+    }
+
+    pub fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        self.overlay
+            .mouse_interaction(layout, viewport, cursor_position)
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].

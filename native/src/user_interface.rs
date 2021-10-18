@@ -1,5 +1,6 @@
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Size, Vector};
@@ -330,7 +331,11 @@ where
     ///     // Flush rendering operations...
     /// }
     /// ```
-    pub fn draw(&mut self, renderer: &mut Renderer, cursor_position: Point) {
+    pub fn draw(
+        &mut self,
+        renderer: &mut Renderer,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
         // TODO: Move to shell level (?)
         renderer.clear();
 
@@ -344,6 +349,12 @@ where
                 self.bounds,
                 &mut overlay,
                 renderer,
+            );
+
+            let mouse_interaction = overlay.mouse_interaction(
+                Layout::new(&layer.layout),
+                &viewport,
+                cursor_position,
             );
 
             let overlay_bounds = layer.layout.bounds();
@@ -363,12 +374,12 @@ where
 
             self.overlay = Some(layer);
 
-            Some(overlay_bounds)
+            Some((overlay_bounds, mouse_interaction))
         } else {
             None
         };
 
-        if let Some(overlay_bounds) = overlay {
+        if let Some((overlay_bounds, overlay_interaction)) = overlay {
             let base_cursor = if overlay_bounds.contains(cursor_position) {
                 Point::new(-1.0, -1.0)
             } else {
@@ -382,6 +393,8 @@ where
                 base_cursor,
                 &viewport,
             );
+
+            overlay_interaction
         } else {
             self.root.widget.draw(
                 renderer,
@@ -390,6 +403,12 @@ where
                 cursor_position,
                 &viewport,
             );
+
+            self.root.widget.mouse_interaction(
+                Layout::new(&self.base.layout),
+                &viewport,
+                cursor_position,
+            )
         }
     }
 
