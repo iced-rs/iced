@@ -23,3 +23,7 @@ path = "../core"
 version = "0.3"
 path = "../futures"
 features = ["thread-pool"]
+
+[dependencies.iced_style]
+version = "0.3"
+path = "../style"

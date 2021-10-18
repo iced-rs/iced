@@ -395,9 +395,7 @@ where
 /// able to use a [`Menu`] in your user interface.
 ///
 /// [renderer]: crate::renderer
-pub trait Renderer:
-    scrollable::Renderer + container::Renderer + text::Renderer
-{
+pub trait Renderer: container::Renderer + text::Renderer {
     /// The [`Menu`] style supported by this renderer.
     type Style: Default + Clone;
 }

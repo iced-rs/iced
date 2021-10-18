@@ -75,22 +75,6 @@ impl text::Renderer for Null {
     }
 }
 
-impl scrollable::Renderer for Null {
-    type Style = ();
-
-    fn scrollbar(
-        &self,
-        _bounds: Rectangle,
-        _content_bounds: Rectangle,
-        _offset: u32,
-        _scrollbar_width: u16,
-        _scrollbar_margin: u16,
-        _scroller_width: u16,
-    ) -> Option<scrollable::Scrollbar> {
-        None
-    }
-}
-
 impl text_input::Renderer for Null {
     type Style = ();
 

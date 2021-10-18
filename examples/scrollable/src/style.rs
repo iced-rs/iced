@@ -34,11 +34,11 @@ impl From<Theme> for Box<dyn radio::StyleSheet> {
     }
 }
 
-impl From<Theme> for Box<dyn scrollable::StyleSheet> {
+impl From<Theme> for &'static dyn scrollable::StyleSheet {
     fn from(theme: Theme) -> Self {
         match theme {
             Theme::Light => Default::default(),
-            Theme::Dark => dark::Scrollable.into(),
+            Theme::Dark => &dark::Scrollable,
         }
     }
 }

@@ -5,7 +5,6 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::overlay::menu::{self, Menu};
-use crate::scrollable;
 use crate::text;
 use crate::touch;
 use crate::{
@@ -145,7 +144,7 @@ where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'static,
-    Renderer: self::Renderer + scrollable::Renderer + 'a,
+    Renderer: self::Renderer + 'a,
 {
     fn width(&self) -> Length {
         self.width

@@ -98,7 +98,7 @@ impl Sandbox for Styling {
         let scrollable = Scrollable::new(&mut self.scroll)
             .width(Length::Fill)
             .height(Length::Units(100))
-            .style(self.theme)
+            .style(self.theme.into())
             .push(Text::new("Scroll me!"))
             .push(Space::with_height(Length::Units(800)))
             .push(Text::new("You did it!"));
@@ -212,11 +212,11 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn scrollable::StyleSheet> {
+    impl From<Theme> for &'static dyn scrollable::StyleSheet {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
-                Theme::Dark => dark::Scrollable.into(),
+                Theme::Dark => &dark::Scrollable,
             }
         }
     }
