@@ -245,6 +245,22 @@ where
         event::Status::Ignored
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        _viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        let is_mouse_over = layout.bounds().contains(cursor_position);
+        let is_disabled = self.on_press.is_none();
+
+        if is_mouse_over && !is_disabled {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
@@ -257,8 +273,9 @@ where
         let content_layout = layout.children().next().unwrap();
 
         let is_mouse_over = bounds.contains(cursor_position);
+        let is_disabled = self.on_press.is_none();
 
-        let styling = if self.on_press.is_none() {
+        let styling = if is_disabled {
             self.style_sheet.disabled()
         } else if is_mouse_over {
             if self.state.is_pressed {
