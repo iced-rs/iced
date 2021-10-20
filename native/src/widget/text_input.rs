@@ -580,6 +580,19 @@ where
         event::Status::Ignored
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        _viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        if layout.bounds().contains(cursor_position) {
+            mouse::Interaction::Text
+        } else {
+            mouse::Interaction::default()
+        }
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
