@@ -140,29 +140,17 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let bounds = layout.bounds();
-
-        let x = match self.horizontal_alignment {
-            alignment::Horizontal::Left => bounds.x,
-            alignment::Horizontal::Center => bounds.center_x(),
-            alignment::Horizontal::Right => bounds.x + bounds.width,
-        };
-
-        let y = match self.vertical_alignment {
-            alignment::Vertical::Top => bounds.y,
-            alignment::Vertical::Center => bounds.center_y(),
-            alignment::Vertical::Bottom => bounds.y + bounds.height,
-        };
-
-        renderer.fill_text(renderer::text::Section {
-            content: &self.content,
-            size: f32::from(self.size.unwrap_or(renderer.default_size())),
-            bounds: Rectangle { x, y, ..bounds },
-            color: self.color.unwrap_or(style.text_color),
-            font: self.font,
-            horizontal_alignment: self.horizontal_alignment,
-            vertical_alignment: self.vertical_alignment,
-        });
+        draw(
+            renderer,
+            style,
+            layout,
+            &self.content,
+            self.font,
+            self.size,
+            self.color,
+            self.horizontal_alignment,
+            self.vertical_alignment,
+        );
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -174,6 +162,44 @@ where
         self.width.hash(state);
         self.height.hash(state);
     }
+}
+
+pub fn draw<Renderer>(
+    renderer: &mut Renderer,
+    style: &renderer::Style,
+    layout: Layout<'_>,
+    content: &str,
+    font: Renderer::Font,
+    size: Option<u16>,
+    color: Option<Color>,
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
+) where
+    Renderer: renderer::Text,
+{
+    let bounds = layout.bounds();
+
+    let x = match horizontal_alignment {
+        alignment::Horizontal::Left => bounds.x,
+        alignment::Horizontal::Center => bounds.center_x(),
+        alignment::Horizontal::Right => bounds.x + bounds.width,
+    };
+
+    let y = match vertical_alignment {
+        alignment::Vertical::Top => bounds.y,
+        alignment::Vertical::Center => bounds.center_y(),
+        alignment::Vertical::Bottom => bounds.y + bounds.height,
+    };
+
+    renderer.fill_text(renderer::text::Section {
+        content,
+        size: f32::from(size.unwrap_or(renderer.default_size())),
+        bounds: Rectangle { x, y, ..bounds },
+        color: color.unwrap_or(style.text_color),
+        font,
+        horizontal_alignment,
+        vertical_alignment,
+    });
 }
 
 impl<'a, Message, Renderer> From<Text<Renderer>>

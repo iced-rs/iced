@@ -66,13 +66,6 @@ impl renderer::Text for Null {
     fn fill_text(&mut self, _text: renderer::text::Section<'_, Self::Font>) {}
 }
 
-impl radio::Renderer for Null {
-    type Style = ();
-
-    const DEFAULT_SIZE: u16 = 20;
-    const DEFAULT_SPACING: u16 = 15;
-}
-
 impl checkbox::Renderer for Null {
     type Style = ();
 

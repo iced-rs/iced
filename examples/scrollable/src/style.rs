@@ -25,11 +25,11 @@ impl From<Theme> for &'static dyn container::StyleSheet {
     }
 }
 
-impl From<Theme> for Box<dyn radio::StyleSheet> {
+impl From<Theme> for &'static dyn radio::StyleSheet {
     fn from(theme: Theme) -> Self {
         match theme {
             Theme::Light => Default::default(),
-            Theme::Dark => dark::Radio.into(),
+            Theme::Dark => &dark::Radio,
         }
     }
 }

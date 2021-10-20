@@ -1,6 +1,5 @@
 //! Create choices using radio buttons.
-use crate::{Backend, Renderer};
-use iced_native::radio;
+use crate::Renderer;
 
 pub use iced_style::radio::{Style, StyleSheet};
 
@@ -8,15 +7,5 @@ pub use iced_style::radio::{Style, StyleSheet};
 ///
 /// This is an alias of an `iced_native` radio button with an
 /// `iced_wgpu::Renderer`.
-pub type Radio<Message, Backend> =
-    iced_native::Radio<Message, Renderer<Backend>>;
-
-impl<B> radio::Renderer for Renderer<B>
-where
-    B: Backend,
-{
-    type Style = Box<dyn StyleSheet>;
-
-    const DEFAULT_SIZE: u16 = 28;
-    const DEFAULT_SPACING: u16 = 15;
-}
+pub type Radio<'a, Message, Backend> =
+    iced_native::Radio<'a, Message, Renderer<Backend>>;
