@@ -7,7 +7,8 @@ use crate::mouse;
 use crate::renderer;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Background, Clipboard, Color, Element, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 
 use std::hash::Hash;
@@ -250,23 +251,89 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // TODO
-        // let start = *self.range.start();
-        // let end = *self.range.end();
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
 
-        // renderer.draw(
-        //     layout.bounds(),
-        //     cursor_position,
-        //     start.into() as f32..=end.into() as f32,
-        //     self.value.into() as f32,
-        //     self.state.is_dragging,
-        //     &self.style,
-        // )
+        let style = if self.state.is_dragging {
+            self.style_sheet.dragging()
+        } else if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
+        };
+
+        let rail_y = bounds.y + (bounds.height / 2.0).round();
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds: Rectangle {
+                x: bounds.x,
+                y: rail_y,
+                width: bounds.width,
+                height: 2.0,
+            },
+            background: Background::Color(style.rail_colors.0),
+            border_radius: 0.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        });
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds: Rectangle {
+                x: bounds.x,
+                y: rail_y + 2.0,
+                width: bounds.width,
+                height: 2.0,
+            },
+            background: Background::Color(style.rail_colors.1),
+            border_radius: 0.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        });
+
+        let (handle_width, handle_height, handle_border_radius) = match style
+            .handle
+            .shape
+        {
+            HandleShape::Circle { radius } => {
+                (radius * 2.0, radius * 2.0, radius)
+            }
+            HandleShape::Rectangle {
+                width,
+                border_radius,
+            } => (f32::from(width), f32::from(bounds.height), border_radius),
+        };
+
+        let value = self.value.into() as f32;
+        let (range_start, range_end) = {
+            let (start, end) = self.range.clone().into_inner();
+
+            (start.into() as f32, end.into() as f32)
+        };
+
+        let handle_offset = if range_start >= range_end {
+            0.0
+        } else {
+            (bounds.width - handle_width) * (value - range_start)
+                / (range_end - range_start)
+        };
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds: Rectangle {
+                x: bounds.x + handle_offset.round(),
+                y: rail_y - handle_height / 2.0,
+                width: handle_width,
+                height: handle_height,
+            },
+            background: Background::Color(style.handle.color),
+            border_radius: handle_border_radius,
+            border_width: style.handle.border_width,
+            border_color: style.handle.border_color,
+        });
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
