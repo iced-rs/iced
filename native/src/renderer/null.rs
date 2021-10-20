@@ -1,14 +1,12 @@
-use crate::button;
 use crate::checkbox;
 use crate::pane_grid;
 use crate::progress_bar;
 use crate::radio;
 use crate::renderer::{self, Renderer};
-use crate::slider;
 use crate::text;
 use crate::text_input;
 use crate::toggler;
-use crate::{Font, Padding, Point, Rectangle, Size, Vector};
+use crate::{Font, Point, Rectangle, Size, Vector};
 
 /// A renderer that does nothing.
 ///
@@ -102,12 +100,6 @@ impl checkbox::Renderer for Null {
 
     const DEFAULT_SIZE: u16 = 20;
     const DEFAULT_SPACING: u16 = 15;
-}
-
-impl slider::Renderer for Null {
-    type Style = ();
-
-    const DEFAULT_HEIGHT: u16 = 30;
 }
 
 impl progress_bar::Renderer for Null {

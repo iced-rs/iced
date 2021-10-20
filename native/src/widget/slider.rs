@@ -13,6 +13,8 @@ use crate::{
 use std::hash::Hash;
 use std::ops::RangeInclusive;
 
+pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
+
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
 ///
@@ -23,9 +25,8 @@ use std::ops::RangeInclusive;
 ///
 /// # Example
 /// ```
-/// # use iced_native::{slider, renderer::Null};
+/// # use iced_native::slider::{self, Slider};
 /// #
-/// # pub type Slider<'a, T, Message> = iced_native::Slider<'a, T, Message, Null>;
 /// #[derive(Clone)]
 /// pub enum Message {
 ///     SliderChanged(f32),
@@ -39,7 +40,7 @@ use std::ops::RangeInclusive;
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
+pub struct Slider<'a, T, Message> {
     state: &'a mut State,
     range: RangeInclusive<T>,
     step: T,
@@ -48,15 +49,16 @@ pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    style: Renderer::Style,
+    style_sheet: &'a dyn StyleSheet,
 }
 
-impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
+impl<'a, T, Message> Slider<'a, T, Message>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Renderer: self::Renderer,
 {
+    pub const DEFAULT_HEIGHT: u16 = 22;
+
     /// Creates a new [`Slider`].
     ///
     /// It expects:
@@ -95,8 +97,8 @@ where
             on_change: Box::new(on_change),
             on_release: None,
             width: Length::Fill,
-            height: Renderer::DEFAULT_HEIGHT,
-            style: Renderer::Style::default(),
+            height: Self::DEFAULT_HEIGHT,
+            style_sheet: Default::default(),
         }
     }
 
@@ -124,8 +126,8 @@ where
     }
 
     /// Sets the style of the [`Slider`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
+        self.style_sheet = style_sheet;
         self
     }
 
@@ -150,11 +152,11 @@ impl State {
 }
 
 impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, T, Message, Renderer>
+    for Slider<'a, T, Message>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -275,30 +277,14 @@ where
     }
 }
 
-/// The renderer of a [`Slider`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Slider`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer {
-    /// The style supported by this renderer.
-    type Style: Default;
-
-    /// The default height of a [`Slider`].
-    const DEFAULT_HEIGHT: u16;
-}
-
-impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
+impl<'a, T, Message, Renderer> From<Slider<'a, T, Message>>
     for Element<'a, Message, Renderer>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
     Message: 'a + Clone,
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
 {
-    fn from(
-        slider: Slider<'a, T, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }
 }

@@ -853,7 +853,7 @@ impl Controls {
                     speed as f32,
                     Message::SpeedChanged,
                 )
-                .style(style::Slider),
+                .style(&style::Slider),
             )
             .push(Text::new(format!("x{}", speed)).size(16));
 
