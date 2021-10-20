@@ -1,14 +1,16 @@
 //! Create choices using radio buttons.
 use std::hash::Hash;
 
+use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::text;
 use crate::touch;
 use crate::{
-    Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Row, Text, Widget,
+    Alignment, Background, Clipboard, Color, Element, Hasher, Layout, Length,
+    Point, Rectangle, Row, Text, Widget,
 };
 
 pub use iced_style::radio::{Style, StyleSheet};
@@ -206,6 +208,63 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        let mut children = layout.children();
+
+        {
+            let layout = children.next().unwrap();
+            let bounds = layout.bounds();
+
+            let size = bounds.width;
+            let dot_size = size / 2.0;
+
+            let style = if is_mouse_over {
+                self.style_sheet.hovered()
+            } else {
+                self.style_sheet.active()
+            };
+
+            renderer.fill_rectangle(renderer::Quad {
+                bounds,
+                background: style.background,
+                border_radius: size / 2.0,
+                border_width: style.border_width,
+                border_color: style.border_color,
+            });
+
+            if self.is_selected {
+                renderer.fill_rectangle(renderer::Quad {
+                    bounds: Rectangle {
+                        x: bounds.x + dot_size / 2.0,
+                        y: bounds.y + dot_size / 2.0,
+                        width: bounds.width - dot_size,
+                        height: bounds.height - dot_size,
+                    },
+                    background: Background::Color(style.dot_color),
+                    border_radius: dot_size / 2.0,
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                });
+            }
+        }
+
+        {
+            let label_layout = children.next().unwrap();
+
+            text::draw(
+                renderer,
+                style,
+                label_layout,
+                &self.label,
+                self.font,
+                self.text_size,
+                self.text_color,
+                alignment::Horizontal::Left,
+                alignment::Vertical::Center,
+            );
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
