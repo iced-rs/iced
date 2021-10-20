@@ -2,7 +2,7 @@ use crate::backend::{self, Backend};
 use crate::{Primitive, Vector};
 use iced_native::layout;
 use iced_native::renderer;
-use iced_native::{Element, Font, Rectangle};
+use iced_native::{Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
 
@@ -90,6 +90,40 @@ where
     B: Backend + backend::Text,
 {
     type Font = Font;
+
+    fn default_size(&self) -> u16 {
+        self.backend().default_size()
+    }
+
+    fn measure(
+        &self,
+        content: &str,
+        size: u16,
+        font: Font,
+        bounds: Size,
+    ) -> (f32, f32) {
+        self.backend()
+            .measure(content, f32::from(size), font, bounds)
+    }
+
+    fn hit_test(
+        &self,
+        content: &str,
+        size: f32,
+        font: Font,
+        bounds: Size,
+        point: Point,
+        nearest_only: bool,
+    ) -> Option<renderer::text::Hit> {
+        self.backend().hit_test(
+            content,
+            size,
+            font,
+            bounds,
+            point,
+            nearest_only,
+        )
+    }
 
     fn fill_text(&mut self, text: renderer::text::Section<'_, Self::Font>) {
         self.primitives.push(Primitive::Text {

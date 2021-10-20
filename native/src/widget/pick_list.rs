@@ -366,7 +366,7 @@ where
 /// able to use a [`PickList`] in your user interface.
 ///
 /// [renderer]: crate::renderer
-pub trait Renderer: text::Renderer + menu::Renderer {
+pub trait Renderer: renderer::Text + menu::Renderer {
     /// The default padding of a [`PickList`].
     const DEFAULT_PADDING: Padding;
 

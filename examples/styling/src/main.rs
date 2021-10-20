@@ -77,7 +77,7 @@ impl Sandbox for Styling {
         )
         .padding(10)
         .size(20)
-        .style(self.theme);
+        .style(self.theme.into());
 
         let button = Button::new(&mut self.button, Text::new("Submit"))
             .padding(10)
@@ -194,11 +194,11 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn text_input::StyleSheet> {
+    impl From<Theme> for &'static dyn text_input::StyleSheet {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
-                Theme::Dark => dark::TextInput.into(),
+                Theme::Dark => &dark::TextInput,
             }
         }
     }

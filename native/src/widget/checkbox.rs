@@ -5,7 +5,6 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text;
 use crate::touch;
 use crate::{
     Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
@@ -30,7 +29,7 @@ use crate::{
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Checkbox<Message, Renderer: self::Renderer + text::Renderer> {
+pub struct Checkbox<Message, Renderer: self::Renderer + renderer::Text> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: String,
@@ -43,7 +42,7 @@ pub struct Checkbox<Message, Renderer: self::Renderer + text::Renderer> {
     style: Renderer::Style,
 }
 
-impl<Message, Renderer: self::Renderer + text::Renderer>
+impl<Message, Renderer: self::Renderer + renderer::Text>
     Checkbox<Message, Renderer>
 {
     /// Creates a new [`Checkbox`].
@@ -120,7 +119,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
 impl<Message, Renderer> Widget<Message, Renderer>
     for Checkbox<Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer,
+    Renderer: self::Renderer + renderer::Text,
 {
     fn width(&self) -> Length {
         self.width
@@ -239,7 +238,7 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Checkbox<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + text::Renderer,
+    Renderer: 'a + self::Renderer + renderer::Text,
     Message: 'a,
 {
     fn from(

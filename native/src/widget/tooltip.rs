@@ -7,7 +7,7 @@ use crate::event;
 use crate::layout;
 use crate::renderer;
 use crate::widget::container;
-use crate::widget::text::{self, Text};
+use crate::widget::text::Text;
 use crate::{Clipboard, Element, Event, Hasher, Layout, Length, Point, Widget};
 
 /// An element to display a widget over another.
@@ -160,7 +160,7 @@ where
 ///
 /// [`Tooltip`]: struct.Tooltip.html
 /// [renderer]: ../../renderer/index.html
-pub trait Renderer: crate::Renderer + text::Renderer {
+pub trait Renderer: renderer::Text {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16;
 }

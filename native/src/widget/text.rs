@@ -24,7 +24,7 @@ use std::hash::Hash;
 ///
 /// ![Text drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
 #[derive(Debug)]
-pub struct Text<Renderer: self::Renderer> {
+pub struct Text<Renderer: renderer::Text> {
     content: String,
     size: Option<u16>,
     color: Option<Color>,
@@ -35,7 +35,7 @@ pub struct Text<Renderer: self::Renderer> {
     vertical_alignment: alignment::Vertical,
 }
 
-impl<Renderer: self::Renderer> Text<Renderer> {
+impl<Renderer: renderer::Text> Text<Renderer> {
     /// Create a new fragment of [`Text`] with the given contents.
     pub fn new<T: Into<String>>(label: T) -> Self {
         Text {
@@ -103,7 +103,7 @@ impl<Renderer: self::Renderer> Text<Renderer> {
 
 impl<Message, Renderer> Widget<Message, Renderer> for Text<Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: renderer::Text,
 {
     fn width(&self) -> Length {
         self.width
@@ -176,55 +176,17 @@ where
     }
 }
 
-/// The renderer of a [`Text`] fragment.
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use [`Text`] in your user interface.
-///
-/// [renderer]: crate::Renderer
-pub trait Renderer: renderer::Text {
-    /// Returns the default size of [`Text`].
-    fn default_size(&self) -> u16;
-
-    /// Measures the [`Text`] in the given bounds and returns the minimum
-    /// boundaries that can fit the contents.
-    fn measure(
-        &self,
-        content: &str,
-        size: u16,
-        font: Self::Font,
-        bounds: Size,
-    ) -> (f32, f32);
-
-    /// Tests whether the provided point is within the boundaries of [`Text`]
-    /// laid out with the given parameters, returning information about
-    /// the nearest character.
-    ///
-    /// If `nearest_only` is true, the hit test does not consider whether the
-    /// the point is interior to any glyph bounds, returning only the character
-    /// with the nearest centeroid.
-    fn hit_test(
-        &self,
-        contents: &str,
-        size: f32,
-        font: Self::Font,
-        bounds: Size,
-        point: Point,
-        nearest_only: bool,
-    ) -> Option<Hit>;
-}
-
 impl<'a, Message, Renderer> From<Text<Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + 'a,
+    Renderer: renderer::Text + 'a,
 {
     fn from(text: Text<Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(text)
     }
 }
 
-impl<Renderer: self::Renderer> Clone for Text<Renderer> {
+impl<Renderer: renderer::Text> Clone for Text<Renderer> {
     fn clone(&self) -> Self {
         Self {
             content: self.content.clone(),

@@ -11,19 +11,21 @@ pub use value::Value;
 
 use editor::Editor;
 
+use crate::alignment;
 use crate::event::{self, Event};
 use crate::keyboard;
 use crate::layout;
 use crate::mouse::{self, click};
 use crate::renderer;
-use crate::text;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Size, Widget,
+    Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
+    Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::u32;
+
+pub use iced_style::text_input::{Style, StyleSheet};
 
 /// A field that can be filled with text.
 ///
@@ -50,7 +52,7 @@ use std::u32;
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message, Renderer: self::Renderer> {
+pub struct TextInput<'a, Message, Renderer: renderer::Text> {
     state: &'a mut State,
     placeholder: String,
     value: Value,
@@ -62,13 +64,13 @@ pub struct TextInput<'a, Message, Renderer: self::Renderer> {
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
-    style: Renderer::Style,
+    style_sheet: &'a dyn StyleSheet,
 }
 
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: self::Renderer,
+    Renderer: renderer::Text,
 {
     /// Creates a new [`TextInput`].
     ///
@@ -98,7 +100,7 @@ where
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
-            style: Renderer::Style::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -148,8 +150,8 @@ where
     }
 
     /// Sets the style of the [`TextInput`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 
@@ -163,7 +165,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for TextInput<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: self::Renderer,
+    Renderer: renderer::Text,
 {
     fn width(&self) -> Length {
         self.width
@@ -229,7 +231,8 @@ where
                                     self.value.clone()
                                 };
 
-                                renderer.find_cursor_position(
+                                find_cursor_position(
+                                    renderer,
                                     text_layout.bounds(),
                                     self.font,
                                     self.size,
@@ -248,16 +251,16 @@ where
                             if self.is_secure {
                                 self.state.cursor.select_all(&self.value);
                             } else {
-                                let position = renderer
-                                    .find_cursor_position(
-                                        text_layout.bounds(),
-                                        self.font,
-                                        self.size,
-                                        &self.value,
-                                        &self.state,
-                                        target,
-                                    )
-                                    .unwrap_or(0);
+                                let position = find_cursor_position(
+                                    renderer,
+                                    text_layout.bounds(),
+                                    self.font,
+                                    self.size,
+                                    &self.value,
+                                    &self.state,
+                                    target,
+                                )
+                                .unwrap_or(0);
 
                                 self.state.cursor.select_range(
                                     self.value.previous_start_of_word(position),
@@ -296,16 +299,16 @@ where
                             self.value.clone()
                         };
 
-                        let position = renderer
-                            .find_cursor_position(
-                                text_layout.bounds(),
-                                self.font,
-                                self.size,
-                                &value,
-                                &self.state,
-                                target,
-                            )
-                            .unwrap_or(0);
+                        let position = find_cursor_position(
+                            renderer,
+                            text_layout.bounds(),
+                            self.font,
+                            self.size,
+                            &value,
+                            &self.state,
+                            target,
+                        )
+                        .unwrap_or(0);
 
                         self.state.cursor.select_range(
                             self.state.cursor.start(&value),
@@ -585,39 +588,164 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let secure_value = self.is_secure.then(|| self.value.secure());
+        let value = secure_value.as_ref().unwrap_or(&self.value);
 
-        // TODO
-        // let value = value.unwrap_or(&self.value);
-        // let bounds = layout.bounds();
-        // let text_bounds = layout.children().next().unwrap().bounds();
+        let bounds = layout.bounds();
+        let text_bounds = layout.children().next().unwrap().bounds();
 
-        // if self.is_secure {
-        //     self::Renderer::draw(
-        //         renderer,
-        //         bounds,
-        //         text_bounds,
-        //         cursor_position,
-        //         self.font,
-        //         self.size.unwrap_or(renderer.default_size()),
-        //         &self.placeholder,
-        //         &value.secure(),
-        //         &self.state,
-        //         &self.style,
-        //     )
-        // } else {
-        //     self::Renderer::draw(
-        //         renderer,
-        //         bounds,
-        //         text_bounds,
-        //         cursor_position,
-        //         self.font,
-        //         self.size.unwrap_or(renderer.default_size()),
-        //         &self.placeholder,
-        //         value,
-        //         &self.state,
-        //         &self.style,
-        //     )
-        // }
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        let style = if self.state.is_focused() {
+            self.style_sheet.focused()
+        } else if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
+        };
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds,
+            background: style.background,
+            border_radius: style.border_radius,
+            border_width: style.border_width,
+            border_color: style.border_color,
+        });
+
+        let text = value.to_string();
+        let size = self.size.unwrap_or(renderer.default_size());
+
+        let (cursor, offset) = if self.state.is_focused() {
+            match self.state.cursor.state(&value) {
+                cursor::State::Index(position) => {
+                    let (text_value_width, offset) =
+                        measure_cursor_and_scroll_offset(
+                            renderer,
+                            text_bounds,
+                            &value,
+                            size,
+                            position,
+                            self.font,
+                        );
+
+                    (
+                        Some(renderer::Quad {
+                            bounds: Rectangle {
+                                x: text_bounds.x + text_value_width,
+                                y: text_bounds.y,
+                                width: 1.0,
+                                height: text_bounds.height,
+                            },
+                            background: Background::Color(
+                                self.style_sheet.value_color(),
+                            ),
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        }),
+                        offset,
+                    )
+                }
+                cursor::State::Selection { start, end } => {
+                    let left = start.min(end);
+                    let right = end.max(start);
+
+                    let (left_position, left_offset) =
+                        measure_cursor_and_scroll_offset(
+                            renderer,
+                            text_bounds,
+                            &value,
+                            size,
+                            left,
+                            self.font,
+                        );
+
+                    let (right_position, right_offset) =
+                        measure_cursor_and_scroll_offset(
+                            renderer,
+                            text_bounds,
+                            &value,
+                            size,
+                            right,
+                            self.font,
+                        );
+
+                    let width = right_position - left_position;
+
+                    (
+                        Some(renderer::Quad {
+                            bounds: Rectangle {
+                                x: text_bounds.x + left_position,
+                                y: text_bounds.y,
+                                width,
+                                height: text_bounds.height,
+                            },
+                            background: Background::Color(
+                                self.style_sheet.selection_color(),
+                            ),
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        }),
+                        if end == right {
+                            right_offset
+                        } else {
+                            left_offset
+                        },
+                    )
+                }
+            }
+        } else {
+            (None, 0.0)
+        };
+
+        let text_width = renderer.measure_width(
+            if text.is_empty() {
+                &self.placeholder
+            } else {
+                &text
+            },
+            size,
+            self.font,
+        );
+
+        let render = |renderer: &mut Renderer| {
+            if let Some(cursor) = cursor {
+                renderer.fill_rectangle(cursor);
+            }
+
+            renderer.fill_text(renderer::text::Section {
+                content: if text.is_empty() {
+                    &self.placeholder
+                } else {
+                    &text
+                },
+                color: if text.is_empty() {
+                    self.style_sheet.placeholder_color()
+                } else {
+                    self.style_sheet.value_color()
+                },
+                font: self.font,
+                bounds: Rectangle {
+                    y: text_bounds.center_y(),
+                    width: f32::INFINITY,
+                    ..text_bounds
+                },
+                size: f32::from(size),
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
+            });
+        };
+
+        if text_width > text_bounds.width {
+            renderer.with_layer(
+                text_bounds,
+                Vector::new(offset as u32, 0),
+                render,
+            );
+        } else {
+            render(renderer);
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -632,65 +760,11 @@ where
     }
 }
 
-/// The renderer of a [`TextInput`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`TextInput`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: text::Renderer + Sized {
-    /// The style supported by this renderer.
-    type Style: Default;
-
-    /// Returns the width of the value of the [`TextInput`].
-    fn measure_value(&self, value: &str, size: u16, font: Self::Font) -> f32;
-
-    /// Returns the current horizontal offset of the value of the
-    /// [`TextInput`].
-    ///
-    /// This is the amount of horizontal scrolling applied when the [`Value`]
-    /// does not fit the [`TextInput`].
-    fn offset(
-        &self,
-        text_bounds: Rectangle,
-        font: Self::Font,
-        size: u16,
-        value: &Value,
-        state: &State,
-    ) -> f32;
-
-    /// Computes the position of the text cursor at the given X coordinate of
-    /// a [`TextInput`].
-    fn find_cursor_position(
-        &self,
-        text_bounds: Rectangle,
-        font: Self::Font,
-        size: Option<u16>,
-        value: &Value,
-        state: &State,
-        x: f32,
-    ) -> Option<usize> {
-        let size = size.unwrap_or(self.default_size());
-
-        let offset = self.offset(text_bounds, font, size, &value, &state);
-
-        self.hit_test(
-            &value.to_string(),
-            size.into(),
-            font,
-            Size::INFINITY,
-            Point::new(x + offset, text_bounds.height / 2.0),
-            true,
-        )
-        .map(text::Hit::cursor)
-    }
-}
-
 impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + renderer::Text,
 {
     fn from(
         text_input: TextInput<'a, Message, Renderer>,
@@ -780,4 +854,89 @@ mod platform {
             modifiers.control()
         }
     }
+}
+
+fn offset<Renderer>(
+    renderer: &Renderer,
+    text_bounds: Rectangle,
+    font: Renderer::Font,
+    size: u16,
+    value: &Value,
+    state: &State,
+) -> f32
+where
+    Renderer: renderer::Text,
+{
+    if state.is_focused() {
+        let cursor = state.cursor();
+
+        let focus_position = match cursor.state(value) {
+            cursor::State::Index(i) => i,
+            cursor::State::Selection { end, .. } => end,
+        };
+
+        let (_, offset) = measure_cursor_and_scroll_offset(
+            renderer,
+            text_bounds,
+            value,
+            size,
+            focus_position,
+            font,
+        );
+
+        offset
+    } else {
+        0.0
+    }
+}
+
+fn measure_cursor_and_scroll_offset<Renderer>(
+    renderer: &Renderer,
+    text_bounds: Rectangle,
+    value: &Value,
+    size: u16,
+    cursor_index: usize,
+    font: Renderer::Font,
+) -> (f32, f32)
+where
+    Renderer: renderer::Text,
+{
+    let text_before_cursor = value.until(cursor_index).to_string();
+
+    let text_value_width =
+        renderer.measure_width(&text_before_cursor, size, font);
+
+    let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
+
+    (text_value_width, offset)
+}
+
+/// Computes the position of the text cursor at the given X coordinate of
+/// a [`TextInput`].
+fn find_cursor_position<Renderer>(
+    renderer: &Renderer,
+    text_bounds: Rectangle,
+    font: Renderer::Font,
+    size: Option<u16>,
+    value: &Value,
+    state: &State,
+    x: f32,
+) -> Option<usize>
+where
+    Renderer: renderer::Text,
+{
+    let size = size.unwrap_or(renderer.default_size());
+
+    let offset = offset(renderer, text_bounds, font, size, &value, &state);
+
+    renderer
+        .hit_test(
+            &value.to_string(),
+            size.into(),
+            font,
+            Size::INFINITY,
+            Point::new(x + offset, text_bounds.height / 2.0),
+            true,
+        )
+        .map(renderer::text::Hit::cursor)
 }

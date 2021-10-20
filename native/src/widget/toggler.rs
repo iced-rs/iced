@@ -6,7 +6,6 @@ use crate::event;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text;
 use crate::{
     Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
     Rectangle, Row, Text, Widget,
@@ -28,7 +27,7 @@ use crate::{
 /// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Toggler<Message, Renderer: self::Renderer + text::Renderer> {
+pub struct Toggler<Message, Renderer: self::Renderer + renderer::Text> {
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: Option<String>,
@@ -41,7 +40,7 @@ pub struct Toggler<Message, Renderer: self::Renderer + text::Renderer> {
     style: Renderer::Style,
 }
 
-impl<Message, Renderer: self::Renderer + text::Renderer>
+impl<Message, Renderer: self::Renderer + renderer::Text>
     Toggler<Message, Renderer>
 {
     /// Creates a new [`Toggler`].
@@ -119,7 +118,7 @@ impl<Message, Renderer: self::Renderer + text::Renderer>
 
 impl<Message, Renderer> Widget<Message, Renderer> for Toggler<Message, Renderer>
 where
-    Renderer: self::Renderer + text::Renderer,
+    Renderer: self::Renderer + renderer::Text,
 {
     fn width(&self) -> Length {
         self.width
@@ -246,7 +245,7 @@ pub trait Renderer: crate::Renderer {
 impl<'a, Message, Renderer> From<Toggler<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + text::Renderer,
+    Renderer: 'a + self::Renderer + renderer::Text,
     Message: 'a,
 {
     fn from(

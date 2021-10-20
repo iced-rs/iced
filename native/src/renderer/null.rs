@@ -4,7 +4,6 @@ use crate::progress_bar;
 use crate::radio;
 use crate::renderer::{self, Renderer};
 use crate::text;
-use crate::text_input;
 use crate::toggler;
 use crate::{Font, Point, Rectangle, Size, Vector};
 
@@ -38,10 +37,6 @@ impl Renderer for Null {
 impl renderer::Text for Null {
     type Font = Font;
 
-    fn fill_text(&mut self, _text: renderer::text::Section<'_, Self::Font>) {}
-}
-
-impl text::Renderer for Null {
     fn default_size(&self) -> u16 {
         20
     }
@@ -67,25 +62,8 @@ impl text::Renderer for Null {
     ) -> Option<text::Hit> {
         None
     }
-}
 
-impl text_input::Renderer for Null {
-    type Style = ();
-
-    fn measure_value(&self, _value: &str, _size: u16, _font: Font) -> f32 {
-        0.0
-    }
-
-    fn offset(
-        &self,
-        _text_bounds: Rectangle,
-        _font: Font,
-        _size: u16,
-        _value: &text_input::Value,
-        _state: &text_input::State,
-    ) -> f32 {
-        0.0
-    }
+    fn fill_text(&mut self, _text: renderer::text::Section<'_, Self::Font>) {}
 }
 
 impl radio::Renderer for Null {
