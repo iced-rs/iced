@@ -14,11 +14,39 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
+use web_sys::HtmlCanvasElement;
+#[cfg(target_arch = "wasm32")]
+use winit::platform::web::WindowBuilderExtWebSys;
+
 pub fn main() {
+    #[cfg(target_arch = "wasm32")]
+    let canvas_element = {
+        console_log::init_with_level(log::Level::Debug)
+            .expect("could not initialize logger");
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
+        web_sys::window()
+            .and_then(|win| win.document())
+            .and_then(|doc| doc.get_element_by_id("iced_canvas"))
+            .and_then(|element| element.dyn_into::<HtmlCanvasElement>().ok())
+            .expect("Canvas with id `iced_canvas` is missing")
+    };
+    #[cfg(not(target_arch = "wasm32"))]
     env_logger::init();
 
     // Initialize winit
     let event_loop = EventLoop::new();
+
+    #[cfg(target_arch = "wasm32")]
+    let window = winit::window::WindowBuilder::new()
+        .with_canvas(Some(canvas_element))
+        .build(&event_loop)
+        .expect("Failed to build winit window");
+
+    #[cfg(not(target_arch = "wasm32"))]
     let window = winit::window::Window::new(&event_loop).unwrap();
 
     let physical_size = window.inner_size();
@@ -31,18 +59,35 @@ pub fn main() {
     let mut clipboard = Clipboard::connect(&window);
 
     // Initialize wgpu
-    let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
+
+    #[cfg(target_arch = "wasm32")]
+    let default_backend = wgpu::Backends::GL;
+    #[cfg(not(target_arch = "wasm32"))]
+    let default_backend = wgpu::Backends::PRIMARY;
+
+    let backend =
+        wgpu::util::backend_bits_from_env().unwrap_or(default_backend);
+
+    let instance = wgpu::Instance::new(backend);
     let surface = unsafe { instance.create_surface(&window) };
 
     let (format, (mut device, queue)) = futures::executor::block_on(async {
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::HighPerformance,
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-            })
-            .await
-            .expect("Request adapter");
+        let adapter = wgpu::util::initialize_adapter_from_env_or_default(
+            &instance,
+            backend,
+            Some(&surface),
+        )
+        .await
+        .expect("No suitable GPU adapters found on the system!");
+
+        let adapter_features = adapter.features();
+
+        #[cfg(target_arch = "wasm32")]
+        let needed_limits = wgpu::Limits::downlevel_webgl2_defaults()
+            .using_resolution(adapter.limits());
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let needed_limits = wgpu::Limits::default();
 
         (
             surface
@@ -52,8 +97,8 @@ pub fn main() {
                 .request_device(
                     &wgpu::DeviceDescriptor {
                         label: None,
-                        features: wgpu::Features::empty(),
-                        limits: wgpu::Limits::default(),
+                        features: adapter_features & wgpu::Features::default(),
+                        limits: needed_limits,
                     },
                     None,
                 )
@@ -62,20 +107,17 @@ pub fn main() {
         )
     });
 
-    {
-        let size = window.inner_size();
+    surface.configure(
+        &device,
+        &wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format,
+            width: physical_size.width,
+            height: physical_size.height,
+            present_mode: wgpu::PresentMode::Mailbox,
+        },
+    );
 
-        surface.configure(
-            &device,
-            &wgpu::SurfaceConfiguration {
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format,
-                width: size.width,
-                height: size.height,
-                present_mode: wgpu::PresentMode::Mailbox,
-            },
-        )
-    };
     let mut resized = false;
 
     // Initialize staging belt and local pool
@@ -83,7 +125,7 @@ pub fn main() {
     let mut local_pool = futures::executor::LocalPool::new();
 
     // Initialize scene and GUI controls
-    let scene = Scene::new(&mut device);
+    let scene = Scene::new(&mut device, format);
     let controls = Controls::new();
 
     // Initialize iced

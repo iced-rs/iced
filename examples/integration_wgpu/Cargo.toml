@@ -7,5 +7,16 @@ publish = false
 
 [dependencies]
 iced_winit = { path = "../../winit" }
-iced_wgpu = { path = "../../wgpu", features = ["spirv"] }
+iced_wgpu = { path = "../../wgpu", features = ["webgl"] }
 env_logger = "0.8"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.7"
+console_log = "0.2.0"
+log = "0.4"
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["Element", "HtmlCanvasElement", "Window", "Document"] }
+# This dependency a little bit quirky, it is deep in the tree and without `js` feature it
+# refuses to work with `wasm32-unknown-unknown target`. Unfortunately, we need this patch
+# to make it work
+getrandom = { version = "0.2", features = ["js"] }

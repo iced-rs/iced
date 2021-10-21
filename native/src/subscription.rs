@@ -7,6 +7,37 @@ use iced_futures::BoxStream;
 
 use std::hash::Hash;
 
+#[cfg(not(target_arch = "wasm32"))]
+mod trait_aliases {
+    use super::*;
+
+    /// Wrapper type
+    pub trait RunnerStream<Message>:
+        Stream<Item = Message> + Send + 'static
+    {
+    }
+
+    impl<T, Message> RunnerStream<Message> for T where
+        T: Stream<Item = Message> + Send + 'static
+    {
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+mod trait_aliases {
+    use super::*;
+
+    /// Wrapper type
+    pub trait RunnerStream<Message>: Stream<Item = Message> + 'static {}
+
+    impl<T, Message> RunnerStream<Message> for T where
+        T: Stream<Item = Message> + 'static
+    {
+    }
+}
+
+pub use trait_aliases::RunnerStream;
+
 /// A request to listen to external events.
 ///
 /// Besides performing async actions on demand with [`Command`], most
@@ -191,7 +222,7 @@ impl<I, S, F, Message> Recipe<Hasher, (Event, event::Status)>
 where
     I: Hash + 'static,
     F: FnOnce(EventStream) -> S,
-    S: Stream<Item = Message> + Send + 'static,
+    S: RunnerStream<Message>,
 {
     type Output = Message;
 
@@ -203,6 +234,13 @@ where
     fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
         use futures::stream::StreamExt;
 
-        (self.spawn)(input).boxed()
+        #[cfg(target_arch = "wasm32")]
+        {
+            (self.spawn)(input).boxed_local()
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            (self.spawn)(input).boxed()
+        }
     }
 }

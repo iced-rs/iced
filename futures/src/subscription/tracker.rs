@@ -3,6 +3,50 @@ use crate::{BoxFuture, Subscription};
 use futures::{channel::mpsc, sink::Sink};
 use std::{collections::HashMap, marker::PhantomData};
 
+#[cfg(not(target_arch = "wasm32"))]
+mod trait_aliases {
+    use super::*;
+
+    pub trait TrackerMessage: Send + 'static {}
+
+    impl<T> TrackerMessage for T where T: Send + 'static {}
+
+    pub trait TrackerMessageReceiver<Message: TrackerMessage>:
+        Sink<Message, Error = mpsc::SendError> + Unpin + Send + Clone + 'static
+    {
+    }
+
+    impl<Message: TrackerMessage, T> TrackerMessageReceiver<Message> for T where
+        T: Sink<Message, Error = mpsc::SendError>
+            + Unpin
+            + Send
+            + Clone
+            + 'static
+    {
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+mod trait_aliases {
+    use super::*;
+
+    pub trait TrackerMessage: 'static {}
+
+    impl<T> TrackerMessage for T where T: 'static {}
+
+    pub trait TrackerMessageReceiver<Message: TrackerMessage>:
+        Sink<Message, Error = mpsc::SendError> + Unpin + Clone + 'static
+    {
+    }
+
+    impl<Message: TrackerMessage, T> TrackerMessageReceiver<Message> for T where
+        T: Sink<Message, Error = mpsc::SendError> + Unpin + Clone + 'static
+    {
+    }
+}
+
+pub use trait_aliases::{TrackerMessage, TrackerMessageReceiver};
+
 /// A registry of subscription streams.
 ///
 /// If you have an application that continuously returns a [`Subscription`],
@@ -57,12 +101,8 @@ where
         receiver: Receiver,
     ) -> Vec<BoxFuture<()>>
     where
-        Message: 'static + Send,
-        Receiver: 'static
-            + Sink<Message, Error = mpsc::SendError>
-            + Unpin
-            + Send
-            + Clone,
+        Message: TrackerMessage,
+        Receiver: TrackerMessageReceiver<Message>,
     {
         use futures::{future::FutureExt, stream::StreamExt};
 

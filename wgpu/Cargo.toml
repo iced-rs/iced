@@ -25,6 +25,7 @@ canvas = ["iced_graphics/canvas"]
 qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
 spirv = ["wgpu/spirv"]
+webgl = ["wgpu/webgl"]
 
 [dependencies]
 wgpu = "0.12"
