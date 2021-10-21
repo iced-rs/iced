@@ -35,6 +35,10 @@ impl Renderer for Null {
 impl renderer::Text for Null {
     type Font = Font;
 
+    const ICON_FONT: Font = Font::Default;
+    const CHECKMARK_ICON: char = '0';
+    const ARROW_DOWN_ICON: char = '0';
+
     fn default_size(&self) -> u16 {
         20
     }

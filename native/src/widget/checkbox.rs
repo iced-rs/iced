@@ -1,10 +1,12 @@
 //! Show toggle controls using checkboxes.
 use std::hash::Hash;
 
+use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::text;
 use crate::touch;
 use crate::{
     Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
@@ -18,7 +20,7 @@ pub use iced_style::checkbox::{Style, StyleSheet};
 /// # Example
 ///
 /// ```
-/// # type Checkbox<Message> = iced_native::Checkbox<Message, iced_native::renderer::Null>;
+/// # type Checkbox<'a, Message> = iced_native::Checkbox<'a, Message, iced_native::renderer::Null>;
 /// #
 /// pub enum Message {
 ///     CheckboxToggled(bool),
@@ -192,28 +194,61 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // let bounds = layout.bounds();
-        // let mut children = layout.children();
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
 
-        // let checkbox_layout = children.next().unwrap();
-        // let label_layout = children.next().unwrap();
-        // let checkbox_bounds = checkbox_layout.bounds();
+        let mut children = layout.children();
 
-        // let label = text::Renderer::draw(
-        //     renderer,
-        //     defaults,
-        //     label_layout.bounds(),
-        //     &self.label,
-        //     self.text_size.unwrap_or(renderer.default_size()),
-        //     self.font,
-        //     self.text_color,
-        //     alignment::Horizontal::Left,
-        //     alignment::Vertical::Center,
-        // );
+        {
+            let layout = children.next().unwrap();
+            let bounds = layout.bounds();
 
-        // let is_mouse_over = bounds.contains(cursor_position);
+            let style = if is_mouse_over {
+                self.style_sheet.hovered(self.is_checked)
+            } else {
+                self.style_sheet.active(self.is_checked)
+            };
 
-        // TODO
+            renderer.fill_rectangle(renderer::Quad {
+                bounds,
+                background: style.background,
+                border_radius: style.border_radius,
+                border_width: style.border_width,
+                border_color: style.border_color,
+            });
+
+            if self.is_checked {
+                renderer.fill_text(renderer::text::Section {
+                    content: &Renderer::CHECKMARK_ICON.to_string(),
+                    font: Renderer::ICON_FONT,
+                    size: bounds.height * 0.7,
+                    bounds: Rectangle {
+                        x: bounds.center_x(),
+                        y: bounds.center_y(),
+                        ..bounds
+                    },
+                    color: style.checkmark_color,
+                    horizontal_alignment: alignment::Horizontal::Center,
+                    vertical_alignment: alignment::Vertical::Center,
+                });
+            }
+        }
+
+        {
+            let label_layout = children.next().unwrap();
+
+            text::draw(
+                renderer,
+                style,
+                label_layout,
+                &self.label,
+                self.font,
+                self.text_size,
+                self.text_color,
+                alignment::Horizontal::Left,
+                alignment::Vertical::Center,
+            );
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

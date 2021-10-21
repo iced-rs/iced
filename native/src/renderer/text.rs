@@ -7,6 +7,19 @@ pub trait Text: Renderer {
     /// The font type used.
     type Font: Default + Copy;
 
+    /// The icon font of the backend.
+    const ICON_FONT: Self::Font;
+
+    /// The `char` representing a ✔ icon in the [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const CHECKMARK_ICON: char;
+
+    /// The `char` representing a ▼ icon in the built-in [`ICON_FONT`].
+    ///
+    /// [`ICON_FONT`]: Self::ICON_FONT
+    const ARROW_DOWN_ICON: char;
+
     /// Returns the default size of [`Text`].
     fn default_size(&self) -> u16;
 

@@ -91,6 +91,10 @@ where
 {
     type Font = Font;
 
+    const ICON_FONT: Font = B::ICON_FONT;
+    const CHECKMARK_ICON: char = B::CHECKMARK_ICON;
+    const ARROW_DOWN_ICON: char = B::ARROW_DOWN_ICON;
+
     fn default_size(&self) -> u16 {
         self.backend().default_size()
     }
