@@ -26,6 +26,10 @@ impl<B: Backend> Renderer<B> {
         &self.backend
     }
 
+    pub fn draw_primitive(&mut self, primitive: Primitive) {
+        self.primitives.push(primitive);
+    }
+
     pub fn present(&mut self, f: impl FnOnce(&mut B, &[Primitive])) {
         f(&mut self.backend, &self.primitives);
     }

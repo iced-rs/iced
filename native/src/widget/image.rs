@@ -98,7 +98,7 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // TODO
+        renderer.draw(self.handle.clone(), layout);
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -226,6 +226,9 @@ impl std::fmt::Debug for Data {
 pub trait Renderer: crate::Renderer {
     /// Returns the dimensions of an [`Image`] located on the given path.
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
+
+    // Draws an [`Image`].
+    fn draw(&mut self, handle: Handle, layout: Layout<'_>);
 }
 
 impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>
