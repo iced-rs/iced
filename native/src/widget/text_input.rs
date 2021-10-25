@@ -335,29 +335,27 @@ where
                     let text_layout = layout.children().next().unwrap();
                     let target = position.x - text_layout.bounds().x;
 
-                    if target > 0.0 {
-                        let value = if self.is_secure {
-                            self.value.secure()
-                        } else {
-                            self.value.clone()
-                        };
+                    let value = if self.is_secure {
+                        self.value.secure()
+                    } else {
+                        self.value.clone()
+                    };
 
-                        let position = renderer
-                            .find_cursor_position(
-                                text_layout.bounds(),
-                                self.font,
-                                self.size,
-                                &value,
-                                &self.state,
-                                target,
-                            )
-                            .unwrap_or(0);
+                    let position = renderer
+                        .find_cursor_position(
+                            text_layout.bounds(),
+                            self.font,
+                            self.size,
+                            &value,
+                            &self.state,
+                            target,
+                        )
+                        .unwrap_or(0);
 
-                        self.state.cursor.select_range(
-                            self.state.cursor.start(&value),
-                            position,
-                        );
-                    }
+                    self.state.cursor.select_range(
+                        self.state.cursor.start(&value),
+                        position,
+                    );
 
                     return event::Status::Captured;
                 }
