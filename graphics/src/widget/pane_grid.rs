@@ -7,8 +7,7 @@
 //! drag and drop, and hotkey support.
 //!
 //! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.3/examples/pane_grid
-use crate::{Backend, Renderer};
-use iced_native::pane_grid;
+use crate::Renderer;
 
 pub use iced_native::pane_grid::{
     Axis, Configuration, Content, Direction, DragEvent, Node, Pane,
@@ -25,10 +24,3 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 /// This is an alias of an `iced_native` pane grid with an `iced_wgpu::Renderer`.
 pub type PaneGrid<'a, Message, Backend> =
     iced_native::PaneGrid<'a, Message, Renderer<Backend>>;
-
-impl<B> pane_grid::Renderer for Renderer<B>
-where
-    B: Backend,
-{
-    type Style = Box<dyn StyleSheet>;
-}

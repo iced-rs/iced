@@ -74,10 +74,6 @@ impl progress_bar::Renderer for Null {
     const DEFAULT_HEIGHT: u16 = 30;
 }
 
-impl pane_grid::Renderer for Null {
-    type Style = ();
-}
-
 impl toggler::Renderer for Null {
     type Style = ();
 

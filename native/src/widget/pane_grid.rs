@@ -34,9 +34,11 @@ use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
-    Widget,
+    Clipboard, Color, Element, Hasher, Layout, Length, Point, Rectangle, Size,
+    Vector, Widget,
 };
+
+pub use iced_style::pane_grid::{Line, StyleSheet};
 
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
@@ -88,7 +90,7 @@ use crate::{
 ///     .on_resize(10, Message::PaneResized);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
+pub struct PaneGrid<'a, Message, Renderer> {
     state: &'a mut state::Internal,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
     width: Length,
@@ -97,12 +99,12 @@ pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style: <Renderer as self::Renderer>::Style,
+    style_sheet: &'a dyn StyleSheet,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -129,7 +131,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -189,18 +191,15 @@ where
     }
 
     /// Sets the style of the [`PaneGrid`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer as self::Renderer>::Style>,
-    ) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: &'a dyn StyleSheet) -> Self {
+        self.style_sheet = style;
         self
     }
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn click_pane(
         &mut self,
@@ -317,7 +316,7 @@ pub struct ResizeEvent {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -480,55 +479,136 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        // let picked_split = self
-        //     .state
-        //     .picked_split()
-        //     .and_then(|(split, axis)| {
-        //         let bounds = layout.bounds();
+        let picked_pane = self.state.picked_pane();
 
-        //         let splits = self
-        //             .state
-        //             .split_regions(f32::from(self.spacing), bounds.size());
+        let picked_split = self
+            .state
+            .picked_split()
+            .and_then(|(split, axis)| {
+                let bounds = layout.bounds();
 
-        //         let (_axis, region, ratio) = splits.get(&split)?;
+                let splits = self
+                    .state
+                    .split_regions(f32::from(self.spacing), bounds.size());
 
-        //         let region = axis.split_line_bounds(
-        //             *region,
-        //             *ratio,
-        //             f32::from(self.spacing),
-        //         );
+                let (_axis, region, ratio) = splits.get(&split)?;
 
-        //         Some((axis, region + Vector::new(bounds.x, bounds.y), true))
-        //     })
-        //     .or_else(|| match self.on_resize {
-        //         Some((leeway, _)) => {
-        //             let bounds = layout.bounds();
+                let region = axis.split_line_bounds(
+                    *region,
+                    *ratio,
+                    f32::from(self.spacing),
+                );
 
-        //             let relative_cursor = Point::new(
-        //                 cursor_position.x - bounds.x,
-        //                 cursor_position.y - bounds.y,
-        //             );
+                Some((axis, region + Vector::new(bounds.x, bounds.y), true))
+            })
+            .or_else(|| match self.on_resize {
+                Some((leeway, _)) => {
+                    let bounds = layout.bounds();
 
-        //             let splits = self
-        //                 .state
-        //                 .split_regions(f32::from(self.spacing), bounds.size());
+                    let relative_cursor = Point::new(
+                        cursor_position.x - bounds.x,
+                        cursor_position.y - bounds.y,
+                    );
 
-        //             let (_split, axis, region) = hovered_split(
-        //                 splits.iter(),
-        //                 f32::from(self.spacing + leeway),
-        //                 relative_cursor,
-        //             )?;
+                    let splits = self
+                        .state
+                        .split_regions(f32::from(self.spacing), bounds.size());
 
-        //             Some((
-        //                 axis,
-        //                 region + Vector::new(bounds.x, bounds.y),
-        //                 false,
-        //             ))
-        //         }
-        //         None => None,
-        //     });
+                    let (_split, axis, region) = hovered_split(
+                        splits.iter(),
+                        f32::from(self.spacing + leeway),
+                        relative_cursor,
+                    )?;
 
-        // TODO
+                    Some((
+                        axis,
+                        region + Vector::new(bounds.x, bounds.y),
+                        false,
+                    ))
+                }
+                None => None,
+            });
+
+        let pane_cursor_position = if picked_pane.is_some() {
+            // TODO: Remove once cursor availability is encoded in the type
+            // system
+            Point::new(-1.0, -1.0)
+        } else {
+            cursor_position
+        };
+
+        for ((id, pane), layout) in self.elements.iter().zip(layout.children())
+        {
+            match picked_pane {
+                Some((dragging, origin)) if *id == dragging => {
+                    let bounds = layout.bounds();
+
+                    renderer.with_layer(
+                        Rectangle {
+                            x: cursor_position.x - origin.x,
+                            y: cursor_position.y - origin.y,
+                            width: bounds.width + 0.5,
+                            height: bounds.height + 0.5,
+                        },
+                        Vector::new(0, 0),
+                        |renderer| {
+                            pane.draw(
+                                renderer,
+                                style,
+                                layout,
+                                pane_cursor_position,
+                                viewport,
+                            );
+                        },
+                    );
+                }
+                _ => {
+                    pane.draw(
+                        renderer,
+                        style,
+                        layout,
+                        pane_cursor_position,
+                        viewport,
+                    );
+                }
+            }
+        }
+
+        if let Some((axis, split_region, is_picked)) = picked_split {
+            let highlight = if is_picked {
+                self.style_sheet.picked_split()
+            } else {
+                self.style_sheet.hovered_split()
+            };
+
+            if let Some(highlight) = highlight {
+                renderer.fill_rectangle(renderer::Quad {
+                    bounds: match axis {
+                        Axis::Horizontal => Rectangle {
+                            x: split_region.x,
+                            y: (split_region.y
+                                + (split_region.height - highlight.width)
+                                    / 2.0)
+                                .round(),
+                            width: split_region.width,
+                            height: highlight.width,
+                        },
+                        Axis::Vertical => Rectangle {
+                            x: (split_region.x
+                                + (split_region.width - highlight.width) / 2.0)
+                                .round(),
+                            y: split_region.y,
+                            width: highlight.width,
+                            height: split_region.height,
+                        },
+                    },
+                    background: highlight.color.into(),
+                    border_radius: 0.0,
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                });
+            }
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -558,21 +638,10 @@ where
     }
 }
 
-/// The renderer of a [`PaneGrid`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`PaneGrid`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + Sized {
-    /// The style supported by this renderer.
-    type Style: Default;
-}
-
 impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(
