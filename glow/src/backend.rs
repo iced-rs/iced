@@ -79,6 +79,11 @@ impl Backend {
         target_height: u32,
     ) {
         let mut bounds = (layer.bounds * scale_factor).snap();
+
+        if bounds.width < 1 || bounds.height < 1 {
+            return;
+        }
+
         bounds.height = bounds.height.min(target_height);
 
         if !layer.quads.is_empty() {
