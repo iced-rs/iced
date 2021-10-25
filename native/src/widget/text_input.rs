@@ -751,11 +751,9 @@ where
         };
 
         if text_width > text_bounds.width {
-            renderer.with_layer(
-                text_bounds,
-                Vector::new(offset as u32, 0),
-                render,
-            );
+            renderer.with_layer(text_bounds, |renderer| {
+                renderer.with_translation(Vector::new(-offset, 0.0), render)
+            });
         } else {
             render(renderer);
         }

@@ -3,7 +3,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Element, Layout, Point, Rectangle, Size, Vector};
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Size};
 
 use std::hash::Hasher;
 
@@ -359,18 +359,14 @@ where
 
             let overlay_bounds = layer.layout.bounds();
 
-            renderer.with_layer(
-                overlay_bounds,
-                Vector::new(0, 0),
-                |renderer| {
-                    overlay.draw(
-                        renderer,
-                        &renderer::Style::default(),
-                        Layout::new(&layer.layout),
-                        cursor_position,
-                    );
-                },
-            );
+            renderer.with_layer(overlay_bounds, |renderer| {
+                overlay.draw(
+                    renderer,
+                    &renderer::Style::default(),
+                    Layout::new(&layer.layout),
+                    cursor_position,
+                );
+            });
 
             self.overlay = Some(layer);
 

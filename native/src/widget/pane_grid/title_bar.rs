@@ -1,6 +1,7 @@
 use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
@@ -247,6 +248,35 @@ where
         );
 
         control_status.merge(title_status)
+    }
+
+    pub(crate) fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        let mut children = layout.children();
+        let padded = children.next().unwrap();
+
+        let mut children = padded.children();
+        let title_layout = children.next().unwrap();
+
+        let title_interaction = self.content.mouse_interaction(
+            title_layout,
+            viewport,
+            cursor_position,
+        );
+
+        if let Some(controls) = &self.controls {
+            let controls_layout = children.next().unwrap();
+
+            controls
+                .mouse_interaction(controls_layout, viewport, cursor_position)
+                .max(title_interaction)
+        } else {
+            title_interaction
+        }
     }
 
     pub(crate) fn overlay(

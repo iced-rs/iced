@@ -51,12 +51,7 @@ where
         layout
     }
 
-    fn with_layer(
-        &mut self,
-        bounds: Rectangle,
-        offset: Vector<u32>,
-        f: impl FnOnce(&mut Self),
-    ) {
+    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
         let current_primitives =
             std::mem::replace(&mut self.primitives, Vec::new());
 
@@ -67,7 +62,27 @@ where
 
         self.primitives.push(Primitive::Clip {
             bounds,
-            offset,
+            content: Box::new(Primitive::Group {
+                primitives: layer_primitives,
+            }),
+        });
+    }
+
+    fn with_translation(
+        &mut self,
+        translation: Vector,
+        f: impl FnOnce(&mut Self),
+    ) {
+        let current_primitives =
+            std::mem::replace(&mut self.primitives, Vec::new());
+
+        f(self);
+
+        let layer_primitives =
+            std::mem::replace(&mut self.primitives, current_primitives);
+
+        self.primitives.push(Primitive::Translate {
+            translation,
             content: Box::new(Primitive::Group {
                 primitives: layer_primitives,
             }),

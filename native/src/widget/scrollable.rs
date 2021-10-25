@@ -485,15 +485,20 @@ where
         };
 
         if let Some(scrollbar) = scrollbar {
-            renderer.with_layer(bounds, Vector::new(0, offset), |renderer| {
-                self.content.draw(
-                    renderer,
-                    style,
-                    content_layout,
-                    cursor_position,
-                    &Rectangle {
-                        y: bounds.y + offset as f32,
-                        ..bounds
+            renderer.with_layer(bounds, |renderer| {
+                renderer.with_translation(
+                    Vector::new(0.0, -(offset as f32)),
+                    |renderer| {
+                        self.content.draw(
+                            renderer,
+                            style,
+                            content_layout,
+                            cursor_position,
+                            &Rectangle {
+                                y: bounds.y + offset as f32,
+                                ..bounds
+                            },
+                        );
                     },
                 );
             });
@@ -509,7 +514,7 @@ where
             let is_scrollbar_visible =
                 style.background.is_some() || style.border_width > 0.0;
 
-            renderer.with_layer(bounds, Vector::new(0, 0), |renderer| {
+            renderer.with_layer(bounds, |renderer| {
                 if is_scrollbar_visible {
                     renderer.fill_rectangle(renderer::Quad {
                         bounds: scrollbar.bounds,

@@ -1,6 +1,7 @@
 use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
 use crate::pane_grid::TitleBar;
 use crate::renderer;
@@ -192,6 +193,41 @@ where
         };
 
         event_status.merge(body_status)
+    }
+
+    pub(crate) fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        let mut children = layout.children();
+
+        let (body_layout, title_bar_interaction) =
+            if let Some(title_bar) = &self.title_bar {
+                let title_bar_layout = children.next().unwrap();
+
+                let is_over_pick_area = title_bar
+                    .is_over_pick_area(title_bar_layout, cursor_position);
+
+                if is_over_pick_area {
+                    return mouse::Interaction::Grab;
+                }
+
+                let mouse_interaction = title_bar.mouse_interaction(
+                    title_bar_layout,
+                    viewport,
+                    cursor_position,
+                );
+
+                (children.next().unwrap(), mouse_interaction)
+            } else {
+                (children.next().unwrap(), mouse::Interaction::default())
+            };
+
+        self.body
+            .mouse_interaction(body_layout, viewport, cursor_position)
+            .max(title_bar_interaction)
     }
 
     pub(crate) fn hash_layout(&self, state: &mut Hasher) {

@@ -175,11 +175,7 @@ impl<'a> Layer<'a> {
                     });
                 }
             }
-            Primitive::Clip {
-                bounds,
-                offset,
-                content,
-            } => {
+            Primitive::Clip { bounds, content } => {
                 let layer = &mut layers[current_layer];
                 let translated_bounds = *bounds + translation;
 
@@ -192,8 +188,7 @@ impl<'a> Layer<'a> {
 
                     Self::process_primitive(
                         layers,
-                        translation
-                            - Vector::new(offset.x as f32, offset.y as f32),
+                        translation,
                         content,
                         layers.len() - 1,
                     );

@@ -66,8 +66,6 @@ pub enum Primitive {
     Clip {
         /// The bounds of the clip
         bounds: Rectangle,
-        /// The offset transformation of the clip
-        offset: Vector<u32>,
         /// The content of the clip
         content: Box<Primitive>,
     },

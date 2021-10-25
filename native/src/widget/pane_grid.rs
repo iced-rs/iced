@@ -471,6 +471,33 @@ where
             .fold(event_status, event::Status::merge)
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        if self.state.picked_pane().is_some() {
+            return mouse::Interaction::Grab;
+        }
+
+        if let Some((_, axis)) = self.state.picked_split() {
+            return match axis {
+                Axis::Horizontal => mouse::Interaction::ResizingHorizontally,
+                Axis::Vertical => mouse::Interaction::ResizingVertically,
+            };
+        }
+
+        self.elements
+            .iter()
+            .zip(layout.children())
+            .map(|((_pane, content), layout)| {
+                content.mouse_interaction(layout, viewport, cursor_position)
+            })
+            .max()
+            .unwrap_or_default()
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
@@ -543,22 +570,22 @@ where
                 Some((dragging, origin)) if *id == dragging => {
                     let bounds = layout.bounds();
 
-                    renderer.with_layer(
-                        Rectangle {
-                            x: cursor_position.x - origin.x,
-                            y: cursor_position.y - origin.y,
-                            width: bounds.width + 0.5,
-                            height: bounds.height + 0.5,
-                        },
-                        Vector::new(0, 0),
+                    renderer.with_translation(
+                        cursor_position
+                            - Point::new(
+                                bounds.x + origin.x,
+                                bounds.y + origin.y,
+                            ),
                         |renderer| {
-                            pane.draw(
-                                renderer,
-                                style,
-                                layout,
-                                pane_cursor_position,
-                                viewport,
-                            );
+                            renderer.with_layer(bounds, |renderer| {
+                                pane.draw(
+                                    renderer,
+                                    style,
+                                    layout,
+                                    pane_cursor_position,
+                                    viewport,
+                                );
+                            });
                         },
                     );
                 }

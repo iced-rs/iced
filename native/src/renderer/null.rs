@@ -1,4 +1,3 @@
-use crate::pane_grid;
 use crate::progress_bar;
 use crate::renderer::{self, Renderer};
 use crate::text;
@@ -19,10 +18,11 @@ impl Null {
 }
 
 impl Renderer for Null {
-    fn with_layer(
+    fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
+
+    fn with_translation(
         &mut self,
-        _bounds: Rectangle,
-        _offset: Vector<u32>,
+        _translation: Vector,
         _f: impl FnOnce(&mut Self),
     ) {
     }

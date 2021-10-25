@@ -46,10 +46,11 @@ pub trait Renderer: Sized {
         element.layout(self, limits)
     }
 
-    fn with_layer(
+    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self));
+
+    fn with_translation(
         &mut self,
-        bounds: Rectangle,
-        offset: Vector<u32>,
+        translation: Vector,
         f: impl FnOnce(&mut Self),
     );
 
