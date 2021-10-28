@@ -233,6 +233,16 @@ where
         )
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        self.container
+            .mouse_interaction(layout, viewport, cursor_position)
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
@@ -372,6 +382,21 @@ where
         }
 
         event::Status::Ignored
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        _viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        let is_mouse_over = layout.bounds().contains(cursor_position);
+
+        if is_mouse_over {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
     }
 
     fn draw(
