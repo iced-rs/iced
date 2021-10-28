@@ -1,17 +1,19 @@
 //! Provide progress feedback to your users.
 use crate::layout;
 use crate::renderer;
-use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
+use crate::{
+    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+};
 
 use std::{hash::Hash, ops::RangeInclusive};
+
+pub use iced_style::progress_bar::{Style, StyleSheet};
 
 /// A bar that displays progress.
 ///
 /// # Example
 /// ```
-/// # use iced_native::renderer::Null;
-/// #
-/// # pub type ProgressBar = iced_native::ProgressBar<Null>;
+/// # use iced_native::ProgressBar;
 /// let value = 50.0;
 ///
 /// ProgressBar::new(0.0..=100.0, value);
@@ -19,15 +21,18 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
-pub struct ProgressBar<Renderer: self::Renderer> {
+pub struct ProgressBar {
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
     height: Option<Length>,
-    style: Renderer::Style,
+    style_sheet: Box<dyn StyleSheet>,
 }
 
-impl<Renderer: self::Renderer> ProgressBar<Renderer> {
+impl ProgressBar {
+    /// The default height of a [`ProgressBar`].
+    pub const DEFAULT_HEIGHT: u16 = 30;
+
     /// Creates a new [`ProgressBar`].
     ///
     /// It expects:
@@ -39,7 +44,7 @@ impl<Renderer: self::Renderer> ProgressBar<Renderer> {
             range,
             width: Length::Fill,
             height: None,
-            style: Renderer::Style::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -56,23 +61,25 @@ impl<Renderer: self::Renderer> ProgressBar<Renderer> {
     }
 
     /// Sets the style of the [`ProgressBar`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
+impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
     }
 
     fn height(&self) -> Length {
-        self.height
-            .unwrap_or(Length::Units(Renderer::DEFAULT_HEIGHT))
+        self.height.unwrap_or(Length::Units(Self::DEFAULT_HEIGHT))
     }
 
     fn layout(
@@ -80,10 +87,9 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(
-            self.height
-                .unwrap_or(Length::Units(Renderer::DEFAULT_HEIGHT)),
-        );
+        let limits = limits
+            .width(self.width)
+            .height(self.height.unwrap_or(Length::Units(Self::DEFAULT_HEIGHT)));
 
         let size = limits.resolve(Size::ZERO);
 
@@ -93,12 +99,43 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // TODO
+        let bounds = layout.bounds();
+        let (range_start, range_end) = self.range.clone().into_inner();
+
+        let active_progress_width = if range_start >= range_end {
+            0.0
+        } else {
+            bounds.width * (self.value - range_start)
+                / (range_end - range_start)
+        };
+
+        let style = self.style_sheet.style();
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds: Rectangle { ..bounds },
+            background: style.background,
+            border_radius: style.border_radius,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        });
+
+        if active_progress_width > 0.0 {
+            renderer.fill_rectangle(renderer::Quad {
+                bounds: Rectangle {
+                    width: active_progress_width,
+                    ..bounds
+                },
+                background: style.bar,
+                border_radius: style.border_radius,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            });
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -110,29 +147,12 @@ where
     }
 }
 
-/// The renderer of a [`ProgressBar`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`ProgressBar`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer {
-    /// The style supported by this renderer.
-    type Style: Default;
-
-    /// The default height of a [`ProgressBar`].
-    const DEFAULT_HEIGHT: u16;
-}
-
-impl<'a, Message, Renderer> From<ProgressBar<Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<ProgressBar> for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
-    fn from(
-        progress_bar: ProgressBar<Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    fn from(progress_bar: ProgressBar) -> Element<'a, Message, Renderer> {
         Element::new(progress_bar)
     }
 }

@@ -68,12 +68,6 @@ impl renderer::Text for Null {
     fn fill_text(&mut self, _text: renderer::text::Section<'_, Self::Font>) {}
 }
 
-impl progress_bar::Renderer for Null {
-    type Style = ();
-
-    const DEFAULT_HEIGHT: u16 = 30;
-}
-
 impl toggler::Renderer for Null {
     type Style = ();
 
