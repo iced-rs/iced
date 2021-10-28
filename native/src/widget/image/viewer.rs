@@ -281,6 +281,24 @@ where
         }
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        _viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        if self.state.is_cursor_grabbed() {
+            mouse::Interaction::Grabbing
+        } else if is_mouse_over {
+            mouse::Interaction::Grab
+        } else {
+            mouse::Interaction::Idle
+        }
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
