@@ -61,9 +61,9 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer,
-        style: &renderer::Style,
-        layout: Layout<'_>,
+        _renderer: &mut Renderer,
+        _style: &renderer::Style,
+        _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
