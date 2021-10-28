@@ -1,14 +1,16 @@
 //! Build and show dropdown menus.
+use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::renderer::text;
 use crate::scrollable;
 use crate::touch;
 use crate::{
-    Clipboard, Container, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Scrollable, Size, Vector, Widget,
+    Clipboard, Color, Container, Element, Hasher, Layout, Length, Padding,
+    Point, Rectangle, Scrollable, Size, Vector, Widget,
 };
 
 pub use iced_style::menu::Style;
@@ -238,21 +240,18 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        // TODO
-        // let primitives = self.container.draw(
-        //     renderer,
-        //     defaults,
-        //     layout,
-        //     cursor_position,
-        //     &layout.bounds(),
-        // );
+        let bounds = layout.bounds();
 
-        // renderer.decorate(
-        //     layout.bounds(),
-        //     cursor_position,
-        //     &self.style,
-        //     primitives,
-        // )
+        renderer.fill_rectangle(renderer::Quad {
+            bounds,
+            background: self.style.background,
+            border_color: self.style.border_color,
+            border_width: self.style.border_width,
+            border_radius: 0.0,
+        });
+
+        self.container
+            .draw(renderer, style, layout, cursor_position, &bounds);
     }
 }
 
@@ -377,13 +376,64 @@ where
 
     fn draw(
         &self,
-        _renderer: &mut Renderer,
+        renderer: &mut Renderer,
         _style: &renderer::Style,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         _cursor_position: Point,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
-        // TODO
+        let bounds = layout.bounds();
+
+        let text_size = self.text_size.unwrap_or(renderer.default_size());
+        let option_height = (text_size + self.padding.vertical()) as usize;
+
+        let offset = viewport.y - bounds.y;
+        let start = (offset / option_height as f32) as usize;
+        let end =
+            ((offset + viewport.height) / option_height as f32).ceil() as usize;
+
+        let visible_options = &self.options[start..end.min(self.options.len())];
+
+        for (i, option) in visible_options.iter().enumerate() {
+            let i = start + i;
+            let is_selected = *self.hovered_option == Some(i);
+
+            let bounds = Rectangle {
+                x: bounds.x,
+                y: bounds.y + (option_height * i) as f32,
+                width: bounds.width,
+                height: f32::from(text_size + self.padding.vertical()),
+            };
+
+            if is_selected {
+                renderer.fill_rectangle(renderer::Quad {
+                    bounds,
+                    background: self.style.selected_background,
+                    border_color: Color::TRANSPARENT,
+                    border_width: 0.0,
+                    border_radius: 0.0,
+                });
+            }
+
+            renderer.fill_text(text::Section {
+                content: &option.to_string(),
+                bounds: Rectangle {
+                    x: bounds.x + self.padding.left as f32,
+                    y: bounds.center_y(),
+                    width: f32::INFINITY,
+                    ..bounds
+                },
+                size: f32::from(text_size),
+                font: self.font,
+                color: if is_selected {
+                    self.style.selected_text_color
+                } else {
+                    self.style.text_color
+                },
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
+            });
+        }
     }
 }
 
