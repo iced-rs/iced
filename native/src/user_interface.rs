@@ -341,7 +341,7 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let overlay = if let Some(mut overlay) =
+        if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
         {
             let layer = Self::overlay_layer(
@@ -351,32 +351,12 @@ where
                 renderer,
             );
 
-            let mouse_interaction = overlay.mouse_interaction(
-                Layout::new(&layer.layout),
-                &viewport,
-                cursor_position,
-            );
-
-            let overlay_bounds = layer.layout.bounds();
-
-            renderer.with_layer(overlay_bounds, |renderer| {
-                overlay.draw(
-                    renderer,
-                    &renderer::Style::default(),
-                    Layout::new(&layer.layout),
-                    cursor_position,
-                );
-            });
-
             self.overlay = Some(layer);
-
-            Some((overlay_bounds, mouse_interaction))
-        } else {
-            None
         };
 
-        if let Some((overlay_bounds, overlay_interaction)) = overlay {
-            let base_cursor = if overlay_bounds.contains(cursor_position) {
+        if let Some(layer) = &self.overlay {
+            let base_cursor = if layer.layout.bounds().contains(cursor_position)
+            {
                 Point::new(-1.0, -1.0)
             } else {
                 cursor_position
@@ -389,8 +369,6 @@ where
                 base_cursor,
                 &viewport,
             );
-
-            overlay_interaction
         } else {
             self.root.widget.draw(
                 renderer,
@@ -399,13 +377,55 @@ where
                 cursor_position,
                 &viewport,
             );
+        };
 
-            self.root.widget.mouse_interaction(
-                Layout::new(&self.base.layout),
-                &viewport,
-                cursor_position,
-            )
-        }
+        let base_interaction = self.root.widget.mouse_interaction(
+            Layout::new(&self.base.layout),
+            &viewport,
+            cursor_position,
+        );
+
+        let Self {
+            overlay,
+            root,
+            base,
+            ..
+        } = self;
+
+        // TODO: Currently, we need to call Widget::overlay twice to
+        // implement the painter's algorithm properly.
+        //
+        // Once we have a proper persistent widget tree, we should be able to
+        // avoid this additional call.
+        overlay
+            .as_ref()
+            .and_then(|layer| {
+                root.overlay(Layout::new(&base.layout)).map(|overlay| {
+                    let overlay_interaction = overlay.mouse_interaction(
+                        Layout::new(&layer.layout),
+                        &viewport,
+                        cursor_position,
+                    );
+
+                    let overlay_bounds = layer.layout.bounds();
+
+                    renderer.with_layer(viewport, |renderer| {
+                        overlay.draw(
+                            renderer,
+                            &renderer::Style::default(),
+                            Layout::new(&layer.layout),
+                            cursor_position,
+                        );
+                    });
+
+                    if overlay_bounds.contains(cursor_position) {
+                        overlay_interaction
+                    } else {
+                        base_interaction
+                    }
+                })
+            })
+            .unwrap_or(base_interaction)
     }
 
     /// Relayouts and returns a new  [`UserInterface`] using the provided
