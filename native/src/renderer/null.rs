@@ -66,9 +66,3 @@ impl renderer::Text for Null {
 
     fn fill_text(&mut self, _text: renderer::text::Section<'_, Self::Font>) {}
 }
-
-impl toggler::Renderer for Null {
-    type Style = ();
-
-    const DEFAULT_SIZE: u16 = 20;
-}

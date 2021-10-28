@@ -6,10 +6,13 @@ use crate::event;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::widget::text;
 use crate::{
     Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
     Rectangle, Row, Text, Widget,
 };
+
+pub use iced_style::toggler::{Style, StyleSheet};
 
 /// A toggler widget
 ///
@@ -27,7 +30,7 @@ use crate::{
 /// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Toggler<Message, Renderer: self::Renderer + renderer::Text> {
+pub struct Toggler<Message, Renderer: renderer::Text> {
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: Option<String>,
@@ -37,12 +40,13 @@ pub struct Toggler<Message, Renderer: self::Renderer + renderer::Text> {
     text_alignment: alignment::Horizontal,
     spacing: u16,
     font: Renderer::Font,
-    style: Renderer::Style,
+    style_sheet: Box<dyn StyleSheet>,
 }
 
-impl<Message, Renderer: self::Renderer + renderer::Text>
-    Toggler<Message, Renderer>
-{
+impl<Message, Renderer: renderer::Text> Toggler<Message, Renderer> {
+    /// The default size of a [`Toggler`].
+    pub const DEFAULT_SIZE: u16 = 20;
+
     /// Creates a new [`Toggler`].
     ///
     /// It expects:
@@ -64,12 +68,12 @@ impl<Message, Renderer: self::Renderer + renderer::Text>
             on_toggle: Box::new(f),
             label: label.into(),
             width: Length::Fill,
-            size: <Renderer as self::Renderer>::DEFAULT_SIZE,
+            size: Self::DEFAULT_SIZE,
             text_size: None,
             text_alignment: alignment::Horizontal::Left,
             spacing: 0,
             font: Renderer::Font::default(),
-            style: Renderer::Style::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -110,15 +114,18 @@ impl<Message, Renderer: self::Renderer + renderer::Text>
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }
 
 impl<Message, Renderer> Widget<Message, Renderer> for Toggler<Message, Renderer>
 where
-    Renderer: self::Renderer + renderer::Text,
+    Renderer: renderer::Text,
 {
     fn width(&self) -> Length {
         self.width
@@ -190,34 +197,79 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // TODO
-        // let bounds = layout.bounds();
-        // let mut children = layout.children();
+        /// Makes sure that the border radius of the toggler looks good at every size.
+        const BORDER_RADIUS_RATIO: f32 = 32.0 / 13.0;
 
-        // let label = match &self.label {
-        //     Some(label) => {
-        //         let label_layout = children.next().unwrap();
+        /// The space ratio between the background Quad and the Toggler bounds, and
+        /// between the background Quad and foreground Quad.
+        const SPACE_RATIO: f32 = 0.05;
 
-        //         Some(text::Renderer::draw(
-        //             renderer,
-        //             defaults,
-        //             label_layout.bounds(),
-        //             &label,
-        //             self.text_size.unwrap_or(renderer.default_size()),
-        //             self.font,
-        //             None,
-        //             self.text_alignment,
-        //             alignment::Vertical::Center,
-        //         ))
-        //     }
+        let mut children = layout.children();
 
-        //     None => None,
-        // };
+        if let Some(label) = &self.label {
+            let label_layout = children.next().unwrap();
 
-        // let toggler_layout = children.next().unwrap();
-        // let toggler_bounds = toggler_layout.bounds();
+            text::draw(
+                renderer,
+                style,
+                label_layout,
+                &label,
+                self.font,
+                self.text_size,
+                None,
+                self.text_alignment,
+                alignment::Vertical::Center,
+            );
+        }
 
-        // let is_mouse_over = bounds.contains(cursor_position);
+        let toggler_layout = children.next().unwrap();
+        let bounds = toggler_layout.bounds();
+
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        let style = if is_mouse_over {
+            self.style_sheet.hovered(self.is_active)
+        } else {
+            self.style_sheet.active(self.is_active)
+        };
+
+        let border_radius = bounds.height as f32 / BORDER_RADIUS_RATIO;
+        let space = SPACE_RATIO * bounds.height as f32;
+
+        let toggler_background_bounds = Rectangle {
+            x: bounds.x + space,
+            y: bounds.y + space,
+            width: bounds.width - (2.0 * space),
+            height: bounds.height - (2.0 * space),
+        };
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds: toggler_background_bounds,
+            background: style.background.into(),
+            border_radius,
+            border_width: 1.0,
+            border_color: style.background_border.unwrap_or(style.background),
+        });
+
+        let toggler_foreground_bounds = Rectangle {
+            x: bounds.x
+                + if self.is_active {
+                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
+                } else {
+                    2.0 * space
+                },
+            y: bounds.y + (2.0 * space),
+            width: bounds.height - (4.0 * space),
+            height: bounds.height - (4.0 * space),
+        };
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds: toggler_foreground_bounds,
+            background: style.foreground.into(),
+            border_radius,
+            border_width: 1.0,
+            border_color: style.foreground_border.unwrap_or(style.foreground),
+        });
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -228,24 +280,10 @@ where
     }
 }
 
-/// The renderer of a [`Toggler`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Toggler`] in your user interface.
-///
-/// [renderer]: ../../renderer/index.html
-pub trait Renderer: crate::Renderer {
-    /// The style supported by this renderer.
-    type Style: Default;
-
-    /// The default size of a [`Toggler`].
-    const DEFAULT_SIZE: u16;
-}
-
 impl<'a, Message, Renderer> From<Toggler<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + renderer::Text,
+    Renderer: 'a + renderer::Text,
     Message: 'a,
 {
     fn from(
