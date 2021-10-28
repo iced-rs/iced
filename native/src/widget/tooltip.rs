@@ -8,23 +8,29 @@ use crate::layout;
 use crate::renderer;
 use crate::widget::container;
 use crate::widget::text::Text;
-use crate::{Clipboard, Element, Event, Hasher, Layout, Length, Point, Widget};
+use crate::{
+    Clipboard, Element, Event, Hasher, Layout, Length, Padding, Point, Size,
+    Vector, Widget,
+};
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
-pub struct Tooltip<'a, Message, Renderer: self::Renderer> {
+pub struct Tooltip<'a, Message, Renderer: renderer::Text> {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
-    style: &'a dyn container::StyleSheet,
+    style_sheet: &'a dyn container::StyleSheet,
     gap: u16,
     padding: u16,
 }
 
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: renderer::Text,
 {
+    /// The default padding of a [`Tooltip`] drawn by this renderer.
+    const DEFAULT_PADDING: u16 = 5;
+
     /// Creates an empty [`Tooltip`].
     ///
     /// [`Tooltip`]: struct.Tooltip.html
@@ -37,9 +43,9 @@ where
             content: content.into(),
             tooltip: Text::new(tooltip.to_string()),
             position,
-            style: Default::default(),
+            style_sheet: Default::default(),
             gap: 0,
-            padding: Renderer::DEFAULT_PADDING,
+            padding: Self::DEFAULT_PADDING,
         }
     }
 
@@ -70,11 +76,8 @@ where
     }
 
     /// Sets the style of the [`Tooltip`].
-    pub fn style<'b>(mut self, style: &'b dyn container::StyleSheet) -> Self
-    where
-        'b: 'a,
-    {
-        self.style = style;
+    pub fn style(mut self, style_sheet: &'a dyn container::StyleSheet) -> Self {
+        self.style_sheet = style_sheet;
         self
     }
 }
@@ -97,7 +100,7 @@ pub enum Position {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Tooltip<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: renderer::Text,
 {
     fn width(&self) -> Length {
         self.content.width()
@@ -136,13 +139,114 @@ where
 
     fn draw(
         &self,
-        _renderer: &mut Renderer,
-        style: &renderer::Style,
-        _layout: Layout<'_>,
-        _cursor_position: Point,
-        _viewport: &Rectangle,
+        renderer: &mut Renderer,
+        inherited_style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
     ) {
-        // TODO
+        self.content.draw(
+            renderer,
+            inherited_style,
+            layout,
+            cursor_position,
+            viewport,
+        );
+
+        let bounds = layout.bounds();
+
+        if bounds.contains(cursor_position) {
+            let gap = f32::from(self.gap);
+            let style = self.style_sheet.style();
+
+            let defaults = renderer::Style {
+                text_color: style
+                    .text_color
+                    .unwrap_or(inherited_style.text_color),
+            };
+
+            let text_layout = Widget::<(), Renderer>::layout(
+                &self.tooltip,
+                renderer,
+                &layout::Limits::new(Size::ZERO, viewport.size())
+                    .pad(Padding::new(self.padding)),
+            );
+
+            let padding = f32::from(self.padding);
+            let text_bounds = text_layout.bounds();
+            let x_center = bounds.x + (bounds.width - text_bounds.width) / 2.0;
+            let y_center =
+                bounds.y + (bounds.height - text_bounds.height) / 2.0;
+
+            let mut tooltip_bounds = {
+                let offset = match self.position {
+                    Position::Top => Vector::new(
+                        x_center,
+                        bounds.y - text_bounds.height - gap - padding,
+                    ),
+                    Position::Bottom => Vector::new(
+                        x_center,
+                        bounds.y + bounds.height + gap + padding,
+                    ),
+                    Position::Left => Vector::new(
+                        bounds.x - text_bounds.width - gap - padding,
+                        y_center,
+                    ),
+                    Position::Right => Vector::new(
+                        bounds.x + bounds.width + gap + padding,
+                        y_center,
+                    ),
+                    Position::FollowCursor => Vector::new(
+                        cursor_position.x,
+                        cursor_position.y - text_bounds.height,
+                    ),
+                };
+
+                Rectangle {
+                    x: offset.x - padding,
+                    y: offset.y - padding,
+                    width: text_bounds.width + padding * 2.0,
+                    height: text_bounds.height + padding * 2.0,
+                }
+            };
+
+            if tooltip_bounds.x < viewport.x {
+                tooltip_bounds.x = viewport.x;
+            } else if viewport.x + viewport.width
+                < tooltip_bounds.x + tooltip_bounds.width
+            {
+                tooltip_bounds.x =
+                    viewport.x + viewport.width - tooltip_bounds.width;
+            }
+
+            if tooltip_bounds.y < viewport.y {
+                tooltip_bounds.y = viewport.y;
+            } else if viewport.y + viewport.height
+                < tooltip_bounds.y + tooltip_bounds.height
+            {
+                tooltip_bounds.y =
+                    viewport.y + viewport.height - tooltip_bounds.height;
+            }
+
+            renderer.with_layer(*viewport, |renderer| {
+                container::draw_background(renderer, &style, tooltip_bounds);
+
+                Widget::<(), Renderer>::draw(
+                    &self.tooltip,
+                    renderer,
+                    &defaults,
+                    Layout::with_offset(
+                        Vector::new(
+                            tooltip_bounds.x + padding,
+                            tooltip_bounds.y + padding,
+                        ),
+                        &text_layout,
+                    ),
+                    cursor_position,
+                    viewport,
+                );
+            });
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -153,22 +257,10 @@ where
     }
 }
 
-/// The renderer of a [`Tooltip`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Tooltip`] in your user interface.
-///
-/// [`Tooltip`]: struct.Tooltip.html
-/// [renderer]: ../../renderer/index.html
-pub trait Renderer: renderer::Text {
-    /// The default padding of a [`Tooltip`] drawn by this renderer.
-    const DEFAULT_PADDING: u16;
-}
-
 impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + renderer::Text,
     Message: 'a,
 {
     fn from(
