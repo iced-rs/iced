@@ -1,4 +1,5 @@
 //! Display a dropdown list of selectable values.
+use crate::alignment;
 use crate::event::{self, Event};
 use crate::keyboard;
 use crate::layout;
@@ -6,6 +7,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::overlay::menu::{self, Menu};
 use crate::renderer;
+use crate::renderer::text;
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
@@ -327,11 +329,69 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
+        let is_selected = self.selected.is_some();
+
+        let style = if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
+        };
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds,
+            background: style.background,
+            border_color: style.border_color,
+            border_width: style.border_width,
+            border_radius: style.border_radius,
+        });
+
+        renderer.fill_text(text::Section {
+            content: &Renderer::ARROW_DOWN_ICON.to_string(),
+            font: Renderer::ICON_FONT,
+            size: bounds.height * style.icon_size,
+            bounds: Rectangle {
+                x: bounds.x + bounds.width
+                    - f32::from(self.padding.horizontal()),
+                y: bounds.center_y(),
+                ..bounds
+            },
+            color: style.text_color,
+            horizontal_alignment: alignment::Horizontal::Right,
+            vertical_alignment: alignment::Vertical::Center,
+        });
+
+        if let Some(label) = self
+            .selected
+            .as_ref()
+            .map(ToString::to_string)
+            .as_ref()
+            .or_else(|| self.placeholder.as_ref())
+        {
+            renderer.fill_text(text::Section {
+                content: label,
+                size: f32::from(
+                    self.text_size.unwrap_or(renderer.default_size()),
+                ),
+                font: self.font,
+                color: is_selected
+                    .then(|| style.text_color)
+                    .unwrap_or(style.placeholder_color),
+                bounds: Rectangle {
+                    x: bounds.x + f32::from(self.padding.left),
+                    y: bounds.center_y(),
+                    ..bounds
+                },
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
+            })
+        }
     }
 
     fn overlay(
