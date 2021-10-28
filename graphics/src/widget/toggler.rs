@@ -1,7 +1,5 @@
 //! Show toggle controls using togglers.
-use crate::backend::{self, Backend};
 use crate::Renderer;
-use iced_native::toggler;
 
 pub use iced_style::toggler::{Style, StyleSheet};
 
