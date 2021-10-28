@@ -98,7 +98,7 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        renderer.draw(self.handle.clone(), layout);
+        renderer.draw(self.handle.clone(), layout.bounds());
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -228,7 +228,7 @@ pub trait Renderer: crate::Renderer {
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
 
     // Draws an [`Image`].
-    fn draw(&mut self, handle: Handle, layout: Layout<'_>);
+    fn draw(&mut self, handle: Handle, bounds: Rectangle);
 }
 
 impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>

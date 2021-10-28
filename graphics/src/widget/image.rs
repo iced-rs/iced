@@ -2,10 +2,9 @@
 pub mod viewer;
 
 use crate::backend::{self, Backend};
+use crate::{Primitive, Rectangle, Renderer};
 
-use crate::{Primitive, Renderer};
 use iced_native::image;
-use iced_native::Layout;
 
 pub use iced_native::image::{Handle, Image, Viewer};
 
@@ -17,10 +16,7 @@ where
         self.backend().dimensions(handle)
     }
 
-    fn draw(&mut self, handle: image::Handle, layout: Layout<'_>) {
-        self.draw_primitive(Primitive::Image {
-            handle,
-            bounds: layout.bounds(),
-        })
+    fn draw(&mut self, handle: image::Handle, bounds: Rectangle) {
+        self.draw_primitive(Primitive::Image { handle, bounds })
     }
 }

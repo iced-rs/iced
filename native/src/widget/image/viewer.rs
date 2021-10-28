@@ -284,9 +284,9 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -302,7 +302,19 @@ where
             image_top_left - self.state.offset(bounds, image_size)
         };
 
-        let is_mouse_over = bounds.contains(cursor_position);
+        renderer.with_layer(bounds, |renderer| {
+            renderer.with_translation(translation, |renderer| {
+                image::Renderer::draw(
+                    renderer,
+                    self.handle.clone(),
+                    Rectangle {
+                        x: bounds.x,
+                        y: bounds.y,
+                        ..Rectangle::with_size(image_size)
+                    },
+                )
+            });
+        });
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
