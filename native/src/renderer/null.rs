@@ -1,4 +1,3 @@
-use crate::progress_bar;
 use crate::renderer::{self, Renderer};
 use crate::text;
 use crate::toggler;
