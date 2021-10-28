@@ -514,32 +514,39 @@ where
             let is_scrollbar_visible =
                 style.background.is_some() || style.border_width > 0.0;
 
-            renderer.with_layer(bounds, |renderer| {
-                if is_scrollbar_visible {
-                    renderer.fill_rectangle(renderer::Quad {
-                        bounds: scrollbar.bounds,
-                        background: style
-                            .background
-                            .unwrap_or(Background::Color(Color::TRANSPARENT)),
-                        border_radius: style.border_radius,
-                        border_width: style.border_width,
-                        border_color: style.border_color,
-                    });
-                }
+            renderer.with_layer(
+                Rectangle {
+                    width: bounds.width + 2.0,
+                    height: bounds.height + 2.0,
+                    ..bounds
+                },
+                |renderer| {
+                    if is_scrollbar_visible {
+                        renderer.fill_rectangle(renderer::Quad {
+                            bounds: scrollbar.bounds,
+                            background: style.background.unwrap_or(
+                                Background::Color(Color::TRANSPARENT),
+                            ),
+                            border_radius: style.border_radius,
+                            border_width: style.border_width,
+                            border_color: style.border_color,
+                        });
+                    }
 
-                if is_mouse_over
-                    || self.state.is_scroller_grabbed()
-                    || is_scrollbar_visible
-                {
-                    renderer.fill_rectangle(renderer::Quad {
-                        bounds: scrollbar.scroller.bounds,
-                        background: Background::Color(style.scroller.color),
-                        border_radius: style.scroller.border_radius,
-                        border_width: style.scroller.border_width,
-                        border_color: style.scroller.border_color,
-                    });
-                }
-            });
+                    if is_mouse_over
+                        || self.state.is_scroller_grabbed()
+                        || is_scrollbar_visible
+                    {
+                        renderer.fill_rectangle(renderer::Quad {
+                            bounds: scrollbar.scroller.bounds,
+                            background: Background::Color(style.scroller.color),
+                            border_radius: style.scroller.border_radius,
+                            border_width: style.scroller.border_width,
+                            border_color: style.scroller.border_color,
+                        });
+                    }
+                },
+            );
         } else {
             self.content.draw(
                 renderer,
