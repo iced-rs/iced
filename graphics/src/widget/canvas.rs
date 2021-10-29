@@ -4,11 +4,12 @@
 //! [`Frame`]. It can be used for animation, data visualization, game graphics,
 //! and more!
 use crate::renderer::{self, Renderer};
-use crate::Backend;
+use crate::{Backend, Primitive};
 
 use iced_native::layout;
 use iced_native::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
+    Widget,
 };
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -188,31 +189,28 @@ where
 
     fn draw(
         &self,
-        _renderer: &mut Renderer<B>,
+        renderer: &mut Renderer<B>,
         _style: &renderer::Style,
-        _layout: Layout<'_>,
-        _cursor_position: Point,
+        layout: Layout<'_>,
+        cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // let bounds = layout.bounds();
-        // let translation = Vector::new(bounds.x, bounds.y);
-        // let cursor = Cursor::from_window_position(cursor_position);
+        use iced_native::Renderer as _;
 
-        // (
-        //     Primitive::Translate {
-        //         translation,
-        //         content: Box::new(Primitive::Group {
-        //             primitives: self
-        //                 .program
-        //                 .draw(bounds, cursor)
-        //                 .into_iter()
-        //                 .map(Geometry::into_primitive)
-        //                 .collect(),
-        //         }),
-        //     },
-        //     self.program.mouse_interaction(bounds, cursor),
-        // )
-        // TODO
+        let bounds = layout.bounds();
+        let translation = Vector::new(bounds.x, bounds.y);
+        let cursor = Cursor::from_window_position(cursor_position);
+
+        renderer.with_translation(translation, |renderer| {
+            renderer.draw_primitive(Primitive::Group {
+                primitives: self
+                    .program
+                    .draw(bounds, cursor)
+                    .into_iter()
+                    .map(Geometry::into_primitive)
+                    .collect(),
+            });
+        });
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
