@@ -7,6 +7,7 @@ use crate::renderer::{self, Renderer};
 use crate::{Backend, Primitive};
 
 use iced_native::layout;
+use iced_native::mouse;
 use iced_native::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
     Widget,
@@ -185,6 +186,18 @@ where
         }
 
         event::Status::Ignored
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        _viewport: &Rectangle,
+        cursor_position: Point,
+    ) -> mouse::Interaction {
+        let bounds = layout.bounds();
+        let cursor = Cursor::from_window_position(cursor_position);
+
+        self.program.mouse_interaction(bounds, cursor)
     }
 
     fn draw(
