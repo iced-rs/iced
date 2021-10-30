@@ -5,7 +5,8 @@ use crate::Backend;
 
 use iced_native::layout;
 use iced_native::{
-    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
+    Widget,
 };
 use thiserror::Error;
 
@@ -81,56 +82,55 @@ where
 
     fn draw(
         &self,
-        _renderer: &mut Renderer<B>,
+        renderer: &mut Renderer<B>,
         _style: &renderer::Style,
-        _layout: Layout<'_>,
+        layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // let bounds = layout.bounds();
-        // let side_length = self.state.width + 2 * QUIET_ZONE;
+        use iced_native::Renderer as _;
 
-        // // Reuse cache if possible
-        // let geometry = self.state.cache.draw(bounds.size(), |frame| {
-        //     // Scale units to cell size
-        //     frame.scale(f32::from(self.cell_size));
+        let bounds = layout.bounds();
+        let side_length = self.state.width + 2 * QUIET_ZONE;
 
-        //     // Draw background
-        //     frame.fill_rectangle(
-        //         Point::ORIGIN,
-        //         Size::new(side_length as f32, side_length as f32),
-        //         self.light,
-        //     );
+        // Reuse cache if possible
+        let geometry = self.state.cache.draw(bounds.size(), |frame| {
+            // Scale units to cell size
+            frame.scale(f32::from(self.cell_size));
 
-        //     // Avoid drawing on the quiet zone
-        //     frame.translate(Vector::new(QUIET_ZONE as f32, QUIET_ZONE as f32));
+            // Draw background
+            frame.fill_rectangle(
+                Point::ORIGIN,
+                Size::new(side_length as f32, side_length as f32),
+                self.light,
+            );
 
-        //     // Draw contents
-        //     self.state
-        //         .contents
-        //         .iter()
-        //         .enumerate()
-        //         .filter(|(_, value)| **value == qrcode::Color::Dark)
-        //         .for_each(|(index, _)| {
-        //             let row = index / self.state.width;
-        //             let column = index % self.state.width;
+            // Avoid drawing on the quiet zone
+            frame.translate(Vector::new(QUIET_ZONE as f32, QUIET_ZONE as f32));
 
-        //             frame.fill_rectangle(
-        //                 Point::new(column as f32, row as f32),
-        //                 Size::UNIT,
-        //                 self.dark,
-        //             );
-        //         });
-        // });
+            // Draw contents
+            self.state
+                .contents
+                .iter()
+                .enumerate()
+                .filter(|(_, value)| **value == qrcode::Color::Dark)
+                .for_each(|(index, _)| {
+                    let row = index / self.state.width;
+                    let column = index % self.state.width;
 
-        // (
-        //     Primitive::Translate {
-        //         translation: Vector::new(bounds.x, bounds.y),
-        //         content: Box::new(geometry.into_primitive()),
-        //     },
-        //     mouse::Interaction::default(),
-        // )
-        // TODO
+                    frame.fill_rectangle(
+                        Point::new(column as f32, row as f32),
+                        Size::UNIT,
+                        self.dark,
+                    );
+                });
+        });
+
+        let translation = Vector::new(bounds.x, bounds.y);
+
+        renderer.with_translation(translation, |renderer| {
+            renderer.draw_primitive(geometry.into_primitive());
+        });
     }
 }
 
