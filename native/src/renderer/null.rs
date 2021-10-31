@@ -1,5 +1,5 @@
 use crate::renderer::{self, Renderer};
-use crate::widget::text;
+use crate::text::{self, Text};
 use crate::{Font, Point, Rectangle, Size, Vector};
 
 /// A renderer that does nothing.
@@ -30,7 +30,7 @@ impl Renderer for Null {
     fn fill_rectangle(&mut self, _quad: renderer::Quad) {}
 }
 
-impl renderer::Text for Null {
+impl text::Renderer for Null {
     type Font = Font;
 
     const ICON_FONT: Font = Font::Default;
@@ -63,5 +63,5 @@ impl renderer::Text for Null {
         None
     }
 
-    fn fill_text(&mut self, _text: renderer::text::Section<'_, Self::Font>) {}
+    fn fill_text(&mut self, _text: Text<'_, Self::Font>) {}
 }

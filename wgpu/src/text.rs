@@ -5,7 +5,7 @@ use iced_graphics::font;
 use std::{cell::RefCell, collections::HashMap};
 use wgpu_glyph::ab_glyph;
 
-pub use iced_native::widget::text::Hit;
+pub use iced_native::text::Hit;
 
 #[derive(Debug)]
 pub struct Pipeline {

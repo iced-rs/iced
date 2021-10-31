@@ -5,7 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::renderer::text;
+use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::scrollable::{self, Scrollable};
 use crate::widget::Container;
@@ -18,7 +18,7 @@ pub use iced_style::menu::Style;
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
-pub struct Menu<'a, T, Renderer: renderer::Text> {
+pub struct Menu<'a, T, Renderer: text::Renderer> {
     state: &'a mut State,
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
@@ -33,7 +33,7 @@ pub struct Menu<'a, T, Renderer: renderer::Text> {
 impl<'a, T, Renderer> Menu<'a, T, Renderer>
 where
     T: ToString + Clone,
-    Renderer: renderer::Text + 'a,
+    Renderer: text::Renderer + 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
     /// the message to produced when an option is selected.
@@ -117,14 +117,14 @@ impl State {
     }
 }
 
-struct Overlay<'a, Message, Renderer: renderer::Text> {
+struct Overlay<'a, Message, Renderer: text::Renderer> {
     container: Container<'a, Message, Renderer>,
     width: u16,
     target_height: f32,
     style: Style,
 }
 
-impl<'a, Message, Renderer: renderer::Text> Overlay<'a, Message, Renderer>
+impl<'a, Message, Renderer: text::Renderer> Overlay<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: 'a,
@@ -169,7 +169,7 @@ where
 impl<'a, Message, Renderer> crate::Overlay<Message, Renderer>
     for Overlay<'a, Message, Renderer>
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     fn layout(
         &self,
@@ -266,7 +266,7 @@ where
     }
 }
 
-struct List<'a, T, Renderer: renderer::Text> {
+struct List<'a, T, Renderer: text::Renderer> {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
@@ -280,7 +280,7 @@ impl<'a, T, Message, Renderer> Widget<Message, Renderer>
     for List<'a, T, Renderer>
 where
     T: Clone + ToString,
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         Length::Fill
@@ -441,7 +441,7 @@ where
                 });
             }
 
-            renderer.fill_text(text::Section {
+            renderer.fill_text(Text {
                 content: &option.to_string(),
                 bounds: Rectangle {
                     x: bounds.x + self.padding.left as f32,
@@ -468,7 +468,7 @@ impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
 where
     T: ToString + Clone,
     Message: 'a,
-    Renderer: 'a + renderer::Text,
+    Renderer: 'a + text::Renderer,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

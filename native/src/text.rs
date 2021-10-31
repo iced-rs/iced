@@ -1,9 +1,20 @@
 use crate::alignment;
-use crate::{Color, Point, Rectangle, Renderer, Size};
+use crate::{Color, Point, Rectangle, Size};
 
-pub use crate::widget::text::Hit;
+pub use iced_core::text::Hit;
 
-pub trait Text: Renderer {
+#[derive(Debug, Clone, Copy)]
+pub struct Text<'a, Font> {
+    pub content: &'a str,
+    pub bounds: Rectangle,
+    pub size: f32,
+    pub color: Color,
+    pub font: Font,
+    pub horizontal_alignment: alignment::Horizontal,
+    pub vertical_alignment: alignment::Vertical,
+}
+
+pub trait Renderer: crate::Renderer {
     /// The font type used.
     type Font: Default + Copy;
 
@@ -56,16 +67,5 @@ pub trait Text: Renderer {
         nearest_only: bool,
     ) -> Option<Hit>;
 
-    fn fill_text(&mut self, section: Section<'_, Self::Font>);
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Section<'a, Font> {
-    pub content: &'a str,
-    pub bounds: Rectangle,
-    pub size: f32,
-    pub color: Color,
-    pub font: Font,
-    pub horizontal_alignment: alignment::Horizontal,
-    pub vertical_alignment: alignment::Vertical,
+    fn fill_text(&mut self, text: Text<'_, Self::Font>);
 }

@@ -19,10 +19,6 @@
 //! [`text::Renderer`]: crate::widget::text::Renderer
 //! [`Checkbox`]: crate::widget::Checkbox
 //! [`checkbox::Renderer`]: crate::widget::checkbox::Renderer
-pub mod text;
-
-pub use text::Text;
-
 #[cfg(debug_assertions)]
 mod null;
 #[cfg(debug_assertions)]

@@ -2,6 +2,7 @@ use crate::backend::{self, Backend};
 use crate::{Primitive, Vector};
 use iced_native::layout;
 use iced_native::renderer;
+use iced_native::text::{self, Text};
 use iced_native::{Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
@@ -104,7 +105,7 @@ where
     }
 }
 
-impl<B> renderer::Text for Renderer<B>
+impl<B> text::Renderer for Renderer<B>
 where
     B: Backend + backend::Text,
 {
@@ -137,7 +138,7 @@ where
         bounds: Size,
         point: Point,
         nearest_only: bool,
-    ) -> Option<renderer::text::Hit> {
+    ) -> Option<text::Hit> {
         self.backend().hit_test(
             content,
             size,
@@ -148,7 +149,7 @@ where
         )
     }
 
-    fn fill_text(&mut self, text: renderer::text::Section<'_, Self::Font>) {
+    fn fill_text(&mut self, text: Text<'_, Self::Font>) {
         self.primitives.push(Primitive::Text {
             content: text.content.to_string(),
             bounds: text.bounds,

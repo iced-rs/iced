@@ -6,6 +6,7 @@ use iced_core::Rectangle;
 use crate::event;
 use crate::layout;
 use crate::renderer;
+use crate::text;
 use crate::widget::container;
 use crate::widget::text::Text;
 use crate::{
@@ -15,7 +16,7 @@ use crate::{
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
-pub struct Tooltip<'a, Message, Renderer: renderer::Text> {
+pub struct Tooltip<'a, Message, Renderer: text::Renderer> {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
@@ -26,7 +27,7 @@ pub struct Tooltip<'a, Message, Renderer: renderer::Text> {
 
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16 = 5;
@@ -100,7 +101,7 @@ pub enum Position {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Tooltip<'a, Message, Renderer>
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         self.content.width()
@@ -260,7 +261,7 @@ where
 impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + renderer::Text,
+    Renderer: 'a + text::Renderer,
     Message: 'a,
 {
     fn from(

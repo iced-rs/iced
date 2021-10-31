@@ -7,7 +7,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::overlay::menu::{self, Menu};
 use crate::renderer;
-use crate::renderer::text;
+use crate::text::{self, Text};
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
@@ -19,7 +19,7 @@ pub use iced_style::pick_list::{Style, StyleSheet};
 
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
-pub struct PickList<'a, T, Message, Renderer: renderer::Text>
+pub struct PickList<'a, T, Message, Renderer: text::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
 {
@@ -61,7 +61,7 @@ impl<T> Default for State<T> {
     }
 }
 
-impl<'a, T: 'a, Message, Renderer: renderer::Text>
+impl<'a, T: 'a, Message, Renderer: text::Renderer>
     PickList<'a, T, Message, Renderer>
 where
     T: ToString + Eq,
@@ -151,7 +151,7 @@ where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'static,
-    Renderer: renderer::Text + 'a,
+    Renderer: text::Renderer + 'a,
 {
     fn width(&self) -> Length {
         self.width
@@ -368,7 +368,7 @@ where
             border_radius: style.border_radius,
         });
 
-        renderer.fill_text(text::Section {
+        renderer.fill_text(Text {
             content: &Renderer::ARROW_DOWN_ICON.to_string(),
             font: Renderer::ICON_FONT,
             size: bounds.height * style.icon_size,
@@ -390,7 +390,7 @@ where
             .as_ref()
             .or_else(|| self.placeholder.as_ref())
         {
-            renderer.fill_text(text::Section {
+            renderer.fill_text(Text {
                 content: label,
                 size: f32::from(
                     self.text_size.unwrap_or(renderer.default_size()),
@@ -444,7 +444,7 @@ impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
-    Renderer: renderer::Text + 'a,
+    Renderer: text::Renderer + 'a,
     Message: 'static,
 {
     fn into(self) -> Element<'a, Message, Renderer> {

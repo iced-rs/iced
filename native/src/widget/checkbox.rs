@@ -6,9 +6,9 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::text;
 use crate::touch;
-use crate::widget::text;
-use crate::widget::{Row, Text};
+use crate::widget::{self, Row, Text};
 use crate::{
     Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
     Rectangle, Widget,
@@ -34,7 +34,7 @@ pub use iced_style::checkbox::{Style, StyleSheet};
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Checkbox<'a, Message, Renderer: renderer::Text> {
+pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: String,
@@ -47,7 +47,7 @@ pub struct Checkbox<'a, Message, Renderer: renderer::Text> {
     style_sheet: &'a dyn StyleSheet,
 }
 
-impl<'a, Message, Renderer: renderer::Text> Checkbox<'a, Message, Renderer> {
+impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
     /// The default size of a [`Checkbox`].
     const DEFAULT_SIZE: u16 = 20;
 
@@ -128,7 +128,7 @@ impl<'a, Message, Renderer: renderer::Text> Checkbox<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Checkbox<'a, Message, Renderer>
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -232,7 +232,7 @@ where
             });
 
             if self.is_checked {
-                renderer.fill_text(renderer::text::Section {
+                renderer.fill_text(text::Text {
                     content: &Renderer::CHECKMARK_ICON.to_string(),
                     font: Renderer::ICON_FONT,
                     size: bounds.height * 0.7,
@@ -251,7 +251,7 @@ where
         {
             let label_layout = children.next().unwrap();
 
-            text::draw(
+            widget::text::draw(
                 renderer,
                 style,
                 label_layout,
@@ -276,7 +276,7 @@ where
 impl<'a, Message, Renderer> From<Checkbox<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + renderer::Text,
+    Renderer: 'a + text::Renderer,
     Message: 'a,
 {
     fn from(

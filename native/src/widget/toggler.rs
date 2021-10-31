@@ -6,7 +6,7 @@ use crate::event;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::widget::text;
+use crate::text;
 use crate::widget::{Row, Text};
 use crate::{
     Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
@@ -31,7 +31,7 @@ pub use iced_style::toggler::{Style, StyleSheet};
 /// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Toggler<Message, Renderer: renderer::Text> {
+pub struct Toggler<Message, Renderer: text::Renderer> {
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: Option<String>,
@@ -44,7 +44,7 @@ pub struct Toggler<Message, Renderer: renderer::Text> {
     style_sheet: Box<dyn StyleSheet>,
 }
 
-impl<Message, Renderer: renderer::Text> Toggler<Message, Renderer> {
+impl<Message, Renderer: text::Renderer> Toggler<Message, Renderer> {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: u16 = 20;
 
@@ -126,7 +126,7 @@ impl<Message, Renderer: renderer::Text> Toggler<Message, Renderer> {
 
 impl<Message, Renderer> Widget<Message, Renderer> for Toggler<Message, Renderer>
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -223,7 +223,7 @@ where
         if let Some(label) = &self.label {
             let label_layout = children.next().unwrap();
 
-            text::draw(
+            crate::widget::text::draw(
                 renderer,
                 style,
                 label_layout,
@@ -297,7 +297,7 @@ where
 impl<'a, Message, Renderer> From<Toggler<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + renderer::Text,
+    Renderer: 'a + text::Renderer,
     Message: 'a,
 {
     fn from(

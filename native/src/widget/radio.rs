@@ -6,9 +6,9 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::text;
 use crate::touch;
-use crate::widget::text;
-use crate::widget::{Row, Text};
+use crate::widget::{self, Row, Text};
 use crate::{
     Alignment, Background, Clipboard, Color, Element, Hasher, Layout, Length,
     Point, Rectangle, Widget,
@@ -43,7 +43,7 @@ pub use iced_style::radio::{Style, StyleSheet};
 ///
 /// ![Radio buttons drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Radio<'a, Message, Renderer: renderer::Text> {
+pub struct Radio<'a, Message, Renderer: text::Renderer> {
     is_selected: bool,
     on_click: Message,
     label: String,
@@ -56,7 +56,7 @@ pub struct Radio<'a, Message, Renderer: renderer::Text> {
     style_sheet: &'a dyn StyleSheet,
 }
 
-impl<'a, Message, Renderer: renderer::Text> Radio<'a, Message, Renderer>
+impl<'a, Message, Renderer: text::Renderer> Radio<'a, Message, Renderer>
 where
     Message: Clone,
 {
@@ -145,7 +145,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Radio<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -267,7 +267,7 @@ where
         {
             let label_layout = children.next().unwrap();
 
-            text::draw(
+            widget::text::draw(
                 renderer,
                 style,
                 label_layout,
@@ -293,7 +293,7 @@ impl<'a, Message, Renderer> From<Radio<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + renderer::Text,
+    Renderer: 'a + text::Renderer,
 {
     fn from(
         radio: Radio<'a, Message, Renderer>,

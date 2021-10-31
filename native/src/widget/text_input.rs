@@ -17,6 +17,7 @@ use crate::keyboard;
 use crate::layout;
 use crate::mouse::{self, click};
 use crate::renderer;
+use crate::text::{self, Text};
 use crate::touch;
 use crate::{
     Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
@@ -53,7 +54,7 @@ pub use iced_style::text_input::{Style, StyleSheet};
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message, Renderer: renderer::Text> {
+pub struct TextInput<'a, Message, Renderer: text::Renderer> {
     state: &'a mut State,
     placeholder: String,
     value: Value,
@@ -71,7 +72,7 @@ pub struct TextInput<'a, Message, Renderer: renderer::Text> {
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     /// Creates a new [`TextInput`].
     ///
@@ -166,7 +167,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for TextInput<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -728,7 +729,7 @@ where
                 renderer.fill_rectangle(cursor);
             }
 
-            renderer.fill_text(renderer::text::Section {
+            renderer.fill_text(Text {
                 content: if text.is_empty() {
                     &self.placeholder
                 } else {
@@ -776,7 +777,7 @@ impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + renderer::Text,
+    Renderer: 'a + text::Renderer,
 {
     fn from(
         text_input: TextInput<'a, Message, Renderer>,
@@ -877,7 +878,7 @@ fn offset<Renderer>(
     state: &State,
 ) -> f32
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     if state.is_focused() {
         let cursor = state.cursor();
@@ -911,7 +912,7 @@ fn measure_cursor_and_scroll_offset<Renderer>(
     font: Renderer::Font,
 ) -> (f32, f32)
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     let text_before_cursor = value.until(cursor_index).to_string();
 
@@ -935,7 +936,7 @@ fn find_cursor_position<Renderer>(
     x: f32,
 ) -> Option<usize>
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     let size = size.unwrap_or(renderer.default_size());
 
@@ -950,5 +951,5 @@ where
             Point::new(x + offset, text_bounds.height / 2.0),
             true,
         )
-        .map(renderer::text::Hit::cursor)
+        .map(text::Hit::cursor)
 }

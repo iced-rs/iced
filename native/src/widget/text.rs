@@ -2,11 +2,10 @@
 use crate::alignment;
 use crate::layout;
 use crate::renderer;
+use crate::text;
 use crate::{
     Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
-
-pub use iced_core::text::Hit;
 
 use std::hash::Hash;
 
@@ -24,7 +23,7 @@ use std::hash::Hash;
 ///
 /// ![Text drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
 #[derive(Debug)]
-pub struct Text<Renderer: renderer::Text> {
+pub struct Text<Renderer: text::Renderer> {
     content: String,
     size: Option<u16>,
     color: Option<Color>,
@@ -35,7 +34,7 @@ pub struct Text<Renderer: renderer::Text> {
     vertical_alignment: alignment::Vertical,
 }
 
-impl<Renderer: renderer::Text> Text<Renderer> {
+impl<Renderer: text::Renderer> Text<Renderer> {
     /// Create a new fragment of [`Text`] with the given contents.
     pub fn new<T: Into<String>>(label: T) -> Self {
         Text {
@@ -103,7 +102,7 @@ impl<Renderer: renderer::Text> Text<Renderer> {
 
 impl<Message, Renderer> Widget<Message, Renderer> for Text<Renderer>
 where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -175,7 +174,7 @@ pub fn draw<Renderer>(
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
 ) where
-    Renderer: renderer::Text,
+    Renderer: text::Renderer,
 {
     let bounds = layout.bounds();
 
@@ -191,7 +190,7 @@ pub fn draw<Renderer>(
         alignment::Vertical::Bottom => bounds.y + bounds.height,
     };
 
-    renderer.fill_text(renderer::text::Section {
+    renderer.fill_text(crate::text::Text {
         content,
         size: f32::from(size.unwrap_or(renderer.default_size())),
         bounds: Rectangle { x, y, ..bounds },
@@ -205,14 +204,14 @@ pub fn draw<Renderer>(
 impl<'a, Message, Renderer> From<Text<Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: renderer::Text + 'a,
+    Renderer: text::Renderer + 'a,
 {
     fn from(text: Text<Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(text)
     }
 }
 
-impl<Renderer: renderer::Text> Clone for Text<Renderer> {
+impl<Renderer: text::Renderer> Clone for Text<Renderer> {
     fn clone(&self) -> Self {
         Self {
             content: self.content.clone(),
