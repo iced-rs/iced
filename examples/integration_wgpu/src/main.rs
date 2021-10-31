@@ -211,11 +211,11 @@ pub fn main() {
                         queue.submit(Some(encoder.finish()));
 
                         // Update the mouse cursor
-                        // window.set_cursor_icon(
-                        //     iced_winit::conversion::mouse_interaction(
-                        //         mouse_interaction,
-                        //     ),
-                        // );
+                         window.set_cursor_icon(
+                             iced_winit::conversion::mouse_interaction(
+                                 state.mouse_interaction(),
+                             ),
+                         );
 
                         // And recall staging buffers
                         local_pool
