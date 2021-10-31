@@ -12,14 +12,14 @@ pub use iced_style::rule::{FillMode, Style, StyleSheet};
 
 /// Display a horizontal or vertical rule for dividing content.
 #[allow(missing_debug_implementations)]
-pub struct Rule {
+pub struct Rule<'a> {
     width: Length,
     height: Length,
     is_horizontal: bool,
-    style_sheet: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
-impl Rule {
+impl<'a> Rule<'a> {
     /// Creates a horizontal [`Rule`] for dividing content by the given vertical spacing.
     pub fn horizontal(spacing: u16) -> Self {
         Rule {
@@ -43,14 +43,14 @@ impl Rule {
     /// Sets the style of the [`Rule`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet>>,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Rule
+impl<'a, Message, Renderer> Widget<Message, Renderer> for Rule<'a>
 where
     Renderer: crate::Renderer,
 {
@@ -131,12 +131,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Rule> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Rule<'a>> for Element<'a, Message, Renderer>
 where
     Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
-    fn from(rule: Rule) -> Element<'a, Message, Renderer> {
+    fn from(rule: Rule<'a>) -> Element<'a, Message, Renderer> {
         Element::new(rule)
     }
 }
