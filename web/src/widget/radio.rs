@@ -38,7 +38,7 @@ pub struct Radio<'a, Message> {
     id: Option<String>,
     name: Option<String>,
     #[allow(dead_code)]
-    style_sheet: &'a dyn StyleSheet,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message> Radio<'a, Message> {
@@ -71,8 +71,11 @@ impl<'a, Message> Radio<'a, Message> {
     }
 
     /// Sets the style of the [`Radio`] button.
-    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 

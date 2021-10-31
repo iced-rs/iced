@@ -53,7 +53,7 @@ pub struct Radio<'a, Message, Renderer: text::Renderer> {
     text_size: Option<u16>,
     text_color: Option<Color>,
     font: Renderer::Font,
-    style_sheet: &'a dyn StyleSheet,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer: text::Renderer> Radio<'a, Message, Renderer>
@@ -135,8 +135,11 @@ where
     }
 
     /// Sets the style of the [`Radio`] button.
-    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }

@@ -64,7 +64,7 @@ impl Sandbox for Styling {
                         Some(self.theme),
                         Message::ThemeChanged,
                     )
-                    .style(self.theme.into()),
+                    .style(self.theme),
                 )
             },
         );
@@ -185,11 +185,11 @@ mod style {
         }
     }
 
-    impl From<Theme> for &'static dyn radio::StyleSheet {
+    impl<'a> From<Theme> for Box<dyn radio::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
-                Theme::Dark => &dark::Radio,
+                Theme::Dark => dark::Radio.into(),
             }
         }
     }

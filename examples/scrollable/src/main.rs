@@ -76,7 +76,7 @@ impl Sandbox for ScrollableDemo {
                         Some(*theme),
                         Message::ThemeChanged,
                     )
-                    .style(theme.clone().into()),
+                    .style(*theme),
                 )
             },
         );
