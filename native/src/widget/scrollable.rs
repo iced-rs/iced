@@ -27,7 +27,7 @@ pub struct Scrollable<'a, Message, Renderer> {
     scroller_width: u16,
     content: Column<'a, Message, Renderer>,
     on_scroll: Option<Box<dyn Fn(f32) -> Message>>,
-    style_sheet: &'a dyn StyleSheet,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
@@ -123,8 +123,11 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
     }
 
     /// Sets the style of the [`Scrollable`] .
-    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 

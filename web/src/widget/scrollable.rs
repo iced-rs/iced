@@ -14,7 +14,7 @@ pub struct Scrollable<'a, Message> {
     max_height: u32,
     content: Column<'a, Message>,
     #[allow(dead_code)]
-    style_sheet: &'a dyn StyleSheet,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message> Scrollable<'a, Message> {
@@ -78,11 +78,11 @@ impl<'a, Message> Scrollable<'a, Message> {
     }
 
     /// Sets the style of the [`Scrollable`] .
-    pub fn style<'b>(mut self, style_sheet: &'b dyn StyleSheet) -> Self
-    where
-        'b: 'a,
-    {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 

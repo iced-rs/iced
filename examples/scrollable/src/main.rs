@@ -95,7 +95,7 @@ impl Sandbox for ScrollableDemo {
                             .on_scroll(move |offset| {
                                 Message::Scrolled(i, offset)
                             })
-                            .style(theme.clone().into())
+                            .style(*theme)
                             .push(Text::new(variant.title))
                             .push(
                                 Button::new(
