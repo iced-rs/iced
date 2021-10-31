@@ -40,6 +40,7 @@ impl Compositor {
                     wgpu::PowerPreference::HighPerformance
                 },
                 compatible_surface: compatible_surface.as_ref(),
+                force_fallback_adapter: false,
             })
             .await?;
 
@@ -140,7 +141,7 @@ impl iced_graphics::window::Compositor for Compositor {
         background_color: Color,
         overlay: &[T],
     ) -> Result<(), iced_graphics::window::SurfaceError> {
-        match surface.get_current_frame() {
+        match surface.get_current_texture() {
             Ok(frame) => {
                 let mut encoder = self.device.create_command_encoder(
                     &wgpu::CommandEncoderDescriptor {
@@ -149,7 +150,6 @@ impl iced_graphics::window::Compositor for Compositor {
                 );
 
                 let view = &frame
-                    .output
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -194,6 +194,7 @@ impl iced_graphics::window::Compositor for Compositor {
                 // Submit work
                 self.staging_belt.finish();
                 self.queue.submit(Some(encoder.finish()));
+                frame.present();
 
                 // Recall staging buffers
                 self.local_pool

@@ -39,6 +39,7 @@ pub fn main() {
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
             })
             .await
             .expect("Request adapter");
@@ -171,7 +172,7 @@ pub fn main() {
                     resized = false;
                 }
 
-                match surface.get_current_frame() {
+                match surface.get_current_texture() {
                     Ok(frame) => {
                         let mut encoder = device.create_command_encoder(
                             &wgpu::CommandEncoderDescriptor { label: None },
@@ -179,7 +180,7 @@ pub fn main() {
 
                         let program = state.program();
 
-                        let view = frame.output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                        let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
                         {
                             // We clear the frame
@@ -209,6 +210,7 @@ pub fn main() {
                         // Then we submit the work
                         staging_belt.finish();
                         queue.submit(Some(encoder.finish()));
+                        frame.present();
 
                         // Update the mouse cursor
                          window.set_cursor_icon(
