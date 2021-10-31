@@ -304,7 +304,7 @@ impl Task {
                         Button::new(edit_button, edit_icon())
                             .on_press(TaskMessage::Edit)
                             .padding(10)
-                            .style(&style::Button::Icon),
+                            .style(style::Button::Icon),
                     )
                     .into()
             }
@@ -335,7 +335,7 @@ impl Task {
                         )
                         .on_press(TaskMessage::Delete)
                         .padding(10)
-                        .style(&style::Button::Destructive),
+                        .style(style::Button::Destructive),
                     )
                     .into()
             }
@@ -364,9 +364,9 @@ impl Controls {
             let label = Text::new(label).size(16);
             let button =
                 Button::new(state, label).style(if filter == current_filter {
-                    &style::Button::FilterSelected
+                    style::Button::FilterSelected
                 } else {
-                    &style::Button::FilterActive
+                    style::Button::FilterActive
                 });
 
             button.on_press(Message::FilterChanged(filter)).padding(8)

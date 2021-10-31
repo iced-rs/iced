@@ -64,7 +64,7 @@ impl Sandbox for Tour {
             controls = controls.push(
                 button(back_button, "Back")
                     .on_press(Message::BackPressed)
-                    .style(&style::Button::Secondary),
+                    .style(style::Button::Secondary),
             );
         }
 
@@ -74,7 +74,7 @@ impl Sandbox for Tour {
             controls = controls.push(
                 button(next_button, "Next")
                     .on_press(Message::NextPressed)
-                    .style(&style::Button::Primary),
+                    .style(style::Button::Primary),
             );
         }
 

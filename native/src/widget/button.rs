@@ -66,7 +66,7 @@ pub struct Button<'a, Message, Renderer> {
     min_width: u32,
     min_height: u32,
     padding: Padding,
-    style_sheet: &'a dyn StyleSheet,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -131,8 +131,11 @@ where
     }
 
     /// Sets the style of the [`Button`].
-    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }

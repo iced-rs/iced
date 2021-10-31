@@ -158,7 +158,7 @@ impl Application for Example {
             let pin_button =
                 Button::new(&mut pane.pin_button, Text::new(text).size(14))
                     .on_press(Message::TogglePin(id))
-                    .style(&style::Button::Pin)
+                    .style(style::Button::Pin)
                     .padding(3);
 
             let title = Row::with_children(vec![
@@ -316,13 +316,13 @@ impl Content {
                 split_horizontally,
                 "Split horizontally",
                 Message::Split(pane_grid::Axis::Horizontal, pane),
-                &style::Button::Primary,
+                style::Button::Primary,
             ))
             .push(button(
                 split_vertically,
                 "Split vertically",
                 Message::Split(pane_grid::Axis::Vertical, pane),
-                &style::Button::Primary,
+                style::Button::Primary,
             ));
 
         if total_panes > 1 && !is_pinned {
@@ -330,7 +330,7 @@ impl Content {
                 close,
                 "Close",
                 Message::Close(pane),
-                &style::Button::Destructive,
+                style::Button::Destructive,
             ));
         }
 
@@ -364,7 +364,7 @@ impl Controls {
     ) -> Element<Message> {
         let mut button =
             Button::new(&mut self.close, Text::new("Close").size(14))
-                .style(&style::Button::Control)
+                .style(style::Button::Control)
                 .padding(3);
         if total_panes > 1 && !is_pinned {
             button = button.on_press(Message::Close(pane));

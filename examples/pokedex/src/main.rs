@@ -243,7 +243,7 @@ impl From<reqwest::Error> for Error {
 fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
     Button::new(state, Text::new(text))
         .padding(10)
-        .style(&style::Button::Primary)
+        .style(style::Button::Primary)
 }
 
 mod style {
