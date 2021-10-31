@@ -46,7 +46,8 @@ mod platform {
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
     pub mod svg {
         //! Display vector graphics in your user interface.
-        pub use crate::runtime::widget::svg::{Handle, Svg};
+        pub use crate::runtime::svg::Handle;
+        pub use crate::runtime::widget::svg::Svg;
     }
 
     #[doc(no_inline)]

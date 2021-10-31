@@ -1,9 +1,10 @@
 //! Display vector graphics in your application.
 use crate::backend::{self, Backend};
 use crate::{Primitive, Rectangle, Renderer};
-use iced_native::widget::svg;
+use iced_native::svg;
 
-pub use iced_native::widget::svg::{Handle, Svg};
+pub use iced_native::widget::svg::Svg;
+pub use svg::Handle;
 
 impl<B> svg::Renderer for Renderer<B>
 where

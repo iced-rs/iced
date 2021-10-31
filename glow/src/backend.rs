@@ -246,7 +246,7 @@ impl backend::Image for Backend {
 impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
-        _handle: &iced_native::widget::svg::Handle,
+        _handle: &iced_native::svg::Handle,
     ) -> (u32, u32) {
         (50, 50)
     }

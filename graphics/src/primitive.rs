@@ -1,5 +1,5 @@
 use iced_native::image;
-use iced_native::widget::svg;
+use iced_native::svg;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
 use crate::alignment;

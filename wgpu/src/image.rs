@@ -20,7 +20,7 @@ use bytemuck::{Pod, Zeroable};
 use iced_native::image;
 
 #[cfg(feature = "svg")]
-use iced_native::widget::svg;
+use iced_native::svg;
 
 #[derive(Debug)]
 pub struct Pipeline {

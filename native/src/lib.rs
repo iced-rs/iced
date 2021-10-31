@@ -44,6 +44,7 @@ pub mod overlay;
 pub mod program;
 pub mod renderer;
 pub mod subscription;
+pub mod svg;
 pub mod text;
 pub mod touch;
 pub mod widget;
