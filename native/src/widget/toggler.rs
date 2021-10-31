@@ -31,7 +31,7 @@ pub use iced_style::toggler::{Style, StyleSheet};
 /// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Toggler<Message, Renderer: text::Renderer> {
+pub struct Toggler<'a, Message, Renderer: text::Renderer> {
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message>,
     label: Option<String>,
@@ -41,10 +41,10 @@ pub struct Toggler<Message, Renderer: text::Renderer> {
     text_alignment: alignment::Horizontal,
     spacing: u16,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
-impl<Message, Renderer: text::Renderer> Toggler<Message, Renderer> {
+impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: u16 = 20;
 
@@ -117,14 +117,15 @@ impl<Message, Renderer: text::Renderer> Toggler<Message, Renderer> {
     /// Sets the style of the [`Toggler`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet>>,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Toggler<Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
 {
@@ -294,14 +295,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Toggler<Message, Renderer>>
+impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'a + text::Renderer,
     Message: 'a,
 {
     fn from(
-        toggler: Toggler<Message, Renderer>,
+        toggler: Toggler<'a, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(toggler)
     }
