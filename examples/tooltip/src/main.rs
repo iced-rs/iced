@@ -115,7 +115,7 @@ fn tooltip<'a>(
     )
     .gap(5)
     .padding(10)
-    .style(&style::Tooltip)
+    .style(style::Tooltip)
     .into()
 }
 

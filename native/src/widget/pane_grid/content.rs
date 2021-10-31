@@ -14,7 +14,7 @@ use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 pub struct Content<'a, Message, Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
     body: Element<'a, Message, Renderer>,
-    style_sheet: &'a dyn container::StyleSheet,
+    style_sheet: Box<dyn container::StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
@@ -40,8 +40,11 @@ where
     }
 
     /// Sets the style of the [`Content`].
-    pub fn style(mut self, style_sheet: &'a dyn container::StyleSheet) -> Self {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn container::StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }

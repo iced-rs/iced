@@ -178,9 +178,9 @@ impl Application for Example {
                 .controls(pane.controls.view(id, total_panes, pane.is_pinned))
                 .padding(10)
                 .style(if is_focused {
-                    &style::TitleBar::Focused
+                    style::TitleBar::Focused
                 } else {
-                    &style::TitleBar::Active
+                    style::TitleBar::Active
                 });
 
             pane_grid::Content::new(pane.content.view(
@@ -190,9 +190,9 @@ impl Application for Example {
             ))
             .title_bar(title_bar)
             .style(if is_focused {
-                &style::Pane::Focused
+                style::Pane::Focused
             } else {
-                &style::Pane::Active
+                style::Pane::Active
             })
         })
         .width(Length::Fill)

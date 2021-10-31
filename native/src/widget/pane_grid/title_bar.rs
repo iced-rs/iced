@@ -17,7 +17,7 @@ pub struct TitleBar<'a, Message, Renderer> {
     controls: Option<Element<'a, Message, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style_sheet: &'a dyn container::StyleSheet,
+    style_sheet: Box<dyn container::StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
@@ -54,8 +54,11 @@ where
     }
 
     /// Sets the style of the [`TitleBar`].
-    pub fn style(mut self, style: &'a dyn container::StyleSheet) -> Self {
-        self.style_sheet = style;
+    pub fn style(
+        mut self,
+        style: impl Into<Box<dyn container::StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style.into();
         self
     }
 

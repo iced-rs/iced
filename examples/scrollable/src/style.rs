@@ -16,11 +16,11 @@ impl Default for Theme {
     }
 }
 
-impl From<Theme> for &'static dyn container::StyleSheet {
+impl<'a> From<Theme> for Box<dyn container::StyleSheet + 'a> {
     fn from(theme: Theme) -> Self {
         match theme {
             Theme::Light => Default::default(),
-            Theme::Dark => &dark::Container,
+            Theme::Dark => dark::Container.into(),
         }
     }
 }

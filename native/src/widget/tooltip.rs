@@ -20,7 +20,7 @@ pub struct Tooltip<'a, Message, Renderer: text::Renderer> {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
-    style_sheet: &'a dyn container::StyleSheet,
+    style_sheet: Box<dyn container::StyleSheet + 'a>,
     gap: u16,
     padding: u16,
 }
@@ -77,8 +77,11 @@ where
     }
 
     /// Sets the style of the [`Tooltip`].
-    pub fn style(mut self, style_sheet: &'a dyn container::StyleSheet) -> Self {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn container::StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }
