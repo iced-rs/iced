@@ -1,6 +1,6 @@
 //! Write a graphics backend.
+use iced_native::image;
 use iced_native::text;
-use iced_native::widget::image;
 use iced_native::widget::svg;
 use iced_native::{Font, Point, Size};
 

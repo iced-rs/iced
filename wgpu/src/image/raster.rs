@@ -1,5 +1,5 @@
 use crate::image::atlas::{self, Atlas};
-use iced_native::widget::image;
+use iced_native::image;
 use std::collections::{HashMap, HashSet};
 
 use bitflags::bitflags;

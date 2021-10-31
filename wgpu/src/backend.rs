@@ -302,10 +302,7 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image_rs")]
 impl backend::Image for Backend {
-    fn dimensions(
-        &self,
-        handle: &iced_native::widget::image::Handle,
-    ) -> (u32, u32) {
+    fn dimensions(&self, handle: &iced_native::image::Handle) -> (u32, u32) {
         self.image_pipeline.dimensions(handle)
     }
 }

@@ -17,7 +17,7 @@ use std::mem;
 use bytemuck::{Pod, Zeroable};
 
 #[cfg(feature = "image_rs")]
-use iced_native::widget::image;
+use iced_native::image;
 
 #[cfg(feature = "svg")]
 use iced_native::widget::svg;

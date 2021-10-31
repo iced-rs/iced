@@ -1,9 +1,9 @@
 //! Zoom and pan on an image.
 use crate::event::{self, Event};
+use crate::image;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::widget::image;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
     Widget,
