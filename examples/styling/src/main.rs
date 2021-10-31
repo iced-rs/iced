@@ -90,7 +90,7 @@ impl Sandbox for Styling {
             self.slider_value,
             Message::SliderChanged,
         )
-        .style(self.theme.into());
+        .style(self.theme);
 
         let progress_bar =
             ProgressBar::new(0.0..=100.0, self.slider_value).style(self.theme);
@@ -221,11 +221,11 @@ mod style {
         }
     }
 
-    impl From<Theme> for &'static dyn slider::StyleSheet {
+    impl<'a> From<Theme> for Box<dyn slider::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
-                Theme::Dark => &dark::Slider,
+                Theme::Dark => dark::Slider.into(),
             }
         }
     }

@@ -50,7 +50,7 @@ pub struct Slider<'a, T, Message> {
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    style_sheet: &'a dyn StyleSheet,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, T, Message> Slider<'a, T, Message>
@@ -127,8 +127,11 @@ where
     }
 
     /// Sets the style of the [`Slider`].
-    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 
