@@ -35,8 +35,17 @@ impl StyleSheet for Default {
     }
 }
 
-impl std::default::Default for &'static dyn StyleSheet {
+impl std::default::Default for Box<dyn StyleSheet> {
     fn default() -> Self {
-        &Default
+        Box::new(Default)
+    }
+}
+
+impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
+where
+    T: StyleSheet + 'a,
+{
+    fn from(style_sheet: T) -> Self {
+        Box::new(style_sheet)
     }
 }

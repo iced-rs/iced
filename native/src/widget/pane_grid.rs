@@ -99,7 +99,7 @@ pub struct PaneGrid<'a, Message, Renderer> {
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style_sheet: &'a dyn StyleSheet,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
@@ -191,8 +191,8 @@ where
     }
 
     /// Sets the style of the [`PaneGrid`].
-    pub fn style(mut self, style: &'a dyn StyleSheet) -> Self {
-        self.style_sheet = style;
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet + 'a>>) -> Self {
+        self.style_sheet = style.into();
         self
     }
 }
