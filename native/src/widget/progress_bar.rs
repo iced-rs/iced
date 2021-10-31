@@ -21,15 +21,15 @@ pub use iced_style::progress_bar::{Style, StyleSheet};
 ///
 /// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
-pub struct ProgressBar {
+pub struct ProgressBar<'a> {
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
     height: Option<Length>,
-    style_sheet: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
-impl ProgressBar {
+impl<'a> ProgressBar<'a> {
     /// The default height of a [`ProgressBar`].
     pub const DEFAULT_HEIGHT: u16 = 30;
 
@@ -63,14 +63,14 @@ impl ProgressBar {
     /// Sets the style of the [`ProgressBar`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet>>,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar
+impl<'a, Message, Renderer> Widget<Message, Renderer> for ProgressBar<'a>
 where
     Renderer: crate::Renderer,
 {
@@ -147,12 +147,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<ProgressBar> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<ProgressBar<'a>>
+    for Element<'a, Message, Renderer>
 where
     Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
-    fn from(progress_bar: ProgressBar) -> Element<'a, Message, Renderer> {
+    fn from(progress_bar: ProgressBar<'a>) -> Element<'a, Message, Renderer> {
         Element::new(progress_bar)
     }
 }
