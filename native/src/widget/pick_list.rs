@@ -36,7 +36,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 /// The local state of a [`PickList`].
@@ -138,7 +138,7 @@ where
     /// Sets the style of the [`PickList`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet>>,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
