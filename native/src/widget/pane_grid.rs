@@ -62,10 +62,10 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 /// ## Example
 ///
 /// ```
-/// # use iced_native::{pane_grid, Text};
+/// # use iced_native::widget::{pane_grid, Text};
 /// #
 /// # type PaneGrid<'a, Message> =
-/// #     iced_native::PaneGrid<'a, Message, iced_native::renderer::Null>;
+/// #     iced_native::widget::PaneGrid<'a, Message, iced_native::renderer::Null>;
 /// #
 /// enum PaneState {
 ///     SomePane,

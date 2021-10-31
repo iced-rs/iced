@@ -7,9 +7,10 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget::text;
+use crate::widget::{Row, Text};
 use crate::{
     Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Row, Text, Widget,
+    Rectangle, Widget,
 };
 
 pub use iced_style::toggler::{Style, StyleSheet};
@@ -19,7 +20,7 @@ pub use iced_style::toggler::{Style, StyleSheet};
 /// # Example
 ///
 /// ```
-/// # type Toggler<Message> = iced_native::Toggler<Message, iced_native::renderer::Null>;
+/// # type Toggler<Message> = iced_native::widget::Toggler<Message, iced_native::renderer::Null>;
 /// #
 /// pub enum Message {
 ///     TogglerToggled(bool),

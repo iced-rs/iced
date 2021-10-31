@@ -1,7 +1,7 @@
 use crate::alignment;
 use crate::{Color, Point, Rectangle, Renderer, Size};
 
-pub use crate::text::Hit;
+pub use crate::widget::text::Hit;
 
 pub trait Text: Renderer {
     /// The font type used.

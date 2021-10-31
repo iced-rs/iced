@@ -1,9 +1,7 @@
 use iced_glow::Renderer;
-use iced_glutin::slider;
-use iced_glutin::{
-    Alignment, Color, Column, Command, Element, Length, Program, Row, Slider,
-    Text,
-};
+use iced_glutin::widget::slider::{self, Slider};
+use iced_glutin::widget::{Column, Row, Text};
+use iced_glutin::{Alignment, Color, Command, Element, Length, Program};
 
 pub struct Controls {
     background_color: Color,

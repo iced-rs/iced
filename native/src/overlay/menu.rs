@@ -6,11 +6,12 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::renderer::text;
-use crate::scrollable;
 use crate::touch;
+use crate::widget::scrollable::{self, Scrollable};
+use crate::widget::Container;
 use crate::{
-    Clipboard, Color, Container, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Scrollable, Size, Vector, Widget,
+    Clipboard, Color, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Size, Vector, Widget,
 };
 
 pub use iced_style::menu::Style;

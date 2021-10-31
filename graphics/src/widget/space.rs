@@ -1,1 +1,1 @@
-pub use iced_native::Space;
+pub use iced_native::widget::Space;

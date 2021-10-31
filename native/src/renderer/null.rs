@@ -1,5 +1,5 @@
 use crate::renderer::{self, Renderer};
-use crate::text;
+use crate::widget::text;
 use crate::{Font, Point, Rectangle, Size, Vector};
 
 /// A renderer that does nothing.

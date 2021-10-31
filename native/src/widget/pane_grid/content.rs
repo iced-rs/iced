@@ -1,10 +1,10 @@
-use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::pane_grid::TitleBar;
 use crate::renderer;
+use crate::widget::container;
+use crate::widget::pane_grid::TitleBar;
 use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
 
 /// The content of a [`Pane`].

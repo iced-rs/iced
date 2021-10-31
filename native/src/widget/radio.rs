@@ -6,11 +6,12 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text;
 use crate::touch;
+use crate::widget::text;
+use crate::widget::{Row, Text};
 use crate::{
     Alignment, Background, Clipboard, Color, Element, Hasher, Layout, Length,
-    Point, Rectangle, Row, Text, Widget,
+    Point, Rectangle, Widget,
 };
 
 pub use iced_style::radio::{Style, StyleSheet};
@@ -20,7 +21,7 @@ pub use iced_style::radio::{Style, StyleSheet};
 /// # Example
 /// ```
 /// # type Radio<'a, Message> =
-/// #     iced_native::Radio<'a, Message, iced_native::renderer::Null>;
+/// #     iced_native::widget::Radio<'a, Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {

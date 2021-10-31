@@ -66,13 +66,14 @@ pub mod qr_code;
 #[doc(no_inline)]
 pub use qr_code::QRCode;
 
-pub use iced_native::{Image, Space};
+pub use iced_native::widget::{Image, Space};
 
 /// A container that distributes its contents vertically.
-pub type Column<'a, Message> = iced_native::Column<'a, Message, Renderer>;
+pub type Column<'a, Message> =
+    iced_native::widget::Column<'a, Message, Renderer>;
 
 /// A container that distributes its contents horizontally.
-pub type Row<'a, Message> = iced_native::Row<'a, Message, Renderer>;
+pub type Row<'a, Message> = iced_native::widget::Row<'a, Message, Renderer>;
 
 /// A paragraph of text.
-pub type Text = iced_native::Text<Renderer>;
+pub type Text = iced_native::widget::Text<Renderer>;

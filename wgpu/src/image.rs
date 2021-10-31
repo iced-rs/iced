@@ -17,10 +17,10 @@ use std::mem;
 use bytemuck::{Pod, Zeroable};
 
 #[cfg(feature = "image_rs")]
-use iced_native::image;
+use iced_native::widget::image;
 
 #[cfg(feature = "svg")]
-use iced_native::svg;
+use iced_native::widget::svg;
 
 #[derive(Debug)]
 pub struct Pipeline {

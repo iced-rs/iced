@@ -4,9 +4,9 @@ pub mod viewer;
 use crate::backend::{self, Backend};
 use crate::{Primitive, Rectangle, Renderer};
 
-use iced_native::image;
+use iced_native::widget::image;
 
-pub use iced_native::image::{Handle, Image, Viewer};
+pub use iced_native::widget::image::{Handle, Image, Viewer};
 
 impl<B> image::Renderer for Renderer<B>
 where

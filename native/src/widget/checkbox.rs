@@ -6,11 +6,12 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text;
 use crate::touch;
+use crate::widget::text;
+use crate::widget::{Row, Text};
 use crate::{
     Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Row, Text, Widget,
+    Rectangle, Widget,
 };
 
 pub use iced_style::checkbox::{Style, StyleSheet};
@@ -20,7 +21,7 @@ pub use iced_style::checkbox::{Style, StyleSheet};
 /// # Example
 ///
 /// ```
-/// # type Checkbox<'a, Message> = iced_native::Checkbox<'a, Message, iced_native::renderer::Null>;
+/// # type Checkbox<'a, Message> = iced_native::widget::Checkbox<'a, Message, iced_native::renderer::Null>;
 /// #
 /// pub enum Message {
 ///     CheckboxToggled(bool),

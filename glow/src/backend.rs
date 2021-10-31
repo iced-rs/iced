@@ -237,7 +237,10 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, _handle: &iced_native::image::Handle) -> (u32, u32) {
+    fn dimensions(
+        &self,
+        _handle: &iced_native::widget::image::Handle,
+    ) -> (u32, u32) {
         (50, 50)
     }
 }
@@ -246,7 +249,7 @@ impl backend::Image for Backend {
 impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
-        _handle: &iced_native::svg::Handle,
+        _handle: &iced_native::widget::svg::Handle,
     ) -> (u32, u32) {
         (50, 50)
     }

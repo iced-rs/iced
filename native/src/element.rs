@@ -80,7 +80,7 @@ where
     ///
     /// ```
     /// # mod counter {
-    /// #     type Text = iced_native::Text<iced_native::renderer::Null>;
+    /// #     type Text = iced_native::widget::Text<iced_native::renderer::Null>;
     /// #
     /// #     #[derive(Debug, Clone, Copy)]
     /// #     pub enum Message {}
@@ -107,7 +107,8 @@ where
     /// # pub enum Message {
     /// #    Counter(usize, counter::Message)
     /// # }
-    /// use iced_native::{Element, Row};
+    /// use iced_native::Element;
+    /// use iced_native::widget::Row;
     /// use iced_wgpu::Renderer;
     ///
     /// impl ManyCounters {

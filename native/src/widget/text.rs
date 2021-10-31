@@ -15,7 +15,7 @@ use std::hash::Hash;
 /// # Example
 ///
 /// ```
-/// # type Text = iced_native::Text<iced_native::renderer::Null>;
+/// # type Text = iced_native::widget::Text<iced_native::renderer::Null>;
 /// #
 /// Text::new("I <3 iced!")
 ///     .color([0.0, 0.0, 1.0])

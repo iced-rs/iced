@@ -2,4 +2,4 @@
 //!
 //! A [`Slider`] has some local [`State`].
 pub use iced_graphics::slider::{Handle, HandleShape, Style, StyleSheet};
-pub use iced_native::slider::{Slider, State};
+pub use iced_native::widget::slider::{Slider, State};

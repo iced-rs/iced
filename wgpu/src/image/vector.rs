@@ -1,6 +1,6 @@
 use crate::image::atlas::{self, Atlas};
 
-use iced_native::svg;
+use iced_native::widget::svg;
 
 use std::collections::{HashMap, HashSet};
 use std::fs;

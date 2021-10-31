@@ -13,7 +13,7 @@ pub use iced_style::progress_bar::{Style, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_native::ProgressBar;
+/// # use iced_native::widget::ProgressBar;
 /// let value = 50.0;
 ///
 /// ProgressBar::new(0.0..=100.0, value);

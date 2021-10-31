@@ -10,14 +10,6 @@
 //! [`Widget`] trait. You can use the API of the built-in widgets as a guide or
 //! source of inspiration.
 //!
-//! # Re-exports
-//! For convenience, the contents of this module are available at the root
-//! module. Therefore, you can directly type:
-//!
-//! ```
-//! use iced_native::{button, Button, Widget};
-//! ```
-//!
 //! [renderer]: crate::renderer
 pub mod button;
 pub mod checkbox;

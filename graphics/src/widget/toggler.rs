@@ -7,4 +7,4 @@ pub use iced_style::toggler::{Style, StyleSheet};
 ///
 /// This is an alias of an `iced_native` toggler with an `iced_wgpu::Renderer`.
 pub type Toggler<Message, Backend> =
-    iced_native::Toggler<Message, Renderer<Backend>>;
+    iced_native::widget::Toggler<Message, Renderer<Backend>>;

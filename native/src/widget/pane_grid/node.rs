@@ -1,7 +1,5 @@
-use crate::{
-    pane_grid::{Axis, Pane, Split},
-    Rectangle, Size,
-};
+use crate::widget::pane_grid::{Axis, Pane, Split};
+use crate::{Rectangle, Size};
 
 use std::collections::BTreeMap;
 

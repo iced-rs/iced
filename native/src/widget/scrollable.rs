@@ -5,9 +5,10 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::widget::Column;
 use crate::{
-    Alignment, Background, Clipboard, Color, Column, Element, Hasher, Layout,
-    Length, Padding, Point, Rectangle, Size, Vector, Widget,
+    Alignment, Background, Clipboard, Color, Element, Hasher, Layout, Length,
+    Padding, Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::{f32, hash::Hash, u32};

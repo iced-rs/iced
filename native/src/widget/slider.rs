@@ -26,7 +26,7 @@ pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_native::slider::{self, Slider};
+/// # use iced_native::widget::slider::{self, Slider};
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {

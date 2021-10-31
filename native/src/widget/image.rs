@@ -17,7 +17,7 @@ use std::{
 /// # Example
 ///
 /// ```
-/// # use iced_native::Image;
+/// # use iced_native::widget::Image;
 /// #
 /// let image = Image::new("resources/ferris.png");
 /// ```

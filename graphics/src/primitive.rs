@@ -1,6 +1,6 @@
-use iced_native::{
-    image, svg, Background, Color, Font, Rectangle, Size, Vector,
-};
+use iced_native::widget::image;
+use iced_native::widget::svg;
+use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
 use crate::alignment;
 use crate::triangle;

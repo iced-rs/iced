@@ -31,9 +31,10 @@ pub use iced_style::text_input::{Style, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_native::{text_input, renderer::Null};
+/// # use iced_native::renderer::Null;
+/// # use iced_native::widget::text_input;
 /// #
-/// # pub type TextInput<'a, Message> = iced_native::TextInput<'a, Message, Null>;
+/// # pub type TextInput<'a, Message> = iced_native::widget::TextInput<'a, Message, Null>;
 /// #[derive(Debug, Clone)]
 /// enum Message {
 ///     TextInputChanged(String),

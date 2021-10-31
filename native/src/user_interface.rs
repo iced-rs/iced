@@ -49,7 +49,7 @@ where
     /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
-    /// # use iced_native::Column;
+    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #
@@ -143,7 +143,7 @@ where
     /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
-    /// # use iced_native::Column;
+    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #
@@ -279,7 +279,7 @@ where
     /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
-    /// # use iced_native::Column;
+    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #

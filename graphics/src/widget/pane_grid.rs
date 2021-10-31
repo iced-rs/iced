@@ -9,7 +9,7 @@
 //! [`pane_grid` example]: https://github.com/hecrj/iced/tree/0.3/examples/pane_grid
 use crate::Renderer;
 
-pub use iced_native::pane_grid::{
+pub use iced_native::widget::pane_grid::{
     Axis, Configuration, Content, Direction, DragEvent, Node, Pane,
     ResizeEvent, Split, State, TitleBar,
 };
@@ -23,4 +23,4 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 ///
 /// This is an alias of an `iced_native` pane grid with an `iced_wgpu::Renderer`.
 pub type PaneGrid<'a, Message, Backend> =
-    iced_native::PaneGrid<'a, Message, Renderer<Backend>>;
+    iced_native::widget::PaneGrid<'a, Message, Renderer<Backend>>;

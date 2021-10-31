@@ -19,10 +19,10 @@ pub use iced_style::button::{Style, StyleSheet};
 /// A generic widget that produces a message when pressed.
 ///
 /// ```
-/// # use iced_native::{button, Text};
+/// # use iced_native::widget::{button, Text};
 /// #
 /// # type Button<'a, Message> =
-/// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
+/// #     iced_native::widget::Button<'a, Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {
@@ -38,10 +38,10 @@ pub use iced_style::button::{Style, StyleSheet};
 /// be disabled:
 ///
 /// ```
-/// # use iced_native::{button, Text};
+/// # use iced_native::widget::{button, Text};
 /// #
 /// # type Button<'a, Message> =
-/// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
+/// #     iced_native::widget::Button<'a, Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {

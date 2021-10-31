@@ -84,4 +84,4 @@ pub use renderer::Renderer;
 pub use runtime::Runtime;
 pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};
-pub use widget::*;
+pub use widget::Widget;

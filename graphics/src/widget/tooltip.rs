@@ -6,6 +6,6 @@ use crate::Renderer;
 /// This is an alias of an `iced_native` tooltip with a default
 /// `Renderer`.
 pub type Tooltip<'a, Message, Backend> =
-    iced_native::Tooltip<'a, Message, Renderer<Backend>>;
+    iced_native::widget::Tooltip<'a, Message, Renderer<Backend>>;
 
-pub use iced_native::tooltip::Position;
+pub use iced_native::widget::tooltip::Position;

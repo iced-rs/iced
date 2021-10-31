@@ -1,4 +1,4 @@
-use crate::text_input::{Cursor, Value};
+use crate::widget::text_input::{Cursor, Value};
 
 pub struct Editor<'a> {
     value: &'a mut Value,

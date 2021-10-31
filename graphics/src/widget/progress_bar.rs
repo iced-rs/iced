@@ -2,4 +2,4 @@
 //!
 //! A [`ProgressBar`] has a range of possible values and a current value,
 //! as well as a length, height and style.
-pub use iced_native::progress_bar::*;
+pub use iced_native::widget::progress_bar::*;

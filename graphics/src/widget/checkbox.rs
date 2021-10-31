@@ -7,4 +7,4 @@ pub use iced_style::checkbox::{Style, StyleSheet};
 ///
 /// This is an alias of an `iced_native` checkbox with an `iced_wgpu::Renderer`.
 pub type Checkbox<'a, Message, Backend> =
-    iced_native::Checkbox<'a, Message, Renderer<Backend>>;
+    iced_native::widget::Checkbox<'a, Message, Renderer<Backend>>;

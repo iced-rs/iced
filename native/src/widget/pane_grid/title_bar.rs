@@ -1,9 +1,9 @@
-use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::widget::container;
 use crate::{
     Clipboard, Element, Hasher, Layout, Padding, Point, Rectangle, Size,
 };

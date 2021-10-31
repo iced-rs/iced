@@ -38,14 +38,14 @@ mod platform {
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     pub mod image {
         //! Display images in your user interface.
-        pub use crate::runtime::image::viewer;
-        pub use crate::runtime::image::{Handle, Image, Viewer};
+        pub use crate::runtime::widget::image::viewer;
+        pub use crate::runtime::widget::image::{Handle, Image, Viewer};
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
     pub mod svg {
         //! Display vector graphics in your user interface.
-        pub use crate::runtime::svg::{Handle, Svg};
+        pub use crate::runtime::widget::svg::{Handle, Svg};
     }
 
     #[doc(no_inline)]
