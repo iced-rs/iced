@@ -108,7 +108,7 @@ impl Sandbox for Styling {
             "Check me!",
             Message::CheckboxToggled,
         )
-        .style(self.theme.into());
+        .style(self.theme);
 
         let toggler = Toggler::new(
             self.toggler_value,
@@ -239,11 +239,11 @@ mod style {
         }
     }
 
-    impl From<Theme> for &'static dyn checkbox::StyleSheet {
+    impl<'a> From<Theme> for Box<dyn checkbox::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
-                Theme::Dark => &dark::Checkbox,
+                Theme::Dark => dark::Checkbox.into(),
             }
         }
     }

@@ -44,7 +44,7 @@ pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
     text_size: Option<u16>,
     font: Renderer::Font,
     text_color: Option<Color>,
-    style_sheet: &'a dyn StyleSheet,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
@@ -119,8 +119,11 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
     }
 
     /// Sets the style of the [`Checkbox`].
-    pub fn style(mut self, style_sheet: &'a dyn StyleSheet) -> Self {
-        self.style_sheet = style_sheet;
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }
