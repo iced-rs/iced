@@ -6,14 +6,14 @@ use scene::Scene;
 
 use glow;
 use glow::*;
+use glutin::dpi::PhysicalPosition;
+use glutin::event::{Event, ModifiersState, WindowEvent};
+use glutin::event_loop::ControlFlow;
+use iced_glow::glow;
 use iced_glow::{Backend, Renderer, Settings, Viewport};
+use iced_glutin::conversion;
 use iced_glutin::glutin;
-use iced_glutin::glutin::event::{Event, WindowEvent};
-use iced_glutin::glutin::event_loop::ControlFlow;
 use iced_glutin::{program, Clipboard, Debug, Size};
-use iced_winit::conversion;
-use iced_winit::winit;
-use winit::{dpi::PhysicalPosition, event::ModifiersState};
 
 pub fn main() {
     env_logger::init();
