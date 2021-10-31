@@ -169,12 +169,11 @@ pub fn main() {
                 });
 
                 // Update the mouse cursor
-                // TODO
-                // windowed_context.window().set_cursor_icon(
-                //     iced_winit::conversion::mouse_interaction(
-                //         mouse_interaction,
-                //     ),
-                // );
+                windowed_context.window().set_cursor_icon(
+                    iced_winit::conversion::mouse_interaction(
+                        state.mouse_interaction(),
+                    ),
+                );
 
                 windowed_context.swap_buffers().unwrap();
             }
