@@ -204,10 +204,9 @@ where
         viewport: &Rectangle,
         cursor_position: Point,
     ) -> mouse::Interaction {
-        let mut children = layout.children();
-
         let (body_layout, title_bar_interaction) =
             if let Some(title_bar) = &self.title_bar {
+                let mut children = layout.children();
                 let title_bar_layout = children.next().unwrap();
 
                 let is_over_pick_area = title_bar
@@ -225,7 +224,7 @@ where
 
                 (children.next().unwrap(), mouse_interaction)
             } else {
-                (children.next().unwrap(), mouse::Interaction::default())
+                (layout, mouse::Interaction::default())
             };
 
         self.body
