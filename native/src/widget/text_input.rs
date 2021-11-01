@@ -166,6 +166,179 @@ where
     }
 }
 
+impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+{
+    /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
+    /// [`Value`] if provided.
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        value: Option<&Value>,
+    ) {
+        let value = value.unwrap_or(&self.value);
+        let secure_value = self.is_secure.then(|| value.secure());
+        let value = secure_value.as_ref().unwrap_or(&value);
+
+        let bounds = layout.bounds();
+        let text_bounds = layout.children().next().unwrap().bounds();
+
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        let style = if self.state.is_focused() {
+            self.style_sheet.focused()
+        } else if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
+        };
+
+        renderer.fill_rectangle(renderer::Quad {
+            bounds,
+            background: style.background,
+            border_radius: style.border_radius,
+            border_width: style.border_width,
+            border_color: style.border_color,
+        });
+
+        let text = value.to_string();
+        let size = self.size.unwrap_or(renderer.default_size());
+
+        let (cursor, offset) = if self.state.is_focused() {
+            match self.state.cursor.state(&value) {
+                cursor::State::Index(position) => {
+                    let (text_value_width, offset) =
+                        measure_cursor_and_scroll_offset(
+                            renderer,
+                            text_bounds,
+                            &value,
+                            size,
+                            position,
+                            self.font,
+                        );
+
+                    (
+                        Some(renderer::Quad {
+                            bounds: Rectangle {
+                                x: text_bounds.x + text_value_width,
+                                y: text_bounds.y,
+                                width: 1.0,
+                                height: text_bounds.height,
+                            },
+                            background: Background::Color(
+                                self.style_sheet.value_color(),
+                            ),
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        }),
+                        offset,
+                    )
+                }
+                cursor::State::Selection { start, end } => {
+                    let left = start.min(end);
+                    let right = end.max(start);
+
+                    let (left_position, left_offset) =
+                        measure_cursor_and_scroll_offset(
+                            renderer,
+                            text_bounds,
+                            &value,
+                            size,
+                            left,
+                            self.font,
+                        );
+
+                    let (right_position, right_offset) =
+                        measure_cursor_and_scroll_offset(
+                            renderer,
+                            text_bounds,
+                            &value,
+                            size,
+                            right,
+                            self.font,
+                        );
+
+                    let width = right_position - left_position;
+
+                    (
+                        Some(renderer::Quad {
+                            bounds: Rectangle {
+                                x: text_bounds.x + left_position,
+                                y: text_bounds.y,
+                                width,
+                                height: text_bounds.height,
+                            },
+                            background: Background::Color(
+                                self.style_sheet.selection_color(),
+                            ),
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        }),
+                        if end == right {
+                            right_offset
+                        } else {
+                            left_offset
+                        },
+                    )
+                }
+            }
+        } else {
+            (None, 0.0)
+        };
+
+        let text_width = renderer.measure_width(
+            if text.is_empty() {
+                &self.placeholder
+            } else {
+                &text
+            },
+            size,
+            self.font,
+        );
+
+        let render = |renderer: &mut Renderer| {
+            if let Some(cursor) = cursor {
+                renderer.fill_rectangle(cursor);
+            }
+
+            renderer.fill_text(Text {
+                content: if text.is_empty() {
+                    &self.placeholder
+                } else {
+                    &text
+                },
+                color: if text.is_empty() {
+                    self.style_sheet.placeholder_color()
+                } else {
+                    self.style_sheet.value_color()
+                },
+                font: self.font,
+                bounds: Rectangle {
+                    y: text_bounds.center_y(),
+                    width: f32::INFINITY,
+                    ..text_bounds
+                },
+                size: f32::from(size),
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
+            });
+        };
+
+        if text_width > text_bounds.width {
+            renderer.with_layer(text_bounds, |renderer| {
+                renderer.with_translation(Vector::new(-offset, 0.0), render)
+            });
+        } else {
+            render(renderer);
+        }
+    }
+}
+
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for TextInput<'a, Message, Renderer>
 where
@@ -604,162 +777,7 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let secure_value = self.is_secure.then(|| self.value.secure());
-        let value = secure_value.as_ref().unwrap_or(&self.value);
-
-        let bounds = layout.bounds();
-        let text_bounds = layout.children().next().unwrap().bounds();
-
-        let is_mouse_over = bounds.contains(cursor_position);
-
-        let style = if self.state.is_focused() {
-            self.style_sheet.focused()
-        } else if is_mouse_over {
-            self.style_sheet.hovered()
-        } else {
-            self.style_sheet.active()
-        };
-
-        renderer.fill_rectangle(renderer::Quad {
-            bounds,
-            background: style.background,
-            border_radius: style.border_radius,
-            border_width: style.border_width,
-            border_color: style.border_color,
-        });
-
-        let text = value.to_string();
-        let size = self.size.unwrap_or(renderer.default_size());
-
-        let (cursor, offset) = if self.state.is_focused() {
-            match self.state.cursor.state(&value) {
-                cursor::State::Index(position) => {
-                    let (text_value_width, offset) =
-                        measure_cursor_and_scroll_offset(
-                            renderer,
-                            text_bounds,
-                            &value,
-                            size,
-                            position,
-                            self.font,
-                        );
-
-                    (
-                        Some(renderer::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + text_value_width,
-                                y: text_bounds.y,
-                                width: 1.0,
-                                height: text_bounds.height,
-                            },
-                            background: Background::Color(
-                                self.style_sheet.value_color(),
-                            ),
-                            border_radius: 0.0,
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
-                        }),
-                        offset,
-                    )
-                }
-                cursor::State::Selection { start, end } => {
-                    let left = start.min(end);
-                    let right = end.max(start);
-
-                    let (left_position, left_offset) =
-                        measure_cursor_and_scroll_offset(
-                            renderer,
-                            text_bounds,
-                            &value,
-                            size,
-                            left,
-                            self.font,
-                        );
-
-                    let (right_position, right_offset) =
-                        measure_cursor_and_scroll_offset(
-                            renderer,
-                            text_bounds,
-                            &value,
-                            size,
-                            right,
-                            self.font,
-                        );
-
-                    let width = right_position - left_position;
-
-                    (
-                        Some(renderer::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + left_position,
-                                y: text_bounds.y,
-                                width,
-                                height: text_bounds.height,
-                            },
-                            background: Background::Color(
-                                self.style_sheet.selection_color(),
-                            ),
-                            border_radius: 0.0,
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
-                        }),
-                        if end == right {
-                            right_offset
-                        } else {
-                            left_offset
-                        },
-                    )
-                }
-            }
-        } else {
-            (None, 0.0)
-        };
-
-        let text_width = renderer.measure_width(
-            if text.is_empty() {
-                &self.placeholder
-            } else {
-                &text
-            },
-            size,
-            self.font,
-        );
-
-        let render = |renderer: &mut Renderer| {
-            if let Some(cursor) = cursor {
-                renderer.fill_rectangle(cursor);
-            }
-
-            renderer.fill_text(Text {
-                content: if text.is_empty() {
-                    &self.placeholder
-                } else {
-                    &text
-                },
-                color: if text.is_empty() {
-                    self.style_sheet.placeholder_color()
-                } else {
-                    self.style_sheet.value_color()
-                },
-                font: self.font,
-                bounds: Rectangle {
-                    y: text_bounds.center_y(),
-                    width: f32::INFINITY,
-                    ..text_bounds
-                },
-                size: f32::from(size),
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Center,
-            });
-        };
-
-        if text_width > text_bounds.width {
-            renderer.with_layer(text_bounds, |renderer| {
-                renderer.with_translation(Vector::new(-offset, 0.0), render)
-            });
-        } else {
-            render(renderer);
-        }
+        self.draw(renderer, layout, cursor_position, None)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
