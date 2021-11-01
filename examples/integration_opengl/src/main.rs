@@ -4,7 +4,6 @@ mod scene;
 use controls::Controls;
 use scene::Scene;
 
-use glow;
 use glow::*;
 use glutin::dpi::PhysicalPosition;
 use glutin::event::{Event, ModifiersState, WindowEvent};
