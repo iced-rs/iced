@@ -16,8 +16,8 @@ pub mod text {
     pub use iced_native::widget::text::{Appearance, StyleSheet};
 
     /// A paragraph of text.
-    pub type Text<Renderer = crate::Renderer> =
-        iced_native::widget::Text<Renderer>;
+    pub type Text<'a, Renderer = crate::Renderer> =
+        iced_native::widget::Text<'a, Renderer>;
 }
 
 pub mod button {

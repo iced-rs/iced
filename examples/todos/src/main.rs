@@ -469,7 +469,7 @@ const ICONS: Font = Font::External {
     bytes: include_bytes!("../../todos/fonts/icons.ttf"),
 };
 
-fn icon(unicode: char) -> Text {
+fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
         .font(ICONS)
         .width(Length::Units(20))
@@ -477,11 +477,11 @@ fn icon(unicode: char) -> Text {
         .size(20)
 }
 
-fn edit_icon() -> Text {
+fn edit_icon() -> Text<'static> {
     icon('\u{F303}')
 }
 
-fn delete_icon() -> Text {
+fn delete_icon() -> Text<'static> {
     icon('\u{F1F8}')
 }
 
