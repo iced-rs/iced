@@ -20,7 +20,7 @@ pub use iced_style::toggler::{Style, StyleSheet};
 /// # Example
 ///
 /// ```
-/// # type Toggler<Message> = iced_native::widget::Toggler<Message, iced_native::renderer::Null>;
+/// # type Toggler<'a, Message> = iced_native::widget::Toggler<'a, Message, iced_native::renderer::Null>;
 /// #
 /// pub enum Message {
 ///     TogglerToggled(bool),
