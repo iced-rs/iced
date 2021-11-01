@@ -72,7 +72,7 @@ impl Sandbox for ScrollableDemo {
                 column.push(
                     Radio::new(
                         *option,
-                        &format!("{:?}", option),
+                        format!("{:?}", option),
                         Some(*theme),
                         Message::ThemeChanged,
                     )

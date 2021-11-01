@@ -417,7 +417,7 @@ impl<'a> Step {
                 StepMessage::SliderChanged,
             ))
             .push(
-                Text::new(&value.to_string())
+                Text::new(value.to_string())
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
@@ -464,7 +464,7 @@ impl<'a> Step {
                 StepMessage::SpacingChanged,
             ))
             .push(
-                Text::new(&format!("{} px", spacing))
+                Text::new(format!("{} px", spacing))
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             );
@@ -497,7 +497,7 @@ impl<'a> Step {
             .spacing(20)
             .push(Text::new("You can change its size:"))
             .push(
-                Text::new(&format!("This text is {} pixels", size)).size(size),
+                Text::new(format!("This text is {} pixels", size)).size(size),
             )
             .push(Slider::new(
                 size_slider,
@@ -518,7 +518,7 @@ impl<'a> Step {
             .padding(20)
             .spacing(20)
             .push(Text::new("And its color:"))
-            .push(Text::new(&format!("{:?}", color)).color(color))
+            .push(Text::new(format!("{:?}", color)).color(color))
             .push(color_sliders);
 
         Self::container("Text")
@@ -589,7 +589,7 @@ impl<'a> Step {
                 StepMessage::ImageWidthChanged,
             ))
             .push(
-                Text::new(&format!("Width: {} px", width.to_string()))
+                Text::new(format!("Width: {} px", width.to_string()))
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
