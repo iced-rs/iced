@@ -167,8 +167,8 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         self.children
             .iter()
@@ -176,8 +176,8 @@ where
             .map(|(child, layout)| {
                 child.widget.mouse_interaction(
                     layout,
-                    viewport,
                     cursor_position,
+                    viewport,
                 )
             })
             .max()

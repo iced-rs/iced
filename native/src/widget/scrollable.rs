@@ -426,8 +426,8 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        _viewport: &Rectangle,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -453,11 +453,11 @@ where
 
             self.content.mouse_interaction(
                 content_layout,
+                cursor_position,
                 &Rectangle {
                     y: bounds.y + offset as f32,
                     ..bounds
                 },
-                cursor_position,
             )
         }
     }

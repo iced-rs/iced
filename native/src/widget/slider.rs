@@ -342,8 +342,8 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        _viewport: &Rectangle,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);

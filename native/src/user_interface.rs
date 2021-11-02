@@ -381,8 +381,8 @@ where
 
         let base_interaction = self.root.widget.mouse_interaction(
             Layout::new(&self.base.layout),
-            &viewport,
             cursor_position,
+            &viewport,
         );
 
         let Self {
@@ -403,8 +403,8 @@ where
                 root.overlay(Layout::new(&base.layout)).map(|overlay| {
                     let overlay_interaction = overlay.mouse_interaction(
                         Layout::new(&layer.layout),
-                        &viewport,
                         cursor_position,
+                        &viewport,
                     );
 
                     let overlay_bounds = layer.layout.bounds();

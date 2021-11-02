@@ -237,11 +237,11 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         self.container
-            .mouse_interaction(layout, viewport, cursor_position)
+            .mouse_interaction(layout, cursor_position, viewport)
     }
 
     fn draw(
@@ -388,8 +388,8 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        _viewport: &Rectangle,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> mouse::Interaction {
         let is_mouse_over = layout.bounds().contains(cursor_position);
 

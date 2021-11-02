@@ -182,13 +182,13 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         self.content.widget.mouse_interaction(
             layout.children().next().unwrap(),
-            viewport,
             cursor_position,
+            viewport,
         )
     }
 

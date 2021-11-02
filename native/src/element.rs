@@ -257,11 +257,11 @@ where
     pub fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         self.widget
-            .mouse_interaction(layout, viewport, cursor_position)
+            .mouse_interaction(layout, cursor_position, viewport)
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -362,11 +362,11 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         self.widget
-            .mouse_interaction(layout, viewport, cursor_position)
+            .mouse_interaction(layout, cursor_position, viewport)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -479,12 +479,12 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         self.element
             .widget
-            .mouse_interaction(layout, viewport, cursor_position)
+            .mouse_interaction(layout, cursor_position, viewport)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

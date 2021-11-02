@@ -72,11 +72,11 @@ where
     pub fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         self.overlay
-            .mouse_interaction(layout, viewport, cursor_position)
+            .mouse_interaction(layout, cursor_position, viewport)
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].
@@ -148,6 +148,16 @@ where
             .for_each(|message| messages.push((self.mapper)(message)));
 
         event_status
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        self.content
+            .mouse_interaction(layout, cursor_position, viewport)
     }
 
     fn draw(

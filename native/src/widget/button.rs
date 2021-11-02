@@ -251,8 +251,8 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        _viewport: &Rectangle,
         cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> mouse::Interaction {
         let is_mouse_over = layout.bounds().contains(cursor_position);
         let is_disabled = self.on_press.is_none();

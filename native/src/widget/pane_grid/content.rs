@@ -201,8 +201,8 @@ where
     pub(crate) fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         let (body_layout, title_bar_interaction) =
             if let Some(title_bar) = &self.title_bar {
@@ -218,8 +218,8 @@ where
 
                 let mouse_interaction = title_bar.mouse_interaction(
                     title_bar_layout,
-                    viewport,
                     cursor_position,
+                    viewport,
                 );
 
                 (children.next().unwrap(), mouse_interaction)
@@ -228,7 +228,7 @@ where
             };
 
         self.body
-            .mouse_interaction(body_layout, viewport, cursor_position)
+            .mouse_interaction(body_layout, cursor_position, viewport)
             .max(title_bar_interaction)
     }
 

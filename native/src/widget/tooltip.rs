@@ -5,6 +5,7 @@ use iced_core::Rectangle;
 
 use crate::event;
 use crate::layout;
+use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::widget::container;
@@ -139,6 +140,16 @@ where
             clipboard,
             messages,
         )
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        self.content
+            .mouse_interaction(layout, cursor_position, viewport)
     }
 
     fn draw(

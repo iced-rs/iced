@@ -1,5 +1,4 @@
 //! Display a horizontal or vertical rule for dividing content.
-
 use iced_core::Color;
 
 /// The fill mode of a rule.

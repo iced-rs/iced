@@ -474,8 +474,8 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        viewport: &Rectangle,
         cursor_position: Point,
+        viewport: &Rectangle,
     ) -> mouse::Interaction {
         if self.state.picked_pane().is_some() {
             return mouse::Interaction::Grab;
@@ -492,7 +492,7 @@ where
             .iter()
             .zip(layout.children())
             .map(|((_pane, content), layout)| {
-                content.mouse_interaction(layout, viewport, cursor_position)
+                content.mouse_interaction(layout, cursor_position, viewport)
             })
             .max()
             .unwrap_or_default()

@@ -174,8 +174,8 @@ where
     fn mouse_interaction(
         &self,
         _layout: Layout<'_>,
-        _viewport: &Rectangle,
         _cursor_position: Point,
+        _viewport: &Rectangle,
     ) -> mouse::Interaction {
         mouse::Interaction::Idle
     }
