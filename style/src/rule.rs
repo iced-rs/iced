@@ -103,7 +103,7 @@ impl StyleSheet for Default {
     }
 }
 
-impl std::default::Default for Box<dyn StyleSheet> {
+impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
     fn default() -> Self {
         Box::new(Default)
     }
