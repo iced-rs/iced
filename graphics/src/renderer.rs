@@ -112,7 +112,7 @@ fn explain_layout(
         background: Background::Color(Color::TRANSPARENT),
         border_radius: 0.0,
         border_width: 1.0,
-        border_color: [0.6, 0.6, 0.6, 0.5].into(),
+        border_color: color,
     });
 
     for child in layout.children() {
