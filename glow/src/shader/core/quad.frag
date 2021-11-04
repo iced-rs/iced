@@ -1,4 +1,4 @@
-#version 330
+#version 130
 
 uniform float u_ScreenHeight;
 

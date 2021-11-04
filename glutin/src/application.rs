@@ -63,6 +63,7 @@ where
 
         let context = ContextBuilder::new()
             .with_vsync(true)
+            // .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)))
             .with_multisampling(C::sample_count(&compositor_settings) as u16)
             .build_windowed(builder, &event_loop)
             .map_err(|error| {

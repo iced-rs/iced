@@ -1,31 +1,25 @@
-#version 330
+#version 100
 
 uniform mat4 u_Transform;
 uniform float u_Scale;
 
-layout(location = 0) in vec2 i_Pos;
-layout(location = 1) in vec2 i_Scale;
-layout(location = 2) in vec4 i_Color;
-layout(location = 3) in vec4 i_BorderColor;
-layout(location = 4) in float i_BorderRadius;
-layout(location = 5) in float i_BorderWidth;
+attribute vec2 i_Pos;
+attribute vec2 i_Scale;
+attribute vec4 i_Color;
+attribute vec4 i_BorderColor;
+attribute float i_BorderRadius;
+attribute float i_BorderWidth;
+attribute vec2 q_Pos;
 
-out vec4 v_Color;
-out vec4 v_BorderColor;
-out vec2 v_Pos;
-out vec2 v_Scale;
-out float v_BorderRadius;
-out float v_BorderWidth;
+varying vec4 v_Color;
+varying vec4 v_BorderColor;
+varying vec2 v_Pos;
+varying vec2 v_Scale;
+varying float v_BorderRadius;
+varying float v_BorderWidth;
 
-const vec2 positions[4] = vec2[](
-    vec2(0.0, 0.0),
-    vec2(0.0, 1.0),
-    vec2(1.0, 0.0),
-    vec2(1.0, 1.0)
-);
 
 void main() {
-    vec2 q_Pos = positions[gl_VertexID];
     vec2 p_Pos = i_Pos * u_Scale;
     vec2 p_Scale = i_Scale  * u_Scale;
 
