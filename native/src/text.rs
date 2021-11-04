@@ -1,14 +1,29 @@
+//! Draw and interact with text.
 use crate::alignment;
 use crate::{Color, Point, Rectangle, Size, Vector};
 
+/// A paragraph.
 #[derive(Debug, Clone, Copy)]
 pub struct Text<'a, Font> {
+    /// The content of the paragraph.
     pub content: &'a str,
+
+    /// The bounds of the paragraph.
     pub bounds: Rectangle,
+
+    /// The size of the [`Text`].
     pub size: f32,
+
+    /// The color of the [`Text`].
     pub color: Color,
+
+    /// The font of the [`Text`].
     pub font: Font,
+
+    /// The horizontal alignment of the [`Text`].
     pub horizontal_alignment: alignment::Horizontal,
+
+    /// The vertical alignment of the [`Text`].
     pub vertical_alignment: alignment::Vertical,
 }
 
@@ -39,6 +54,7 @@ impl Hit {
     }
 }
 
+/// A renderer capable of measuring and drawing [`Text`].
 pub trait Renderer: crate::Renderer {
     /// The font type used.
     type Font: Default + Copy;
@@ -69,13 +85,14 @@ pub trait Renderer: crate::Renderer {
         bounds: Size,
     ) -> (f32, f32);
 
+    /// Measures the width of the text as if it were laid out in a single line.
     fn measure_width(&self, content: &str, size: u16, font: Self::Font) -> f32 {
         let (width, _) = self.measure(content, size, font, Size::INFINITY);
 
         width
     }
 
-    /// Tests whether the provided point is within the boundaries of [`Text`]
+    /// Tests whether the provided point is within the boundaries of text
     /// laid out with the given parameters, returning information about
     /// the nearest character.
     ///
@@ -92,5 +109,6 @@ pub trait Renderer: crate::Renderer {
         nearest_only: bool,
     ) -> Option<Hit>;
 
+    /// Draws the given [`Text`].
     fn fill_text(&mut self, text: Text<'_, Self::Font>);
 }
