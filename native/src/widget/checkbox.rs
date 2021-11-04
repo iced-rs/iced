@@ -226,13 +226,15 @@ where
                 self.style_sheet.active(self.is_checked)
             };
 
-            renderer.fill_rectangle(renderer::Quad {
-                bounds,
-                background: style.background,
-                border_radius: style.border_radius,
-                border_width: style.border_width,
-                border_color: style.border_color,
-            });
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border_radius: style.border_radius,
+                    border_width: style.border_width,
+                    border_color: style.border_color,
+                },
+                style.background,
+            );
 
             if self.is_checked {
                 renderer.fill_text(text::Text {

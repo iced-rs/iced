@@ -42,23 +42,28 @@ pub trait Renderer: Sized {
         element.layout(self, limits)
     }
 
+    /// Draws the primitives recorded in the given closure in a new layer.
+    ///
+    /// The layer will clip its contents to the provided `bounds`.
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self));
 
+    /// Applies a `translation` to the primitives recorded in the given closure.
     fn with_translation(
         &mut self,
         translation: Vector,
         f: impl FnOnce(&mut Self),
     );
 
+    /// Clears all of the recorded primitives in the [`Renderer`].
     fn clear(&mut self);
 
-    fn fill_rectangle(&mut self, quad: Quad);
+    /// Fills a [`Quad`] with the provided [`Background`].
+    fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Quad {
     pub bounds: Rectangle,
-    pub background: Background,
     pub border_radius: f32,
     pub border_width: f32,
     pub border_color: Color,

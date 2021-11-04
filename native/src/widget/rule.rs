@@ -2,8 +2,7 @@
 use crate::layout;
 use crate::renderer;
 use crate::{
-    Background, Color, Element, Hasher, Layout, Length, Point, Rectangle, Size,
-    Widget,
+    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
 };
 
 use std::hash::Hash;
@@ -113,13 +112,15 @@ where
             }
         };
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds,
-            background: Background::Color(style.color),
-            border_radius: style.radius,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        });
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_radius: style.radius,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            },
+            style.color,
+        );
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

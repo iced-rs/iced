@@ -253,13 +253,15 @@ where
     ) {
         let bounds = layout.bounds();
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds,
-            background: self.style.background,
-            border_color: self.style.border_color,
-            border_width: self.style.border_width,
-            border_radius: 0.0,
-        });
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_color: self.style.border_color,
+                border_width: self.style.border_width,
+                border_radius: 0.0,
+            },
+            self.style.background,
+        );
 
         self.container
             .draw(renderer, style, layout, cursor_position, &bounds);
@@ -432,13 +434,15 @@ where
             };
 
             if is_selected {
-                renderer.fill_rectangle(renderer::Quad {
-                    bounds,
-                    background: self.style.selected_background,
-                    border_color: Color::TRANSPARENT,
-                    border_width: 0.0,
-                    border_radius: 0.0,
-                });
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds,
+                        border_color: Color::TRANSPARENT,
+                        border_width: 0.0,
+                        border_radius: 0.0,
+                    },
+                    self.style.selected_background,
+                );
             }
 
             renderer.fill_text(Text {

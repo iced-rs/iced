@@ -12,8 +12,7 @@ mod circle {
     use iced_native::layout::{self, Layout};
     use iced_native::renderer;
     use iced_native::{
-        Background, Color, Element, Hasher, Length, Point, Rectangle, Size,
-        Widget,
+        Color, Element, Hasher, Length, Point, Rectangle, Size, Widget,
     };
 
     pub struct Circle {
@@ -60,13 +59,15 @@ mod circle {
             _cursor_position: Point,
             _viewport: &Rectangle,
         ) {
-            renderer.fill_rectangle(renderer::Quad {
-                bounds: layout.bounds(),
-                background: Background::Color(Color::BLACK),
-                border_radius: self.radius,
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
-            });
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: layout.bounds(),
+                    border_radius: self.radius,
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                },
+                Color::BLACK,
+            );
         }
     }
 

@@ -163,6 +163,16 @@ where
     }
 }
 
+/// Draws text using the same logic as the [`Text`] widget.
+///
+/// Specifically:
+///
+/// * If no `size` is provided, the default text size of the `Renderer` will be
+///   used.
+/// * If no `color` is provided, the [`renderer::Style::text_color`] will be
+///   used.
+/// * The alignment attributes do not affect the position of the bounds of the
+///   [`Layout`].
 pub fn draw<Renderer>(
     renderer: &mut Renderer,
     style: &renderer::Style,

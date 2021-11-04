@@ -3,7 +3,7 @@ use crate::{Primitive, Vector};
 use iced_native::layout;
 use iced_native::renderer;
 use iced_native::text::{self, Text};
-use iced_native::{Element, Font, Point, Rectangle, Size};
+use iced_native::{Background, Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
 
@@ -88,10 +88,14 @@ where
         });
     }
 
-    fn fill_rectangle(&mut self, quad: renderer::Quad) {
+    fn fill_quad(
+        &mut self,
+        quad: renderer::Quad,
+        background: impl Into<Background>,
+    ) {
         self.primitives.push(Primitive::Quad {
             bounds: quad.bounds,
-            background: quad.background,
+            background: background.into(),
             border_radius: quad.border_radius,
             border_width: quad.border_width,
             border_color: quad.border_color,

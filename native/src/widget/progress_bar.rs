@@ -116,25 +116,29 @@ where
 
         let style = self.style_sheet.style();
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds: Rectangle { ..bounds },
-            background: style.background,
-            border_radius: style.border_radius,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        });
-
-        if active_progress_width > 0.0 {
-            renderer.fill_rectangle(renderer::Quad {
-                bounds: Rectangle {
-                    width: active_progress_width,
-                    ..bounds
-                },
-                background: style.bar,
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle { ..bounds },
                 border_radius: style.border_radius,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
-            });
+            },
+            style.background,
+        );
+
+        if active_progress_width > 0.0 {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: Rectangle {
+                        width: active_progress_width,
+                        ..bounds
+                    },
+                    border_radius: style.border_radius,
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                },
+                style.bar,
+            );
         }
     }
 

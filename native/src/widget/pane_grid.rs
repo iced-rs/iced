@@ -609,31 +609,34 @@ where
             };
 
             if let Some(highlight) = highlight {
-                renderer.fill_rectangle(renderer::Quad {
-                    bounds: match axis {
-                        Axis::Horizontal => Rectangle {
-                            x: split_region.x,
-                            y: (split_region.y
-                                + (split_region.height - highlight.width)
-                                    / 2.0)
-                                .round(),
-                            width: split_region.width,
-                            height: highlight.width,
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: match axis {
+                            Axis::Horizontal => Rectangle {
+                                x: split_region.x,
+                                y: (split_region.y
+                                    + (split_region.height - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                width: split_region.width,
+                                height: highlight.width,
+                            },
+                            Axis::Vertical => Rectangle {
+                                x: (split_region.x
+                                    + (split_region.width - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                y: split_region.y,
+                                width: highlight.width,
+                                height: split_region.height,
+                            },
                         },
-                        Axis::Vertical => Rectangle {
-                            x: (split_region.x
-                                + (split_region.width - highlight.width) / 2.0)
-                                .round(),
-                            y: split_region.y,
-                            width: highlight.width,
-                            height: split_region.height,
-                        },
+                        border_radius: 0.0,
+                        border_width: 0.0,
+                        border_color: Color::TRANSPARENT,
                     },
-                    background: highlight.color.into(),
-                    border_radius: 0.0,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                });
+                    highlight.color,
+                );
             }
         }
     }

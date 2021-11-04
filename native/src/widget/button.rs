@@ -293,28 +293,32 @@ where
         if styling.background.is_some() || styling.border_width > 0.0 {
             if styling.shadow_offset != Vector::default() {
                 // TODO: Implement proper shadow support
-                renderer.fill_rectangle(renderer::Quad {
-                    bounds: Rectangle {
-                        x: bounds.x + styling.shadow_offset.x,
-                        y: bounds.y + styling.shadow_offset.y,
-                        ..bounds
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: Rectangle {
+                            x: bounds.x + styling.shadow_offset.x,
+                            y: bounds.y + styling.shadow_offset.y,
+                            ..bounds
+                        },
+                        border_radius: styling.border_radius,
+                        border_width: 0.0,
+                        border_color: Color::TRANSPARENT,
                     },
-                    background: Background::Color([0.0, 0.0, 0.0, 0.5].into()),
-                    border_radius: styling.border_radius,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                });
+                    Background::Color([0.0, 0.0, 0.0, 0.5].into()),
+                );
             }
 
-            renderer.fill_rectangle(renderer::Quad {
-                bounds,
-                background: styling
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border_radius: styling.border_radius,
+                    border_width: styling.border_width,
+                    border_color: styling.border_color,
+                },
+                styling
                     .background
                     .unwrap_or(Background::Color(Color::TRANSPARENT)),
-                border_radius: styling.border_radius,
-                border_width: styling.border_width,
-                border_color: styling.border_color,
-            });
+            );
         }
 
         self.content.draw(

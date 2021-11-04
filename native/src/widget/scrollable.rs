@@ -526,28 +526,32 @@ where
                 },
                 |renderer| {
                     if is_scrollbar_visible {
-                        renderer.fill_rectangle(renderer::Quad {
-                            bounds: scrollbar.bounds,
-                            background: style.background.unwrap_or(
-                                Background::Color(Color::TRANSPARENT),
-                            ),
-                            border_radius: style.border_radius,
-                            border_width: style.border_width,
-                            border_color: style.border_color,
-                        });
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: scrollbar.bounds,
+                                border_radius: style.border_radius,
+                                border_width: style.border_width,
+                                border_color: style.border_color,
+                            },
+                            style.background.unwrap_or(Background::Color(
+                                Color::TRANSPARENT,
+                            )),
+                        );
                     }
 
                     if is_mouse_over
                         || self.state.is_scroller_grabbed()
                         || is_scrollbar_visible
                     {
-                        renderer.fill_rectangle(renderer::Quad {
-                            bounds: scrollbar.scroller.bounds,
-                            background: Background::Color(style.scroller.color),
-                            border_radius: style.scroller.border_radius,
-                            border_width: style.scroller.border_width,
-                            border_color: style.scroller.border_color,
-                        });
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: scrollbar.scroller.bounds,
+                                border_radius: style.scroller.border_radius,
+                                border_width: style.scroller.border_width,
+                                border_color: style.scroller.border_color,
+                            },
+                            style.scroller.color,
+                        );
                     }
                 },
             );

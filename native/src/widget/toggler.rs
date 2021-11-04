@@ -258,13 +258,17 @@ where
             height: bounds.height - (2.0 * space),
         };
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds: toggler_background_bounds,
-            background: style.background.into(),
-            border_radius,
-            border_width: 1.0,
-            border_color: style.background_border.unwrap_or(style.background),
-        });
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: toggler_background_bounds,
+                border_radius,
+                border_width: 1.0,
+                border_color: style
+                    .background_border
+                    .unwrap_or(style.background),
+            },
+            style.background,
+        );
 
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
@@ -278,13 +282,17 @@ where
             height: bounds.height - (4.0 * space),
         };
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds: toggler_foreground_bounds,
-            background: style.foreground.into(),
-            border_radius,
-            border_width: 1.0,
-            border_color: style.foreground_border.unwrap_or(style.foreground),
-        });
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: toggler_foreground_bounds,
+                border_radius,
+                border_width: 1.0,
+                border_color: style
+                    .foreground_border
+                    .unwrap_or(style.foreground),
+            },
+            style.foreground,
+        );
     }
 
     fn hash_layout(&self, state: &mut Hasher) {

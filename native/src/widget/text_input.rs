@@ -20,8 +20,8 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::{
-    Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Size, Vector, Widget,
+    Clipboard, Color, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Size, Vector, Widget,
 };
 
 use std::u32;
@@ -196,13 +196,15 @@ where
             self.style_sheet.active()
         };
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds,
-            background: style.background,
-            border_radius: style.border_radius,
-            border_width: style.border_width,
-            border_color: style.border_color,
-        });
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_radius: style.border_radius,
+                border_width: style.border_width,
+                border_color: style.border_color,
+            },
+            style.background,
+        );
 
         let text = value.to_string();
         let size = self.size.unwrap_or(renderer.default_size());
@@ -221,20 +223,20 @@ where
                         );
 
                     (
-                        Some(renderer::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + text_value_width,
-                                y: text_bounds.y,
-                                width: 1.0,
-                                height: text_bounds.height,
+                        Some((
+                            renderer::Quad {
+                                bounds: Rectangle {
+                                    x: text_bounds.x + text_value_width,
+                                    y: text_bounds.y,
+                                    width: 1.0,
+                                    height: text_bounds.height,
+                                },
+                                border_radius: 0.0,
+                                border_width: 0.0,
+                                border_color: Color::TRANSPARENT,
                             },
-                            background: Background::Color(
-                                self.style_sheet.value_color(),
-                            ),
-                            border_radius: 0.0,
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
-                        }),
+                            self.style_sheet.value_color(),
+                        )),
                         offset,
                     )
                 }
@@ -265,20 +267,20 @@ where
                     let width = right_position - left_position;
 
                     (
-                        Some(renderer::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + left_position,
-                                y: text_bounds.y,
-                                width,
-                                height: text_bounds.height,
+                        Some((
+                            renderer::Quad {
+                                bounds: Rectangle {
+                                    x: text_bounds.x + left_position,
+                                    y: text_bounds.y,
+                                    width,
+                                    height: text_bounds.height,
+                                },
+                                border_radius: 0.0,
+                                border_width: 0.0,
+                                border_color: Color::TRANSPARENT,
                             },
-                            background: Background::Color(
-                                self.style_sheet.selection_color(),
-                            ),
-                            border_radius: 0.0,
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
-                        }),
+                            self.style_sheet.selection_color(),
+                        )),
                         if end == right {
                             right_offset
                         } else {
@@ -302,8 +304,8 @@ where
         );
 
         let render = |renderer: &mut Renderer| {
-            if let Some(cursor) = cursor {
-                renderer.fill_rectangle(cursor);
+            if let Some((cursor, color)) = cursor {
+                renderer.fill_quad(cursor, color);
             }
 
             renderer.fill_text(Text {

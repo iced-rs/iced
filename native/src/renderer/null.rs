@@ -1,6 +1,6 @@
 use crate::renderer::{self, Renderer};
 use crate::text::{self, Text};
-use crate::{Font, Point, Rectangle, Size, Vector};
+use crate::{Background, Font, Point, Rectangle, Size, Vector};
 
 /// A renderer that does nothing.
 ///
@@ -27,7 +27,12 @@ impl Renderer for Null {
 
     fn clear(&mut self) {}
 
-    fn fill_rectangle(&mut self, _quad: renderer::Quad) {}
+    fn fill_quad(
+        &mut self,
+        _quad: renderer::Quad,
+        _background: impl Into<Background>,
+    ) {
+    }
 }
 
 impl text::Renderer for Null {

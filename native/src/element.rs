@@ -4,8 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
-    Background, Clipboard, Color, Hasher, Layout, Length, Point, Rectangle,
-    Widget,
+    Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Widget,
 };
 
 /// A generic [`Widget`].
@@ -254,6 +253,7 @@ where
             .draw(renderer, style, layout, cursor_position, viewport)
     }
 
+    /// Returns the current [`mouse::Interaction`] of the [`Element`].
     pub fn mouse_interaction(
         &self,
         layout: Layout<'_>,
@@ -452,13 +452,15 @@ where
             color: Color,
             layout: Layout<'_>,
         ) {
-            renderer.fill_rectangle(renderer::Quad {
-                bounds: layout.bounds(),
-                border_color: color,
-                border_width: 1.0,
-                border_radius: 0.0,
-                background: Background::Color(Color::TRANSPARENT),
-            });
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: layout.bounds(),
+                    border_color: color,
+                    border_width: 1.0,
+                    border_radius: 0.0,
+                },
+                Color::TRANSPARENT,
+            );
 
             for child in layout.children() {
                 explain_layout(renderer, color, child);

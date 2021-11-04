@@ -360,13 +360,15 @@ where
             self.style_sheet.active()
         };
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds,
-            background: style.background,
-            border_color: style.border_color,
-            border_width: style.border_width,
-            border_radius: style.border_radius,
-        });
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_color: style.border_color,
+                border_width: style.border_width,
+                border_radius: style.border_radius,
+            },
+            style.background,
+        );
 
         renderer.fill_text(Text {
             content: &Renderer::ARROW_DOWN_ICON.to_string(),

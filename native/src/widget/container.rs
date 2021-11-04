@@ -238,6 +238,7 @@ where
     }
 }
 
+/// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
 pub fn draw_background<Renderer>(
     renderer: &mut Renderer,
     style: &Style,
@@ -246,15 +247,17 @@ pub fn draw_background<Renderer>(
     Renderer: crate::Renderer,
 {
     if style.background.is_some() || style.border_width > 0.0 {
-        renderer.fill_rectangle(renderer::Quad {
-            bounds,
-            background: style
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_radius: style.border_radius,
+                border_width: style.border_width,
+                border_color: style.border_color,
+            },
+            style
                 .background
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
-            border_radius: style.border_radius,
-            border_width: style.border_width,
-            border_color: style.border_color,
-        });
+        );
     }
 }
 

@@ -58,6 +58,7 @@ where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
 {
+    /// The default height of a [`Slider`].
     pub const DEFAULT_HEIGHT: u16 = 22;
 
     /// Creates a new [`Slider`].
@@ -272,31 +273,35 @@ where
 
         let rail_y = bounds.y + (bounds.height / 2.0).round();
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds: Rectangle {
-                x: bounds.x,
-                y: rail_y,
-                width: bounds.width,
-                height: 2.0,
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle {
+                    x: bounds.x,
+                    y: rail_y,
+                    width: bounds.width,
+                    height: 2.0,
+                },
+                border_radius: 0.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
             },
-            background: Background::Color(style.rail_colors.0),
-            border_radius: 0.0,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        });
+            style.rail_colors.0,
+        );
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds: Rectangle {
-                x: bounds.x,
-                y: rail_y + 2.0,
-                width: bounds.width,
-                height: 2.0,
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle {
+                    x: bounds.x,
+                    y: rail_y + 2.0,
+                    width: bounds.width,
+                    height: 2.0,
+                },
+                border_radius: 0.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
             },
-            background: Background::Color(style.rail_colors.1),
-            border_radius: 0.0,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        });
+            Background::Color(style.rail_colors.1),
+        );
 
         let (handle_width, handle_height, handle_border_radius) = match style
             .handle
@@ -325,18 +330,20 @@ where
                 / (range_end - range_start)
         };
 
-        renderer.fill_rectangle(renderer::Quad {
-            bounds: Rectangle {
-                x: bounds.x + handle_offset.round(),
-                y: rail_y - handle_height / 2.0,
-                width: handle_width,
-                height: handle_height,
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle {
+                    x: bounds.x + handle_offset.round(),
+                    y: rail_y - handle_height / 2.0,
+                    width: handle_width,
+                    height: handle_height,
+                },
+                border_radius: handle_border_radius,
+                border_width: style.handle.border_width,
+                border_color: style.handle.border_color,
             },
-            background: Background::Color(style.handle.color),
-            border_radius: handle_border_radius,
-            border_width: style.handle.border_width,
-            border_color: style.handle.border_color,
-        });
+            style.handle.color,
+        );
     }
 
     fn mouse_interaction(
