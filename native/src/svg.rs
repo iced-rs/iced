@@ -1,3 +1,4 @@
+//! Load and draw vector graphics.
 use crate::{Hasher, Rectangle};
 
 use std::hash::{Hash, Hasher as _};
@@ -75,16 +76,13 @@ impl std::fmt::Debug for Data {
     }
 }
 
-/// The renderer of an [`Svg`].
-///
-/// Your [renderer] will need to implement this trait before being able to use
-/// an [`Svg`] in your user interface.
+/// A [`Renderer`] that can render vector graphics.
 ///
 /// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer {
-    /// Returns the default dimensions of an [`Svg`] for the given [`Handle`].
+    /// Returns the default dimensions of an SVG for the given [`Handle`].
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
 
-    // Draws an [`Svg`].
+    /// Draws an SVG with the given [`Handle`] and inside the provided `bounds`.
     fn draw(&mut self, handle: Handle, bounds: Rectangle);
 }
