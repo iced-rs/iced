@@ -1,3 +1,4 @@
+//! Load and draw raster graphics.
 use crate::{Hasher, Rectangle};
 
 use std::hash::{Hash, Hasher as _};
@@ -110,13 +111,14 @@ impl std::fmt::Debug for Data {
     }
 }
 
-/// A [`Renderer`] that can render images.
+/// A [`Renderer`] that can render raster graphics.
 ///
 /// [renderer]: crate::renderer
 pub trait Renderer: crate::Renderer {
-    /// Returns the dimensions of an [`Image`] located on the given path.
+    /// Returns the dimensions of an image for the given [`Handle`].
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
 
-    // Draws an [`Image`].
+    /// Draws an image with the given [`Handle`] and inside the provided
+    /// `bounds`.
     fn draw(&mut self, handle: Handle, bounds: Rectangle);
 }
