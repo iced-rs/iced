@@ -53,8 +53,7 @@ where
     }
 
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
-        let current_primitives =
-            std::mem::replace(&mut self.primitives, Vec::new());
+        let current_primitives = std::mem::take(&mut self.primitives);
 
         f(self);
 
@@ -74,8 +73,7 @@ where
         translation: Vector,
         f: impl FnOnce(&mut Self),
     ) {
-        let current_primitives =
-            std::mem::replace(&mut self.primitives, Vec::new());
+        let current_primitives = std::mem::take(&mut self.primitives);
 
         f(self);
 
