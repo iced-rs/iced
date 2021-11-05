@@ -159,7 +159,7 @@ pub fn main() {
                 }
 
                 // And then iced on top
-                renderer.present(|backend, primitive| {
+                renderer.with_primitives(|backend, primitive| {
                     backend.present(
                         &gl,
                         primitive,

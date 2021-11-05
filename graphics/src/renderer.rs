@@ -31,7 +31,9 @@ impl<B: Backend> Renderer<B> {
         self.primitives.push(primitive);
     }
 
-    pub fn present(&mut self, f: impl FnOnce(&mut B, &[Primitive])) {
+    /// Runs the given closure with the [`Backend`] and the recorded primitives
+    /// of the [`Renderer`].
+    pub fn with_primitives(&mut self, f: impl FnOnce(&mut B, &[Primitive])) {
         f(&mut self.backend, &self.primitives);
     }
 }

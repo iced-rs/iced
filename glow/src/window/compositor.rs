@@ -74,7 +74,7 @@ impl iced_graphics::window::GLCompositor for Compositor {
             gl.clear(glow::COLOR_BUFFER_BIT);
         }
 
-        renderer.present(|backend, primitive| {
+        renderer.with_primitives(|backend, primitive| {
             backend.present(gl, primitive, viewport, overlay);
         });
     }

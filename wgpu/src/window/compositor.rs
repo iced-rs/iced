@@ -179,13 +179,13 @@ impl iced_graphics::window::Compositor for Compositor {
                         depth_stencil_attachment: None,
                     });
 
-                renderer.present(|backend, primitive| {
+                renderer.with_primitives(|backend, primitives| {
                     backend.present(
                         &mut self.device,
                         &mut self.staging_belt,
                         &mut encoder,
                         view,
-                        primitive,
+                        primitives,
                         viewport,
                         overlay,
                     );
