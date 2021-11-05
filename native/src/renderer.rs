@@ -61,11 +61,19 @@ pub trait Renderer: Sized {
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
 }
 
+/// A polygon with four sides.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Quad {
+    /// The bounds of the [`Quad`].
     pub bounds: Rectangle,
+
+    /// The border radius of the [`Quad`].
     pub border_radius: f32,
+
+    /// The border width of the [`Quad`].
     pub border_width: f32,
+
+    /// The border color of the [`Quad`].
     pub border_color: Color,
 }
 

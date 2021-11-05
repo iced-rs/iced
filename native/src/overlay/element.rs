@@ -69,6 +69,7 @@ where
         )
     }
 
+    /// Returns the current [`mouse::Interaction`] of the [`Element`].
     pub fn mouse_interaction(
         &self,
         layout: Layout<'_>,
