@@ -1,3 +1,4 @@
+//! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
 use crate::{Primitive, Vector};
 use iced_native::layout;
@@ -23,10 +24,12 @@ impl<B: Backend> Renderer<B> {
         }
     }
 
+    /// Returns the [`Backend`] of the [`Renderer`].
     pub fn backend(&self) -> &B {
         &self.backend
     }
 
+    /// Enqueues the given [`Primitive`] in the [`Renderer`] for drawing.
     pub fn draw_primitive(&mut self, primitive: Primitive) {
         self.primitives.push(primitive);
     }
