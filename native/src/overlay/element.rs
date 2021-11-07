@@ -25,6 +25,11 @@ where
         Self { position, overlay }
     }
 
+    /// Returns the position of the [`Element`].
+    pub fn position(&self) -> Point {
+        self.position
+    }
+
     /// Translates the [`Element`].
     pub fn translate(mut self, translation: Vector) -> Self {
         self.position = self.position + translation;

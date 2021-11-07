@@ -57,6 +57,7 @@ members = [
     "graphics",
     "glow",
     "glutin",
+    "lazy",
     "native",
     "style",
     "web",
