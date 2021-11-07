@@ -7,4 +7,5 @@ pub use iced_graphics::container::{Style, StyleSheet};
 ///
 /// This is an alias of an `iced_native` container with a default
 /// `Renderer`.
-pub type Container<'a, Message> = iced_native::Container<'a, Message, Renderer>;
+pub type Container<'a, Message> =
+    iced_native::widget::Container<'a, Message, Renderer>;

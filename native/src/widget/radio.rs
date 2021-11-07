@@ -1,24 +1,27 @@
 //! Create choices using radio buttons.
 use std::hash::Hash;
 
-use crate::alignment::{self, Alignment};
+use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::row;
+use crate::renderer;
 use crate::text;
 use crate::touch;
+use crate::widget::{self, Row, Text};
 use crate::{
-    Clipboard, Color, Element, Hasher, Layout, Length, Point, Rectangle, Row,
-    Text, Widget,
+    Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
+    Rectangle, Widget,
 };
+
+pub use iced_style::radio::{Style, StyleSheet};
 
 /// A circular button representing a choice.
 ///
 /// # Example
 /// ```
-/// # type Radio<Message> =
-/// #     iced_native::Radio<Message, iced_native::renderer::Null>;
+/// # type Radio<'a, Message> =
+/// #     iced_native::widget::Radio<'a, Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {
@@ -40,7 +43,7 @@ use crate::{
 ///
 /// ![Radio buttons drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Radio<Message, Renderer: self::Renderer + text::Renderer> {
+pub struct Radio<'a, Message, Renderer: text::Renderer> {
     is_selected: bool,
     on_click: Message,
     label: String,
@@ -50,14 +53,19 @@ pub struct Radio<Message, Renderer: self::Renderer + text::Renderer> {
     text_size: Option<u16>,
     text_color: Option<Color>,
     font: Renderer::Font,
-    style: Renderer::Style,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
-impl<Message, Renderer: self::Renderer + text::Renderer>
-    Radio<Message, Renderer>
+impl<'a, Message, Renderer: text::Renderer> Radio<'a, Message, Renderer>
 where
     Message: Clone,
 {
+    /// The default size of a [`Radio`] button.
+    pub const DEFAULT_SIZE: u16 = 28;
+
+    /// The default spacing of a [`Radio`] button.
+    pub const DEFAULT_SPACING: u16 = 15;
+
     /// Creates a new [`Radio`] button.
     ///
     /// It expects:
@@ -81,12 +89,12 @@ where
             on_click: f(value),
             label: label.into(),
             width: Length::Shrink,
-            size: <Renderer as self::Renderer>::DEFAULT_SIZE,
-            spacing: Renderer::DEFAULT_SPACING, //15
+            size: Self::DEFAULT_SIZE,
+            spacing: Self::DEFAULT_SPACING, //15
             text_size: None,
             text_color: None,
             font: Default::default(),
-            style: Renderer::Style::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -127,16 +135,20 @@ where
     }
 
     /// Sets the style of the [`Radio`] button.
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Radio<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: self::Renderer + text::Renderer + row::Renderer,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -192,43 +204,88 @@ where
         event::Status::Ignored
     }
 
-    fn draw(
+    fn mouse_interaction(
         &self,
-        renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
+    ) -> mouse::Interaction {
+        if layout.bounds().contains(cursor_position) {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
         let bounds = layout.bounds();
-        let mut children = layout.children();
-
-        let radio_layout = children.next().unwrap();
-        let label_layout = children.next().unwrap();
-        let radio_bounds = radio_layout.bounds();
-
-        let label = text::Renderer::draw(
-            renderer,
-            defaults,
-            label_layout.bounds(),
-            &self.label,
-            self.text_size.unwrap_or(renderer.default_size()),
-            self.font,
-            self.text_color,
-            alignment::Horizontal::Left,
-            alignment::Vertical::Center,
-        );
-
         let is_mouse_over = bounds.contains(cursor_position);
 
-        self::Renderer::draw(
-            renderer,
-            radio_bounds,
-            self.is_selected,
-            is_mouse_over,
-            label,
-            &self.style,
-        )
+        let mut children = layout.children();
+
+        {
+            let layout = children.next().unwrap();
+            let bounds = layout.bounds();
+
+            let size = bounds.width;
+            let dot_size = size / 2.0;
+
+            let style = if is_mouse_over {
+                self.style_sheet.hovered()
+            } else {
+                self.style_sheet.active()
+            };
+
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border_radius: size / 2.0,
+                    border_width: style.border_width,
+                    border_color: style.border_color,
+                },
+                style.background,
+            );
+
+            if self.is_selected {
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: Rectangle {
+                            x: bounds.x + dot_size / 2.0,
+                            y: bounds.y + dot_size / 2.0,
+                            width: bounds.width - dot_size,
+                            height: bounds.height - dot_size,
+                        },
+                        border_radius: dot_size / 2.0,
+                        border_width: 0.0,
+                        border_color: Color::TRANSPARENT,
+                    },
+                    style.dot_color,
+                );
+            }
+        }
+
+        {
+            let label_layout = children.next().unwrap();
+
+            widget::text::draw(
+                renderer,
+                style,
+                label_layout,
+                &self.label,
+                self.font,
+                self.text_size,
+                self.text_color,
+                alignment::Horizontal::Left,
+                alignment::Vertical::Center,
+            );
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -239,46 +296,15 @@ where
     }
 }
 
-/// The renderer of a [`Radio`] button.
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Radio`] button in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer {
-    /// The style supported by this renderer.
-    type Style: Default;
-
-    /// The default size of a [`Radio`] button.
-    const DEFAULT_SIZE: u16;
-
-    /// The default spacing of a [`Radio`] button.
-    const DEFAULT_SPACING: u16;
-
-    /// Draws a [`Radio`] button.
-    ///
-    /// It receives:
-    ///   * the bounds of the [`Radio`]
-    ///   * whether the [`Radio`] is selected or not
-    ///   * whether the mouse is over the [`Radio`] or not
-    ///   * the drawn label of the [`Radio`]
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        is_selected: bool,
-        is_mouse_over: bool,
-        label: Self::Output,
-        style: &Self::Style,
-    ) -> Self::Output;
-}
-
-impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
+impl<'a, Message, Renderer> From<Radio<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + self::Renderer + row::Renderer + text::Renderer,
+    Renderer: 'a + text::Renderer,
 {
-    fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(
+        radio: Radio<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
         Element::new(radio)
     }
 }

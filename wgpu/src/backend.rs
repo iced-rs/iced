@@ -8,7 +8,6 @@ use iced_graphics::font;
 use iced_graphics::layer::Layer;
 use iced_graphics::{Primitive, Viewport};
 use iced_native::alignment;
-use iced_native::mouse;
 use iced_native::{Font, Size};
 
 #[cfg(any(feature = "image_rs", feature = "svg"))]
@@ -28,6 +27,7 @@ pub struct Backend {
     image_pipeline: image::Pipeline,
 
     default_text_size: u16,
+    primitive: Primitive,
 }
 
 impl Backend {
@@ -60,6 +60,7 @@ impl Backend {
             image_pipeline,
 
             default_text_size: settings.default_text_size,
+            primitive: Primitive::None,
         }
     }
 
@@ -67,23 +68,23 @@ impl Backend {
     ///
     /// The text provided as overlay will be rendered on top of the primitives.
     /// This is useful for rendering debug information.
-    pub fn draw<T: AsRef<str>>(
+    pub fn present<T: AsRef<str>>(
         &mut self,
         device: &wgpu::Device,
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
+        primitives: &[Primitive],
         viewport: &Viewport,
-        (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
         overlay_text: &[T],
-    ) -> mouse::Interaction {
+    ) {
         log::debug!("Drawing");
 
         let target_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
         let transformation = viewport.projection();
 
-        let mut layers = Layer::generate(primitive, viewport);
+        let mut layers = Layer::generate(primitives, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
         for layer in layers {
@@ -102,8 +103,6 @@ impl Backend {
 
         #[cfg(any(feature = "image_rs", feature = "svg"))]
         self.image_pipeline.trim_cache();
-
-        *mouse_interaction
     }
 
     fn flush(
@@ -119,6 +118,10 @@ impl Backend {
         target_height: u32,
     ) {
         let bounds = (layer.bounds * scale_factor).snap();
+
+        if bounds.width < 1 || bounds.height < 1 {
+            return;
+        }
 
         if !layer.quads.is_empty() {
             self.quad_pipeline.draw(

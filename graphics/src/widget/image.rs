@@ -2,13 +2,12 @@
 pub mod viewer;
 
 use crate::backend::{self, Backend};
+use crate::{Primitive, Rectangle, Renderer};
 
-use crate::{Primitive, Renderer};
 use iced_native::image;
-use iced_native::mouse;
-use iced_native::Layout;
 
-pub use iced_native::image::{Handle, Image, Viewer};
+pub use iced_native::widget::image::{Image, Viewer};
+pub use image::Handle;
 
 impl<B> image::Renderer for Renderer<B>
 where
@@ -18,17 +17,7 @@ where
         self.backend().dimensions(handle)
     }
 
-    fn draw(
-        &mut self,
-        handle: image::Handle,
-        layout: Layout<'_>,
-    ) -> Self::Output {
-        (
-            Primitive::Image {
-                handle,
-                bounds: layout.bounds(),
-            },
-            mouse::Interaction::default(),
-        )
+    fn draw(&mut self, handle: image::Handle, bounds: Rectangle) {
+        self.draw_primitive(Primitive::Image { handle, bounds })
     }
 }

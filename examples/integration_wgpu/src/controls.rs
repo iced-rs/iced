@@ -1,8 +1,7 @@
 use iced_wgpu::Renderer;
-use iced_winit::{
-    slider, Alignment, Color, Column, Command, Element, Length, Program, Row,
-    Slider, Text,
-};
+use iced_winit::widget::slider::{self, Slider};
+use iced_winit::widget::{Column, Row, Text};
+use iced_winit::{Alignment, Color, Command, Element, Length, Program};
 
 pub struct Controls {
     background_color: Color,

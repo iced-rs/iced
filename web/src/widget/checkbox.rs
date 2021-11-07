@@ -24,17 +24,17 @@ use std::rc::Rc;
 ///
 /// ![Checkbox drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Checkbox<Message> {
+pub struct Checkbox<'a, Message> {
     is_checked: bool,
     on_toggle: Rc<dyn Fn(bool) -> Message>,
     label: String,
     id: Option<String>,
     width: Length,
     #[allow(dead_code)]
-    style: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
-impl<Message> Checkbox<Message> {
+impl<'a, Message> Checkbox<'a, Message> {
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
@@ -53,7 +53,7 @@ impl<Message> Checkbox<Message> {
             label: label.into(),
             id: None,
             width: Length::Shrink,
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -64,8 +64,11 @@ impl<Message> Checkbox<Message> {
     }
 
     /// Sets the style of the [`Checkbox`].
-    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 
@@ -76,7 +79,7 @@ impl<Message> Checkbox<Message> {
     }
 }
 
-impl<Message> Widget<Message> for Checkbox<Message>
+impl<'a, Message> Widget<Message> for Checkbox<'a, Message>
 where
     Message: 'static,
 {
@@ -137,11 +140,11 @@ where
     }
 }
 
-impl<'a, Message> From<Checkbox<Message>> for Element<'a, Message>
+impl<'a, Message> From<Checkbox<'a, Message>> for Element<'a, Message>
 where
     Message: 'static,
 {
-    fn from(checkbox: Checkbox<Message>) -> Element<'a, Message> {
+    fn from(checkbox: Checkbox<'a, Message>) -> Element<'a, Message> {
         Element::new(checkbox)
     }
 }

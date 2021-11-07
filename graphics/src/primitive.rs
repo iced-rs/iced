@@ -1,6 +1,6 @@
-use iced_native::{
-    image, svg, Background, Color, Font, Rectangle, Size, Vector,
-};
+use iced_native::image;
+use iced_native::svg;
+use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
 use crate::alignment;
 use crate::triangle;
@@ -66,8 +66,6 @@ pub enum Primitive {
     Clip {
         /// The bounds of the clip
         bounds: Rectangle,
-        /// The offset transformation of the clip
-        offset: Vector<u32>,
         /// The content of the clip
         content: Box<Primitive>,
     },

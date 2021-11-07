@@ -1,10 +1,12 @@
 //! Encode and display information in a QR code.
 use crate::canvas;
-use crate::{Backend, Defaults, Primitive, Renderer, Vector};
+use crate::renderer::{self, Renderer};
+use crate::Backend;
 
+use iced_native::layout;
 use iced_native::{
-    layout, mouse, Color, Element, Hasher, Layout, Length, Point, Rectangle,
-    Size, Widget,
+    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
+    Widget,
 };
 use thiserror::Error;
 
@@ -80,12 +82,14 @@ where
 
     fn draw(
         &self,
-        _renderer: &mut Renderer<B>,
-        _defaults: &Defaults,
+        renderer: &mut Renderer<B>,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> (Primitive, mouse::Interaction) {
+    ) {
+        use iced_native::Renderer as _;
+
         let bounds = layout.bounds();
         let side_length = self.state.width + 2 * QUIET_ZONE;
 
@@ -122,13 +126,11 @@ where
                 });
         });
 
-        (
-            Primitive::Translate {
-                translation: Vector::new(bounds.x, bounds.y),
-                content: Box::new(geometry.into_primitive()),
-            },
-            mouse::Interaction::default(),
-        )
+        let translation = Vector::new(bounds.x, bounds.y);
+
+        renderer.with_translation(translation, |renderer| {
+            renderer.draw_primitive(geometry.into_primitive());
+        });
     }
 }
 

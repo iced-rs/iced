@@ -1,8 +1,9 @@
-use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
-use crate::pane_grid;
+use crate::renderer;
+use crate::widget::container;
 use crate::{
     Clipboard, Element, Hasher, Layout, Padding, Point, Rectangle, Size,
 };
@@ -11,17 +12,17 @@ use crate::{
 ///
 /// [`Pane`]: crate::widget::pane_grid::Pane
 #[allow(missing_debug_implementations)]
-pub struct TitleBar<'a, Message, Renderer: pane_grid::Renderer> {
+pub struct TitleBar<'a, Message, Renderer> {
     content: Element<'a, Message, Renderer>,
     controls: Option<Element<'a, Message, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style: <Renderer as container::Renderer>::Style,
+    style_sheet: Box<dyn container::StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
-    Renderer: pane_grid::Renderer,
+    Renderer: crate::Renderer,
 {
     /// Creates a new [`TitleBar`] with the given content.
     pub fn new<E>(content: E) -> Self
@@ -33,7 +34,7 @@ where
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -55,9 +56,9 @@ where
     /// Sets the style of the [`TitleBar`].
     pub fn style(
         mut self,
-        style: impl Into<<Renderer as container::Renderer>::Style>,
+        style: impl Into<Box<dyn container::StyleSheet + 'a>>,
     ) -> Self {
-        self.style = style.into();
+        self.style_sheet = style.into();
         self
     }
 
@@ -77,7 +78,7 @@ where
 
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
-    Renderer: pane_grid::Renderer,
+    Renderer: crate::Renderer,
 {
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
@@ -85,39 +86,47 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
         show_controls: bool,
-    ) -> Renderer::Output {
+    ) {
+        let bounds = layout.bounds();
+        let style = self.style_sheet.style();
+        let inherited_style = renderer::Style {
+            text_color: style.text_color.unwrap_or(inherited_style.text_color),
+        };
+
+        container::draw_background(renderer, &style, bounds);
+
         let mut children = layout.children();
         let padded = children.next().unwrap();
 
         let mut children = padded.children();
         let title_layout = children.next().unwrap();
 
-        let controls = if let Some(controls) = &self.controls {
+        self.content.draw(
+            renderer,
+            &inherited_style,
+            title_layout,
+            cursor_position,
+            viewport,
+        );
+
+        if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
 
             if show_controls || self.always_show_controls {
-                Some((controls, controls_layout))
-            } else {
-                None
+                controls.draw(
+                    renderer,
+                    &inherited_style,
+                    controls_layout,
+                    cursor_position,
+                    viewport,
+                );
             }
-        } else {
-            None
-        };
-
-        renderer.draw_title_bar(
-            defaults,
-            layout.bounds(),
-            &self.style,
-            (&self.content, title_layout),
-            controls,
-            cursor_position,
-            viewport,
-        )
+        }
     }
 
     /// Returns whether the mouse cursor is over the pick area of the
@@ -242,6 +251,35 @@ where
         );
 
         control_status.merge(title_status)
+    }
+
+    pub(crate) fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        let mut children = layout.children();
+        let padded = children.next().unwrap();
+
+        let mut children = padded.children();
+        let title_layout = children.next().unwrap();
+
+        let title_interaction = self.content.mouse_interaction(
+            title_layout,
+            cursor_position,
+            viewport,
+        );
+
+        if let Some(controls) = &self.controls {
+            let controls_layout = children.next().unwrap();
+
+            controls
+                .mouse_interaction(controls_layout, cursor_position, viewport)
+                .max(title_interaction)
+        } else {
+            title_interaction
+        }
     }
 
     pub(crate) fn overlay(

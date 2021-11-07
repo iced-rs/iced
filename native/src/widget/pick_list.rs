@@ -1,12 +1,13 @@
 //! Display a dropdown list of selectable values.
+use crate::alignment;
 use crate::event::{self, Event};
 use crate::keyboard;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::overlay::menu::{self, Menu};
-use crate::scrollable;
-use crate::text;
+use crate::renderer;
+use crate::text::{self, Text};
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
@@ -14,9 +15,11 @@ use crate::{
 };
 use std::borrow::Cow;
 
+pub use iced_style::pick_list::{Style, StyleSheet};
+
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
-pub struct PickList<'a, T, Message, Renderer: self::Renderer>
+pub struct PickList<'a, T, Message, Renderer: text::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
 {
@@ -33,7 +36,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style: <Renderer as self::Renderer>::Style,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 /// The local state of a [`PickList`].
@@ -58,12 +61,15 @@ impl<T> Default for State<T> {
     }
 }
 
-impl<'a, T: 'a, Message, Renderer: self::Renderer>
+impl<'a, T: 'a, Message, Renderer: text::Renderer>
     PickList<'a, T, Message, Renderer>
 where
     T: ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
 {
+    /// The default padding of a [`PickList`].
+    pub const DEFAULT_PADDING: Padding = Padding::new(5);
+
     /// Creates a new [`PickList`] with the given [`State`], a list of options,
     /// the current selected value, and the message to produce when an option is
     /// selected.
@@ -93,9 +99,9 @@ where
             selected,
             width: Length::Shrink,
             text_size: None,
-            padding: Renderer::DEFAULT_PADDING,
+            padding: Self::DEFAULT_PADDING,
             font: Default::default(),
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -132,9 +138,9 @@ where
     /// Sets the style of the [`PickList`].
     pub fn style(
         mut self,
-        style: impl Into<<Renderer as self::Renderer>::Style>,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.style = style.into();
+        self.style_sheet = style_sheet.into();
         self
     }
 }
@@ -145,7 +151,7 @@ where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'static,
-    Renderer: self::Renderer + scrollable::Renderer + 'a,
+    Renderer: text::Renderer + 'a,
 {
     fn width(&self) -> Length {
         self.width
@@ -320,25 +326,90 @@ where
         }
     }
 
-    fn draw(
+    fn mouse_interaction(
         &self,
-        renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        self::Renderer::draw(
-            renderer,
-            layout.bounds(),
-            cursor_position,
-            self.selected.as_ref().map(ToString::to_string),
-            self.placeholder.as_ref().map(String::as_str),
-            self.padding,
-            self.text_size.unwrap_or(renderer.default_size()),
-            self.font,
-            &self.style,
-        )
+    ) -> mouse::Interaction {
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        if is_mouse_over {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
+        let is_selected = self.selected.is_some();
+
+        let style = if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
+        };
+
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_color: style.border_color,
+                border_width: style.border_width,
+                border_radius: style.border_radius,
+            },
+            style.background,
+        );
+
+        renderer.fill_text(Text {
+            content: &Renderer::ARROW_DOWN_ICON.to_string(),
+            font: Renderer::ICON_FONT,
+            size: bounds.height * style.icon_size,
+            bounds: Rectangle {
+                x: bounds.x + bounds.width
+                    - f32::from(self.padding.horizontal()),
+                y: bounds.center_y(),
+                ..bounds
+            },
+            color: style.text_color,
+            horizontal_alignment: alignment::Horizontal::Right,
+            vertical_alignment: alignment::Vertical::Center,
+        });
+
+        if let Some(label) = self
+            .selected
+            .as_ref()
+            .map(ToString::to_string)
+            .as_ref()
+            .or_else(|| self.placeholder.as_ref())
+        {
+            renderer.fill_text(Text {
+                content: label,
+                size: f32::from(
+                    self.text_size.unwrap_or(renderer.default_size()),
+                ),
+                font: self.font,
+                color: is_selected
+                    .then(|| style.text_color)
+                    .unwrap_or(style.placeholder_color),
+                bounds: Rectangle {
+                    x: bounds.x + f32::from(self.padding.left),
+                    y: bounds.center_y(),
+                    ..bounds
+                },
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
+            })
+        }
     }
 
     fn overlay(
@@ -357,7 +428,7 @@ where
             .width(bounds.width.round() as u16)
             .padding(self.padding)
             .font(self.font)
-            .style(Renderer::menu_style(&self.style));
+            .style(self.style_sheet.menu());
 
             if let Some(text_size) = self.text_size {
                 menu = menu.text_size(text_size);
@@ -370,44 +441,12 @@ where
     }
 }
 
-/// The renderer of a [`PickList`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`PickList`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: text::Renderer + menu::Renderer {
-    /// The default padding of a [`PickList`].
-    const DEFAULT_PADDING: Padding;
-
-    /// The [`PickList`] style supported by this renderer.
-    type Style: Default;
-
-    /// Returns the style of the [`Menu`] of the [`PickList`].
-    fn menu_style(
-        style: &<Self as Renderer>::Style,
-    ) -> <Self as menu::Renderer>::Style;
-
-    /// Draws a [`PickList`].
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        cursor_position: Point,
-        selected: Option<String>,
-        placeholder: Option<&str>,
-        padding: Padding,
-        text_size: u16,
-        font: Self::Font,
-        style: &<Self as Renderer>::Style,
-    ) -> Self::Output;
-}
-
 impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
     for PickList<'a, T, Message, Renderer>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
-    Renderer: self::Renderer + 'a,
+    Renderer: text::Renderer + 'a,
     Message: 'static,
 {
     fn into(self) -> Element<'a, Message, Renderer> {

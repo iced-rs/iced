@@ -1,7 +1,9 @@
 //! Distribute content horizontally.
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
+use crate::renderer;
 use crate::{
     Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
     Rectangle, Widget,
@@ -104,7 +106,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Row<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -161,21 +163,37 @@ where
             .fold(event::Status::Ignored, event::Status::merge)
     }
 
-    fn draw(
+    fn mouse_interaction(
         &self,
-        renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            defaults,
-            &self.children,
-            layout,
-            cursor_position,
-            viewport,
-        )
+    ) -> mouse::Interaction {
+        self.children
+            .iter()
+            .zip(layout.children())
+            .map(|(child, layout)| {
+                child.widget.mouse_interaction(
+                    layout,
+                    cursor_position,
+                    viewport,
+                )
+            })
+            .max()
+            .unwrap_or_default()
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        for (child, layout) in self.children.iter().zip(layout.children()) {
+            child.draw(renderer, style, layout, cursor_position, viewport);
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -207,33 +225,10 @@ where
     }
 }
 
-/// The renderer of a [`Row`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Row`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + Sized {
-    /// Draws a [`Row`].
-    ///
-    /// It receives:
-    /// - the children of the [`Row`]
-    /// - the [`Layout`] of the [`Row`] and its children
-    /// - the cursor position
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        children: &[Element<'_, Message, Self>],
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-}
-
 impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(row: Row<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {

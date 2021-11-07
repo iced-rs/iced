@@ -31,17 +31,17 @@ use dodrio::bumpalo;
 ///
 /// ![Radio buttons drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Radio<Message> {
+pub struct Radio<'a, Message> {
     is_selected: bool,
     on_click: Message,
     label: String,
     id: Option<String>,
     name: Option<String>,
     #[allow(dead_code)]
-    style: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
-impl<Message> Radio<Message> {
+impl<'a, Message> Radio<'a, Message> {
     /// Creates a new [`Radio`] button.
     ///
     /// It expects:
@@ -66,13 +66,16 @@ impl<Message> Radio<Message> {
             label: label.into(),
             id: None,
             name: None,
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
     /// Sets the style of the [`Radio`] button.
-    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 
@@ -89,7 +92,7 @@ impl<Message> Radio<Message> {
     }
 }
 
-impl<Message> Widget<Message> for Radio<Message>
+impl<'a, Message> Widget<Message> for Radio<'a, Message>
 where
     Message: 'static + Clone,
 {
@@ -142,11 +145,11 @@ where
     }
 }
 
-impl<'a, Message> From<Radio<Message>> for Element<'a, Message>
+impl<'a, Message> From<Radio<'a, Message>> for Element<'a, Message>
 where
     Message: 'static + Clone,
 {
-    fn from(radio: Radio<Message>) -> Element<'a, Message> {
+    fn from(radio: Radio<'a, Message>) -> Element<'a, Message> {
         Element::new(radio)
     }
 }

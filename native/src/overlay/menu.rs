@@ -1,20 +1,24 @@
 //! Build and show dropdown menus.
-use crate::container;
+use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::scrollable;
-use crate::text;
+use crate::renderer;
+use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::scrollable::{self, Scrollable};
+use crate::widget::Container;
 use crate::{
-    Clipboard, Container, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Scrollable, Size, Vector, Widget,
+    Clipboard, Color, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Size, Vector, Widget,
 };
+
+pub use iced_style::menu::Style;
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
-pub struct Menu<'a, T, Renderer: self::Renderer> {
+pub struct Menu<'a, T, Renderer: text::Renderer> {
     state: &'a mut State,
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
@@ -23,13 +27,13 @@ pub struct Menu<'a, T, Renderer: self::Renderer> {
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style: <Renderer as self::Renderer>::Style,
+    style: Style,
 }
 
 impl<'a, T, Renderer> Menu<'a, T, Renderer>
 where
     T: ToString + Clone,
-    Renderer: self::Renderer + 'a,
+    Renderer: text::Renderer + 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
     /// the message to produced when an option is selected.
@@ -77,10 +81,7 @@ where
     }
 
     /// Sets the style of the [`Menu`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer as self::Renderer>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -116,14 +117,14 @@ impl State {
     }
 }
 
-struct Overlay<'a, Message, Renderer: self::Renderer> {
+struct Overlay<'a, Message, Renderer: text::Renderer> {
     container: Container<'a, Message, Renderer>,
     width: u16,
     target_height: f32,
-    style: <Renderer as self::Renderer>::Style,
+    style: Style,
 }
 
-impl<'a, Message, Renderer: self::Renderer> Overlay<'a, Message, Renderer>
+impl<'a, Message, Renderer: text::Renderer> Overlay<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: 'a,
@@ -168,7 +169,7 @@ where
 impl<'a, Message, Renderer> crate::Overlay<Message, Renderer>
     for Overlay<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: text::Renderer,
 {
     fn layout(
         &self,
@@ -233,45 +234,55 @@ where
         )
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        self.container
+            .mouse_interaction(layout, cursor_position, viewport)
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Output {
-        let primitives = self.container.draw(
-            renderer,
-            defaults,
-            layout,
-            cursor_position,
-            &layout.bounds(),
+    ) {
+        let bounds = layout.bounds();
+
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_color: self.style.border_color,
+                border_width: self.style.border_width,
+                border_radius: 0.0,
+            },
+            self.style.background,
         );
 
-        renderer.decorate(
-            layout.bounds(),
-            cursor_position,
-            &self.style,
-            primitives,
-        )
+        self.container
+            .draw(renderer, style, layout, cursor_position, &bounds);
     }
 }
 
-struct List<'a, T, Renderer: self::Renderer> {
+struct List<'a, T, Renderer: text::Renderer> {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style: <Renderer as self::Renderer>::Style,
+    style: Style,
 }
 
-impl<'a, T, Message, Renderer: self::Renderer> Widget<Message, Renderer>
+impl<'a, T, Message, Renderer> Widget<Message, Renderer>
     for List<'a, T, Renderer>
 where
     T: Clone + ToString,
-    Renderer: self::Renderer,
+    Renderer: text::Renderer,
 {
     fn width(&self) -> Length {
         Length::Fill
@@ -376,65 +387,84 @@ where
         event::Status::Ignored
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        let is_mouse_over = layout.bounds().contains(cursor_position);
+
+        if is_mouse_over {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        _cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
-        self::Renderer::draw(
-            renderer,
-            layout.bounds(),
-            cursor_position,
-            viewport,
-            self.options,
-            *self.hovered_option,
-            self.padding,
-            self.text_size.unwrap_or(renderer.default_size()),
-            self.font,
-            &self.style,
-        )
+    ) {
+        let bounds = layout.bounds();
+
+        let text_size = self.text_size.unwrap_or(renderer.default_size());
+        let option_height = (text_size + self.padding.vertical()) as usize;
+
+        let offset = viewport.y - bounds.y;
+        let start = (offset / option_height as f32) as usize;
+        let end =
+            ((offset + viewport.height) / option_height as f32).ceil() as usize;
+
+        let visible_options = &self.options[start..end.min(self.options.len())];
+
+        for (i, option) in visible_options.iter().enumerate() {
+            let i = start + i;
+            let is_selected = *self.hovered_option == Some(i);
+
+            let bounds = Rectangle {
+                x: bounds.x,
+                y: bounds.y + (option_height * i) as f32,
+                width: bounds.width,
+                height: f32::from(text_size + self.padding.vertical()),
+            };
+
+            if is_selected {
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds,
+                        border_color: Color::TRANSPARENT,
+                        border_width: 0.0,
+                        border_radius: 0.0,
+                    },
+                    self.style.selected_background,
+                );
+            }
+
+            renderer.fill_text(Text {
+                content: &option.to_string(),
+                bounds: Rectangle {
+                    x: bounds.x + self.padding.left as f32,
+                    y: bounds.center_y(),
+                    width: f32::INFINITY,
+                    ..bounds
+                },
+                size: f32::from(text_size),
+                font: self.font,
+                color: if is_selected {
+                    self.style.selected_text_color
+                } else {
+                    self.style.text_color
+                },
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
+            });
+        }
     }
-}
-
-/// The renderer of a [`Menu`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Menu`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer:
-    scrollable::Renderer + container::Renderer + text::Renderer
-{
-    /// The [`Menu`] style supported by this renderer.
-    type Style: Default + Clone;
-
-    /// Decorates a the list of options of a [`Menu`].
-    ///
-    /// This method can be used to draw a background for the [`Menu`].
-    fn decorate(
-        &mut self,
-        bounds: Rectangle,
-        cursor_position: Point,
-        style: &<Self as Renderer>::Style,
-        primitive: Self::Output,
-    ) -> Self::Output;
-
-    /// Draws the list of options of a [`Menu`].
-    fn draw<T: ToString>(
-        &mut self,
-        bounds: Rectangle,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        options: &[T],
-        hovered_option: Option<usize>,
-        padding: Padding,
-        text_size: u16,
-        font: Self::Font,
-        style: &<Self as Renderer>::Style,
-    ) -> Self::Output;
 }
 
 impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
@@ -442,7 +472,7 @@ impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
 where
     T: ToString + Clone,
     Message: 'a,
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + text::Renderer,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

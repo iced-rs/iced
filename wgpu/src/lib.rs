@@ -36,9 +36,7 @@ mod backend;
 mod quad;
 mod text;
 
-pub use iced_graphics::{
-    Antialiasing, Color, Defaults, Error, Primitive, Viewport,
-};
+pub use iced_graphics::{Antialiasing, Color, Error, Primitive, Viewport};
 pub use wgpu;
 
 pub use backend::Backend;

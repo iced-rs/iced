@@ -177,7 +177,11 @@ impl Application for Example {
             let title_bar = pane_grid::TitleBar::new(title)
                 .controls(pane.controls.view(id, total_panes, pane.is_pinned))
                 .padding(10)
-                .style(style::TitleBar { is_focused });
+                .style(if is_focused {
+                    style::TitleBar::Focused
+                } else {
+                    style::TitleBar::Active
+                });
 
             pane_grid::Content::new(pane.content.view(
                 id,
@@ -185,7 +189,11 @@ impl Application for Example {
                 pane.is_pinned,
             ))
             .title_bar(title_bar)
-            .style(style::Pane { is_focused })
+            .style(if is_focused {
+                style::Pane::Focused
+            } else {
+                style::Pane::Active
+            })
         })
         .width(Length::Fill)
         .height(Length::Fill)
@@ -387,14 +395,16 @@ mod style {
         0xC4 as f32 / 255.0,
     );
 
-    pub struct TitleBar {
-        pub is_focused: bool,
+    pub enum TitleBar {
+        Active,
+        Focused,
     }
 
     impl container::StyleSheet for TitleBar {
         fn style(&self) -> container::Style {
-            let pane = Pane {
-                is_focused: self.is_focused,
+            let pane = match self {
+                Self::Active => Pane::Active,
+                Self::Focused => Pane::Focused,
             }
             .style();
 
@@ -406,8 +416,9 @@ mod style {
         }
     }
 
-    pub struct Pane {
-        pub is_focused: bool,
+    pub enum Pane {
+        Active,
+        Focused,
     }
 
     impl container::StyleSheet for Pane {
@@ -415,10 +426,9 @@ mod style {
             container::Style {
                 background: Some(Background::Color(SURFACE)),
                 border_width: 2.0,
-                border_color: if self.is_focused {
-                    Color::BLACK
-                } else {
-                    Color::from_rgb(0.7, 0.7, 0.7)
+                border_color: match self {
+                    Self::Active => Color::from_rgb(0.7, 0.7, 0.7),
+                    Self::Focused => Color::BLACK,
                 },
                 ..Default::default()
             }

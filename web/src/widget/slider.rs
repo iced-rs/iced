@@ -41,7 +41,7 @@ pub struct Slider<'a, T, Message> {
     #[allow(dead_code)]
     width: Length,
     #[allow(dead_code)]
-    style: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, T, Message> Slider<'a, T, Message>
@@ -85,7 +85,7 @@ where
             step: T::from(1),
             on_change: Rc::new(Box::new(on_change)),
             width: Length::Fill,
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -96,8 +96,11 @@ where
     }
 
     /// Sets the style of the [`Slider`].
-    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 

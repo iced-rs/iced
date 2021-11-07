@@ -3,7 +3,9 @@ use std::hash::Hash;
 
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
+use crate::renderer;
 use crate::{
     Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
     Rectangle, Widget,
@@ -105,7 +107,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Column<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -162,21 +164,37 @@ where
             .fold(event::Status::Ignored, event::Status::merge)
     }
 
-    fn draw(
+    fn mouse_interaction(
         &self,
-        renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            defaults,
-            &self.children,
-            layout,
-            cursor_position,
-            viewport,
-        )
+    ) -> mouse::Interaction {
+        self.children
+            .iter()
+            .zip(layout.children())
+            .map(|(child, layout)| {
+                child.widget.mouse_interaction(
+                    layout,
+                    cursor_position,
+                    viewport,
+                )
+            })
+            .max()
+            .unwrap_or_default()
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        for (child, layout) in self.children.iter().zip(layout.children()) {
+            child.draw(renderer, style, layout, cursor_position, viewport);
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -208,33 +226,10 @@ where
     }
 }
 
-/// The renderer of a [`Column`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Column`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + Sized {
-    /// Draws a [`Column`].
-    ///
-    /// It receives:
-    /// - the children of the [`Column`]
-    /// - the [`Layout`] of the [`Column`] and its children
-    /// - the cursor position
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        content: &[Element<'_, Message, Self>],
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-}
-
 impl<'a, Message, Renderer> From<Column<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(

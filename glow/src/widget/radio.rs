@@ -7,4 +7,4 @@ pub use iced_graphics::radio::{Style, StyleSheet};
 ///
 /// This is an alias of an `iced_native` radio button with an
 /// `iced_wgpu::Renderer`.
-pub type Radio<Message> = iced_native::Radio<Message, Renderer>;
+pub type Radio<'a, Message> = iced_native::widget::Radio<'a, Message, Renderer>;

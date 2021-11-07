@@ -253,10 +253,7 @@ async fn run_instance<A, E, C>(
         &mut debug,
     ));
 
-    let mut primitive =
-        user_interface.draw(&mut renderer, state.cursor_position());
     let mut mouse_interaction = mouse::Interaction::default();
-
     let mut events = Vec::new();
     let mut messages = Vec::new();
 
@@ -319,9 +316,17 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.draw_started();
-                primitive =
+                let new_mouse_interaction =
                     user_interface.draw(&mut renderer, state.cursor_position());
                 debug.draw_finished();
+
+                if new_mouse_interaction != mouse_interaction {
+                    window.set_cursor_icon(conversion::mouse_interaction(
+                        new_mouse_interaction,
+                    ));
+
+                    mouse_interaction = new_mouse_interaction;
+                }
 
                 window.request_redraw();
             }
@@ -359,8 +364,16 @@ async fn run_instance<A, E, C>(
                     debug.layout_finished();
 
                     debug.draw_started();
-                    primitive = user_interface
+                    let new_mouse_interaction = user_interface
                         .draw(&mut renderer, state.cursor_position());
+
+                    if new_mouse_interaction != mouse_interaction {
+                        window.set_cursor_icon(conversion::mouse_interaction(
+                            new_mouse_interaction,
+                        ));
+
+                        mouse_interaction = new_mouse_interaction;
+                    }
                     debug.draw_finished();
 
                     compositor.configure_surface(
@@ -372,26 +385,15 @@ async fn run_instance<A, E, C>(
                     viewport_version = current_viewport_version;
                 }
 
-                match compositor.draw(
+                match compositor.present(
                     &mut renderer,
                     &mut surface,
                     state.viewport(),
                     state.background_color(),
-                    &primitive,
                     &debug.overlay(),
                 ) {
-                    Ok(new_mouse_interaction) => {
+                    Ok(()) => {
                         debug.render_finished();
-
-                        if new_mouse_interaction != mouse_interaction {
-                            window.set_cursor_icon(
-                                conversion::mouse_interaction(
-                                    new_mouse_interaction,
-                                ),
-                            );
-
-                            mouse_interaction = new_mouse_interaction;
-                        }
 
                         // TODO: Handle animations!
                         // Maybe we can use `ControlFlow::WaitUntil` for this.

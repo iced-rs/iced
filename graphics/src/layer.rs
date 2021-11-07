@@ -74,7 +74,7 @@ impl<'a> Layer<'a> {
     /// Distributes the given [`Primitive`] and generates a list of layers based
     /// on its contents.
     pub fn generate(
-        primitive: &'a Primitive,
+        primitives: &'a [Primitive],
         viewport: &Viewport,
     ) -> Vec<Self> {
         let first_layer =
@@ -82,12 +82,14 @@ impl<'a> Layer<'a> {
 
         let mut layers = vec![first_layer];
 
-        Self::process_primitive(
-            &mut layers,
-            Vector::new(0.0, 0.0),
-            primitive,
-            0,
-        );
+        for primitive in primitives {
+            Self::process_primitive(
+                &mut layers,
+                Vector::new(0.0, 0.0),
+                primitive,
+                0,
+            );
+        }
 
         layers
     }
@@ -173,11 +175,7 @@ impl<'a> Layer<'a> {
                     });
                 }
             }
-            Primitive::Clip {
-                bounds,
-                offset,
-                content,
-            } => {
+            Primitive::Clip { bounds, content } => {
                 let layer = &mut layers[current_layer];
                 let translated_bounds = *bounds + translation;
 
@@ -190,8 +188,7 @@ impl<'a> Layer<'a> {
 
                     Self::process_primitive(
                         layers,
-                        translation
-                            - Vector::new(offset.x as f32, offset.y as f32),
+                        translation,
                         content,
                         layers.len() - 1,
                     );

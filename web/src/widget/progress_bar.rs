@@ -18,15 +18,15 @@ use std::ops::RangeInclusive;
 ///
 /// ![Progress bar](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
-pub struct ProgressBar {
+pub struct ProgressBar<'a> {
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
     height: Option<Length>,
-    style: Box<dyn StyleSheet>,
+    style: Box<dyn StyleSheet + 'a>,
 }
 
-impl ProgressBar {
+impl<'a> ProgressBar<'a> {
     /// Creates a new [`ProgressBar`].
     ///
     /// It expects:
@@ -61,7 +61,7 @@ impl ProgressBar {
     }
 }
 
-impl<Message> Widget<Message> for ProgressBar {
+impl<'a, Message> Widget<Message> for ProgressBar<'a> {
     fn node<'b>(
         &self,
         bump: &'b bumpalo::Bump,
@@ -106,11 +106,11 @@ impl<Message> Widget<Message> for ProgressBar {
     }
 }
 
-impl<'a, Message> From<ProgressBar> for Element<'a, Message>
+impl<'a, Message> From<ProgressBar<'a>> for Element<'a, Message>
 where
     Message: 'static,
 {
-    fn from(container: ProgressBar) -> Element<'a, Message> {
+    fn from(container: ProgressBar<'a>) -> Element<'a, Message> {
         Element::new(container)
     }
 }

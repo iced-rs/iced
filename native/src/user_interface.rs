@@ -1,6 +1,8 @@
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
+use crate::renderer;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Size};
 
 use std::hash::Hasher;
@@ -47,7 +49,7 @@ where
     /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
-    /// # use iced_native::Column;
+    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #
@@ -141,7 +143,7 @@ where
     /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
-    /// # use iced_native::Column;
+    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #
@@ -277,7 +279,7 @@ where
     /// #     pub use iced_native::renderer::Null as Renderer;
     /// # }
     /// #
-    /// # use iced_native::Column;
+    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #
@@ -333,10 +335,13 @@ where
         &mut self,
         renderer: &mut Renderer,
         cursor_position: Point,
-    ) -> Renderer::Output {
+    ) -> mouse::Interaction {
+        // TODO: Move to shell level (?)
+        renderer.clear();
+
         let viewport = Rectangle::with_size(self.bounds);
 
-        let overlay = if let Some(mut overlay) =
+        if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
         {
             let layer = Self::overlay_layer(
@@ -346,51 +351,81 @@ where
                 renderer,
             );
 
-            let overlay_bounds = layer.layout.bounds();
-
-            let overlay_primitives = overlay.draw(
-                renderer,
-                &Renderer::Defaults::default(),
-                Layout::new(&layer.layout),
-                cursor_position,
-            );
-
             self.overlay = Some(layer);
-
-            Some((overlay_primitives, overlay_bounds))
-        } else {
-            None
         };
 
-        if let Some((overlay_primitives, overlay_bounds)) = overlay {
-            let base_cursor = if overlay_bounds.contains(cursor_position) {
+        if let Some(layer) = &self.overlay {
+            let base_cursor = if layer.layout.bounds().contains(cursor_position)
+            {
                 Point::new(-1.0, -1.0)
             } else {
                 cursor_position
             };
 
-            let base_primitives = self.root.widget.draw(
+            self.root.widget.draw(
                 renderer,
-                &Renderer::Defaults::default(),
+                &renderer::Style::default(),
                 Layout::new(&self.base.layout),
                 base_cursor,
                 &viewport,
             );
-
-            renderer.overlay(
-                base_primitives,
-                overlay_primitives,
-                overlay_bounds,
-            )
         } else {
             self.root.widget.draw(
                 renderer,
-                &Renderer::Defaults::default(),
+                &renderer::Style::default(),
                 Layout::new(&self.base.layout),
                 cursor_position,
                 &viewport,
-            )
-        }
+            );
+        };
+
+        let base_interaction = self.root.widget.mouse_interaction(
+            Layout::new(&self.base.layout),
+            cursor_position,
+            &viewport,
+        );
+
+        let Self {
+            overlay,
+            root,
+            base,
+            ..
+        } = self;
+
+        // TODO: Currently, we need to call Widget::overlay twice to
+        // implement the painter's algorithm properly.
+        //
+        // Once we have a proper persistent widget tree, we should be able to
+        // avoid this additional call.
+        overlay
+            .as_ref()
+            .and_then(|layer| {
+                root.overlay(Layout::new(&base.layout)).map(|overlay| {
+                    let overlay_interaction = overlay.mouse_interaction(
+                        Layout::new(&layer.layout),
+                        cursor_position,
+                        &viewport,
+                    );
+
+                    let overlay_bounds = layer.layout.bounds();
+
+                    renderer.with_layer(viewport, |renderer| {
+                        overlay.draw(
+                            renderer,
+                            &renderer::Style::default(),
+                            Layout::new(&layer.layout),
+                            cursor_position,
+                        );
+                    });
+
+                    if overlay_bounds.contains(cursor_position) {
+                        overlay_interaction
+                    } else {
+                        base_interaction
+                    }
+                })
+            })
+            .unwrap_or(base_interaction)
     }
 
     /// Relayouts and returns a new  [`UserInterface`] using the provided

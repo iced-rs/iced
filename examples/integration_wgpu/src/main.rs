@@ -94,7 +94,6 @@ pub fn main() {
     let mut state = program::State::new(
         controls,
         viewport.logical_size(),
-        conversion::cursor_position(cursor_position, viewport.scale_factor()),
         &mut renderer,
         &mut debug,
     );
@@ -196,15 +195,17 @@ pub fn main() {
                         }
 
                         // And then iced on top
-                        let mouse_interaction = renderer.backend_mut().draw(
-                            &mut device,
-                            &mut staging_belt,
-                            &mut encoder,
-                            &view,
-                            &viewport,
-                            state.primitive(),
-                            &debug.overlay(),
-                        );
+                        renderer.with_primitives(|backend, primitive| {
+                            backend.present(
+                                &mut device,
+                                &mut staging_belt,
+                                &mut encoder,
+                                &view,
+                                primitive,
+                                &viewport,
+                                &debug.overlay(),
+                            );
+                        });
 
                         // Then we submit the work
                         staging_belt.finish();
@@ -212,11 +213,11 @@ pub fn main() {
                         frame.present();
 
                         // Update the mouse cursor
-                        window.set_cursor_icon(
-                            iced_winit::conversion::mouse_interaction(
-                                mouse_interaction,
-                            ),
-                        );
+                         window.set_cursor_icon(
+                             iced_winit::conversion::mouse_interaction(
+                                 state.mouse_interaction(),
+                             ),
+                         );
 
                         // And recall staging buffers
                         local_pool

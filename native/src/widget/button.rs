@@ -5,20 +5,24 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
+use crate::renderer;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Widget,
+    Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
+    Point, Rectangle, Vector, Widget,
 };
+
 use std::hash::Hash;
+
+pub use iced_style::button::{Style, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
 ///
 /// ```
-/// # use iced_native::{button, Text};
+/// # use iced_native::widget::{button, Text};
 /// #
 /// # type Button<'a, Message> =
-/// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
+/// #     iced_native::widget::Button<'a, Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {
@@ -34,10 +38,10 @@ use std::hash::Hash;
 /// be disabled:
 ///
 /// ```
-/// # use iced_native::{button, Text};
+/// # use iced_native::widget::{button, Text};
 /// #
 /// # type Button<'a, Message> =
-/// #     iced_native::Button<'a, Message, iced_native::renderer::Null>;
+/// #     iced_native::widget::Button<'a, Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {
@@ -53,7 +57,7 @@ use std::hash::Hash;
 /// }
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer: self::Renderer> {
+pub struct Button<'a, Message, Renderer> {
     state: &'a mut State,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
@@ -62,13 +66,13 @@ pub struct Button<'a, Message, Renderer: self::Renderer> {
     min_width: u32,
     min_height: u32,
     padding: Padding,
-    style: Renderer::Style,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     /// Creates a new [`Button`] with some local [`State`] and the given
     /// content.
@@ -84,8 +88,8 @@ where
             height: Length::Shrink,
             min_width: 0,
             min_height: 0,
-            padding: Renderer::DEFAULT_PADDING,
-            style: Renderer::Style::default(),
+            padding: Padding::new(5),
+            style_sheet: Default::default(),
         }
     }
 
@@ -127,8 +131,11 @@ where
     }
 
     /// Sets the style of the [`Button`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }
@@ -150,7 +157,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -241,24 +248,88 @@ where
         event::Status::Ignored
     }
 
-    fn draw(
+    fn mouse_interaction(
         &self,
-        renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        renderer.draw(
-            defaults,
-            layout.bounds(),
+    ) -> mouse::Interaction {
+        let is_mouse_over = layout.bounds().contains(cursor_position);
+        let is_disabled = self.on_press.is_none();
+
+        if is_mouse_over && !is_disabled {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+
+        let is_mouse_over = bounds.contains(cursor_position);
+        let is_disabled = self.on_press.is_none();
+
+        let styling = if is_disabled {
+            self.style_sheet.disabled()
+        } else if is_mouse_over {
+            if self.state.is_pressed {
+                self.style_sheet.pressed()
+            } else {
+                self.style_sheet.hovered()
+            }
+        } else {
+            self.style_sheet.active()
+        };
+
+        if styling.background.is_some() || styling.border_width > 0.0 {
+            if styling.shadow_offset != Vector::default() {
+                // TODO: Implement proper shadow support
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: Rectangle {
+                            x: bounds.x + styling.shadow_offset.x,
+                            y: bounds.y + styling.shadow_offset.y,
+                            ..bounds
+                        },
+                        border_radius: styling.border_radius,
+                        border_width: 0.0,
+                        border_color: Color::TRANSPARENT,
+                    },
+                    Background::Color([0.0, 0.0, 0.0, 0.5].into()),
+                );
+            }
+
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border_radius: styling.border_radius,
+                    border_width: styling.border_width,
+                    border_color: styling.border_color,
+                },
+                styling
+                    .background
+                    .unwrap_or(Background::Color(Color::TRANSPARENT)),
+            );
+        }
+
+        self.content.draw(
+            renderer,
+            &renderer::Style {
+                text_color: styling.text_color,
+            },
+            content_layout,
             cursor_position,
-            self.on_press.is_none(),
-            self.state.is_pressed,
-            &self.style,
-            &self.content,
-            layout.children().next().unwrap(),
-        )
+            &bounds,
+        );
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -277,38 +348,11 @@ where
     }
 }
 
-/// The renderer of a [`Button`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Button`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + Sized {
-    /// The default padding of a [`Button`].
-    const DEFAULT_PADDING: Padding;
-
-    /// The style supported by this renderer.
-    type Style: Default;
-
-    /// Draws a [`Button`].
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        bounds: Rectangle,
-        cursor_position: Point,
-        is_disabled: bool,
-        is_pressed: bool,
-        style: &Self::Style,
-        content: &Element<'_, Message, Self>,
-        content_layout: Layout<'_>,
-    ) -> Self::Output;
-}
-
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
 {
     fn from(
         button: Button<'a, Message, Renderer>,

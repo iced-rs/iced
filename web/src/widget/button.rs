@@ -51,7 +51,7 @@ pub struct Button<'a, Message> {
     #[allow(dead_code)]
     min_height: u32,
     padding: Padding,
-    style: Box<dyn StyleSheet>,
+    style: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message> Button<'a, Message> {
@@ -104,7 +104,7 @@ impl<'a, Message> Button<'a, Message> {
     }
 
     /// Sets the style of the [`Button`].
-    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet>>) -> Self {
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet + 'a>>) -> Self {
         self.style = style.into();
         self
     }

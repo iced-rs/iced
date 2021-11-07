@@ -3,6 +3,7 @@ use crate::event::{self, Event};
 use crate::image;
 use crate::layout;
 use crate::mouse;
+use crate::renderer;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
     Widget,
@@ -88,7 +89,7 @@ impl<'a> Viewer<'a> {
     /// will be respected.
     fn image_size<Renderer>(&self, renderer: &Renderer, bounds: Size) -> Size
     where
-        Renderer: self::Renderer + image::Renderer,
+        Renderer: image::Renderer,
     {
         let (width, height) = renderer.dimensions(&self.handle);
 
@@ -115,7 +116,7 @@ impl<'a> Viewer<'a> {
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Viewer<'a>
 where
-    Renderer: self::Renderer + image::Renderer,
+    Renderer: image::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -280,14 +281,32 @@ where
         }
     }
 
-    fn draw(
+    fn mouse_interaction(
         &self,
-        renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
+    ) -> mouse::Interaction {
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        if self.state.is_cursor_grabbed() {
+            mouse::Interaction::Grabbing
+        } else if is_mouse_over {
+            mouse::Interaction::Grab
+        } else {
+            mouse::Interaction::Idle
+        }
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        _cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
         let bounds = layout.bounds();
 
         let image_size = self.image_size(renderer, bounds.size());
@@ -301,17 +320,19 @@ where
             image_top_left - self.state.offset(bounds, image_size)
         };
 
-        let is_mouse_over = bounds.contains(cursor_position);
-
-        self::Renderer::draw(
-            renderer,
-            &self.state,
-            bounds,
-            image_size,
-            translation,
-            self.handle.clone(),
-            is_mouse_over,
-        )
+        renderer.with_layer(bounds, |renderer| {
+            renderer.with_translation(translation, |renderer| {
+                image::Renderer::draw(
+                    renderer,
+                    self.handle.clone(),
+                    Rectangle {
+                        x: bounds.x,
+                        y: bounds.y,
+                        ..Rectangle::with_size(image_size)
+                    },
+                )
+            });
+        });
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -373,38 +394,9 @@ impl State {
     }
 }
 
-/// The renderer of an [`Viewer`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Viewer`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + Sized {
-    /// Draws the [`Viewer`].
-    ///
-    /// It receives:
-    /// - the [`State`] of the [`Viewer`]
-    /// - the bounds of the [`Viewer`] widget
-    /// - the [`Size`] of the scaled [`Viewer`] image
-    /// - the translation of the clipped image
-    /// - the [`Handle`] to the underlying image
-    /// - whether the mouse is over the [`Viewer`] or not
-    ///
-    /// [`Handle`]: image::Handle
-    fn draw(
-        &mut self,
-        state: &State,
-        bounds: Rectangle,
-        image_size: Size,
-        translation: Vector,
-        handle: image::Handle,
-        is_mouse_over: bool,
-    ) -> Self::Output;
-}
-
 impl<'a, Message, Renderer> From<Viewer<'a>> for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + image::Renderer,
+    Renderer: 'a + image::Renderer,
     Message: 'a,
 {
     fn from(viewer: Viewer<'a>) -> Element<'a, Message, Renderer> {

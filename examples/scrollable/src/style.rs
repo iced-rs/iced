@@ -16,7 +16,7 @@ impl Default for Theme {
     }
 }
 
-impl From<Theme> for Box<dyn container::StyleSheet> {
+impl<'a> From<Theme> for Box<dyn container::StyleSheet + 'a> {
     fn from(theme: Theme) -> Self {
         match theme {
             Theme::Light => Default::default(),
@@ -25,7 +25,7 @@ impl From<Theme> for Box<dyn container::StyleSheet> {
     }
 }
 
-impl From<Theme> for Box<dyn radio::StyleSheet> {
+impl<'a> From<Theme> for Box<dyn radio::StyleSheet + 'a> {
     fn from(theme: Theme) -> Self {
         match theme {
             Theme::Light => Default::default(),
@@ -34,7 +34,7 @@ impl From<Theme> for Box<dyn radio::StyleSheet> {
     }
 }
 
-impl From<Theme> for Box<dyn scrollable::StyleSheet> {
+impl<'a> From<Theme> for Box<dyn scrollable::StyleSheet + 'a> {
     fn from(theme: Theme) -> Self {
         match theme {
             Theme::Light => Default::default(),

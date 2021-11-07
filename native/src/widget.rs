@@ -10,14 +10,6 @@
 //! [`Widget`] trait. You can use the API of the built-in widgets as a guide or
 //! source of inspiration.
 //!
-//! # Re-exports
-//! For convenience, the contents of this module are available at the root
-//! module. Therefore, you can directly type:
-//!
-//! ```
-//! use iced_native::{button, Button, Widget};
-//! ```
-//!
 //! [renderer]: crate::renderer
 pub mod button;
 pub mod checkbox;
@@ -80,7 +72,9 @@ pub use tooltip::Tooltip;
 
 use crate::event::{self, Event};
 use crate::layout;
+use crate::mouse;
 use crate::overlay;
+use crate::renderer;
 use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle};
 
 /// A component that displays information and allows interaction.
@@ -131,11 +125,11 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output;
+    );
 
     /// Computes the _layout_ hash of the [`Widget`].
     ///
@@ -172,6 +166,18 @@ where
         _messages: &mut Vec<Message>,
     ) -> event::Status {
         event::Status::Ignored
+    }
+
+    /// Returns the current [`mouse::Interaction`] of the [`Widget`].
+    ///
+    /// By default, it returns [`mouse::Interaction::Idle`].
+    fn mouse_interaction(
+        &self,
+        _layout: Layout<'_>,
+        _cursor_position: Point,
+        _viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        mouse::Interaction::Idle
     }
 
     /// Returns the overlay of the [`Widget`], if there is any.

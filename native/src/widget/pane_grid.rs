@@ -27,17 +27,18 @@ pub use split::Split;
 pub use state::State;
 pub use title_bar::TitleBar;
 
-use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::row;
+use crate::renderer;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
-    Widget,
+    Clipboard, Color, Element, Hasher, Layout, Length, Point, Rectangle, Size,
+    Vector, Widget,
 };
+
+pub use iced_style::pane_grid::{Line, StyleSheet};
 
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
@@ -61,10 +62,10 @@ use crate::{
 /// ## Example
 ///
 /// ```
-/// # use iced_native::{pane_grid, Text};
+/// # use iced_native::widget::{pane_grid, Text};
 /// #
 /// # type PaneGrid<'a, Message> =
-/// #     iced_native::PaneGrid<'a, Message, iced_native::renderer::Null>;
+/// #     iced_native::widget::PaneGrid<'a, Message, iced_native::renderer::Null>;
 /// #
 /// enum PaneState {
 ///     SomePane,
@@ -89,7 +90,7 @@ use crate::{
 ///     .on_resize(10, Message::PaneResized);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
+pub struct PaneGrid<'a, Message, Renderer> {
     state: &'a mut state::Internal,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
     width: Length,
@@ -98,12 +99,12 @@ pub struct PaneGrid<'a, Message, Renderer: self::Renderer> {
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style: <Renderer as self::Renderer>::Style,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -130,7 +131,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style: Default::default(),
+            style_sheet: Default::default(),
         }
     }
 
@@ -190,18 +191,15 @@ where
     }
 
     /// Sets the style of the [`PaneGrid`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer as self::Renderer>::Style>,
-    ) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet + 'a>>) -> Self {
+        self.style_sheet = style.into();
         self
     }
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn click_pane(
         &mut self,
@@ -318,7 +316,7 @@ pub struct ResizeEvent {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
-    Renderer: self::Renderer + container::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -473,14 +471,43 @@ where
             .fold(event_status, event::Status::merge)
     }
 
-    fn draw(
+    fn mouse_interaction(
         &self,
-        renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) -> Renderer::Output {
+    ) -> mouse::Interaction {
+        if self.state.picked_pane().is_some() {
+            return mouse::Interaction::Grab;
+        }
+
+        if let Some((_, axis)) = self.state.picked_split() {
+            return match axis {
+                Axis::Horizontal => mouse::Interaction::ResizingHorizontally,
+                Axis::Vertical => mouse::Interaction::ResizingVertically,
+            };
+        }
+
+        self.elements
+            .iter()
+            .zip(layout.children())
+            .map(|((_pane, content), layout)| {
+                content.mouse_interaction(layout, cursor_position, viewport)
+            })
+            .max()
+            .unwrap_or_default()
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        let picked_pane = self.state.picked_pane();
+
         let picked_split = self
             .state
             .picked_split()
@@ -529,17 +556,89 @@ where
                 None => None,
             });
 
-        self::Renderer::draw(
-            renderer,
-            defaults,
-            &self.elements,
-            self.state.picked_pane(),
-            picked_split,
-            layout,
-            &self.style,
-            cursor_position,
-            viewport,
-        )
+        let pane_cursor_position = if picked_pane.is_some() {
+            // TODO: Remove once cursor availability is encoded in the type
+            // system
+            Point::new(-1.0, -1.0)
+        } else {
+            cursor_position
+        };
+
+        for ((id, pane), layout) in self.elements.iter().zip(layout.children())
+        {
+            match picked_pane {
+                Some((dragging, origin)) if *id == dragging => {
+                    let bounds = layout.bounds();
+
+                    renderer.with_translation(
+                        cursor_position
+                            - Point::new(
+                                bounds.x + origin.x,
+                                bounds.y + origin.y,
+                            ),
+                        |renderer| {
+                            renderer.with_layer(bounds, |renderer| {
+                                pane.draw(
+                                    renderer,
+                                    style,
+                                    layout,
+                                    pane_cursor_position,
+                                    viewport,
+                                );
+                            });
+                        },
+                    );
+                }
+                _ => {
+                    pane.draw(
+                        renderer,
+                        style,
+                        layout,
+                        pane_cursor_position,
+                        viewport,
+                    );
+                }
+            }
+        }
+
+        if let Some((axis, split_region, is_picked)) = picked_split {
+            let highlight = if is_picked {
+                self.style_sheet.picked_split()
+            } else {
+                self.style_sheet.hovered_split()
+            };
+
+            if let Some(highlight) = highlight {
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: match axis {
+                            Axis::Horizontal => Rectangle {
+                                x: split_region.x,
+                                y: (split_region.y
+                                    + (split_region.height - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                width: split_region.width,
+                                height: highlight.width,
+                            },
+                            Axis::Vertical => Rectangle {
+                                x: (split_region.x
+                                    + (split_region.width - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                y: split_region.y,
+                                width: highlight.width,
+                                height: split_region.height,
+                            },
+                        },
+                        border_radius: 0.0,
+                        border_width: 0.0,
+                        border_color: Color::TRANSPARENT,
+                    },
+                    highlight.color,
+                );
+            }
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -569,78 +668,10 @@ where
     }
 }
 
-/// The renderer of a [`PaneGrid`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`PaneGrid`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer + container::Renderer + Sized {
-    /// The style supported by this renderer.
-    type Style: Default;
-
-    /// Draws a [`PaneGrid`].
-    ///
-    /// It receives:
-    /// - the elements of the [`PaneGrid`]
-    /// - the [`Pane`] that is currently being dragged
-    /// - the [`Axis`] that is currently being resized
-    /// - the [`Layout`] of the [`PaneGrid`] and its elements
-    /// - the cursor position
-    fn draw<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        content: &[(Pane, Content<'_, Message, Self>)],
-        dragging: Option<(Pane, Point)>,
-        resizing: Option<(Axis, Rectangle, bool)>,
-        layout: Layout<'_>,
-        style: &<Self as self::Renderer>::Style,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-
-    /// Draws a [`Pane`].
-    ///
-    /// It receives:
-    /// - the [`TitleBar`] of the [`Pane`], if any
-    /// - the [`Content`] of the [`Pane`]
-    /// - the [`Layout`] of the [`Pane`] and its elements
-    /// - the cursor position
-    fn draw_pane<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        bounds: Rectangle,
-        style: &<Self as container::Renderer>::Style,
-        title_bar: Option<(&TitleBar<'_, Message, Self>, Layout<'_>)>,
-        body: (&Element<'_, Message, Self>, Layout<'_>),
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-
-    /// Draws a [`TitleBar`].
-    ///
-    /// It receives:
-    /// - the bounds, style of the [`TitleBar`]
-    /// - the style of the [`TitleBar`]
-    /// - the content of the [`TitleBar`] with its layout
-    /// - the controls of the [`TitleBar`] with their [`Layout`], if any
-    /// - the cursor position
-    fn draw_title_bar<Message>(
-        &mut self,
-        defaults: &Self::Defaults,
-        bounds: Rectangle,
-        style: &<Self as container::Renderer>::Style,
-        content: (&Element<'_, Message, Self>, Layout<'_>),
-        controls: Option<(&Element<'_, Message, Self>, Layout<'_>)>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) -> Self::Output;
-}
-
 impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + self::Renderer + row::Renderer,
+    Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(

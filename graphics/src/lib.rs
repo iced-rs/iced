@@ -13,15 +13,14 @@
 mod antialiasing;
 mod error;
 mod primitive;
-mod renderer;
 mod transformation;
 mod viewport;
 
 pub mod backend;
-pub mod defaults;
 pub mod font;
 pub mod layer;
 pub mod overlay;
+pub mod renderer;
 pub mod triangle;
 pub mod widget;
 pub mod window;
@@ -31,7 +30,6 @@ pub use widget::*;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
-pub use defaults::Defaults;
 pub use error::Error;
 pub use layer::Layer;
 pub use primitive::Primitive;

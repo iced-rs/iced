@@ -1,7 +1,7 @@
-use crate::{
-    pane_grid::{Axis, Configuration, Direction, Node, Pane, Split},
-    Hasher, Point, Rectangle, Size,
+use crate::widget::pane_grid::{
+    Axis, Configuration, Direction, Node, Pane, Split,
 };
+use crate::{Hasher, Point, Rectangle, Size};
 
 use std::collections::{BTreeMap, HashMap};
 

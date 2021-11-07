@@ -9,10 +9,10 @@ mod circle {
     // Of course, you can choose to make the implementation renderer-agnostic,
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
-    use iced_graphics::{Backend, Defaults, Primitive, Renderer};
+    use iced_native::layout::{self, Layout};
+    use iced_native::renderer;
     use iced_native::{
-        layout, mouse, Background, Color, Element, Hasher, Layout, Length,
-        Point, Rectangle, Size, Widget,
+        Color, Element, Hasher, Length, Point, Rectangle, Size, Widget,
     };
 
     pub struct Circle {
@@ -25,9 +25,9 @@ mod circle {
         }
     }
 
-    impl<Message, B> Widget<Message, Renderer<B>> for Circle
+    impl<Message, Renderer> Widget<Message, Renderer> for Circle
     where
-        B: Backend,
+        Renderer: renderer::Renderer,
     {
         fn width(&self) -> Length {
             Length::Shrink
@@ -39,7 +39,7 @@ mod circle {
 
         fn layout(
             &self,
-            _renderer: &Renderer<B>,
+            _renderer: &Renderer,
             _limits: &layout::Limits,
         ) -> layout::Node {
             layout::Node::new(Size::new(self.radius * 2.0, self.radius * 2.0))
@@ -53,30 +53,29 @@ mod circle {
 
         fn draw(
             &self,
-            _renderer: &mut Renderer<B>,
-            _defaults: &Defaults,
+            renderer: &mut Renderer,
+            _style: &renderer::Style,
             layout: Layout<'_>,
             _cursor_position: Point,
             _viewport: &Rectangle,
-        ) -> (Primitive, mouse::Interaction) {
-            (
-                Primitive::Quad {
+        ) {
+            renderer.fill_quad(
+                renderer::Quad {
                     bounds: layout.bounds(),
-                    background: Background::Color(Color::BLACK),
                     border_radius: self.radius,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
-                mouse::Interaction::default(),
-            )
+                Color::BLACK,
+            );
         }
     }
 
-    impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for Circle
+    impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for Circle
     where
-        B: Backend,
+        Renderer: renderer::Renderer,
     {
-        fn into(self) -> Element<'a, Message, Renderer<B>> {
+        fn into(self) -> Element<'a, Message, Renderer> {
             Element::new(self)
         }
     }

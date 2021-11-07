@@ -2,7 +2,9 @@ pub use crate::Overlay;
 
 use crate::event::{self, Event};
 use crate::layout;
-use crate::{Clipboard, Hasher, Layout, Point, Size, Vector};
+use crate::mouse;
+use crate::renderer;
+use crate::{Clipboard, Hasher, Layout, Point, Rectangle, Size, Vector};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -67,16 +69,26 @@ where
         )
     }
 
+    /// Returns the current [`mouse::Interaction`] of the [`Element`].
+    pub fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        self.overlay
+            .mouse_interaction(layout, cursor_position, viewport)
+    }
+
     /// Draws the [`Element`] and its children using the given [`Layout`].
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Output {
-        self.overlay
-            .draw(renderer, defaults, layout, cursor_position)
+    ) {
+        self.overlay.draw(renderer, style, layout, cursor_position)
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -139,15 +151,24 @@ where
         event_status
     }
 
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        self.content
+            .mouse_interaction(layout, cursor_position, viewport)
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
-        defaults: &Renderer::Defaults,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) -> Renderer::Output {
-        self.content
-            .draw(renderer, defaults, layout, cursor_position)
+    ) {
+        self.content.draw(renderer, style, layout, cursor_position)
     }
 
     fn hash_layout(&self, state: &mut Hasher, position: Point) {

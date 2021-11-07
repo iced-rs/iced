@@ -4,12 +4,17 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
+use crate::renderer;
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    Background, Clipboard, Color, Element, Hasher, Layout, Length, Point,
+    Rectangle, Size, Widget,
 };
 
-use std::{hash::Hash, ops::RangeInclusive};
+use std::hash::Hash;
+use std::ops::RangeInclusive;
+
+pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -21,9 +26,8 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// # Example
 /// ```
-/// # use iced_native::{slider, renderer::Null};
+/// # use iced_native::widget::slider::{self, Slider};
 /// #
-/// # pub type Slider<'a, T, Message> = iced_native::Slider<'a, T, Message, Null>;
 /// #[derive(Clone)]
 /// pub enum Message {
 ///     SliderChanged(f32),
@@ -37,7 +41,7 @@ use std::{hash::Hash, ops::RangeInclusive};
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
+pub struct Slider<'a, T, Message> {
     state: &'a mut State,
     range: RangeInclusive<T>,
     step: T,
@@ -46,15 +50,17 @@ pub struct Slider<'a, T, Message, Renderer: self::Renderer> {
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    style: Renderer::Style,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
-impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
+impl<'a, T, Message> Slider<'a, T, Message>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Renderer: self::Renderer,
 {
+    /// The default height of a [`Slider`].
+    pub const DEFAULT_HEIGHT: u16 = 22;
+
     /// Creates a new [`Slider`].
     ///
     /// It expects:
@@ -93,8 +99,8 @@ where
             on_change: Box::new(on_change),
             on_release: None,
             width: Length::Fill,
-            height: Renderer::DEFAULT_HEIGHT,
-            style: Renderer::Style::default(),
+            height: Self::DEFAULT_HEIGHT,
+            style_sheet: Default::default(),
         }
     }
 
@@ -122,8 +128,11 @@ where
     }
 
     /// Sets the style of the [`Slider`].
-    pub fn style(mut self, style: impl Into<Renderer::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 
@@ -148,11 +157,11 @@ impl State {
 }
 
 impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, T, Message, Renderer>
+    for Slider<'a, T, Message>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
-    Renderer: self::Renderer,
+    Renderer: crate::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -246,22 +255,113 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _defaults: &Renderer::Defaults,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-    ) -> Renderer::Output {
-        let start = *self.range.start();
-        let end = *self.range.end();
+    ) {
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
 
-        renderer.draw(
-            layout.bounds(),
-            cursor_position,
-            start.into() as f32..=end.into() as f32,
-            self.value.into() as f32,
-            self.state.is_dragging,
-            &self.style,
-        )
+        let style = if self.state.is_dragging {
+            self.style_sheet.dragging()
+        } else if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
+        };
+
+        let rail_y = bounds.y + (bounds.height / 2.0).round();
+
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle {
+                    x: bounds.x,
+                    y: rail_y,
+                    width: bounds.width,
+                    height: 2.0,
+                },
+                border_radius: 0.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            },
+            style.rail_colors.0,
+        );
+
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle {
+                    x: bounds.x,
+                    y: rail_y + 2.0,
+                    width: bounds.width,
+                    height: 2.0,
+                },
+                border_radius: 0.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            },
+            Background::Color(style.rail_colors.1),
+        );
+
+        let (handle_width, handle_height, handle_border_radius) = match style
+            .handle
+            .shape
+        {
+            HandleShape::Circle { radius } => {
+                (radius * 2.0, radius * 2.0, radius)
+            }
+            HandleShape::Rectangle {
+                width,
+                border_radius,
+            } => (f32::from(width), f32::from(bounds.height), border_radius),
+        };
+
+        let value = self.value.into() as f32;
+        let (range_start, range_end) = {
+            let (start, end) = self.range.clone().into_inner();
+
+            (start.into() as f32, end.into() as f32)
+        };
+
+        let handle_offset = if range_start >= range_end {
+            0.0
+        } else {
+            (bounds.width - handle_width) * (value - range_start)
+                / (range_end - range_start)
+        };
+
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds: Rectangle {
+                    x: bounds.x + handle_offset.round(),
+                    y: rail_y - handle_height / 2.0,
+                    width: handle_width,
+                    height: handle_height,
+                },
+                border_radius: handle_border_radius,
+                border_width: style.handle.border_width,
+                border_color: style.handle.border_color,
+            },
+            style.handle.color,
+        );
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) -> mouse::Interaction {
+        let bounds = layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
+
+        if self.state.is_dragging {
+            mouse::Interaction::Grabbing
+        } else if is_mouse_over {
+            mouse::Interaction::Grab
+        } else {
+            mouse::Interaction::default()
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -272,48 +372,14 @@ where
     }
 }
 
-/// The renderer of a [`Slider`].
-///
-/// Your [renderer] will need to implement this trait before being
-/// able to use a [`Slider`] in your user interface.
-///
-/// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer {
-    /// The style supported by this renderer.
-    type Style: Default;
-
-    /// The default height of a [`Slider`].
-    const DEFAULT_HEIGHT: u16;
-
-    /// Draws a [`Slider`].
-    ///
-    /// It receives:
-    ///   * the current cursor position
-    ///   * the bounds of the [`Slider`]
-    ///   * the local state of the [`Slider`]
-    ///   * the range of values of the [`Slider`]
-    ///   * the current value of the [`Slider`]
-    fn draw(
-        &mut self,
-        bounds: Rectangle,
-        cursor_position: Point,
-        range: RangeInclusive<f32>,
-        value: f32,
-        is_dragging: bool,
-        style: &Self::Style,
-    ) -> Self::Output;
-}
-
-impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
+impl<'a, T, Message, Renderer> From<Slider<'a, T, Message>>
     for Element<'a, Message, Renderer>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
     Message: 'a + Clone,
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + crate::Renderer,
 {
-    fn from(
-        slider: Slider<'a, T, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }
 }

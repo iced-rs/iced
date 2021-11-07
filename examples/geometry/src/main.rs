@@ -10,12 +10,11 @@ mod rainbow {
     // Of course, you can choose to make the implementation renderer-agnostic,
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
-    use iced_graphics::{
-        triangle::{Mesh2D, Vertex2D},
-        Backend, Defaults, Primitive, Renderer,
-    };
+    use iced_graphics::renderer::{self, Renderer};
+    use iced_graphics::{Backend, Primitive};
+
     use iced_native::{
-        layout, mouse, Element, Hasher, Layout, Length, Point, Rectangle, Size,
+        layout, Element, Hasher, Layout, Length, Point, Rectangle, Size,
         Vector, Widget,
     };
 
@@ -53,12 +52,15 @@ mod rainbow {
 
         fn draw(
             &self,
-            _renderer: &mut Renderer<B>,
-            _defaults: &Defaults,
+            renderer: &mut Renderer<B>,
+            _style: &renderer::Style,
             layout: Layout<'_>,
             cursor_position: Point,
             _viewport: &Rectangle,
-        ) -> (Primitive, mouse::Interaction) {
+        ) {
+            use iced_graphics::triangle::{Mesh2D, Vertex2D};
+            use iced_native::Renderer as _;
+
             let b = layout.bounds();
 
             // R O Y G B I V
@@ -88,65 +90,63 @@ mod rainbow {
             let posn_bl = [0.0, b.height];
             let posn_l = [0.0, b.height / 2.0];
 
-            (
-                Primitive::Translate {
-                    translation: Vector::new(b.x, b.y),
-                    content: Box::new(Primitive::Mesh2D {
-                        size: b.size(),
-                        buffers: Mesh2D {
-                            vertices: vec![
-                                Vertex2D {
-                                    position: posn_center,
-                                    color: [1.0, 1.0, 1.0, 1.0],
-                                },
-                                Vertex2D {
-                                    position: posn_tl,
-                                    color: color_r,
-                                },
-                                Vertex2D {
-                                    position: posn_t,
-                                    color: color_o,
-                                },
-                                Vertex2D {
-                                    position: posn_tr,
-                                    color: color_y,
-                                },
-                                Vertex2D {
-                                    position: posn_r,
-                                    color: color_g,
-                                },
-                                Vertex2D {
-                                    position: posn_br,
-                                    color: color_gb,
-                                },
-                                Vertex2D {
-                                    position: posn_b,
-                                    color: color_b,
-                                },
-                                Vertex2D {
-                                    position: posn_bl,
-                                    color: color_i,
-                                },
-                                Vertex2D {
-                                    position: posn_l,
-                                    color: color_v,
-                                },
-                            ],
-                            indices: vec![
-                                0, 1, 2, // TL
-                                0, 2, 3, // T
-                                0, 3, 4, // TR
-                                0, 4, 5, // R
-                                0, 5, 6, // BR
-                                0, 6, 7, // B
-                                0, 7, 8, // BL
-                                0, 8, 1, // L
-                            ],
+            let mesh = Primitive::Mesh2D {
+                size: b.size(),
+                buffers: Mesh2D {
+                    vertices: vec![
+                        Vertex2D {
+                            position: posn_center,
+                            color: [1.0, 1.0, 1.0, 1.0],
                         },
-                    }),
+                        Vertex2D {
+                            position: posn_tl,
+                            color: color_r,
+                        },
+                        Vertex2D {
+                            position: posn_t,
+                            color: color_o,
+                        },
+                        Vertex2D {
+                            position: posn_tr,
+                            color: color_y,
+                        },
+                        Vertex2D {
+                            position: posn_r,
+                            color: color_g,
+                        },
+                        Vertex2D {
+                            position: posn_br,
+                            color: color_gb,
+                        },
+                        Vertex2D {
+                            position: posn_b,
+                            color: color_b,
+                        },
+                        Vertex2D {
+                            position: posn_bl,
+                            color: color_i,
+                        },
+                        Vertex2D {
+                            position: posn_l,
+                            color: color_v,
+                        },
+                    ],
+                    indices: vec![
+                        0, 1, 2, // TL
+                        0, 2, 3, // T
+                        0, 3, 4, // TR
+                        0, 4, 5, // R
+                        0, 5, 6, // BR
+                        0, 6, 7, // B
+                        0, 7, 8, // BL
+                        0, 8, 1, // L
+                    ],
                 },
-                mouse::Interaction::default(),
-            )
+            };
+
+            renderer.with_translation(Vector::new(b.x, b.y), |renderer| {
+                renderer.draw_primitive(mesh);
+            });
         }
     }
 

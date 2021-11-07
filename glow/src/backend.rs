@@ -5,10 +5,8 @@ use crate::{Settings, Transformation, Viewport};
 
 use iced_graphics::backend;
 use iced_graphics::font;
-use iced_graphics::Layer;
-use iced_graphics::Primitive;
+use iced_graphics::{Layer, Primitive};
 use iced_native::alignment;
-use iced_native::mouse;
 use iced_native::{Font, Size};
 
 /// A [`glow`] graphics backend for [`iced`].
@@ -47,18 +45,18 @@ impl Backend {
     ///
     /// The text provided as overlay will be rendered on top of the primitives.
     /// This is useful for rendering debug information.
-    pub fn draw<T: AsRef<str>>(
+    pub fn present<T: AsRef<str>>(
         &mut self,
         gl: &glow::Context,
+        primitives: &[Primitive],
         viewport: &Viewport,
-        (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
         overlay_text: &[T],
-    ) -> mouse::Interaction {
+    ) {
         let viewport_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
         let projection = viewport.projection();
 
-        let mut layers = Layer::generate(primitive, viewport);
+        let mut layers = Layer::generate(primitives, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
         for layer in layers {
@@ -70,8 +68,6 @@ impl Backend {
                 viewport_size.height,
             );
         }
-
-        *mouse_interaction
     }
 
     fn flush(
@@ -83,6 +79,11 @@ impl Backend {
         target_height: u32,
     ) {
         let mut bounds = (layer.bounds * scale_factor).snap();
+
+        if bounds.width < 1 || bounds.height < 1 {
+            return;
+        }
+
         bounds.height = bounds.height.min(target_height);
 
         if !layer.quads.is_empty() {

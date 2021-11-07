@@ -176,7 +176,7 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn container::StyleSheet> {
+    impl<'a> From<Theme> for Box<dyn container::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
@@ -185,7 +185,7 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn radio::StyleSheet> {
+    impl<'a> From<Theme> for Box<dyn radio::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
@@ -194,7 +194,7 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn text_input::StyleSheet> {
+    impl<'a> From<Theme> for Box<dyn text_input::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
@@ -203,7 +203,7 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn button::StyleSheet> {
+    impl<'a> From<Theme> for Box<dyn button::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => light::Button.into(),
@@ -212,7 +212,7 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn scrollable::StyleSheet> {
+    impl<'a> From<Theme> for Box<dyn scrollable::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
@@ -221,7 +221,7 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn slider::StyleSheet> {
+    impl<'a> From<Theme> for Box<dyn slider::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
@@ -239,7 +239,7 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn checkbox::StyleSheet> {
+    impl<'a> From<Theme> for Box<dyn checkbox::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
                 Theme::Light => Default::default(),
