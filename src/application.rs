@@ -188,9 +188,9 @@ pub trait Application: Sized {
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
-    /// and __will NOT return__ unless there is an [`Error`] during startup.
+    /// until the event loop of the main window exits.
     ///
-    /// It should probably be that last thing you call in your `main` function.
+    /// Does never return on the web platform
     ///
     /// [`Error`]: crate::Error
     fn run(settings: Settings<Self::Flags>) -> crate::Result

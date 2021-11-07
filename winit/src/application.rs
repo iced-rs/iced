@@ -17,6 +17,7 @@ use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::{Cache, UserInterface};
 
+use crate::winit::platform::run_return::EventLoopExtRunReturn;
 use std::mem::ManuallyDrop;
 
 /// An interactive, native cross-platform application.
@@ -119,7 +120,7 @@ where
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let event_loop = EventLoop::with_user_event();
+    let mut event_loop = EventLoop::with_user_event();
     let mut proxy = event_loop.create_proxy();
 
     let mut runtime = {
@@ -178,7 +179,7 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run_return(move |event, _, control_flow| {
         use winit::event_loop::ControlFlow;
 
         if let ControlFlow::Exit = control_flow {
@@ -211,6 +212,8 @@ where
             };
         }
     });
+
+    Ok(())
 }
 
 async fn run_instance<A, E, C>(
@@ -401,7 +404,7 @@ async fn run_instance<A, E, C>(
                     Err(error) => match error {
                         // This is an unrecoverable error.
                         window::SurfaceError::OutOfMemory => {
-                            panic!("{}", error);
+                            panic!("{:?}", error);
                         }
                         _ => {
                             debug.render_finished();
