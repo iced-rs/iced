@@ -174,7 +174,7 @@ mod numeric_input {
         Renderer: text::Renderer + 'a,
     {
         fn from(numeric_input: NumericInput<'a, Message>) -> Self {
-            component::view(Box::new(numeric_input))
+            component::view(numeric_input)
         }
     }
 }

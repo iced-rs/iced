@@ -10,18 +10,18 @@ use iced_native::{
 use ouroboros::self_referencing;
 use std::marker::PhantomData;
 
-pub fn view<'a, Event, Message, Renderer>(
-    component: Box<dyn Component<Message, Renderer, Event = Event> + 'a>,
+pub fn view<'a, C, Message, Renderer>(
+    component: C,
 ) -> Element<'a, Message, Renderer>
 where
+    C: Component<Message, Renderer> + 'a,
     Message: 'a,
-    Event: 'a,
     Renderer: iced_native::Renderer + 'a,
 {
     Element::new(Instance {
         state: Some(
             StateBuilder {
-                component,
+                component: Box::new(component),
                 cache_builder: |state| Cache {
                     element: state.view(),
                     message: PhantomData,
