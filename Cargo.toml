@@ -66,6 +66,7 @@ members = [
     "examples/bezier_tool",
     "examples/clock",
     "examples/color_palette",
+    "examples/component",
     "examples/counter",
     "examples/custom_widget",
     "examples/download_progress",

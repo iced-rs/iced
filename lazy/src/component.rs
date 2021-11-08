@@ -11,10 +11,12 @@ use ouroboros::self_referencing;
 use std::marker::PhantomData;
 
 pub fn view<'a, Event, Message, Renderer>(
-    component: &'a mut dyn Component<Message, Renderer, Event = Event>,
+    component: Box<dyn Component<Message, Renderer, Event = Event> + 'a>,
 ) -> Element<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Message: 'a,
+    Event: 'a,
+    Renderer: iced_native::Renderer + 'a,
 {
     Element::new(Instance {
         state: Some(
@@ -43,8 +45,8 @@ struct Instance<'a, Message, Renderer, Event> {
 }
 
 #[self_referencing]
-struct State<'a, Message, Renderer, Event> {
-    component: &'a mut dyn Component<Message, Renderer, Event = Event>,
+struct State<'a, Message: 'a, Renderer: 'a, Event: 'a> {
+    component: Box<dyn Component<Message, Renderer, Event = Event> + 'a>,
 
     #[borrows(mut component)]
     #[covariant]
@@ -106,7 +108,8 @@ where
             });
 
         if !local_messages.is_empty() {
-            let component = self.state.take().unwrap().into_heads().component;
+            let mut component =
+                self.state.take().unwrap().into_heads().component;
 
             messages.extend(
                 local_messages
