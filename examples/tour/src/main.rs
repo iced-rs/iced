@@ -496,9 +496,7 @@ impl<'a> Step {
             .padding(20)
             .spacing(20)
             .push(Text::new("You can change its size:"))
-            .push(
-                Text::new(format!("This text is {} pixels", size)).size(size),
-            )
+            .push(Text::new(format!("This text is {} pixels", size)).size(size))
             .push(Slider::new(
                 size_slider,
                 10..=70,
