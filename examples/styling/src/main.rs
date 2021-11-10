@@ -60,7 +60,7 @@ impl Sandbox for Styling {
                 column.push(
                     Radio::new(
                         *theme,
-                        &format!("{:?}", theme),
+                        format!("{:?}", theme),
                         Some(self.theme),
                         Message::ThemeChanged,
                     )

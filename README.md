@@ -128,7 +128,7 @@ impl Counter {
             )
             .push(
                 // We show the value of the counter here
-                Text::new(&self.value.to_string()).size(50),
+                Text::new(self.value.to_string()).size(50),
             )
             .push(
                 // The decrement button. We tell it to produce a

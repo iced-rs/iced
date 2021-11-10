@@ -376,7 +376,7 @@ impl Controls {
             .spacing(20)
             .align_items(Alignment::Center)
             .push(
-                Text::new(&format!(
+                Text::new(format!(
                     "{} {} left",
                     tasks_left,
                     if tasks_left == 1 { "task" } else { "tasks" }
@@ -466,7 +466,7 @@ const ICONS: Font = Font::External {
 };
 
 fn icon(unicode: char) -> Text {
-    Text::new(&unicode.to_string())
+    Text::new(unicode.to_string())
         .font(ICONS)
         .width(Length::Units(20))
         .horizontal_alignment(alignment::Horizontal::Center)
