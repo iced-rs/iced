@@ -16,8 +16,10 @@ impl Pipeline {
     pub fn new(gl: &glow::Context) -> Pipeline {
         let version = gl.version();
         if version.is_embedded || version.major == 2 {
+            log::info!("Mode: compatibility");
             Pipeline::Compatibility(compatibility::Pipeline::new(gl))
         } else {
+            log::info!("Mode: core");
             Pipeline::Core(core::Pipeline::new(gl))
         }
     }

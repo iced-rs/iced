@@ -20,6 +20,13 @@ impl iced_graphics::window::GLCompositor for Compositor {
     ) -> Result<(Self, Self::Renderer), Error> {
         let gl = glow::Context::from_loader_function(loader_function);
 
+        let version = gl.version();
+        log::info!("Version: {:?}", version);
+        log::info!("Embedded: {}", version.is_embedded);
+        
+        let renderer = gl.get_parameter_string(glow::RENDERER);
+        log::info!("Renderer: {}", renderer);
+
         // Enable auto-conversion from/to sRGB
         gl.enable(glow::FRAMEBUFFER_SRGB);
 
