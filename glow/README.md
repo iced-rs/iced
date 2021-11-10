@@ -1,0 +1,51 @@
+# `iced_glow`
+[![Documentation](https://docs.rs/iced_glow/badge.svg)][documentation]
+[![Crates.io](https://img.shields.io/crates/v/iced_glow.svg)](https://crates.io/crates/iced_glow)
+[![License](https://img.shields.io/crates/l/iced_glow.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+[![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
+
+`iced_glow` is a [`glow`] renderer for [`iced_native`]. This renderer supports OpenGL 3.0+ and OpenGL ES 2.0.
+
+This is renderer is mostly used as a fallback for hardware that doesn't support [`wgpu`] (Vulkan, Metal or DX12).
+
+Currently, `iced_glow` supports the following primitives:
+- Text, which is rendered using [`glow_glyph`]. No shaping at all.
+- Quads or rectangles, with rounded borders and a solid background color.
+- Clip areas, useful to implement scrollables or hide overflowing content.
+- Meshes of triangles, useful to draw geometry freely.
+
+<p align="center">
+  <img alt="The native target" src="../docs/graphs/native.png" width="80%">
+</p>
+
+[documentation]: https://docs.rs/iced_glow
+[`iced_native`]: ../native
+[`glow`]: https://github.com/grovesNL/glow
+[`wgpu`]: https://github.com/gfx-rs/wgpu
+[`glow_glyph`]: https://github.com/hecrj/glow_glyph
+
+## Installation
+Add `iced_glow` as a dependency in your `Cargo.toml`:
+
+```toml
+iced_glow = "0.2"
+```
+
+__Iced moves fast and the `master` branch can contain breaking changes!__ If
+you want to learn about a specific release, check out [the release list].
+
+[the release list]: https://github.com/hecrj/iced/releases
+
+## Current limitations
+
+The current implementation is quite naive, it uses:
+
+- A different pipeline/shader for each primitive
+- A very simplistic layer model: every `Clip` primitive will generate new layers
+- _Many_ render passes instead of preparing everything upfront
+- A glyph cache that is trimmed incorrectly when there are multiple layers (a [`glyph_brush`] limitation)
+
+Some of these issues are already being worked on! If you want to help, [get in touch!]
+
+[get in touch!]: ../CONTRIBUTING.md
+[`glyph_brush`]: https://github.com/alexheretic/glyph-brush

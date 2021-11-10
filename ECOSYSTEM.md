@@ -45,7 +45,7 @@ The widgets of a _graphical_ user interface produce some primitives that eventua
 Currently, there are two different official renderers:
 
 - [`iced_wgpu`] is powered by [`wgpu`] and supports Vulkan, DirectX 12, and Metal.
-- [`iced_glow`] is powered by [`glow`] and supports OpenGL 3.3+.
+- [`iced_glow`] is powered by [`glow`] and supports OpenGL 2.1+ and OpenGL ES 2.0+.
 
 Additionally, the [`iced_graphics`] subcrate contains a bunch of backend-agnostic types that can be leveraged to build renderers. Both of the renderers rely on the graphical foundations provided by this crate.
 
