@@ -1,5 +1,3 @@
-#version 100
-
 uniform mat4 u_Transform;
 uniform float u_Scale;
 

@@ -23,7 +23,7 @@ impl iced_graphics::window::GLCompositor for Compositor {
         let version = gl.version();
         log::info!("Version: {:?}", version);
         log::info!("Embedded: {}", version.is_embedded);
-        
+
         let renderer = gl.get_parameter_string(glow::RENDERER);
         log::info!("Renderer: {}", renderer);
 

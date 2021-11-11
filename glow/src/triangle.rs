@@ -21,20 +21,32 @@ pub(crate) struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(gl: &glow::Context) -> Pipeline {
+    pub fn new(
+        gl: &glow::Context,
+        (vertex_version, fragment_version): &(String, String),
+    ) -> Pipeline {
         let program = unsafe {
             program::create(
                 gl,
                 &[
                     (
                         glow::VERTEX_SHADER,
-                        include_str!("shader/compatibility/triangle.vert"),
+                        &format!(
+                            "{}\n{}",
+                            vertex_version,
+                            include_str!("shader/common/triangle.vert")
+                        ),
                     ),
                     (
                         glow::FRAGMENT_SHADER,
-                        include_str!("shader/compatibility/triangle.frag"),
+                        &format!(
+                            "{}\n{}",
+                            fragment_version,
+                            include_str!("shader/common/triangle.frag")
+                        ),
                     ),
                 ],
+                &[(0, "i_Position"), (1, "i_Color")],
             )
         };
 

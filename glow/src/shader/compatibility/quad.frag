@@ -1,5 +1,10 @@
-#version 100
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
+#endif
 
 uniform float u_ScreenHeight;
 
@@ -10,7 +15,7 @@ varying vec2 v_Scale;
 varying float v_BorderRadius;
 varying float v_BorderWidth;
 
-float _distance(in vec2 frag_coord, in vec2 position, in vec2 size, float radius)
+float _distance(vec2 frag_coord, vec2 position, vec2 size, float radius)
 {
     // TODO: Try SDF approach: https://www.shadertoy.com/view/wd3XRN
     vec2 inner_size = size - vec2(radius, radius) * 2.0;

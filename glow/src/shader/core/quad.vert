@@ -1,5 +1,3 @@
-#version 130
-
 uniform mat4 u_Transform;
 uniform float u_Scale;
 
@@ -17,7 +15,7 @@ out vec2 v_Scale;
 out float v_BorderRadius;
 out float v_BorderWidth;
 
-const vec2 positions[4] = vec2[](
+vec2 positions[4] = vec2[](
     vec2(0.0, 0.0),
     vec2(0.0, 1.0),
     vec2(1.0, 0.0),

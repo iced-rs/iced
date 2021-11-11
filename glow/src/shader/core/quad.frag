@@ -1,4 +1,15 @@
-#version 130
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+#endif
+
+#ifdef HIGHER_THAN_300
+out vec4 fragColor;
+#define gl_FragColor fragColor
+#endif
 
 uniform float u_ScreenHeight;
 
@@ -9,9 +20,7 @@ in vec2 v_Scale;
 in float v_BorderRadius;
 in float v_BorderWidth;
 
-out vec4 o_Color;
-
-float distance(in vec2 frag_coord, in vec2 position, in vec2 size, float radius)
+float fDistance(vec2 frag_coord, vec2 position, vec2 size, float radius)
 {
     // TODO: Try SDF approach: https://www.shadertoy.com/view/wd3XRN
     vec2 inner_size = size - vec2(radius, radius) * 2.0;
@@ -35,10 +44,10 @@ void main() {
     vec2 fragCoord = vec2(gl_FragCoord.x, u_ScreenHeight - gl_FragCoord.y);
 
     // TODO: Remove branching (?)
-    if(v_BorderWidth > 0) {
+    if(v_BorderWidth > 0.0) {
         float internal_border = max(v_BorderRadius - v_BorderWidth, 0.0);
 
-        float internal_distance = distance(
+        float internal_distance = fDistance(
             fragCoord,
             v_Pos + vec2(v_BorderWidth),
             v_Scale - vec2(v_BorderWidth * 2.0),
@@ -56,7 +65,7 @@ void main() {
         mixed_color = v_Color;
     }
 
-    float d = distance(
+    float d = fDistance(
         fragCoord,
         v_Pos,
         v_Scale,
@@ -66,5 +75,5 @@ void main() {
     float radius_alpha =
         1.0 - smoothstep(max(v_BorderRadius - 0.5, 0.0), v_BorderRadius + 0.5, d);
 
-    o_Color = vec4(mixed_color.xyz, mixed_color.w * radius_alpha);
+    gl_FragColor = vec4(mixed_color.xyz, mixed_color.w * radius_alpha);
 }

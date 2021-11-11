@@ -13,14 +13,22 @@ pub enum Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(gl: &glow::Context) -> Pipeline {
+    pub fn new(
+        gl: &glow::Context,
+        shader_version: &(String, String),
+    ) -> Pipeline {
         let version = gl.version();
-        if version.is_embedded || version.major == 2 {
-            log::info!("Mode: compatibility");
-            Pipeline::Compatibility(compatibility::Pipeline::new(gl))
-        } else {
+
+        // OpenGL 3.0+ and OpenGL ES 3.0+ have instancing (which is what separates `core` from `compatibility`)
+        if version.major >= 3 {
             log::info!("Mode: core");
-            Pipeline::Core(core::Pipeline::new(gl))
+            Pipeline::Core(core::Pipeline::new(gl, shader_version))
+        } else {
+            log::info!("Mode: compatibility");
+            Pipeline::Compatibility(compatibility::Pipeline::new(
+                gl,
+                shader_version,
+            ))
         }
     }
 

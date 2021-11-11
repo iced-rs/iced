@@ -3,6 +3,7 @@ use glow::HasContext;
 pub unsafe fn create(
     gl: &glow::Context,
     shader_sources: &[(u32, &str)],
+    attributes: &[(u32, &str)],
 ) -> <glow::Context as HasContext>::Program {
     let program = gl.create_program().expect("Cannot create program");
 
@@ -23,6 +24,10 @@ pub unsafe fn create(
         gl.attach_shader(program, shader);
 
         shaders.push(shader);
+    }
+
+    for (i, name) in attributes {
+        gl.bind_attrib_location(program, *i, name);
     }
 
     gl.link_program(program);

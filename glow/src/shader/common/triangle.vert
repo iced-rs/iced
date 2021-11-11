@@ -1,5 +1,3 @@
-#version 130
-
 uniform mat4 u_Transform;
 
 in vec2 i_Position;

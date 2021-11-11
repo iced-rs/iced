@@ -20,19 +20,38 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new(gl: &glow::Context) -> Pipeline {
+    pub fn new(
+        gl: &glow::Context,
+        (vertex_version, fragment_version): &(String, String),
+    ) -> Pipeline {
         let program = unsafe {
             program::create(
                 gl,
                 &[
                     (
                         glow::VERTEX_SHADER,
-                        include_str!("../shader/core/quad.vert"),
+                        &format!(
+                            "{}\n{}",
+                            vertex_version,
+                            include_str!("../shader/core/quad.vert")
+                        ),
                     ),
                     (
                         glow::FRAGMENT_SHADER,
-                        include_str!("../shader/core/quad.frag"),
+                        &format!(
+                            "{}\n{}",
+                            fragment_version,
+                            include_str!("../shader/core/quad.frag")
+                        ),
                     ),
+                ],
+                &[
+                    (0, "i_Pos"),
+                    (1, "i_Scale"),
+                    (2, "i_Color"),
+                    (3, "i_BorderColor"),
+                    (4, "i_BorderRadius"),
+                    (5, "i_BorderWidth"),
                 ],
             )
         };
