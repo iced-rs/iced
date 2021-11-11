@@ -144,9 +144,10 @@ where
 }
 
 /// The local state of a [`Slider`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct State {
     is_dragging: bool,
+    previous: Option<f64>,
 }
 
 impl State {
@@ -193,12 +194,14 @@ where
         _clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> event::Status {
+        let is_dragging = self.state.is_dragging;
+
         let mut change = || {
             let bounds = layout.bounds();
-            if cursor_position.x <= bounds.x {
-                messages.push((self.on_change)(*self.range.start()));
+            let new_value = if cursor_position.x <= bounds.x {
+                *self.range.start()
             } else if cursor_position.x >= bounds.x + bounds.width {
-                messages.push((self.on_change)(*self.range.end()));
+                *self.range.end()
             } else {
                 let step = self.step.into();
                 let start = (*self.range.start()).into();
@@ -211,8 +214,20 @@ where
                 let value = steps * step + start;
 
                 if let Some(value) = T::from_f64(value) {
-                    messages.push((self.on_change)(value));
+                    value
+                } else {
+                    return;
                 }
+            };
+
+            if let Some(previous) = self.state.previous {
+                if (new_value.into() - previous).abs() > f64::EPSILON {
+                    messages.push((self.on_change)(new_value));
+                    self.state.previous = Some(new_value.into());
+                }
+            } else {
+                messages.push((self.on_change)(new_value));
+                self.state.previous = Some(new_value.into());
             }
         };
 
@@ -229,7 +244,7 @@ where
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. })
             | Event::Touch(touch::Event::FingerLost { .. }) => {
-                if self.state.is_dragging {
+                if is_dragging {
                     if let Some(on_release) = self.on_release.clone() {
                         messages.push(on_release);
                     }
@@ -240,7 +255,7 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { .. })
             | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                if self.state.is_dragging {
+                if is_dragging {
                     change();
 
                     return event::Status::Captured;
