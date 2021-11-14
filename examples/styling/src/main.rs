@@ -528,6 +528,7 @@ mod style {
                     background: if is_checked { ACTIVE } else { SURFACE }
                         .into(),
                     checkmark_color: Color::WHITE,
+                    text_color: Color::BLACK,
                     border_radius: 2.0,
                     border_width: 1.0,
                     border_color: ACTIVE,

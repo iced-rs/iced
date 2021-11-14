@@ -216,24 +216,24 @@ where
 
         let mut children = layout.children();
 
+        let custom_style = if is_mouse_over {
+            self.style_sheet.hovered(self.is_checked)
+        } else {
+            self.style_sheet.active(self.is_checked)
+        };
+
         {
             let layout = children.next().unwrap();
             let bounds = layout.bounds();
 
-            let style = if is_mouse_over {
-                self.style_sheet.hovered(self.is_checked)
-            } else {
-                self.style_sheet.active(self.is_checked)
-            };
-
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border_radius: style.border_radius,
-                    border_width: style.border_width,
-                    border_color: style.border_color,
+                    border_radius: custom_style.border_radius,
+                    border_width: custom_style.border_width,
+                    border_color: custom_style.border_color,
                 },
-                style.background,
+                custom_style.background,
             );
 
             if self.is_checked {
@@ -246,7 +246,7 @@ where
                         y: bounds.center_y(),
                         ..bounds
                     },
-                    color: style.checkmark_color,
+                    color: custom_style.checkmark_color,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
                 });
@@ -263,7 +263,7 @@ where
                 &self.label,
                 self.font,
                 self.text_size,
-                self.text_color,
+                self.text_color.or(Some(custom_style.text_color)),
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
