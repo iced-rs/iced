@@ -27,10 +27,9 @@ where
         self: Box<Self>,
         event_stream: EventStream,
     ) -> BoxStream<Self::Output> {
-        event_stream
-            .filter_map(move |(event, status)| {
-                future::ready((self.f)(event, status))
-            })
-            .boxed()
+        let stream = event_stream.filter_map(move |(event, status)| {
+            future::ready((self.f)(event, status))
+        });
+        iced_futures::boxed_stream(stream)
     }
 }

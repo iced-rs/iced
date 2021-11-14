@@ -1,7 +1,7 @@
 //! Listen to external events in your application.
 use crate::event::{self, Event};
 use crate::Hasher;
-use iced_futures::futures::stream::BoxStream;
+use iced_futures::BoxStream;
 
 /// A request to listen to external events.
 ///
@@ -21,7 +21,7 @@ pub type Subscription<T> =
 /// A stream of runtime events.
 ///
 /// It is the input of a [`Subscription`] in the native runtime.
-pub type EventStream = BoxStream<'static, (Event, event::Status)>;
+pub type EventStream = BoxStream<(Event, event::Status)>;
 
 /// A native [`Subscription`] tracker.
 pub type Tracker =
