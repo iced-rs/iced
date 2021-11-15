@@ -147,7 +147,6 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct State {
     is_dragging: bool,
-    previous: Option<f64>,
 }
 
 impl State {
@@ -220,14 +219,10 @@ where
                 }
             };
 
-            if let Some(previous) = self.state.previous {
-                if (new_value.into() - previous).abs() > f64::EPSILON {
-                    messages.push((self.on_change)(new_value));
-                    self.state.previous = Some(new_value.into());
-                }
-            } else {
+            if (self.value.into() - new_value.into()).abs() > f64::EPSILON {
                 messages.push((self.on_change)(new_value));
-                self.state.previous = Some(new_value.into());
+
+                self.value = new_value;
             }
         };
 
