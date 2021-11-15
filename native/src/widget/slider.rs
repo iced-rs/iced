@@ -144,7 +144,7 @@ where
 }
 
 /// The local state of a [`Slider`].
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_dragging: bool,
 }
