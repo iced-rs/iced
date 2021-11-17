@@ -52,6 +52,8 @@ pub struct Settings<Flags> {
     /// window to close (e.g. the user presses the close button).
     ///
     /// By default, it is enabled.
+    ///
+    /// [`Application`]: crate::Application
     pub exit_on_close_request: bool,
 }
 
