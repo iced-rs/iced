@@ -30,7 +30,7 @@
 //! [windowing shell]: https://github.com/hecrj/iced/tree/master/winit
 //! [`dodrio`]: https://github.com/fitzgen/dodrio
 //! [web runtime]: https://github.com/hecrj/iced/tree/master/web
-//! [examples]: https://github.com/hecrj/iced/tree/0.2/examples
+//! [examples]: https://github.com/hecrj/iced/tree/0.3/examples
 //! [repository]: https://github.com/hecrj/iced
 //!
 //! # Overview
