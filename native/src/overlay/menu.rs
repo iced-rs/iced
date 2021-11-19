@@ -422,48 +422,50 @@ where
 
         let visible_options = &self.options[start..end.min(self.options.len())];
 
-        for (i, option) in visible_options.iter().enumerate() {
-            let i = start + i;
-            let is_selected = *self.hovered_option == Some(i);
+        renderer.with_layer(bounds, |renderer| {
+            for (i, option) in visible_options.iter().enumerate() {
+                let i = start + i;
+                let is_selected = *self.hovered_option == Some(i);
 
-            let bounds = Rectangle {
-                x: bounds.x,
-                y: bounds.y + (option_height * i) as f32,
-                width: bounds.width,
-                height: f32::from(text_size + self.padding.vertical()),
-            };
+                let bounds = Rectangle {
+                    x: bounds.x,
+                    y: bounds.y + (option_height * i) as f32,
+                    width: bounds.width,
+                    height: f32::from(text_size + self.padding.vertical()),
+                };
 
-            if is_selected {
-                renderer.fill_quad(
-                    renderer::Quad {
-                        bounds,
-                        border_color: Color::TRANSPARENT,
-                        border_width: 0.0,
-                        border_radius: 0.0,
+                if is_selected {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds,
+                            border_color: Color::TRANSPARENT,
+                            border_width: 0.0,
+                            border_radius: 0.0,
+                        },
+                        self.style.selected_background,
+                    );
+                }
+
+                renderer.fill_text(Text {
+                    content: &option.to_string(),
+                    bounds: Rectangle {
+                        x: bounds.x + self.padding.left as f32,
+                        y: bounds.center_y(),
+                        width: f32::INFINITY,
+                        ..bounds
                     },
-                    self.style.selected_background,
-                );
+                    size: f32::from(text_size),
+                    font: self.font,
+                    color: if is_selected {
+                        self.style.selected_text_color
+                    } else {
+                        self.style.text_color
+                    },
+                    horizontal_alignment: alignment::Horizontal::Left,
+                    vertical_alignment: alignment::Vertical::Center,
+                });
             }
-
-            renderer.fill_text(Text {
-                content: &option.to_string(),
-                bounds: Rectangle {
-                    x: bounds.x + self.padding.left as f32,
-                    y: bounds.center_y(),
-                    width: f32::INFINITY,
-                    ..bounds
-                },
-                size: f32::from(text_size),
-                font: self.font,
-                color: if is_selected {
-                    self.style.selected_text_color
-                } else {
-                    self.style.text_color
-                },
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Center,
-            });
-        }
+        });
     }
 }
 
