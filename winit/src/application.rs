@@ -22,7 +22,7 @@ use std::mem::ManuallyDrop;
 /// An interactive, native cross-platform application.
 ///
 /// This trait is the main entrypoint of Iced. Once implemented, you can run
-/// your GUI application by simply calling [`run`](#method.run). It will run in
+/// your GUI application by simply calling [`run`]. It will run in
 /// its own window.
 ///
 /// An [`Application`] can execute asynchronous actions by returning a
