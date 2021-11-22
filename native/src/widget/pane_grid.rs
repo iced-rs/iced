@@ -481,10 +481,33 @@ where
             return mouse::Interaction::Grab;
         }
 
-        if let Some((_, axis)) = self.state.picked_split() {
-            return match axis {
-                Axis::Horizontal => mouse::Interaction::ResizingHorizontally,
-                Axis::Vertical => mouse::Interaction::ResizingVertically,
+        let resize_axis =
+            self.state.picked_split().map(|(_, axis)| axis).or_else(|| {
+                self.on_resize.as_ref().and_then(|(leeway, _)| {
+                    let bounds = layout.bounds();
+
+                    let splits = self
+                        .state
+                        .split_regions(f32::from(self.spacing), bounds.size());
+
+                    let relative_cursor = Point::new(
+                        cursor_position.x - bounds.x,
+                        cursor_position.y - bounds.y,
+                    );
+
+                    hovered_split(
+                        splits.iter(),
+                        f32::from(self.spacing + leeway),
+                        relative_cursor,
+                    )
+                    .map(|(_, axis, _)| axis)
+                })
+            });
+
+        if let Some(resize_axis) = resize_axis {
+            return match resize_axis {
+                Axis::Horizontal => mouse::Interaction::ResizingVertically,
+                Axis::Vertical => mouse::Interaction::ResizingHorizontally,
             };
         }
 
