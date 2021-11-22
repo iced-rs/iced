@@ -1,5 +1,5 @@
 use iced::{
-    button, Alignment, Button, Column, Element, Sandbox, Settings, Text,
+    button, Align, Button, Column, Element, Sandbox, Settings, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -44,7 +44,7 @@ impl Sandbox for Counter {
     fn view(&mut self) -> Element<Message> {
         Column::new()
             .padding(20)
-            .align_items(Alignment::Center)
+            .align_items(Align::Center)
             .push(
                 Button::new(&mut self.increment_button, Text::new("Increment"))
                     .on_press(Message::IncrementPressed),
