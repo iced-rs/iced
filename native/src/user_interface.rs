@@ -409,7 +409,7 @@ where
 
                     let overlay_bounds = layer.layout.bounds();
 
-                    renderer.with_layer(viewport, |renderer| {
+                    renderer.with_layer(overlay_bounds, |renderer| {
                         overlay.draw(
                             renderer,
                             &renderer::Style::default(),
