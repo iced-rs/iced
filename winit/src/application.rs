@@ -17,7 +17,6 @@ use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::{Cache, UserInterface};
 
-use crate::winit::platform::run_return::EventLoopExtRunReturn;
 use std::mem::ManuallyDrop;
 
 /// An interactive, native cross-platform application.
@@ -116,6 +115,7 @@ where
     use futures::task;
     use futures::Future;
     use winit::event_loop::EventLoop;
+    use winit::platform::run_return::EventLoopExtRunReturn;
 
     let mut debug = Debug::new();
     debug.startup_started();

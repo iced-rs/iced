@@ -11,7 +11,6 @@ use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
 use iced_winit::{Cache, Clipboard, Debug, Proxy, Settings};
 
-use crate::glutin::platform::run_return::EventLoopExtRunReturn;
 use glutin::window::Window;
 use std::mem::ManuallyDrop;
 
@@ -29,6 +28,7 @@ where
     use futures::task;
     use futures::Future;
     use glutin::event_loop::EventLoop;
+    use glutin::platform::run_return::EventLoopExtRunReturn;
     use glutin::ContextBuilder;
 
     let mut debug = Debug::new();
