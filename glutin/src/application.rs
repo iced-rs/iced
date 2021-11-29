@@ -28,12 +28,13 @@ where
     use futures::task;
     use futures::Future;
     use glutin::event_loop::EventLoop;
+    use glutin::platform::run_return::EventLoopExtRunReturn;
     use glutin::ContextBuilder;
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let event_loop = EventLoop::with_user_event();
+    let mut event_loop = EventLoop::with_user_event();
     let mut proxy = event_loop.create_proxy();
 
     let mut runtime = {
@@ -115,7 +116,7 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run_return(move |event, _, control_flow| {
         use glutin::event_loop::ControlFlow;
 
         if let ControlFlow::Exit = control_flow {
@@ -148,6 +149,8 @@ where
             };
         }
     });
+
+    Ok(())
 }
 
 async fn run_instance<A, E, C>(
