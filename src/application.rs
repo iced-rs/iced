@@ -188,9 +188,10 @@ pub trait Application: Sized {
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
-    /// until the event loop of the main window exits.
+    /// until the [`Application`] exits.
     ///
-    /// Does never return on the web platform
+    /// On the web platform, this method __will NOT return__ unless there is an
+    /// [`Error`] during startup.
     ///
     /// [`Error`]: crate::Error
     fn run(settings: Settings<Self::Flags>) -> crate::Result
