@@ -9,8 +9,8 @@ use crate::{Backend, Primitive};
 use iced_native::layout;
 use iced_native::mouse;
 use iced_native::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
-    Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -158,7 +158,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer<B>,
         _clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();
 
@@ -179,7 +179,7 @@ where
                 self.program.update(canvas_event, bounds, cursor);
 
             if let Some(message) = message {
-                messages.push(message);
+                shell.publish(message);
             }
 
             return event_status;

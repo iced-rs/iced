@@ -9,7 +9,7 @@ use crate::renderer;
 use crate::touch;
 use crate::{
     Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Vector, Widget,
+    Point, Rectangle, Shell, Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -197,7 +197,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         if let event::Status::Captured = self.content.on_event(
             event.clone(),
@@ -205,7 +205,7 @@ where
             cursor_position,
             renderer,
             clipboard,
-            messages,
+            shell,
         ) {
             return event::Status::Captured;
         }
@@ -232,7 +232,7 @@ where
                         self.state.is_pressed = false;
 
                         if bounds.contains(cursor_position) {
-                            messages.push(on_press);
+                            shell.publish(on_press);
                         }
 
                         return event::Status::Captured;

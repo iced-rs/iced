@@ -4,7 +4,7 @@ use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::{
-    Clipboard, Element, Hasher, Length, Point, Rectangle, Widget,
+    Clipboard, Element, Hasher, Length, Point, Rectangle, Shell, Widget,
 };
 
 use ouroboros::self_referencing;
@@ -91,9 +91,10 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut local_messages = Vec::new();
+        let mut local_shell = Shell::new(&mut local_messages);
 
         let event_status =
             self.state.as_mut().unwrap().with_cache_mut(|cache| {
@@ -103,7 +104,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
-                    &mut local_messages,
+                    &mut local_shell,
                 )
             });
 
@@ -111,11 +112,12 @@ where
             let mut component =
                 self.state.take().unwrap().into_heads().component;
 
-            messages.extend(
-                local_messages
-                    .into_iter()
-                    .filter_map(|message| component.update(message)),
-            );
+            for message in local_messages
+                .into_iter()
+                .filter_map(|message| component.update(message))
+            {
+                shell.publish(message);
+            }
 
             self.state = Some(
                 StateBuilder {
@@ -128,7 +130,7 @@ where
                 .build(),
             );
 
-            // TODO: Invalidate layout (!)
+            shell.invalidate_layout();
         }
 
         event_status

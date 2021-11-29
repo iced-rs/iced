@@ -8,7 +8,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::{
     Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Widget,
+    Rectangle, Shell, Widget,
 };
 
 use std::u32;
@@ -146,7 +146,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.children
             .iter_mut()
@@ -158,7 +158,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
-                    messages,
+                    shell,
                 )
             })
             .fold(event::Status::Ignored, event::Status::merge)

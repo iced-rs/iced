@@ -53,6 +53,7 @@ pub mod window;
 mod element;
 mod hasher;
 mod runtime;
+mod shell;
 mod user_interface;
 
 // We disable debug capabilities on release builds unless the `debug` feature
@@ -85,6 +86,7 @@ pub use overlay::Overlay;
 pub use program::Program;
 pub use renderer::Renderer;
 pub use runtime::Runtime;
+pub use shell::Shell;
 pub use subscription::Subscription;
 pub use user_interface::{Cache, UserInterface};
 pub use widget::Widget;

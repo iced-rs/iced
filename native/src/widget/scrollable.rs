@@ -8,7 +8,7 @@ use crate::touch;
 use crate::widget::Column;
 use crate::{
     Alignment, Background, Clipboard, Color, Element, Hasher, Layout, Length,
-    Padding, Point, Rectangle, Size, Vector, Widget,
+    Padding, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::{f32, hash::Hash, u32};
@@ -144,14 +144,14 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
         &self,
         bounds: Rectangle,
         content_bounds: Rectangle,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) {
         if content_bounds.height <= bounds.height {
             return;
         }
 
         if let Some(on_scroll) = &self.on_scroll {
-            messages.push(on_scroll(
+            shell.publish(on_scroll(
                 self.state.offset.absolute(bounds, content_bounds)
                     / (content_bounds.height - bounds.height),
             ));
@@ -251,7 +251,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
@@ -286,7 +286,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
-                messages,
+                shell,
             )
         };
 
@@ -307,7 +307,7 @@ where
                         }
                     }
 
-                    self.notify_on_scroll(bounds, content_bounds, messages);
+                    self.notify_on_scroll(bounds, content_bounds, shell);
 
                     return event::Status::Captured;
                 }
@@ -336,7 +336,7 @@ where
                                 self.notify_on_scroll(
                                     bounds,
                                     content_bounds,
-                                    messages,
+                                    shell,
                                 );
                             }
                         }
@@ -377,7 +377,7 @@ where
                             content_bounds,
                         );
 
-                        self.notify_on_scroll(bounds, content_bounds, messages);
+                        self.notify_on_scroll(bounds, content_bounds, shell);
 
                         return event::Status::Captured;
                     }
@@ -409,7 +409,7 @@ where
                             self.notify_on_scroll(
                                 bounds,
                                 content_bounds,
-                                messages,
+                                shell,
                             );
 
                             return event::Status::Captured;

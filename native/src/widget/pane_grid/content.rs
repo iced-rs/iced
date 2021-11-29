@@ -5,7 +5,9 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
 use crate::widget::pane_grid::TitleBar;
-use crate::{Clipboard, Element, Hasher, Layout, Point, Rectangle, Size};
+use crate::{
+    Clipboard, Element, Hasher, Layout, Point, Rectangle, Shell, Size,
+};
 
 /// The content of a [`Pane`].
 ///
@@ -160,7 +162,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
         is_picked: bool,
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
@@ -174,7 +176,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
-                messages,
+                shell,
             );
 
             children.next().unwrap()
@@ -191,7 +193,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
-                messages,
+                shell,
             )
         };
 

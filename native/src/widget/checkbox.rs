@@ -11,7 +11,7 @@ use crate::touch;
 use crate::widget::{self, Row, Text};
 use crate::{
     Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Widget,
+    Rectangle, Shell, Widget,
 };
 
 pub use iced_style::checkbox::{Style, StyleSheet};
@@ -171,7 +171,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -179,7 +179,7 @@ where
                 let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {
-                    messages.push((self.on_toggle)(!self.is_checked));
+                    shell.publish((self.on_toggle)(!self.is_checked));
 
                     return event::Status::Captured;
                 }

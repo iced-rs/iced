@@ -34,8 +34,8 @@ use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::{
-    Clipboard, Color, Element, Hasher, Layout, Length, Point, Rectangle, Size,
-    Vector, Widget,
+    Clipboard, Color, Element, Hasher, Layout, Length, Point, Rectangle, Shell,
+    Size, Vector, Widget,
 };
 
 pub use iced_style::pane_grid::{Line, StyleSheet};
@@ -205,7 +205,7 @@ where
         &mut self,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) {
         let mut clicked_region =
             self.elements.iter().zip(layout.children()).filter(
@@ -214,7 +214,7 @@ where
 
         if let Some(((pane, content), layout)) = clicked_region.next() {
             if let Some(on_click) = &self.on_click {
-                messages.push(on_click(*pane));
+                shell.publish(on_click(*pane));
             }
 
             if let Some(on_drag) = &self.on_drag {
@@ -226,7 +226,7 @@ where
 
                     self.state.pick_pane(pane, origin);
 
-                    messages.push(on_drag(DragEvent::Picked { pane: *pane }));
+                    shell.publish(on_drag(DragEvent::Picked { pane: *pane }));
                 }
             }
         }
@@ -236,7 +236,7 @@ where
         &mut self,
         layout: Layout<'_>,
         cursor_position: Point,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         if let Some((_, on_resize)) = &self.on_resize {
             if let Some((split, _)) = self.state.picked_split() {
@@ -263,7 +263,7 @@ where
                         }
                     };
 
-                    messages.push(on_resize(ResizeEvent { split, ratio }));
+                    shell.publish(on_resize(ResizeEvent { split, ratio }));
 
                     return event::Status::Captured;
                 }
@@ -362,7 +362,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
 
@@ -395,15 +395,11 @@ where
                             if let Some((split, axis, _)) = clicked_split {
                                 self.state.pick_split(&split, axis);
                             } else {
-                                self.click_pane(
-                                    layout,
-                                    cursor_position,
-                                    messages,
-                                );
+                                self.click_pane(layout, cursor_position, shell);
                             }
                         }
                         None => {
-                            self.click_pane(layout, cursor_position, messages);
+                            self.click_pane(layout, cursor_position, shell);
                         }
                     }
                 }
@@ -430,7 +426,7 @@ where
                             _ => DragEvent::Canceled { pane },
                         };
 
-                        messages.push(on_drag(event));
+                        shell.publish(on_drag(event));
                     }
 
                     self.state.idle();
@@ -445,7 +441,7 @@ where
             Event::Mouse(mouse::Event::CursorMoved { .. })
             | Event::Touch(touch::Event::FingerMoved { .. }) => {
                 event_status =
-                    self.trigger_resize(layout, cursor_position, messages);
+                    self.trigger_resize(layout, cursor_position, shell);
             }
             _ => {}
         }
@@ -464,7 +460,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
-                    messages,
+                    shell,
                     is_picked,
                 )
             })
