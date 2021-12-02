@@ -10,7 +10,7 @@ use crate::text;
 use crate::widget::{Row, Text};
 use crate::{
     Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Widget,
+    Rectangle, Shell, Widget,
 };
 
 pub use iced_style::toggler::{Style, StyleSheet};
@@ -173,14 +173,14 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {
-                    messages.push((self.on_toggle)(!self.is_active));
+                    shell.publish((self.on_toggle)(!self.is_active));
 
                     event::Status::Captured
                 } else {

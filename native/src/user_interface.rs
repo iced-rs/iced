@@ -3,7 +3,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Element, Layout, Point, Rectangle, Size};
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 use std::hash::Hasher;
 
@@ -179,7 +179,7 @@ where
     ///     let event_statuses = user_interface.update(
     ///         &events,
     ///         cursor_position,
-    ///         &renderer,
+    ///         &mut renderer,
     ///         &mut clipboard,
     ///         &mut messages
     ///     );
@@ -196,16 +196,18 @@ where
         &mut self,
         events: &[Event],
         cursor_position: Point,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> Vec<event::Status> {
         let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
         {
-            let layer = Self::overlay_layer(
+            let bounds = self.bounds;
+
+            let mut layer = Self::overlay_layer(
                 self.overlay.take(),
-                self.bounds,
+                bounds,
                 &mut overlay,
                 renderer,
             );
@@ -214,14 +216,27 @@ where
                 .iter()
                 .cloned()
                 .map(|event| {
-                    overlay.on_event(
+                    let mut shell = Shell::new(messages);
+
+                    let event_status = overlay.on_event(
                         event,
                         Layout::new(&layer.layout),
                         cursor_position,
                         renderer,
                         clipboard,
-                        messages,
-                    )
+                        &mut shell,
+                    );
+
+                    shell.with_invalid_layout(|| {
+                        layer = Self::overlay_layer(
+                            None,
+                            bounds,
+                            &mut overlay,
+                            renderer,
+                        );
+                    });
+
+                    event_status
                 })
                 .collect();
 
@@ -245,14 +260,33 @@ where
             .cloned()
             .zip(overlay_statuses.into_iter())
             .map(|(event, overlay_status)| {
+                let mut shell = Shell::new(messages);
+
                 let event_status = self.root.widget.on_event(
                     event,
                     Layout::new(&self.base.layout),
                     base_cursor,
                     renderer,
                     clipboard,
-                    messages,
+                    &mut shell,
                 );
+
+                shell.with_invalid_layout(|| {
+                    let hash = {
+                        let hasher = &mut crate::Hasher::default();
+                        self.root.hash_layout(hasher);
+
+                        hasher.finish()
+                    };
+
+                    let layout = renderer.layout(
+                        &self.root,
+                        &layout::Limits::new(Size::ZERO, self.bounds),
+                    );
+
+                    self.base = Layer { layout, hash };
+                    self.overlay = None;
+                });
 
                 event_status.merge(overlay_status)
             })
@@ -313,7 +347,7 @@ where
     ///     let event_statuses = user_interface.update(
     ///         &events,
     ///         cursor_position,
-    ///         &renderer,
+    ///         &mut renderer,
     ///         &mut clipboard,
     ///         &mut messages
     ///     );

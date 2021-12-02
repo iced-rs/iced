@@ -5,7 +5,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Padding, Point, Rectangle, Size,
+    Clipboard, Element, Hasher, Layout, Padding, Point, Rectangle, Shell, Size,
 };
 
 /// The title bar of a [`Pane`].
@@ -218,7 +218,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut children = layout.children();
         let padded = children.next().unwrap();
@@ -235,7 +235,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
-                messages,
+                shell,
             )
         } else {
             event::Status::Ignored
@@ -247,7 +247,7 @@ where
             cursor_position,
             renderer,
             clipboard,
-            messages,
+            shell,
         );
 
         control_status.merge(title_status)

@@ -11,7 +11,7 @@ use crate::text::{self, Text};
 use crate::touch;
 use crate::{
     Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Size, Widget,
+    Shell, Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -245,7 +245,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -271,7 +271,7 @@ where
                 };
 
                 if let Some(last_selection) = self.last_selection.take() {
-                    messages.push((self.on_selected)(last_selection));
+                    shell.publish((self.on_selected)(last_selection));
 
                     *self.is_open = false;
 
@@ -312,7 +312,7 @@ where
                 };
 
                 if let Some(next_option) = next_option {
-                    messages.push((self.on_selected)(next_option.clone()));
+                    shell.publish((self.on_selected)(next_option.clone()));
                 }
 
                 event::Status::Captured

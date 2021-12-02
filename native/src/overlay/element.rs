@@ -4,7 +4,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::{Clipboard, Hasher, Layout, Point, Rectangle, Size, Vector};
+use crate::{Clipboard, Hasher, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -23,6 +23,11 @@ where
         overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
     ) -> Self {
         Self { position, overlay }
+    }
+
+    /// Returns the position of the [`Element`].
+    pub fn position(&self) -> Point {
+        self.position
     }
 
     /// Translates the [`Element`].
@@ -57,7 +62,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.overlay.on_event(
             event,
@@ -65,7 +70,7 @@ where
             cursor_position,
             renderer,
             clipboard,
-            messages,
+            shell,
         )
     }
 
@@ -131,9 +136,10 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<B>,
+        shell: &mut Shell<'_, B>,
     ) -> event::Status {
-        let mut original_messages = Vec::new();
+        let mut local_messages = Vec::new();
+        let mut local_shell = Shell::new(&mut local_messages);
 
         let event_status = self.content.on_event(
             event,
@@ -141,12 +147,10 @@ where
             cursor_position,
             renderer,
             clipboard,
-            &mut original_messages,
+            &mut local_shell,
         );
 
-        original_messages
-            .drain(..)
-            .for_each(|message| messages.push((self.mapper)(message)));
+        shell.merge(local_shell, self.mapper);
 
         event_status
     }

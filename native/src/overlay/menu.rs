@@ -11,7 +11,7 @@ use crate::widget::scrollable::{self, Scrollable};
 use crate::widget::Container;
 use crate::{
     Clipboard, Color, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Size, Vector, Widget,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::menu::Style;
@@ -222,7 +222,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.container.on_event(
             event.clone(),
@@ -230,7 +230,7 @@ where
             cursor_position,
             renderer,
             clipboard,
-            messages,
+            shell,
         )
     }
 
@@ -333,7 +333,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        _messages: &mut Vec<Message>,
+        _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {

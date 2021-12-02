@@ -4,7 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
-    Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Widget,
+    Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Shell, Widget,
 };
 
 /// A generic [`Widget`].
@@ -228,7 +228,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.widget.on_event(
             event,
@@ -236,7 +236,7 @@ where
             cursor_position,
             renderer,
             clipboard,
-            messages,
+            shell,
         )
     }
 
@@ -327,9 +327,10 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<B>,
+        shell: &mut Shell<'_, B>,
     ) -> event::Status {
-        let mut original_messages = Vec::new();
+        let mut local_messages = Vec::new();
+        let mut local_shell = Shell::new(&mut local_messages);
 
         let status = self.widget.on_event(
             event,
@@ -337,12 +338,10 @@ where
             cursor_position,
             renderer,
             clipboard,
-            &mut original_messages,
+            &mut local_shell,
         );
 
-        original_messages
-            .drain(..)
-            .for_each(|message| messages.push((self.mapper)(message)));
+        shell.merge(local_shell, &self.mapper);
 
         status
     }
@@ -427,7 +426,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.element.widget.on_event(
             event,
@@ -435,7 +434,7 @@ where
             cursor_position,
             renderer,
             clipboard,
-            messages,
+            shell,
         )
     }
 

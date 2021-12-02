@@ -10,7 +10,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::{Clipboard, Hasher, Layout, Point, Rectangle, Size};
+use crate::{Clipboard, Hasher, Layout, Point, Rectangle, Shell, Size};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Renderer>
@@ -71,7 +71,7 @@ where
         _cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        _messages: &mut Vec<Message>,
+        _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         event::Status::Ignored
     }

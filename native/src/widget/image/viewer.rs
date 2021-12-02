@@ -5,8 +5,8 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
-    Widget,
+    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -169,7 +169,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        _messages: &mut Vec<Message>,
+        _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);

@@ -9,7 +9,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::{
     Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Widget,
+    Point, Rectangle, Shell, Widget,
 };
 
 use std::u32;
@@ -167,7 +167,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.content.widget.on_event(
             event,
@@ -175,7 +175,7 @@ where
             cursor_position,
             renderer,
             clipboard,
-            messages,
+            shell,
         )
     }
 

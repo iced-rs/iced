@@ -21,7 +21,7 @@ use crate::text::{self, Text};
 use crate::touch;
 use crate::{
     Clipboard, Color, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Size, Vector, Widget,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::u32;
@@ -384,7 +384,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        messages: &mut Vec<Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -509,7 +509,7 @@ where
                 editor.insert(c);
 
                 let message = (self.on_change)(editor.contents());
-                messages.push(message);
+                shell.publish(message);
 
                 return event::Status::Captured;
             }
@@ -521,7 +521,7 @@ where
                 match key_code {
                     keyboard::KeyCode::Enter => {
                         if let Some(on_submit) = self.on_submit.clone() {
-                            messages.push(on_submit);
+                            shell.publish(on_submit);
                         }
                     }
                     keyboard::KeyCode::Backspace => {
@@ -551,7 +551,7 @@ where
                         editor.backspace();
 
                         let message = (self.on_change)(editor.contents());
-                        messages.push(message);
+                        shell.publish(message);
                     }
                     keyboard::KeyCode::Delete => {
                         if platform::is_jump_modifier_pressed(modifiers)
@@ -582,7 +582,7 @@ where
                         editor.delete();
 
                         let message = (self.on_change)(editor.contents());
-                        messages.push(message);
+                        shell.publish(message);
                     }
                     keyboard::KeyCode::Left => {
                         if platform::is_jump_modifier_pressed(modifiers)
@@ -674,7 +674,7 @@ where
                         editor.delete();
 
                         let message = (self.on_change)(editor.contents());
-                        messages.push(message);
+                        shell.publish(message);
                     }
                     keyboard::KeyCode::V => {
                         if self.state.keyboard_modifiers.command() {
@@ -700,7 +700,7 @@ where
                             editor.paste(content.clone());
 
                             let message = (self.on_change)(editor.contents());
-                            messages.push(message);
+                            shell.publish(message);
 
                             self.state.is_pasting = Some(content);
                         } else {
