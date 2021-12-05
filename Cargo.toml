@@ -78,6 +78,7 @@ members = [
     "examples/progress_bar",
     "examples/qr_code",
     "examples/scrollable",
+    "examples/sierpinski_triangle",
     "examples/solar_system",
     "examples/stopwatch",
     "examples/styling",
