@@ -157,12 +157,7 @@ pub fn main() {
                     WindowEvent::ModifiersChanged(new_modifiers) => {
                         modifiers = new_modifiers;
                     }
-                    WindowEvent::Resized(new_size) => {
-                        viewport = Viewport::with_physical_size(
-                            Size::new(new_size.width, new_size.height),
-                            window.scale_factor(),
-                        );
-
+                    WindowEvent::Resized(_) => {
                         resized = true;
                     }
                     WindowEvent::CloseRequested => {
@@ -204,6 +199,11 @@ pub fn main() {
             Event::RedrawRequested(_) => {
                 if resized {
                     let size = window.inner_size();
+
+                    viewport = Viewport::with_physical_size(
+                        Size::new(size.width, size.height),
+                        window.scale_factor(),
+                    );
 
                     surface.configure(
                         &device,
