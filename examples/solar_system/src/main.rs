@@ -75,7 +75,6 @@ impl Application for SolarSystem {
 struct State {
     space_cache: canvas::Cache,
     system_cache: canvas::Cache,
-    cursor_position: Point,
     start: Instant,
     now: Instant,
     stars: Vec<(Point, f32)>,
@@ -95,7 +94,6 @@ impl State {
         State {
             space_cache: Default::default(),
             system_cache: Default::default(),
-            cursor_position: Point::ORIGIN,
             start: now,
             now,
             stars: Self::generate_stars(width, height),
