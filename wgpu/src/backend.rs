@@ -27,7 +27,6 @@ pub struct Backend {
     image_pipeline: image::Pipeline,
 
     default_text_size: u16,
-    primitive: Primitive,
 }
 
 impl Backend {
@@ -60,7 +59,6 @@ impl Backend {
             image_pipeline,
 
             default_text_size: settings.default_text_size,
-            primitive: Primitive::None,
         }
     }
 
