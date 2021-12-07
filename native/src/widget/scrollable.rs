@@ -199,7 +199,6 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
             Some(Scrollbar {
                 outer_bounds,
                 bounds: scrollbar_bounds,
-                margin: self.scrollbar_margin,
                 scroller: Scroller {
                     bounds: scroller_bounds,
                 },
@@ -719,9 +718,6 @@ struct Scrollbar {
 
     /// The bounds of the [`Scrollbar`].
     bounds: Rectangle,
-
-    /// The margin within the [`Scrollbar`].
-    margin: u16,
 
     /// The bounds of the [`Scroller`].
     scroller: Scroller,
