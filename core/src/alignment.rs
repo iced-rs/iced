@@ -37,7 +37,7 @@ impl From<Vertical> for Alignment {
 }
 
 /// The horizontal [`Alignment`] of some resource.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Horizontal {
     /// Align left
     Left,
@@ -50,7 +50,7 @@ pub enum Horizontal {
 }
 
 /// The vertical [`Alignment`] of some resource.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Vertical {
     /// Align top
     Top,

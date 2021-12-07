@@ -226,6 +226,8 @@ where
         self.height.hash(state);
         self.max_width.hash(state);
         self.max_height.hash(state);
+        self.horizontal_alignment.hash(state);
+        self.vertical_alignment.hash(state);
 
         self.content.hash_layout(state);
     }
