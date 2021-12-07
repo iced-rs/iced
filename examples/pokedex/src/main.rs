@@ -15,7 +15,6 @@ enum Pokedex {
         search: button::State,
     },
     Errored {
-        error: Error,
         try_again: button::State,
     },
 }
@@ -58,9 +57,8 @@ impl Application for Pokedex {
 
                 Command::none()
             }
-            Message::PokemonFound(Err(error)) => {
+            Message::PokemonFound(Err(_error)) => {
                 *self = Pokedex::Errored {
-                    error,
                     try_again: button::State::new(),
                 };
 
@@ -155,7 +153,6 @@ impl Pokemon {
 
         #[derive(Debug, Deserialize)]
         struct Entry {
-            id: u32,
             name: String,
             flavor_text_entries: Vec<FlavorText>,
         }
