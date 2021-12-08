@@ -17,7 +17,13 @@ use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::{Cache, UserInterface};
 
+use crate::settings::{SettingsWindowConfigurator};
+use crate::winit::event_loop::EventLoopWindowTarget;
+use crate::winit::platform::run_return::EventLoopExtRunReturn;
 use std::mem::ManuallyDrop;
+use std::ops::Deref;
+use winit::window::WindowBuilder;
+use crate::window_configurator::WindowConfigurator;
 
 /// An interactive, native cross-platform application.
 ///
@@ -112,10 +118,36 @@ where
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
 {
+    let window_configurator = SettingsWindowConfigurator {
+        window: settings.window,
+        id: settings.id,
+        mode: Mode::Windowed
+    };
+    run_with_window_configurator::<A,E,C,_>(
+        settings.flags,
+        compositor_settings,
+        window_configurator,
+        settings.exit_on_close_request,
+    )
+}
+
+/// Run an [`Application`] using with an executor, compositor,
+/// and the provided [`WindowConfigurator`]
+pub fn run_with_window_configurator<A, E, C, W>(
+    flags: A::Flags,
+    compositor_settings: C::Settings,
+    window_configurator: W,
+    exit_on_close_request: bool,
+) -> Result<(), Error>
+where
+    A: Application + 'static,
+    E: Executor + 'static,
+    C: window::Compositor<Renderer = A::Renderer> + 'static,
+    W: WindowConfigurator<A::Message> + 'static,
+{
     use futures::task;
     use futures::Future;
     use winit::event_loop::EventLoop;
-    use winit::platform::run_return::EventLoopExtRunReturn;
 
     let mut debug = Debug::new();
     debug.startup_started();
@@ -131,21 +163,22 @@ where
     };
 
     let (application, init_command) = {
-        let flags = settings.flags;
-
         runtime.enter(|| A::new(flags))
     };
 
     let subscription = application.subscription();
+    let window_builder = WindowBuilder::new()
+        .with_visible(conversion::visible(application.mode()))
+        .with_title(application.title());
 
-    let window = settings
-        .window
-        .into_builder(
-            &application.title(),
-            application.mode(),
-            event_loop.primary_monitor(),
-            settings.id,
-        )
+    let window_builder = {
+        let x: &EventLoopWindowTarget<<A as Program>::Message> =
+            event_loop.deref();
+
+        window_configurator.configure_builder(x, window_builder)
+    };
+
+    let window = window_builder
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
@@ -174,7 +207,7 @@ where
         debug,
         receiver,
         window,
-        settings.exit_on_close_request,
+        exit_on_close_request,
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());

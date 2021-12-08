@@ -29,6 +29,7 @@ pub mod clipboard;
 pub mod conversion;
 pub mod settings;
 pub mod window;
+pub mod window_configurator;
 
 mod error;
 mod mode;
