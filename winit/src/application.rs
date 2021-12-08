@@ -17,13 +17,13 @@ use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::{Cache, UserInterface};
 
-use crate::settings::{SettingsWindowConfigurator};
+use crate::settings::SettingsWindowConfigurator;
+use crate::window_configurator::WindowConfigurator;
 use crate::winit::event_loop::EventLoopWindowTarget;
 use crate::winit::platform::run_return::EventLoopExtRunReturn;
 use std::mem::ManuallyDrop;
 use std::ops::Deref;
 use winit::window::WindowBuilder;
-use crate::window_configurator::WindowConfigurator;
 
 /// An interactive, native cross-platform application.
 ///
@@ -121,9 +121,9 @@ where
     let window_configurator = SettingsWindowConfigurator {
         window: settings.window,
         id: settings.id,
-        mode: Mode::Windowed
+        mode: Mode::Windowed,
     };
-    run_with_window_configurator::<A,E,C,_>(
+    run_with_window_configurator::<A, E, C, _>(
         settings.flags,
         compositor_settings,
         window_configurator,
@@ -162,9 +162,7 @@ where
         Runtime::new(executor, proxy)
     };
 
-    let (application, init_command) = {
-        runtime.enter(|| A::new(flags))
-    };
+    let (application, init_command) = { runtime.enter(|| A::new(flags)) };
 
     let subscription = application.subscription();
     let window_builder = WindowBuilder::new()

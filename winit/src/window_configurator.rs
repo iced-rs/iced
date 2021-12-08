@@ -1,6 +1,6 @@
 //! Configure winit windows
-use std::fmt::Debug;
 use crate::winit::window::WindowBuilder;
+use std::fmt::Debug;
 
 /// Allows to perform any custom settings on the winit::WindowBuilder
 ///
