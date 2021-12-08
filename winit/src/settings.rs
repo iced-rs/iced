@@ -16,6 +16,7 @@ pub use platform::PlatformSpecific;
 use crate::conversion;
 use crate::window_configurator::WindowConfigurator;
 use crate::winit::event_loop::EventLoopWindowTarget;
+use crate::winit::monitor::MonitorHandle;
 use crate::{Mode, Position};
 use std::fmt::Debug;
 use winit::window::WindowBuilder;
@@ -76,6 +77,20 @@ pub struct Window {
     pub platform_specific: platform::PlatformSpecific,
 }
 
+impl Window {
+    /// Converts the window settings into a `WindowBuilder` from `winit`.
+    pub fn into_builder(
+        self,
+        title: &str,
+        mode: Mode,
+        primary_monitor: Option<MonitorHandle>,
+        _id: Option<String>,
+    ) -> WindowBuilder {
+        let builder = WindowBuilder::new().with_title(title);
+        configure_builder(self, primary_monitor, mode, _id, builder)
+    }
+}
+
 /// Default `WindowConfigurator` that configures the winit WindowBuilder
 #[derive(Debug)]
 pub struct SettingsWindowConfigurator {
@@ -93,85 +108,16 @@ impl<A> WindowConfigurator<A> for SettingsWindowConfigurator {
     fn configure_builder(
         self,
         available_monitors: &EventLoopWindowTarget<A>,
-        mut window_builder: WindowBuilder,
+        window_builder: WindowBuilder,
     ) -> WindowBuilder {
-        let (width, height) = self.window.size;
-
-        window_builder = window_builder
-            .with_inner_size(winit::dpi::LogicalSize { width, height })
-            .with_resizable(self.window.resizable)
-            .with_decorations(self.window.decorations)
-            .with_transparent(self.window.transparent)
-            .with_window_icon(self.window.icon)
-            .with_always_on_top(self.window.always_on_top)
-            .with_visible(conversion::visible(self.mode));
-
-        let primary_monitor = available_monitors.primary_monitor();
-        if let Some(position) = conversion::position(
-            primary_monitor.as_ref(),
-            self.window.size,
-            self.window.position,
-        ) {
-            window_builder = window_builder.with_position(position);
-        }
-
-        if let Some((width, height)) = self.window.min_size {
-            window_builder = window_builder
-                .with_min_inner_size(winit::dpi::LogicalSize { width, height });
-        }
-
-        if let Some((width, height)) = self.window.max_size {
-            window_builder = window_builder
-                .with_max_inner_size(winit::dpi::LogicalSize { width, height });
-        }
-
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd"
-        ))]
-        {
-            use ::winit::platform::unix::WindowBuilderExtUnix;
-
-            if let Some(id) = self.id {
-                window_builder = window_builder.with_app_id(id);
-            }
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            use winit::platform::windows::WindowBuilderExtWindows;
-
-            if let Some(parent) = self.window.platform_specific.parent {
-                window_builder = window_builder.with_parent_window(parent);
-            }
-
-            window_builder = window_builder.with_drag_and_drop(
-                self.window.platform_specific.drag_and_drop,
-            );
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            use winit::platform::macos::WindowBuilderExtMacOS;
-
-            window_builder = window_builder
-                .with_title_hidden(self.window.platform_specific.title_hidden)
-                .with_titlebar_transparent(
-                    self.window.platform_specific.titlebar_transparent,
-                )
-                .with_fullsize_content_view(
-                    self.window.platform_specific.fullsize_content_view,
-                );
-        }
-
-        window_builder = window_builder.with_fullscreen(
-            conversion::fullscreen(primary_monitor, self.mode),
-        );
-
-        window_builder
+        let selected_monitor = available_monitors.primary_monitor();
+        configure_builder(
+            self.window,
+            selected_monitor,
+            self.mode,
+            self.id,
+            window_builder,
+        )
     }
 }
 
@@ -190,4 +136,87 @@ impl Default for Window {
             platform_specific: Default::default(),
         }
     }
+}
+
+fn configure_builder(
+    window: Window,
+    selected_monitor: Option<MonitorHandle>,
+    mode: Mode,
+    _id: Option<String>,
+    mut window_builder: WindowBuilder,
+) -> WindowBuilder {
+    let (width, height) = window.size;
+
+    window_builder = window_builder
+        .with_inner_size(winit::dpi::LogicalSize { width, height })
+        .with_resizable(window.resizable)
+        .with_decorations(window.decorations)
+        .with_transparent(window.transparent)
+        .with_window_icon(window.icon)
+        .with_always_on_top(window.always_on_top)
+        .with_visible(conversion::visible(mode));
+
+    if let Some(position) = conversion::position(
+        selected_monitor.as_ref(),
+        window.size,
+        window.position,
+    ) {
+        window_builder = window_builder.with_position(position);
+    }
+
+    if let Some((width, height)) = window.min_size {
+        window_builder = window_builder
+            .with_min_inner_size(winit::dpi::LogicalSize { width, height });
+    }
+
+    if let Some((width, height)) = window.max_size {
+        window_builder = window_builder
+            .with_max_inner_size(winit::dpi::LogicalSize { width, height });
+    }
+
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    {
+        use ::winit::platform::unix::WindowBuilderExtUnix;
+
+        if let Some(id) = _id {
+            window_builder = window_builder.with_app_id(id);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use winit::platform::windows::WindowBuilderExtWindows;
+
+        if let Some(parent) = window.platform_specific.parent {
+            window_builder = window_builder.with_parent_window(parent);
+        }
+
+        window_builder = window_builder
+            .with_drag_and_drop(window.platform_specific.drag_and_drop);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use winit::platform::macos::WindowBuilderExtMacOS;
+
+        window_builder = window_builder
+            .with_title_hidden(window.platform_specific.title_hidden)
+            .with_titlebar_transparent(
+                window.platform_specific.titlebar_transparent,
+            )
+            .with_fullsize_content_view(
+                window.platform_specific.fullsize_content_view,
+            );
+    }
+
+    window_builder = window_builder
+        .with_fullscreen(conversion::fullscreen(selected_monitor, mode));
+
+    window_builder
 }
