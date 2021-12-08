@@ -68,7 +68,7 @@ where
     }
 
     fn height(&self) -> Length {
-        self.state.as_ref().unwrap().borrow_cache().element.width()
+        self.state.as_ref().unwrap().borrow_cache().element.height()
     }
 
     fn layout(
