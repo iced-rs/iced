@@ -4,6 +4,9 @@
 //!
 //! [`glow`]: https://github.com/grovesNL/glow
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/master/docs/logo.svg"
+)]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]

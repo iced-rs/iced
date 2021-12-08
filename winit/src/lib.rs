@@ -14,6 +14,9 @@
 //! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`conversion`]: crate::conversion
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/master/docs/logo.svg"
+)]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
