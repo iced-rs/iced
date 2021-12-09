@@ -519,7 +519,8 @@ where
                 let modifiers = self.state.keyboard_modifiers;
 
                 match key_code {
-                    keyboard::KeyCode::Enter => {
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter => {
                         if let Some(on_submit) = self.on_submit.clone() {
                             shell.publish(on_submit);
                         }
