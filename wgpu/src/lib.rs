@@ -21,7 +21,7 @@
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
 //! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
 #![doc(
-    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/master/docs/logo.svg"
+    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
