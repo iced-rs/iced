@@ -214,7 +214,7 @@ The development of iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
 [the current issues]: https://github.com/hecrj/iced/issues
 [contributing guidelines]: https://github.com/hecrj/iced/blob/master/CONTRIBUTING.md
-Iced [Discord server]: https://discord.gg/3xZJ65GAhd
+[Discord server]: https://discord.gg/3xZJ65GAhd
 [Rust Community Discord]: https://bit.ly/rust-community
 [Cryptowatch]: https://cryptowat.ch/charts
 [Kraken.com]: https://kraken.com/
