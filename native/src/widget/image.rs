@@ -2,7 +2,7 @@
 pub mod viewer;
 pub use viewer::Viewer;
 
-use crate::image::{self, Handle};
+use crate::image;
 use crate::layout;
 use crate::renderer;
 use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
@@ -15,19 +15,20 @@ use std::hash::Hash;
 ///
 /// ```
 /// # use iced_native::widget::Image;
+/// # use iced_native::image;
 /// #
-/// let image = Image::new("resources/ferris.png");
+/// let image = Image::<image::Handle>::new("resources/ferris.png");
 /// ```
 ///
 /// <img src="https://github.com/hecrj/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[derive(Debug, Hash)]
-pub struct Image {
+pub struct Image<Handle> {
     handle: Handle,
     width: Length,
     height: Length,
 }
 
-impl Image {
+impl<Handle> Image<Handle> {
     /// Creates a new [`Image`] with the given path.
     pub fn new<T: Into<Handle>>(handle: T) -> Self {
         Image {
@@ -50,9 +51,10 @@ impl Image {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Image
+impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
 where
-    Renderer: image::Renderer,
+    Renderer: image::Renderer<Handle = Handle>,
+    Handle: Clone + Hash,
 {
     fn width(&self) -> Length {
         self.width
@@ -108,11 +110,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Handle> From<Image<Handle>>
+    for Element<'a, Message, Renderer>
 where
-    Renderer: image::Renderer,
+    Renderer: image::Renderer<Handle = Handle>,
+    Handle: Clone + Hash + 'a,
 {
-    fn from(image: Image) -> Element<'a, Message, Renderer> {
+    fn from(image: Image<Handle>) -> Element<'a, Message, Renderer> {
         Element::new(image)
     }
 }
