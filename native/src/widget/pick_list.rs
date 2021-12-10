@@ -174,7 +174,7 @@ where
             .pad(self.padding);
 
         let text_size = self.text_size.unwrap_or(renderer.default_size());
-        let font = self.font;
+        let font = self.font.clone();
 
         let max_width = match self.width {
             Length::Shrink => {
@@ -182,7 +182,7 @@ where
                     let (width, _) = renderer.measure(
                         label,
                         text_size,
-                        font,
+                        font.clone(),
                         Size::new(f32::INFINITY, f32::INFINITY),
                     );
 
@@ -397,7 +397,7 @@ where
                 size: f32::from(
                     self.text_size.unwrap_or(renderer.default_size()),
                 ),
-                font: self.font,
+                font: self.font.clone(),
                 color: is_selected
                     .then(|| style.text_color)
                     .unwrap_or(style.placeholder_color),
@@ -427,7 +427,7 @@ where
             )
             .width(bounds.width.round() as u16)
             .padding(self.padding)
-            .font(self.font)
+            .font(self.font.clone())
             .style(self.style_sheet.menu());
 
             if let Some(text_size) = self.text_size {

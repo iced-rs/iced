@@ -279,7 +279,7 @@ where
                 style,
                 label_layout,
                 &self.label,
-                self.font,
+                self.font.clone(),
                 self.text_size,
                 self.text_color,
                 alignment::Horizontal::Left,

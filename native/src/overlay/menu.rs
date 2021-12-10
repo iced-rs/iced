@@ -454,7 +454,7 @@ where
                     ..bounds
                 },
                 size: f32::from(text_size),
-                font: self.font,
+                font: self.font.clone(),
                 color: if is_selected {
                     self.style.selected_text_color
                 } else {
