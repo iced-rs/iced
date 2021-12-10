@@ -200,7 +200,7 @@ Contributions are greatly appreciated! If you want to contribute, please
 read our [contributing guidelines] for more details.
 
 Feedback is also welcome! You can open an issue or, if you want to talk,
-come chat to our [Zulip server]. Moreover, you can find me (and a bunch of
+come chat to our [Discord server]. Moreover, you can find me (and a bunch of
 awesome folks) over the `#games-and-graphics` and `#gui-and-ui` channels in
 the [Rust Community Discord]. I go by `lone_scientist#9554` there.
 
@@ -214,7 +214,7 @@ The development of iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
 [the current issues]: https://github.com/hecrj/iced/issues
 [contributing guidelines]: https://github.com/hecrj/iced/blob/master/CONTRIBUTING.md
-[Zulip server]: https://iced.zulipchat.com/
+[Discord server]: https://discord.gg/3xZJ65GAhd
 [Rust Community Discord]: https://bit.ly/rust-community
 [Cryptowatch]: https://cryptowat.ch/charts
 [Kraken.com]: https://kraken.com/
