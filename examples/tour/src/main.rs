@@ -704,7 +704,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
         // This should go away once we unify resource loading on native
         // platforms
         if cfg!(target_arch = "wasm32") {
-            Image::new("images/ferris.png")
+            Image::new("tour/images/ferris.png")
         } else {
             Image::new(format!(
                 "{}/images/ferris.png",
