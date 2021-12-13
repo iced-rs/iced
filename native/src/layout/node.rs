@@ -1,4 +1,4 @@
-use crate::{Alignment, Point, Rectangle, Size};
+use crate::{Alignment, Point, Rectangle, Size, Vector};
 
 /// The bounds of an element and its children.
 #[derive(Debug, Clone, Default)]
@@ -79,5 +79,13 @@ impl Node {
     pub fn move_to(&mut self, position: Point) {
         self.bounds.x = position.x;
         self.bounds.y = position.y;
+    }
+
+    /// Translates the [`Node`] by the given translation.
+    pub fn translate(self, translation: Vector) -> Self {
+        Self {
+            bounds: self.bounds + translation,
+            ..self
+        }
     }
 }

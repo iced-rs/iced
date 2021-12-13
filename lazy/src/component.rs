@@ -71,53 +71,51 @@ struct Cache<'a, Message, Renderer: 'a, Event: 'a> {
     overlay: Option<overlay::Element<'this, Event, Renderer>>,
 }
 
+impl<'a, Message, Renderer, Event> Instance<'a, Message, Renderer, Event> {
+    fn with_element<T>(
+        &self,
+        f: impl FnOnce(&Element<'_, Event, Renderer>) -> T,
+    ) -> T {
+        self.with_element_mut(|element| f(element))
+    }
+
+    fn with_element_mut<T>(
+        &self,
+        f: impl FnOnce(&mut Element<'_, Event, Renderer>) -> T,
+    ) -> T {
+        self.state
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .with_cache_mut(|cache| {
+                let mut element = cache.take().unwrap().into_heads().element;
+                let result = f(&mut element);
+
+                *cache = Some(
+                    CacheBuilder {
+                        element,
+                        message: PhantomData,
+                        overlay_builder: |_| None,
+                    }
+                    .build(),
+                );
+
+                result
+            })
+    }
+}
+
 impl<'a, Message, Renderer, Event> Widget<Message, Renderer>
     for Instance<'a, Message, Renderer, Event>
 where
     Renderer: iced_native::Renderer,
 {
     fn width(&self) -> Length {
-        self.state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                let element = cache.take().unwrap().into_heads().element;
-                let width = element.width();
-
-                *cache = Some(
-                    CacheBuilder {
-                        element,
-                        message: PhantomData,
-                        overlay_builder: |_| None,
-                    }
-                    .build(),
-                );
-
-                width
-            })
+        self.with_element(|element| element.width())
     }
 
     fn height(&self) -> Length {
-        self.state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                let element = cache.take().unwrap().into_heads().element;
-                let height = element.height();
-
-                *cache = Some(
-                    CacheBuilder {
-                        element,
-                        message: PhantomData,
-                        overlay_builder: |_| None,
-                    }
-                    .build(),
-                );
-
-                height
-            })
+        self.with_element(|element| element.height())
     }
 
     fn layout(
@@ -125,25 +123,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                let element = cache.take().unwrap().into_heads().element;
-                let layout = element.layout(renderer, limits);
-
-                *cache = Some(
-                    CacheBuilder {
-                        element,
-                        message: PhantomData,
-                        overlay_builder: |_| None,
-                    }
-                    .build(),
-                );
-
-                layout
-            })
+        self.with_element(|element| element.layout(renderer, limits))
     }
 
     fn on_event(
@@ -158,37 +138,25 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self
-            .state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                let mut element = cache.take().unwrap().into_heads().element;
-                let event_status = element.on_event(
-                    event,
-                    layout,
-                    cursor_position,
-                    renderer,
-                    clipboard,
-                    &mut local_shell,
-                );
-
-                *cache = Some(
-                    CacheBuilder {
-                        element,
-                        message: PhantomData,
-                        overlay_builder: |_| None,
-                    }
-                    .build(),
-                );
-
-                event_status
-            });
+        let event_status = self.with_element_mut(|element| {
+            element.on_event(
+                event,
+                layout,
+                cursor_position,
+                renderer,
+                clipboard,
+                &mut local_shell,
+            )
+        });
 
         if !local_messages.is_empty() {
-            let mut component =
-                self.state.take().unwrap().into_heads().component;
+            let mut component = self
+                .state
+                .borrow_mut()
+                .take()
+                .unwrap()
+                .into_heads()
+                .component;
 
             for message in local_messages
                 .into_iter()
@@ -228,49 +196,15 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                let element = cache.take().unwrap().into_heads().element;
-                element.draw(
-                    renderer,
-                    style,
-                    layout,
-                    cursor_position,
-                    viewport,
-                );
-
-                *cache = Some(
-                    CacheBuilder {
-                        element,
-                        message: PhantomData,
-                        overlay_builder: |_| None,
-                    }
-                    .build(),
-                );
-            })
+        self.with_element(|element| {
+            element.draw(renderer, style, layout, cursor_position, viewport);
+        });
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        self.state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                let element = cache.take().unwrap().into_heads().element;
-                element.hash_layout(state);
-
-                *cache = Some(
-                    CacheBuilder {
-                        element,
-                        message: PhantomData,
-                        overlay_builder: |_| None,
-                    }
-                    .build(),
-                );
-            })
+        self.with_element(|element| {
+            element.hash_layout(state);
+        });
     }
 
     fn mouse_interaction(
@@ -279,29 +213,9 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) -> mouse::Interaction {
-        self.state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                let element = cache.take().unwrap().into_heads().element;
-                let mouse_interaction = element.mouse_interaction(
-                    layout,
-                    cursor_position,
-                    viewport,
-                );
-
-                *cache = Some(
-                    CacheBuilder {
-                        element,
-                        message: PhantomData,
-                        overlay_builder: |_| None,
-                    }
-                    .build(),
-                );
-
-                mouse_interaction
-            })
+        self.with_element(|element| {
+            element.mouse_interaction(layout, cursor_position, viewport)
+        })
     }
 
     fn overlay(
@@ -328,23 +242,60 @@ where
                 cache.as_ref().unwrap().borrow_overlay().is_some()
             });
 
-        let Self { state, .. } = self;
-
         has_overlay.then(|| {
             overlay::Element::new(
                 layout.position(),
-                Box::new(Overlay { state }),
+                Box::new(Overlay { instance: self }),
             )
         })
     }
 }
 
-struct Overlay<'a, 'b, Message, Event, Renderer> {
-    state: &'b RefCell<Option<State<'a, Message, Renderer, Event>>>,
+struct Overlay<'a, 'b, Message, Renderer, Event> {
+    instance: &'b mut Instance<'a, Message, Renderer, Event>,
 }
 
-impl<'a, 'b, Message, Event, Renderer> overlay::Overlay<Message, Renderer>
-    for Overlay<'a, 'b, Message, Event, Renderer>
+impl<'a, 'b, Message, Renderer, Event>
+    Overlay<'a, 'b, Message, Renderer, Event>
+{
+    fn with_overlay<T>(
+        &self,
+        f: impl FnOnce(&overlay::Element<'_, Event, Renderer>) -> T,
+    ) -> T {
+        f(self
+            .instance
+            .state
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .borrow_cache()
+            .as_ref()
+            .unwrap()
+            .borrow_overlay()
+            .as_ref()
+            .unwrap())
+    }
+
+    fn with_overlay_mut<T>(
+        &self,
+        f: impl FnOnce(&mut overlay::Element<'_, Event, Renderer>) -> T,
+    ) -> T {
+        self.instance
+            .state
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .with_cache_mut(|cache| {
+                cache
+                    .as_mut()
+                    .unwrap()
+                    .with_overlay_mut(|overlay| f(overlay.as_mut().unwrap()))
+            })
+    }
+}
+
+impl<'a, 'b, Message, Renderer, Event> overlay::Overlay<Message, Renderer>
+    for Overlay<'a, 'b, Message, Renderer, Event>
 where
     Renderer: iced_native::Renderer,
 {
@@ -354,22 +305,11 @@ where
         bounds: Size,
         position: Point,
     ) -> layout::Node {
-        self.state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                cache.as_mut().unwrap().with_overlay_mut(|overlay| {
-                    *overlay = overlay.take().map(|x| {
-                        let vector = position - x.position();
-                        x.translate(vector)
-                    });
-                    overlay
-                        .as_mut()
-                        .map(|overlay| overlay.layout(renderer, bounds))
-                        .unwrap_or_else(|| layout::Node::new(Size::ZERO))
-                })
-            })
+        self.with_overlay(|overlay| {
+            let vector = position - overlay.position();
+
+            overlay.layout(renderer, bounds).translate(vector)
+        })
     }
 
     fn draw(
@@ -379,12 +319,8 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.state.borrow().as_ref().unwrap().with_cache(|cache| {
-            if let Some(overlay) =
-                cache.as_ref().unwrap().borrow_overlay().as_ref()
-            {
-                overlay.draw(renderer, style, layout, cursor_position);
-            }
+        self.with_overlay(|overlay| {
+            overlay.draw(renderer, style, layout, cursor_position);
         })
     }
 
@@ -394,16 +330,8 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) -> mouse::Interaction {
-        self.state.borrow().as_ref().unwrap().with_cache(|cache| {
-            cache
-                .as_ref()
-                .unwrap()
-                .borrow_overlay()
-                .as_ref()
-                .map(|overlay| {
-                    overlay.mouse_interaction(layout, cursor_position, viewport)
-                })
-                .unwrap_or(mouse::Interaction::default())
+        self.with_overlay(|overlay| {
+            overlay.mouse_interaction(layout, cursor_position, viewport)
         })
     }
 
@@ -414,13 +342,9 @@ where
         (position.x as u32).hash(state);
         (position.y as u32).hash(state);
 
-        self.state.borrow().as_ref().unwrap().with_cache(|cache| {
-            if let Some(overlay) =
-                cache.as_ref().unwrap().borrow_overlay().as_ref()
-            {
-                overlay.hash_layout(state);
-            }
-        })
+        self.with_overlay(|overlay| {
+            overlay.hash_layout(state);
+        });
     }
 
     fn on_event(
@@ -435,32 +359,20 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self
-            .state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_cache_mut(|cache| {
-                cache.as_mut().unwrap().with_overlay_mut(|overlay| {
-                    overlay
-                        .as_mut()
-                        .map(|overlay| {
-                            overlay.on_event(
-                                event,
-                                layout,
-                                cursor_position,
-                                renderer,
-                                clipboard,
-                                &mut local_shell,
-                            )
-                        })
-                        .unwrap_or(iced_native::event::Status::Ignored)
-                })
-            });
+        let event_status = self.with_overlay_mut(|overlay| {
+            overlay.on_event(
+                event,
+                layout,
+                cursor_position,
+                renderer,
+                clipboard,
+                &mut local_shell,
+            )
+        });
 
         if !local_messages.is_empty() {
             let mut component =
-                self.state.take().unwrap().into_heads().component;
+                self.instance.state.take().unwrap().into_heads().component;
 
             for message in local_messages
                 .into_iter()
@@ -469,7 +381,7 @@ where
                 shell.publish(message);
             }
 
-            *self.state.borrow_mut() = Some(
+            self.instance.state = RefCell::new(Some(
                 StateBuilder {
                     component,
                     cache_builder: |state| {
@@ -486,7 +398,7 @@ where
                     },
                 }
                 .build(),
-            );
+            ));
 
             shell.invalidate_layout();
         }
