@@ -157,7 +157,7 @@ where
             )
             .push(
                 Text::new(&self.label)
-                    .font(self.font)
+                    .font(self.font.clone())
                     .width(self.width)
                     .size(self.text_size.unwrap_or(renderer.default_size())),
             )
@@ -261,7 +261,7 @@ where
                 style,
                 label_layout,
                 &self.label,
-                self.font,
+                self.font.clone(),
                 self.text_size,
                 self.text_color.or(Some(custom_style.text_color)),
                 alignment::Horizontal::Left,

@@ -57,7 +57,7 @@ impl Hit {
 /// A renderer capable of measuring and drawing [`Text`].
 pub trait Renderer: crate::Renderer {
     /// The font type used.
-    type Font: Default + Copy;
+    type Font: Default + Clone;
 
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;

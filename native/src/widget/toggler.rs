@@ -151,7 +151,7 @@ where
             row = row.push(
                 Text::new(label)
                     .horizontal_alignment(self.text_alignment)
-                    .font(self.font)
+                    .font(self.font.clone())
                     .width(self.width)
                     .size(self.text_size.unwrap_or(renderer.default_size())),
             );
@@ -229,7 +229,7 @@ where
                 style,
                 label_layout,
                 &label,
-                self.font,
+                self.font.clone(),
                 self.text_size,
                 None,
                 self.text_alignment,

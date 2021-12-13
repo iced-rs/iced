@@ -124,7 +124,7 @@ where
         let bounds = limits.max();
 
         let (width, height) =
-            renderer.measure(&self.content, size, self.font, bounds);
+            renderer.measure(&self.content, size, self.font.clone(), bounds);
 
         let size = limits.resolve(Size::new(width, height));
 
@@ -144,7 +144,7 @@ where
             style,
             layout,
             &self.content,
-            self.font,
+            self.font.clone(),
             self.size,
             self.color,
             self.horizontal_alignment,
@@ -227,7 +227,7 @@ impl<Renderer: text::Renderer> Clone for Text<Renderer> {
             content: self.content.clone(),
             size: self.size,
             color: self.color,
-            font: self.font,
+            font: self.font.clone(),
             width: self.width,
             height: self.height,
             horizontal_alignment: self.horizontal_alignment,

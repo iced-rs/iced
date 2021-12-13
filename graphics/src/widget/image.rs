@@ -13,6 +13,8 @@ impl<B> image::Renderer for Renderer<B>
 where
     B: Backend + backend::Image,
 {
+    type Handle = image::Handle;
+
     fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
         self.backend().dimensions(handle)
     }

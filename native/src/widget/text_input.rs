@@ -219,7 +219,7 @@ where
                             &value,
                             size,
                             position,
-                            self.font,
+                            self.font.clone(),
                         );
 
                     (
@@ -251,7 +251,7 @@ where
                             &value,
                             size,
                             left,
-                            self.font,
+                            self.font.clone(),
                         );
 
                     let (right_position, right_offset) =
@@ -261,7 +261,7 @@ where
                             &value,
                             size,
                             right,
-                            self.font,
+                            self.font.clone(),
                         );
 
                     let width = right_position - left_position;
@@ -300,7 +300,7 @@ where
                 &text
             },
             size,
-            self.font,
+            self.font.clone(),
         );
 
         let render = |renderer: &mut Renderer| {
@@ -319,7 +319,7 @@ where
                 } else {
                     self.style_sheet.value_color()
                 },
-                font: self.font,
+                font: self.font.clone(),
                 bounds: Rectangle {
                     y: text_bounds.center_y(),
                     width: f32::INFINITY,
@@ -414,7 +414,7 @@ where
                                 find_cursor_position(
                                     renderer,
                                     text_layout.bounds(),
-                                    self.font,
+                                    self.font.clone(),
                                     self.size,
                                     &value,
                                     &self.state,
@@ -434,7 +434,7 @@ where
                                 let position = find_cursor_position(
                                     renderer,
                                     text_layout.bounds(),
-                                    self.font,
+                                    self.font.clone(),
                                     self.size,
                                     &self.value,
                                     &self.state,
@@ -481,7 +481,7 @@ where
                     let position = find_cursor_position(
                         renderer,
                         text_layout.bounds(),
-                        self.font,
+                        self.font.clone(),
                         self.size,
                         &value,
                         &self.state,
@@ -962,13 +962,14 @@ where
 {
     let size = size.unwrap_or(renderer.default_size());
 
-    let offset = offset(renderer, text_bounds, font, size, &value, &state);
+    let offset =
+        offset(renderer, text_bounds, font.clone(), size, &value, &state);
 
     renderer
         .hit_test(
             &value.to_string(),
             size.into(),
-            font,
+            font.clone(),
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),
             true,
