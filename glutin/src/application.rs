@@ -61,11 +61,23 @@ where
             settings.id,
         );
 
-        let context = ContextBuilder::new()
+        let opengl_builder = ContextBuilder::new()
             .with_vsync(true)
-            // .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)))
-            .with_multisampling(C::sample_count(&compositor_settings) as u16)
-            .build_windowed(builder, &event_loop)
+            .with_multisampling(C::sample_count(&compositor_settings) as u16);
+
+        let opengles_builder = opengl_builder.clone().with_gl(
+            glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)),
+        );
+
+        let (first_builder, second_builder) = if settings.try_opengles_first {
+            (opengles_builder, opengl_builder)
+        } else {
+            (opengl_builder, opengles_builder)
+        };
+
+        let context = first_builder
+            .build_windowed(builder.clone(), &event_loop)
+            .or_else(|_| second_builder.build_windowed(builder, &event_loop))
             .map_err(|error| {
                 use glutin::CreationError;
 
