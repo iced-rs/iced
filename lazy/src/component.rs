@@ -258,12 +258,11 @@ struct Overlay<'a, 'b, Message, Renderer, Event> {
 impl<'a, 'b, Message, Renderer, Event>
     Overlay<'a, 'b, Message, Renderer, Event>
 {
-    fn with_overlay<T>(
+    fn with_overlay_maybe<T>(
         &self,
         f: impl FnOnce(&overlay::Element<'_, Event, Renderer>) -> T,
-    ) -> T {
-        f(self
-            .instance
+    ) -> Option<T> {
+        self.instance
             .state
             .borrow()
             .as_ref()
@@ -273,13 +272,13 @@ impl<'a, 'b, Message, Renderer, Event>
             .unwrap()
             .borrow_overlay()
             .as_ref()
-            .unwrap())
+            .map(f)
     }
 
-    fn with_overlay_mut<T>(
+    fn with_overlay_mut_maybe<T>(
         &self,
         f: impl FnOnce(&mut overlay::Element<'_, Event, Renderer>) -> T,
-    ) -> T {
+    ) -> Option<T> {
         self.instance
             .state
             .borrow_mut()
@@ -289,7 +288,7 @@ impl<'a, 'b, Message, Renderer, Event>
                 cache
                     .as_mut()
                     .unwrap()
-                    .with_overlay_mut(|overlay| f(overlay.as_mut().unwrap()))
+                    .with_overlay_mut(|overlay| overlay.as_mut().map(f))
             })
     }
 }
@@ -305,11 +304,12 @@ where
         bounds: Size,
         position: Point,
     ) -> layout::Node {
-        self.with_overlay(|overlay| {
+        self.with_overlay_maybe(|overlay| {
             let vector = position - overlay.position();
 
             overlay.layout(renderer, bounds).translate(vector)
         })
+        .unwrap_or_default()
     }
 
     fn draw(
@@ -319,9 +319,9 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.with_overlay(|overlay| {
+        self.with_overlay_maybe(|overlay| {
             overlay.draw(renderer, style, layout, cursor_position);
-        })
+        });
     }
 
     fn mouse_interaction(
@@ -330,9 +330,10 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) -> mouse::Interaction {
-        self.with_overlay(|overlay| {
+        self.with_overlay_maybe(|overlay| {
             overlay.mouse_interaction(layout, cursor_position, viewport)
         })
+        .unwrap_or_default()
     }
 
     fn hash_layout(&self, state: &mut Hasher, position: Point) {
@@ -342,7 +343,7 @@ where
         (position.x as u32).hash(state);
         (position.y as u32).hash(state);
 
-        self.with_overlay(|overlay| {
+        self.with_overlay_maybe(|overlay| {
             overlay.hash_layout(state);
         });
     }
@@ -359,16 +360,18 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self.with_overlay_mut(|overlay| {
-            overlay.on_event(
-                event,
-                layout,
-                cursor_position,
-                renderer,
-                clipboard,
-                &mut local_shell,
-            )
-        });
+        let event_status = self
+            .with_overlay_mut_maybe(|overlay| {
+                overlay.on_event(
+                    event,
+                    layout,
+                    cursor_position,
+                    renderer,
+                    clipboard,
+                    &mut local_shell,
+                )
+            })
+            .unwrap_or_else(|| iced_native::event::Status::Ignored);
 
         if !local_messages.is_empty() {
             let mut component =
