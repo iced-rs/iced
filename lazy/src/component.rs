@@ -24,7 +24,6 @@ where
         state: RefCell::new(Some(
             StateBuilder {
                 component: Box::new(component),
-                overlay_events: None,
                 cache_builder: |state| {
                     Some(
                         CacheBuilder {
@@ -56,7 +55,6 @@ struct Instance<'a, Message, Renderer, Event> {
 #[self_referencing]
 struct State<'a, Message: 'a, Renderer: 'a, Event: 'a> {
     component: Box<dyn Component<Message, Renderer, Event = Event> + 'a>,
-    overlay_events: Option<Vec<Event>>,
 
     #[borrows(mut component)]
     #[covariant]
@@ -105,17 +103,6 @@ impl<'a, Message, Renderer, Event> Instance<'a, Message, Renderer, Event> {
                 result
             })
     }
-
-    fn with_overlay_events_mut<T>(
-        &self,
-        f: impl FnOnce(&mut Option<Vec<Event>>) -> T,
-    ) -> T {
-        self.state
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .with_overlay_events_mut(f)
-    }
 }
 
 impl<'a, Message, Renderer, Event> Widget<Message, Renderer>
@@ -148,9 +135,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        let mut local_messages = self
-            .with_overlay_events_mut(|overlay_events| overlay_events.take())
-            .unwrap_or_default();
+        let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
         let event_status = self.with_element_mut(|element| {
@@ -183,7 +168,6 @@ where
             *self.state.borrow_mut() = Some(
                 StateBuilder {
                     component,
-                    overlay_events: None,
                     cache_builder: |state| {
                         Some(
                             CacheBuilder {
@@ -387,9 +371,36 @@ where
         });
 
         if !local_messages.is_empty() {
-            self.instance.with_overlay_events_mut(|overlay_events| {
-                *overlay_events = Some(local_messages)
-            });
+            let mut component =
+                self.instance.state.take().unwrap().into_heads().component;
+
+            for message in local_messages
+                .into_iter()
+                .filter_map(|message| component.update(message))
+            {
+                shell.publish(message);
+            }
+
+            self.instance.state = RefCell::new(Some(
+                StateBuilder {
+                    component,
+                    cache_builder: |state| {
+                        Some(
+                            CacheBuilder {
+                                element: state.view(),
+                                message: PhantomData,
+                                overlay_builder: |element| {
+                                    element.overlay(layout)
+                                },
+                            }
+                            .build(),
+                        )
+                    },
+                }
+                .build(),
+            ));
+
+            shell.invalidate_layout();
         }
 
         event_status
