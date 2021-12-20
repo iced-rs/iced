@@ -190,6 +190,7 @@ impl Pipeline {
                     mask: !0,
                     alpha_to_coverage_enabled: false,
                 },
+                multiview: None,
             });
 
         Pipeline {

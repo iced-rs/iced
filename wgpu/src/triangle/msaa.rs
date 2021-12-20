@@ -32,10 +32,7 @@ impl Blit {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler {
-                        comparison: false,
-                        filtering: false,
-                    },
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
                     count: None,
                 }],
             });
@@ -122,6 +119,7 @@ impl Blit {
                     mask: !0,
                     alpha_to_coverage_enabled: false,
                 },
+                multiview: None
             });
 
         Blit {
