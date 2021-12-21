@@ -28,7 +28,7 @@ spirv = ["wgpu/spirv"]
 
 [dependencies]
 wgpu = "0.12"
-wgpu_glyph = {path="../../wgpu_glyph"}
+wgpu_glyph = "0.16"
 glyph_brush = "0.7"
 raw-window-handle = "0.3"
 log = "0.4"
