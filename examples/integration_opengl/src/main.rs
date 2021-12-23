@@ -165,6 +165,7 @@ pub fn main() {
                         primitive,
                         &viewport,
                         &debug.overlay(),
+                        None
                     );
                 });
 

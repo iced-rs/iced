@@ -110,6 +110,7 @@ where
         &mut clipboard,
         &mut proxy,
         context.window(),
+        &compositor as &dyn window::VirtualCompositor,
     );
     runtime.track(subscription);
 
@@ -244,6 +245,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         context.window(),
+                        &compositor as &dyn window::VirtualCompositor,
                     );
 
                     // Update window

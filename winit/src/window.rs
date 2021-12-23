@@ -16,3 +16,22 @@ pub fn resize<Message>(width: u32, height: u32) -> Command<Message> {
 pub fn move_to<Message>(x: i32, y: i32) -> Command<Message> {
     Command::single(command::Action::Window(window::Action::Move { x, y }))
 }
+
+///Initializes a pixel buffer with width and height
+pub fn initialize_pix_buffer<Message>(
+    width: u32,
+    height: u32,
+) -> Command<Message> {
+    Command::single(command::Action::Window(
+        window::Action::InitHeadlessBuffer { width, height },
+    ))
+}
+
+///takes screenshot
+pub fn take_screenshot<Message>(
+    screen_cap: Box<dyn Fn(Option<Vec<u8>>) -> Message>,
+) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::TakeScreenshot(
+        screen_cap,
+    )))
+}

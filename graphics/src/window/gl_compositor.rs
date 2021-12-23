@@ -1,5 +1,5 @@
-use crate::{Color, Error, Size, Viewport};
-
+use crate::{Color, Error, Size, Viewport,Rectangle};
+use super::virtual_window::VirtualCompositor;
 use core::ffi::c_void;
 
 /// A basic OpenGL compositor.
@@ -13,7 +13,7 @@ use core::ffi::c_void;
 ///
 /// If you implement an OpenGL renderer, you can implement this trait to ease
 /// integration with existing windowing shells, like `iced_glutin`.
-pub trait GLCompositor: Sized {
+pub trait GLCompositor: Sized + VirtualCompositor {
     /// The renderer of the [`GLCompositor`].
     ///
     /// This should point to your renderer type, which could be a type alias
@@ -48,6 +48,7 @@ pub trait GLCompositor: Sized {
     /// Resizes the viewport of the [`GLCompositor`].
     fn resize_viewport(&mut self, physical_size: Size<u32>);
 
+    
     /// Presents the primitives of the [`Renderer`] to the next frame of the
     /// [`GLCompositor`].
     ///

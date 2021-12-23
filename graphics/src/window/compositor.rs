@@ -1,10 +1,10 @@
 use crate::{Color, Error, Viewport};
-
+use super::VirtualCompositor;
 use raw_window_handle::HasRawWindowHandle;
 use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
-pub trait Compositor: Sized {
+pub trait Compositor: Sized + VirtualCompositor {
     /// The settings of the backend.
     type Settings: Default;
 

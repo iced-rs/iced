@@ -1,5 +1,5 @@
 use crate::window;
-use crate::{Color, Command, Element, Executor, Settings, Subscription};
+use crate::{Color, Command, Element, Executor, Size, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -176,6 +176,17 @@ pub trait Application: Sized {
     /// By default, it returns `1.0`.
     fn scale_factor(&self) -> f64 {
         1.0
+    }
+
+
+    /// Configures if the [`Application`] should be launched in headless mode
+    ///
+    /// if this method retuns [`Some`], then the application will be launched in a headless window
+    /// with size configured
+    ///
+    /// By default, it returns `None`.
+    fn launch_as_headless(&self) -> Option<Size<u32>> {
+        None
     }
 
     /// Returns whether the [`Application`] should be terminated.

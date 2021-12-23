@@ -1,6 +1,7 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
+use iced_graphics::Size;
 
-use futures::task::SpawnExt;
+use futures::{executor::block_on, task::SpawnExt};
 use iced_native::futures;
 use raw_window_handle::HasRawWindowHandle;
 
@@ -14,6 +15,8 @@ pub struct Compositor {
     staging_belt: wgpu::util::StagingBelt,
     local_pool: futures::executor::LocalPool,
     format: wgpu::TextureFormat,
+    frame_buffer: Option<Framebuffer>,
+    screenshot_state: ScreenshotState,
 }
 
 impl Compositor {
@@ -75,6 +78,7 @@ impl Compositor {
         let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
         let local_pool = futures::executor::LocalPool::new();
 
+        let frame_buffer = None;
         Some(Compositor {
             instance,
             settings,
@@ -83,12 +87,71 @@ impl Compositor {
             staging_belt,
             local_pool,
             format,
+            frame_buffer,
+            screenshot_state: ScreenshotState::Idle,
         })
     }
 
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
     pub fn create_backend(&self) -> Backend {
         Backend::new(&self.device, self.settings, self.format)
+    }
+}
+
+impl iced_graphics::window::VirtualCompositor for Compositor {
+    fn read(&self) -> Option<Vec<u8>> {
+        if let Some(frame) = &self.frame_buffer {
+            let buffer_slice = frame.output.slice(..);
+            let buffer_future = buffer_slice.map_async(wgpu::MapMode::Read);
+            self.device.poll(wgpu::Maintain::Wait);
+            let mut rv = Vec::new();
+            if let Ok(()) = block_on(buffer_future) {
+                rv.extend_from_slice(&buffer_slice.get_mapped_range());
+            }
+
+            frame.output.unmap();
+            Some(rv)
+        } else {
+            None
+        }
+    }
+    fn resize_framebuffer(&mut self, viewport_size: Size<u32>) {
+        let framebuffer = {
+            let size = BufferDimensions::new(
+                viewport_size.width as usize,
+                viewport_size.height as usize,
+            );
+            let output = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: None,
+                size: (size.padded_bytes_per_row * size.height) as u64,
+                usage: wgpu::BufferUsages::MAP_READ
+                    | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+
+            let target = self.device.create_texture(&wgpu::TextureDescriptor {
+                size: wgpu::Extent3d {
+                    width: size.width as u32,
+                    height: size.height as u32,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                // format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                usage: wgpu::TextureUsages::COPY_SRC
+                    | wgpu::TextureUsages::RENDER_ATTACHMENT,
+                label: None,
+            });
+
+            Some(Framebuffer {
+                target,
+                output,
+                size,
+            })
+        };
+        self.frame_buffer = framebuffer;
     }
 }
 
@@ -156,9 +219,15 @@ impl iced_graphics::window::Compositor for Compositor {
                     },
                 );
 
-                let view = &frame
-                    .texture
-                    .create_view(&wgpu::TextureViewDescriptor::default());
+                let texture_viewer = wgpu::TextureViewDescriptor::default();
+                let owned_view =
+                    if let Some(ref frame_buffer) = self.frame_buffer {
+                        frame_buffer.target.create_view(&texture_viewer)
+                    } else {
+                        frame.texture.create_view(&texture_viewer)
+                    };
+
+                let view = &owned_view;
 
                 let _ =
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -197,6 +266,35 @@ impl iced_graphics::window::Compositor for Compositor {
                         overlay,
                     );
                 });
+                if let Some(ref frame_buffer) = self.frame_buffer {
+                    encoder.copy_texture_to_buffer(
+                        wgpu::ImageCopyTexture {
+                            texture: &frame_buffer.target,
+                            mip_level: 0,
+                            origin: wgpu::Origin3d::ZERO,
+                            aspect: wgpu::TextureAspect::default(),
+                        },
+                        wgpu::ImageCopyBuffer {
+                            buffer: &frame_buffer.output,
+                            layout: wgpu::ImageDataLayout {
+                                offset: 0,
+                                bytes_per_row: Some(
+                                    std::num::NonZeroU32::new(
+                                        frame_buffer.size.padded_bytes_per_row
+                                            as u32,
+                                    )
+                                    .unwrap(),
+                                ),
+                                rows_per_image: None,
+                            },
+                        },
+                        wgpu::Extent3d {
+                            width: frame_buffer.size.width as u32,
+                            height: frame_buffer.size.height as u32,
+                            depth_or_array_layers: 1,
+                        },
+                    );
+                }
 
                 // Submit work
                 self.staging_belt.finish();
@@ -227,6 +325,46 @@ impl iced_graphics::window::Compositor for Compositor {
                     Err(iced_graphics::window::SurfaceError::OutOfMemory)
                 }
             },
+        }
+    }
+}
+
+
+enum ScreenshotState {
+    Idle,
+    QueuedScreenshot,
+    CompletedScreenshot(Vec<u8>),
+}
+
+// TODO: This struct and Swapchain should be interchangeable, maybe an enum?
+struct Framebuffer {
+    target: wgpu::Texture,
+    output: wgpu::Buffer,
+    size: BufferDimensions,
+}
+
+// from https://github.com/gfx-rs/wgpu-rs/blob/master/examples/capture/main.rs
+struct BufferDimensions {
+    width: usize,
+    height: usize,
+    //unpadded_bytes_per_row: usize,
+    padded_bytes_per_row: usize,
+}
+
+impl BufferDimensions {
+    fn new(width: usize, height: usize) -> Self {
+        let bytes_per_pixel = std::mem::size_of::<u32>();
+        let unpadded_bytes_per_row = width * bytes_per_pixel;
+        let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize;
+        let padded_bytes_per_row_padding =
+            (align - unpadded_bytes_per_row % align) % align;
+        let padded_bytes_per_row =
+            unpadded_bytes_per_row + padded_bytes_per_row_padding;
+        Self {
+            width,
+            height,
+            //unpadded_bytes_per_row,
+            padded_bytes_per_row,
         }
     }
 }

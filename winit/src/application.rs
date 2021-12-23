@@ -164,6 +164,8 @@ where
     }
 
     let mut clipboard = Clipboard::connect(&window);
+    let (mut compositor, renderer) =
+        C::new(compositor_settings, Some(&window))?;
 
     run_command(
         init_command,
@@ -171,10 +173,10 @@ where
         &mut clipboard,
         &mut proxy,
         &window,
+        //FIXME: maybe have an option here instead idk
+        &mut compositor as &mut dyn window::VirtualCompositor,
     );
     runtime.track(subscription);
-
-    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
     let (mut sender, receiver) = mpsc::unbounded();
 
@@ -315,6 +317,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         &window,
+                        &mut compositor as &mut dyn window::VirtualCompositor,
                     );
 
                     // Update window
@@ -514,6 +517,7 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
+    virtual_compositor: &mut dyn window::VirtualCompositor,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -522,7 +526,14 @@ pub fn update<A: Application, E: Executor>(
         let command = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        run_command(command, runtime, clipboard, proxy, window);
+        run_command(
+            command,
+            runtime,
+            clipboard,
+            proxy,
+            window,
+            virtual_compositor,
+        );
     }
 
     let subscription = application.subscription();
@@ -536,6 +547,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
     window: &winit::window::Window,
+    virtual_compositor: &mut dyn window::VirtualCompositor,
 ) {
     use iced_native::command;
     use iced_native::window;
@@ -569,6 +581,17 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                         x,
                         y,
                     });
+                }
+                window::Action::InitHeadlessBuffer { width, height } => {
+                    virtual_compositor
+                        .resize_framebuffer(Size::new(width, height))
+                }
+                window::Action::TakeScreenshot(screenshot_generator) => {
+                    let message =
+                        screenshot_generator(virtual_compositor.read());
+
+                    proxy.send_event(message)
+                        .expect("Send message to event loop");
                 }
             },
         }

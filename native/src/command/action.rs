@@ -16,7 +16,7 @@ pub enum Action<T> {
     Clipboard(clipboard::Action<T>),
 
     /// Run a window action.
-    Window(window::Action),
+    Window(window::Action<T>),
 }
 
 impl<T> Action<T> {
@@ -33,7 +33,7 @@ impl<T> Action<T> {
         match self {
             Self::Future(future) => Action::Future(Box::pin(future.map(f))),
             Self::Clipboard(action) => Action::Clipboard(action.map(f)),
-            Self::Window(window) => Action::Window(window),
+            Self::Window(window) => Action::Window(window.map(f)),
         }
     }
 }

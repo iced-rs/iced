@@ -8,6 +8,61 @@ use iced_graphics::{Antialiasing, Size};
 #[allow(missing_debug_implementations)]
 pub struct Compositor {
     gl: glow::Context,
+    framebuffer: Option<glow::Framebuffer>,
+    framebuffer_size: Option<(i32, i32)>,
+}
+
+impl iced_graphics::window::VirtualCompositor for Compositor {
+    fn resize_framebuffer(&mut self, viewport_size: Size<u32>) {
+        let framebuffer = {
+            unsafe {
+                let renderbuffer = self.gl.create_renderbuffer().ok();
+                self.gl.bind_renderbuffer(glow::RENDERBUFFER, renderbuffer);
+                self.gl.renderbuffer_storage(
+                    glow::RENDERBUFFER,
+                    glow::RGB8,
+                    viewport_size.width as i32,
+                    viewport_size.height as i32,
+                );
+
+                let framebuffer = self.gl.create_framebuffer().ok();
+                self.gl.bind_framebuffer(glow::FRAMEBUFFER, framebuffer);
+                self.gl.framebuffer_renderbuffer(
+                    glow::FRAMEBUFFER,
+                    glow::COLOR_ATTACHMENT0,
+                    glow::RENDERBUFFER,
+                    renderbuffer,
+                );
+                framebuffer
+            }
+        };
+        self.framebuffer_size = Some((viewport_size.width as  i32, viewport_size.height as i32));
+        self.framebuffer = framebuffer;
+    }
+
+    fn read(&self) -> Option<Vec<u8>> {
+        let gl = &self.gl;
+
+        // TODO: Validate the buffer
+        let mut rv = Vec::new();
+        
+        // assert_eq!(buffer.len(), 3 * region.width as usize * region.height as usize);
+        let width_height = self.framebuffer_size.expect("Uninitialized framebuffer");
+        let (width, height) = width_height;
+        rv.resize((width * height * 3) as usize, 0);
+        unsafe {
+            gl.read_pixels(
+                0,//region.x as i32,
+                0,//region.y as i32,
+                width,//region.width as i32,
+                height,//region.height as i32,
+                glow::RGB,
+                glow::UNSIGNED_BYTE,
+                glow::PixelPackData::Slice(rv.as_mut_slice()),
+            );
+        }
+        Some(rv)
+    }
 }
 
 impl iced_graphics::window::GLCompositor for Compositor {
@@ -44,7 +99,8 @@ impl iced_graphics::window::GLCompositor for Compositor {
 
         let renderer = Renderer::new(Backend::new(&gl, settings));
 
-        Ok((Self { gl }, renderer))
+        let framebuffer = None;
+        Ok((Self { gl, framebuffer, framebuffer_size: None}, renderer))
     }
 
     fn sample_count(settings: &Settings) -> u32 {
@@ -82,7 +138,7 @@ impl iced_graphics::window::GLCompositor for Compositor {
         }
 
         renderer.with_primitives(|backend, primitive| {
-            backend.present(gl, primitive, viewport, overlay);
+            backend.present(gl, primitive, viewport, overlay, self.framebuffer);
         });
     }
 }
