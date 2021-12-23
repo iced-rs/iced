@@ -21,7 +21,7 @@ use std::hash::Hash;
 ///     .size(40);
 /// ```
 ///
-/// ![Text drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
+/// ![Text drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
 #[derive(Debug)]
 pub struct Text<Renderer: text::Renderer> {
     content: String,

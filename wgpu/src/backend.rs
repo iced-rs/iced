@@ -16,7 +16,7 @@ use crate::image;
 /// A [`wgpu`] graphics backend for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-/// [`iced`]: https://github.com/hecrj/iced
+/// [`iced`]: https://github.com/iced-rs/iced
 #[derive(Debug)]
 pub struct Backend {
     quad_pipeline: quad::Pipeline,

@@ -1,7 +1,7 @@
 # `iced_web`
 [![Documentation](https://docs.rs/iced_web/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced_web.svg)](https://crates.io/crates/iced_web)
-[![License](https://img.shields.io/crates/l/iced_web.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+[![License](https://img.shields.io/crates/l/iced_web.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
 
 `iced_web` takes [`iced_core`] and builds a WebAssembly runtime on top. It achieves this by introducing a `Widget` trait that can be used to produce VDOM nodes.
@@ -22,7 +22,7 @@ iced_web = "0.4"
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
 you want to learn about a specific release, check out [the release list].
 
-[the release list]: https://github.com/hecrj/iced/releases
+[the release list]: https://github.com/iced-rs/iced/releases
 
 ## Usage
 The current build process is a bit involved, as [`wasm-pack`] does not currently [support building binary crates](https://github.com/rustwasm/wasm-pack/issues/734).

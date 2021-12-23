@@ -20,7 +20,7 @@ use std::hash::Hash;
 /// let image = Image::<image::Handle>::new("resources/ferris.png");
 /// ```
 ///
-/// <img src="https://github.com/hecrj/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
+/// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[derive(Debug, Hash)]
 pub struct Image<Handle> {
     handle: Handle,

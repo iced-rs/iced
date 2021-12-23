@@ -4,11 +4,11 @@
 //! different runtime implementations. For instance, both [`iced_native`] and
 //! [`iced_web`] are built on top of `iced_core`.
 //!
-//! ![The foundations of the Iced ecosystem](https://github.com/hecrj/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/foundations.png?raw=true)
+//! ![The foundations of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/foundations.png?raw=true)
 //!
-//! [Iced]: https://github.com/hecrj/iced
-//! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
-//! [`iced_web`]: https://github.com/hecrj/iced/tree/master/web
+//! [Iced]: https://github.com/iced-rs/iced
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/master/native
+//! [`iced_web`]: https://github.com/iced-rs/iced/tree/master/web
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
