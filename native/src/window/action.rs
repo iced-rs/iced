@@ -16,13 +16,6 @@ pub enum Action<T> {
         /// The new logical y location of the window
         y: i32,
     },
-    ///initialize a headless buffer
-    InitHeadlessBuffer {
-        ///The width of the window to be initialized
-        width: u32,
-        ///The width of the window to be initialized
-        height: u32,
-    },
     ///Take screenshot of a headless buffer
     TakeScreenshot(Box<dyn Fn(Option<Vec<u8>>) -> T>),
 }
@@ -39,9 +32,6 @@ impl<T> Action<T> {
             }
             Self::Move { x, y } => Action::Move { x, y },
             Self::Resize { width, height } => Action::Resize { width, height },
-            Self::InitHeadlessBuffer { width, height } => {
-                Action::InitHeadlessBuffer { width, height }
-            }
         }
     }
 }
@@ -58,13 +48,6 @@ impl<T> fmt::Debug for Action<T> {
             }
             Self::Move { x, y } => {
                 write!(f, "Action::Move: x: {}, y: {}", x, y,)
-            }
-            Self::InitHeadlessBuffer { width, height } => {
-                write!(
-                    f,
-                    "Action::InitHeadlessBuffer. width: {}, height: {}",
-                    width, height
-                )
             }
             Self::TakeScreenshot(_) => write!(f, "Action::TakeScreenshot"),
         }

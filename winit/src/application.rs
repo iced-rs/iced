@@ -99,6 +99,13 @@ pub trait Application: Program {
     fn should_exit(&self) -> bool {
         false
     }
+
+    /// Returns whether the [`Application`] should be started in headless mode
+    ///
+    /// By default, it returns `false`.
+    fn headless(&self) -> bool {
+        false
+    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -249,18 +256,14 @@ async fn run_instance<A, E, C>(
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    let mut surface = compositor.create_surface(&window);
+    compositor.initialize_surface(&window);
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
 
     let physical_size = state.physical_size();
 
-    compositor.configure_surface(
-        &mut surface,
-        physical_size.width,
-        physical_size.height,
-    );
+    compositor.configure_surface(physical_size.width, physical_size.height);
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &mut application,
@@ -400,7 +403,6 @@ async fn run_instance<A, E, C>(
                     debug.draw_finished();
 
                     compositor.configure_surface(
-                        &mut surface,
                         physical_size.width,
                         physical_size.height,
                     );
@@ -410,7 +412,6 @@ async fn run_instance<A, E, C>(
 
                 match compositor.present(
                     &mut renderer,
-                    &mut surface,
                     state.viewport(),
                     state.background_color(),
                     &debug.overlay(),
@@ -582,15 +583,12 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                         y,
                     });
                 }
-                window::Action::InitHeadlessBuffer { width, height } => {
-                    virtual_compositor
-                        .resize_framebuffer(Size::new(width, height))
-                }
                 window::Action::TakeScreenshot(screenshot_generator) => {
                     let message =
                         screenshot_generator(virtual_compositor.read());
 
-                    proxy.send_event(message)
+                    proxy
+                        .send_event(message)
                         .expect("Send message to event loop");
                 }
             },

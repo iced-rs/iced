@@ -64,6 +64,12 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub try_opengles_first: bool,
+
+    /// If enabled, launch the application will write to a buffer instead of to a window that can
+    /// be viewed on the screen
+    ///
+    /// By default, it is disabled.
+    pub headless: bool,
 }
 
 impl<Flags> Settings<Flags> {
@@ -83,6 +89,7 @@ impl<Flags> Settings<Flags> {
             antialiasing: default_settings.antialiasing,
             exit_on_close_request: default_settings.exit_on_close_request,
             try_opengles_first: default_settings.try_opengles_first,
+            headless: default_settings.headless,
         }
     }
 }
@@ -102,6 +109,7 @@ where
             antialiasing: false,
             exit_on_close_request: true,
             try_opengles_first: false,
+            headless: false,
         }
     }
 }

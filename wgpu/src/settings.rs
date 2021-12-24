@@ -34,6 +34,12 @@ pub struct Settings {
     ///
     /// By default, it is `None`.
     pub antialiasing: Option<Antialiasing>,
+
+
+    /// If enabled, the window is rendered to a buffer instead of presented to the screen
+    ///
+    /// By default, it is disabled.
+    pub headless: bool
 }
 
 impl Settings {
@@ -69,6 +75,7 @@ impl Default for Settings {
             default_text_size: 20,
             text_multithreading: false,
             antialiasing: None,
+            headless: false
         }
     }
 }

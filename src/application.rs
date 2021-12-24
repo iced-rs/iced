@@ -209,23 +209,34 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
-        let renderer_settings = crate::renderer::Settings {
-            default_font: settings.default_font,
-            default_text_size: settings.default_text_size,
-            text_multithreading: settings.text_multithreading,
-            antialiasing: if settings.antialiasing {
-                Some(crate::renderer::settings::Antialiasing::MSAAx4)
-            } else {
-                None
-            },
-            ..crate::renderer::Settings::from_env()
-        };
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let renderer_settings = crate::renderer::Settings {
+                default_font: settings.default_font,
+                default_text_size: settings.default_text_size,
+                text_multithreading: settings.text_multithreading,
+                antialiasing: if settings.antialiasing {
+                    Some(crate::renderer::settings::Antialiasing::MSAAx4)
+                } else {
+                    None
+                },
+                headless: settings.headless,
+                ..crate::renderer::Settings::from_env()
+            };
 
-        Ok(crate::runtime::application::run::<
-            Instance<Self>,
-            Self::Executor,
-            crate::renderer::window::Compositor,
-        >(settings.into(), renderer_settings)?)
+            Ok(crate::runtime::application::run::<
+                Instance<Self>,
+                Self::Executor,
+                crate::renderer::window::Compositor,
+            >(settings.into(), renderer_settings)?)
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            <Instance<Self> as iced_web::Application>::run(settings.flags);
+
+            Ok(())
+        }
     }
 }
 

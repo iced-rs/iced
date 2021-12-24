@@ -1,5 +1,5 @@
-use crate::{Color, Error, Viewport};
 use super::VirtualCompositor;
+use crate::{Color, Error, Viewport};
 use raw_window_handle::HasRawWindowHandle;
 use thiserror::Error;
 
@@ -23,20 +23,12 @@ pub trait Compositor: Sized + VirtualCompositor {
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface
-    fn create_surface<W: HasRawWindowHandle>(
-        &mut self,
-        window: &W,
-    ) -> Self::Surface;
+    fn initialize_surface<W: HasRawWindowHandle>(&mut self, window: &W);
 
     /// Configures a new [`Surface`] with the given dimensions.
     ///
     /// [`Surface`]: Self::Surface
-    fn configure_surface(
-        &mut self,
-        surface: &mut Self::Surface,
-        width: u32,
-        height: u32,
-    );
+    fn configure_surface(&mut self, width: u32, height: u32);
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
     ///
@@ -44,7 +36,6 @@ pub trait Compositor: Sized + VirtualCompositor {
     fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
