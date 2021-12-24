@@ -149,6 +149,8 @@ where
             )
         });
 
+        local_shell.with_invalid_layout(|| shell.invalidate_layout());
+
         if !local_messages.is_empty() {
             let mut component = self
                 .state
@@ -372,6 +374,8 @@ where
                 )
             })
             .unwrap_or_else(|| iced_native::event::Status::Ignored);
+
+        local_shell.with_invalid_layout(|| shell.invalidate_layout());
 
         if !local_messages.is_empty() {
             let mut component =
