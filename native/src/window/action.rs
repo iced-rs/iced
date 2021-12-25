@@ -1,4 +1,5 @@
 use std::fmt;
+use crate::screenshot::Screenshot;
 
 /// An operation to be performed on some window.
 pub enum Action<T> {
@@ -17,7 +18,7 @@ pub enum Action<T> {
         y: i32,
     },
     ///Take screenshot of a headless buffer
-    TakeScreenshot(Box<dyn Fn(Option<Vec<u8>>) -> T>),
+    TakeScreenshot(Box<dyn Fn(Option<Screenshot>) -> T>),
 }
 
 impl<T> Action<T> {

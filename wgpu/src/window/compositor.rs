@@ -1,7 +1,7 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::{executor::block_on, task::SpawnExt};
-use iced_native::futures;
+use iced_native::{futures, screenshot::Screenshot};
 use raw_window_handle::HasRawWindowHandle;
 
 /// A window graphics backend for iced powered by `wgpu`.
@@ -176,7 +176,7 @@ impl Compositor {
 }
 
 impl iced_graphics::window::VirtualCompositor for Compositor {
-    fn read(&self) -> Option<Vec<u8>> {
+    fn read(&self) -> Option<Screenshot> {
         let mut rv = Vec::new();
         if let Some(frame) = &self.frame_buffer {
             let buffer_slice = frame.output.slice(..);
@@ -188,7 +188,6 @@ impl iced_graphics::window::VirtualCompositor for Compositor {
             }
 
             frame.output.unmap();
-            Some(rv)
         } else {
             let mut encoder = self.device.create_command_encoder(
                 &wgpu::CommandEncoderDescriptor {
@@ -200,7 +199,7 @@ impl iced_graphics::window::VirtualCompositor for Compositor {
                 self.surface.as_ref().expect("Surface not initialized");
             let buffer = self.create_buffer();
             let frame = surface.get_current_texture().unwrap();
-                            self.copy_texture_to_buffer(&mut encoder, &frame.texture, &buffer);
+            self.copy_texture_to_buffer(&mut encoder, &frame.texture, &buffer);
             let buffer_slice = buffer.slice(..);
             let buffer_future = buffer_slice.map_async(wgpu::MapMode::Read);
             self.device.poll(wgpu::Maintain::Wait);
@@ -210,8 +209,12 @@ impl iced_graphics::window::VirtualCompositor for Compositor {
             }
 
             buffer.unmap();
-            Some(rv)
         }
+        Some(Screenshot::new(
+            rv,
+            self.size.width as u32,
+            self.size.height as u32,
+        ))
     }
 }
 

@@ -53,6 +53,7 @@ pub mod touch;
 pub mod user_interface;
 pub mod widget;
 pub mod window;
+pub mod screenshot;
 
 mod element;
 mod hasher;

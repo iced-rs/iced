@@ -56,7 +56,7 @@ pub use toggler::Toggler;
 pub use tooltip::Tooltip;
 
 pub use column::Column;
-pub use image::Image;
+pub use crate::image::Image;
 pub use row::Row;
 pub use space::Space;
 pub use svg::Svg;

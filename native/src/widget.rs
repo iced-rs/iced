@@ -40,7 +40,7 @@ pub use column::Column;
 #[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]
-pub use image::Image;
+pub use self::image::Image;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]

@@ -7,7 +7,7 @@ use crate::{Primitive, Rectangle, Renderer};
 use iced_native::image;
 
 pub use iced_native::widget::image::{Image, Viewer};
-pub use image::Handle;
+pub use iced_native::image::Handle;
 
 impl<B> image::Renderer for Renderer<B>
 where

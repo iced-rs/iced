@@ -1,6 +1,7 @@
 //! Interact with the window of your application.
 use crate::command::{self, Command};
 use iced_native::window;
+use iced_native::screenshot::Screenshot;
 
 pub use window::Event;
 
@@ -19,9 +20,11 @@ pub fn move_to<Message>(x: i32, y: i32) -> Command<Message> {
 
 ///takes screenshot
 pub fn take_screenshot<Message>(
-    screen_cap: Box<dyn Fn(Option<Vec<u8>>) -> Message>,
+    screen_cap: Box<dyn Fn(Option<Screenshot>) -> Message>,
 ) -> Command<Message> {
     Command::single(command::Action::Window(window::Action::TakeScreenshot(
         screen_cap,
     )))
 }
+
+
