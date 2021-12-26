@@ -586,7 +586,6 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                 window::Action::TakeScreenshot(screenshot_generator) => {
                     let message =
                         screenshot_generator(virtual_compositor.read());
-
                     proxy
                         .send_event(message)
                         .expect("Send message to event loop");

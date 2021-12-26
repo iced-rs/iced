@@ -1,11 +1,12 @@
 //! Data structures for handling screenshots
 
 extern crate image as eimage;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 /// A single screencap. The payload in this structure is always a raw RGB image
 pub struct Screenshot {
-    payload: Vec<u8>,
+    payload: Arc<Vec<u8>>,
     width: u32,
     height: u32,
 }
@@ -14,7 +15,7 @@ impl Screenshot {
     /// Create a new screenshot object
     pub fn new(payload: Vec<u8>, width: u32, height: u32) -> Self {
         Self {
-            payload,
+            payload: Arc::new(payload),
             width,
             height,
         }
@@ -25,7 +26,7 @@ impl Screenshot {
         eimage::RgbaImage::from_raw(
             self.width,
             self.height,
-            self.payload.clone(),
+            self.payload.to_vec(),
         )
         .unwrap()
     }

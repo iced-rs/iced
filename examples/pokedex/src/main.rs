@@ -1,6 +1,7 @@
 use iced::{
-    button, futures, image, Alignment, Application, Button, Column, Command,
-    Container, Element, Length, Row, Settings, Text,
+    button, futures, image, window::take_screenshot, Alignment, Application,
+    Button, Column, Command, Container, Element, Length, Row, Screenshot,
+    Settings, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -22,6 +23,7 @@ enum Pokedex {
 #[derive(Debug, Clone)]
 enum Message {
     PokemonFound(Result<Pokemon, Error>),
+    PokemonScreenshot(Option<Screenshot>),
     Search,
 }
 
@@ -55,14 +57,14 @@ impl Application for Pokedex {
                     search: button::State::new(),
                 };
 
-                Command::none()
+                take_screenshot(Box::new(Message::PokemonScreenshot))
             }
             Message::PokemonFound(Err(_error)) => {
                 *self = Pokedex::Errored {
                     try_again: button::State::new(),
                 };
 
-                Command::none()
+                Command::none() 
             }
             Message::Search => match self {
                 Pokedex::Loading => Command::none(),
@@ -72,6 +74,22 @@ impl Application for Pokedex {
                     Command::perform(Pokemon::search(), Message::PokemonFound)
                 }
             },
+            Message::PokemonScreenshot(screenshot) => {
+                match self {
+                    Pokedex::Loaded { pokemon, search } => {
+                        println!("HELPME");
+                        screenshot.map(|ss| {
+                            println!("WASSUP");
+                            ss.save_image_to_path(format!(
+                                "{}.png",
+                                pokemon.name
+                            ))
+                        });
+                    }
+                    _ => {}
+                }
+                Command::none()
+            }
         }
     }
 

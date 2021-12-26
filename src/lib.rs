@@ -190,6 +190,7 @@ pub mod clipboard;
 pub mod executor;
 pub mod keyboard;
 pub mod mouse;
+pub mod screenshot;
 pub mod settings;
 pub mod time;
 pub mod widget;
@@ -224,3 +225,5 @@ pub use runtime::{
     Alignment, Background, Color, Command, Font, Length, Point, Rectangle,
     Size, Subscription, Vector,
 };
+
+pub use screenshot::Screenshot;

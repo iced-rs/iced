@@ -115,12 +115,7 @@ impl Compositor {
         buffer: &wgpu::Buffer,
     ) {
         encoder.copy_texture_to_buffer(
-            wgpu::ImageCopyTexture {
-                texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::default(),
-            },
+            texture.as_image_copy(),
             wgpu::ImageCopyBuffer {
                 buffer,
                 layout: wgpu::ImageDataLayout {
@@ -178,6 +173,7 @@ impl Compositor {
 impl iced_graphics::window::VirtualCompositor for Compositor {
     fn read(&self) -> Option<Screenshot> {
         let mut rv = Vec::new();
+
         if let Some(frame) = &self.frame_buffer {
             let buffer_slice = frame.output.slice(..);
             let buffer_future = buffer_slice.map_async(wgpu::MapMode::Read);
@@ -250,7 +246,8 @@ impl iced_graphics::window::Compositor for Compositor {
         surface.configure(
             &self.device,
             &wgpu::SurfaceConfiguration {
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::COPY_SRC,
                 format: self.format,
                 present_mode: self.settings.present_mode,
                 width,

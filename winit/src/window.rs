@@ -1,7 +1,7 @@
 //! Interact with the window of your application.
 use crate::command::{self, Command};
 use iced_native::window;
-use iced_native::screenshot::Screenshot;
+pub use iced_native::screenshot::Screenshot;
 
 pub use window::Event;
 

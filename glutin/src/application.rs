@@ -96,7 +96,7 @@ where
     };
 
     #[allow(unsafe_code)]
-    let (compositor, renderer) = unsafe {
+    let (mut compositor, renderer) = unsafe {
         C::new(compositor_settings, |address| {
             context.get_proc_address(address)
         })?
@@ -110,7 +110,7 @@ where
         &mut clipboard,
         &mut proxy,
         context.window(),
-        &compositor as &dyn window::VirtualCompositor,
+        &mut compositor as &mut dyn window::VirtualCompositor,
     );
     runtime.track(subscription);
 
@@ -245,7 +245,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         context.window(),
-                        &compositor as &dyn window::VirtualCompositor,
+                        &mut compositor as &mut dyn window::VirtualCompositor,
                     );
 
                     // Update window
