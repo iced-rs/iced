@@ -326,6 +326,29 @@ async fn run_instance<A, E, C>(
                     // Update window
                     state.synchronize(&application, &window);
 
+                    if compositor.is_screenshot_queued() {
+                        match compositor.present(
+                            &mut renderer,
+                            state.viewport(),
+                            state.background_color(),
+                            &debug.overlay(),
+                        ) {
+                            Ok(()) => {
+                                compositor.dequeue_screenshot();
+                            }
+                            Err(error) => match error {
+                                // This is an unrecoverable error.
+                                window::SurfaceError::OutOfMemory => {
+                                    panic!("{:?}", error);
+                                }
+                                _ => {
+                                    // Try rendering again next frame.
+                                    window.request_redraw();
+                                }
+                            },
+                        }
+                    }
+
                     let should_exit = application.should_exit();
 
                     user_interface = ManuallyDrop::new(build_user_interface(
@@ -584,11 +607,20 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                     });
                 }
                 window::Action::TakeScreenshot(screenshot_generator) => {
-                    let message =
-                        screenshot_generator(virtual_compositor.read());
-                    proxy
-                        .send_event(message)
-                        .expect("Send message to event loop");
+                    if virtual_compositor.requires_rerender() {
+                        let proxy_handle = proxy.clone();
+                        let wrapper = Box::new(move |screenshot| {
+                            proxy_handle.send_event(screenshot_generator(screenshot)).expect("Send message to event loop from VirtualCompositor hack")
+                        });
+
+                        virtual_compositor.queue_screenshot(wrapper);
+                    } else {
+                        let message =
+                            screenshot_generator(virtual_compositor.read());
+                        proxy
+                            .send_event(message)
+                            .expect("Send message to event loop");
+                    }
                 }
             },
         }

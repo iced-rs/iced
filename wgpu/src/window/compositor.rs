@@ -17,6 +17,7 @@ pub struct Compositor {
     frame_buffer: Option<Framebuffer>,
     size: BufferDimensions,
     surface: Option<wgpu::Surface>,
+    generator: Option<Box<dyn Fn(Option<Screenshot>)>>,
 }
 
 impl Compositor {
@@ -90,6 +91,7 @@ impl Compositor {
             format,
             frame_buffer,
             surface,
+            generator: None,
             size: BufferDimensions::default(),
         })
     }
@@ -97,15 +99,6 @@ impl Compositor {
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
     pub fn create_backend(&self) -> Backend {
         Backend::new(&self.device, self.settings, self.format)
-    }
-
-    fn create_buffer(&self) -> wgpu::Buffer {
-        self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: (self.size.padded_bytes_per_row * self.size.height) as u64,
-            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        })
     }
 
     fn copy_texture_to_buffer(
@@ -137,6 +130,11 @@ impl Compositor {
         )
     }
     fn resize_framebuffer(&mut self, width: u32, height: u32) {
+        let queued_screenshot = self
+            .frame_buffer
+            .as_ref()
+            .map(|fb| fb.queued_screenshot)
+            .unwrap_or(false);
         let framebuffer = {
             let size = BufferDimensions::new(width as usize, height as usize);
             let output = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -156,7 +154,7 @@ impl Compositor {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
-                // format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                //format: wgpu::TextureFormat::Rgba8UnormSrgb,
                 format: wgpu::TextureFormat::Bgra8UnormSrgb,
                 usage: wgpu::TextureUsages::COPY_SRC
                     | wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -164,13 +162,68 @@ impl Compositor {
             });
 
             self.size = size;
-            Some(Framebuffer { target, output })
+            Some(Framebuffer {
+                target,
+                output,
+                queued_screenshot,
+            })
         };
         self.frame_buffer = framebuffer;
     }
 }
 
 impl iced_graphics::window::VirtualCompositor for Compositor {
+    fn requires_rerender(&self) -> bool {
+        if self.settings.headless {
+            false
+        } else {
+            true
+        }
+    }
+
+    fn queue_screenshot(&mut self, generator: Box<dyn Fn(Option<Screenshot>)>) {
+        if let Some(ref mut fb) = self.frame_buffer {
+            fb.queued_screenshot = true;
+            self.generator = Some(generator);
+        }
+    }
+    fn is_screenshot_queued(&self) -> bool {
+        if let Some(ref fb) = self.frame_buffer {
+            fb.queued_screenshot
+        } else {
+            false
+        }
+    }
+
+    fn dequeue_screenshot(&mut self) {
+        let mut rv = Vec::new();
+
+        let frame = self
+            .frame_buffer
+            .as_mut()
+            .expect("Framebuffer uninitialized");
+
+        let buffer_slice = frame.output.slice(..);
+        let buffer_future = buffer_slice.map_async(wgpu::MapMode::Read);
+        self.device.poll(wgpu::Maintain::Wait);
+
+        if let Ok(()) = block_on(buffer_future) {
+            rv.extend_from_slice(&buffer_slice.get_mapped_range());
+        }
+
+        frame.output.unmap();
+
+        if let Some(ref mut msg_gen) = self.generator {
+            msg_gen(Some(Screenshot::new(
+                rv,
+                self.size.width as u32,
+                self.size.height as u32,
+            )))
+        };
+        frame.queued_screenshot = false;
+        self.generator = None;
+    }
+
     fn read(&self) -> Option<Screenshot> {
         let mut rv = Vec::new();
 
@@ -184,33 +237,15 @@ impl iced_graphics::window::VirtualCompositor for Compositor {
             }
 
             frame.output.unmap();
+
+            Some(Screenshot::new(
+                rv,
+                self.size.width as u32,
+                self.size.height as u32,
+            ))
         } else {
-            let mut encoder = self.device.create_command_encoder(
-                &wgpu::CommandEncoderDescriptor {
-                    label: Some("iced_wgpu encoder"),
-                },
-            );
-
-            let surface =
-                self.surface.as_ref().expect("Surface not initialized");
-            let buffer = self.create_buffer();
-            let frame = surface.get_current_texture().unwrap();
-            self.copy_texture_to_buffer(&mut encoder, &frame.texture, &buffer);
-            let buffer_slice = buffer.slice(..);
-            let buffer_future = buffer_slice.map_async(wgpu::MapMode::Read);
-            self.device.poll(wgpu::Maintain::Wait);
-
-            if let Ok(()) = block_on(buffer_future) {
-                rv.extend_from_slice(&buffer_slice.get_mapped_range());
-            }
-
-            buffer.unmap();
+            None
         }
-        Some(Screenshot::new(
-            rv,
-            self.size.width as u32,
-            self.size.height as u32,
-        ))
     }
 }
 
@@ -254,9 +289,9 @@ impl iced_graphics::window::Compositor for Compositor {
                 height,
             },
         );
-        if self.settings.headless {
-            self.resize_framebuffer(width, height);
-        }
+        //if self.settings.headless {
+        self.resize_framebuffer(width, height);
+        //}
     }
 
     fn present<T: AsRef<str>>(
@@ -276,12 +311,18 @@ impl iced_graphics::window::Compositor for Compositor {
                 );
 
                 let texture_viewer = wgpu::TextureViewDescriptor::default();
-                let owned_view =
-                    if let Some(ref frame_buffer) = self.frame_buffer {
+                let owned_view = if let Some(ref frame_buffer) =
+                    self.frame_buffer
+                {
+                    if self.settings.headless || frame_buffer.queued_screenshot
+                    {
                         frame_buffer.target.create_view(&texture_viewer)
                     } else {
                         frame.texture.create_view(&texture_viewer)
-                    };
+                    }
+                } else {
+                    frame.texture.create_view(&texture_viewer)
+                };
 
                 let view = &owned_view;
 
@@ -322,12 +363,16 @@ impl iced_graphics::window::Compositor for Compositor {
                         overlay,
                     );
                 });
+
                 if let Some(ref frame_buffer) = self.frame_buffer {
-                    self.copy_texture_to_buffer(
-                        &mut encoder,
-                        &frame_buffer.target,
-                        &frame_buffer.output,
-                    );
+                    if frame_buffer.queued_screenshot || self.settings.headless
+                    {
+                        self.copy_texture_to_buffer(
+                            &mut encoder,
+                            &frame_buffer.target,
+                            &frame_buffer.output,
+                        );
+                    }
                 }
 
                 // Submit work
@@ -367,6 +412,7 @@ impl iced_graphics::window::Compositor for Compositor {
 struct Framebuffer {
     target: wgpu::Texture,
     output: wgpu::Buffer,
+    queued_screenshot: bool,
 }
 
 // from https://github.com/gfx-rs/wgpu-rs/blob/master/examples/capture/main.rs
