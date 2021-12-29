@@ -71,6 +71,7 @@ members = [
     "examples/custom_widget",
     "examples/download_progress",
     "examples/events",
+    "examples/exit",
     "examples/game_of_life",
     "examples/geometry",
     "examples/integration_opengl",

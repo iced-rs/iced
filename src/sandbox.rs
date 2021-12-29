@@ -131,6 +131,13 @@ pub trait Sandbox {
         1.0
     }
 
+    /// Returns whether the [`Sandbox`] should be terminated.
+    ///
+    /// By default, it returns `false`.
+    fn should_exit(&self) -> bool {
+        false
+    }
+
     /// Runs the [`Sandbox`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -181,5 +188,9 @@ where
 
     fn scale_factor(&self) -> f64 {
         T::scale_factor(self)
+    }
+
+    fn should_exit(&self) -> bool {
+        T::should_exit(self)
     }
 }
