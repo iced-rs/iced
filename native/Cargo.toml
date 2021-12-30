@@ -15,7 +15,7 @@ twox-hash = { version = "1.5", default-features = false }
 unicode-segmentation = "1.6"
 num-traits = "0.2"
 image = "0.23"
-png = "0.16.8"
+png = "0.17.2"
 
 [dependencies.iced_core]
 version = "0.4"
@@ -29,3 +29,8 @@ features = ["thread-pool"]
 [dependencies.iced_style]
 version = "0.3"
 path = "../style"
+
+
+[dev-dependencies]
+tempfile = "3"
+

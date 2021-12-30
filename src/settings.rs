@@ -121,7 +121,10 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
             window: settings.window.into(),
             flags: settings.flags,
             exit_on_close_request: settings.exit_on_close_request,
+
             try_opengles_first: settings.try_opengles_first,
+
+            headless: settings.headless,
         }
     }
 }

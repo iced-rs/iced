@@ -198,9 +198,18 @@ pub mod window;
 
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_winit as runtime;
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    not(feature = "glow"),
+    feature = "wgpu"
+))]
+use iced_winit::application::RuntimeArgs;
+
+
 
 #[cfg(feature = "glow")]
 use iced_glutin as runtime;
+
 
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_wgpu as renderer;
@@ -225,5 +234,5 @@ pub use runtime::{
     Alignment, Background, Color, Command, Font, Length, Point, Rectangle,
     Size, Subscription, Vector,
 };
-
 pub use screenshot::Screenshot;
+

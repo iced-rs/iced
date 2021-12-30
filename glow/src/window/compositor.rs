@@ -2,7 +2,7 @@ use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 use core::ffi::c_void;
 use glow::HasContext;
 use iced_graphics::{Antialiasing, Size};
-use iced_native::screenshot::Screenshot;
+use iced_native::screenshot::{ColorType, Screenshot};
 use std::convert::TryInto;
 /// A window graphics backend for iced powered by `glow`.
 #[allow(missing_debug_implementations)]
@@ -35,11 +35,14 @@ impl iced_graphics::window::VirtualCompositor for Compositor {
                 glow::PixelPackData::Slice(rv.as_mut_slice()),
             );
         }
-        Some(Screenshot::new(
-            rv,
-            width.try_into().unwrap(),
-            height.try_into().unwrap(),
-        ))
+        Some(
+            Screenshot::new(
+                rv,
+                width.try_into().unwrap(),
+                height.try_into().unwrap(),
+            )
+            .encoding(ColorType::Rgb),
+        )
     }
 }
 

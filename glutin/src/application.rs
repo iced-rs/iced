@@ -5,6 +5,7 @@ use crate::{Error, Executor, Runtime};
 pub use iced_winit::Application;
 
 use iced_graphics::window;
+pub use iced_native::runtime_args::{RuntimeArgs, Trace};
 use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::futures;
@@ -20,6 +21,7 @@ use std::mem::ManuallyDrop;
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     compositor_settings: C::Settings,
+    runtime_arguments: Option<RuntimeArgs<A::Message>>,
 ) -> Result<(), Error>
 where
     A: Application + 'static,
@@ -115,6 +117,9 @@ where
     runtime.track(subscription);
 
     let (mut sender, receiver) = mpsc::unbounded();
+    let window_id = context.window().id();
+
+    let sender2 = proxy.clone();
 
     let mut instance = Box::pin(run_instance::<A, E, C>(
         application,
@@ -130,6 +135,39 @@ where
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
+
+    //process runtime args here; maybe add dedicated function later
+    if let Some(args) = runtime_arguments {
+        match args.trace {
+            Trace::MessageTrace(messages) => {
+                let mut esender = sender.clone();
+
+                let _ = std::thread::spawn(move || {
+                    let start_time = std::time::Instant::now();
+
+                    for (message, message_send_time) in messages {
+                        if message_send_time > start_time.elapsed() {
+                            let sleep_duration =
+                                message_send_time - start_time.elapsed();
+                            std::thread::sleep(sleep_duration);
+                        }
+
+                        sender2
+                            .send_event(message)
+                            .expect("Send event from trace");
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                    esender
+                        .start_send(glutin::event::Event::WindowEvent {
+                            window_id,
+                            event: glutin::event::WindowEvent::CloseRequested,
+                        })
+                        .expect("close window");
+                });
+            }
+            Trace::Null => {}
+        }
+    }
 
     event_loop.run_return(move |event, _, control_flow| {
         use glutin::event_loop::ControlFlow;

@@ -15,6 +15,7 @@ use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
+
 use iced_native::user_interface::{self, UserInterface};
 
 use std::mem::ManuallyDrop;
@@ -99,20 +100,13 @@ pub trait Application: Program {
     fn should_exit(&self) -> bool {
         false
     }
-
-    /// Returns whether the [`Application`] should be started in headless mode
-    ///
-    /// By default, it returns `false`.
-    fn headless(&self) -> bool {
-        false
-    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
-    compositor_settings: C::Settings,
+    compositor_settings: C::Settings
 ) -> Result<(), Error>
 where
     A: Application + 'static,
@@ -148,7 +142,11 @@ where
         .window
         .into_builder(
             &application.title(),
-            application.mode(),
+            if !settings.headless {
+                application.mode()
+            } else {
+                Mode::Hidden
+            },
             event_loop.primary_monitor(),
             settings.id,
         )
@@ -186,6 +184,8 @@ where
     runtime.track(subscription);
 
     let (mut sender, receiver) = mpsc::unbounded();
+    let proxy2 = proxy.clone();
+    let window_id = window.id();
 
     let mut instance = Box::pin(run_instance::<A, E, C>(
         application,
@@ -376,7 +376,6 @@ async fn run_instance<A, E, C>(
 
                     mouse_interaction = new_mouse_interaction;
                 }
-
                 window.request_redraw();
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(

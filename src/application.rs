@@ -1,5 +1,8 @@
 use crate::window;
-use crate::{Color, Command, Element, Executor, Size, Settings, Subscription};
+use crate::{
+    Color, Command, Element, Executor, RuntimeArgs, Settings, Size,
+    Subscription,
+};
 
 /// An interactive cross-platform application.
 ///
@@ -178,17 +181,6 @@ pub trait Application: Sized {
         1.0
     }
 
-
-    /// Configures if the [`Application`] should be launched in headless mode
-    ///
-    /// if this method retuns [`Some`], then the application will be launched in a headless window
-    /// with size configured
-    ///
-    /// By default, it returns `None`.
-    fn launch_as_headless(&self) -> Option<Size<u32>> {
-        None
-    }
-
     /// Returns whether the [`Application`] should be terminated.
     ///
     /// By default, it returns `false`.
@@ -228,7 +220,7 @@ pub trait Application: Sized {
                 Instance<Self>,
                 Self::Executor,
                 crate::renderer::window::Compositor,
-            >(settings.into(), renderer_settings)?)
+            >(settings.into(), renderer_settings, None)?)
         }
 
         #[cfg(target_arch = "wasm32")]
@@ -237,6 +229,55 @@ pub trait Application: Sized {
 
             Ok(())
         }
+    }
+
+    /// Runs the [`Application`] with a Message Trace.
+    ///
+    /// A Message Trace is a collection of tuples of type (Message, [`Duration`])
+    ///
+    /// On native platforms, this method will take control of the current thread
+    /// until the [`Application`] exits or the Message Trace has been exhausted
+    ///
+    /// On the web platform, this method __will NOT return__ unless there is an
+    /// [`Error`] during startup.
+    ///
+    /// [`Error`]: crate::Error
+    /// [`Duration`]: std::time::Duration
+    fn run_with_message_trace(
+        settings: Settings<Self::Flags>,
+        message_trace: Vec<(Self::Message, std::time::Duration)>,
+    ) -> crate::Result
+    where
+        Self: 'static,
+    {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let renderer_settings = crate::renderer::Settings {
+                default_font: settings.default_font,
+                default_text_size: settings.default_text_size,
+                text_multithreading: settings.text_multithreading,
+                antialiasing: if settings.antialiasing {
+                    Some(crate::renderer::settings::Antialiasing::MSAAx4)
+                } else {
+                    None
+                },
+                headless: settings.headless,
+                ..crate::renderer::Settings::from_env()
+            };
+
+            Ok(crate::runtime::application::run::<
+                Instance<Self>,
+                Self::Executor,
+                crate::renderer::window::Compositor,
+            >(
+                settings.into(),
+                renderer_settings,
+                Some(RuntimeArgs::new().message_trace(message_trace)),
+            )?)
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        panic!("Running with trace not supported on wasm!")
     }
 }
 

@@ -39,11 +39,20 @@ pub struct Settings<Flags> {
     /// window to close (e.g. the user presses the close button).
     pub exit_on_close_request: bool,
 
+
     /// Whether the [`Application`] should try to build the context
     /// using OpenGL ES first then OpenGL.
     ///
     /// NOTE: Only works for the `glow` backend.
     pub try_opengles_first: bool,
+
+    /// Whether the [`Application`] should be run in headless mode,
+    /// if false, the application is run in a windowing shell like winit or glutin
+    ///
+    /// by default, it is true
+    pub headless: bool,
+
+
 }
 
 /// The window settings of an application.
