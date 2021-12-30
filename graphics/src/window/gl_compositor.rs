@@ -1,4 +1,4 @@
-use crate::{Color, Error, Size, Viewport,Rectangle};
+use crate::{Color, Error, Size, Viewport};
 use super::virtual_window::VirtualCompositor;
 use core::ffi::c_void;
 

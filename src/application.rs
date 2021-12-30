@@ -1,6 +1,6 @@
 use crate::window;
 use crate::{
-    Color, Command, Element, Executor, RuntimeArgs, Settings, Size,
+    Color, Command, Element, Executor, RuntimeArgs, Settings,
     Subscription,
 };
 

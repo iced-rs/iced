@@ -106,7 +106,7 @@ pub trait Application: Program {
 /// settings.
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
-    compositor_settings: C::Settings
+    compositor_settings: C::Settings,
 ) -> Result<(), Error>
 where
     A: Application + 'static,
