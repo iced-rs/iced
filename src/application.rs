@@ -238,9 +238,6 @@ pub trait Application: Sized {
     /// On native platforms, this method will take control of the current thread
     /// until the [`Application`] exits or the Message Trace has been exhausted
     ///
-    /// On the web platform, this method __will NOT return__ unless there is an
-    /// [`Error`] during startup.
-    ///
     /// [`Error`]: crate::Error
     /// [`Duration`]: std::time::Duration
     fn run_with_message_trace(
