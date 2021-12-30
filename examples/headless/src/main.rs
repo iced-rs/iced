@@ -9,11 +9,16 @@ pub fn main() -> iced::Result {
         (Message::IncrementPressed, Duration::new(1, 0)),
         (Message::IncrementPressed, Duration::new(2, 0)),
         (Message::IncrementPressed, Duration::new(2, 0)),
-        (Message::TakeScreenshot, Duration::new(3, 0))
+        (Message::TakeScreenshot, Duration::new(3, 0)),
     ];
     Counter::run_with_message_trace(
         Settings {
             headless: true,
+            window: iced::window::Settings {
+                size: (600, 600),
+                ..iced::window::Settings::default()
+            },
+
             ..Settings::default()
         },
         msg_trace,
@@ -52,7 +57,6 @@ impl Application for Counter {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::IncrementPressed => {
-                println!("YELLO");
                 self.value += 1;
             }
             Message::DecrementPressed => {

@@ -10,6 +10,7 @@ use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
+
 use iced_winit::user_interface;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
@@ -58,7 +59,11 @@ where
     let context = {
         let builder = settings.window.into_builder(
             &application.title(),
-            application.mode(),
+            if !settings.headless {
+                application.mode()
+            } else {
+                Mode::Hidden
+            },
             event_loop.primary_monitor(),
             settings.id,
         );

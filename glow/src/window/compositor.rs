@@ -9,7 +9,7 @@ use std::convert::TryInto;
 pub struct Compositor {
     gl: glow::Context,
     framebuffer: Option<glow::Framebuffer>,
-    framebuffer_size: Option<(i32, i32)>,
+    framebuffer_size: Option<Size<u32>>,
 }
 
 impl iced_graphics::window::VirtualCompositor for Compositor {
@@ -22,7 +22,8 @@ impl iced_graphics::window::VirtualCompositor for Compositor {
         // assert_eq!(buffer.len(), 3 * region.width as usize * region.height as usize);
         let width_height =
             self.framebuffer_size.expect("Uninitialized framebuffer");
-        let (width, height) = width_height;
+        let (width, height) =
+            (width_height.width as i32, width_height.height as i32);
         rv.resize((width * height * 3) as usize, 0);
         unsafe {
             gl.read_pixels(
@@ -35,9 +36,23 @@ impl iced_graphics::window::VirtualCompositor for Compositor {
                 glow::PixelPackData::Slice(rv.as_mut_slice()),
             );
         }
+
+        //png expects data starting at the top left corner; opengl starts reading from the bottem
+        //right. this makes the opengl standard consistent with the expectation of png
+        let new_rv: Vec<u8> = rv
+            .as_mut_slice()
+            .chunks_exact_mut(width as usize * 3)
+            .rev()
+            .map(|chunk| chunk.to_vec())
+            .flatten()
+            .collect();
+
+        
+        
+        
         Some(
             Screenshot::new(
-                rv,
+                new_rv,
                 width.try_into().unwrap(),
                 height.try_into().unwrap(),
             )
@@ -106,6 +121,8 @@ impl iced_graphics::window::GLCompositor for Compositor {
                 physical_size.width as i32,
                 physical_size.height as i32,
             );
+
+            self.framebuffer_size = Some(physical_size)
         }
     }
 
@@ -128,5 +145,6 @@ impl iced_graphics::window::GLCompositor for Compositor {
         renderer.with_primitives(|backend, primitive| {
             backend.present(gl, primitive, viewport, overlay, self.framebuffer);
         });
+        self.framebuffer_size = Some(viewport.physical_size());
     }
 }
