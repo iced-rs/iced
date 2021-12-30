@@ -1,6 +1,7 @@
 ## Counter
 
-The classic counter example explained in the [`README`](../../README.md).
+The classic counter example explained in the [`README`](../../README.md), but
+run as a headless application
 
 The __[`main`]__ file contains all the code of the example.
 
@@ -12,7 +13,7 @@ The __[`main`]__ file contains all the code of the example.
 
 You can run it with `cargo run`:
 ```
-cargo run --package counter
+cargo run --package headless
 ```
 
 [`main`]: src/main.rs
