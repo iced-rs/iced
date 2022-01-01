@@ -27,6 +27,7 @@
 pub use iced_native::*;
 pub use winit;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub mod application;
 pub mod clipboard;
 pub mod conversion;
@@ -38,6 +39,7 @@ mod mode;
 mod position;
 mod proxy;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub use application::Application;
 pub use clipboard::Clipboard;
 pub use error::Error;

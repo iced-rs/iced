@@ -11,10 +11,11 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+default = ["window_clipboard"]
 debug = ["iced_native/debug"]
 
 [dependencies]
-window_clipboard = "0.2"
+window_clipboard = { version = "0.2", optional = true }
 log = "0.4"
 thiserror = "1.0"
 
