@@ -86,6 +86,8 @@ impl Scene {
 
     pub fn draw(&self, gl: &glow::Context) {
         unsafe {
+            gl.bind_vertex_array(Some(self.vertex_array));
+            gl.use_program(Some(self.program));
             gl.draw_arrays(glow::TRIANGLES, 0, 3);
         }
     }
