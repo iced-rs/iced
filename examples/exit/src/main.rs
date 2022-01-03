@@ -1,5 +1,6 @@
 use iced::{
-    button, Alignment, Button, Column, Element, Sandbox, Settings, Text,
+    button, Alignment, Button, Column, Container, Element, Length, Sandbox,
+    Settings, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -47,9 +48,9 @@ impl Sandbox for Exit {
     }
 
     fn view(&mut self) -> Element<Message> {
-        if self.show_confirm {
+        let content = if self.show_confirm {
             Column::new()
-                .padding(20)
+                .spacing(10)
                 .align_items(Alignment::Center)
                 .push(Text::new("Are you sure you want to exit?"))
                 .push(
@@ -57,19 +58,27 @@ impl Sandbox for Exit {
                         &mut self.confirm_button,
                         Text::new("Yes, exit now"),
                     )
+                    .padding([10, 20])
                     .on_press(Message::Confirm),
                 )
-                .into()
         } else {
             Column::new()
-                .padding(20)
+                .spacing(10)
                 .align_items(Alignment::Center)
                 .push(Text::new("Click the button to exit"))
                 .push(
                     Button::new(&mut self.exit_button, Text::new("Exit"))
+                        .padding([10, 20])
                         .on_press(Message::Exit),
                 )
-                .into()
-        }
+        };
+
+        Container::new(content)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .padding(20)
+            .center_x()
+            .center_y()
+            .into()
     }
 }
