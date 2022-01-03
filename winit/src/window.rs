@@ -1,8 +1,7 @@
 //! Interact with the window of your application.
 use crate::command::{self, Command};
-use iced_native::window;
 pub use iced_native::screenshot::Screenshot;
-
+use iced_native::window;
 pub use window::Event;
 
 /// Resizes the window to the given logical dimensions.
@@ -18,7 +17,13 @@ pub fn move_to<Message>(x: i32, y: i32) -> Command<Message> {
     Command::single(command::Action::Window(window::Action::Move { x, y }))
 }
 
-///takes screenshot
+///Take a [`Screenshot`] and call the provided screen_cap function to present the [`Screenshot`]
+///back to the [`Application`]
+///
+///
+///
+///
+///[`Application`]: crate::application::Application
 pub fn take_screenshot<Message>(
     screen_cap: Box<dyn Fn(Option<Screenshot>) -> Message>,
 ) -> Command<Message> {
@@ -26,5 +31,3 @@ pub fn take_screenshot<Message>(
         screen_cap,
     )))
 }
-
-
