@@ -73,8 +73,9 @@ pub fn main() {
     );
     let mut resized = false;
 
+    let scene = Scene::new(&gl, &shader_version);
+
     event_loop.run(move |event, _, control_flow| {
-        let scene = Scene::new(&gl, &shader_version);
         *control_flow = ControlFlow::Wait;
 
         match event {
