@@ -5,7 +5,7 @@ authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 description = "A wgpu renderer for Iced"
 license = "MIT AND OFL-1.1"
-repository = "https://github.com/hecrj/iced"
+repository = "https://github.com/iced-rs/iced"
 
 [features]
 svg = ["resvg", "usvg", "tiny-skia"]

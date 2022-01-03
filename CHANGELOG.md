@@ -41,30 +41,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Viewport::physical_width` returning the wrong value. [#700]
 - Outdated documentation for the `Sandbox` trait. [#710]
 
-[#57]: https://github.com/hecrj/iced/pull/57
-[#283]: https://github.com/hecrj/iced/pull/283
-[#319]: https://github.com/hecrj/iced/pull/319
-[#392]: https://github.com/hecrj/iced/pull/392
-[#465]: https://github.com/hecrj/iced/pull/465
-[#650]: https://github.com/hecrj/iced/pull/650
-[#657]: https://github.com/hecrj/iced/pull/657
-[#658]: https://github.com/hecrj/iced/pull/658
-[#668]: https://github.com/hecrj/iced/pull/668
-[#669]: https://github.com/hecrj/iced/pull/669
-[#672]: https://github.com/hecrj/iced/pull/672
-[#699]: https://github.com/hecrj/iced/pull/699
-[#700]: https://github.com/hecrj/iced/pull/700
-[#701]: https://github.com/hecrj/iced/pull/701
-[#710]: https://github.com/hecrj/iced/pull/710
-[#719]: https://github.com/hecrj/iced/pull/719
-[#720]: https://github.com/hecrj/iced/pull/720
-[#725]: https://github.com/hecrj/iced/pull/725
-[#760]: https://github.com/hecrj/iced/pull/760
-[#764]: https://github.com/hecrj/iced/pull/764
-[#770]: https://github.com/hecrj/iced/pull/770
-[#773]: https://github.com/hecrj/iced/pull/773
-[#789]: https://github.com/hecrj/iced/pull/789
-[#804]: https://github.com/hecrj/iced/pull/804
+[#57]: https://github.com/iced-rs/iced/pull/57
+[#283]: https://github.com/iced-rs/iced/pull/283
+[#319]: https://github.com/iced-rs/iced/pull/319
+[#392]: https://github.com/iced-rs/iced/pull/392
+[#465]: https://github.com/iced-rs/iced/pull/465
+[#650]: https://github.com/iced-rs/iced/pull/650
+[#657]: https://github.com/iced-rs/iced/pull/657
+[#658]: https://github.com/iced-rs/iced/pull/658
+[#668]: https://github.com/iced-rs/iced/pull/668
+[#669]: https://github.com/iced-rs/iced/pull/669
+[#672]: https://github.com/iced-rs/iced/pull/672
+[#699]: https://github.com/iced-rs/iced/pull/699
+[#700]: https://github.com/iced-rs/iced/pull/700
+[#701]: https://github.com/iced-rs/iced/pull/701
+[#710]: https://github.com/iced-rs/iced/pull/710
+[#719]: https://github.com/iced-rs/iced/pull/719
+[#720]: https://github.com/iced-rs/iced/pull/720
+[#725]: https://github.com/iced-rs/iced/pull/725
+[#760]: https://github.com/iced-rs/iced/pull/760
+[#764]: https://github.com/iced-rs/iced/pull/764
+[#770]: https://github.com/iced-rs/iced/pull/770
+[#773]: https://github.com/iced-rs/iced/pull/773
+[#789]: https://github.com/iced-rs/iced/pull/789
+[#804]: https://github.com/iced-rs/iced/pull/804
 [`smol`]: https://github.com/smol-rs/smol
 [`winit`]: https://github.com/rust-windowing/winit
 [`glutin`]: https://github.com/rust-windowing/glutin
@@ -96,22 +96,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - __[`QRCode` widget][qr_code]__ (#622)  
   A widget that displays a QR code, powered by [the `qrcode` crate].
 
-[canvas]: https://github.com/hecrj/iced/pull/325
-[opengl]: https://github.com/hecrj/iced/pull/354
-[`iced_graphics`]: https://github.com/hecrj/iced/pull/354
-[pane_grid]: https://github.com/hecrj/iced/pull/397
-[pick_list]: https://github.com/hecrj/iced/pull/444
-[error]: https://github.com/hecrj/iced/pull/514
-[view]: https://github.com/hecrj/iced/pull/597
-[event]: https://github.com/hecrj/iced/pull/614
-[color]: https://github.com/hecrj/iced/pull/200
-[qr_code]: https://github.com/hecrj/iced/pull/622
-[#193]: https://github.com/hecrj/iced/pull/193
+[canvas]: https://github.com/iced-rs/iced/pull/325
+[opengl]: https://github.com/iced-rs/iced/pull/354
+[`iced_graphics`]: https://github.com/iced-rs/iced/pull/354
+[pane_grid]: https://github.com/iced-rs/iced/pull/397
+[pick_list]: https://github.com/iced-rs/iced/pull/444
+[error]: https://github.com/iced-rs/iced/pull/514
+[view]: https://github.com/iced-rs/iced/pull/597
+[event]: https://github.com/iced-rs/iced/pull/614
+[color]: https://github.com/iced-rs/iced/pull/200
+[qr_code]: https://github.com/iced-rs/iced/pull/622
+[#193]: https://github.com/iced-rs/iced/pull/193
 [`glutin`]: https://github.com/rust-windowing/glutin
 [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 [`glow`]: https://github.com/grovesNL/glow
 [the `qrcode` crate]: https://docs.rs/qrcode/0.12.0/qrcode/
-[integration with existing applications]: https://github.com/hecrj/iced/pull/183
+[integration with existing applications]: https://github.com/iced-rs/iced/pull/183
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
 
 
@@ -142,17 +142,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Unnecessary `'static` lifetimes in `Renderer` bounds. [#290]
 
-[#259]: https://github.com/hecrj/iced/pull/259
-[#260]: https://github.com/hecrj/iced/pull/260
-[#266]: https://github.com/hecrj/iced/pull/266
-[#267]: https://github.com/hecrj/iced/pull/267
-[#268]: https://github.com/hecrj/iced/pull/268
-[#278]: https://github.com/hecrj/iced/pull/278
-[#279]: https://github.com/hecrj/iced/pull/279
-[#281]: https://github.com/hecrj/iced/pull/281
-[#289]: https://github.com/hecrj/iced/pull/289
-[#290]: https://github.com/hecrj/iced/pull/290
-[#293]: https://github.com/hecrj/iced/pull/293
+[#259]: https://github.com/iced-rs/iced/pull/259
+[#260]: https://github.com/iced-rs/iced/pull/260
+[#266]: https://github.com/iced-rs/iced/pull/266
+[#267]: https://github.com/iced-rs/iced/pull/267
+[#268]: https://github.com/iced-rs/iced/pull/268
+[#278]: https://github.com/iced-rs/iced/pull/278
+[#279]: https://github.com/iced-rs/iced/pull/279
+[#281]: https://github.com/iced-rs/iced/pull/281
+[#289]: https://github.com/iced-rs/iced/pull/289
+[#290]: https://github.com/iced-rs/iced/pull/290
+[#293]: https://github.com/iced-rs/iced/pull/293
 
 
 ## [0.1.0] - 2020-04-02
@@ -187,17 +187,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - __[Texture atlas for `iced_wgpu`]__ (#154)  
   An atlas on top of [`guillotiere`] for batching draw calls. Thanks to @Maldela!
 
-[Event subscriptions]: https://github.com/hecrj/iced/pull/122
-[Custom styling]: https://github.com/hecrj/iced/pull/146
-[`Canvas` widget]: https://github.com/hecrj/iced/pull/193
-[`PaneGrid` widget]: https://github.com/hecrj/iced/pull/224
-[`Svg` widget]: https://github.com/hecrj/iced/pull/111
-[`ProgressBar` widget]: https://github.com/hecrj/iced/pull/141
-[Configurable futures executor]: https://github.com/hecrj/iced/pull/164
-[Compatibility with existing `wgpu` projects]: https://github.com/hecrj/iced/pull/183
-[Clipboard access]: https://github.com/hecrj/iced/pull/132
-[Texture atlas for `iced_wgpu`]: https://github.com/hecrj/iced/pull/154
-[Text selection for `TextInput`]: https://github.com/hecrj/iced/pull/202
+[Event subscriptions]: https://github.com/iced-rs/iced/pull/122
+[Custom styling]: https://github.com/iced-rs/iced/pull/146
+[`Canvas` widget]: https://github.com/iced-rs/iced/pull/193
+[`PaneGrid` widget]: https://github.com/iced-rs/iced/pull/224
+[`Svg` widget]: https://github.com/iced-rs/iced/pull/111
+[`ProgressBar` widget]: https://github.com/iced-rs/iced/pull/141
+[Configurable futures executor]: https://github.com/iced-rs/iced/pull/164
+[Compatibility with existing `wgpu` projects]: https://github.com/iced-rs/iced/pull/183
+[Clipboard access]: https://github.com/iced-rs/iced/pull/132
+[Texture atlas for `iced_wgpu`]: https://github.com/iced-rs/iced/pull/154
+[Text selection for `TextInput`]: https://github.com/iced-rs/iced/pull/202
 [`lyon`]: https://github.com/nical/lyon
 [`guillotiere`]: https://github.com/nical/guillotiere
 [Web Canvas API]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API
@@ -207,7 +207,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [`wasm-bindgen-futures`]: https://github.com/rustwasm/wasm-bindgen/tree/master/crates/futures
 [`resvg`]: https://github.com/RazrFalcon/resvg
 [`raqote`]: https://github.com/jrmuizel/raqote
-[`iced_wgpu`]: https://github.com/hecrj/iced/tree/master/wgpu
+[`iced_wgpu`]: https://github.com/iced-rs/iced/tree/master/wgpu
 
 
 ## [0.1.0-beta] - 2019-11-25
@@ -219,10 +219,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/hecrj/iced/compare/0.3.0...HEAD
-[0.3.0]: https://github.com/hecrj/iced/compare/0.2.0...0.3.0
-[0.2.0]: https://github.com/hecrj/iced/compare/0.1.1...0.2.0
-[0.1.1]: https://github.com/hecrj/iced/compare/0.1.0...0.1.1
-[0.1.0]: https://github.com/hecrj/iced/compare/0.1.0-beta...0.1.0
-[0.1.0-beta]: https://github.com/hecrj/iced/compare/0.1.0-alpha...0.1.0-beta
-[0.1.0-alpha]: https://github.com/hecrj/iced/releases/tag/0.1.0-alpha
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/iced-rs/iced/compare/0.2.0...0.3.0
+[0.2.0]: https://github.com/iced-rs/iced/compare/0.1.1...0.2.0
+[0.1.1]: https://github.com/iced-rs/iced/compare/0.1.0...0.1.1
+[0.1.0]: https://github.com/iced-rs/iced/compare/0.1.0-beta...0.1.0
+[0.1.0-beta]: https://github.com/iced-rs/iced/compare/0.1.0-alpha...0.1.0-beta
+[0.1.0-alpha]: https://github.com/iced-rs/iced/releases/tag/0.1.0-alpha

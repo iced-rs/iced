@@ -32,7 +32,7 @@ pub use iced_style::checkbox::{Style, StyleSheet};
 /// Checkbox::new(is_checked, "Toggle me!", Message::CheckboxToggled);
 /// ```
 ///
-/// ![Checkbox drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
+/// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
     is_checked: bool,

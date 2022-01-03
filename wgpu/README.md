@@ -1,7 +1,7 @@
 # `iced_wgpu`
 [![Documentation](https://docs.rs/iced_wgpu/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced_wgpu.svg)](https://crates.io/crates/iced_wgpu)
-[![License](https://img.shields.io/crates/l/iced_wgpu.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+[![License](https://img.shields.io/crates/l/iced_wgpu.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
 
 `iced_wgpu` is a [`wgpu`] renderer for [`iced_native`]. For now, it is the default renderer of Iced in native platforms.
@@ -35,7 +35,7 @@ iced_wgpu = "0.4"
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
 you want to learn about a specific release, check out [the release list].
 
-[the release list]: https://github.com/hecrj/iced/releases
+[the release list]: https://github.com/iced-rs/iced/releases
 
 ## Current limitations
 

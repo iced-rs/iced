@@ -7,7 +7,7 @@
 //! The crate is currently a __very experimental__, simple abstraction layer
 //! over [`dodrio`].
 //!
-//! [`iced_core`]: https://github.com/hecrj/iced/tree/master/core
+//! [`iced_core`]: https://github.com/iced-rs/iced/tree/master/core
 //! [`dodrio`]: https://github.com/fitzgen/dodrio
 //!
 //! # Usage
@@ -49,7 +49,7 @@
 //!
 //! [`wasm-pack`]: https://github.com/rustwasm/wasm-pack
 //! [`wasm-bindgen`]: https://github.com/rustwasm/wasm-bindgen
-//! [`tour` example]: https://github.com/hecrj/iced/tree/0.3/examples/tour
+//! [`tour` example]: https://github.com/iced-rs/iced/tree/0.3/examples/tour
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]

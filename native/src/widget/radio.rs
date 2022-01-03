@@ -41,7 +41,7 @@ pub use iced_style::radio::{Style, StyleSheet};
 /// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
 /// ```
 ///
-/// ![Radio buttons drawn by `iced_wgpu`](https://github.com/hecrj/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
+/// ![Radio buttons drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct Radio<'a, Message, Renderer: text::Renderer> {
     is_selected: bool,
