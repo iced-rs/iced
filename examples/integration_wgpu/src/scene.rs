@@ -93,6 +93,7 @@ fn build_pipeline(device: &wgpu::Device) -> wgpu::RenderPipeline {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
+            multiview: None,
         });
 
     pipeline
