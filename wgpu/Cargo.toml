@@ -27,10 +27,10 @@ default_system_font = ["iced_graphics/font-source"]
 spirv = ["wgpu/spirv"]
 
 [dependencies]
-wgpu = "0.11"
-wgpu_glyph = "0.15"
+wgpu = "0.12"
+wgpu_glyph = "0.16"
 glyph_brush = "0.7"
-raw-window-handle = "0.3"
+raw-window-handle = "0.4"
 log = "0.4"
 guillotiere = "0.6"
 futures = "0.3"
