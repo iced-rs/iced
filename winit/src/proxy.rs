@@ -4,6 +4,7 @@ use iced_native::futures::{
     Sink,
 };
 use std::pin::Pin;
+use crate::winit;
 
 /// An event loop proxy that implements `Sink`.
 #[derive(Debug)]

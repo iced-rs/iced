@@ -25,7 +25,13 @@
 
 #[doc(no_inline)]
 pub use iced_native::*;
-pub use winit;
+
+// #[cfg(all(feature = ""))]
+
+#[cfg(feature = "mainline_winit")]
+pub use winit_mainline::winit as winit;
+#[cfg(feature = "forked_winit")]
+pub use winit_fork::winit as winit;
 
 pub mod application;
 pub mod clipboard;

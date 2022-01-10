@@ -9,17 +9,26 @@ repository = "https://github.com/hecrj/iced"
 documentation = "https://docs.rs/iced_winit"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
+resolver = "2"
 
 [features]
 debug = ["iced_native/debug"]
+mainline_winit = ["winit_mainline"]
+forked_winit = ["winit_fork"]
+default = ["mainline_winit"]
 
 [dependencies]
 window_clipboard = "0.2"
 log = "0.4"
 thiserror = "1.0"
 
-[dependencies.winit]
-version = "0.26"
+[dependencies.winit_mainline]
+path = "./winit_mainline"
+optional = true
+
+[dependencies.winit_fork]
+path = "./winit_fork"
+optional = true
 
 [dependencies.iced_native]
 version = "0.4"

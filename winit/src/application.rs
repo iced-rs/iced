@@ -10,6 +10,7 @@ use crate::{
     Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings,
     Size, Subscription,
 };
+use crate::winit;
 
 use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
@@ -333,6 +334,7 @@ async fn run_instance<A, E, C>(
 
                 window.request_redraw();
             }
+            #[cfg(feature = "forked_winit")]
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),
             )) => {

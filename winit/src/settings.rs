@@ -15,6 +15,7 @@ pub use platform::PlatformSpecific;
 
 use crate::conversion;
 use crate::{Mode, Position};
+use crate::winit;
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
 
@@ -123,7 +124,7 @@ impl Window {
             target_os = "openbsd"
         ))]
         {
-            use ::winit::platform::unix::WindowBuilderExtUnix;
+            use winit::platform::unix::WindowBuilderExtUnix;
 
             if let Some(id) = _id {
                 window_builder = window_builder.with_app_id(id);

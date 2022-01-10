@@ -2,6 +2,7 @@ use crate::conversion;
 use crate::{Application, Color, Debug, Mode, Point, Size, Viewport};
 
 use std::marker::PhantomData;
+use crate::winit;
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 

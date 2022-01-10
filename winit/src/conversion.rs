@@ -6,7 +6,7 @@ use crate::keyboard;
 use crate::mouse;
 use crate::touch;
 use crate::window;
-use crate::{Event, Mode, Point, Position};
+use crate::{Event, Mode, Point, Position, winit};
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
