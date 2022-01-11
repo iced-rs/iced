@@ -4,20 +4,14 @@ mod state;
 pub use state::State;
 
 use crate::clipboard::{self, Clipboard};
-use crate::conversion;
-use crate::mouse;
 use crate::{
     Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings,
     Size, Subscription,
 };
 
-use iced_futures::futures;
-use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::{Cache, UserInterface};
-
-use std::mem::ManuallyDrop;
 
 /// An interactive, native cross-platform application.
 ///
@@ -103,6 +97,23 @@ pub trait Application: Program {
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
+#[cfg(target_os = "ios")]
+pub fn run<A, E, C>(
+    _settings: Settings<A::Flags>,
+    _compositor_settings: C::Settings,
+) -> Result<(), Error>
+where
+    A: Application + 'static,
+    E: Executor + 'static,
+    C: window::Compositor<Renderer = A::Renderer> + 'static,
+{
+    log::error!("Running Applications are not supported on iOS");
+    Ok(())
+}
+
+/// Runs an [`Application`] with an executor, compositor, and the provided
+/// settings.
+#[cfg(not(target_os = "ios"))]
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     compositor_settings: C::Settings,
@@ -114,6 +125,7 @@ where
 {
     use futures::task;
     use futures::Future;
+    use iced_futures::futures;
     use winit::event_loop::EventLoop;
     use winit::platform::run_return::EventLoopExtRunReturn;
 
@@ -162,7 +174,8 @@ where
 
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
-    let (mut sender, receiver) = mpsc::unbounded();
+    let (mut sender, receiver) =
+        iced_futures::futures::channel::mpsc::unbounded();
 
     let mut instance = Box::pin(run_instance::<A, E, C>(
         application,
@@ -216,6 +229,7 @@ where
     Ok(())
 }
 
+#[cfg(not(target_os = "ios"))]
 async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
@@ -224,7 +238,9 @@ async fn run_instance<A, E, C>(
     mut clipboard: Clipboard,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
-    mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
+    mut receiver: iced_futures::futures::channel::mpsc::UnboundedReceiver<
+        winit::event::Event<'_, A::Message>,
+    >,
     window: winit::window::Window,
     exit_on_close_request: bool,
 ) where
@@ -232,8 +248,13 @@ async fn run_instance<A, E, C>(
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
 {
+    use crate::conversion;
+    use crate::mouse;
+
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
+
+    use std::mem::ManuallyDrop;
 
     let mut surface = compositor.create_surface(&window);
 
