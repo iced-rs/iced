@@ -42,7 +42,8 @@ where
     /// is naive way to set up our application loop:
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache, Size};
+    /// use iced_native::Size;
+    /// use iced_native::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -61,7 +62,7 @@ where
     /// # }
     /// // Initialization
     /// let mut counter = Counter::new();
-    /// let mut cache = Cache::new();
+    /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
     ///
@@ -136,7 +137,8 @@ where
     /// completing [the previous example](#example):
     ///
     /// ```no_run
-    /// use iced_native::{clipboard, UserInterface, Cache, Size, Point};
+    /// use iced_native::{clipboard, Size, Point};
+    /// use iced_native::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -155,7 +157,7 @@ where
     /// #     pub fn update(&mut self, message: ()) {}
     /// # }
     /// let mut counter = Counter::new();
-    /// let mut cache = Cache::new();
+    /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
@@ -176,7 +178,7 @@ where
     ///     );
     ///
     ///     // Update the user interface
-    ///     let event_statuses = user_interface.update(
+    ///     let (state, event_statuses) = user_interface.update(
     ///         &events,
     ///         cursor_position,
     ///         &mut renderer,
@@ -199,7 +201,9 @@ where
         renderer: &mut Renderer,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
-    ) -> Vec<event::Status> {
+    ) -> (State, Vec<event::Status>) {
+        let mut state = State::Updated;
+
         let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout))
         {
@@ -227,7 +231,7 @@ where
                         &mut shell,
                     );
 
-                    shell.with_invalid_layout(|| {
+                    shell.revalidate_layout(|| {
                         layer = Self::overlay_layer(
                             None,
                             bounds,
@@ -235,6 +239,10 @@ where
                             renderer,
                         );
                     });
+
+                    if shell.are_widgets_invalid() {
+                        state = State::Outdated;
+                    }
 
                     event_status
                 })
@@ -255,7 +263,7 @@ where
             (cursor_position, vec![event::Status::Ignored; events.len()])
         };
 
-        events
+        let event_statuses = events
             .iter()
             .cloned()
             .zip(overlay_statuses.into_iter())
@@ -271,7 +279,7 @@ where
                     &mut shell,
                 );
 
-                shell.with_invalid_layout(|| {
+                shell.revalidate_layout(|| {
                     let hash = {
                         let hasher = &mut crate::Hasher::default();
                         self.root.hash_layout(hasher);
@@ -288,9 +296,15 @@ where
                     self.overlay = None;
                 });
 
+                if shell.are_widgets_invalid() {
+                    state = State::Outdated;
+                }
+
                 event_status.merge(overlay_status)
             })
-            .collect()
+            .collect();
+
+        (state, event_statuses)
     }
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
@@ -306,7 +320,8 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::{clipboard, UserInterface, Cache, Size, Point};
+    /// use iced_native::{clipboard, Size, Point};
+    /// use iced_native::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -325,7 +340,7 @@ where
     /// #     pub fn update(&mut self, message: ()) {}
     /// # }
     /// let mut counter = Counter::new();
-    /// let mut cache = Cache::new();
+    /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
@@ -547,4 +562,10 @@ impl Default for Cache {
     fn default() -> Cache {
         Cache::new()
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum State {
+    Outdated,
+    Updated,
 }

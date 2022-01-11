@@ -1,8 +1,6 @@
 use crate::mouse;
-use crate::{
-    Cache, Clipboard, Command, Debug, Event, Point, Program, Size,
-    UserInterface,
-};
+use crate::user_interface::{self, UserInterface};
+use crate::{Clipboard, Command, Debug, Event, Point, Program, Size};
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -12,7 +10,7 @@ where
     P: Program + 'static,
 {
     program: P,
-    cache: Option<Cache>,
+    cache: Option<user_interface::Cache>,
     queued_events: Vec<Event>,
     queued_messages: Vec<P::Message>,
     mouse_interaction: mouse::Interaction,
@@ -32,7 +30,7 @@ where
     ) -> Self {
         let user_interface = build_user_interface(
             &mut program,
-            Cache::default(),
+            user_interface::Cache::default(),
             renderer,
             bounds,
             debug,
@@ -161,7 +159,7 @@ where
 
 fn build_user_interface<'a, P: Program>(
     program: &'a mut P,
-    cache: Cache,
+    cache: user_interface::Cache,
     renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,

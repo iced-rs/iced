@@ -80,6 +80,10 @@ where
 
         let Internal { content, state } = internal.deref_mut();
 
+        if state.last_size != Some(state.last_layout.size()) {
+            shell.invalidate_widgets();
+        }
+
         let content = content.resolve(state, renderer);
 
         let content_layout = Layout::with_offset(

@@ -15,7 +15,7 @@ use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
-use iced_native::{Cache, UserInterface};
+use iced_native::user_interface::{self, UserInterface};
 
 use std::mem::ManuallyDrop;
 
@@ -250,7 +250,7 @@ async fn run_instance<A, E, C>(
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &mut application,
-        Cache::default(),
+        user_interface::Cache::default(),
         &mut renderer,
         state.logical_size(),
         &mut debug,
@@ -271,7 +271,7 @@ async fn run_instance<A, E, C>(
 
                 debug.event_processing_started();
 
-                let statuses = user_interface.update(
+                let (interface_state, statuses) = user_interface.update(
                     &events,
                     state.cursor_position(),
                     &mut renderer,
@@ -285,7 +285,12 @@ async fn run_instance<A, E, C>(
                     runtime.broadcast(event);
                 }
 
-                if !messages.is_empty() {
+                if !messages.is_empty()
+                    || matches!(
+                        interface_state,
+                        user_interface::State::Outdated,
+                    )
+                {
                     let cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
 
@@ -471,7 +476,7 @@ pub fn requests_exit(
 /// [`struct@Debug`] information accordingly.
 pub fn build_user_interface<'a, A: Application>(
     application: &'a mut A,
-    cache: Cache,
+    cache: user_interface::Cache,
     renderer: &mut A::Renderer,
     size: Size,
     debug: &mut Debug,

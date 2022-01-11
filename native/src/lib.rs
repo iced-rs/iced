@@ -50,6 +50,7 @@ pub mod subscription;
 pub mod svg;
 pub mod text;
 pub mod touch;
+pub mod user_interface;
 pub mod widget;
 pub mod window;
 
@@ -57,7 +58,6 @@ mod element;
 mod hasher;
 mod runtime;
 mod shell;
-mod user_interface;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.
@@ -91,5 +91,5 @@ pub use renderer::Renderer;
 pub use runtime::Runtime;
 pub use shell::Shell;
 pub use subscription::Subscription;
-pub use user_interface::{Cache, UserInterface};
+pub use user_interface::UserInterface;
 pub use widget::Widget;
