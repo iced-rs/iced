@@ -24,11 +24,11 @@ where
         state: RefCell::new(Some(
             StateBuilder {
                 component: Box::new(component),
+                message: PhantomData,
                 cache_builder: |state| {
                     Some(
                         CacheBuilder {
                             element: state.view(),
-                            message: PhantomData,
                             overlay_builder: |_| None,
                         }
                         .build(),
@@ -55,20 +55,20 @@ struct Instance<'a, Message, Renderer, Event> {
 #[self_referencing]
 struct State<'a, Message: 'a, Renderer: 'a, Event: 'a> {
     component: Box<dyn Component<Message, Renderer, Event = Event> + 'a>,
+    message: PhantomData<Message>,
 
     #[borrows(mut component)]
     #[covariant]
-    cache: Option<Cache<'this, Message, Renderer, Event>>,
+    cache: Option<Cache<'this, Event, Renderer>>,
 }
 
 #[self_referencing]
-struct Cache<'a, Message, Renderer: 'a, Event: 'a> {
-    element: Element<'a, Event, Renderer>,
-    message: PhantomData<Message>,
+struct Cache<'a, Message: 'a, Renderer: 'a> {
+    element: Element<'a, Message, Renderer>,
 
     #[borrows(mut element)]
     #[covariant]
-    overlay: Option<overlay::Element<'this, Event, Renderer>>,
+    overlay: Option<overlay::Element<'this, Message, Renderer>>,
 }
 
 impl<'a, Message, Renderer, Event> Instance<'a, Message, Renderer, Event> {
@@ -94,7 +94,6 @@ impl<'a, Message, Renderer, Event> Instance<'a, Message, Renderer, Event> {
                 *cache = Some(
                     CacheBuilder {
                         element,
-                        message: PhantomData,
                         overlay_builder: |_| None,
                     }
                     .build(),
@@ -170,11 +169,11 @@ where
             *self.state.borrow_mut() = Some(
                 StateBuilder {
                     component,
+                    message: PhantomData,
                     cache_builder: |state| {
                         Some(
                             CacheBuilder {
                                 element: state.view(),
-                                message: PhantomData,
                                 overlay_builder: |_| None,
                             }
                             .build(),
@@ -242,7 +241,6 @@ where
                 *cache = Some(
                     CacheBuilder {
                         element,
-                        message: PhantomData,
                         overlay_builder: |element| {
                             element.overlay(layout, renderer)
                         },
@@ -406,11 +404,11 @@ where
             self.instance.state = RefCell::new(Some(
                 StateBuilder {
                     component,
+                    message: PhantomData,
                     cache_builder: |state| {
                         Some(
                             CacheBuilder {
                                 element: state.view(),
-                                message: PhantomData,
                                 overlay_builder: |element| {
                                     element.overlay(layout, renderer)
                                 },
