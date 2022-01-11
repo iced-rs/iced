@@ -1,5 +1,6 @@
 use crate::event::{self, Event};
 use crate::layout::{self, Layout};
+use crate::mouse;
 use crate::renderer;
 use crate::{
     Clipboard, Element, Hasher, Length, Point, Rectangle, Shell, Size, Widget,
@@ -74,22 +75,13 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        use std::ops::DerefMut;
-
         let mut internal = self.0.borrow_mut();
 
-        let Internal { content, state } = internal.deref_mut();
-
-        if state.last_size != Some(state.last_layout.size()) {
+        if internal.state.last_size != Some(internal.state.last_layout.size()) {
             shell.invalidate_widgets();
         }
 
-        let content = content.resolve(state, renderer);
-
-        let content_layout = Layout::with_offset(
-            layout.position() - Point::ORIGIN,
-            &state.last_layout,
-        );
+        let (content, content_layout) = internal.content(layout, renderer);
 
         content.on_event(
             event,
@@ -109,26 +101,54 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        use std::ops::DerefMut;
-
         let mut internal = self.0.borrow_mut();
-
-        let Internal { content, state } = internal.deref_mut();
-
-        let content = content.resolve(state, renderer);
-
-        let content_layout = Layout::with_offset(
-            layout.position() - Point::ORIGIN,
-            &state.last_layout,
-        );
+        let (content, content_layout) = internal.content(layout, renderer);
 
         content.draw(renderer, style, content_layout, cursor_position, viewport)
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        let mut internal = self.0.borrow_mut();
+        let (content, content_layout) = internal.content(layout, renderer);
+
+        content.mouse_interaction(
+            content_layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 }
 
 struct Internal<'a, Message, Renderer> {
     state: &'a mut State,
     content: Content<'a, Message, Renderer>,
+}
+
+impl<'a, Message, Renderer> Internal<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+{
+    fn content(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> (&mut Element<'a, Message, Renderer>, Layout<'_>) {
+        let content = self.content.resolve(&mut self.state, renderer);
+
+        let content_layout = Layout::with_offset(
+            layout.position() - Point::ORIGIN,
+            &self.state.last_layout,
+        );
+
+        (content, content_layout)
+    }
 }
 
 enum Content<'a, Message, Renderer> {
