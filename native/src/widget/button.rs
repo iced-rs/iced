@@ -253,6 +253,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         let is_mouse_over = layout.bounds().contains(cursor_position);
         let is_disabled = self.on_press.is_none();
@@ -343,8 +344,10 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.content.overlay(layout.children().next().unwrap())
+        self.content
+            .overlay(layout.children().next().unwrap(), renderer)
     }
 }
 

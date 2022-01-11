@@ -205,7 +205,7 @@ where
         let mut state = State::Updated;
 
         let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
-            self.root.overlay(Layout::new(&self.base.layout))
+            self.root.overlay(Layout::new(&self.base.layout), renderer)
         {
             let bounds = self.bounds;
 
@@ -391,7 +391,7 @@ where
         let viewport = Rectangle::with_size(self.bounds);
 
         if let Some(mut overlay) =
-            self.root.overlay(Layout::new(&self.base.layout))
+            self.root.overlay(Layout::new(&self.base.layout), renderer)
         {
             let layer = Self::overlay_layer(
                 self.overlay.take(),
@@ -432,6 +432,7 @@ where
             Layout::new(&self.base.layout),
             cursor_position,
             &viewport,
+            renderer,
         );
 
         let Self {
@@ -449,30 +450,33 @@ where
         overlay
             .as_ref()
             .and_then(|layer| {
-                root.overlay(Layout::new(&base.layout)).map(|overlay| {
-                    let overlay_interaction = overlay.mouse_interaction(
-                        Layout::new(&layer.layout),
-                        cursor_position,
-                        &viewport,
-                    );
-
-                    let overlay_bounds = layer.layout.bounds();
-
-                    renderer.with_layer(overlay_bounds, |renderer| {
-                        overlay.draw(
-                            renderer,
-                            &renderer::Style::default(),
+                root.overlay(Layout::new(&base.layout), renderer).map(
+                    |overlay| {
+                        let overlay_interaction = overlay.mouse_interaction(
                             Layout::new(&layer.layout),
                             cursor_position,
+                            &viewport,
+                            renderer,
                         );
-                    });
 
-                    if overlay_bounds.contains(cursor_position) {
-                        overlay_interaction
-                    } else {
-                        base_interaction
-                    }
-                })
+                        let overlay_bounds = layer.layout.bounds();
+
+                        renderer.with_layer(overlay_bounds, |renderer| {
+                            overlay.draw(
+                                renderer,
+                                &renderer::Style::default(),
+                                Layout::new(&layer.layout),
+                                cursor_position,
+                            );
+                        });
+
+                        if overlay_bounds.contains(cursor_position) {
+                            overlay_interaction
+                        } else {
+                            base_interaction
+                        }
+                    },
+                )
             })
             .unwrap_or(base_interaction)
     }

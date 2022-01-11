@@ -427,6 +427,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -457,6 +458,7 @@ where
                     y: bounds.y + offset as f32,
                     ..bounds
                 },
+                renderer,
             )
         }
     }
@@ -581,11 +583,12 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         let Self { content, state, .. } = self;
 
         content
-            .overlay(layout.children().next().unwrap())
+            .overlay(layout.children().next().unwrap(), renderer)
             .map(|overlay| {
                 let bounds = layout.bounds();
                 let content_layout = layout.children().next().unwrap();

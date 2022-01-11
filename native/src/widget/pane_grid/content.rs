@@ -205,6 +205,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         let (body_layout, title_bar_interaction) =
             if let Some(title_bar) = &self.title_bar {
@@ -222,6 +223,7 @@ where
                     title_bar_layout,
                     cursor_position,
                     viewport,
+                    renderer,
                 );
 
                 (children.next().unwrap(), mouse_interaction)
@@ -230,7 +232,7 @@ where
             };
 
         self.body
-            .mouse_interaction(body_layout, cursor_position, viewport)
+            .mouse_interaction(body_layout, cursor_position, viewport, renderer)
             .max(title_bar_interaction)
     }
 
@@ -245,17 +247,18 @@ where
     pub(crate) fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
             let title_bar_layout = children.next()?;
 
-            match title_bar.overlay(title_bar_layout) {
+            match title_bar.overlay(title_bar_layout, renderer) {
                 Some(overlay) => Some(overlay),
-                None => self.body.overlay(children.next()?),
+                None => self.body.overlay(children.next()?, renderer),
             }
         } else {
-            self.body.overlay(layout)
+            self.body.overlay(layout, renderer)
         }
     }
 }

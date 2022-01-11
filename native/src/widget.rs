@@ -179,6 +179,7 @@ where
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         mouse::Interaction::Idle
     }
@@ -187,6 +188,7 @@ where
     fn overlay(
         &mut self,
         _layout: Layout<'_>,
+        _renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         None
     }

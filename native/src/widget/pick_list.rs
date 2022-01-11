@@ -331,6 +331,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
@@ -415,6 +416,7 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        _renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         if *self.is_open {
             let bounds = layout.bounds();

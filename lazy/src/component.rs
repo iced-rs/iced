@@ -214,15 +214,22 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_element(|element| {
-            element.mouse_interaction(layout, cursor_position, viewport)
+            element.mouse_interaction(
+                layout,
+                cursor_position,
+                viewport,
+                renderer,
+            )
         })
     }
 
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         let has_overlay = self
             .state
@@ -236,7 +243,9 @@ where
                     CacheBuilder {
                         element,
                         message: PhantomData,
-                        overlay_builder: |element| element.overlay(layout),
+                        overlay_builder: |element| {
+                            element.overlay(layout, renderer)
+                        },
                     }
                     .build(),
                 );
@@ -331,9 +340,15 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, cursor_position, viewport)
+            overlay.mouse_interaction(
+                layout,
+                cursor_position,
+                viewport,
+                renderer,
+            )
         })
         .unwrap_or_default()
     }
@@ -397,7 +412,7 @@ where
                                 element: state.view(),
                                 message: PhantomData,
                                 overlay_builder: |element| {
-                                    element.overlay(layout)
+                                    element.overlay(layout, renderer)
                                 },
                             }
                             .build(),
