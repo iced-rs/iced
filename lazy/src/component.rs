@@ -1,3 +1,5 @@
+use crate::{Cache, CacheBuilder};
+
 use iced_native::event;
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
@@ -60,15 +62,6 @@ struct State<'a, Message: 'a, Renderer: 'a, Event: 'a> {
     #[borrows(mut component)]
     #[covariant]
     cache: Option<Cache<'this, Event, Renderer>>,
-}
-
-#[self_referencing]
-struct Cache<'a, Message: 'a, Renderer: 'a> {
-    element: Element<'a, Message, Renderer>,
-
-    #[borrows(mut element)]
-    #[covariant]
-    overlay: Option<overlay::Element<'this, Message, Renderer>>,
 }
 
 impl<'a, Message, Renderer, Event> Instance<'a, Message, Renderer, Event> {

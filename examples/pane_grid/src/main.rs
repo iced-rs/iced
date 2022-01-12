@@ -3,12 +3,12 @@ use iced::button::{self, Button};
 use iced::executor;
 use iced::keyboard;
 use iced::pane_grid::{self, PaneGrid};
-use iced::responsive::{self, Responsive};
 use iced::scrollable::{self, Scrollable};
 use iced::{
     Application, Color, Column, Command, Container, Element, Length, Row,
     Settings, Size, Subscription, Text,
 };
+use iced_lazy::responsive::{self, Responsive};
 use iced_native::{event, subscription, Event};
 
 pub fn main() -> iced::Result {
