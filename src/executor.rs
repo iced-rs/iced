@@ -7,30 +7,19 @@ pub use platform::Default;
 mod platform {
     use iced_futures::{executor, futures};
 
-    #[cfg(feature = "tokio_old")]
-    type Executor = executor::TokioOld;
-
-    #[cfg(all(feature = "tokio", not(feature = "tokio_old")))]
+    #[cfg(feature = "tokio")]
     type Executor = executor::Tokio;
 
-    #[cfg(all(
-        feature = "async-std",
-        not(any(feature = "tokio_old", feature = "tokio")),
-    ))]
+    #[cfg(all(feature = "async-std", not(feature = "tokio"),))]
     type Executor = executor::AsyncStd;
 
     #[cfg(all(
         feature = "smol",
-        not(any(
-            feature = "tokio_old",
-            feature = "tokio",
-            feature = "async-std"
-        )),
+        not(any(feature = "tokio", feature = "async-std")),
     ))]
     type Executor = executor::Smol;
 
     #[cfg(not(any(
-        feature = "tokio_old",
         feature = "tokio",
         feature = "async-std",
         feature = "smol",

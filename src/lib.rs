@@ -195,19 +195,13 @@ pub mod widget;
 pub mod window;
 
 #[cfg(all(
-    any(
-        feature = "tokio",
-        feature = "tokio_old",
-        feature = "async-std",
-        feature = "smol"
-    ),
+    any(feature = "tokio", feature = "async-std", feature = "smol"),
     not(target_arch = "wasm32")
 ))]
 #[cfg_attr(
     docsrs,
     doc(cfg(any(
         feature = "tokio",
-        feature = "tokio_old",
         feature = "async-std"
         feature = "smol"
     )))

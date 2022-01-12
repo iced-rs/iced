@@ -14,7 +14,7 @@ pub fn every<H: std::hash::Hasher, E>(
 struct Every(std::time::Duration);
 
 #[cfg(all(
-    not(any(feature = "tokio_old", feature = "tokio", feature = "async-std")),
+    not(any(feature = "tokio", feature = "async-std")),
     feature = "smol"
 ))]
 impl<H, E> subscription::Recipe<H, E> for Every
@@ -67,7 +67,7 @@ where
 }
 
 #[cfg(all(
-    any(feature = "tokio", feature = "tokio_old"),
+    feature = "tokio",
     not(any(feature = "async-std", feature = "smol"))
 ))]
 impl<H, E> subscription::Recipe<H, E> for Every
@@ -89,23 +89,15 @@ where
     ) -> futures::stream::BoxStream<'static, Self::Output> {
         use futures::stream::StreamExt;
 
-        #[cfg(feature = "tokio_old")]
-        use tokio_old as tokio;
-
         let start = tokio::time::Instant::now() + self.0;
 
         let stream = {
-            #[cfg(feature = "tokio")]
-            {
-                futures::stream::unfold(
-                    tokio::time::interval_at(start, self.0),
-                    |mut interval| async move {
-                        Some((interval.tick().await, interval))
-                    },
-                )
-            }
-            #[cfg(feature = "tokio_old")]
-            tokio::time::interval_at(start, self.0)
+            futures::stream::unfold(
+                tokio::time::interval_at(start, self.0),
+                |mut interval| async move {
+                    Some((interval.tick().await, interval))
+                },
+            )
         };
 
         stream.map(tokio::time::Instant::into_std).boxed()
