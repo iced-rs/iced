@@ -1,3 +1,4 @@
+//! Implement your own event loop to drive a user interface.
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -568,8 +569,13 @@ impl Default for Cache {
     }
 }
 
+/// The resulting state after updating a [`UserInterface`].
 #[derive(Debug, Clone, Copy)]
 pub enum State {
+    /// The [`UserInterface`] is outdated and needs to be rebuilt.
     Outdated,
+
+    /// The [`UserInterface`] is up-to-date and can be reused without
+    /// rebuilding.
     Updated,
 }
