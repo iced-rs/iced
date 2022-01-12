@@ -1,3 +1,4 @@
+//! Build responsive widgets.
 use crate::{Cache, CacheBuilder};
 
 use iced_native::event::{self, Event};
@@ -13,6 +14,7 @@ use std::cell::RefCell;
 use std::hash::{Hash, Hasher as _};
 use std::ops::Deref;
 
+/// The state of a [`Responsive`] widget.
 #[derive(Debug, Clone, Default)]
 pub struct State {
     last_size: Option<Size>,
@@ -25,7 +27,7 @@ impl State {
         State::default()
     }
 
-    pub fn layout(&self, parent: Layout<'_>) -> Layout<'_> {
+    fn layout(&self, parent: Layout<'_>) -> Layout<'_> {
         Layout::with_offset(
             parent.position() - Point::ORIGIN,
             &self.last_layout,
@@ -33,12 +35,22 @@ impl State {
     }
 }
 
+/// A widget that is aware of its dimensions.
+///
+/// A [`Responsive`] widget will always try to fill all the available space of
+/// its parent.
 #[allow(missing_debug_implementations)]
 pub struct Responsive<'a, Message, Renderer>(
     RefCell<Internal<'a, Message, Renderer>>,
 );
 
 impl<'a, Message, Renderer> Responsive<'a, Message, Renderer> {
+    /// Creates a new [`Responsive`] widget with the given [`State`] and a
+    /// closure that produces its contents.
+    ///
+    /// The `view` closure will be provided with the current [`Size`] of
+    /// the [`Responsive`] widget and, therefore, can be used to build the
+    /// contents of the widget in a responsive way.
     pub fn new(
         state: &'a mut State,
         view: impl FnOnce(Size) -> Element<'a, Message, Renderer> + 'a,
