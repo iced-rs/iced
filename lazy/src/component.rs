@@ -1,3 +1,4 @@
+//! Build and reuse custom widgets using The Elm Architecture.
 use crate::{Cache, CacheBuilder};
 
 use iced_native::event;
@@ -14,6 +15,35 @@ use std::cell::RefCell;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+/// A reusable, custom widget that uses The Elm Architecture.
+///
+/// A [`Component`] allows you to implement custom widgets as if they were
+/// `iced` applications with encapsulated state.
+///
+/// In other words, a [`Component`] allows you to turn `iced` applications into
+/// custom widgets and embed them without cumbersome wiring.
+///
+/// A [`Component`] produces widgets that may fire an [`Event`](Component::Event)
+/// and update the internal state of the [`Component`].
+///
+/// Additionally, a [`Component`] is capable of producing a `Message` to notify
+/// the parent application of any relevant interactions.
+pub trait Component<Message, Renderer> {
+    /// The type of event this [`Component`] handles internally.
+    type Event;
+
+    /// Processes an [`Event`](Component::Event) and updates the [`Component`] state accordingly.
+    ///
+    /// It can produce a `Message` for the parent application.
+    fn update(&mut self, event: Self::Event) -> Option<Message>;
+
+    /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
+    /// on user interaction.
+    fn view(&mut self) -> Element<Self::Event, Renderer>;
+}
+
+/// Turns an implementor of [`Component`] into an [`Element`] that can be
+/// embedded in any application.
 pub fn view<'a, C, Message, Renderer>(
     component: C,
 ) -> Element<'a, Message, Renderer>
@@ -40,14 +70,6 @@ where
             .build(),
         )),
     })
-}
-
-pub trait Component<Message, Renderer> {
-    type Event;
-
-    fn update(&mut self, event: Self::Event) -> Option<Message>;
-
-    fn view(&mut self) -> Element<Self::Event, Renderer>;
 }
 
 struct Instance<'a, Message, Renderer, Event> {
