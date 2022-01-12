@@ -352,7 +352,7 @@ impl Content {
             .width(Length::Fill)
             .spacing(10)
             .align_items(Alignment::Center)
-            .push(Text::new(format!("{}x{}", size.width, size.height)).size(18))
+            .push(Text::new(format!("{}x{}", size.width, size.height)).size(24))
             .push(controls);
 
         Container::new(content)
