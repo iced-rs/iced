@@ -1,3 +1,4 @@
+//! Implement your own event loop to drive a user interface.
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -42,7 +43,8 @@ where
     /// is naive way to set up our application loop:
     ///
     /// ```no_run
-    /// use iced_native::{UserInterface, Cache, Size};
+    /// use iced_native::Size;
+    /// use iced_native::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -61,7 +63,7 @@ where
     /// # }
     /// // Initialization
     /// let mut counter = Counter::new();
-    /// let mut cache = Cache::new();
+    /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
     ///
@@ -136,7 +138,8 @@ where
     /// completing [the previous example](#example):
     ///
     /// ```no_run
-    /// use iced_native::{clipboard, UserInterface, Cache, Size, Point};
+    /// use iced_native::{clipboard, Size, Point};
+    /// use iced_native::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -155,7 +158,7 @@ where
     /// #     pub fn update(&mut self, message: ()) {}
     /// # }
     /// let mut counter = Counter::new();
-    /// let mut cache = Cache::new();
+    /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
@@ -176,7 +179,7 @@ where
     ///     );
     ///
     ///     // Update the user interface
-    ///     let event_statuses = user_interface.update(
+    ///     let (state, event_statuses) = user_interface.update(
     ///         &events,
     ///         cursor_position,
     ///         &mut renderer,
@@ -199,9 +202,11 @@ where
         renderer: &mut Renderer,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
-    ) -> Vec<event::Status> {
+    ) -> (State, Vec<event::Status>) {
+        let mut state = State::Updated;
+
         let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
-            self.root.overlay(Layout::new(&self.base.layout))
+            self.root.overlay(Layout::new(&self.base.layout), renderer)
         {
             let bounds = self.bounds;
 
@@ -227,7 +232,7 @@ where
                         &mut shell,
                     );
 
-                    shell.with_invalid_layout(|| {
+                    shell.revalidate_layout(|| {
                         layer = Self::overlay_layer(
                             None,
                             bounds,
@@ -235,6 +240,10 @@ where
                             renderer,
                         );
                     });
+
+                    if shell.are_widgets_invalid() {
+                        state = State::Outdated;
+                    }
 
                     event_status
                 })
@@ -255,7 +264,7 @@ where
             (cursor_position, vec![event::Status::Ignored; events.len()])
         };
 
-        events
+        let event_statuses = events
             .iter()
             .cloned()
             .zip(overlay_statuses.into_iter())
@@ -271,7 +280,7 @@ where
                     &mut shell,
                 );
 
-                shell.with_invalid_layout(|| {
+                shell.revalidate_layout(|| {
                     let hash = {
                         let hasher = &mut crate::Hasher::default();
                         self.root.hash_layout(hasher);
@@ -288,9 +297,15 @@ where
                     self.overlay = None;
                 });
 
+                if shell.are_widgets_invalid() {
+                    state = State::Outdated;
+                }
+
                 event_status.merge(overlay_status)
             })
-            .collect()
+            .collect();
+
+        (state, event_statuses)
     }
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
@@ -306,7 +321,8 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::{clipboard, UserInterface, Cache, Size, Point};
+    /// use iced_native::{clipboard, Size, Point};
+    /// use iced_native::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -325,7 +341,7 @@ where
     /// #     pub fn update(&mut self, message: ()) {}
     /// # }
     /// let mut counter = Counter::new();
-    /// let mut cache = Cache::new();
+    /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::new();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor_position = Point::default();
@@ -376,7 +392,7 @@ where
         let viewport = Rectangle::with_size(self.bounds);
 
         if let Some(mut overlay) =
-            self.root.overlay(Layout::new(&self.base.layout))
+            self.root.overlay(Layout::new(&self.base.layout), renderer)
         {
             let layer = Self::overlay_layer(
                 self.overlay.take(),
@@ -417,6 +433,7 @@ where
             Layout::new(&self.base.layout),
             cursor_position,
             &viewport,
+            renderer,
         );
 
         let Self {
@@ -434,30 +451,33 @@ where
         overlay
             .as_ref()
             .and_then(|layer| {
-                root.overlay(Layout::new(&base.layout)).map(|overlay| {
-                    let overlay_interaction = overlay.mouse_interaction(
-                        Layout::new(&layer.layout),
-                        cursor_position,
-                        &viewport,
-                    );
-
-                    let overlay_bounds = layer.layout.bounds();
-
-                    renderer.with_layer(overlay_bounds, |renderer| {
-                        overlay.draw(
-                            renderer,
-                            &renderer::Style::default(),
+                root.overlay(Layout::new(&base.layout), renderer).map(
+                    |overlay| {
+                        let overlay_interaction = overlay.mouse_interaction(
                             Layout::new(&layer.layout),
                             cursor_position,
+                            &viewport,
+                            renderer,
                         );
-                    });
 
-                    if overlay_bounds.contains(cursor_position) {
-                        overlay_interaction
-                    } else {
-                        base_interaction
-                    }
-                })
+                        let overlay_bounds = layer.layout.bounds();
+
+                        renderer.with_layer(overlay_bounds, |renderer| {
+                            overlay.draw(
+                                renderer,
+                                &renderer::Style::default(),
+                                Layout::new(&layer.layout),
+                                cursor_position,
+                            );
+                        });
+
+                        if overlay_bounds.contains(cursor_position) {
+                            overlay_interaction
+                        } else {
+                            base_interaction
+                        }
+                    },
+                )
             })
             .unwrap_or(base_interaction)
     }
@@ -547,4 +567,15 @@ impl Default for Cache {
     fn default() -> Cache {
         Cache::new()
     }
+}
+
+/// The resulting state after updating a [`UserInterface`].
+#[derive(Debug, Clone, Copy)]
+pub enum State {
+    /// The [`UserInterface`] is outdated and needs to be rebuilt.
+    Outdated,
+
+    /// The [`UserInterface`] is up-to-date and can be reused without
+    /// rebuilding.
+    Updated,
 }

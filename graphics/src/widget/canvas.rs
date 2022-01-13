@@ -193,6 +193,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer<B>,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let cursor = Cursor::from_window_position(cursor_position);

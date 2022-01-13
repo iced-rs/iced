@@ -1,8 +1,14 @@
+use iced::alignment::{self, Alignment};
+use iced::button::{self, Button};
+use iced::executor;
+use iced::keyboard;
+use iced::pane_grid::{self, PaneGrid};
+use iced::scrollable::{self, Scrollable};
 use iced::{
-    alignment, button, executor, keyboard, pane_grid, scrollable, Alignment,
-    Application, Button, Color, Column, Command, Container, Element, Length,
-    PaneGrid, Row, Scrollable, Settings, Subscription, Text,
+    Application, Color, Column, Command, Container, Element, Length, Row,
+    Settings, Size, Subscription, Text,
 };
+use iced_lazy::responsive::{self, Responsive};
 use iced_native::{event, subscription, Event};
 
 pub fn main() -> iced::Result {
@@ -154,17 +160,24 @@ impl Application for Example {
         let pane_grid = PaneGrid::new(&mut self.panes, |id, pane| {
             let is_focused = focus == Some(id);
 
-            let text = if pane.is_pinned { "Unpin" } else { "Pin" };
-            let pin_button =
-                Button::new(&mut pane.pin_button, Text::new(text).size(14))
-                    .on_press(Message::TogglePin(id))
-                    .style(style::Button::Pin)
-                    .padding(3);
+            let Pane {
+                responsive,
+                pin_button,
+                is_pinned,
+                content,
+                ..
+            } = pane;
+
+            let text = if *is_pinned { "Unpin" } else { "Pin" };
+            let pin_button = Button::new(pin_button, Text::new(text).size(14))
+                .on_press(Message::TogglePin(id))
+                .style(style::Button::Pin)
+                .padding(3);
 
             let title = Row::with_children(vec![
                 pin_button.into(),
                 Text::new("Pane").into(),
-                Text::new(pane.content.id.to_string())
+                Text::new(content.id.to_string())
                     .color(if is_focused {
                         PANE_ID_COLOR_FOCUSED
                     } else {
@@ -175,7 +188,7 @@ impl Application for Example {
             .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
-                .controls(pane.controls.view(id, total_panes, pane.is_pinned))
+                .controls(pane.controls.view(id, total_panes, *is_pinned))
                 .padding(10)
                 .style(if is_focused {
                     style::TitleBar::Focused
@@ -183,11 +196,9 @@ impl Application for Example {
                     style::TitleBar::Active
                 });
 
-            pane_grid::Content::new(pane.content.view(
-                id,
-                total_panes,
-                pane.is_pinned,
-            ))
+            pane_grid::Content::new(Responsive::new(responsive, move |size| {
+                content.view(id, total_panes, *is_pinned, size)
+            }))
             .title_bar(title_bar)
             .style(if is_focused {
                 style::Pane::Focused
@@ -242,6 +253,7 @@ fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
 }
 
 struct Pane {
+    pub responsive: responsive::State,
     pub is_pinned: bool,
     pub pin_button: button::State,
     pub content: Content,
@@ -263,6 +275,7 @@ struct Controls {
 impl Pane {
     fn new(id: usize) -> Self {
         Self {
+            responsive: responsive::State::new(),
             is_pinned: false,
             pin_button: button::State::new(),
             content: Content::new(id),
@@ -286,6 +299,7 @@ impl Content {
         pane: pane_grid::Pane,
         total_panes: usize,
         is_pinned: bool,
+        size: Size,
     ) -> Element<Message> {
         let Content {
             scroll,
@@ -338,6 +352,7 @@ impl Content {
             .width(Length::Fill)
             .spacing(10)
             .align_items(Alignment::Center)
+            .push(Text::new(format!("{}x{}", size.width, size.height)).size(24))
             .push(controls);
 
         Container::new(content)

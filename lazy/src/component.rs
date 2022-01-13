@@ -1,3 +1,6 @@
+//! Build and reuse custom widgets using The Elm Architecture.
+use crate::{Cache, CacheBuilder};
+
 use iced_native::event;
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
@@ -12,6 +15,35 @@ use std::cell::RefCell;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+/// A reusable, custom widget that uses The Elm Architecture.
+///
+/// A [`Component`] allows you to implement custom widgets as if they were
+/// `iced` applications with encapsulated state.
+///
+/// In other words, a [`Component`] allows you to turn `iced` applications into
+/// custom widgets and embed them without cumbersome wiring.
+///
+/// A [`Component`] produces widgets that may fire an [`Event`](Component::Event)
+/// and update the internal state of the [`Component`].
+///
+/// Additionally, a [`Component`] is capable of producing a `Message` to notify
+/// the parent application of any relevant interactions.
+pub trait Component<Message, Renderer> {
+    /// The type of event this [`Component`] handles internally.
+    type Event;
+
+    /// Processes an [`Event`](Component::Event) and updates the [`Component`] state accordingly.
+    ///
+    /// It can produce a `Message` for the parent application.
+    fn update(&mut self, event: Self::Event) -> Option<Message>;
+
+    /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
+    /// on user interaction.
+    fn view(&mut self) -> Element<Self::Event, Renderer>;
+}
+
+/// Turns an implementor of [`Component`] into an [`Element`] that can be
+/// embedded in any application.
 pub fn view<'a, C, Message, Renderer>(
     component: C,
 ) -> Element<'a, Message, Renderer>
@@ -24,11 +56,11 @@ where
         state: RefCell::new(Some(
             StateBuilder {
                 component: Box::new(component),
+                message: PhantomData,
                 cache_builder: |state| {
                     Some(
                         CacheBuilder {
                             element: state.view(),
-                            message: PhantomData,
                             overlay_builder: |_| None,
                         }
                         .build(),
@@ -40,14 +72,6 @@ where
     })
 }
 
-pub trait Component<Message, Renderer> {
-    type Event;
-
-    fn update(&mut self, event: Self::Event) -> Option<Message>;
-
-    fn view(&mut self) -> Element<Self::Event, Renderer>;
-}
-
 struct Instance<'a, Message, Renderer, Event> {
     state: RefCell<Option<State<'a, Message, Renderer, Event>>>,
 }
@@ -55,20 +79,11 @@ struct Instance<'a, Message, Renderer, Event> {
 #[self_referencing]
 struct State<'a, Message: 'a, Renderer: 'a, Event: 'a> {
     component: Box<dyn Component<Message, Renderer, Event = Event> + 'a>,
+    message: PhantomData<Message>,
 
     #[borrows(mut component)]
     #[covariant]
-    cache: Option<Cache<'this, Message, Renderer, Event>>,
-}
-
-#[self_referencing]
-struct Cache<'a, Message, Renderer: 'a, Event: 'a> {
-    element: Element<'a, Event, Renderer>,
-    message: PhantomData<Message>,
-
-    #[borrows(mut element)]
-    #[covariant]
-    overlay: Option<overlay::Element<'this, Event, Renderer>>,
+    cache: Option<Cache<'this, Event, Renderer>>,
 }
 
 impl<'a, Message, Renderer, Event> Instance<'a, Message, Renderer, Event> {
@@ -94,7 +109,6 @@ impl<'a, Message, Renderer, Event> Instance<'a, Message, Renderer, Event> {
                 *cache = Some(
                     CacheBuilder {
                         element,
-                        message: PhantomData,
                         overlay_builder: |_| None,
                     }
                     .build(),
@@ -149,7 +163,7 @@ where
             )
         });
 
-        local_shell.with_invalid_layout(|| shell.invalidate_layout());
+        local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if !local_messages.is_empty() {
             let mut component = self
@@ -170,11 +184,11 @@ where
             *self.state.borrow_mut() = Some(
                 StateBuilder {
                     component,
+                    message: PhantomData,
                     cache_builder: |state| {
                         Some(
                             CacheBuilder {
                                 element: state.view(),
-                                message: PhantomData,
                                 overlay_builder: |_| None,
                             }
                             .build(),
@@ -214,15 +228,22 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_element(|element| {
-            element.mouse_interaction(layout, cursor_position, viewport)
+            element.mouse_interaction(
+                layout,
+                cursor_position,
+                viewport,
+                renderer,
+            )
         })
     }
 
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         let has_overlay = self
             .state
@@ -235,8 +256,9 @@ where
                 *cache = Some(
                     CacheBuilder {
                         element,
-                        message: PhantomData,
-                        overlay_builder: |element| element.overlay(layout),
+                        overlay_builder: |element| {
+                            element.overlay(layout, renderer)
+                        },
                     }
                     .build(),
                 );
@@ -331,9 +353,15 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(layout, cursor_position, viewport)
+            overlay.mouse_interaction(
+                layout,
+                cursor_position,
+                viewport,
+                renderer,
+            )
         })
         .unwrap_or_default()
     }
@@ -375,7 +403,7 @@ where
             })
             .unwrap_or_else(|| iced_native::event::Status::Ignored);
 
-        local_shell.with_invalid_layout(|| shell.invalidate_layout());
+        local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if !local_messages.is_empty() {
             let mut component =
@@ -391,13 +419,13 @@ where
             self.instance.state = RefCell::new(Some(
                 StateBuilder {
                     component,
+                    message: PhantomData,
                     cache_builder: |state| {
                         Some(
                             CacheBuilder {
                                 element: state.view(),
-                                message: PhantomData,
                                 overlay_builder: |element| {
-                                    element.overlay(layout)
+                                    element.overlay(layout, renderer)
                                 },
                             }
                             .build(),

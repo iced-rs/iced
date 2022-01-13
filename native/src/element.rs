@@ -259,9 +259,14 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.widget
-            .mouse_interaction(layout, cursor_position, viewport)
+        self.widget.mouse_interaction(
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     /// Computes the _layout_ hash of the [`Element`].
@@ -273,8 +278,9 @@ where
     pub fn overlay<'b>(
         &'b mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        self.widget.overlay(layout)
+        self.widget.overlay(layout, renderer)
     }
 }
 
@@ -363,9 +369,14 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.widget
-            .mouse_interaction(layout, cursor_position, viewport)
+        self.widget.mouse_interaction(
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -375,11 +386,12 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, B, Renderer>> {
         let mapper = &self.mapper;
 
         self.widget
-            .overlay(layout)
+            .overlay(layout, renderer)
             .map(move |overlay| overlay.map(mapper))
     }
 }
@@ -482,10 +494,14 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.element
-            .widget
-            .mouse_interaction(layout, cursor_position, viewport)
+        self.element.widget.mouse_interaction(
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -495,7 +511,8 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.element.overlay(layout)
+        self.element.overlay(layout, renderer)
     }
 }

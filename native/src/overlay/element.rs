@@ -80,9 +80,14 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.overlay
-            .mouse_interaction(layout, cursor_position, viewport)
+        self.overlay.mouse_interaction(
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     /// Draws the [`Element`] and its children using the given [`Layout`].
@@ -160,9 +165,14 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content
-            .mouse_interaction(layout, cursor_position, viewport)
+        self.content.mouse_interaction(
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     fn draw(

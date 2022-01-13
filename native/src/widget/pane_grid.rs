@@ -472,6 +472,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         if self.state.picked_pane().is_some() {
             return mouse::Interaction::Grab;
@@ -511,7 +512,12 @@ where
             .iter()
             .zip(layout.children())
             .map(|((_pane, content), layout)| {
-                content.mouse_interaction(layout, cursor_position, viewport)
+                content.mouse_interaction(
+                    layout,
+                    cursor_position,
+                    viewport,
+                    renderer,
+                )
             })
             .max()
             .unwrap_or_default()
@@ -678,11 +684,12 @@ where
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         self.elements
             .iter_mut()
             .zip(layout.children())
-            .filter_map(|((_, pane), layout)| pane.overlay(layout))
+            .filter_map(|((_, pane), layout)| pane.overlay(layout, renderer))
             .next()
     }
 }
