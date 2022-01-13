@@ -15,7 +15,8 @@ features = ["derive"]
 
 [dependencies.reqwest]
 version = "0.11"
-features = ["json"]
+default-features = false
+features = ["json", "rustls-tls"]
 
 [dependencies.rand]
 version = "0.7"

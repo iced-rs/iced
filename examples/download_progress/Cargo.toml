@@ -9,4 +9,8 @@ publish = false
 iced = { path = "../..", features = ["tokio"] }
 iced_native = { path = "../../native" }
 iced_futures = { path = "../../futures" }
-reqwest = "0.11"
+
+[dependencies.reqwest]
+version = "0.11"
+default-features = false
+features = ["rustls-tls"]
