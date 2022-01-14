@@ -2,7 +2,8 @@
 use crate::event::{self, Event};
 use crate::Hasher;
 
-use iced_futures::futures::{self, Stream};
+use iced_futures::futures::channel::mpsc;
+use iced_futures::futures::{self, Future, Stream};
 use iced_futures::BoxStream;
 
 use std::hash::Hash;
@@ -100,6 +101,26 @@ where
     Subscription::from_recipe(Runner {
         initial,
         spawn: move |initial, _| f(initial),
+    })
+}
+
+/// Returns a [`Subscription`] that will create and asynchronously run a
+/// [`Stream`] that will call the provided closure to produce every `Message`.
+///
+/// The `initial` state will be used to uniquely identify the [`Subscription`].
+pub fn unfold<T, Fut, Message>(
+    initial: T,
+    mut f: impl FnMut(T) -> Fut + Send + Sync + 'static,
+) -> Subscription<Message>
+where
+    Message: 'static,
+    T: Clone + Hash + Send + 'static,
+    Fut: Future<Output = (Message, T)> + Send + 'static,
+{
+    use futures::future::FutureExt;
+
+    run(initial, move |initial| {
+        futures::stream::unfold(initial, move |state| f(state).map(Some))
     })
 }
 
