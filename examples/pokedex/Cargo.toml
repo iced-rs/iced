@@ -6,7 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["image", "debug", "tokio_old"] }
+iced = { path = "../..", features = ["image", "debug", "tokio"] }
 serde_json = "1.0"
 
 [dependencies.serde]
@@ -14,8 +14,9 @@ version = "1.0"
 features = ["derive"]
 
 [dependencies.reqwest]
-version = "0.10.2"
-features = ["json"]
+version = "0.11"
+default-features = false
+features = ["json", "rustls-tls"]
 
 [dependencies.rand]
 version = "0.7"

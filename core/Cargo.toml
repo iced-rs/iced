@@ -11,5 +11,5 @@ repository = "https://github.com/iced-rs/iced"
 bitflags = "1.2"
 
 [dependencies.palette]
-version = "0.5.0"
+version = "0.5"
 optional = true

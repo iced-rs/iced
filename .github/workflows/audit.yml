@@ -1,0 +1,16 @@
+name: Audit
+on: [push]
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+    - uses: actions/checkout@master
+    - name: Manually update `nix` crates # See https://github.com/nix-rust/nix/issues/1627
+      run: |
+        cargo update --package nix:0.20.0 --precise 0.20.2
+        cargo update --package nix:0.22.0 --precise 0.22.2
+    - name: Audit dependencies
+      run: cargo audit
