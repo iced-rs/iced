@@ -1,7 +1,11 @@
 //! Listen to external events in your application.
 use crate::event::{self, Event};
 use crate::Hasher;
+
+use iced_futures::futures::{self, Stream};
 use iced_futures::BoxStream;
+
+use std::hash::Hash;
 
 /// A request to listen to external events.
 ///
@@ -29,20 +33,14 @@ pub type Tracker =
 
 pub use iced_futures::subscription::Recipe;
 
-mod events;
-
-use events::Events;
-
 /// Returns a [`Subscription`] to all the runtime events.
 ///
 /// This subscription will notify your application of any [`Event`] that was
 /// not captured by any widget.
 pub fn events() -> Subscription<Event> {
-    Subscription::from_recipe(Events {
-        f: |event, status| match status {
-            event::Status::Ignored => Some(event),
-            event::Status::Captured => None,
-        },
+    events_with(|event, status| match status {
+        event::Status::Ignored => Some(event),
+        event::Status::Captured => None,
     })
 }
 
@@ -60,5 +58,59 @@ pub fn events_with<Message>(
 where
     Message: 'static + Send,
 {
-    Subscription::from_recipe(Events { f })
+    #[derive(Debug, Clone, Copy, Hash)]
+    struct Events(u64);
+
+    let hash = {
+        use std::hash::Hasher as _;
+
+        let mut hasher = Hasher::default();
+
+        f.hash(&mut hasher);
+
+        hasher.finish()
+    };
+
+    Subscription::from_recipe(Runner {
+        initial: Events(hash),
+        spawn: move |_, events| {
+            use futures::future;
+            use futures::stream::StreamExt;
+
+            events.filter_map(move |(event, status)| {
+                future::ready(f(event, status))
+            })
+        },
+    })
+}
+
+struct Runner<T, F, S, Message>
+where
+    F: FnOnce(T, EventStream) -> S,
+    S: Stream<Item = Message>,
+{
+    initial: T,
+    spawn: F,
+}
+
+impl<T, S, F, Message> Recipe<Hasher, (Event, event::Status)>
+    for Runner<T, F, S, Message>
+where
+    T: Clone + Hash + 'static,
+    F: FnOnce(T, EventStream) -> S,
+    S: Stream<Item = Message> + Send + 'static,
+{
+    type Output = Message;
+
+    fn hash(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<T>().hash(state);
+
+        self.initial.hash(state);
+    }
+
+    fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
+        use futures::stream::StreamExt;
+
+        (self.spawn)(self.initial, input).boxed()
+    }
 }
