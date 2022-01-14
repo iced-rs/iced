@@ -84,6 +84,25 @@ where
     })
 }
 
+/// Returns a [`Subscription`] that will create and asynchronously run the
+/// [`Stream`] returned by the provided closure.
+///
+/// The `initial` state will be used to uniquely identify the [`Subscription`].
+pub fn run<T, S, Message>(
+    initial: T,
+    f: impl FnOnce(T) -> S + 'static,
+) -> Subscription<Message>
+where
+    Message: 'static,
+    T: Clone + Hash + 'static,
+    S: Stream<Item = Message> + Send + 'static,
+{
+    Subscription::from_recipe(Runner {
+        initial,
+        spawn: move |initial, _| f(initial),
+    })
+}
+
 struct Runner<T, F, S, Message>
 where
     F: FnOnce(T, EventStream) -> S,
