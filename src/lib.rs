@@ -167,8 +167,10 @@
 mod element;
 mod error;
 mod result;
+#[cfg(feature = "application")]
 mod sandbox;
 
+#[cfg(feature = "application")]
 pub mod application;
 pub mod clipboard;
 pub mod executor;
@@ -196,6 +198,7 @@ pub use iced_native::theme;
 pub use runtime::event;
 pub use runtime::subscription;
 
+#[cfg(feature = "application")]
 pub use application::Application;
 pub use element::Element;
 pub use error::Error;
@@ -203,6 +206,7 @@ pub use event::Event;
 pub use executor::Executor;
 pub use renderer::Renderer;
 pub use result::Result;
+#[cfg(feature = "application")]
 pub use sandbox::Sandbox;
 pub use settings::Settings;
 pub use subscription::Subscription;
