@@ -10,6 +10,7 @@ pub fn file<I: 'static + Hash + Copy + Send, T: ToString>(
     url: T,
 ) -> iced::Subscription<(I, Progress)> {
     subscription::run(
+        id,
         Download {
             id,
             url: url.to_string(),
