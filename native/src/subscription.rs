@@ -91,6 +91,71 @@ where
 /// [`Stream`] that will call the provided closure to produce every `Message`.
 ///
 /// The `id` will be used to uniquely identify the [`Subscription`].
+///
+/// # Creating an asynchronous worker with bidirectional communication
+/// You can leverage this helper to create a [`Subscription`] that spawns
+/// an asynchronous worker in the background and establish a channel of
+/// communication with an `iced` application.
+///
+/// You can achieve this by creating an `mpsc` channel inside the closure
+/// and returning the `Sender` as a `Message` for the `Application`:
+///
+/// ```
+/// use iced_native::subscription::{self, Subscription};
+/// use iced_native::futures::channel::mpsc;
+///
+/// pub enum Event {
+///     Ready(mpsc::Sender<Input>),
+///     WorkFinished,
+///     // ...
+/// }
+///
+/// enum Input {
+///     DoSomeWork,
+///     // ...
+/// }
+///
+/// enum State {
+///     Starting,
+///     Ready(mpsc::Receiver<Input>),
+/// }
+///
+/// fn some_worker() -> Subscription<Event> {
+///     struct SomeWorker;
+///
+///     subscription::unfold(std::any::TypeId::of::<SomeWorker>(), State::Starting, |state| async move {
+///         match state {
+///             State::Starting => {
+///                 // Create channel
+///                 let (sender, receiver) = mpsc::channel(100);
+///
+///                 (Some(Event::Ready(sender)), State::Ready(receiver))
+///             }
+///             State::Ready(mut receiver) => {
+///                 use iced_native::futures::StreamExt;
+///
+///                 // Read next input sent from `Application`
+///                 let input = receiver.select_next_some().await;
+///
+///                 match input {
+///                     Input::DoSomeWork => {
+///                         // Do some async work...
+///
+///                         // Finally, we can optionally return a message to tell the
+///                         // `Application` the work is done
+///                         (Some(Event::WorkFinished), State::Ready(receiver))
+///                     }
+///                 }
+///             }
+///         }
+///     })
+/// }
+/// ```
+///
+/// Check out the [`websocket`] example, which showcases this pattern to maintain a WebSocket
+/// connection open.
+///
+/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.4/examples/websocket
 pub fn unfold<I, T, Fut, Message>(
     id: I,
     initial: T,
