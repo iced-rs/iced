@@ -60,8 +60,7 @@ where
 {
     Subscription::from_recipe(Runner {
         id: f,
-        initial: (),
-        spawn: move |_, events| {
+        spawn: move |events| {
             use futures::future;
             use futures::stream::StreamExt;
 
@@ -73,31 +72,25 @@ where
 }
 
 /// Returns a [`Subscription`] that will create and asynchronously run the
-/// [`Stream`] returned by the provided closure.
+/// given [`Stream`].
 ///
-/// The `initial` state will be used to uniquely identify the [`Subscription`].
-pub fn run<I, T, S, Message>(
-    id: I,
-    initial: T,
-    f: impl FnOnce(T) -> S + 'static,
-) -> Subscription<Message>
+/// The `id` will be used to uniquely identify the [`Subscription`].
+pub fn run<I, S, Message>(id: I, stream: S) -> Subscription<Message>
 where
     I: Hash + 'static,
-    T: 'static,
     S: Stream<Item = Message> + Send + 'static,
     Message: 'static,
 {
     Subscription::from_recipe(Runner {
         id,
-        initial,
-        spawn: move |initial, _| f(initial),
+        spawn: move |_| stream,
     })
 }
 
 /// Returns a [`Subscription`] that will create and asynchronously run a
 /// [`Stream`] that will call the provided closure to produce every `Message`.
 ///
-/// The `initial` state will be used to uniquely identify the [`Subscription`].
+/// The `id` will be used to uniquely identify the [`Subscription`].
 pub fn unfold<I, T, Fut, Message>(
     id: I,
     initial: T,
@@ -112,41 +105,39 @@ where
     use futures::future::{self, FutureExt};
     use futures::stream::StreamExt;
 
-    run(id, initial, move |initial| {
+    run(
+        id,
         futures::stream::unfold(initial, move |state| f(state).map(Some))
-            .filter_map(future::ready)
-    })
+            .filter_map(future::ready),
+    )
 }
 
-struct Runner<I, T, F, S, Message>
+struct Runner<I, F, S, Message>
 where
-    F: FnOnce(T, EventStream) -> S,
+    F: FnOnce(EventStream) -> S,
     S: Stream<Item = Message>,
 {
     id: I,
-    initial: T,
     spawn: F,
 }
 
-impl<I, T, S, F, Message> Recipe<Hasher, (Event, event::Status)>
-    for Runner<I, T, F, S, Message>
+impl<I, S, F, Message> Recipe<Hasher, (Event, event::Status)>
+    for Runner<I, F, S, Message>
 where
     I: Hash + 'static,
-    T: 'static,
-    F: FnOnce(T, EventStream) -> S,
+    F: FnOnce(EventStream) -> S,
     S: Stream<Item = Message> + Send + 'static,
 {
     type Output = Message;
 
     fn hash(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<T>().hash(state);
-
+        std::any::TypeId::of::<I>().hash(state);
         self.id.hash(state);
     }
 
     fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
         use futures::stream::StreamExt;
 
-        (self.spawn)(self.initial, input).boxed()
+        (self.spawn)(input).boxed()
     }
 }
