@@ -66,16 +66,12 @@ impl Application for Clock {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new(self)
-            .width(Length::Units(400))
-            .height(Length::Units(400));
+        let canvas = Canvas::new(self).width(Length::Fill).height(Length::Fill);
 
         Container::new(canvas)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)
-            .center_x()
-            .center_y()
             .into()
     }
 }
