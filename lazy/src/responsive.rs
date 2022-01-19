@@ -268,7 +268,9 @@ where
                     hasher.finish()
                 };
 
-                if new_layout_hash != state.last_layout_hash {
+                if state.last_size != Some(state.last_layout.size())
+                    || new_layout_hash != state.last_layout_hash
+                {
                     state.last_layout = element.layout(
                         renderer.deref(),
                         &layout::Limits::new(
