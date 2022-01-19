@@ -1,0 +1,32 @@
+name: Document
+on:
+  push:
+    branches:
+      - master
+jobs:
+  all:
+    runs-on: ubuntu-20.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+    - uses: actions/checkout@v2
+    - name: Generate documentation
+      run: |
+        cargo doc --no-deps --all-features \
+          -p iced_core \
+          -p iced_native \
+          -p iced_lazy \
+          -p iced_web \
+          -p iced_graphics \
+          -p iced_wgpu \
+          -p iced_glow \
+          -p iced_winit \
+          -p iced_glutin \
+          -p iced
+    - name: Publish documentation
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        deploy_key: ${{ secrets.DOCS_DEPLOY_KEY }}
+        external_repository: iced-rs/docs
+        publish_dir: ./target/doc
