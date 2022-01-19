@@ -24,6 +24,8 @@ jobs:
           -p iced_winit \
           -p iced_glutin \
           -p iced
+    - name: Write CNAME file
+      run: echo 'docs.iced.rs' > ./target/doc/CNAME
     - name: Publish documentation
       uses: peaceiris/actions-gh-pages@v3
       with:
