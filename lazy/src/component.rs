@@ -271,8 +271,11 @@ where
                     .map(|overlay| overlay.position())
             });
 
-        has_overlay.map(|pos| {
-            overlay::Element::new(pos, Box::new(Overlay { instance: self }))
+        has_overlay.map(|position| {
+            overlay::Element::new(
+                position,
+                Box::new(Overlay { instance: self }),
+            )
         })
     }
 }
