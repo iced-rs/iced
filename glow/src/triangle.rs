@@ -1,5 +1,5 @@
 //! Draw meshes of triangles.
-use crate::program;
+use crate::program::{self, Shader};
 use crate::Transformation;
 use glow::HasContext;
 use iced_graphics::layer;
@@ -23,29 +23,23 @@ pub(crate) struct Pipeline {
 impl Pipeline {
     pub fn new(
         gl: &glow::Context,
-        (vertex_version, fragment_version): &(String, String),
+        shader_version: &program::Version,
     ) -> Pipeline {
         let program = unsafe {
+            let vertex_shader = Shader::vertex(
+                gl,
+                shader_version,
+                include_str!("shader/common/triangle.vert"),
+            );
+            let fragment_shader = Shader::fragment(
+                gl,
+                shader_version,
+                include_str!("shader/common/triangle.frag"),
+            );
+
             program::create(
                 gl,
-                &[
-                    (
-                        glow::VERTEX_SHADER,
-                        &format!(
-                            "{}\n{}",
-                            vertex_version,
-                            include_str!("shader/common/triangle.vert")
-                        ),
-                    ),
-                    (
-                        glow::FRAGMENT_SHADER,
-                        &format!(
-                            "{}\n{}",
-                            fragment_version,
-                            include_str!("shader/common/triangle.frag")
-                        ),
-                    ),
-                ],
+                &[vertex_shader, fragment_shader],
                 &[(0, "i_Position"), (1, "i_Color")],
             )
         };

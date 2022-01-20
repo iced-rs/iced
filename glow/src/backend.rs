@@ -1,9 +1,9 @@
+use crate::program;
 use crate::quad;
 use crate::text;
 use crate::triangle;
 use crate::{Settings, Transformation, Viewport};
 
-use glow::HasContext;
 use iced_graphics::backend;
 use iced_graphics::font;
 use iced_graphics::{Layer, Primitive};
@@ -31,57 +31,7 @@ impl Backend {
             settings.text_multithreading,
         );
 
-        let version = gl.version();
-        let shader_version = match (
-            version.major,
-            version.minor,
-            version.is_embedded,
-        ) {
-            // OpenGL 3.0+
-            (3, 0 | 1 | 2, false) => (
-                format!("#version 1{}0", version.minor + 3),
-                format!(
-                    "#version 1{}0\n#define HIGHER_THAN_300 1",
-                    version.minor + 3
-                ),
-            ),
-            // OpenGL 3.3+
-            (3 | 4, _, false) => (
-                format!("#version {}{}0", version.major, version.minor),
-                format!(
-                    "#version {}{}0\n#define HIGHER_THAN_300 1",
-                    version.major, version.minor
-                ),
-            ),
-            // OpenGL ES 3.0+
-            (3, _, true) => (
-                format!("#version 3{}0 es", version.minor),
-                format!(
-                    "#version 3{}0 es\n#define HIGHER_THAN_300 1",
-                    version.minor
-                ),
-            ),
-            // OpenGL ES 2.0+
-            (2, _, true) => (
-                String::from(
-                    "#version 100\n#define in attribute\n#define out varying",
-                ),
-                String::from("#version 100\n#define in varying"),
-            ),
-            // OpenGL 2.1
-            (2, _, false) => (
-                String::from(
-                    "#version 120\n#define in attribute\n#define out varying",
-                ),
-                String::from("#version 120\n#define in varying"),
-            ),
-            // OpenGL 1.1+
-            _ => panic!("Incompatible context version: {:?}", version),
-        };
-        log::info!(
-            "Shader directive: {}",
-            shader_version.0.lines().next().unwrap()
-        );
+        let shader_version = program::Version::new(gl);
 
         let quad_pipeline = quad::Pipeline::new(gl, &shader_version);
         let triangle_pipeline = triangle::Pipeline::new(gl, &shader_version);

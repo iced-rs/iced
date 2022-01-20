@@ -1,6 +1,7 @@
 mod compatibility;
 mod core;
 
+use crate::program;
 use crate::Transformation;
 use glow::HasContext;
 use iced_graphics::layer;
@@ -15,12 +16,12 @@ pub enum Pipeline {
 impl Pipeline {
     pub fn new(
         gl: &glow::Context,
-        shader_version: &(String, String),
+        shader_version: &program::Version,
     ) -> Pipeline {
-        let version = gl.version();
+        let gl_version = gl.version();
 
         // OpenGL 3.0+ and OpenGL ES 3.0+ have instancing (which is what separates `core` from `compatibility`)
-        if version.major >= 3 {
+        if gl_version.major >= 3 {
             log::info!("Mode: core");
             Pipeline::Core(core::Pipeline::new(gl, shader_version))
         } else {

@@ -1,4 +1,4 @@
-use crate::program;
+use crate::program::{self, Shader};
 use crate::Transformation;
 use glow::HasContext;
 use iced_graphics::layer;
@@ -22,29 +22,23 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn new(
         gl: &glow::Context,
-        (vertex_version, fragment_version): &(String, String),
+        shader_version: &program::Version,
     ) -> Pipeline {
         let program = unsafe {
+            let vertex_shader = Shader::vertex(
+                gl,
+                shader_version,
+                include_str!("../shader/core/quad.vert"),
+            );
+            let fragment_shader = Shader::fragment(
+                gl,
+                shader_version,
+                include_str!("../shader/core/quad.frag"),
+            );
+
             program::create(
                 gl,
-                &[
-                    (
-                        glow::VERTEX_SHADER,
-                        &format!(
-                            "{}\n{}",
-                            vertex_version,
-                            include_str!("../shader/core/quad.vert")
-                        ),
-                    ),
-                    (
-                        glow::FRAGMENT_SHADER,
-                        &format!(
-                            "{}\n{}",
-                            fragment_version,
-                            include_str!("../shader/core/quad.frag")
-                        ),
-                    ),
-                ],
+                &[vertex_shader, fragment_shader],
                 &[
                     (0, "i_Pos"),
                     (1, "i_Scale"),
