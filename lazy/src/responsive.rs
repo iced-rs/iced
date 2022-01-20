@@ -6,6 +6,7 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
+use iced_native::window;
 use iced_native::{
     Clipboard, Element, Hasher, Length, Point, Rectangle, Shell, Size, Widget,
 };
@@ -100,7 +101,10 @@ where
     ) -> event::Status {
         let mut internal = self.0.borrow_mut();
 
-        if internal.state.last_size != Some(internal.state.last_layout.size()) {
+        if matches!(event, Event::Window(window::Event::Resized { .. }))
+            || internal.state.last_size
+                != Some(internal.state.last_layout.size())
+        {
             shell.invalidate_widgets();
         }
 
