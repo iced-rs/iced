@@ -82,3 +82,29 @@ jobs:
       with:
         name: todos-x86_64-apple-darwin
         path: target/release/todos
+
+  todos_raspberry:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+    - uses: actions/checkout@master
+    - name: Install cross
+      run: cargo install cross
+    - name: Enable Link Time Optimizations
+      run: |
+        echo "[profile.release]" >> Cargo.toml
+        echo "lto = true" >> Cargo.toml
+    - name: Build todos binary for Raspberry Pi 3/4 (64 bits)
+      run: cross build --verbose --release --package todos --target aarch64-unknown-linux-gnu
+    - name: Archive todos binary
+      uses: actions/upload-artifact@v1
+      with:
+        name: todos-aarch64-unknown-linux-gnu
+        path: target/aarch64-unknown-linux-gnu/release/todos
+    - name: Build todos binary for Raspberry Pi 2/3/4 (32 bits)
+      run: cross build --verbose --release --package todos --target armv7-unknown-linux-gnueabihf
+    - name: Archive todos binary
+      uses: actions/upload-artifact@v1
+      with:
+        name: todos-armv7-unknown-linux-gnueabihf
+        path: target/armv7-unknown-linux-gnueabihf/release/todos
