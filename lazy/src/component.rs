@@ -263,14 +263,16 @@ where
                     .build(),
                 );
 
-                cache.as_ref().unwrap().borrow_overlay().is_some()
+                cache
+                    .as_ref()
+                    .unwrap()
+                    .borrow_overlay()
+                    .as_ref()
+                    .map(|overlay| overlay.position())
             });
 
-        has_overlay.then(|| {
-            overlay::Element::new(
-                layout.position(),
-                Box::new(Overlay { instance: self }),
-            )
+        has_overlay.map(|pos| {
+            overlay::Element::new(pos, Box::new(Overlay { instance: self }))
         })
     }
 }
