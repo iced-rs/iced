@@ -116,6 +116,7 @@ mod dark {
                 dot_color: ACTIVE,
                 border_width: 1.0,
                 border_color: ACTIVE,
+                text_color: None,
             }
         }
 

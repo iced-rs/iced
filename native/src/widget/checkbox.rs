@@ -10,8 +10,8 @@ use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text};
 use crate::{
-    Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle,
+    Shell, Widget,
 };
 
 pub use iced_style::checkbox::{Style, StyleSheet};
@@ -43,7 +43,6 @@ pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
-    text_color: Option<Color>,
     style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
@@ -75,7 +74,6 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             font: Renderer::Font::default(),
-            text_color: None,
             style_sheet: Default::default(),
         }
     }
@@ -109,12 +107,6 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
     /// [`Font`]: crate::widget::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
-        self
-    }
-
-    /// Sets the text color of the [`Checkbox`] button.
-    pub fn text_color(mut self, color: Color) -> Self {
-        self.text_color = Some(color);
         self
     }
 
@@ -264,7 +256,7 @@ where
                 &self.label,
                 self.font.clone(),
                 self.text_size,
-                self.text_color.or(Some(custom_style.text_color)),
+                custom_style.text_color,
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
