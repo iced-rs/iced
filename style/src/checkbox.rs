@@ -6,10 +6,10 @@ use iced_core::{Background, Color};
 pub struct Style {
     pub background: Background,
     pub checkmark_color: Color,
-    pub text_color: Color,
     pub border_radius: f32,
     pub border_width: f32,
     pub border_color: Color,
+    pub text_color: Option<Color>,
 }
 
 /// A set of rules that dictate the style of a checkbox.
@@ -26,10 +26,10 @@ impl StyleSheet for Default {
         Style {
             background: Background::Color(Color::from_rgb(0.95, 0.95, 0.95)),
             checkmark_color: Color::from_rgb(0.3, 0.3, 0.3),
-            text_color: Color::BLACK,
             border_radius: 5.0,
             border_width: 1.0,
             border_color: Color::from_rgb(0.6, 0.6, 0.6),
+            text_color: None,
         }
     }
 
