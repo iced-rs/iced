@@ -21,7 +21,7 @@ Currently, `iced_wgpu` supports the following primitives:
 
 [documentation]: https://docs.rs/iced_wgpu
 [`iced_native`]: ../native
-[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[`wgpu`]: https://github.com/gfx-rs/wgpu
 [WebGPU API]: https://gpuweb.github.io/gpuweb/
 [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
 

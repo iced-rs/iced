@@ -20,7 +20,7 @@ The __[`main`](tour/src/main.rs)__ file contains all the code of the example! Al
 [`iced_wgpu`]: ../wgpu
 [`iced_web`]: https://github.com/iced-rs/iced_web
 [`winit`]: https://github.com/rust-windowing/winit
-[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[`wgpu`]: https://github.com/gfx-rs/wgpu
 
 You can run the native version with `cargo run`:
 ```
