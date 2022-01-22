@@ -391,7 +391,7 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        if let Some(mut overlay) =
+        self.overlay = if let Some(mut overlay) =
             self.root.overlay(Layout::new(&self.base.layout), renderer)
         {
             let layer = Self::overlay_layer(
@@ -401,7 +401,9 @@ where
                 renderer,
             );
 
-            self.overlay = Some(layer);
+            Some(layer)
+        } else {
+            None
         };
 
         if let Some(layer) = &self.overlay {
