@@ -39,6 +39,7 @@ pub mod image {
     pub use crate::runtime::image::Handle;
     pub use crate::runtime::widget::image::viewer;
     pub use crate::runtime::widget::image::{Image, Viewer};
+    pub use crate::runtime::ContentFit;
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]

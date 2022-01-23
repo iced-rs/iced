@@ -1,7 +1,8 @@
 use iced::{
-    alignment, button, scrollable, slider, text_input, Button, Checkbox, Color,
-    Column, Container, Element, Image, Length, Radio, Row, Sandbox, Scrollable,
-    Settings, Slider, Space, Text, TextInput, Toggler,
+    alignment, button, image::ContentFit, scrollable, slider, text_input,
+    Button, Checkbox, Color, Column, Container, Element, Image, Length, Radio,
+    Row, Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput,
+    Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -139,7 +140,8 @@ impl Steps {
                     can_continue: false,
                 },
                 Step::Image {
-                    width: 300,
+                    height: 200,
+                    current_fit: ContentFit::Contain,
                     slider: slider::State::new(),
                 },
                 Step::Scrollable,
@@ -213,8 +215,9 @@ enum Step {
         can_continue: bool,
     },
     Image {
-        width: u16,
+        height: u16,
         slider: slider::State,
+        current_fit: ContentFit,
     },
     Scrollable,
     TextInput {
@@ -234,7 +237,8 @@ pub enum StepMessage {
     TextSizeChanged(u16),
     TextColorChanged(Color),
     LanguageSelected(Language),
-    ImageWidthChanged(u16),
+    ImageHeightChanged(u16),
+    ImageFitSelected(ContentFit),
     InputChanged(String),
     ToggleSecureInput(bool),
     DebugToggled(bool),
@@ -279,9 +283,14 @@ impl<'a> Step {
                     *spacing = new_spacing;
                 }
             }
-            StepMessage::ImageWidthChanged(new_width) => {
-                if let Step::Image { width, .. } = self {
-                    *width = new_width;
+            StepMessage::ImageHeightChanged(new_height) => {
+                if let Step::Image { height, .. } = self {
+                    *height = new_height;
+                }
+            }
+            StepMessage::ImageFitSelected(fit) => {
+                if let Step::Image { current_fit, .. } = self {
+                    *current_fit = fit;
                 }
             }
             StepMessage::InputChanged(new_value) => {
@@ -346,7 +355,11 @@ impl<'a> Step {
                 color_sliders,
                 color,
             } => Self::text(size_slider, *size, color_sliders, *color),
-            Step::Image { width, slider } => Self::image(*width, slider),
+            Step::Image {
+                height,
+                slider,
+                current_fit,
+            } => Self::image(*height, slider, *current_fit),
             Step::RowsAndColumns {
                 layout,
                 spacing_slider,
@@ -574,23 +587,45 @@ impl<'a> Step {
     }
 
     fn image(
-        width: u16,
+        height: u16,
         slider: &'a mut slider::State,
+        current_fit: ContentFit,
     ) -> Column<'a, StepMessage> {
+        const FIT_MODES: [(ContentFit, &str); 5] = [
+            (ContentFit::Contain, "Contain"),
+            (ContentFit::Cover, "Cover"),
+            (ContentFit::Fill, "Fill"),
+            (ContentFit::None, "None"),
+            (ContentFit::ScaleDown, "Only Scale Down"),
+        ];
+
+        let mode_selector = FIT_MODES.iter().fold(
+            Column::new().padding(10).spacing(20),
+            |choices, (mode, name)| {
+                choices.push(Radio::new(
+                    *mode,
+                    *name,
+                    Some(current_fit),
+                    StepMessage::ImageFitSelected,
+                ))
+            },
+        );
+
         Self::container("Image")
-            .push(Text::new("An image that tries to keep its aspect ratio."))
-            .push(ferris(width))
+            .push(Text::new("Pictures of things in all shapes and sizes!"))
+            .push(logo(height, current_fit))
             .push(Slider::new(
                 slider,
-                100..=500,
-                width,
-                StepMessage::ImageWidthChanged,
+                50..=500,
+                height,
+                StepMessage::ImageHeightChanged,
             ))
             .push(
-                Text::new(format!("Width: {} px", width.to_string()))
+                Text::new(format!("Height: {} px", height))
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
+            .push(mode_selector)
     }
 
     fn scrollable() -> Column<'a, StepMessage> {
@@ -613,7 +648,7 @@ impl<'a> Step {
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
             .push(Column::new().height(Length::Units(4096)))
-            .push(ferris(300))
+            .push(ferris(200))
             .push(
                 Text::new("You made it!")
                     .width(Length::Fill)
@@ -699,6 +734,7 @@ impl<'a> Step {
     }
 }
 
+/// Passing fit=None defaults to ContentFit::Contain
 fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
     Container::new(
         // This should go away once we unify resource loading on native
@@ -708,10 +744,32 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
         } else {
             Image::new(format!(
                 "{}/images/ferris.png",
-                env!("CARGO_MANIFEST_DIR")
+                env!("CARGO_MANIFEST_DIR"),
             ))
         }
-        .width(Length::Units(width)),
+        .width(Length::Units(width))
+        .fit(ContentFit::Contain),
+    )
+    .width(Length::Fill)
+    .center_x()
+}
+
+/// Passing fit=None defaults to ContentFit::Contain
+fn logo<'a>(height: u16, fit: ContentFit) -> Container<'a, StepMessage> {
+    Container::new(
+        // This should go away once we unify resource loading on native
+        // platforms
+        if cfg!(target_arch = "wasm32") {
+            Image::new("tour/images/logo.png")
+        } else {
+            Image::new(format!(
+                "{}/images/logo.png",
+                env!("CARGO_MANIFEST_DIR"),
+            ))
+        }
+        .width(Length::Fill)
+        .height(Length::Units(height))
+        .fit(fit),
     )
     .width(Length::Fill)
     .center_x()
