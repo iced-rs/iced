@@ -1,6 +1,6 @@
 //! Track mouse clicks.
 use crate::Point;
-use std::time::Instant;
+use instant::Instant;
 
 /// A mouse click.
 #[derive(Debug, Clone, Copy)]
