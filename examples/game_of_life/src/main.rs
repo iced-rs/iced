@@ -18,6 +18,8 @@ use preset::Preset;
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
+    env_logger::builder().format_timestamp(None).init();
+
     GameOfLife::run(Settings {
         antialiasing: true,
         window: window::Settings {

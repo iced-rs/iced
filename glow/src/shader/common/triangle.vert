@@ -1,9 +1,7 @@
-#version 330
-
 uniform mat4 u_Transform;
 
-layout(location = 0) in vec2 i_Position;
-layout(location = 1) in vec4 i_Color;
+in vec2 i_Position;
+in vec4 i_Color;
 
 out vec4 v_Color;
 

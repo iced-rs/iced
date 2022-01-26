@@ -20,6 +20,7 @@ pub use iced_native::*;
 pub mod application;
 
 pub use iced_winit::clipboard;
+pub use iced_winit::conversion;
 pub use iced_winit::settings;
 pub use iced_winit::window;
 pub use iced_winit::{Error, Mode};

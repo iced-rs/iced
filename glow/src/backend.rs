@@ -1,3 +1,4 @@
+use crate::program;
 use crate::quad;
 use crate::text;
 use crate::triangle;
@@ -30,8 +31,10 @@ impl Backend {
             settings.text_multithreading,
         );
 
-        let quad_pipeline = quad::Pipeline::new(gl);
-        let triangle_pipeline = triangle::Pipeline::new(gl);
+        let shader_version = program::Version::new(gl);
+
+        let quad_pipeline = quad::Pipeline::new(gl, &shader_version);
+        let triangle_pipeline = triangle::Pipeline::new(gl, &shader_version);
 
         Self {
             quad_pipeline,

@@ -34,7 +34,9 @@ Inspired by [Elm].
   * First-class support for async actions (use futures!)
   * [Modular ecosystem] split into reusable parts:
     * A [renderer-agnostic native runtime] enabling integration with existing systems
-    * A [built-in renderer] supporting Vulkan, Metal, DX11, and DX12
+    * Two [built-in renderers] leveraging [`wgpu`] and [`glow`]
+      * [`iced_wgpu`] supporting Vulkan, Metal and DX12
+      * [`iced_glow`] supporting OpenGL 2.1+ and OpenGL ES 2.0+
     * A [windowing shell]
     * A [web runtime] leveraging the DOM
 
@@ -49,7 +51,10 @@ __iced is currently experimental software.__ [Take a look at the roadmap],
 [Modular ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
 [renderer-agnostic native runtime]: https://github.com/hecrj/iced/tree/master/native
 [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-[built-in renderer]: https://github.com/hecrj/iced/tree/master/wgpu
+[`glow`]: https://github.com/grovesNL/glow
+[`iced_wgpu`]: https://github.com/hecrj/iced/tree/master/wgpu
+[`iced_glow`]: https://github.com/hecrj/iced/tree/master/glow
+[built-in renderers]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md#Renderers
 [windowing shell]: https://github.com/hecrj/iced/tree/master/winit
 [`dodrio`]: https://github.com/fitzgen/dodrio
 [web runtime]: https://github.com/hecrj/iced/tree/master/web
@@ -194,6 +199,32 @@ end-user-oriented GUI library, while keeping [the ecosystem] modular:
 [tour example]: https://github.com/hecrj/iced/blob/master/examples/README.md#tour
 [`ggez`]: https://github.com/ggez/ggez
 [the ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
+
+## Common problems
+
+1. `Error: GraphicsAdapterNotFound`
+   
+   This occurs when the selected [built-in renderer] is not able to create a context.
+   
+   Often this will occur while using [`iced_wgpu`] as the renderer without
+   supported hardware (needs Vulkan, Metal or DX12). In this case, you could try using the
+   [`iced_glow`] renderer:
+
+   First, check if it works with
+   ```console
+   $ cargo run --features "iced/glow iced/glow_canvas" --package game_of_life
+   ```
+
+   and then use it in your project with
+   ```toml
+   iced = { version = "0.3", default-features = false, features = ["glow"] }
+   ```
+
+   **NOTE:** Chances are you have hardware that supports at least OpenGL 2.1 or OpenGL ES 2.0,
+   but if you don't, right now there's no software fallback, so it means your hardware
+   doesn't support Iced.
+
+[built-in renderer]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md#Renderers
 
 ## Contributing / Feedback
 Contributions are greatly appreciated! If you want to contribute, please

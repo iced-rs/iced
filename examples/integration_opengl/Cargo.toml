@@ -10,4 +10,3 @@ iced_glutin = { path = "../../glutin" }
 iced_glow = { path = "../../glow" }
 iced_winit = { path = "../../winit" }
 env_logger = "0.8"
-glow = "0.6"

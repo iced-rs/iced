@@ -13,6 +13,8 @@
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+pub use glow;
+
 mod backend;
 mod program;
 mod quad;
