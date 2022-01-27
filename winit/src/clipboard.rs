@@ -3,7 +3,8 @@ pub use iced_native::clipboard::Action;
 
 use crate::command::{self, Command};
 
-#[allow(missing_docs)]
+/// A buffer for short-term storage and transfer within and between
+/// applications.
 #[allow(missing_debug_implementations)]
 pub struct Clipboard {
     state: State,
