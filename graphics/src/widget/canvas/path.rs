@@ -72,41 +72,42 @@ impl Path {
 }
 
 pub(super) fn dashed(path: &Path, line_dash: LineDash) -> Path {
-    let segments_odd = line_dash.segments.len() % 2 == 1;
-
-    let segments = segments_odd
-        .then(|| [&line_dash.segments[..], &line_dash.segments[..]].concat())
-        .unwrap_or(line_dash.segments);
-
-    let mut points = vec![];
-
-    walk_along_path(
-        path.raw().iter().flattened(0.01),
-        0.0,
-        &mut RepeatedPattern {
-            callback: |position: lyon_algorithms::math::Point,
-                       _tangent,
-                       _distance| {
-                points.push(Point {
-                    x: position.x,
-                    y: position.y,
-                });
-                true
-            },
-            index: line_dash.offset,
-            intervals: &segments,
-        },
-    );
-
     Path::new(|builder| {
-        for (idx, point) in points.into_iter().enumerate() {
-            let is_even = idx % 2 == 0;
+        let segments_odd = line_dash.segments.len() % 2 == 1;
 
-            if is_even {
-                builder.move_to(point);
-            } else {
-                builder.line_to(point);
-            }
-        }
+        let segments = segments_odd
+            .then(|| {
+                [&line_dash.segments[..], &line_dash.segments[..]].concat()
+            })
+            .unwrap_or(line_dash.segments);
+
+        let mut draw_line = false;
+
+        walk_along_path(
+            path.raw().iter().flattened(0.01),
+            0.0,
+            &mut RepeatedPattern {
+                callback: |position: lyon_algorithms::math::Point,
+                           _tangent,
+                           _distance| {
+                    let point = Point {
+                        x: position.x,
+                        y: position.y,
+                    };
+
+                    if draw_line {
+                        builder.line_to(point);
+                    } else {
+                        builder.move_to(point);
+                    }
+
+                    draw_line = !draw_line;
+
+                    true
+                },
+                index: line_dash.offset,
+                intervals: &segments,
+            },
+        );
     })
 }
