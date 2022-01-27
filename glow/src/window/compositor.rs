@@ -20,6 +20,8 @@ impl iced_graphics::window::GLCompositor for Compositor {
     ) -> Result<(Self, Self::Renderer), Error> {
         let gl = glow::Context::from_loader_function(loader_function);
 
+        log::info!("{:#?}", settings);
+
         let version = gl.version();
         log::info!("Version: {:?}", version);
         log::info!("Embedded: {}", version.is_embedded);

@@ -28,6 +28,17 @@ impl Compositor {
     ) -> Option<Self> {
         let instance = wgpu::Instance::new(settings.internal_backend);
 
+        log::info!("{:#?}", settings);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let available_adapters: Vec<_> = instance
+                .enumerate_adapters(settings.internal_backend)
+                .map(|adapter| adapter.get_info())
+                .collect();
+            log::info!("Available adapters: {:#?}", available_adapters);
+        }
+
         #[allow(unsafe_code)]
         let compatible_surface = compatible_window
             .map(|window| unsafe { instance.create_surface(window) });
@@ -44,9 +55,13 @@ impl Compositor {
             })
             .await?;
 
+        log::info!("Selected: {:#?}", adapter.get_info());
+
         let format = compatible_surface
             .as_ref()
             .and_then(|surface| surface.get_preferred_format(&adapter))?;
+
+        log::info!("Selected format: {:?}", format);
 
         #[cfg(target_arch = "wasm32")]
         let limits = wgpu::Limits::downlevel_webgl2_defaults()

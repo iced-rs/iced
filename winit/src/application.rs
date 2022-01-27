@@ -137,14 +137,16 @@ where
 
     let subscription = application.subscription();
 
-    let window = settings
-        .window
-        .into_builder(
-            &application.title(),
-            application.mode(),
-            event_loop.primary_monitor(),
-            settings.id,
-        )
+    let builder = settings.window.into_builder(
+        &application.title(),
+        application.mode(),
+        event_loop.primary_monitor(),
+        settings.id,
+    );
+
+    log::info!("Window builder: {:#?}", builder);
+
+    let window = builder
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
