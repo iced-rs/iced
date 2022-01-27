@@ -16,6 +16,7 @@ debug = ["iced_native/debug"]
 [dependencies]
 log = "0.4"
 thiserror = "1.0"
+window_clipboard = "0.2"
 
 [dependencies.winit]
 version = "0.26"
@@ -36,6 +37,3 @@ path = "../futures"
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.window_clipboard]
-version = "0.2"
