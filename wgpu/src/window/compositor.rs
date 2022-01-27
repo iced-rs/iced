@@ -105,7 +105,7 @@ impl iced_graphics::window::Compositor for Compositor {
             settings,
             compatible_window,
         ))
-        .ok_or(Error::AdapterNotFound)?;
+        .ok_or(Error::GraphicsAdapterNotFound)?;
 
         let backend = compositor.create_backend();
 

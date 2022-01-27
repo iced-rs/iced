@@ -80,12 +80,25 @@ where
             .or_else(|_| second_builder.build_windowed(builder, &event_loop))
             .map_err(|error| {
                 use glutin::CreationError;
+                use iced_graphics::Error as ContextError;
 
                 match error {
                     CreationError::Window(error) => {
                         Error::WindowCreationFailed(error)
                     }
-                    _ => Error::GraphicsAdapterNotFound,
+                    CreationError::OpenGlVersionNotSupported => {
+                        Error::ContextCreationFailed(
+                            ContextError::VersionNotSupported,
+                        )
+                    }
+                    CreationError::NoAvailablePixelFormat => {
+                        Error::ContextCreationFailed(
+                            ContextError::NoAvailablePixelFormat,
+                        )
+                    }
+                    error => Error::ContextCreationFailed(
+                        ContextError::BackendError(error.to_string()),
+                    ),
                 }
             })?;
 
