@@ -35,7 +35,7 @@ pub use frame::Frame;
 pub use geometry::Geometry;
 pub use path::Path;
 pub use program::Program;
-pub use stroke::{LineCap, LineJoin, Stroke};
+pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use text::Text;
 
 /// A widget capable of drawing 2D graphics.

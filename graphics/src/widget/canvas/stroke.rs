@@ -1,7 +1,7 @@
 use iced_native::Color;
 
 /// The style of a stroke.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Stroke {
     /// The color of the stroke.
     pub color: Color,
@@ -12,6 +12,8 @@ pub struct Stroke {
     /// The shape to be used at the corners of paths or basic shapes when they
     /// are stroked.
     pub line_join: LineJoin,
+    /// The dash pattern used when stroking the line.
+    pub line_dash: LineDash,
 }
 
 impl Stroke {
@@ -43,6 +45,7 @@ impl Default for Stroke {
             width: 1.0,
             line_cap: LineCap::default(),
             line_join: LineJoin::default(),
+            line_dash: LineDash::default(),
         }
     }
 }
@@ -102,4 +105,13 @@ impl From<LineJoin> for lyon::tessellation::LineJoin {
             LineJoin::Bevel => lyon::tessellation::LineJoin::Bevel,
         }
     }
+}
+
+/// The dash pattern used when stroking the line.
+#[derive(Debug, Clone, Default)]
+pub struct LineDash {
+    /// The alternating lengths of lines and gaps which describe the pattern.
+    pub segments: Vec<f32>,
+    /// The offset of [`LineDash::segments`] to start the pattern.
+    pub offset: usize,
 }

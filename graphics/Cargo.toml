@@ -11,7 +11,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-canvas = ["lyon"]
+canvas = ["lyon", "lyon_algorithms"]
 qr_code = ["qrcode", "canvas"]
 font-source = ["font-kit"]
 font-fallback = []
@@ -36,6 +36,10 @@ version = "0.3"
 path = "../style"
 
 [dependencies.lyon]
+version = "0.17"
+optional = true
+
+[dependencies.lyon_algorithms]
 version = "0.17"
 optional = true
 
