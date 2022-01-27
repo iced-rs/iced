@@ -115,15 +115,10 @@ where
     use futures::task;
     use futures::Future;
     use winit::event_loop::EventLoop;
-    #[cfg(not(target_arch = "wasm32"))]
-    use winit::platform::run_return::EventLoopExtRunReturn;
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    #[cfg(not(target_arch = "wasm32"))]
-    let mut event_loop = EventLoop::with_user_event();
-    #[cfg(target_arch = "wasm32")]
     let event_loop = EventLoop::with_user_event();
     let mut proxy = event_loop.create_proxy();
 
@@ -183,81 +178,39 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        event_loop.run_return(move |event, _, control_flow| {
-            use winit::event_loop::ControlFlow;
+    event_loop.run(move |event, _, control_flow| {
+        use winit::event_loop::ControlFlow;
 
-            if let ControlFlow::Exit = control_flow {
-                return;
-            }
+        if let ControlFlow::Exit = control_flow {
+            return;
+        }
 
-            let event = match event {
-                winit::event::Event::WindowEvent {
-                    event:
-                        winit::event::WindowEvent::ScaleFactorChanged {
-                            new_inner_size,
-                            ..
-                        },
-                    window_id,
-                } => Some(winit::event::Event::WindowEvent {
-                    event: winit::event::WindowEvent::Resized(*new_inner_size),
-                    window_id,
-                }),
-                _ => event.to_static(),
+        let event = match event {
+            winit::event::Event::WindowEvent {
+                event:
+                    winit::event::WindowEvent::ScaleFactorChanged {
+                        new_inner_size,
+                        ..
+                    },
+                window_id,
+            } => Some(winit::event::Event::WindowEvent {
+                event: winit::event::WindowEvent::Resized(*new_inner_size),
+                window_id,
+            }),
+            _ => event.to_static(),
+        };
+
+        if let Some(event) = event {
+            sender.start_send(event).expect("Send event");
+
+            let poll = instance.as_mut().poll(&mut context);
+
+            *control_flow = match poll {
+                task::Poll::Pending => ControlFlow::Wait,
+                task::Poll::Ready(_) => ControlFlow::Exit,
             };
-
-            if let Some(event) = event {
-                sender.start_send(event).expect("Send event");
-
-                let poll = instance.as_mut().poll(&mut context);
-
-                *control_flow = match poll {
-                    task::Poll::Pending => ControlFlow::Wait,
-                    task::Poll::Ready(_) => ControlFlow::Exit,
-                };
-            }
-        });
-
-        Ok(())
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        event_loop.run(move |event, _, control_flow| {
-            use winit::event_loop::ControlFlow;
-
-            if let ControlFlow::Exit = control_flow {
-                return;
-            }
-
-            let event = match event {
-                winit::event::Event::WindowEvent {
-                    event:
-                        winit::event::WindowEvent::ScaleFactorChanged {
-                            new_inner_size,
-                            ..
-                        },
-                    window_id,
-                } => Some(winit::event::Event::WindowEvent {
-                    event: winit::event::WindowEvent::Resized(*new_inner_size),
-                    window_id,
-                }),
-                _ => event.to_static(),
-            };
-
-            if let Some(event) = event {
-                sender.start_send(event).expect("Send event");
-
-                let poll = instance.as_mut().poll(&mut context);
-
-                *control_flow = match poll {
-                    task::Poll::Pending => ControlFlow::Wait,
-                    task::Poll::Ready(_) => ControlFlow::Exit,
-                };
-            }
-        });
-    }
+        }
+    });
 }
 
 async fn run_instance<A, E, C>(
