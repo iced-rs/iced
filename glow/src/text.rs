@@ -47,7 +47,7 @@ impl Pipeline {
             });
 
         let draw_brush_builder =
-            wgpu_glyph::GlyphBrushBuilder::using_font(font.clone())
+            glow_glyph::GlyphBrushBuilder::using_font(font.clone())
                 .initial_cache_size((2048, 2048))
                 .draw_cache_multithread(multithreading);
 
