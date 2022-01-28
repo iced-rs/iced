@@ -106,7 +106,6 @@ where
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
