@@ -33,6 +33,7 @@ pub use self::smol::Smol;
 #[cfg(target_arch = "wasm32")]
 pub use wasm_bindgen::WasmBindgen;
 
+use crate::MaybeSend;
 use futures::Future;
 
 /// A type that can run futures.
@@ -43,12 +44,7 @@ pub trait Executor: Sized {
         Self: Sized;
 
     /// Spawns a future in the [`Executor`].
-    #[cfg(not(target_arch = "wasm32"))]
-    fn spawn(&self, future: impl Future<Output = ()> + Send + 'static);
-
-    /// Spawns a local future in the [`Executor`].
-    #[cfg(target_arch = "wasm32")]
-    fn spawn(&self, future: impl Future<Output = ()> + 'static);
+    fn spawn(&self, future: impl Future<Output = ()> + MaybeSend + 'static);
 
     /// Runs the given closure inside the [`Executor`].
     ///

@@ -3,40 +3,9 @@ use crate::event::{self, Event};
 use crate::Hasher;
 
 use iced_futures::futures::{self, Future, Stream};
-use iced_futures::BoxStream;
+use iced_futures::{BoxStream, MaybeSend};
 
 use std::hash::Hash;
-
-#[cfg(not(target_arch = "wasm32"))]
-mod trait_aliases {
-    use super::*;
-
-    /// Wrapper type
-    pub trait RunnerStream<Message>:
-        Stream<Item = Message> + Send + 'static
-    {
-    }
-
-    impl<T, Message> RunnerStream<Message> for T where
-        T: Stream<Item = Message> + Send + 'static
-    {
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-mod trait_aliases {
-    use super::*;
-
-    /// Wrapper type
-    pub trait RunnerStream<Message>: Stream<Item = Message> + 'static {}
-
-    impl<T, Message> RunnerStream<Message> for T where
-        T: Stream<Item = Message> + 'static
-    {
-    }
-}
-
-pub use trait_aliases::RunnerStream;
 
 /// A request to listen to external events.
 ///
@@ -87,7 +56,7 @@ pub fn events_with<Message>(
     f: fn(Event, event::Status) -> Option<Message>,
 ) -> Subscription<Message>
 where
-    Message: 'static + Send,
+    Message: 'static + MaybeSend,
 {
     Subscription::from_recipe(Runner {
         id: f,
@@ -109,7 +78,7 @@ where
 pub fn run<I, S, Message>(id: I, stream: S) -> Subscription<Message>
 where
     I: Hash + 'static,
-    S: Stream<Item = Message> + Send + 'static,
+    S: Stream<Item = Message> + MaybeSend + 'static,
     Message: 'static,
 {
     Subscription::from_recipe(Runner {
@@ -190,13 +159,13 @@ where
 pub fn unfold<I, T, Fut, Message>(
     id: I,
     initial: T,
-    mut f: impl FnMut(T) -> Fut + Send + Sync + 'static,
+    mut f: impl FnMut(T) -> Fut + MaybeSend + Sync + 'static,
 ) -> Subscription<Message>
 where
     I: Hash + 'static,
-    T: Send + 'static,
-    Fut: Future<Output = (Option<Message>, T)> + Send + 'static,
-    Message: 'static + Send,
+    T: MaybeSend + 'static,
+    Fut: Future<Output = (Option<Message>, T)> + MaybeSend + 'static,
+    Message: 'static + MaybeSend,
 {
     use futures::future::{self, FutureExt};
     use futures::stream::StreamExt;
@@ -222,7 +191,7 @@ impl<I, S, F, Message> Recipe<Hasher, (Event, event::Status)>
 where
     I: Hash + 'static,
     F: FnOnce(EventStream) -> S,
-    S: RunnerStream<Message>,
+    S: Stream<Item = Message> + MaybeSend + 'static,
 {
     type Output = Message;
 
@@ -232,15 +201,6 @@ where
     }
 
     fn stream(self: Box<Self>, input: EventStream) -> BoxStream<Self::Output> {
-        use futures::stream::StreamExt;
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            (self.spawn)(input).boxed_local()
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            (self.spawn)(input).boxed()
-        }
+        iced_futures::boxed_stream((self.spawn)(input))
     }
 }

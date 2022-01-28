@@ -1,53 +1,9 @@
 //! Run commands and keep track of subscriptions.
-use crate::BoxFuture;
-use crate::{subscription, Executor, Subscription};
+use crate::subscription;
+use crate::{BoxFuture, Executor, MaybeSend, Subscription};
 
 use futures::{channel::mpsc, Sink};
 use std::marker::PhantomData;
-
-#[cfg(not(target_arch = "wasm32"))]
-mod trait_aliases {
-    use super::*;
-
-    pub trait RuntimeMessage: Send + 'static {}
-
-    impl<T> RuntimeMessage for T where T: Send + 'static {}
-
-    pub trait RuntimeMessageSender<Message: RuntimeMessage>:
-        Sink<Message, Error = mpsc::SendError> + Unpin + Send + Clone + 'static
-    {
-    }
-
-    impl<Message: RuntimeMessage, T> RuntimeMessageSender<Message> for T where
-        T: Sink<Message, Error = mpsc::SendError>
-            + Unpin
-            + Send
-            + Clone
-            + 'static
-    {
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-mod trait_aliases {
-    use super::*;
-
-    pub trait RuntimeMessage: 'static {}
-
-    impl<T> RuntimeMessage for T where T: 'static {}
-
-    pub trait RuntimeMessageSender<Message: RuntimeMessage>:
-        Sink<Message, Error = mpsc::SendError> + Unpin + Clone + 'static
-    {
-    }
-
-    impl<Message: RuntimeMessage, T> RuntimeMessageSender<Message> for T where
-        T: Sink<Message, Error = mpsc::SendError> + Unpin + Clone + 'static
-    {
-    }
-}
-
-pub use trait_aliases::{RuntimeMessage, RuntimeMessageSender};
 
 /// A batteries-included runtime of commands and subscriptions.
 ///
@@ -67,8 +23,12 @@ where
     Hasher: std::hash::Hasher + Default,
     Event: Send + Clone + 'static,
     Executor: self::Executor,
-    Sender: RuntimeMessageSender<Message>,
-    Message: RuntimeMessage,
+    Sender: Sink<Message, Error = mpsc::SendError>
+        + Unpin
+        + MaybeSend
+        + Clone
+        + 'static,
+    Message: MaybeSend + 'static,
 {
     /// Creates a new empty [`Runtime`].
     ///
