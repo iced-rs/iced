@@ -148,6 +148,21 @@ where
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
+    #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::WindowExtWebSys;
+
+        let canvas = window.canvas();
+
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+        let body = document.body().unwrap();
+
+        let _ = body
+            .append_child(&canvas)
+            .expect("Append canvas to HTML body");
+    }
+
     let mut clipboard = Clipboard::connect(&window);
 
     run_command(
