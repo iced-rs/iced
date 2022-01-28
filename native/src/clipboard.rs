@@ -1,4 +1,6 @@
 //! Access the clipboard.
+use iced_futures::MaybeSend;
+
 use std::fmt;
 
 /// A buffer for short-term storage and transfer within and between
@@ -36,7 +38,10 @@ pub enum Action<T> {
 
 impl<T> Action<T> {
     /// Maps the output of a clipboard [`Action`] using the provided closure.
-    pub fn map<A>(self, f: impl Fn(T) -> A + 'static + Send + Sync) -> Action<A>
+    pub fn map<A>(
+        self,
+        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
+    ) -> Action<A>
     where
         T: 'static,
     {

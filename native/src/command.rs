@@ -3,6 +3,8 @@ mod action;
 
 pub use action::Action;
 
+use iced_futures::MaybeSend;
+
 use std::fmt;
 use std::future::Future;
 
@@ -24,8 +26,8 @@ impl<T> Command<T> {
 
     /// Creates a [`Command`] that performs the action of the given future.
     pub fn perform<A>(
-        future: impl Future<Output = T> + 'static + Send,
-        f: impl Fn(T) -> A + 'static + Send,
+        future: impl Future<Output = T> + 'static + MaybeSend,
+        f: impl Fn(T) -> A + 'static + MaybeSend,
     ) -> Command<A> {
         use iced_futures::futures::FutureExt;
 
@@ -45,7 +47,7 @@ impl<T> Command<T> {
     /// Applies a transformation to the result of a [`Command`].
     pub fn map<A>(
         self,
-        f: impl Fn(T) -> A + 'static + Send + Sync + Clone,
+        f: impl Fn(T) -> A + 'static + MaybeSend + Sync + Clone,
     ) -> Command<A>
     where
         T: 'static,
