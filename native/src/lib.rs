@@ -49,6 +49,7 @@ pub mod renderer;
 pub mod subscription;
 pub mod svg;
 pub mod text;
+pub mod time;
 pub mod touch;
 pub mod user_interface;
 pub mod widget;

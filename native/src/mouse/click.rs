@@ -1,6 +1,6 @@
 //! Track mouse clicks.
+use crate::time::Instant;
 use crate::Point;
-use instant::Instant;
 
 /// A mouse click.
 #[derive(Debug, Clone, Copy)]

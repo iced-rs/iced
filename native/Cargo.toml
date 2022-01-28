@@ -14,7 +14,6 @@ debug = []
 twox-hash = { version = "1.5", default-features = false }
 unicode-segmentation = "1.6"
 num-traits = "0.2"
-instant = { version="0.1", features=["wasm-bindgen"] }
 
 [dependencies.iced_core]
 version = "0.4"
@@ -28,3 +27,7 @@ features = ["thread-pool"]
 [dependencies.iced_style]
 version = "0.3"
 path = "../style"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.instant]
+version = "0.1"
+features = ["wasm-bindgen"]
