@@ -48,6 +48,13 @@ impl Compositor {
             .as_ref()
             .and_then(|surface| surface.get_preferred_format(&adapter))?;
 
+        #[cfg(target_arch = "wasm32")]
+        let limits = wgpu::Limits::downlevel_webgl2_defaults()
+            .using_resolution(adapter.limits());
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let limits = wgpu::Limits::default();
+
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
@@ -57,7 +64,7 @@ impl Compositor {
                     features: wgpu::Features::empty(),
                     limits: wgpu::Limits {
                         max_bind_groups: 2,
-                        ..wgpu::Limits::default()
+                        ..limits
                     },
                 },
                 None,
