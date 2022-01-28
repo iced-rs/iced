@@ -1,10 +1,10 @@
-use crate::Executor;
+//! A `wasm-bindgein-futures` backend.
 
-/// A `wasm-bindgen-futures` runtime.
+/// A `wasm-bindgen-futures` executor.
 #[derive(Debug)]
-pub struct WasmBindgen;
+pub struct Executor;
 
-impl Executor for WasmBindgen {
+impl crate::Executor for Executor {
     fn new() -> Result<Self, futures::io::Error> {
         Ok(Self)
     }

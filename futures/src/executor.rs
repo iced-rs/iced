@@ -1,38 +1,4 @@
 //! Choose your preferred executor to power a runtime.
-mod null;
-
-#[cfg(all(not(target_arch = "wasm32"), feature = "thread-pool"))]
-mod thread_pool;
-
-#[cfg(all(not(target_arch = "wasm32"), feature = "tokio"))]
-mod tokio;
-
-#[cfg(all(not(target_arch = "wasm32"), feature = "async-std"))]
-mod async_std;
-
-#[cfg(all(not(target_arch = "wasm32"), feature = "smol"))]
-mod smol;
-
-#[cfg(target_arch = "wasm32")]
-mod wasm_bindgen;
-
-pub use null::Null;
-
-#[cfg(all(not(target_arch = "wasm32"), feature = "thread-pool"))]
-pub use thread_pool::ThreadPool;
-
-#[cfg(all(not(target_arch = "wasm32"), feature = "tokio"))]
-pub use self::tokio::Tokio;
-
-#[cfg(all(not(target_arch = "wasm32"), feature = "async-std"))]
-pub use self::async_std::AsyncStd;
-
-#[cfg(all(not(target_arch = "wasm32"), feature = "smol"))]
-pub use self::smol::Smol;
-
-#[cfg(target_arch = "wasm32")]
-pub use wasm_bindgen::WasmBindgen;
-
 use crate::MaybeSend;
 use futures::Future;
 

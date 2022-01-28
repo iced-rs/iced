@@ -1,12 +1,11 @@
-use crate::Executor;
-
+//! A backend that does nothing!
 use futures::Future;
 
 /// An executor that drops all the futures, instead of spawning them.
 #[derive(Debug)]
-pub struct Null;
+pub struct Executor;
 
-impl Executor for Null {
+impl crate::Executor for Executor {
     fn new() -> Result<Self, futures::io::Error> {
         Ok(Self)
     }
