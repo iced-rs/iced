@@ -1,7 +1,6 @@
 use iced::{
-    button, futures, image, window::take_screenshot, Alignment, Application,
-    Button, Column, Command, Container, Element, Length, Row, Screenshot,
-    Settings, Text,
+    button, futures, image, Alignment, Application, Button, Column, Command,
+    Container, Element, Length, Row, Settings, Text,
 };
 
 pub fn main() -> iced::Result {
@@ -14,7 +13,6 @@ enum Pokedex {
     Loaded {
         pokemon: Pokemon,
         search: button::State,
-        screenshot: button::State,
     },
     Errored {
         try_again: button::State,
@@ -24,9 +22,7 @@ enum Pokedex {
 #[derive(Debug, Clone)]
 enum Message {
     PokemonFound(Result<Pokemon, Error>),
-    PokemonScreenshot(Option<Screenshot>),
     Search,
-    TakeScreenshot,
 }
 
 impl Application for Pokedex {
@@ -57,12 +53,9 @@ impl Application for Pokedex {
                 *self = Pokedex::Loaded {
                     pokemon,
                     search: button::State::new(),
-                    screenshot: button::State::new(),
                 };
+
                 Command::none()
-            }
-            Message::TakeScreenshot => {
-                take_screenshot(Box::new(Message::PokemonScreenshot))
             }
             Message::PokemonFound(Err(_error)) => {
                 *self = Pokedex::Errored {
@@ -79,24 +72,6 @@ impl Application for Pokedex {
                     Command::perform(Pokemon::search(), Message::PokemonFound)
                 }
             },
-            Message::PokemonScreenshot(ss) => {
-                match self {
-                    Pokedex::Loaded {
-                        pokemon,
-                        search,
-                        screenshot,
-                    } => {
-                        ss.map(|ss| {
-                            ss.save_image_to_png(format!(
-                                "{}.png",
-                                pokemon.name
-                            ))
-                        });
-                    }
-                    _ => {}
-                }
-                Command::none()
-            }
         }
     }
 
@@ -105,21 +80,13 @@ impl Application for Pokedex {
             Pokedex::Loading => Column::new()
                 .width(Length::Shrink)
                 .push(Text::new("Searching for Pokémon...").size(40)),
-            Pokedex::Loaded {
-                pokemon,
-                search,
-                screenshot,
-            } => Column::new()
+            Pokedex::Loaded { pokemon, search } => Column::new()
                 .max_width(500)
                 .spacing(20)
                 .align_items(Alignment::End)
                 .push(pokemon.view())
                 .push(
                     button(search, "Keep searching!").on_press(Message::Search),
-                )
-                .push(
-                    button(screenshot, "Take a screenshot!")
-                        .on_press(Message::TakeScreenshot),
                 ),
             Pokedex::Errored { try_again, .. } => Column::new()
                 .spacing(20)
