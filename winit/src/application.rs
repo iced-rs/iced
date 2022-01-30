@@ -16,6 +16,7 @@ use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
 
+
 use iced_native::user_interface::{self, UserInterface};
 
 use std::mem::ManuallyDrop;
@@ -184,8 +185,6 @@ where
     runtime.track(subscription);
 
     let (mut sender, receiver) = mpsc::unbounded();
-    let proxy2 = proxy.clone();
-    let window_id = window.id();
 
     let mut instance = Box::pin(run_instance::<A, E, C>(
         application,
@@ -201,6 +200,7 @@ where
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
+
 
     platform::run(event_loop, move |event, _, control_flow| {
         use winit::event_loop::ControlFlow;

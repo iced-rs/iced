@@ -71,7 +71,6 @@ members = [
     "examples/exit",
     "examples/game_of_life",
     "examples/geometry",
-    "examples/headless",
     "examples/integration_opengl",
     "examples/integration_wgpu",
     "examples/pane_grid",
