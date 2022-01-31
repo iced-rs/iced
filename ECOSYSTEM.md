@@ -78,7 +78,7 @@ Finally, [`iced`] unifies everything into a simple abstraction to create cross-p
 [`iced_futures`]: futures
 [`iced_style`]: style
 [`iced_native`]: native
-[`iced_web`]: web
+[`iced_web`]: https://github.com/iced-rs/iced_web
 [`iced_graphics`]: graphics
 [`iced_wgpu`]: wgpu
 [`iced_glow`]: glow
