@@ -2,7 +2,7 @@
 [![Documentation](https://docs.rs/iced_native/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced_native.svg)](https://crates.io/crates/iced_native)
 [![License](https://img.shields.io/crates/l/iced_native.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
-[![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
+[![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
 `iced_native` takes [`iced_core`] and builds a native runtime on top of it, featuring:
 - A custom layout engine, greatly inspired by [`druid`]

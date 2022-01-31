@@ -2,7 +2,7 @@
 
 Thank you for considering contributing to Iced! Feel free to read [the ecosystem overview] and [the roadmap] to get an idea of the current state of the library.
 
-The main advice for new contributors is to share your ideas with the community. Introduce yourself over our [Zulip server] or [start a discussion in an issue](https://github.com/hecrj/iced/issues) explaining what you have in mind (do not be afraid of duplicated issues!). If you want to talk directly to me (@hecrj), you can also find me on Discord (`lone_scientist#9554`).
+The main advice for new contributors is to share your ideas with the community. Introduce yourself over our [Discord server] or [start a discussion in an issue](https://github.com/hecrj/iced/issues) explaining what you have in mind (do not be afraid of duplicated issues!). If you want to talk directly to me (@hecrj), you can also find me on Discord (`lone_scientist#9554`).
 
 This is a very important step. It helps to coordinate work, get on the same page, and start building trust. Please, do not skip it! Remember that [Code is the Easy Part] and also [The Hard Parts of Open Source]!
 
@@ -27,7 +27,7 @@ Besides directly writing code, there are many other different ways you can contr
 
 [the ecosystem overview]: ECOSYSTEM.md
 [the roadmap]: ROADMAP.md
-[Zulip server]: https://iced.zulipchat.com/
+[Discord server]: https://discord.gg/3xZJ65GAhd
 [Code is the Easy Part]: https://youtu.be/DSjbTC-hvqQ?t=1138
 [The Hard Parts of Open Source]: https://www.youtube.com/watch?v=o_4EX4dPppA
 [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
