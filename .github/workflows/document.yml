@@ -17,7 +17,6 @@ jobs:
           -p iced_core \
           -p iced_native \
           -p iced_lazy \
-          -p iced_web \
           -p iced_graphics \
           -p iced_wgpu \
           -p iced_glow \
