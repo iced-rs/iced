@@ -193,7 +193,7 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    event_loop.run(move |event, _, control_flow| {
+    platform::run(event_loop, move |event, _, control_flow| {
         use winit::event_loop::ControlFlow;
 
         if let ControlFlow::Exit = control_flow {
@@ -225,7 +225,7 @@ where
                 task::Poll::Ready(_) => ControlFlow::Exit,
             };
         }
-    });
+    })
 }
 
 async fn run_instance<A, E, C>(
@@ -572,5 +572,45 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                 }
             },
         }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+mod platform {
+    pub fn run<T, F>(
+        mut event_loop: winit::event_loop::EventLoop<T>,
+        event_handler: F,
+    ) -> Result<(), super::Error>
+    where
+        F: 'static
+            + FnMut(
+                winit::event::Event<'_, T>,
+                &winit::event_loop::EventLoopWindowTarget<T>,
+                &mut winit::event_loop::ControlFlow,
+            ),
+    {
+        use winit::platform::run_return::EventLoopExtRunReturn;
+
+        let _ = event_loop.run_return(event_handler);
+
+        Ok(())
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+mod platform {
+    pub fn run<T, F>(
+        event_loop: winit::event_loop::EventLoop<T>,
+        event_handler: F,
+    ) -> !
+    where
+        F: 'static
+            + FnMut(
+                winit::event::Event<'_, T>,
+                &winit::event_loop::EventLoopWindowTarget<T>,
+                &mut winit::event_loop::ControlFlow,
+            ),
+    {
+        event_loop.run(event_handler)
     }
 }
