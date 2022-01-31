@@ -6,8 +6,11 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(device: &wgpu::Device) -> Scene {
-        let pipeline = build_pipeline(device);
+    pub fn new(
+        device: &wgpu::Device,
+        texture_format: wgpu::TextureFormat,
+    ) -> Scene {
+        let pipeline = build_pipeline(device, texture_format);
 
         Scene { pipeline }
     }
@@ -47,12 +50,14 @@ impl Scene {
     }
 }
 
-fn build_pipeline(device: &wgpu::Device) -> wgpu::RenderPipeline {
-    let vs_module =
-        device.create_shader_module(&wgpu::include_spirv!("shader/vert.spv"));
-
-    let fs_module =
-        device.create_shader_module(&wgpu::include_spirv!("shader/frag.spv"));
+fn build_pipeline(
+    device: &wgpu::Device,
+    texture_format: wgpu::TextureFormat,
+) -> wgpu::RenderPipeline {
+    let (vs_module, fs_module) = (
+        device.create_shader_module(&wgpu::include_wgsl!("shader/vert.wgsl")),
+        device.create_shader_module(&wgpu::include_wgsl!("shader/frag.wgsl")),
+    );
 
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -74,7 +79,7 @@ fn build_pipeline(device: &wgpu::Device) -> wgpu::RenderPipeline {
                 module: &fs_module,
                 entry_point: "main",
                 targets: &[wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    format: texture_format,
                     blend: Some(wgpu::BlendState {
                         color: wgpu::BlendComponent::REPLACE,
                         alpha: wgpu::BlendComponent::REPLACE,

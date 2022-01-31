@@ -1,6 +1,8 @@
 use crate::clipboard;
 use crate::window;
 
+use iced_futures::MaybeSend;
+
 use std::fmt;
 
 /// An action that a [`Command`] can perform.
@@ -19,7 +21,10 @@ pub enum Action<T> {
 
 impl<T> Action<T> {
     /// Applies a transformation to the result of a [`Command`].
-    pub fn map<A>(self, f: impl Fn(T) -> A + 'static + Send + Sync) -> Action<A>
+    pub fn map<A>(
+        self,
+        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
+    ) -> Action<A>
     where
         T: 'static,
     {

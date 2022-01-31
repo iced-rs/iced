@@ -17,6 +17,7 @@
 pub mod alignment;
 pub mod keyboard;
 pub mod mouse;
+pub mod time;
 
 mod background;
 mod color;

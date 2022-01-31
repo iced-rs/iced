@@ -156,7 +156,7 @@ impl<T> Application for T
 where
     T: Sandbox,
 {
-    type Executor = crate::runtime::executor::Null;
+    type Executor = iced_futures::backend::null::Executor;
     type Flags = ();
     type Message = T::Message;
 

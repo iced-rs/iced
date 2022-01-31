@@ -115,12 +115,11 @@ where
     use futures::task;
     use futures::Future;
     use winit::event_loop::EventLoop;
-    use winit::platform::run_return::EventLoopExtRunReturn;
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let mut event_loop = EventLoop::with_user_event();
+    let event_loop = EventLoop::with_user_event();
     let mut proxy = event_loop.create_proxy();
 
     let mut runtime = {
@@ -148,6 +147,21 @@ where
         )
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::WindowExtWebSys;
+
+        let canvas = window.canvas();
+
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+        let body = document.body().unwrap();
+
+        let _ = body
+            .append_child(&canvas)
+            .expect("Append canvas to HTML body");
+    }
 
     let mut clipboard = Clipboard::connect(&window);
 
@@ -179,7 +193,7 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    event_loop.run_return(move |event, _, control_flow| {
+    platform::run(event_loop, move |event, _, control_flow| {
         use winit::event_loop::ControlFlow;
 
         if let ControlFlow::Exit = control_flow {
@@ -211,9 +225,7 @@ where
                 task::Poll::Ready(_) => ControlFlow::Exit,
             };
         }
-    });
-
-    Ok(())
+    })
 }
 
 async fn run_instance<A, E, C>(
@@ -560,5 +572,45 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                 }
             },
         }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+mod platform {
+    pub fn run<T, F>(
+        mut event_loop: winit::event_loop::EventLoop<T>,
+        event_handler: F,
+    ) -> Result<(), super::Error>
+    where
+        F: 'static
+            + FnMut(
+                winit::event::Event<'_, T>,
+                &winit::event_loop::EventLoopWindowTarget<T>,
+                &mut winit::event_loop::ControlFlow,
+            ),
+    {
+        use winit::platform::run_return::EventLoopExtRunReturn;
+
+        let _ = event_loop.run_return(event_handler);
+
+        Ok(())
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+mod platform {
+    pub fn run<T, F>(
+        event_loop: winit::event_loop::EventLoop<T>,
+        event_handler: F,
+    ) -> !
+    where
+        F: 'static
+            + FnMut(
+                winit::event::Event<'_, T>,
+                &winit::event_loop::EventLoopWindowTarget<T>,
+                &mut winit::event_loop::ControlFlow,
+            ),
+    {
+        event_loop.run(event_handler)
     }
 }

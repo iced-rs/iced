@@ -1,23 +1,29 @@
 use iced_wgpu::Renderer;
 use iced_winit::widget::slider::{self, Slider};
+use iced_winit::widget::text_input::{self, TextInput};
 use iced_winit::widget::{Column, Row, Text};
 use iced_winit::{Alignment, Color, Command, Element, Length, Program};
 
 pub struct Controls {
     background_color: Color,
+    text: String,
     sliders: [slider::State; 3],
+    text_input: text_input::State,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     BackgroundColorChanged(Color),
+    TextChanged(String),
 }
 
 impl Controls {
     pub fn new() -> Controls {
         Controls {
             background_color: Color::BLACK,
+            text: Default::default(),
             sliders: Default::default(),
+            text_input: Default::default(),
         }
     }
 
@@ -35,6 +41,9 @@ impl Program for Controls {
             Message::BackgroundColorChanged(color) => {
                 self.background_color = color;
             }
+            Message::TextChanged(text) => {
+                self.text = text;
+            }
         }
 
         Command::none()
@@ -42,7 +51,9 @@ impl Program for Controls {
 
     fn view(&mut self) -> Element<Message, Renderer> {
         let [r, g, b] = &mut self.sliders;
+        let t = &mut self.text_input;
         let background_color = self.background_color;
+        let text = &self.text;
 
         let sliders = Row::new()
             .width(Length::Units(500))
@@ -96,7 +107,13 @@ impl Program for Controls {
                                 Text::new(format!("{:?}", background_color))
                                     .size(14)
                                     .color(Color::WHITE),
-                            ),
+                            )
+                            .push(TextInput::new(
+                                t,
+                                "Placeholder",
+                                text,
+                                move |text| Message::TextChanged(text),
+                            )),
                     ),
             )
             .into()

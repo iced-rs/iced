@@ -21,7 +21,6 @@ impl Default for Position {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl From<Position> for iced_winit::Position {
     fn from(position: Position) -> Self {
         match position {
