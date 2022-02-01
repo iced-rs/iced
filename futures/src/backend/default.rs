@@ -22,12 +22,19 @@ mod platform {
     ))]
     pub use crate::backend::native::smol::*;
 
+    #[cfg(all(
+        feature = "thread-pool",
+        not(any(feature = "tokio", feature = "async-std", feature = "smol"))
+    ))]
+    pub use crate::backend::native::thread_pool::*;
+
     #[cfg(not(any(
         feature = "tokio",
         feature = "async-std",
         feature = "smol",
+        feature = "thread-pool"
     )))]
-    pub use crate::backend::native::thread_pool::*;
+    pub use crate::backend::null::*;
 }
 
 #[cfg(target_arch = "wasm32")]

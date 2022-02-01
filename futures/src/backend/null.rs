@@ -16,3 +16,7 @@ impl crate::Executor for Executor {
     #[cfg(target_arch = "wasm32")]
     fn spawn(&self, _future: impl Future<Output = ()> + 'static) {}
 }
+
+pub mod time {
+    //! Listen and react to time.
+}
