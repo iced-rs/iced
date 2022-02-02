@@ -29,7 +29,7 @@ body:
 
         - If you are using `wgpu`, you need an environment that supports Vulkan,
         Metal, or DirectX 12. Please, make sure you can run [the `wgpu` examples].
-        - If you are using `glow, you need support for OpenGL 2.1+. Please,
+        - If you are using `glow`, you need support for OpenGL 2.1+. Please,
         make sure you can run [the `glow` examples].
 
         If you have any issues running any of the examples, make sure your
