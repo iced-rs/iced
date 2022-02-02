@@ -1,5 +1,5 @@
-name: Bug report
-description: Report a problem.
+name: I have a problem with the library
+description: File a bug report.
 labels: ["bug"]
 body:
   - type: markdown
