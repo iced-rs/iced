@@ -10,8 +10,7 @@ body:
     attributes:
       label: Is there an existing issue for this?
       description: |
-        Please, search [the existing issues] and see if an issue already exists
-        for the bug you encountered.
+        Please, search [the existing issues] and see if an issue already exists for the bug you encountered.
 
         [the existing issues]: https://github.com/iced-rs/iced/issues
       options:
@@ -21,20 +20,14 @@ body:
     attributes:
       label: Is this issue related to iced?
       description: |
-        If your application is crashing during startup or you are observing
-        graphical glitches, there is a chance it may be caused by incompatible
-        hardware or outdated graphics drivers.
+        If your application is crashing during startup or you are observing graphical glitches, there is a chance it may be caused by incompatible hardware or outdated graphics drivers.
 
         Before filing an issue...
 
-        - If you are using `wgpu`, you need an environment that supports Vulkan,
-        Metal, or DirectX 12. Please, make sure you can run [the `wgpu` examples].
-        - If you are using `glow`, you need support for OpenGL 2.1+. Please,
-        make sure you can run [the `glow` examples].
+        - If you are using `wgpu`, you need an environment that supports Vulkan, Metal, or DirectX 12. Please, make sure you can run [the `wgpu` examples].
+        - If you are using `glow`, you need support for OpenGL 2.1+. Please, make sure you can run [the `glow` examples].
 
-        If you have any issues running any of the examples, make sure your
-        graphics drivers are up-to-date. If the issues persist, please report
-        them to the authors of the libraries directly!
+        If you have any issues running any of the examples, make sure your graphics drivers are up-to-date. If the issues persist, please report them to the authors of the libraries directly!
 
         [the `wgpu` examples]: https://github.com/gfx-rs/wgpu/tree/master/wgpu/examples
         [the `glow` examples]: https://github.com/grovesNL/glow/tree/main/examples
@@ -46,8 +39,7 @@ body:
       label: What happened?
       id: what-happened
       description: |
-        What problem are you having? Please, also provide the steps to reproduce
-        it.
+        What problem are you having? Please, also provide the steps to reproduce it.
 
         If the issue happens with a particular program, please share an [SSCCE].
 
