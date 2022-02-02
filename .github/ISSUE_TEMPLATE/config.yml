@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussions
+    url: https://github.com/iced-rs/iced/discussions/new
+    about: Use GitHub discussions, if you are looking for feedback or have any questions!
+  - name: Discord Community Server
+    url: https://discord.com/invite/3xZJ65GAhd
+    about: Feel free to ask any questions in the community server!
