@@ -1,0 +1,90 @@
+name: Bug Report
+description: File a bug report
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: |
+        Please, search [the existing issues] and see if an issue already exists
+        for the bug you encountered.
+
+        [the existing issues]: https://github.com/iced-rs/iced/issues
+      options:
+      - label: I have searched the existing issues.
+        required: true
+  - type: checkboxes
+    attributes:
+      label: Is this issue related to iced?
+      description: |
+        If your application is crashing during startup or you are observing
+        graphical glitches, there is a chance it may be caused by incompatible
+        hardware or outdated graphics drivers.
+
+        Before filing an issue...
+
+        - If you are using `wgpu`, you need an environment that supports Vulkan,
+        Metal, or DirectX 12. Please, make sure you can run [the `wgpu` examples].
+        - If you are using `glow, you need support for OpenGL 2.1+. Please,
+        make sure you can run [the `glow` examples].
+
+        If you have any issues running any of the examples, make sure your
+        graphics drivers are up-to-date. If the issues persist, please report
+        them to the authors of the libraries directly!
+
+        [the `wgpu` examples]: https://github.com/gfx-rs/wgpu/tree/master/wgpu/examples
+        [the `glow` examples]: https://github.com/grovesNL/glow/tree/main/examples
+      options:
+      - label: My hardware is compatible and my graphics drivers are up-to-date.
+        required: true
+  - type: textarea
+    attributes:
+      label: What happened?
+      id: what-happened
+      description: |
+        What problem are you having? Please, also provide the steps to reproduce
+        it.
+
+        If the issue happens with a particular program, please share an [SSCCE].
+
+        [SSCCE]: http://sscce.org/
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What is the expected behavior?
+      label: what-expected
+      description: What were you expecting to happen?
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: What version of iced are you using?
+      options:
+        - master
+        - 0.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operative System
+      description: Which operative system are you using?
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Do you have any log output?
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
