@@ -49,7 +49,7 @@ body:
   - type: textarea
     attributes:
       label: What is the expected behavior?
-      label: what-expected
+      id: what-expected
       description: What were you expecting to happen?
     validations:
       required: true
