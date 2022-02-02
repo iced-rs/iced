@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: I have a question / suggestion / idea
+  - name: I have a question
+    url: https://github.com/iced-rs/iced/discussions/new?category=q-a
+    about: Open a discussion with a Q&A format.
+  - name: I want to start a discussion
     url: https://github.com/iced-rs/iced/discussions/new
-    about: Use GitHub Discussions if you have any questions or suggestions or want to discuss any ideas.
+    about: Open a new discussion if you have any suggestions, ideas, feature requests, or simply want to show off something you've made.
   - name: I want to chat with other users of the library
     url: https://discord.com/invite/3xZJ65GAhd
-    about: Feel free to hang out with the community in the Discord Server!
+    about: Join the Discord Server and get involved with the community!
