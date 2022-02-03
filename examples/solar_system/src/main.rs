@@ -165,7 +165,7 @@ impl<Message> canvas::Program<Message> for State {
                     color: Color::from_rgba8(0, 153, 255, 0.1),
                     line_dash: canvas::LineDash {
                         offset: 0,
-                        segments: vec![3.0, 6.0],
+                        segments: &[3.0, 6.0],
                     },
                     ..Stroke::default()
                 },

@@ -100,14 +100,14 @@ impl canvas::Program<Message> for Clock {
 
             let wide_stroke = Stroke {
                 width: thin_stroke.width * 3.0,
-                ..thin_stroke.clone()
+                ..thin_stroke
             };
 
             frame.translate(Vector::new(center.x, center.y));
 
             frame.with_save(|frame| {
                 frame.rotate(hand_rotation(self.now.hour(), 12));
-                frame.stroke(&short_hand, wide_stroke.clone());
+                frame.stroke(&short_hand, wide_stroke);
             });
 
             frame.with_save(|frame| {

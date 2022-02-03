@@ -153,7 +153,7 @@ impl Frame {
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
-    pub fn stroke(&mut self, path: &Path, stroke: impl Into<Stroke>) {
+    pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
         let stroke = stroke.into();
 
         let mut buffers = tessellation::BuffersBuilder::new(

@@ -1,8 +1,8 @@
 use iced_native::Color;
 
 /// The style of a stroke.
-#[derive(Debug, Clone)]
-pub struct Stroke {
+#[derive(Debug, Clone, Copy)]
+pub struct Stroke<'a> {
     /// The color of the stroke.
     pub color: Color,
     /// The distance between the two edges of the stroke.
@@ -13,33 +13,33 @@ pub struct Stroke {
     /// are stroked.
     pub line_join: LineJoin,
     /// The dash pattern used when stroking the line.
-    pub line_dash: LineDash,
+    pub line_dash: LineDash<'a>,
 }
 
-impl Stroke {
+impl<'a> Stroke<'a> {
     /// Sets the color of the [`Stroke`].
-    pub fn with_color(self, color: Color) -> Stroke {
+    pub fn with_color(self, color: Color) -> Self {
         Stroke { color, ..self }
     }
 
     /// Sets the width of the [`Stroke`].
-    pub fn with_width(self, width: f32) -> Stroke {
+    pub fn with_width(self, width: f32) -> Self {
         Stroke { width, ..self }
     }
 
     /// Sets the [`LineCap`] of the [`Stroke`].
-    pub fn with_line_cap(self, line_cap: LineCap) -> Stroke {
+    pub fn with_line_cap(self, line_cap: LineCap) -> Self {
         Stroke { line_cap, ..self }
     }
 
     /// Sets the [`LineJoin`] of the [`Stroke`].
-    pub fn with_line_join(self, line_join: LineJoin) -> Stroke {
+    pub fn with_line_join(self, line_join: LineJoin) -> Self {
         Stroke { line_join, ..self }
     }
 }
 
-impl Default for Stroke {
-    fn default() -> Stroke {
+impl<'a> Default for Stroke<'a> {
+    fn default() -> Self {
         Stroke {
             color: Color::BLACK,
             width: 1.0,
@@ -108,10 +108,11 @@ impl From<LineJoin> for lyon::tessellation::LineJoin {
 }
 
 /// The dash pattern used when stroking the line.
-#[derive(Debug, Clone, Default)]
-pub struct LineDash {
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LineDash<'a> {
     /// The alternating lengths of lines and gaps which describe the pattern.
-    pub segments: Vec<f32>,
+    pub segments: &'a [f32],
+
     /// The offset of [`LineDash::segments`] to start the pattern.
     pub offset: usize,
 }
