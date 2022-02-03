@@ -10,8 +10,8 @@ pub use builder::Builder;
 use crate::canvas::LineDash;
 
 use iced_native::{Point, Size};
+use lyon::algorithms::walk::{walk_along_path, RepeatedPattern};
 use lyon::path::iterator::PathIterator;
-use lyon_algorithms::walk::{walk_along_path, RepeatedPattern};
 
 /// An immutable set of points that may or may not be connected.
 ///
@@ -83,7 +83,7 @@ pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
             path.raw().iter().flattened(0.01),
             0.0,
             &mut RepeatedPattern {
-                callback: |position: lyon_algorithms::math::Point,
+                callback: |position: lyon::algorithms::math::Point,
                            _tangent,
                            _distance| {
                     let point = Point {
