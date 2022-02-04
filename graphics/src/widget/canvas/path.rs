@@ -7,7 +7,11 @@ mod builder;
 pub use arc::Arc;
 pub use builder::Builder;
 
+use crate::canvas::LineDash;
+
 use iced_native::{Point, Size};
+use lyon::algorithms::walk::{walk_along_path, RepeatedPattern};
+use lyon::path::iterator::PathIterator;
 
 /// An immutable set of points that may or may not be connected.
 ///
@@ -65,4 +69,44 @@ impl Path {
             raw: self.raw.clone().transformed(transform),
         }
     }
+}
+
+pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
+    Path::new(|builder| {
+        let segments_odd = (line_dash.segments.len() % 2 == 1).then(|| {
+            [&line_dash.segments[..], &line_dash.segments[..]].concat()
+        });
+
+        let mut draw_line = false;
+
+        walk_along_path(
+            path.raw().iter().flattened(0.01),
+            0.0,
+            &mut RepeatedPattern {
+                callback: |position: lyon::algorithms::math::Point,
+                           _tangent,
+                           _distance| {
+                    let point = Point {
+                        x: position.x,
+                        y: position.y,
+                    };
+
+                    if draw_line {
+                        builder.line_to(point);
+                    } else {
+                        builder.move_to(point);
+                    }
+
+                    draw_line = !draw_line;
+
+                    true
+                },
+                index: line_dash.offset,
+                intervals: segments_odd
+                    .as_ref()
+                    .map(Vec::as_slice)
+                    .unwrap_or(line_dash.segments),
+            },
+        );
+    })
 }

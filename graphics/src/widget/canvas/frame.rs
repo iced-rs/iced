@@ -1,6 +1,9 @@
+use std::borrow::Cow;
+
 use iced_native::{Point, Rectangle, Size, Vector};
 
 use crate::{
+    canvas::path,
     canvas::{Fill, Geometry, Path, Stroke, Text},
     triangle, Primitive,
 };
@@ -150,7 +153,7 @@ impl Frame {
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
-    pub fn stroke(&mut self, path: &Path, stroke: impl Into<Stroke>) {
+    pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
         let stroke = stroke.into();
 
         let mut buffers = tessellation::BuffersBuilder::new(
@@ -163,6 +166,12 @@ impl Frame {
         options.start_cap = stroke.line_cap.into();
         options.end_cap = stroke.line_cap.into();
         options.line_join = stroke.line_join.into();
+
+        let path = if stroke.line_dash.segments.is_empty() {
+            Cow::Borrowed(path)
+        } else {
+            Cow::Owned(path::dashed(path, stroke.line_dash))
+        };
 
         let result = if self.transforms.current.is_identity {
             self.stroke_tessellator.tessellate_path(

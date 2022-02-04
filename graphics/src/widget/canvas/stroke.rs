@@ -2,7 +2,7 @@ use iced_native::Color;
 
 /// The style of a stroke.
 #[derive(Debug, Clone, Copy)]
-pub struct Stroke {
+pub struct Stroke<'a> {
     /// The color of the stroke.
     pub color: Color,
     /// The distance between the two edges of the stroke.
@@ -12,37 +12,40 @@ pub struct Stroke {
     /// The shape to be used at the corners of paths or basic shapes when they
     /// are stroked.
     pub line_join: LineJoin,
+    /// The dash pattern used when stroking the line.
+    pub line_dash: LineDash<'a>,
 }
 
-impl Stroke {
+impl<'a> Stroke<'a> {
     /// Sets the color of the [`Stroke`].
-    pub fn with_color(self, color: Color) -> Stroke {
+    pub fn with_color(self, color: Color) -> Self {
         Stroke { color, ..self }
     }
 
     /// Sets the width of the [`Stroke`].
-    pub fn with_width(self, width: f32) -> Stroke {
+    pub fn with_width(self, width: f32) -> Self {
         Stroke { width, ..self }
     }
 
     /// Sets the [`LineCap`] of the [`Stroke`].
-    pub fn with_line_cap(self, line_cap: LineCap) -> Stroke {
+    pub fn with_line_cap(self, line_cap: LineCap) -> Self {
         Stroke { line_cap, ..self }
     }
 
     /// Sets the [`LineJoin`] of the [`Stroke`].
-    pub fn with_line_join(self, line_join: LineJoin) -> Stroke {
+    pub fn with_line_join(self, line_join: LineJoin) -> Self {
         Stroke { line_join, ..self }
     }
 }
 
-impl Default for Stroke {
-    fn default() -> Stroke {
+impl<'a> Default for Stroke<'a> {
+    fn default() -> Self {
         Stroke {
             color: Color::BLACK,
             width: 1.0,
             line_cap: LineCap::default(),
             line_join: LineJoin::default(),
+            line_dash: LineDash::default(),
         }
     }
 }
@@ -102,4 +105,14 @@ impl From<LineJoin> for lyon::tessellation::LineJoin {
             LineJoin::Bevel => lyon::tessellation::LineJoin::Bevel,
         }
     }
+}
+
+/// The dash pattern used when stroking the line.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LineDash<'a> {
+    /// The alternating lengths of lines and gaps which describe the pattern.
+    pub segments: &'a [f32],
+
+    /// The offset of [`LineDash::segments`] to start the pattern.
+    pub offset: usize,
 }
