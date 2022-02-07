@@ -55,7 +55,6 @@ pub mod widget;
 pub mod window;
 
 mod element;
-mod hasher;
 mod runtime;
 mod shell;
 
@@ -84,7 +83,7 @@ pub use command::Command;
 pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;
-pub use hasher::Hasher;
+pub use iced_core::Hasher;
 pub use layout::Layout;
 pub use overlay::Overlay;
 pub use program::Program;

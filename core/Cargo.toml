@@ -9,6 +9,7 @@ repository = "https://github.com/iced-rs/iced"
 
 [dependencies]
 bitflags = "1.2"
+twox-hash = { version = "1.5", default-features = false }
 
 [dependencies.palette]
 version = "0.5"
