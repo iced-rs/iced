@@ -43,23 +43,23 @@ Inspired by [Elm].
 __iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
 
-[Cross-platform support]: https://github.com/hecrj/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
+[Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg 
 [the Web]: https://iced.rs/
 [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
 [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
-[Modular ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
-[renderer-agnostic native runtime]: https://github.com/hecrj/iced/tree/master/native
-[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[Modular ecosystem]: ECOSYSTEM.md
+[renderer-agnostic native runtime]: native/
+[`wgpu`]: https://github.com/gfx-rs/wgpu
 [`glow`]: https://github.com/grovesNL/glow
-[`iced_wgpu`]: https://github.com/hecrj/iced/tree/master/wgpu
-[`iced_glow`]: https://github.com/hecrj/iced/tree/master/glow
-[built-in renderers]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md#Renderers
-[windowing shell]: https://github.com/hecrj/iced/tree/master/winit
+[`iced_wgpu`]: wgpu/
+[`iced_glow`]: glow/
+[built-in renderers]: ECOSYSTEM.md#Renderers
+[windowing shell]: winit/
 [`dodrio`]: https://github.com/fitzgen/dodrio
-[web runtime]: https://github.com/hecrj/iced/tree/master/web
-[Take a look at the roadmap]: https://github.com/hecrj/iced/blob/master/ROADMAP.md
-[check out the issues]: https://github.com/hecrj/iced/issues
+[web runtime]: https://github.com/iced-rs/iced_web
+[Take a look at the roadmap]: ROADMAP.md
+[check out the issues]: https://github.com/iced-rs/iced/issues
 [feel free to contribute!]: #contributing--feedback
 
 ## Installation
@@ -72,7 +72,7 @@ iced = "0.3"
 __iced moves fast and the `master` branch can contain breaking changes!__ If
 you want to learn about a specific release, check out [the release list].
 
-[the release list]: https://github.com/hecrj/iced/releases
+[the release list]: https://github.com/iced-rs/iced/releases
 
 ## Overview
 Inspired by [The Elm Architecture], iced expects you to split user interfaces
@@ -188,17 +188,17 @@ Since then, the focus has shifted towards providing a batteries-included,
 end-user-oriented GUI library, while keeping [the ecosystem] modular:
 
 <p align="center">
-  <a href="https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md">
+  <a href="ECOSYSTEM.md">
     <img alt="iced ecosystem" src="docs/graphs/ecosystem.png" width="80%">
   </a>
 </p>
 
 [this pull request]: https://github.com/hecrj/coffee/pull/35
-[The first alpha version]: https://github.com/hecrj/iced/tree/0.1.0-alpha
+[The first alpha version]: https://github.com/iced-rs/iced/tree/0.1.0-alpha
 [a renderer-agnostic GUI library]: https://www.reddit.com/r/rust/comments/czzjnv/iced_a_rendereragnostic_gui_library_focused_on/
-[tour example]: https://github.com/hecrj/iced/blob/master/examples/README.md#tour
+[tour example]: examples/README.md#tour
 [`ggez`]: https://github.com/ggez/ggez
-[the ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
+[the ecosystem]: ECOSYSTEM.md
 
 ## Common problems
 
