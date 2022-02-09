@@ -58,6 +58,7 @@ members = [
     "lazy",
     "native",
     "style",
+    "virtual",
     "wgpu",
     "winit",
     "examples/bezier_tool",
