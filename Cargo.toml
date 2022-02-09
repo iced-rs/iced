@@ -2,7 +2,7 @@
 name = "iced"
 version = "0.3.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A cross-platform GUI library inspired by Elm"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"

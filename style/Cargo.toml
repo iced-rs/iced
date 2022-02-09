@@ -2,7 +2,7 @@
 name = "iced_style"
 version = "0.3.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "The default set of styles of Iced"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"

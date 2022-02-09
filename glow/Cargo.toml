@@ -2,7 +2,7 @@
 name = "iced_glow"
 version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A glow renderer for iced"
 license = "MIT AND OFL-1.1"
 repository = "https://github.com/hecrj/iced"

@@ -2,7 +2,7 @@
 name = "download_progress"
 version = "0.1.0"
 authors = ["Songtronix <contact@songtronix.com>", "Folyd <lyshuhow@gmail.com>"]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [dependencies]

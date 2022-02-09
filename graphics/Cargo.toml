@@ -2,7 +2,7 @@
 name = "iced_graphics"
 version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"

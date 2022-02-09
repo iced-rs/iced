@@ -163,8 +163,6 @@ impl Operation {
     where
         R: std::io::BufRead + std::io::Seek,
     {
-        use std::convert::TryFrom;
-
         let exif = exif::Reader::new().read_from_container(reader)?;
 
         Ok(exif

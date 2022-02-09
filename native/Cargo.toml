@@ -2,7 +2,7 @@
 name = "iced_native"
 version = "0.4.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A renderer-agnostic library for native GUIs"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"
