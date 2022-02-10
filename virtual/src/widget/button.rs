@@ -23,9 +23,9 @@ pub struct Button<Message, Renderer> {
 }
 
 impl<Message, Renderer> Button<Message, Renderer> {
-    pub fn new(content: impl Widget<Message, Renderer> + 'static) -> Self {
+    pub fn new(content: impl Into<Element<Message, Renderer>>) -> Self {
         Button {
-            content: Element::new(content),
+            content: content.into(),
             on_press: None,
             style_sheet: Default::default(),
             width: Length::Shrink,

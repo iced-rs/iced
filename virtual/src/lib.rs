@@ -21,9 +21,9 @@ where
 {
     pub fn new(
         state: &'a mut State<Message, Renderer>,
-        content: Element<Message, Renderer>,
+        content: impl Into<Element<Message, Renderer>>,
     ) -> Self {
-        let _ = state.diff(content);
+        let _ = state.diff(content.into());
 
         Self { state }
     }

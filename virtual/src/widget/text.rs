@@ -174,3 +174,12 @@ where
         Element::new(self)
     }
 }
+
+impl<Message, Renderer> Into<Element<Message, Renderer>> for &'static str
+where
+    Renderer: text::Renderer + 'static,
+{
+    fn into(self) -> Element<Message, Renderer> {
+        Text::new(self).into()
+    }
+}

@@ -207,3 +207,14 @@ where
         }
     }
 }
+
+impl<Message, Renderer> Into<Element<Message, Renderer>>
+    for Column<Message, Renderer>
+where
+    Message: 'static,
+    Renderer: iced_native::Renderer + 'static,
+{
+    fn into(self) -> Element<Message, Renderer> {
+        Element::new(self)
+    }
+}

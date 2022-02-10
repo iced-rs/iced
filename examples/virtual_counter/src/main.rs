@@ -45,17 +45,10 @@ impl Sandbox for Counter {
         let content = Column::new()
             .padding(20)
             .align_items(Alignment::Center)
-            .push(
-                Button::new(Text::new("Increment"))
-                    .on_press(Message::IncrementPressed),
-            )
+            .push(Button::new("Increment").on_press(Message::IncrementPressed))
             .push(Text::new(self.value.to_string()).size(50))
-            .push(
-                Button::new(Text::new("Decrement"))
-                    .on_press(Message::DecrementPressed),
-            );
+            .push(Button::new("Decrement").on_press(Message::DecrementPressed));
 
-        Virtual::new(&mut self.state, iced_virtual::Element::new(content))
-            .into()
+        Virtual::new(&mut self.state, content).into()
     }
 }
