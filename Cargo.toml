@@ -88,6 +88,7 @@ members = [
     "examples/tooltip",
     "examples/tour",
     "examples/url_handler",
+    "examples/virtual_counter",
     "examples/websocket",
 ]
 
