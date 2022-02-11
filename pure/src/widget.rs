@@ -71,3 +71,20 @@ pub trait Widget<Message, Renderer> {
         event::Status::Ignored
     }
 }
+
+pub fn column<Message, Renderer>() -> Column<Message, Renderer> {
+    Column::new()
+}
+
+pub fn button<Message, Renderer>(
+    content: impl Into<Element<Message, Renderer>>,
+) -> Button<Message, Renderer> {
+    Button::new(content)
+}
+
+pub fn text<Renderer>(text: impl ToString) -> Text<Renderer>
+where
+    Renderer: iced_native::text::Renderer,
+{
+    Text::new(text)
+}

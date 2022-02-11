@@ -24,9 +24,9 @@ where
 
 impl<Renderer: text::Renderer> Text<Renderer> {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new<T: Into<String>>(label: T) -> Self {
+    pub fn new<T: ToString>(label: T) -> Self {
         Text {
-            content: label.into(),
+            content: label.to_string(),
             size: None,
             color: None,
             font: Default::default(),
