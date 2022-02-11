@@ -58,4 +58,18 @@ impl Tree {
             *self = Self::new(new);
         }
     }
+
+    pub fn state<T>(&self) -> &T
+    where
+        T: 'static,
+    {
+        self.state.downcast_ref().expect("Downcast widget state")
+    }
+
+    pub fn state_mut<T>(&mut self) -> &mut T
+    where
+        T: 'static,
+    {
+        self.state.downcast_mut().expect("Downcast widget state")
+    }
 }
