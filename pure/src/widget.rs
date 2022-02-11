@@ -1,12 +1,14 @@
 mod button;
 mod column;
 mod element;
+mod row;
 mod text;
 mod tree;
 
 pub use button::Button;
 pub use column::Column;
 pub use element::Element;
+pub use row::Row;
 pub use text::Text;
 pub use tree::Tree;
 
@@ -74,6 +76,10 @@ pub trait Widget<Message, Renderer> {
 
 pub fn column<'a, Message, Renderer>() -> Column<'a, Message, Renderer> {
     Column::new()
+}
+
+pub fn row<'a, Message, Renderer>() -> Row<'a, Message, Renderer> {
+    Row::new()
 }
 
 pub fn button<'a, Message, Renderer>(
