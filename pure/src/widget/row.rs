@@ -78,8 +78,7 @@ where
     Renderer: iced_native::Renderer,
 {
     fn tag(&self) -> any::TypeId {
-        struct Marker;
-        any::TypeId::of::<Marker>()
+        any::TypeId::of::<()>()
     }
 
     fn state(&self) -> Box<dyn Any> {
