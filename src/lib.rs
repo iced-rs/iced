@@ -195,6 +195,9 @@ pub mod time;
 pub mod widget;
 pub mod window;
 
+#[cfg(feature = "pure")]
+pub mod pure;
+
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_winit as runtime;
 

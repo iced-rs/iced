@@ -44,6 +44,8 @@ async-std = ["iced_futures/async-std"]
 smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
+# Enables pure, virtual widgets in the `pure` module
+pure = ["iced_pure"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -98,6 +100,7 @@ iced_futures = { version = "0.3", path = "futures" }
 iced_winit = { version = "0.3", path = "winit" }
 iced_glutin = { version = "0.2", path = "glutin", optional = true }
 iced_glow = { version = "0.2", path = "glow", optional = true }
+iced_pure = { version = "0.1", path = "pure", optional = true }
 thiserror = "1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
