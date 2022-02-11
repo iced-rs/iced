@@ -11,21 +11,23 @@ use iced_native::{
 
 use std::any::{self, Any};
 
-pub struct Column<Message, Renderer> {
+pub struct Column<'a, Message, Renderer> {
     spacing: u16,
     padding: Padding,
     width: Length,
     height: Length,
     align_items: Alignment,
-    children: Vec<Element<Message, Renderer>>,
+    children: Vec<Element<'a, Message, Renderer>>,
 }
 
-impl<'a, Message, Renderer> Column<Message, Renderer> {
+impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     pub fn new() -> Self {
         Self::with_children(Vec::new())
     }
 
-    pub fn with_children(children: Vec<Element<Message, Renderer>>) -> Self {
+    pub fn with_children(
+        children: Vec<Element<'a, Message, Renderer>>,
+    ) -> Self {
         Column {
             spacing: 0,
             padding: Padding::ZERO,
@@ -63,14 +65,15 @@ impl<'a, Message, Renderer> Column<Message, Renderer> {
 
     pub fn push(
         mut self,
-        child: impl Into<Element<Message, Renderer>>,
+        child: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
         self.children.push(child.into());
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Column<Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Column<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
@@ -115,7 +118,7 @@ where
 
     fn on_event(
         &mut self,
-        tree: &mut Tree<Message, Renderer>,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -143,7 +146,7 @@ where
 
     fn mouse_interaction(
         &self,
-        tree: &Tree<Message, Renderer>,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -168,7 +171,7 @@ where
 
     fn draw(
         &self,
-        tree: &Tree<Message, Renderer>,
+        tree: &Tree,
         renderer: &mut Renderer,
         style: &renderer::Style,
         layout: Layout<'_>,
@@ -208,13 +211,13 @@ where
     }
 }
 
-impl<Message, Renderer> Into<Element<Message, Renderer>>
-    for Column<Message, Renderer>
+impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
+    for Column<'a, Message, Renderer>
 where
     Message: 'static,
     Renderer: iced_native::Renderer + 'static,
 {
-    fn into(self) -> Element<Message, Renderer> {
+    fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)
     }
 }

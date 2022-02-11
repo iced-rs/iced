@@ -20,7 +20,8 @@
 pub use iced_pure::{Element as _, *};
 
 /// A generic, pure [`Widget`].
-pub type Element<Message> = iced_pure::Element<Message, crate::Renderer>;
+pub type Element<'a, Message> =
+    iced_pure::Element<'a, Message, crate::Renderer>;
 
 mod application;
 mod sandbox;

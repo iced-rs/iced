@@ -66,7 +66,7 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> pure::Element<Self::Message>;
+    fn view(&self) -> pure::Element<'_, Self::Message>;
 
     /// Returns the current [`Application`] mode.
     ///
@@ -126,7 +126,7 @@ pub trait Application: Sized {
 
 struct Instance<A: Application> {
     application: A,
-    state: pure::State<A::Message, crate::Renderer>,
+    state: pure::State,
 }
 
 impl<A> crate::Application for Instance<A>

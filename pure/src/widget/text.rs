@@ -133,7 +133,7 @@ where
 
     fn draw(
         &self,
-        _tree: &Tree<Message, Renderer>,
+        _tree: &Tree,
         renderer: &mut Renderer,
         style: &renderer::Style,
         layout: Layout<'_>,
@@ -166,20 +166,22 @@ where
     }
 }
 
-impl<Message, Renderer> Into<Element<Message, Renderer>> for Text<Renderer>
+impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
+    for Text<Renderer>
 where
     Renderer: text::Renderer + 'static,
 {
-    fn into(self) -> Element<Message, Renderer> {
+    fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)
     }
 }
 
-impl<Message, Renderer> Into<Element<Message, Renderer>> for &'static str
+impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
+    for &'static str
 where
     Renderer: text::Renderer + 'static,
 {
-    fn into(self) -> Element<Message, Renderer> {
+    fn into(self) -> Element<'a, Message, Renderer> {
         Text::new(self).into()
     }
 }

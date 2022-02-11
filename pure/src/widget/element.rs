@@ -1,11 +1,11 @@
 use crate::Widget;
 
-pub struct Element<Message, Renderer> {
-    widget: Box<dyn Widget<Message, Renderer>>,
+pub struct Element<'a, Message, Renderer> {
+    widget: Box<dyn Widget<Message, Renderer> + 'a>,
 }
 
-impl<Message, Renderer> Element<Message, Renderer> {
-    pub fn new(widget: impl Widget<Message, Renderer> + 'static) -> Self {
+impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
+    pub fn new(widget: impl Widget<Message, Renderer> + 'a) -> Self {
         Self {
             widget: Box::new(widget),
         }

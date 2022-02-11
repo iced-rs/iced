@@ -1,17 +1,27 @@
 use crate::widget::Element;
 
-use std::any::Any;
-use std::marker::PhantomData;
+use std::any::{self, Any};
 
-pub struct Tree<Message, Renderer> {
+pub struct Tree {
+    pub tag: any::TypeId,
     pub state: Box<dyn Any>,
-    pub children: Vec<Tree<Message, Renderer>>,
-    types_: PhantomData<(Message, Renderer)>,
+    pub children: Vec<Tree>,
 }
 
-impl<Message, Renderer> Tree<Message, Renderer> {
-    pub fn new(element: &Element<Message, Renderer>) -> Self {
+impl Tree {
+    pub fn empty() -> Self {
         Self {
+            tag: any::TypeId::of::<()>(),
+            state: Box::new(()),
+            children: Vec::new(),
+        }
+    }
+
+    pub fn new<Message, Renderer>(
+        element: &Element<'_, Message, Renderer>,
+    ) -> Self {
+        Self {
+            tag: element.as_widget().tag(),
             state: element.as_widget().state(),
             children: element
                 .as_widget()
@@ -19,36 +29,29 @@ impl<Message, Renderer> Tree<Message, Renderer> {
                 .iter()
                 .map(Self::new)
                 .collect(),
-            types_: PhantomData,
         }
     }
 
-    pub fn diff(
+    pub fn diff<Message, Renderer>(
         &mut self,
-        current: &Element<Message, Renderer>,
-        new: &Element<Message, Renderer>,
+        new: &Element<'_, Message, Renderer>,
     ) {
-        if current.as_widget().tag() == new.as_widget().tag() {
-            let current_children = current.as_widget().children();
+        if self.tag == new.as_widget().tag() {
             let new_children = new.as_widget().children();
 
-            if current_children.len() > new_children.len() {
+            if self.children.len() > new_children.len() {
                 self.children.truncate(new_children.len());
             }
 
-            for (child_state, (current, new)) in self
-                .children
-                .iter_mut()
-                .zip(current_children.iter().zip(new_children.iter()))
+            for (child_state, new) in
+                self.children.iter_mut().zip(new_children.iter())
             {
-                child_state.diff(current, new);
+                child_state.diff(new);
             }
 
-            if current_children.len() < new_children.len() {
+            if self.children.len() < new_children.len() {
                 self.children.extend(
-                    new_children[current_children.len()..]
-                        .iter()
-                        .map(Self::new),
+                    new_children[self.children.len()..].iter().map(Self::new),
                 );
             }
         } else {

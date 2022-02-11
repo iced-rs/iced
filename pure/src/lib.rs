@@ -11,7 +11,8 @@ use iced_native::renderer;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
 pub struct Pure<'a, Message, Renderer> {
-    state: &'a mut State<Message, Renderer>,
+    state: &'a mut State,
+    element: Element<'a, Message, Renderer>,
 }
 
 impl<'a, Message, Renderer> Pure<'a, Message, Renderer>
@@ -20,38 +21,32 @@ where
     Renderer: iced_native::Renderer + 'static,
 {
     pub fn new(
-        state: &'a mut State<Message, Renderer>,
-        content: impl Into<Element<Message, Renderer>>,
+        state: &'a mut State,
+        content: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
-        let _ = state.diff(content.into());
+        let element = content.into();
+        let _ = state.diff(&element);
 
-        Self { state }
+        Self { state, element }
     }
 }
 
-pub struct State<Message, Renderer> {
-    state_tree: widget::Tree<Message, Renderer>,
-    last_element: Element<Message, Renderer>,
+pub struct State {
+    state_tree: widget::Tree,
 }
 
-impl<Message, Renderer> State<Message, Renderer>
-where
-    Message: 'static,
-    Renderer: iced_native::Renderer + 'static,
-{
+impl State {
     pub fn new() -> Self {
-        let last_element = Element::new(widget::Column::new());
-
         Self {
-            state_tree: widget::Tree::new(&last_element),
-            last_element,
+            state_tree: widget::Tree::empty(),
         }
     }
 
-    fn diff(&mut self, new_element: Element<Message, Renderer>) {
-        self.state_tree.diff(&self.last_element, &new_element);
-
-        self.last_element = new_element;
+    fn diff<Message, Renderer>(
+        &mut self,
+        new_element: &Element<Message, Renderer>,
+    ) {
+        self.state_tree.diff(new_element);
     }
 }
 
@@ -61,15 +56,15 @@ where
     Renderer: iced_native::Renderer,
 {
     fn width(&self) -> Length {
-        self.state.last_element.as_widget().width()
+        self.element.as_widget().width()
     }
 
     fn height(&self) -> Length {
-        self.state.last_element.as_widget().height()
+        self.element.as_widget().height()
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        self.state.last_element.as_widget().hash_layout(state)
+        self.element.as_widget().hash_layout(state)
     }
 
     fn layout(
@@ -77,7 +72,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.state.last_element.as_widget().layout(renderer, limits)
+        self.element.as_widget().layout(renderer, limits)
     }
 
     fn on_event(
@@ -89,7 +84,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        self.state.last_element.as_widget_mut().on_event(
+        self.element.as_widget_mut().on_event(
             &mut self.state.state_tree,
             event,
             layout,
@@ -108,7 +103,7 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.state.last_element.as_widget().draw(
+        self.element.as_widget().draw(
             &self.state.state_tree,
             renderer,
             style,
@@ -125,7 +120,7 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.state.last_element.as_widget().mouse_interaction(
+        self.element.as_widget().mouse_interaction(
             &self.state.state_tree,
             layout,
             cursor_position,
@@ -138,7 +133,8 @@ where
 impl<'a, Message, Renderer> Into<iced_native::Element<'a, Message, Renderer>>
     for Pure<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Message: 'a,
+    Renderer: iced_native::Renderer + 'a,
 {
     fn into(self) -> iced_native::Element<'a, Message, Renderer> {
         iced_native::Element::new(self)

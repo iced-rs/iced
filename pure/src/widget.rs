@@ -39,7 +39,7 @@ pub trait Widget<Message, Renderer> {
 
     fn draw(
         &self,
-        state: &Tree<Message, Renderer>,
+        state: &Tree,
         renderer: &mut Renderer,
         style: &renderer::Style,
         layout: Layout<'_>,
@@ -49,7 +49,7 @@ pub trait Widget<Message, Renderer> {
 
     fn mouse_interaction(
         &self,
-        _state: &Tree<Message, Renderer>,
+        _state: &Tree,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -60,7 +60,7 @@ pub trait Widget<Message, Renderer> {
 
     fn on_event(
         &mut self,
-        _state: &mut Tree<Message, Renderer>,
+        _state: &mut Tree,
         _event: Event,
         _layout: Layout<'_>,
         _cursor_position: Point,
@@ -72,13 +72,13 @@ pub trait Widget<Message, Renderer> {
     }
 }
 
-pub fn column<Message, Renderer>() -> Column<Message, Renderer> {
+pub fn column<'a, Message, Renderer>() -> Column<'a, Message, Renderer> {
     Column::new()
 }
 
-pub fn button<Message, Renderer>(
-    content: impl Into<Element<Message, Renderer>>,
-) -> Button<Message, Renderer> {
+pub fn button<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Button<'a, Message, Renderer> {
     Button::new(content)
 }
 

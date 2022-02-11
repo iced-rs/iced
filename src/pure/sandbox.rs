@@ -32,7 +32,7 @@ pub trait Sandbox {
     /// Returns the widgets to display in the [`Sandbox`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> pure::Element<Self::Message>;
+    fn view(&self) -> pure::Element<'_, Self::Message>;
 
     /// Returns the background color of the [`Sandbox`].
     ///
@@ -101,7 +101,7 @@ where
         Subscription::none()
     }
 
-    fn view(&self) -> pure::Element<T::Message> {
+    fn view(&self) -> pure::Element<'_, T::Message> {
         T::view(self)
     }
 

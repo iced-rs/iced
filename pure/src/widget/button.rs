@@ -13,17 +13,17 @@ use iced_style::button::StyleSheet;
 
 use std::any::Any;
 
-pub struct Button<Message, Renderer> {
-    content: Element<Message, Renderer>,
+pub struct Button<'a, Message, Renderer> {
+    content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
-    style_sheet: Box<dyn StyleSheet>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
     width: Length,
     height: Length,
     padding: Padding,
 }
 
-impl<Message, Renderer> Button<Message, Renderer> {
-    pub fn new(content: impl Into<Element<Message, Renderer>>) -> Self {
+impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
+    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Button {
             content: content.into(),
             on_press: None,
@@ -40,7 +40,8 @@ impl<Message, Renderer> Button<Message, Renderer> {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Button<Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Button<'a, Message, Renderer>
 where
     Message: 'static + Clone,
     Renderer: 'static + iced_native::Renderer,
@@ -96,7 +97,7 @@ where
 
     fn on_event(
         &mut self,
-        tree: &mut Tree<Message, Renderer>,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -162,7 +163,7 @@ where
 
     fn draw(
         &self,
-        tree: &Tree<Message, Renderer>,
+        tree: &Tree,
         renderer: &mut Renderer,
         _style: &renderer::Style,
         layout: Layout<'_>,
@@ -238,7 +239,7 @@ where
 
     fn mouse_interaction(
         &self,
-        _tree: &Tree<Message, Renderer>,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -260,13 +261,13 @@ struct State {
     is_pressed: bool,
 }
 
-impl<Message, Renderer> Into<Element<Message, Renderer>>
-    for Button<Message, Renderer>
+impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
+    for Button<'a, Message, Renderer>
 where
     Message: Clone + 'static,
     Renderer: iced_native::Renderer + 'static,
 {
-    fn into(self) -> Element<Message, Renderer> {
+    fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)
     }
 }
