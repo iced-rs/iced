@@ -35,8 +35,38 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
         }
     }
 
-    pub fn on_press(mut self, on_press: Message) -> Self {
-        self.on_press = Some(on_press);
+    /// Sets the width of the [`Button`].
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Sets the height of the [`Button`].
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = height;
+        self
+    }
+
+    /// Sets the [`Padding`] of the [`Button`].
+    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.padding = padding.into();
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Button`] is pressed.
+    ///
+    /// Unless `on_press` is called, the [`Button`] will be disabled.
+    pub fn on_press(mut self, msg: Message) -> Self {
+        self.on_press = Some(msg);
+        self
+    }
+
+    /// Sets the style of the [`Button`].
+    pub fn style(
+        mut self,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+    ) -> Self {
+        self.style_sheet = style_sheet.into();
         self
     }
 }
