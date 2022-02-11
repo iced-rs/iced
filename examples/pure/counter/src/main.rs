@@ -1,5 +1,5 @@
 use iced::{Alignment, Element, Sandbox, Settings};
-use iced_virtual::{Button, Column, Text, Virtual};
+use iced_pure::{Button, Column, Pure, State, Text};
 
 pub fn main() -> iced::Result {
     Counter::run(Settings::default())
@@ -7,7 +7,7 @@ pub fn main() -> iced::Result {
 
 struct Counter {
     value: i32,
-    state: iced_virtual::State<Message, iced::Renderer>,
+    state: State<Message, iced::Renderer>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -22,7 +22,7 @@ impl Sandbox for Counter {
     fn new() -> Self {
         Self {
             value: 0,
-            state: iced_virtual::State::new(),
+            state: State::new(),
         }
     }
 
@@ -41,7 +41,7 @@ impl Sandbox for Counter {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&mut self) -> Element<'_, Message> {
         let content = Column::new()
             .padding(20)
             .align_items(Alignment::Center)
@@ -49,6 +49,6 @@ impl Sandbox for Counter {
             .push(Text::new(self.value.to_string()).size(50))
             .push(Button::new("Decrement").on_press(Message::DecrementPressed));
 
-        Virtual::new(&mut self.state, content).into()
+        Pure::new(&mut self.state, content).into()
     }
 }

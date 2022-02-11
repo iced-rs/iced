@@ -1,5 +1,5 @@
 [package]
-name = "iced_virtual"
+name = "iced_pure"
 version = "0.1.0"
 edition = "2021"
 

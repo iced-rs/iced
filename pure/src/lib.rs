@@ -10,11 +10,11 @@ use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
-pub struct Virtual<'a, Message, Renderer> {
+pub struct Pure<'a, Message, Renderer> {
     state: &'a mut State<Message, Renderer>,
 }
 
-impl<'a, Message, Renderer> Virtual<'a, Message, Renderer>
+impl<'a, Message, Renderer> Pure<'a, Message, Renderer>
 where
     Message: 'static,
     Renderer: iced_native::Renderer + 'static,
@@ -56,7 +56,7 @@ where
 }
 
 impl<'a, Message, Renderer> iced_native::Widget<Message, Renderer>
-    for Virtual<'a, Message, Renderer>
+    for Pure<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
@@ -136,7 +136,7 @@ where
 }
 
 impl<'a, Message, Renderer> Into<iced_native::Element<'a, Message, Renderer>>
-    for Virtual<'a, Message, Renderer>
+    for Pure<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
