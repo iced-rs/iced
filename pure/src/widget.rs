@@ -99,7 +99,7 @@ pub fn button<'a, Message, Renderer>(
     Button::new(content)
 }
 
-pub fn text<Renderer>(text: impl ToString) -> Text<Renderer>
+pub fn text<Renderer>(text: impl Into<String>) -> Text<Renderer>
 where
     Renderer: iced_native::text::Renderer,
 {

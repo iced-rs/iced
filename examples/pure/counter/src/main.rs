@@ -43,7 +43,7 @@ impl Sandbox for Counter {
             .padding(20)
             .align_items(Alignment::Center)
             .push(button("Increment").on_press(Message::IncrementPressed))
-            .push(text(self.value).size(50))
+            .push(text(self.value.to_string()).size(50))
             .push(button("Decrement").on_press(Message::DecrementPressed))
             .into()
     }

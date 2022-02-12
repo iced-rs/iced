@@ -1,92 +1,13 @@
 use crate::{Element, Tree, Widget};
 
-use iced_native::alignment;
 use iced_native::layout::{self, Layout};
 use iced_native::renderer;
 use iced_native::text;
-use iced_native::{Color, Hasher, Length, Point, Rectangle, Size};
+use iced_native::{Hasher, Length, Point, Rectangle};
 
 use std::any::{self, Any};
 
-pub struct Text<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    content: String,
-    size: Option<u16>,
-    color: Option<Color>,
-    font: Renderer::Font,
-    width: Length,
-    height: Length,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
-}
-
-impl<Renderer: text::Renderer> Text<Renderer> {
-    /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new<T: ToString>(label: T) -> Self {
-        Text {
-            content: label.to_string(),
-            size: None,
-            color: None,
-            font: Default::default(),
-            width: Length::Shrink,
-            height: Length::Shrink,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
-        }
-    }
-
-    /// Sets the size of the [`Text`].
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = Some(size);
-        self
-    }
-
-    /// Sets the [`Color`] of the [`Text`].
-    pub fn color<C: Into<Color>>(mut self, color: C) -> Self {
-        self.color = Some(color.into());
-        self
-    }
-
-    /// Sets the [`Font`] of the [`Text`].
-    ///
-    /// [`Font`]: Renderer::Font
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
-        self.font = font.into();
-        self
-    }
-
-    /// Sets the width of the [`Text`] boundaries.
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
-        self
-    }
-
-    /// Sets the height of the [`Text`] boundaries.
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
-        self
-    }
-
-    /// Sets the [`HorizontalAlignment`] of the [`Text`].
-    pub fn horizontal_alignment(
-        mut self,
-        alignment: alignment::Horizontal,
-    ) -> Self {
-        self.horizontal_alignment = alignment;
-        self
-    }
-
-    /// Sets the [`VerticalAlignment`] of the [`Text`].
-    pub fn vertical_alignment(
-        mut self,
-        alignment: alignment::Vertical,
-    ) -> Self {
-        self.vertical_alignment = alignment;
-        self
-    }
-}
+pub use iced_native::widget::Text;
 
 impl<Message, Renderer> Widget<Message, Renderer> for Text<Renderer>
 where
@@ -105,11 +26,11 @@ where
     }
 
     fn width(&self) -> Length {
-        self.width
+        <Self as iced_native::Widget<Message, Renderer>>::width(self)
     }
 
     fn height(&self) -> Length {
-        self.height
+        <Self as iced_native::Widget<Message, Renderer>>::height(self)
     }
 
     fn layout(
@@ -117,18 +38,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
-
-        let size = self.size.unwrap_or(renderer.default_size());
-
-        let bounds = limits.max();
-
-        let (width, height) =
-            renderer.measure(&self.content, size, self.font.clone(), bounds);
-
-        let size = limits.resolve(Size::new(width, height));
-
-        layout::Node::new(size)
+        <Self as iced_native::Widget<Message, Renderer>>::layout(
+            self, renderer, limits,
+        )
     }
 
     fn draw(
@@ -137,32 +49,23 @@ where
         renderer: &mut Renderer,
         style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
-        _viewport: &Rectangle,
+        cursor_position: Point,
+        viewport: &Rectangle,
     ) {
-        iced_native::widget::text::draw(
+        <Self as iced_native::Widget<Message, Renderer>>::draw(
+            self,
             renderer,
             style,
             layout,
-            &self.content,
-            self.font.clone(),
-            self.size,
-            self.color,
-            self.horizontal_alignment,
-            self.vertical_alignment,
-        );
+            cursor_position,
+            viewport,
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash;
-
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.content.hash(state);
-        self.size.hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
+        <Self as iced_native::Widget<Message, Renderer>>::hash_layout(
+            self, state,
+        )
     }
 }
 
