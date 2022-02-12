@@ -1,17 +1,18 @@
 //! Decorate content and apply alignment.
-use std::hash::Hash;
+use crate::{Element, Tree, Widget};
 
-use crate::alignment::{self, Alignment};
-use crate::event::{self, Event};
-use crate::layout;
-use crate::mouse;
-use crate::overlay;
-use crate::renderer;
-use crate::{
-    Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Shell, Widget,
+use iced_native::alignment;
+use iced_native::event::{self, Event};
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::renderer;
+use iced_native::widget::container;
+use iced_native::{
+    Clipboard, Hasher, Layout, Length, Padding, Point, Rectangle, Shell,
 };
 
+use std::any::{self, Any};
+use std::hash::Hash;
 use std::u32;
 
 pub use iced_style::container::{Style, StyleSheet};
@@ -34,7 +35,7 @@ pub struct Container<'a, Message, Renderer> {
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
@@ -118,37 +119,23 @@ where
     }
 }
 
-/// Computes the layout of a [`Container`].
-pub fn layout<Renderer>(
-    renderer: &Renderer,
-    limits: &layout::Limits,
-    width: Length,
-    height: Length,
-    padding: Padding,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
-    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
-) -> layout::Node {
-    let limits = limits.loose().width(width).height(height).pad(padding);
-
-    let mut content = layout_content(renderer, &limits.loose());
-    let size = limits.resolve(content.size());
-
-    content.move_to(Point::new(padding.left.into(), padding.top.into()));
-    content.align(
-        Alignment::from(horizontal_alignment),
-        Alignment::from(vertical_alignment),
-        size,
-    );
-
-    layout::Node::with_children(size.pad(padding), vec![content])
-}
-
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Container<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
 {
+    fn tag(&self) -> any::TypeId {
+        any::TypeId::of::<()>()
+    }
+
+    fn state(&self) -> Box<dyn Any> {
+        Box::new(())
+    }
+
+    fn children(&self) -> &[Element<Message, Renderer>] {
+        std::slice::from_ref(&self.content)
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -162,7 +149,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(
+        container::layout(
             renderer,
             limits,
             self.width,
@@ -170,12 +157,15 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |renderer, limits| self.content.layout(renderer, limits),
+            |renderer, limits| {
+                self.content.as_widget().layout(renderer, limits)
+            },
         )
     }
 
     fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -183,7 +173,8 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        self.content.widget.on_event(
+        self.content.as_widget_mut().on_event(
+            &mut tree.children[0],
             event,
             layout.children().next().unwrap(),
             cursor_position,
@@ -195,12 +186,14 @@ where
 
     fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.widget.mouse_interaction(
+        self.content.as_widget().mouse_interaction(
+            &tree.children[0],
             layout.children().next().unwrap(),
             cursor_position,
             viewport,
@@ -210,6 +203,7 @@ where
 
     fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
@@ -218,9 +212,10 @@ where
     ) {
         let style = self.style_sheet.style();
 
-        draw_background(renderer, &style, layout.bounds());
+        container::draw_background(renderer, &style, layout.bounds());
 
-        self.content.draw(
+        self.content.as_widget().draw(
+            &tree.children[0],
             renderer,
             &renderer::Style {
                 text_color: style
@@ -245,46 +240,14 @@ where
         self.horizontal_alignment.hash(state);
         self.vertical_alignment.hash(state);
 
-        self.content.hash_layout(state);
-    }
-
-    fn overlay(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.content
-            .overlay(layout.children().next().unwrap(), renderer)
-    }
-}
-
-/// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
-pub fn draw_background<Renderer>(
-    renderer: &mut Renderer,
-    style: &Style,
-    bounds: Rectangle,
-) where
-    Renderer: crate::Renderer,
-{
-    if style.background.is_some() || style.border_width > 0.0 {
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border_radius: style.border_radius,
-                border_width: style.border_width,
-                border_color: style.border_color,
-            },
-            style
-                .background
-                .unwrap_or(Background::Color(Color::TRANSPARENT)),
-        );
+        self.content.as_widget().hash_layout(state);
     }
 }
 
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
+    Renderer: 'a + iced_native::Renderer,
     Message: 'a,
 {
     fn from(

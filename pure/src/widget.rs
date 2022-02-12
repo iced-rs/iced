@@ -1,5 +1,6 @@
 mod button;
 mod column;
+mod container;
 mod element;
 mod row;
 mod text;
@@ -7,6 +8,7 @@ mod tree;
 
 pub use button::Button;
 pub use column::Column;
+pub use container::Container;
 pub use element::Element;
 pub use row::Row;
 pub use text::Text;
@@ -72,6 +74,15 @@ pub trait Widget<Message, Renderer> {
     ) -> event::Status {
         event::Status::Ignored
     }
+}
+
+pub fn container<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Container<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+{
+    Container::new(content)
 }
 
 pub fn column<'a, Message, Renderer>() -> Column<'a, Message, Renderer> {
