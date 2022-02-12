@@ -1,9 +1,11 @@
 use crate::{Element, Tree, Widget};
 
+use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
+use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::text;
-use iced_native::{Hasher, Length, Point, Rectangle};
+use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
 use std::any::{self, Any};
 
@@ -46,6 +48,27 @@ where
         )
     }
 
+    fn on_event(
+        &mut self,
+        _state: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        <Self as iced_native::Widget<Message, Renderer>>::on_event(
+            self,
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        )
+    }
+
     fn draw(
         &self,
         _tree: &Tree,
@@ -62,6 +85,23 @@ where
             layout,
             cursor_position,
             viewport,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        <Self as iced_native::Widget<Message, Renderer>>::mouse_interaction(
+            self,
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
         )
     }
 
