@@ -6,6 +6,7 @@ mod element;
 mod row;
 mod scrollable;
 mod text;
+mod text_input;
 mod tree;
 
 pub use button::Button;
@@ -16,6 +17,7 @@ pub use element::Element;
 pub use row::Row;
 pub use scrollable::Scrollable;
 pub use text::Text;
+pub use text_input::TextInput;
 pub use tree::Tree;
 
 use iced_native::event::{self, Event};
@@ -126,4 +128,16 @@ where
     Renderer: iced_native::text::Renderer,
 {
     Checkbox::new(is_checked, label, f)
+}
+
+pub fn text_input<'a, Message, Renderer>(
+    placeholder: &str,
+    value: &str,
+    on_change: impl Fn(String) -> Message + 'a,
+) -> TextInput<'a, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: iced_native::text::Renderer,
+{
+    TextInput::new(placeholder, value, on_change)
 }
