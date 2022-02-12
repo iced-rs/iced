@@ -23,12 +23,7 @@ impl Tree {
         Self {
             tag: element.as_widget().tag(),
             state: State(element.as_widget().state()),
-            children: element
-                .as_widget()
-                .children()
-                .iter()
-                .map(Self::new)
-                .collect(),
+            children: element.as_widget().children_state(),
         }
     }
 
@@ -37,25 +32,30 @@ impl Tree {
         new: &Element<'_, Message, Renderer>,
     ) {
         if self.tag == new.as_widget().tag() {
-            let new_children = new.as_widget().children();
-
-            if self.children.len() > new_children.len() {
-                self.children.truncate(new_children.len());
-            }
-
-            for (child_state, new) in
-                self.children.iter_mut().zip(new_children.iter())
-            {
-                child_state.diff(new);
-            }
-
-            if self.children.len() < new_children.len() {
-                self.children.extend(
-                    new_children[self.children.len()..].iter().map(Self::new),
-                );
-            }
+            new.as_widget().diff(self)
         } else {
             *self = Self::new(new);
+        }
+    }
+
+    pub fn diff_children<Message, Renderer>(
+        &mut self,
+        new_children: &[Element<'_, Message, Renderer>],
+    ) {
+        if self.children.len() > new_children.len() {
+            self.children.truncate(new_children.len());
+        }
+
+        for (child_state, new) in
+            self.children.iter_mut().zip(new_children.iter())
+        {
+            child_state.diff(new);
+        }
+
+        if self.children.len() < new_children.len() {
+            self.children.extend(
+                new_children[self.children.len()..].iter().map(Self::new),
+            );
         }
     }
 }

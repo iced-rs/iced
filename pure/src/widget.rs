@@ -33,7 +33,9 @@ pub trait Widget<Message, Renderer> {
 
     fn state(&self) -> Box<dyn Any>;
 
-    fn children(&self) -> &[Element<Message, Renderer>];
+    fn diff(&self, tree: &mut Tree);
+
+    fn children_state(&self) -> Vec<Tree>;
 
     fn width(&self) -> Length;
 
@@ -99,11 +101,13 @@ pub fn row<'a, Message, Renderer>() -> Row<'a, Message, Renderer> {
     Row::new()
 }
 
-pub fn scrollable<'a, Message, Renderer>() -> Scrollable<'a, Message, Renderer>
+pub fn scrollable<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Scrollable<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
-    Scrollable::new()
+    Scrollable::new(content)
 }
 
 pub fn button<'a, Message, Renderer>(

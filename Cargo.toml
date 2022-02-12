@@ -91,6 +91,7 @@ members = [
     "examples/tour",
     "examples/url_handler",
     "examples/pure/counter",
+    "examples/pure/todos",
     "examples/websocket",
 ]
 

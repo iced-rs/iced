@@ -85,8 +85,12 @@ where
         Box::new(())
     }
 
-    fn children(&self) -> &[Element<Message, Renderer>] {
-        &self.children
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(&self.children)
+    }
+
+    fn children_state(&self) -> Vec<Tree> {
+        self.children.iter().map(Tree::new).collect()
     }
 
     fn width(&self) -> Length {

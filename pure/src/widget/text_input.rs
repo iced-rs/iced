@@ -146,8 +146,10 @@ where
         Box::new(text_input::State::new())
     }
 
-    fn children(&self) -> &[Element<Message, Renderer>] {
-        &[]
+    fn diff(&self, _tree: &mut Tree) {}
+
+    fn children_state(&self) -> Vec<Tree> {
+        Vec::new()
     }
 
     fn width(&self) -> Length {
@@ -235,5 +237,18 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         text_input::mouse_interaction(layout, cursor_position)
+    }
+}
+
+impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a + Clone,
+    Renderer: 'a + text::Renderer,
+{
+    fn from(
+        text_input: TextInput<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(text_input)
     }
 }

@@ -53,7 +53,8 @@ impl State {
 impl<'a, Message, Renderer> iced_native::Widget<Message, Renderer>
     for Pure<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Message: 'a,
+    Renderer: iced_native::Renderer + 'a,
 {
     fn width(&self) -> Length {
         self.element.as_widget().width()

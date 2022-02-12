@@ -1,4 +1,4 @@
-use crate::widget::{Column, Tree};
+use crate::widget::Tree;
 use crate::{Element, Widget};
 
 use iced_native::event::{self, Event};
@@ -6,9 +6,7 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::widget::scrollable;
-use iced_native::{
-    Alignment, Clipboard, Hasher, Length, Padding, Point, Rectangle, Shell,
-};
+use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
 pub use iced_style::scrollable::StyleSheet;
 
@@ -22,58 +20,30 @@ pub struct Scrollable<'a, Message, Renderer> {
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    content: Column<'a, Message, Renderer>,
     on_scroll: Option<Box<dyn Fn(f32) -> Message>>,
     style_sheet: Box<dyn StyleSheet + 'a>,
+    content: Element<'a, Message, Renderer>,
 }
 
 impl<'a, Message, Renderer: iced_native::Renderer>
     Scrollable<'a, Message, Renderer>
 {
-    /// Creates a new [`Scrollable`] with the given [`State`].
-    pub fn new() -> Self {
+    /// Creates a new [`Scrollable`].
+    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Scrollable {
             height: Length::Shrink,
             scrollbar_width: 10,
             scrollbar_margin: 0,
             scroller_width: 10,
-            content: Column::new(),
             on_scroll: None,
             style_sheet: Default::default(),
+            content: content.into(),
         }
-    }
-
-    /// Sets the vertical spacing _between_ elements.
-    ///
-    /// Custom margins per element do not exist in Iced. You should use this
-    /// method instead! While less flexible, it helps you keep spacing between
-    /// elements consistent.
-    pub fn spacing(mut self, units: u16) -> Self {
-        self.content = self.content.spacing(units);
-        self
-    }
-
-    /// Sets the [`Padding`] of the [`Scrollable`].
-    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
-        self.content = self.content.padding(padding);
-        self
-    }
-
-    /// Sets the width of the [`Scrollable`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.content = self.content.width(width);
-        self
     }
 
     /// Sets the height of the [`Scrollable`].
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
-        self
-    }
-
-    /// Sets the horizontal alignment of the contents of the [`Scrollable`] .
-    pub fn align_items(mut self, align_items: Alignment) -> Self {
-        self.content = self.content.align_items(align_items);
         self
     }
 
@@ -115,15 +85,6 @@ impl<'a, Message, Renderer: iced_native::Renderer>
         self.style_sheet = style_sheet.into();
         self
     }
-
-    /// Adds an element to the [`Scrollable`].
-    pub fn push<E>(mut self, child: E) -> Self
-    where
-        E: Into<Element<'a, Message, Renderer>>,
-    {
-        self.content = self.content.push(child);
-        self
-    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -139,12 +100,16 @@ where
         Box::new(scrollable::State::new())
     }
 
-    fn children(&self) -> &[Element<Message, Renderer>] {
-        self.content.children()
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
+    fn children_state(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
     }
 
     fn width(&self) -> Length {
-        Widget::<Message, Renderer>::width(&self.content)
+        self.content.as_widget().width()
     }
 
     fn height(&self) -> Length {
@@ -156,7 +121,7 @@ where
 
         self.tag().hash(state);
         self.height.hash(state);
-        self.content.hash_layout(state)
+        self.content.as_widget().hash_layout(state)
     }
 
     fn layout(
@@ -169,7 +134,9 @@ where
             limits,
             Widget::<Message, Renderer>::width(self),
             self.height,
-            |renderer, limits| self.content.layout(renderer, limits),
+            |renderer, limits| {
+                self.content.as_widget().layout(renderer, limits)
+            },
         )
     }
 
@@ -195,7 +162,7 @@ where
             self.scroller_width,
             &self.on_scroll,
             |event, layout, cursor_position, clipboard, shell| {
-                self.content.on_event(
+                self.content.as_widget_mut().on_event(
                     &mut tree.children[0],
                     event,
                     layout,
@@ -227,7 +194,7 @@ where
             self.scroller_width,
             self.style_sheet.as_ref(),
             |renderer, layout, cursor_position, viewport| {
-                self.content.draw(
+                self.content.as_widget().draw(
                     &tree.children[0],
                     renderer,
                     style,
@@ -255,7 +222,7 @@ where
             self.scrollbar_margin,
             self.scroller_width,
             |layout, cursor_position, viewport| {
-                self.content.mouse_interaction(
+                self.content.as_widget().mouse_interaction(
                     &tree.children[0],
                     layout,
                     cursor_position,
@@ -264,5 +231,18 @@ where
                 )
             },
         )
+    }
+}
+
+impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a + Clone,
+    Renderer: 'a + iced_native::Renderer,
+{
+    fn from(
+        text_input: Scrollable<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(text_input)
     }
 }
