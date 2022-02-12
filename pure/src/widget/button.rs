@@ -152,7 +152,7 @@ where
             cursor_position,
             shell,
             &self.on_press,
-            || tree.state_mut::<State>(),
+            || tree.state.downcast_mut::<State>(),
         )
     }
 
@@ -174,7 +174,7 @@ where
             cursor_position,
             self.on_press.is_some(),
             self.style_sheet.as_ref(),
-            || tree.state::<State>(),
+            || tree.state.downcast_ref::<State>(),
         );
 
         self.content.as_widget().draw(

@@ -4,7 +4,7 @@ use std::any::{self, Any};
 
 pub struct Tree {
     pub tag: any::TypeId,
-    pub state: Box<dyn Any>,
+    pub state: State,
     pub children: Vec<Tree>,
 }
 
@@ -12,7 +12,7 @@ impl Tree {
     pub fn empty() -> Self {
         Self {
             tag: any::TypeId::of::<()>(),
-            state: Box::new(()),
+            state: State(Box::new(())),
             children: Vec::new(),
         }
     }
@@ -22,7 +22,7 @@ impl Tree {
     ) -> Self {
         Self {
             tag: element.as_widget().tag(),
-            state: element.as_widget().state(),
+            state: State(element.as_widget().state()),
             children: element
                 .as_widget()
                 .children()
@@ -58,18 +58,22 @@ impl Tree {
             *self = Self::new(new);
         }
     }
+}
 
-    pub fn state<T>(&self) -> &T
+pub struct State(Box<dyn Any>);
+
+impl State {
+    pub fn downcast_ref<T>(&self) -> &T
     where
         T: 'static,
     {
-        self.state.downcast_ref().expect("Downcast widget state")
+        self.0.downcast_ref().expect("Downcast widget state")
     }
 
-    pub fn state_mut<T>(&mut self) -> &mut T
+    pub fn downcast_mut<T>(&mut self) -> &mut T
     where
         T: 'static,
     {
-        self.state.downcast_mut().expect("Downcast widget state")
+        self.0.downcast_mut().expect("Downcast widget state")
     }
 }

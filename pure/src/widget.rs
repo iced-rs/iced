@@ -4,6 +4,7 @@ mod column;
 mod container;
 mod element;
 mod row;
+mod scrollable;
 mod text;
 mod tree;
 
@@ -13,6 +14,7 @@ pub use column::Column;
 pub use container::Container;
 pub use element::Element;
 pub use row::Row;
+pub use scrollable::Scrollable;
 pub use text::Text;
 pub use tree::Tree;
 
@@ -93,6 +95,13 @@ pub fn column<'a, Message, Renderer>() -> Column<'a, Message, Renderer> {
 
 pub fn row<'a, Message, Renderer>() -> Row<'a, Message, Renderer> {
     Row::new()
+}
+
+pub fn scrollable<'a, Message, Renderer>() -> Scrollable<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+{
+    Scrollable::new()
 }
 
 pub fn button<'a, Message, Renderer>(

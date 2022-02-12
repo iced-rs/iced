@@ -139,73 +139,471 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
         self.content = self.content.push(child);
         self
     }
+}
 
-    fn notify_on_scroll(
-        &self,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-        shell: &mut Shell<'_, Message>,
-    ) {
-        if content_bounds.height <= bounds.height {
-            return;
-        }
+/// Computes the layout of a [`Scrollable`].
+pub fn layout<Renderer>(
+    renderer: &Renderer,
+    limits: &layout::Limits,
+    width: Length,
+    height: Length,
+    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
+) -> layout::Node {
+    let limits = limits.width(width).height(height);
 
-        if let Some(on_scroll) = &self.on_scroll {
-            shell.publish(on_scroll(
-                self.state.offset.absolute(bounds, content_bounds)
-                    / (content_bounds.height - bounds.height),
-            ));
+    let child_limits = layout::Limits::new(
+        Size::new(limits.min().width, 0.0),
+        Size::new(limits.max().width, f32::INFINITY),
+    );
+
+    let content = layout_content(renderer, &child_limits);
+    let size = limits.resolve(content.size());
+
+    layout::Node::with_children(size, vec![content])
+}
+
+/// Processes an [`Event`] and updates the [`State`] of a [`Scrollable`]
+/// accordingly.
+pub fn update<Message>(
+    state: &mut State,
+    event: Event,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    clipboard: &mut dyn Clipboard,
+    shell: &mut Shell<'_, Message>,
+    scrollbar_width: u16,
+    scrollbar_margin: u16,
+    scroller_width: u16,
+    on_scroll: &Option<Box<dyn Fn(f32) -> Message>>,
+    update_content: impl FnOnce(
+        Event,
+        Layout<'_>,
+        Point,
+        &mut dyn Clipboard,
+        &mut Shell<'_, Message>,
+    ) -> event::Status,
+) -> event::Status {
+    let bounds = layout.bounds();
+    let is_mouse_over = bounds.contains(cursor_position);
+
+    let content = layout.children().next().unwrap();
+    let content_bounds = content.bounds();
+
+    let scrollbar = scrollbar(
+        state,
+        scrollbar_width,
+        scrollbar_margin,
+        scroller_width,
+        bounds,
+        content_bounds,
+    );
+    let is_mouse_over_scrollbar = scrollbar
+        .as_ref()
+        .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+        .unwrap_or(false);
+
+    let event_status = {
+        let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
+            Point::new(
+                cursor_position.x,
+                cursor_position.y + state.offset(bounds, content_bounds) as f32,
+            )
+        } else {
+            // TODO: Make `cursor_position` an `Option<Point>` so we can encode
+            // cursor availability.
+            // This will probably happen naturally once we add multi-window
+            // support.
+            Point::new(cursor_position.x, -1.0)
+        };
+
+        update_content(
+            event.clone(),
+            content,
+            cursor_position,
+            clipboard,
+            shell,
+        )
+    };
+
+    if let event::Status::Captured = event_status {
+        return event::Status::Captured;
+    }
+
+    if is_mouse_over {
+        match event {
+            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                match delta {
+                    mouse::ScrollDelta::Lines { y, .. } => {
+                        // TODO: Configurable speed (?)
+                        state.scroll(y * 60.0, bounds, content_bounds);
+                    }
+                    mouse::ScrollDelta::Pixels { y, .. } => {
+                        state.scroll(y, bounds, content_bounds);
+                    }
+                }
+
+                notify_on_scroll(
+                    state,
+                    on_scroll,
+                    bounds,
+                    content_bounds,
+                    shell,
+                );
+
+                return event::Status::Captured;
+            }
+            Event::Touch(event) => {
+                match event {
+                    touch::Event::FingerPressed { .. } => {
+                        state.scroll_box_touched_at = Some(cursor_position);
+                    }
+                    touch::Event::FingerMoved { .. } => {
+                        if let Some(scroll_box_touched_at) =
+                            state.scroll_box_touched_at
+                        {
+                            let delta =
+                                cursor_position.y - scroll_box_touched_at.y;
+
+                            state.scroll(delta, bounds, content_bounds);
+
+                            state.scroll_box_touched_at = Some(cursor_position);
+
+                            notify_on_scroll(
+                                state,
+                                on_scroll,
+                                bounds,
+                                content_bounds,
+                                shell,
+                            );
+                        }
+                    }
+                    touch::Event::FingerLifted { .. }
+                    | touch::Event::FingerLost { .. } => {
+                        state.scroll_box_touched_at = None;
+                    }
+                }
+
+                return event::Status::Captured;
+            }
+            _ => {}
         }
     }
 
-    fn scrollbar(
-        &self,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) -> Option<Scrollbar> {
-        let offset = self.state.offset(bounds, content_bounds);
+    if state.is_scroller_grabbed() {
+        match event {
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. })
+            | Event::Touch(touch::Event::FingerLost { .. }) => {
+                state.scroller_grabbed_at = None;
 
-        if content_bounds.height > bounds.height {
-            let outer_width = self.scrollbar_width.max(self.scroller_width)
-                + 2 * self.scrollbar_margin;
+                return event::Status::Captured;
+            }
+            Event::Mouse(mouse::Event::CursorMoved { .. })
+            | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                if let (Some(scrollbar), Some(scroller_grabbed_at)) =
+                    (scrollbar, state.scroller_grabbed_at)
+                {
+                    state.scroll_to(
+                        scrollbar.scroll_percentage(
+                            scroller_grabbed_at,
+                            cursor_position,
+                        ),
+                        bounds,
+                        content_bounds,
+                    );
 
-            let outer_bounds = Rectangle {
-                x: bounds.x + bounds.width - outer_width as f32,
-                y: bounds.y,
-                width: outer_width as f32,
-                height: bounds.height,
-            };
+                    notify_on_scroll(
+                        state,
+                        on_scroll,
+                        bounds,
+                        content_bounds,
+                        shell,
+                    );
 
-            let scrollbar_bounds = Rectangle {
-                x: bounds.x + bounds.width
-                    - f32::from(outer_width / 2 + self.scrollbar_width / 2),
-                y: bounds.y,
-                width: self.scrollbar_width as f32,
-                height: bounds.height,
-            };
-
-            let ratio = bounds.height / content_bounds.height;
-            let scroller_height = bounds.height * ratio;
-            let y_offset = offset as f32 * ratio;
-
-            let scroller_bounds = Rectangle {
-                x: bounds.x + bounds.width
-                    - f32::from(outer_width / 2 + self.scroller_width / 2),
-                y: scrollbar_bounds.y + y_offset,
-                width: self.scroller_width as f32,
-                height: scroller_height,
-            };
-
-            Some(Scrollbar {
-                outer_bounds,
-                bounds: scrollbar_bounds,
-                scroller: Scroller {
-                    bounds: scroller_bounds,
-                },
-            })
-        } else {
-            None
+                    return event::Status::Captured;
+                }
+            }
+            _ => {}
         }
+    } else if is_mouse_over_scrollbar {
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                if let Some(scrollbar) = scrollbar {
+                    if let Some(scroller_grabbed_at) =
+                        scrollbar.grab_scroller(cursor_position)
+                    {
+                        state.scroll_to(
+                            scrollbar.scroll_percentage(
+                                scroller_grabbed_at,
+                                cursor_position,
+                            ),
+                            bounds,
+                            content_bounds,
+                        );
+
+                        state.scroller_grabbed_at = Some(scroller_grabbed_at);
+
+                        notify_on_scroll(
+                            state,
+                            on_scroll,
+                            bounds,
+                            content_bounds,
+                            shell,
+                        );
+
+                        return event::Status::Captured;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    event::Status::Ignored
+}
+
+/// Computes the current [`mouse::Interaction`] of a [`Scrollable`].
+pub fn mouse_interaction(
+    state: &State,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    scrollbar_width: u16,
+    scrollbar_margin: u16,
+    scroller_width: u16,
+    content_interaction: impl FnOnce(
+        Layout<'_>,
+        Point,
+        &Rectangle,
+    ) -> mouse::Interaction,
+) -> mouse::Interaction {
+    let bounds = layout.bounds();
+    let content_layout = layout.children().next().unwrap();
+    let content_bounds = content_layout.bounds();
+    let scrollbar = scrollbar(
+        state,
+        scrollbar_width,
+        scrollbar_margin,
+        scroller_width,
+        bounds,
+        content_bounds,
+    );
+
+    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over_scrollbar = scrollbar
+        .as_ref()
+        .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+        .unwrap_or(false);
+
+    if is_mouse_over_scrollbar || state.is_scroller_grabbed() {
+        mouse::Interaction::Idle
+    } else {
+        let offset = state.offset(bounds, content_bounds);
+
+        let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
+            Point::new(cursor_position.x, cursor_position.y + offset as f32)
+        } else {
+            Point::new(cursor_position.x, -1.0)
+        };
+
+        content_interaction(
+            content_layout,
+            cursor_position,
+            &Rectangle {
+                y: bounds.y + offset as f32,
+                ..bounds
+            },
+        )
+    }
+}
+
+/// Draws a [`Scrollable`].
+pub fn draw<Renderer>(
+    state: &State,
+    renderer: &mut Renderer,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    scrollbar_width: u16,
+    scrollbar_margin: u16,
+    scroller_width: u16,
+    style_sheet: &dyn StyleSheet,
+    draw_content: impl FnOnce(&mut Renderer, Layout<'_>, Point, &Rectangle),
+) where
+    Renderer: crate::Renderer,
+{
+    let bounds = layout.bounds();
+    let content_layout = layout.children().next().unwrap();
+    let content_bounds = content_layout.bounds();
+    let offset = state.offset(bounds, content_bounds);
+    let scrollbar = scrollbar(
+        state,
+        scrollbar_width,
+        scrollbar_margin,
+        scroller_width,
+        bounds,
+        content_bounds,
+    );
+
+    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over_scrollbar = scrollbar
+        .as_ref()
+        .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+        .unwrap_or(false);
+
+    let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
+        Point::new(cursor_position.x, cursor_position.y + offset as f32)
+    } else {
+        Point::new(cursor_position.x, -1.0)
+    };
+
+    if let Some(scrollbar) = scrollbar {
+        renderer.with_layer(bounds, |renderer| {
+            renderer.with_translation(
+                Vector::new(0.0, -(offset as f32)),
+                |renderer| {
+                    draw_content(
+                        renderer,
+                        content_layout,
+                        cursor_position,
+                        &Rectangle {
+                            y: bounds.y + offset as f32,
+                            ..bounds
+                        },
+                    );
+                },
+            );
+        });
+
+        let style = if state.is_scroller_grabbed() {
+            style_sheet.dragging()
+        } else if is_mouse_over_scrollbar {
+            style_sheet.hovered()
+        } else {
+            style_sheet.active()
+        };
+
+        let is_scrollbar_visible =
+            style.background.is_some() || style.border_width > 0.0;
+
+        renderer.with_layer(
+            Rectangle {
+                width: bounds.width + 2.0,
+                height: bounds.height + 2.0,
+                ..bounds
+            },
+            |renderer| {
+                if is_scrollbar_visible {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: scrollbar.bounds,
+                            border_radius: style.border_radius,
+                            border_width: style.border_width,
+                            border_color: style.border_color,
+                        },
+                        style
+                            .background
+                            .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                    );
+                }
+
+                if is_mouse_over
+                    || state.is_scroller_grabbed()
+                    || is_scrollbar_visible
+                {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: scrollbar.scroller.bounds,
+                            border_radius: style.scroller.border_radius,
+                            border_width: style.scroller.border_width,
+                            border_color: style.scroller.border_color,
+                        },
+                        style.scroller.color,
+                    );
+                }
+            },
+        );
+    } else {
+        draw_content(
+            renderer,
+            content_layout,
+            cursor_position,
+            &Rectangle {
+                y: bounds.y + offset as f32,
+                ..bounds
+            },
+        );
+    }
+}
+
+fn scrollbar(
+    state: &State,
+    scrollbar_width: u16,
+    scrollbar_margin: u16,
+    scroller_width: u16,
+    bounds: Rectangle,
+    content_bounds: Rectangle,
+) -> Option<Scrollbar> {
+    let offset = state.offset(bounds, content_bounds);
+
+    if content_bounds.height > bounds.height {
+        let outer_width =
+            scrollbar_width.max(scroller_width) + 2 * scrollbar_margin;
+
+        let outer_bounds = Rectangle {
+            x: bounds.x + bounds.width - outer_width as f32,
+            y: bounds.y,
+            width: outer_width as f32,
+            height: bounds.height,
+        };
+
+        let scrollbar_bounds = Rectangle {
+            x: bounds.x + bounds.width
+                - f32::from(outer_width / 2 + scrollbar_width / 2),
+            y: bounds.y,
+            width: scrollbar_width as f32,
+            height: bounds.height,
+        };
+
+        let ratio = bounds.height / content_bounds.height;
+        let scroller_height = bounds.height * ratio;
+        let y_offset = offset as f32 * ratio;
+
+        let scroller_bounds = Rectangle {
+            x: bounds.x + bounds.width
+                - f32::from(outer_width / 2 + scroller_width / 2),
+            y: scrollbar_bounds.y + y_offset,
+            width: scroller_width as f32,
+            height: scroller_height,
+        };
+
+        Some(Scrollbar {
+            outer_bounds,
+            bounds: scrollbar_bounds,
+            scroller: Scroller {
+                bounds: scroller_bounds,
+            },
+        })
+    } else {
+        None
+    }
+}
+
+fn notify_on_scroll<Message>(
+    state: &State,
+    on_scroll: &Option<Box<dyn Fn(f32) -> Message>>,
+    bounds: Rectangle,
+    content_bounds: Rectangle,
+    shell: &mut Shell<'_, Message>,
+) {
+    if content_bounds.height <= bounds.height {
+        return;
+    }
+
+    if let Some(on_scroll) = on_scroll {
+        shell.publish(on_scroll(
+            state.offset.absolute(bounds, content_bounds)
+                / (content_bounds.height - bounds.height),
+        ));
     }
 }
 
@@ -227,20 +625,13 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .max_height(self.max_height)
-            .width(Widget::<Message, Renderer>::width(&self.content))
-            .height(self.height);
-
-        let child_limits = layout::Limits::new(
-            Size::new(limits.min().width, 0.0),
-            Size::new(limits.max().width, f32::INFINITY),
-        );
-
-        let content = self.content.layout(renderer, &child_limits);
-        let size = limits.resolve(content.size());
-
-        layout::Node::with_children(size, vec![content])
+        layout(
+            renderer,
+            limits,
+            Widget::<Message, Renderer>::width(self),
+            self.height,
+            |renderer, limits| self.content.layout(renderer, limits),
+        )
     }
 
     fn on_event(
@@ -252,174 +643,28 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
-
-        let content = layout.children().next().unwrap();
-        let content_bounds = content.bounds();
-
-        let scrollbar = self.scrollbar(bounds, content_bounds);
-        let is_mouse_over_scrollbar = scrollbar
-            .as_ref()
-            .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
-            .unwrap_or(false);
-
-        let event_status = {
-            let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
-                Point::new(
-                    cursor_position.x,
-                    cursor_position.y
-                        + self.state.offset(bounds, content_bounds) as f32,
+        update(
+            &mut self.state,
+            event,
+            layout,
+            cursor_position,
+            clipboard,
+            shell,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+            &self.on_scroll,
+            |event, layout, cursor_position, clipboard, shell| {
+                self.content.on_event(
+                    event,
+                    layout,
+                    cursor_position,
+                    renderer,
+                    clipboard,
+                    shell,
                 )
-            } else {
-                // TODO: Make `cursor_position` an `Option<Point>` so we can encode
-                // cursor availability.
-                // This will probably happen naturally once we add multi-window
-                // support.
-                Point::new(cursor_position.x, -1.0)
-            };
-
-            self.content.on_event(
-                event.clone(),
-                content,
-                cursor_position,
-                renderer,
-                clipboard,
-                shell,
-            )
-        };
-
-        if let event::Status::Captured = event_status {
-            return event::Status::Captured;
-        }
-
-        if is_mouse_over {
-            match event {
-                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                    match delta {
-                        mouse::ScrollDelta::Lines { y, .. } => {
-                            // TODO: Configurable speed (?)
-                            self.state.scroll(y * 60.0, bounds, content_bounds);
-                        }
-                        mouse::ScrollDelta::Pixels { y, .. } => {
-                            self.state.scroll(y, bounds, content_bounds);
-                        }
-                    }
-
-                    self.notify_on_scroll(bounds, content_bounds, shell);
-
-                    return event::Status::Captured;
-                }
-                Event::Touch(event) => {
-                    match event {
-                        touch::Event::FingerPressed { .. } => {
-                            self.state.scroll_box_touched_at =
-                                Some(cursor_position);
-                        }
-                        touch::Event::FingerMoved { .. } => {
-                            if let Some(scroll_box_touched_at) =
-                                self.state.scroll_box_touched_at
-                            {
-                                let delta =
-                                    cursor_position.y - scroll_box_touched_at.y;
-
-                                self.state.scroll(
-                                    delta,
-                                    bounds,
-                                    content_bounds,
-                                );
-
-                                self.state.scroll_box_touched_at =
-                                    Some(cursor_position);
-
-                                self.notify_on_scroll(
-                                    bounds,
-                                    content_bounds,
-                                    shell,
-                                );
-                            }
-                        }
-                        touch::Event::FingerLifted { .. }
-                        | touch::Event::FingerLost { .. } => {
-                            self.state.scroll_box_touched_at = None;
-                        }
-                    }
-
-                    return event::Status::Captured;
-                }
-                _ => {}
-            }
-        }
-
-        if self.state.is_scroller_grabbed() {
-            match event {
-                Event::Mouse(mouse::Event::ButtonReleased(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerLifted { .. })
-                | Event::Touch(touch::Event::FingerLost { .. }) => {
-                    self.state.scroller_grabbed_at = None;
-
-                    return event::Status::Captured;
-                }
-                Event::Mouse(mouse::Event::CursorMoved { .. })
-                | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                    if let (Some(scrollbar), Some(scroller_grabbed_at)) =
-                        (scrollbar, self.state.scroller_grabbed_at)
-                    {
-                        self.state.scroll_to(
-                            scrollbar.scroll_percentage(
-                                scroller_grabbed_at,
-                                cursor_position,
-                            ),
-                            bounds,
-                            content_bounds,
-                        );
-
-                        self.notify_on_scroll(bounds, content_bounds, shell);
-
-                        return event::Status::Captured;
-                    }
-                }
-                _ => {}
-            }
-        } else if is_mouse_over_scrollbar {
-            match event {
-                Event::Mouse(mouse::Event::ButtonPressed(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                    if let Some(scrollbar) = scrollbar {
-                        if let Some(scroller_grabbed_at) =
-                            scrollbar.grab_scroller(cursor_position)
-                        {
-                            self.state.scroll_to(
-                                scrollbar.scroll_percentage(
-                                    scroller_grabbed_at,
-                                    cursor_position,
-                                ),
-                                bounds,
-                                content_bounds,
-                            );
-
-                            self.state.scroller_grabbed_at =
-                                Some(scroller_grabbed_at);
-
-                            self.notify_on_scroll(
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
-
-                            return event::Status::Captured;
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        event::Status::Ignored
+            },
+        )
     }
 
     fn mouse_interaction(
@@ -429,38 +674,22 @@ where
         _viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
-        let scrollbar = self.scrollbar(bounds, content_bounds);
-
-        let is_mouse_over = bounds.contains(cursor_position);
-        let is_mouse_over_scrollbar = scrollbar
-            .as_ref()
-            .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
-            .unwrap_or(false);
-
-        if is_mouse_over_scrollbar || self.state.is_scroller_grabbed() {
-            mouse::Interaction::Idle
-        } else {
-            let offset = self.state.offset(bounds, content_bounds);
-
-            let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
-                Point::new(cursor_position.x, cursor_position.y + offset as f32)
-            } else {
-                Point::new(cursor_position.x, -1.0)
-            };
-
-            self.content.mouse_interaction(
-                content_layout,
-                cursor_position,
-                &Rectangle {
-                    y: bounds.y + offset as f32,
-                    ..bounds
-                },
-                renderer,
-            )
-        }
+        mouse_interaction(
+            &self.state,
+            layout,
+            cursor_position,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+            |layout, cursor_position, viewport| {
+                self.content.mouse_interaction(
+                    layout,
+                    cursor_position,
+                    viewport,
+                    renderer,
+                )
+            },
+        )
     }
 
     fn draw(
@@ -471,103 +700,25 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
-        let offset = self.state.offset(bounds, content_bounds);
-        let scrollbar = self.scrollbar(bounds, content_bounds);
-
-        let is_mouse_over = bounds.contains(cursor_position);
-        let is_mouse_over_scrollbar = scrollbar
-            .as_ref()
-            .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
-            .unwrap_or(false);
-
-        let cursor_position = if is_mouse_over && !is_mouse_over_scrollbar {
-            Point::new(cursor_position.x, cursor_position.y + offset as f32)
-        } else {
-            Point::new(cursor_position.x, -1.0)
-        };
-
-        if let Some(scrollbar) = scrollbar {
-            renderer.with_layer(bounds, |renderer| {
-                renderer.with_translation(
-                    Vector::new(0.0, -(offset as f32)),
-                    |renderer| {
-                        self.content.draw(
-                            renderer,
-                            style,
-                            content_layout,
-                            cursor_position,
-                            &Rectangle {
-                                y: bounds.y + offset as f32,
-                                ..bounds
-                            },
-                        );
-                    },
-                );
-            });
-
-            let style = if self.state.is_scroller_grabbed() {
-                self.style_sheet.dragging()
-            } else if is_mouse_over_scrollbar {
-                self.style_sheet.hovered()
-            } else {
-                self.style_sheet.active()
-            };
-
-            let is_scrollbar_visible =
-                style.background.is_some() || style.border_width > 0.0;
-
-            renderer.with_layer(
-                Rectangle {
-                    width: bounds.width + 2.0,
-                    height: bounds.height + 2.0,
-                    ..bounds
-                },
-                |renderer| {
-                    if is_scrollbar_visible {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: scrollbar.bounds,
-                                border_radius: style.border_radius,
-                                border_width: style.border_width,
-                                border_color: style.border_color,
-                            },
-                            style.background.unwrap_or(Background::Color(
-                                Color::TRANSPARENT,
-                            )),
-                        );
-                    }
-
-                    if is_mouse_over
-                        || self.state.is_scroller_grabbed()
-                        || is_scrollbar_visible
-                    {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: scrollbar.scroller.bounds,
-                                border_radius: style.scroller.border_radius,
-                                border_width: style.scroller.border_width,
-                                border_color: style.scroller.border_color,
-                            },
-                            style.scroller.color,
-                        );
-                    }
-                },
-            );
-        } else {
-            self.content.draw(
-                renderer,
-                style,
-                content_layout,
-                cursor_position,
-                &Rectangle {
-                    y: bounds.y + offset as f32,
-                    ..bounds
-                },
-            );
-        }
+        draw(
+            &self.state,
+            renderer,
+            layout,
+            cursor_position,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+            self.style_sheet.as_ref(),
+            |renderer, layout, cursor_position, viewport| {
+                self.content.draw(
+                    renderer,
+                    style,
+                    layout,
+                    cursor_position,
+                    viewport,
+                )
+            },
+        )
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
