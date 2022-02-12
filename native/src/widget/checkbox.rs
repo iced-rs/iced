@@ -36,7 +36,7 @@ pub use iced_style::checkbox::{Style, StyleSheet};
 #[allow(missing_debug_implementations)]
 pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
     is_checked: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message>,
+    on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: String,
     width: Length,
     size: u16,
@@ -63,7 +63,7 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
     ///     `Message`.
     pub fn new<F>(is_checked: bool, label: impl Into<String>, f: F) -> Self
     where
-        F: 'static + Fn(bool) -> Message,
+        F: 'a + Fn(bool) -> Message,
     {
         Checkbox {
             is_checked,

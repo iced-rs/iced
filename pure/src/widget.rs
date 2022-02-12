@@ -1,4 +1,5 @@
 mod button;
+mod checkbox;
 mod column;
 mod container;
 mod element;
@@ -7,6 +8,7 @@ mod text;
 mod tree;
 
 pub use button::Button;
+pub use checkbox::Checkbox;
 pub use column::Column;
 pub use container::Container;
 pub use element::Element;
@@ -104,4 +106,15 @@ where
     Renderer: iced_native::text::Renderer,
 {
     Text::new(text)
+}
+
+pub fn checkbox<'a, Message, Renderer>(
+    label: impl Into<String>,
+    is_checked: bool,
+    f: impl Fn(bool) -> Message + 'a,
+) -> Checkbox<'a, Message, Renderer>
+where
+    Renderer: iced_native::text::Renderer,
+{
+    Checkbox::new(is_checked, label, f)
 }
