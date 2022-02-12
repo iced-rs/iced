@@ -3,11 +3,18 @@ use iced::pure::widget::{
     button, checkbox, column, container, row, scrollable, text, text_input,
 };
 use iced::pure::{Application, Element, Text};
+use iced::window;
 use iced::{Command, Font, Length, Settings};
 use serde::{Deserialize, Serialize};
 
 pub fn main() -> iced::Result {
-    Todos::run(Settings::default())
+    Todos::run(Settings {
+        window: window::Settings {
+            size: (500, 800),
+            ..window::Settings::default()
+        },
+        ..Settings::default()
+    })
 }
 
 #[derive(Debug)]
@@ -184,6 +191,7 @@ impl Application for Todos {
 
                 let content = column()
                     .spacing(20)
+                    .max_width(800)
                     .push(title)
                     .push(input)
                     .push(controls)

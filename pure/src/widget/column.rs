@@ -10,12 +10,14 @@ use iced_native::{
 };
 
 use std::any::{self, Any};
+use std::u32;
 
 pub struct Column<'a, Message, Renderer> {
     spacing: u16,
     padding: Padding,
     width: Length,
     height: Length,
+    max_width: u32,
     align_items: Alignment,
     children: Vec<Element<'a, Message, Renderer>>,
 }
@@ -33,6 +35,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
+            max_width: u32::MAX,
             align_items: Alignment::Start,
             children,
         }
@@ -55,6 +58,12 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
+        self
+    }
+
+    /// Sets the maximum width of the [`Column`].
+    pub fn max_width(mut self, max_width: u32) -> Self {
+        self.max_width = max_width;
         self
     }
 
@@ -106,7 +115,10 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
+        let limits = limits
+            .max_width(self.max_width)
+            .width(self.width)
+            .height(self.height);
 
         flex::resolve(
             flex::Axis::Vertical,
@@ -204,6 +216,7 @@ where
         self.tag().hash(state);
         self.width.hash(state);
         self.height.hash(state);
+        self.max_width.hash(state);
         self.align_items.hash(state);
         self.spacing.hash(state);
         self.padding.hash(state);
