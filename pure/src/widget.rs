@@ -9,6 +9,7 @@ mod radio;
 mod row;
 mod scrollable;
 mod slider;
+mod space;
 mod text;
 mod text_input;
 mod toggler;
@@ -24,6 +25,7 @@ pub use radio::Radio;
 pub use row::Row;
 pub use scrollable::Scrollable;
 pub use slider::Slider;
+pub use space::Space;
 pub use text::Text;
 pub use text_input::TextInput;
 pub use toggler::Toggler;
@@ -194,4 +196,12 @@ where
 
 pub fn image<Handle>(handle: impl Into<Handle>) -> Image<Handle> {
     Image::new(handle.into())
+}
+
+pub fn horizontal_space(width: Length) -> Space {
+    Space::with_width(width)
+}
+
+pub fn vertical_space(height: Length) -> Space {
+    Space::with_height(height)
 }
