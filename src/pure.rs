@@ -17,7 +17,7 @@
 //! [the original widgets]: crate::widget
 //! [`button::State`]: crate::widget::button::State
 //! [impure `Application`]: crate::Application
-pub use iced_pure::{Element as _, Text as _, *};
+pub use iced_pure::{Element as _, Image as _, Text as _, *};
 
 /// A generic, pure [`Widget`].
 pub type Element<'a, Message> =
@@ -25,6 +25,9 @@ pub type Element<'a, Message> =
 
 /// A pure text widget.
 pub type Text = iced_pure::Text<crate::Renderer>;
+
+/// A pure image widget.
+pub type Image = iced_pure::Image<crate::widget::image::Handle>;
 
 mod application;
 mod sandbox;

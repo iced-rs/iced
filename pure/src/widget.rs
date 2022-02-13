@@ -1,3 +1,5 @@
+pub mod image;
+
 mod button;
 mod checkbox;
 mod column;
@@ -14,6 +16,7 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 pub use container::Container;
 pub use element::Element;
+pub use image::Image;
 pub use row::Row;
 pub use scrollable::Scrollable;
 pub use text::Text;
@@ -144,4 +147,8 @@ where
     Renderer: iced_native::text::Renderer,
 {
     TextInput::new(placeholder, value, on_change)
+}
+
+pub fn image<Handle>(handle: Handle) -> Image<Handle> {
+    Image::new(handle)
 }

@@ -51,6 +51,53 @@ impl<Handle> Image<Handle> {
     }
 }
 
+/// Computes the layout of an [`Image`].
+pub fn layout<Renderer, Handle>(
+    renderer: &Renderer,
+    limits: &layout::Limits,
+    handle: &Handle,
+    width: Length,
+    height: Length,
+) -> layout::Node
+where
+    Renderer: image::Renderer<Handle = Handle>,
+{
+    let (original_width, original_height) = renderer.dimensions(handle);
+
+    let mut size = limits
+        .width(width)
+        .height(height)
+        .resolve(Size::new(original_width as f32, original_height as f32));
+
+    let aspect_ratio = original_width as f32 / original_height as f32;
+    let viewport_aspect_ratio = size.width / size.height;
+
+    if viewport_aspect_ratio > aspect_ratio {
+        size.width =
+            original_width as f32 * size.height / original_height as f32;
+    } else {
+        size.height =
+            original_height as f32 * size.width / original_width as f32;
+    }
+
+    layout::Node::new(size)
+}
+
+/// Hashes the layout attributes of an [`Image`].
+pub fn hash_layout<Handle: Hash>(
+    state: &mut Hasher,
+    handle: &Handle,
+    width: Length,
+    height: Length,
+) {
+    struct Marker;
+    std::any::TypeId::of::<Marker>().hash(state);
+
+    handle.hash(state);
+    width.hash(state);
+    height.hash(state);
+}
+
 impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -69,24 +116,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let (width, height) = renderer.dimensions(&self.handle);
-
-        let aspect_ratio = width as f32 / height as f32;
-
-        let mut size = limits
-            .width(self.width)
-            .height(self.height)
-            .resolve(Size::new(width as f32, height as f32));
-
-        let viewport_aspect_ratio = size.width / size.height;
-
-        if viewport_aspect_ratio > aspect_ratio {
-            size.width = width as f32 * size.height / height as f32;
-        } else {
-            size.height = height as f32 * size.width / width as f32;
-        }
-
-        layout::Node::new(size)
+        layout(renderer, limits, &self.handle, self.width, self.height)
     }
 
     fn draw(
@@ -101,12 +131,7 @@ where
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.handle.hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
+        hash_layout(state, &self.handle, self.width, self.height)
     }
 }
 
