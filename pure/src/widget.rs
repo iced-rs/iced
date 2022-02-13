@@ -5,6 +5,7 @@ mod checkbox;
 mod column;
 mod container;
 mod element;
+mod radio;
 mod row;
 mod scrollable;
 mod slider;
@@ -19,6 +20,7 @@ pub use column::Column;
 pub use container::Container;
 pub use element::Element;
 pub use image::Image;
+pub use radio::Radio;
 pub use row::Row;
 pub use scrollable::Scrollable;
 pub use slider::Slider;
@@ -139,6 +141,20 @@ where
     Renderer: iced_native::text::Renderer,
 {
     Checkbox::new(is_checked, label, f)
+}
+
+pub fn radio<'a, Message, Renderer, V>(
+    label: impl Into<String>,
+    value: V,
+    selected: Option<V>,
+    on_click: impl FnOnce(V) -> Message,
+) -> Radio<'a, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: iced_native::text::Renderer,
+    V: Copy + Eq,
+{
+    Radio::new(value, label, selected, on_click)
 }
 
 pub fn toggler<'a, Message, Renderer>(
