@@ -143,6 +143,215 @@ where
     }
 }
 
+/// Processes an [`Event`] and updates the [`State`] of a [`Slider`]
+/// accordingly.
+pub fn update<Message, T>(
+    event: Event,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    shell: &mut Shell<'_, Message>,
+    state: &mut State,
+    value: &mut T,
+    range: &RangeInclusive<T>,
+    step: T,
+    on_change: &dyn Fn(T) -> Message,
+    on_release: &Option<Message>,
+) -> event::Status
+where
+    T: Copy + Into<f64> + num_traits::FromPrimitive,
+    Message: Clone,
+{
+    let is_dragging = state.is_dragging;
+
+    let mut change = || {
+        let bounds = layout.bounds();
+        let new_value = if cursor_position.x <= bounds.x {
+            *range.start()
+        } else if cursor_position.x >= bounds.x + bounds.width {
+            *range.end()
+        } else {
+            let step = step.into();
+            let start = (*range.start()).into();
+            let end = (*range.end()).into();
+
+            let percent = f64::from(cursor_position.x - bounds.x)
+                / f64::from(bounds.width);
+
+            let steps = (percent * (end - start) / step).round();
+            let value = steps * step + start;
+
+            if let Some(value) = T::from_f64(value) {
+                value
+            } else {
+                return;
+            }
+        };
+
+        if ((*value).into() - new_value.into()).abs() > f64::EPSILON {
+            shell.publish((on_change)(new_value));
+
+            *value = new_value;
+        }
+    };
+
+    match event {
+        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+        | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            if layout.bounds().contains(cursor_position) {
+                change();
+                state.is_dragging = true;
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+        | Event::Touch(touch::Event::FingerLifted { .. })
+        | Event::Touch(touch::Event::FingerLost { .. }) => {
+            if is_dragging {
+                if let Some(on_release) = on_release.clone() {
+                    shell.publish(on_release);
+                }
+                state.is_dragging = false;
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Mouse(mouse::Event::CursorMoved { .. })
+        | Event::Touch(touch::Event::FingerMoved { .. }) => {
+            if is_dragging {
+                change();
+
+                return event::Status::Captured;
+            }
+        }
+        _ => {}
+    }
+
+    event::Status::Ignored
+}
+
+/// Draws a [`Slider`].
+pub fn draw<T>(
+    renderer: &mut impl crate::Renderer,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    state: &State,
+    value: T,
+    range: &RangeInclusive<T>,
+    style_sheet: &dyn StyleSheet,
+) where
+    T: Into<f64> + Copy,
+{
+    let bounds = layout.bounds();
+    let is_mouse_over = bounds.contains(cursor_position);
+
+    let style = if state.is_dragging {
+        style_sheet.dragging()
+    } else if is_mouse_over {
+        style_sheet.hovered()
+    } else {
+        style_sheet.active()
+    };
+
+    let rail_y = bounds.y + (bounds.height / 2.0).round();
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds: Rectangle {
+                x: bounds.x,
+                y: rail_y,
+                width: bounds.width,
+                height: 2.0,
+            },
+            border_radius: 0.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        },
+        style.rail_colors.0,
+    );
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds: Rectangle {
+                x: bounds.x,
+                y: rail_y + 2.0,
+                width: bounds.width,
+                height: 2.0,
+            },
+            border_radius: 0.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        },
+        Background::Color(style.rail_colors.1),
+    );
+
+    let (handle_width, handle_height, handle_border_radius) = match style
+        .handle
+        .shape
+    {
+        HandleShape::Circle { radius } => (radius * 2.0, radius * 2.0, radius),
+        HandleShape::Rectangle {
+            width,
+            border_radius,
+        } => (f32::from(width), f32::from(bounds.height), border_radius),
+    };
+
+    let value = value.into() as f32;
+    let (range_start, range_end) = {
+        let (start, end) = range.clone().into_inner();
+
+        (start.into() as f32, end.into() as f32)
+    };
+
+    let handle_offset = if range_start >= range_end {
+        0.0
+    } else {
+        (bounds.width - handle_width) * (value - range_start)
+            / (range_end - range_start)
+    };
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds: Rectangle {
+                x: bounds.x + handle_offset.round(),
+                y: rail_y - handle_height / 2.0,
+                width: handle_width,
+                height: handle_height,
+            },
+            border_radius: handle_border_radius,
+            border_width: style.handle.border_width,
+            border_color: style.handle.border_color,
+        },
+        style.handle.color,
+    );
+}
+
+/// Computes the current [`mouse::Interaction`] of a [`Slider`].
+pub fn mouse_interaction(
+    layout: Layout<'_>,
+    cursor_position: Point,
+    state: &State,
+) -> mouse::Interaction {
+    let bounds = layout.bounds();
+    let is_mouse_over = bounds.contains(cursor_position);
+
+    if state.is_dragging {
+        mouse::Interaction::Grabbing
+    } else if is_mouse_over {
+        mouse::Interaction::Grab
+    } else {
+        mouse::Interaction::default()
+    }
+}
+
+/// Hashes the layout of a [`Slider`].
+pub fn hash_layout(state: &mut Hasher, width: Length) {
+    struct Marker;
+    std::any::TypeId::of::<Marker>().hash(state);
+
+    width.hash(state);
+}
+
 /// The local state of a [`Slider`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
@@ -193,73 +402,18 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        let is_dragging = self.state.is_dragging;
-
-        let mut change = || {
-            let bounds = layout.bounds();
-            let new_value = if cursor_position.x <= bounds.x {
-                *self.range.start()
-            } else if cursor_position.x >= bounds.x + bounds.width {
-                *self.range.end()
-            } else {
-                let step = self.step.into();
-                let start = (*self.range.start()).into();
-                let end = (*self.range.end()).into();
-
-                let percent = f64::from(cursor_position.x - bounds.x)
-                    / f64::from(bounds.width);
-
-                let steps = (percent * (end - start) / step).round();
-                let value = steps * step + start;
-
-                if let Some(value) = T::from_f64(value) {
-                    value
-                } else {
-                    return;
-                }
-            };
-
-            if (self.value.into() - new_value.into()).abs() > f64::EPSILON {
-                shell.publish((self.on_change)(new_value));
-
-                self.value = new_value;
-            }
-        };
-
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if layout.bounds().contains(cursor_position) {
-                    change();
-                    self.state.is_dragging = true;
-
-                    return event::Status::Captured;
-                }
-            }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. })
-            | Event::Touch(touch::Event::FingerLost { .. }) => {
-                if is_dragging {
-                    if let Some(on_release) = self.on_release.clone() {
-                        shell.publish(on_release);
-                    }
-                    self.state.is_dragging = false;
-
-                    return event::Status::Captured;
-                }
-            }
-            Event::Mouse(mouse::Event::CursorMoved { .. })
-            | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                if is_dragging {
-                    change();
-
-                    return event::Status::Captured;
-                }
-            }
-            _ => {}
-        }
-
-        event::Status::Ignored
+        update(
+            event,
+            layout,
+            cursor_position,
+            shell,
+            &mut self.state,
+            &mut self.value,
+            &self.range,
+            self.step,
+            self.on_change.as_ref(),
+            &self.on_release,
+        )
     }
 
     fn draw(
@@ -270,90 +424,15 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
-
-        let style = if self.state.is_dragging {
-            self.style_sheet.dragging()
-        } else if is_mouse_over {
-            self.style_sheet.hovered()
-        } else {
-            self.style_sheet.active()
-        };
-
-        let rail_y = bounds.y + (bounds.height / 2.0).round();
-
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: Rectangle {
-                    x: bounds.x,
-                    y: rail_y,
-                    width: bounds.width,
-                    height: 2.0,
-                },
-                border_radius: 0.0,
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
-            },
-            style.rail_colors.0,
-        );
-
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: Rectangle {
-                    x: bounds.x,
-                    y: rail_y + 2.0,
-                    width: bounds.width,
-                    height: 2.0,
-                },
-                border_radius: 0.0,
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
-            },
-            Background::Color(style.rail_colors.1),
-        );
-
-        let (handle_width, handle_height, handle_border_radius) = match style
-            .handle
-            .shape
-        {
-            HandleShape::Circle { radius } => {
-                (radius * 2.0, radius * 2.0, radius)
-            }
-            HandleShape::Rectangle {
-                width,
-                border_radius,
-            } => (f32::from(width), f32::from(bounds.height), border_radius),
-        };
-
-        let value = self.value.into() as f32;
-        let (range_start, range_end) = {
-            let (start, end) = self.range.clone().into_inner();
-
-            (start.into() as f32, end.into() as f32)
-        };
-
-        let handle_offset = if range_start >= range_end {
-            0.0
-        } else {
-            (bounds.width - handle_width) * (value - range_start)
-                / (range_end - range_start)
-        };
-
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: Rectangle {
-                    x: bounds.x + handle_offset.round(),
-                    y: rail_y - handle_height / 2.0,
-                    width: handle_width,
-                    height: handle_height,
-                },
-                border_radius: handle_border_radius,
-                border_width: style.handle.border_width,
-                border_color: style.handle.border_color,
-            },
-            style.handle.color,
-        );
+        draw(
+            renderer,
+            layout,
+            cursor_position,
+            &self.state,
+            self.value,
+            &self.range,
+            self.style_sheet.as_ref(),
+        )
     }
 
     fn mouse_interaction(
@@ -363,23 +442,11 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
-
-        if self.state.is_dragging {
-            mouse::Interaction::Grabbing
-        } else if is_mouse_over {
-            mouse::Interaction::Grab
-        } else {
-            mouse::Interaction::default()
-        }
+        mouse_interaction(layout, cursor_position, &self.state)
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
+        hash_layout(state, self.width)
     }
 }
 

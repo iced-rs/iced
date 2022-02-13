@@ -7,6 +7,7 @@ mod container;
 mod element;
 mod row;
 mod scrollable;
+mod slider;
 mod text;
 mod text_input;
 mod tree;
@@ -19,6 +20,7 @@ pub use element::Element;
 pub use image::Image;
 pub use row::Row;
 pub use scrollable::Scrollable;
+pub use slider::Slider;
 pub use text::Text;
 pub use text_input::TextInput;
 pub use tree::Tree;
@@ -35,8 +37,6 @@ pub trait Widget<Message, Renderer> {
     fn tag(&self) -> any::TypeId;
 
     fn state(&self) -> Box<dyn Any>;
-
-    fn diff(&self, tree: &mut Tree);
 
     fn children_state(&self) -> Vec<Tree>;
 
@@ -61,6 +61,8 @@ pub trait Widget<Message, Renderer> {
         cursor_position: Point,
         viewport: &Rectangle,
     );
+
+    fn diff(&self, _tree: &mut Tree) {}
 
     fn mouse_interaction(
         &self,
@@ -147,6 +149,19 @@ where
     Renderer: iced_native::text::Renderer,
 {
     TextInput::new(placeholder, value, on_change)
+}
+
+pub fn slider<'a, Message, Renderer, T>(
+    range: std::ops::RangeInclusive<T>,
+    value: T,
+    on_change: impl Fn(T) -> Message + 'a,
+) -> Slider<'a, T, Message>
+where
+    Message: Clone,
+    Renderer: iced_native::Renderer,
+    T: Copy + From<u8> + std::cmp::PartialOrd,
+{
+    Slider::new(range, value, on_change)
 }
 
 pub fn image<Handle>(handle: Handle) -> Image<Handle> {
