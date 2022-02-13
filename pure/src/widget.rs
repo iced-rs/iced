@@ -141,6 +141,17 @@ where
     Checkbox::new(is_checked, label, f)
 }
 
+pub fn toggler<'a, Message, Renderer>(
+    label: impl Into<Option<String>>,
+    is_checked: bool,
+    f: impl Fn(bool) -> Message + 'a,
+) -> Toggler<'a, Message, Renderer>
+where
+    Renderer: iced_native::text::Renderer,
+{
+    Toggler::new(is_checked, label, f)
+}
+
 pub fn text_input<'a, Message, Renderer>(
     placeholder: &str,
     value: &str,
@@ -153,19 +164,18 @@ where
     TextInput::new(placeholder, value, on_change)
 }
 
-pub fn slider<'a, Message, Renderer, T>(
+pub fn slider<'a, Message, T>(
     range: std::ops::RangeInclusive<T>,
     value: T,
     on_change: impl Fn(T) -> Message + 'a,
 ) -> Slider<'a, T, Message>
 where
     Message: Clone,
-    Renderer: iced_native::Renderer,
     T: Copy + From<u8> + std::cmp::PartialOrd,
 {
     Slider::new(range, value, on_change)
 }
 
-pub fn image<Handle>(handle: Handle) -> Image<Handle> {
-    Image::new(handle)
+pub fn image<Handle>(handle: impl Into<Handle>) -> Image<Handle> {
+    Image::new(handle.into())
 }
