@@ -1,0 +1,123 @@
+use crate::widget::{Tree, Widget};
+use crate::Element;
+
+use iced_native::event::{self, Event};
+use iced_native::layout::{self, Layout};
+use iced_native::mouse;
+use iced_native::renderer;
+use iced_native::text;
+use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
+
+use std::any::{self, Any};
+
+pub use iced_native::widget::toggler::{Style, StyleSheet, Toggler};
+
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Toggler<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn tag(&self) -> any::TypeId {
+        any::TypeId::of::<()>()
+    }
+
+    fn state(&self) -> Box<dyn Any> {
+        Box::new(())
+    }
+
+    fn children_state(&self) -> Vec<Tree> {
+        Vec::new()
+    }
+
+    fn width(&self) -> Length {
+        <Self as iced_native::Widget<Message, Renderer>>::width(self)
+    }
+
+    fn height(&self) -> Length {
+        <Self as iced_native::Widget<Message, Renderer>>::height(self)
+    }
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        <Self as iced_native::Widget<Message, Renderer>>::hash_layout(
+            self, state,
+        )
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        <Self as iced_native::Widget<Message, Renderer>>::layout(
+            self, renderer, limits,
+        )
+    }
+
+    fn draw(
+        &self,
+        _state: &Tree,
+        renderer: &mut Renderer,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        <Self as iced_native::Widget<Message, Renderer>>::draw(
+            self,
+            renderer,
+            style,
+            layout,
+            cursor_position,
+            viewport,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        <Self as iced_native::Widget<Message, Renderer>>::mouse_interaction(
+            self,
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
+    }
+
+    fn on_event(
+        &mut self,
+        _state: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        <Self as iced_native::Widget<Message, Renderer>>::on_event(
+            self,
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        )
+    }
+}
+
+impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
+    for Toggler<'a, Message, Renderer>
+where
+    Message: 'a,
+    Renderer: text::Renderer + 'a,
+{
+    fn into(self) -> Element<'a, Message, Renderer> {
+        Element::new(self)
+    }
+}

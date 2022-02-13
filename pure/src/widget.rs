@@ -10,6 +10,7 @@ mod scrollable;
 mod slider;
 mod text;
 mod text_input;
+mod toggler;
 mod tree;
 
 pub use button::Button;
@@ -23,6 +24,7 @@ pub use scrollable::Scrollable;
 pub use slider::Slider;
 pub use text::Text;
 pub use text_input::TextInput;
+pub use toggler::Toggler;
 pub use tree::Tree;
 
 use iced_native::event::{self, Event};

@@ -1,4 +1,5 @@
 use crate::widget::{Tree, Widget};
+use crate::Element;
 
 use iced_native::layout::{self, Layout};
 use iced_native::renderer;
@@ -70,5 +71,17 @@ where
         <Self as iced_native::Widget<Message, Renderer>>::hash_layout(
             self, state,
         )
+    }
+}
+
+impl<'a, Message, Renderer, Handle> Into<Element<'a, Message, Renderer>>
+    for Image<Handle>
+where
+    Message: Clone + 'a,
+    Renderer: iced_native::image::Renderer<Handle = Handle> + 'a,
+    Handle: Clone + Hash + 'a,
+{
+    fn into(self) -> Element<'a, Message, Renderer> {
+        Element::new(self)
     }
 }
