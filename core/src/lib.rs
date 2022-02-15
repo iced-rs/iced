@@ -32,7 +32,7 @@ mod size;
 mod vector;
 
 pub use alignment::Alignment;
-pub use background::Background;
+pub use background::{Background, BackgroundImagePosition};
 pub use color::Color;
 pub use font::Font;
 pub use hasher::Hasher;

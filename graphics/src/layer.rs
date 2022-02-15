@@ -160,7 +160,7 @@ impl<'a> Layer<'a> {
             }
             Primitive::Quad {
                 bounds,
-                background: Background::Image(handle),
+                background: Background::Image(handle, _alignment),
                 border_radius,
                 border_width,
                 border_color,

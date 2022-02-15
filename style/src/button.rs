@@ -55,7 +55,9 @@ pub trait StyleSheet {
                     a: color.a * 0.5,
                     ..color
                 }),
-                Background::Image(_hdl) => Background::Color(Color::BLACK),
+                Background::Image(_hdl, _alignment) => {
+                    Background::Color(Color::BLACK)
+                }
             }),
             text_color: Color {
                 a: active.text_color.a * 0.5,
