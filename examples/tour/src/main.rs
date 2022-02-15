@@ -591,6 +591,26 @@ impl<'a> Step {
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
+            .push(Space::with_height(Length::Units(25)))
+            .push(Text::new(
+                "Images can also be used as background for other items:",
+            ))
+            .push(
+                Container::new(
+                    Container::new(
+                        Column::new()
+                            // We're cheating here. Since Background::Image does not (yet?) have advanced resizing options, let's include content that has roughly the same aspect ratio as the background image
+                            .push(Text::new("A first line"))
+                            .push(Text::new("A second line"))
+                            .push(Text::new("A third line")),
+                    )
+                    .max_height(80)
+                    .max_width(120)
+                    .style(style::BackgroundImage {}),
+                )
+                .width(Length::Fill)
+                .center_x(),
+            )
     }
 
     fn scrollable() -> Column<'a, StepMessage> {
@@ -783,7 +803,9 @@ pub enum Layout {
 }
 
 mod style {
+    use iced::image::Handle;
     use iced::{button, Background, Color, Vector};
+    use iced_core::BackgroundImagePosition;
 
     pub enum Button {
         Primary,
@@ -809,6 +831,32 @@ mod style {
                 text_color: Color::WHITE,
                 shadow_offset: Vector::new(1.0, 2.0),
                 ..self.active()
+            }
+        }
+    }
+
+    pub struct BackgroundImage {}
+
+    impl iced::widget::container::StyleSheet for BackgroundImage {
+        fn style(&self) -> iced::widget::container::Style {
+            let image_handle = if cfg!(target_arch = "wasm32") {
+                Handle::from_path("tour/images/ferris.png")
+            } else {
+                Handle::from_path(format!(
+                    "{}/images/ferris.png",
+                    env!("CARGO_MANIFEST_DIR")
+                ))
+            };
+
+            iced::widget::container::Style {
+                text_color: None,
+                background: Some(Background::Image(
+                    image_handle,
+                    BackgroundImagePosition::Stretch,
+                )),
+                border_radius: 0.0,
+                border_width: 0.0,
+                border_color: iced::Color::BLACK,
             }
         }
     }

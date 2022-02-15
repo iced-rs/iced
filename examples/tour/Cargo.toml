@@ -7,4 +7,5 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["image", "debug"] }
+iced_core = { path = "../../core" }
 env_logger = "0.8"
