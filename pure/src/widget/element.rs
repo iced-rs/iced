@@ -1,12 +1,11 @@
-use crate::widget::{Tree, Widget};
+use crate::widget::tree::{self, Tree};
+use crate::widget::Widget;
 
 use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
-
-use std::any::{self, Any};
 
 pub struct Element<'a, Message, Renderer> {
     widget: Box<dyn Widget<Message, Renderer> + 'a>,
@@ -66,20 +65,20 @@ where
     A: 'a,
     B: 'a,
 {
-    fn tag(&self) -> any::TypeId {
+    fn tag(&self) -> tree::Tag {
         self.widget.tag()
     }
 
-    fn state(&self) -> Box<dyn Any> {
+    fn state(&self) -> tree::State {
         self.widget.state()
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        self.widget.children()
     }
 
     fn diff(&self, tree: &mut Tree) {
         self.widget.diff(tree)
-    }
-
-    fn children_state(&self) -> Vec<Tree> {
-        self.widget.children_state()
     }
 
     fn width(&self) -> Length {

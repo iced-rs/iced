@@ -1,4 +1,5 @@
-use crate::widget::{Element, Tree, Widget};
+use crate::widget::tree::{self, Tree};
+use crate::widget::{Element, Widget};
 
 use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
@@ -11,8 +12,6 @@ use iced_native::{
 };
 
 pub use iced_style::text_input::StyleSheet;
-
-use std::any::{self, Any};
 
 /// A field that can be filled with text.
 ///
@@ -138,18 +137,12 @@ where
     Message: Clone,
     Renderer: iced_native::text::Renderer,
 {
-    fn tag(&self) -> any::TypeId {
-        any::TypeId::of::<text_input::State>()
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<text_input::State>()
     }
 
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(text_input::State::new())
-    }
-
-    fn diff(&self, _tree: &mut Tree) {}
-
-    fn children_state(&self) -> Vec<Tree> {
-        Vec::new()
+    fn state(&self) -> tree::State {
+        tree::State::new(text_input::State::new())
     }
 
     fn width(&self) -> Length {

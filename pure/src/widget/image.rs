@@ -6,7 +6,6 @@ use iced_native::renderer;
 use iced_native::widget::image;
 use iced_native::{Hasher, Length, Point, Rectangle};
 
-use std::any::{self, Any};
 use std::hash::Hash;
 
 pub use image::Image;
@@ -16,20 +15,6 @@ where
     Handle: Clone + Hash,
     Renderer: iced_native::image::Renderer<Handle = Handle>,
 {
-    fn tag(&self) -> any::TypeId {
-        any::TypeId::of::<()>()
-    }
-
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(())
-    }
-
-    fn children_state(&self) -> Vec<Tree> {
-        Vec::new()
-    }
-
-    fn diff(&self, _tree: &mut Tree) {}
-
     fn width(&self) -> Length {
         <Self as iced_native::Widget<Message, Renderer>>::width(self)
     }

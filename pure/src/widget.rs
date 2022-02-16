@@ -37,15 +37,7 @@ use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
-use std::any::{self, Any};
-
 pub trait Widget<Message, Renderer> {
-    fn tag(&self) -> any::TypeId;
-
-    fn state(&self) -> Box<dyn Any>;
-
-    fn children_state(&self) -> Vec<Tree>;
-
     fn width(&self) -> Length;
 
     fn height(&self) -> Length;
@@ -67,6 +59,18 @@ pub trait Widget<Message, Renderer> {
         cursor_position: Point,
         viewport: &Rectangle,
     );
+
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::stateless()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::None
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        Vec::new()
+    }
 
     fn diff(&self, _tree: &mut Tree) {}
 

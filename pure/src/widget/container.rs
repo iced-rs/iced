@@ -11,7 +11,6 @@ use iced_native::{
     Clipboard, Hasher, Layout, Length, Padding, Point, Rectangle, Shell,
 };
 
-use std::any::{self, Any};
 use std::hash::Hash;
 use std::u32;
 
@@ -124,20 +123,12 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
-    fn tag(&self) -> any::TypeId {
-        any::TypeId::of::<()>()
-    }
-
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(())
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
     }
 
     fn diff(&self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_ref(&self.content))
-    }
-
-    fn children_state(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
     }
 
     fn width(&self) -> Length {

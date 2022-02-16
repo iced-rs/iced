@@ -9,7 +9,6 @@ use iced_native::{
     Alignment, Clipboard, Hasher, Length, Padding, Point, Rectangle, Shell,
 };
 
-use std::any::{self, Any};
 use std::u32;
 
 pub struct Column<'a, Message, Renderer> {
@@ -86,20 +85,12 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
-    fn tag(&self) -> any::TypeId {
-        any::TypeId::of::<()>()
-    }
-
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(())
+    fn children(&self) -> Vec<Tree> {
+        self.children.iter().map(Tree::new).collect()
     }
 
     fn diff(&self, tree: &mut Tree) {
         tree.diff_children(&self.children);
-    }
-
-    fn children_state(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
     }
 
     fn width(&self) -> Length {

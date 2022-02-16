@@ -8,8 +8,6 @@ use iced_native::renderer;
 use iced_native::text;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
-use std::any::{self, Any};
-
 pub use iced_native::widget::toggler::{Style, StyleSheet, Toggler};
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -17,18 +15,6 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: text::Renderer,
 {
-    fn tag(&self) -> any::TypeId {
-        any::TypeId::of::<()>()
-    }
-
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(())
-    }
-
-    fn children_state(&self) -> Vec<Tree> {
-        Vec::new()
-    }
-
     fn width(&self) -> Length {
         <Self as iced_native::Widget<Message, Renderer>>::width(self)
     }

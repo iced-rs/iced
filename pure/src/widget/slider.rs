@@ -1,7 +1,8 @@
 //! Display an interactive selector of a single value from a range of values.
 //!
 //! A [`Slider`] has some local [`State`].
-use crate::{Element, Tree, Widget};
+use crate::widget::tree::{self, Tree};
+use crate::{Element, Widget};
 
 use iced_native::event::{self, Event};
 use iced_native::layout;
@@ -12,7 +13,6 @@ use iced_native::{
     Clipboard, Hasher, Layout, Length, Point, Rectangle, Shell, Size,
 };
 
-use std::any::{self, Any};
 use std::ops::RangeInclusive;
 
 pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
@@ -143,16 +143,12 @@ where
     Message: Clone,
     Renderer: iced_native::Renderer,
 {
-    fn tag(&self) -> any::TypeId {
-        any::TypeId::of::<slider::State>()
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<slider::State>()
     }
 
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(slider::State::new())
-    }
-
-    fn children_state(&self) -> Vec<Tree> {
-        Vec::new()
+    fn state(&self) -> tree::State {
+        tree::State::new(slider::State::new())
     }
 
     fn width(&self) -> Length {

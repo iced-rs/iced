@@ -1,4 +1,5 @@
-use crate::widget::{Element, Tree, Widget};
+use crate::widget::tree::{self, Tree};
+use crate::widget::{Element, Widget};
 
 use iced_native::event::{self, Event};
 use iced_native::layout;
@@ -9,8 +10,6 @@ use iced_native::{
     Clipboard, Hasher, Layout, Length, Padding, Point, Rectangle, Shell,
 };
 use iced_style::button::StyleSheet;
-
-use std::any::Any;
 
 pub use button::State;
 
@@ -77,20 +76,20 @@ where
     Message: 'static + Clone,
     Renderer: 'static + iced_native::Renderer,
 {
-    fn tag(&self) -> std::any::TypeId {
-        std::any::TypeId::of::<State>()
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
     }
 
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(State::new())
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
     }
 
     fn diff(&self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_ref(&self.content))
-    }
-
-    fn children_state(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
     }
 
     fn width(&self) -> Length {

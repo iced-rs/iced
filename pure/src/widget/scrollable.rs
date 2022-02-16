@@ -1,4 +1,4 @@
-use crate::widget::Tree;
+use crate::widget::tree::{self, Tree};
 use crate::{Element, Widget};
 
 use iced_native::event::{self, Event};
@@ -9,8 +9,6 @@ use iced_native::widget::scrollable;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
 pub use iced_style::scrollable::StyleSheet;
-
-use std::any::{self, Any};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -92,20 +90,20 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
-    fn tag(&self) -> any::TypeId {
-        any::TypeId::of::<scrollable::State>()
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<scrollable::State>()
     }
 
-    fn state(&self) -> Box<dyn Any> {
-        Box::new(scrollable::State::new())
+    fn state(&self) -> tree::State {
+        tree::State::new(scrollable::State::new())
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
     }
 
     fn diff(&self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_ref(&self.content))
-    }
-
-    fn children_state(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
     }
 
     fn width(&self) -> Length {

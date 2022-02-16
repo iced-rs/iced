@@ -3,7 +3,7 @@ use crate::widget::Element;
 use std::any::{self, Any};
 
 pub struct Tree {
-    pub tag: any::TypeId,
+    pub tag: Tag,
     pub state: State,
     pub children: Vec<Tree>,
 }
@@ -11,8 +11,8 @@ pub struct Tree {
 impl Tree {
     pub fn empty() -> Self {
         Self {
-            tag: any::TypeId::of::<()>(),
-            state: State(Box::new(())),
+            tag: Tag::stateless(),
+            state: State::None,
             children: Vec::new(),
         }
     }
@@ -22,8 +22,8 @@ impl Tree {
     ) -> Self {
         Self {
             tag: element.as_widget().tag(),
-            state: State(element.as_widget().state()),
-            children: element.as_widget().children_state(),
+            state: element.as_widget().state(),
+            children: element.as_widget().children(),
         }
     }
 
@@ -60,20 +60,56 @@ impl Tree {
     }
 }
 
-pub struct State(Box<dyn Any>);
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub struct Tag(any::TypeId);
+
+impl Tag {
+    pub fn of<T>() -> Self
+    where
+        T: 'static,
+    {
+        Self(any::TypeId::of::<T>())
+    }
+
+    pub fn stateless() -> Self {
+        Self::of::<()>()
+    }
+}
+
+pub enum State {
+    None,
+    Some(Box<dyn Any>),
+}
 
 impl State {
+    pub fn new<T>(state: T) -> Self
+    where
+        T: 'static,
+    {
+        State::Some(Box::new(state))
+    }
+
     pub fn downcast_ref<T>(&self) -> &T
     where
         T: 'static,
     {
-        self.0.downcast_ref().expect("Downcast widget state")
+        match self {
+            State::None => panic!("Downcast on stateless state"),
+            State::Some(state) => {
+                state.downcast_ref().expect("Downcast widget state")
+            }
+        }
     }
 
     pub fn downcast_mut<T>(&mut self) -> &mut T
     where
         T: 'static,
     {
-        self.0.downcast_mut().expect("Downcast widget state")
+        match self {
+            State::None => panic!("Downcast on stateless state"),
+            State::Some(state) => {
+                state.downcast_mut().expect("Downcast widget state")
+            }
+        }
     }
 }
