@@ -1,3 +1,4 @@
+use crate::overlay;
 use crate::widget::tree::{self, Tree};
 use crate::widget::{Element, Widget};
 
@@ -204,6 +205,19 @@ where
             layout,
             cursor_position,
             self.on_press.is_some(),
+        )
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.content.as_widget_mut().overlay(
+            &mut tree.children[0],
+            layout.children().next().unwrap(),
+            renderer,
         )
     }
 }

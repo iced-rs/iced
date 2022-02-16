@@ -1,3 +1,4 @@
+pub mod overlay;
 pub mod widget;
 
 pub(crate) mod flex;
@@ -126,6 +127,18 @@ where
             layout,
             cursor_position,
             viewport,
+            renderer,
+        )
+    }
+
+    fn overlay(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.element.as_widget_mut().overlay(
+            &mut self.state.state_tree,
+            layout,
             renderer,
         )
     }

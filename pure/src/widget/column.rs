@@ -1,4 +1,5 @@
 use crate::flex;
+use crate::overlay;
 use crate::widget::{Element, Tree, Widget};
 
 use iced_native::event::{self, Event};
@@ -215,6 +216,15 @@ where
         for child in &self.children {
             child.as_widget().hash_layout(state);
         }
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        overlay::from_children(&mut self.children, tree, layout, renderer)
     }
 }
 

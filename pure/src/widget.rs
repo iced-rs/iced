@@ -5,6 +5,7 @@ mod checkbox;
 mod column;
 mod container;
 mod element;
+mod pick_list;
 mod radio;
 mod row;
 mod scrollable;
@@ -21,6 +22,7 @@ pub use column::Column;
 pub use container::Container;
 pub use element::Element;
 pub use image::Image;
+pub use pick_list::PickList;
 pub use radio::Radio;
 pub use row::Row;
 pub use scrollable::Scrollable;
@@ -34,6 +36,7 @@ pub use tree::Tree;
 use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
+use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
@@ -96,6 +99,15 @@ pub trait Widget<Message, Renderer> {
         _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         event::Status::Ignored
+    }
+
+    fn overlay<'a>(
+        &'a mut self,
+        _state: &'a mut Tree,
+        _layout: Layout<'_>,
+        _renderer: &Renderer,
+    ) -> Option<overlay::Element<'a, Message, Renderer>> {
+        None
     }
 }
 

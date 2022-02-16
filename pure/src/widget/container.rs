@@ -5,6 +5,7 @@ use iced_native::alignment;
 use iced_native::event::{self, Event};
 use iced_native::layout;
 use iced_native::mouse;
+use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::widget::container;
 use iced_native::{
@@ -236,6 +237,19 @@ where
         self.vertical_alignment.hash(state);
 
         self.content.as_widget().hash_layout(state);
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.content.as_widget_mut().overlay(
+            &mut tree.children[0],
+            layout.children().next().unwrap(),
+            renderer,
+        )
     }
 }
 
