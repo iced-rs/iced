@@ -153,6 +153,7 @@ where
         self.handle.hash(state);
         self.width.hash(state);
         self.height.hash(state);
+        self.content_fit.hash(state);
     }
 }
 
