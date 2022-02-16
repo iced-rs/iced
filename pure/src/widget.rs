@@ -40,6 +40,8 @@ use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
+use std::borrow::Cow;
+
 pub trait Widget<Message, Renderer> {
     fn width(&self) -> Length;
 
@@ -208,6 +210,19 @@ where
     T: Copy + From<u8> + std::cmp::PartialOrd,
 {
     Slider::new(range, value, on_change)
+}
+
+pub fn pick_list<'a, Message, Renderer, T>(
+    options: impl Into<Cow<'a, [T]>>,
+    selected: Option<T>,
+    on_selected: impl Fn(T) -> Message + 'a,
+) -> PickList<'a, T, Message, Renderer>
+where
+    T: ToString + Eq + 'static,
+    [T]: ToOwned<Owned = Vec<T>>,
+    Renderer: iced_native::text::Renderer,
+{
+    PickList::new(options, selected, on_selected)
 }
 
 pub fn image<Handle>(handle: impl Into<Handle>) -> Image<Handle> {
