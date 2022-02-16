@@ -7,7 +7,7 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::widget::scrollable;
-use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
+use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell, Vector};
 
 pub use iced_style::scrollable::StyleSheet;
 
@@ -238,11 +238,24 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
-            layout.children().next().unwrap(),
-            renderer,
-        )
+        self.content
+            .as_widget_mut()
+            .overlay(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+            )
+            .map(|overlay| {
+                let bounds = layout.bounds();
+                let content_layout = layout.children().next().unwrap();
+                let content_bounds = content_layout.bounds();
+                let offset = tree
+                    .state
+                    .downcast_ref::<scrollable::State>()
+                    .offset(bounds, content_bounds);
+
+                overlay.translate(Vector::new(0.0, -(offset as f32)))
+            })
     }
 }
 
