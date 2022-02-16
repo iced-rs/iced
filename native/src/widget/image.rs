@@ -120,7 +120,6 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        // The raw w/h of the underlying image
         let (width, height) = renderer.dimensions(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
