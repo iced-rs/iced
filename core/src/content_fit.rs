@@ -1,8 +1,7 @@
-//! Control the fit of some content (like an image) within a space
-
+//! Control the fit of some content (like an image) within a space.
 use crate::Size;
 
-/// How the image should scale to fit the bounding box of the widget
+/// The strategy used to fit the contents of a widget to its bounding box.
 ///
 /// Each variant of this enum is a strategy that can be applied for resolving
 /// differences in aspect ratio and size between the image being displayed and
@@ -14,7 +13,7 @@ use crate::Size;
 /// [1]: https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
 #[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
 pub enum ContentFit {
-    /// Scale as big as it can be without needing to crop or hide parts
+    /// Scale as big as it can be without needing to crop or hide parts.
     ///
     /// The image will be scaled (preserving aspect ratio) so that it just fits
     /// within the window.  This won't distort the image or crop/hide any edges,
@@ -26,7 +25,7 @@ pub enum ContentFit {
     /// screen.
     Contain,
 
-    /// Scale the image to cover all of the bounding box, cropping if needed
+    /// Scale the image to cover all of the bounding box, cropping if needed.
     ///
     /// This doesn't distort the image, and it ensures that the widget's area is
     /// completely covered, but it might crop off a bit of the edges of the
@@ -38,14 +37,14 @@ pub enum ContentFit {
     /// important.
     Cover,
 
-    /// Distort the image so the widget is 100% covered without cropping
+    /// Distort the image so the widget is 100% covered without cropping.
     ///
     /// This stretches the image to fit the widget, without any whitespace or
     /// cropping. However, because of the stretch, the image may look distorted
     /// or elongated, particularly when there's a mismatch of aspect ratios.
     Fill,
 
-    /// Don't resize or scale the image at all
+    /// Don't resize or scale the image at all.
     ///
     /// This will not apply any transformations to the provided image, but also
     /// means that unless you do the math yourself, the widget's area will not
@@ -54,7 +53,8 @@ pub enum ContentFit {
     /// This is best for when you've sized the image yourself.
     None,
 
-    /// Scale the image down if it's too big for the space, but never scale it up
+    /// Scale the image down if it's too big for the space, but never scale it
+    /// up.
     ///
     /// This works much like [`Contain`](Self::Contain), except that if the
     /// image would have been scaled up, it keeps its original resolution to
@@ -63,7 +63,7 @@ pub enum ContentFit {
 }
 
 impl ContentFit {
-    /// Attempt to apply the given fit for a content size within some bounds
+    /// Attempt to apply the given fit for a content size within some bounds.
     ///
     /// The returned value is the recommended scaled size of the content.
     pub fn fit(&self, content: Size, bounds: Size) -> Size {
