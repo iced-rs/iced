@@ -573,6 +573,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                     });
                 }
             },
+            command::Action::System(_action) => {}
         }
     }
 }
