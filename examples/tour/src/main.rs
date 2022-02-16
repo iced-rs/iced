@@ -612,7 +612,7 @@ impl<'a> Step {
 
         Self::container("Image")
             .push(Text::new("Pictures of things in all shapes and sizes!"))
-            .push(logo(height, current_fit))
+            .push(ferris(height, current_fit))
             .push(Slider::new(
                 slider,
                 50..=500,
@@ -647,7 +647,7 @@ impl<'a> Step {
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
             .push(Column::new().height(Length::Units(4096)))
-            .push(ferris(200))
+            .push(ferris(200, ContentFit::Contain))
             .push(
                 Text::new("You made it!")
                     .width(Length::Fill)
@@ -733,8 +733,10 @@ impl<'a> Step {
     }
 }
 
-/// Passing fit=None defaults to ContentFit::Contain
-fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
+fn ferris<'a>(
+    height: u16,
+    content_fit: ContentFit,
+) -> Container<'a, StepMessage> {
     Container::new(
         // This should go away once we unify resource loading on native
         // platforms
@@ -746,29 +748,8 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
                 env!("CARGO_MANIFEST_DIR"),
             ))
         }
-        .width(Length::Units(width))
-        .content_fit(ContentFit::Contain),
-    )
-    .width(Length::Fill)
-    .center_x()
-}
-
-/// Passing fit=None defaults to ContentFit::Contain
-fn logo<'a>(height: u16, fit: ContentFit) -> Container<'a, StepMessage> {
-    Container::new(
-        // This should go away once we unify resource loading on native
-        // platforms
-        if cfg!(target_arch = "wasm32") {
-            Image::new("tour/images/logo.png")
-        } else {
-            Image::new(format!(
-                "{}/images/logo.png",
-                env!("CARGO_MANIFEST_DIR"),
-            ))
-        }
-        .width(Length::Fill)
         .height(Length::Units(height))
-        .content_fit(fit),
+        .content_fit(content_fit),
     )
     .width(Length::Fill)
     .center_x()
