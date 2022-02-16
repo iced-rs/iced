@@ -54,7 +54,7 @@ impl<Handle> Image<Handle> {
         self
     }
 
-    /// Sets the image fit
+    /// Sets the [`ContentFit`] of the [`Image`].
     ///
     /// Defaults to [`ContentFit::Contain`]
     pub fn fit(self, fit: ContentFit) -> Self {
