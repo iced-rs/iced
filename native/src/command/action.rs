@@ -20,7 +20,7 @@ pub enum Action<T> {
     Window(window::Action),
 
     /// Run a system action.
-    System(system::Action),
+    System(system::Action<T>),
 }
 
 impl<T> Action<T> {
@@ -38,7 +38,7 @@ impl<T> Action<T> {
             Self::Future(future) => Action::Future(Box::pin(future.map(f))),
             Self::Clipboard(action) => Action::Clipboard(action.map(f)),
             Self::Window(window) => Action::Window(window),
-            Self::System(system) => Action::System(system),
+            Self::System(system) => Action::System(system.map(f)),
         }
     }
 }
