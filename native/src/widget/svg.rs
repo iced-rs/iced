@@ -120,9 +120,8 @@ where
         let (width, height) = renderer.dimensions(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
-        let adjusted_fit =
-            self.content_fit.fit(image_size, layout.bounds().size());
         let bounds = layout.bounds();
+        let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
 
         let render = |renderer: &mut Renderer| {
             let offset = Vector::new(
@@ -130,19 +129,19 @@ where
                 (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
             );
 
-            let bounds = Rectangle {
+            let drawing_bounds = Rectangle {
                 width: adjusted_fit.width,
                 height: adjusted_fit.height,
-                ..layout.bounds()
+                ..bounds
             };
 
-            renderer.draw(self.handle.clone(), bounds + offset)
+            renderer.draw(self.handle.clone(), drawing_bounds + offset)
         };
 
         if adjusted_fit.width > bounds.width
             || adjusted_fit.height > bounds.height
         {
-            renderer.with_layer(layout.bounds(), render);
+            renderer.with_layer(bounds, render);
         } else {
             render(renderer)
         }
