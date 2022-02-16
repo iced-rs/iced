@@ -121,8 +121,9 @@ where
         let image_size = Size::new(width as f32, height as f32);
 
         let adjusted_fit = self.fit.fit(image_size, layout.bounds().size());
+        let bounds = layout.bounds();
 
-        renderer.with_layer(layout.bounds(), |renderer| {
+        let render = |renderer: &mut Renderer| {
             renderer.draw(
                 self.handle.clone(),
                 Rectangle {
@@ -131,7 +132,15 @@ where
                     ..layout.bounds()
                 },
             )
-        })
+        };
+
+        if adjusted_fit.width > bounds.width
+            || adjusted_fit.height > bounds.height
+        {
+            renderer.with_layer(layout.bounds(), render);
+        } else {
+            render(renderer)
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
