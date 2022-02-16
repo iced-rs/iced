@@ -42,6 +42,8 @@ smol = ["iced_futures/smol"]
 palette = ["iced_core/palette"]
 # Enables pure, virtual widgets in the `pure` module
 pure = ["iced_pure", "iced_graphics/pure"]
+# Enables system information querying `Action`
+sysinfo = ["iced_winit/sysinfo"]
 
 [badges]
 maintenance = { status = "actively-developed" }
