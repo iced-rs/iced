@@ -28,7 +28,7 @@ pub struct Image<Handle> {
     handle: Handle,
     width: Length,
     height: Length,
-    fit: ContentFit,
+    content_fit: ContentFit,
 }
 
 impl<Handle> Image<Handle> {
@@ -38,7 +38,7 @@ impl<Handle> Image<Handle> {
             handle: handle.into(),
             width: Length::Shrink,
             height: Length::Shrink,
-            fit: ContentFit::Contain,
+            content_fit: ContentFit::Contain,
         }
     }
 
@@ -57,8 +57,11 @@ impl<Handle> Image<Handle> {
     /// Sets the [`ContentFit`] of the [`Image`].
     ///
     /// Defaults to [`ContentFit::Contain`]
-    pub fn fit(self, fit: ContentFit) -> Self {
-        Self { fit, ..self }
+    pub fn content_fit(self, content_fit: ContentFit) -> Self {
+        Self {
+            content_fit,
+            ..self
+        }
     }
 }
 
@@ -91,7 +94,7 @@ where
             .resolve(image_size);
 
         // The uncropped size of the image when fit to the bounds above
-        let full_size = self.fit.fit(image_size, raw_size);
+        let full_size = self.content_fit.fit(image_size, raw_size);
 
         // Shrink the widget to fit the resized image, if requested
         let final_size = Size {
@@ -120,7 +123,8 @@ where
         let (width, height) = renderer.dimensions(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
-        let adjusted_fit = self.fit.fit(image_size, layout.bounds().size());
+        let adjusted_fit =
+            self.content_fit.fit(image_size, layout.bounds().size());
         let bounds = layout.bounds();
 
         let render = |renderer: &mut Renderer| {

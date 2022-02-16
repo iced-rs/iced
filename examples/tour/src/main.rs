@@ -748,7 +748,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
             ))
         }
         .width(Length::Units(width))
-        .fit(ContentFit::Contain),
+        .content_fit(ContentFit::Contain),
     )
     .width(Length::Fill)
     .center_x()
@@ -769,7 +769,7 @@ fn logo<'a>(height: u16, fit: ContentFit) -> Container<'a, StepMessage> {
         }
         .width(Length::Fill)
         .height(Length::Units(height))
-        .fit(fit),
+        .content_fit(fit),
     )
     .width(Length::Fill)
     .center_x()
