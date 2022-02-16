@@ -6,7 +6,8 @@ use crate::image;
 use crate::layout;
 use crate::renderer;
 use crate::{
-    ContentFit, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
+    ContentFit, Element, Hasher, Layout, Length, Point, Rectangle, Size,
+    Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -128,14 +129,18 @@ where
         let bounds = layout.bounds();
 
         let render = |renderer: &mut Renderer| {
-            renderer.draw(
-                self.handle.clone(),
-                Rectangle {
-                    width: adjusted_fit.width,
-                    height: adjusted_fit.height,
-                    ..layout.bounds()
-                },
-            )
+            let offset = Vector::new(
+                (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
+                (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
+            );
+
+            let bounds = Rectangle {
+                width: adjusted_fit.width,
+                height: adjusted_fit.height,
+                ..layout.bounds()
+            };
+
+            renderer.draw(self.handle.clone(), bounds + offset)
         };
 
         if adjusted_fit.width > bounds.width
