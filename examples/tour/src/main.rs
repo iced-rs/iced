@@ -1,8 +1,7 @@
 use iced::{
-    alignment, button, image::ContentFit, scrollable, slider, text_input,
-    Button, Checkbox, Color, Column, Container, Element, Image, Length, Radio,
-    Row, Sandbox, Scrollable, Settings, Slider, Space, Text, TextInput,
-    Toggler,
+    alignment, button, scrollable, slider, text_input, Button, Checkbox, Color,
+    Column, Container, ContentFit, Element, Image, Length, Radio, Row, Sandbox,
+    Scrollable, Settings, Slider, Space, Text, TextInput, Toggler,
 };
 
 pub fn main() -> iced::Result {
