@@ -4,15 +4,13 @@ use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
-use iced_native::text;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
 
 pub use iced_native::widget::Space;
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Space
 where
-    Message: Clone,
-    Renderer: text::Renderer,
+    Renderer: iced_native::Renderer,
 {
     fn width(&self) -> Length {
         <Self as iced_native::Widget<Message, Renderer>>::width(self)
@@ -98,8 +96,7 @@ where
 
 impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for Space
 where
-    Message: 'a + Clone,
-    Renderer: text::Renderer + 'a,
+    Renderer: iced_native::Renderer + 'a,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

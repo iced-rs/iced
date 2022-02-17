@@ -1,4 +1,5 @@
 pub mod image;
+pub mod tree;
 
 mod button;
 mod checkbox;
@@ -14,7 +15,6 @@ mod space;
 mod text;
 mod text_input;
 mod toggler;
-mod tree;
 
 pub use button::Button;
 pub use checkbox::Checkbox;
@@ -104,7 +104,7 @@ pub trait Widget<Message, Renderer> {
     }
 
     fn overlay<'a>(
-        &'a mut self,
+        &'a self,
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
