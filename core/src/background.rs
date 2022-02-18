@@ -1,3 +1,4 @@
+use crate::image::Handle;
 use crate::Color;
 
 /// The background of some element.
@@ -5,7 +6,9 @@ use crate::Color;
 pub enum Background {
     /// A solid color
     Color(Color),
-    // TODO: Add gradient and image variants
+    /// A background image
+    Image(Handle),
+    // TODO: Add gradient variant
 }
 
 impl From<Color> for Background {

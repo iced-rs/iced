@@ -7,6 +7,8 @@ use crate::{
     Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
 };
 
+use std::path::Path;
+
 /// A group of primitives that should be clipped together.
 #[derive(Debug, Clone)]
 pub struct Layer<'a> {
@@ -136,7 +138,7 @@ impl<'a> Layer<'a> {
             }
             Primitive::Quad {
                 bounds,
-                background,
+                background: Background::Color(color),
                 border_radius,
                 border_width,
                 border_color,
@@ -150,14 +152,27 @@ impl<'a> Layer<'a> {
                         bounds.y + translation.y,
                     ],
                     size: [bounds.width, bounds.height],
-                    color: match background {
-                        Background::Color(color) => color.into_linear(),
-                    },
+                    color: color.into_linear(),
                     border_radius: *border_radius,
                     border_width: *border_width,
                     border_color: border_color.into_linear(),
                 });
             }
+            Primitive::Quad {
+                bounds,
+                background: Background::Image(handle),
+                border_radius,
+                border_width,
+                border_color,
+            } => {
+                let layer = &mut layers[current_layer];
+
+                layer.images.push(Image::Raster {
+                    handle: handle.clone(),
+                    bounds: *bounds + translation,
+                });
+            }
+
             Primitive::Mesh2D { buffers, size } => {
                 let layer = &mut layers[current_layer];
 
