@@ -2,7 +2,7 @@
 use iced_core::{Background, Color};
 
 /// The appearance of a container.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Style {
     pub text_color: Option<Color>,
     pub background: Option<Background>,

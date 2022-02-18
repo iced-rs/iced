@@ -262,6 +262,7 @@ pub fn draw_background<Renderer>(
             },
             style
                 .background
+                .clone()
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
     }

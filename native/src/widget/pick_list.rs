@@ -368,7 +368,7 @@ where
                 border_width: style.border_width,
                 border_radius: style.border_radius,
             },
-            style.background,
+            style.background.clone(),
         );
 
         renderer.fill_text(Text {
@@ -400,7 +400,7 @@ where
                 ),
                 font: self.font.clone(),
                 color: is_selected
-                    .then(|| style.text_color)
+                    .then(|| style.text_color.clone())
                     .unwrap_or(style.placeholder_color),
                 bounds: Rectangle {
                     x: bounds.x + f32::from(self.padding.left),

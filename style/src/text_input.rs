@@ -2,7 +2,7 @@
 use iced_core::{Background, Color};
 
 /// The appearance of a text input.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Style {
     pub background: Background,
     pub border_radius: f32,

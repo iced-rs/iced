@@ -2,7 +2,7 @@
 use iced_core::{Background, Color};
 
 /// The appearance of a scrollable.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Scrollbar {
     pub background: Option<Background>,
     pub border_radius: f32,
