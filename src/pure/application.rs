@@ -158,6 +158,10 @@ where
         A::update(&mut self.application, message)
     }
 
+    fn subscription(&self) -> Subscription<Self::Message> {
+        A::subscription(&self.application)
+    }
+
     fn view(&mut self) -> crate::Element<'_, Self::Message> {
         let content = A::view(&self.application);
 
