@@ -178,7 +178,7 @@ where
             let content_layout = state.layout(layout);
 
             match content {
-                Content::Pending(_) => false,
+                Content::Pending(_) => None,
                 Content::Ready(cache) => {
                     *cache = Some(
                         CacheBuilder {
@@ -190,14 +190,19 @@ where
                         .build(),
                     );
 
-                    cache.as_ref().unwrap().borrow_overlay().is_some()
+                    cache
+                        .as_ref()
+                        .unwrap()
+                        .borrow_overlay()
+                        .as_ref()
+                        .map(|overlay| overlay.position())
                 }
             }
         };
 
-        has_overlay.then(|| {
+        has_overlay.map(|position| {
             overlay::Element::new(
-                layout.position(),
+                position,
                 Box::new(Overlay { instance: self }),
             )
         })
