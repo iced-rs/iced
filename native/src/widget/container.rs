@@ -1,6 +1,4 @@
 //! Decorate content and apply alignment.
-use std::hash::Hash;
-
 use crate::alignment::{self, Alignment};
 use crate::event::{self, Event};
 use crate::layout;
@@ -8,8 +6,8 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
-    Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Shell, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
+    Rectangle, Shell, Widget,
 };
 
 use std::u32;
@@ -217,21 +215,6 @@ where
             cursor_position,
             viewport,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.padding.hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
-        self.max_width.hash(state);
-        self.max_height.hash(state);
-        self.horizontal_alignment.hash(state);
-        self.vertical_alignment.hash(state);
-
-        self.content.hash_layout(state);
     }
 
     fn overlay(

@@ -1,9 +1,7 @@
 //! Distribute content vertically.
 use crate::layout;
 use crate::renderer;
-use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
-
-use std::hash::Hash;
+use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 /// An amount of empty space.
 ///
@@ -67,13 +65,6 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Space>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
     }
 }
 

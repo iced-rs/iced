@@ -8,11 +8,10 @@ use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::window;
 use iced_native::{
-    Clipboard, Element, Hasher, Length, Point, Rectangle, Shell, Size, Widget,
+    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
 };
 
 use std::cell::RefCell;
-use std::hash::{Hash, Hasher as _};
 use std::ops::Deref;
 
 /// The state of a [`Responsive`] widget.
@@ -20,7 +19,6 @@ use std::ops::Deref;
 pub struct State {
     last_size: Option<Size>,
     last_layout: layout::Node,
-    last_layout_hash: u64,
 }
 
 impl State {
@@ -75,8 +73,6 @@ where
     fn height(&self) -> Length {
         Length::Fill
     }
-
-    fn hash_layout(&self, _hasher: &mut Hasher) {}
 
     fn layout(
         &self,
@@ -270,26 +266,13 @@ where
                 let element =
                     view.take().unwrap()(state.last_size.unwrap_or(Size::ZERO));
 
-                let new_layout_hash = {
-                    let mut hasher = Hasher::default();
-                    element.hash_layout(&mut hasher);
-
-                    hasher.finish()
-                };
-
-                if state.last_size != Some(state.last_layout.size())
-                    || new_layout_hash != state.last_layout_hash
-                {
-                    state.last_layout = element.layout(
-                        renderer.deref(),
-                        &layout::Limits::new(
-                            Size::ZERO,
-                            state.last_size.unwrap_or(Size::ZERO),
-                        ),
-                    );
-
-                    state.last_layout_hash = new_layout_hash;
-                }
+                state.last_layout = element.layout(
+                    renderer.deref(),
+                    &layout::Limits::new(
+                        Size::ZERO,
+                        state.last_size.unwrap_or(Size::ZERO),
+                    ),
+                );
 
                 *self = Content::Ready(Some(
                     CacheBuilder {
@@ -398,18 +381,6 @@ where
             )
         })
         .unwrap_or_default()
-    }
-
-    fn hash_layout(&self, state: &mut Hasher, position: Point) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        (position.x as u32).hash(state);
-        (position.y as u32).hash(state);
-
-        self.with_overlay_maybe(|overlay| {
-            overlay.hash_layout(state);
-        });
     }
 
     fn on_event(

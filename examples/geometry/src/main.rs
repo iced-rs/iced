@@ -14,8 +14,7 @@ mod rainbow {
     use iced_graphics::{Backend, Primitive};
 
     use iced_native::{
-        layout, Element, Hasher, Layout, Length, Point, Rectangle, Size,
-        Vector, Widget,
+        layout, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
     };
 
     pub struct Rainbow;
@@ -47,8 +46,6 @@ mod rainbow {
 
             layout::Node::new(Size::new(size.width, size.width))
         }
-
-        fn hash_layout(&self, _state: &mut Hasher) {}
 
         fn draw(
             &self,

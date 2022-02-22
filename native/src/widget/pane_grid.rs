@@ -34,8 +34,8 @@ use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::{
-    Clipboard, Color, Element, Hasher, Layout, Length, Point, Rectangle, Shell,
-    Size, Vector, Widget,
+    Clipboard, Color, Element, Layout, Length, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 pub use iced_style::pane_grid::{Line, StyleSheet};
@@ -663,21 +663,6 @@ where
                     highlight.color,
                 );
             }
-        }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash;
-
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
-        self.state.hash_layout(state);
-
-        for (_, element) in &self.elements {
-            element.hash_layout(state);
         }
     }
 

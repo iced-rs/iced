@@ -3,11 +3,7 @@ use crate::alignment;
 use crate::layout;
 use crate::renderer;
 use crate::text;
-use crate::{
-    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
-};
-
-use std::hash::Hash;
+use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 /// A paragraph of text.
 ///
@@ -150,16 +146,6 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.content.hash(state);
-        self.size.hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
     }
 }
 

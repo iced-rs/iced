@@ -20,8 +20,8 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::{
-    Clipboard, Color, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 use std::u32;
@@ -782,17 +782,6 @@ where
         _viewport: &Rectangle,
     ) {
         self.draw(renderer, layout, cursor_position, None)
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::{any::TypeId, hash::Hash};
-        struct Marker;
-        TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.max_width.hash(state);
-        self.padding.hash(state);
-        self.size.hash(state);
     }
 }
 

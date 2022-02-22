@@ -1,11 +1,7 @@
 //! Display a horizontal or vertical rule for dividing content.
 use crate::layout;
 use crate::renderer;
-use crate::{
-    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
-};
-
-use std::hash::Hash;
+use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 pub use iced_style::rule::{FillMode, Style, StyleSheet};
 
@@ -121,14 +117,6 @@ where
             },
             style.color,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
     }
 }
 

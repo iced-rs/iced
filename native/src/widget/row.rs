@@ -5,11 +5,10 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
-    Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
+    Shell, Widget,
 };
 
-use std::hash::Hash;
 use std::u32;
 
 /// A container that distributes its contents horizontally.
@@ -195,23 +194,6 @@ where
     ) {
         for (child, layout) in self.children.iter().zip(layout.children()) {
             child.draw(renderer, style, layout, cursor_position, viewport);
-        }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
-        self.max_width.hash(state);
-        self.max_height.hash(state);
-        self.align_items.hash(state);
-        self.spacing.hash(state);
-        self.padding.hash(state);
-
-        for child in &self.children {
-            child.widget.hash_layout(state);
         }
     }
 

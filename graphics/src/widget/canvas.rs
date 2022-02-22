@@ -9,10 +9,9 @@ use crate::{Backend, Primitive};
 use iced_native::layout;
 use iced_native::mouse;
 use iced_native::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
-use std::hash::Hash;
 use std::marker::PhantomData;
 
 pub mod event;
@@ -225,14 +224,6 @@ where
                     .collect(),
             });
         });
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
     }
 }
 
