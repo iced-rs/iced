@@ -244,7 +244,14 @@ impl Frame {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
-    /// TODO...
+    /// Stores the current transform of the [`Frame`] and executes the given
+    /// drawing operations within a clipped [`Rectange`] at translation / size,
+    /// restoring the transform afterwards.
+    ///
+    /// This method is userful to perform drawing operations that need to be
+    /// clipped.
+    ///
+    /// [`Rectange`]: crate::Rectangle
     #[inline]
     pub fn with_clip(
         &mut self,
