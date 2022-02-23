@@ -21,6 +21,7 @@ pub mod time;
 
 mod background;
 mod color;
+mod content_fit;
 mod font;
 mod length;
 mod padding;
@@ -32,6 +33,7 @@ mod vector;
 pub use alignment::Alignment;
 pub use background::Background;
 pub use color::Color;
+pub use content_fit::ContentFit;
 pub use font::Font;
 pub use length::Length;
 pub use padding::Padding;

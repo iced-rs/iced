@@ -2,7 +2,10 @@
 use crate::layout;
 use crate::renderer;
 use crate::svg::{self, Handle};
-use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
+use crate::{
+    ContentFit, Element, Hasher, Layout, Length, Point, Rectangle, Size,
+    Vector, Widget,
+};
 
 use std::hash::Hash;
 use std::path::PathBuf;
@@ -18,6 +21,7 @@ pub struct Svg {
     handle: Handle,
     width: Length,
     height: Length,
+    content_fit: ContentFit,
 }
 
 impl Svg {
@@ -27,6 +31,7 @@ impl Svg {
             handle: handle.into(),
             width: Length::Fill,
             height: Length::Shrink,
+            content_fit: ContentFit::Contain,
         }
     }
 
@@ -47,6 +52,16 @@ impl Svg {
         self.height = height;
         self
     }
+
+    /// Sets the [`ContentFit`] of the [`Svg`].
+    ///
+    /// Defaults to [`ContentFit::Contain`]
+    pub fn content_fit(self, content_fit: ContentFit) -> Self {
+        Self {
+            content_fit,
+            ..self
+        }
+    }
 }
 
 impl<Message, Renderer> Widget<Message, Renderer> for Svg
@@ -66,24 +81,32 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        // The raw w/h of the underlying image
         let (width, height) = renderer.dimensions(&self.handle);
+        let image_size = Size::new(width as f32, height as f32);
 
-        let aspect_ratio = width as f32 / height as f32;
-
-        let mut size = limits
+        // The size to be available to the widget prior to `Shrink`ing
+        let raw_size = limits
             .width(self.width)
             .height(self.height)
-            .resolve(Size::new(width as f32, height as f32));
+            .resolve(image_size);
 
-        let viewport_aspect_ratio = size.width / size.height;
+        // The uncropped size of the image when fit to the bounds above
+        let full_size = self.content_fit.fit(image_size, raw_size);
 
-        if viewport_aspect_ratio > aspect_ratio {
-            size.width = width as f32 * size.height / height as f32;
-        } else {
-            size.height = height as f32 * size.width / width as f32;
-        }
+        // Shrink the widget to fit the resized image, if requested
+        let final_size = Size {
+            width: match self.width {
+                Length::Shrink => f32::min(raw_size.width, full_size.width),
+                _ => raw_size.width,
+            },
+            height: match self.height {
+                Length::Shrink => f32::min(raw_size.height, full_size.height),
+                _ => raw_size.height,
+            },
+        };
 
-        layout::Node::new(size)
+        layout::Node::new(final_size)
     }
 
     fn draw(
@@ -94,7 +117,34 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        renderer.draw(self.handle.clone(), layout.bounds())
+        let (width, height) = renderer.dimensions(&self.handle);
+        let image_size = Size::new(width as f32, height as f32);
+
+        let bounds = layout.bounds();
+        let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
+
+        let render = |renderer: &mut Renderer| {
+            let offset = Vector::new(
+                (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
+                (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
+            );
+
+            let drawing_bounds = Rectangle {
+                width: adjusted_fit.width,
+                height: adjusted_fit.height,
+                ..bounds
+            };
+
+            renderer.draw(self.handle.clone(), drawing_bounds + offset)
+        };
+
+        if adjusted_fit.width > bounds.width
+            || adjusted_fit.height > bounds.height
+        {
+            renderer.with_layer(bounds, render);
+        } else {
+            render(renderer)
+        }
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
@@ -103,6 +153,7 @@ where
         self.handle.hash(state);
         self.width.hash(state);
         self.height.hash(state);
+        self.content_fit.hash(state);
     }
 }
 
