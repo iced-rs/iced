@@ -590,12 +590,10 @@ impl<'a> Step {
         slider: &'a mut slider::State,
         current_fit: ContentFit,
     ) -> Column<'a, StepMessage> {
-        const FIT_MODES: [(ContentFit, &str); 5] = [
+        const FIT_MODES: [(ContentFit, &str); 3] = [
             (ContentFit::Contain, "Contain"),
             (ContentFit::Cover, "Cover"),
             (ContentFit::Fill, "Fill"),
-            (ContentFit::None, "None"),
-            (ContentFit::ScaleDown, "Only Scale Down"),
         ];
 
         let mode_selector = FIT_MODES.iter().fold(
@@ -624,6 +622,7 @@ impl<'a> Step {
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
+            .push(Text::new("Pick a content fit strategy:"))
             .push(mode_selector)
     }
 
@@ -821,7 +820,8 @@ pub enum Layout {
 }
 
 mod style {
-    use iced::{button, Background, Color, Vector};
+    use iced::button;
+    use iced::{Background, Color, Vector};
 
     pub enum Button {
         Primary,
