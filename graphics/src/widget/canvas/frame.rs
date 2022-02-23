@@ -244,6 +244,30 @@ impl Frame {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
+    /// TODO...
+    #[inline]
+    pub fn with_clip(
+        &mut self,
+        translation: Vector,
+        size: Size,
+        f: impl FnOnce(&mut Frame),
+    ) {
+        let mut frame = Frame::new(self.size());
+        frame.translate(translation);
+
+        f(&mut frame);
+
+        self.primitives.push(Primitive::Clip {
+            bounds: Rectangle {
+                x: translation.x,
+                y: translation.y,
+                width: size.width,
+                height: size.height,
+            },
+            content: Box::new(frame.into_geometry().into_primitive()),
+        });
+    }
+
     /// Applies a translation to the current transform of the [`Frame`].
     #[inline]
     pub fn translate(&mut self, translation: Vector) {
