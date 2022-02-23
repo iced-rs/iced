@@ -3,11 +3,9 @@ use crate::layout;
 use crate::renderer;
 use crate::svg::{self, Handle};
 use crate::{
-    ContentFit, Element, Hasher, Layout, Length, Point, Rectangle, Size,
-    Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
-use std::hash::Hash;
 use std::path::PathBuf;
 
 /// A vector graphics image.
@@ -145,15 +143,6 @@ where
         } else {
             render(renderer)
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        std::any::TypeId::of::<Svg>().hash(state);
-
-        self.handle.hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
-        self.content_fit.hash(state);
     }
 }
 

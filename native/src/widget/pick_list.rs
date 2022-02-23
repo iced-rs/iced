@@ -10,8 +10,8 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Widget,
+    Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
+    Widget,
 };
 use std::borrow::Cow;
 
@@ -218,24 +218,6 @@ where
         };
 
         layout::Node::new(size)
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash as _;
-
-        match self.width {
-            Length::Shrink => {
-                self.placeholder.hash(state);
-
-                self.options
-                    .iter()
-                    .map(ToString::to_string)
-                    .for_each(|label| label.hash(state));
-            }
-            _ => {
-                self.width.hash(state);
-            }
-        }
     }
 
     fn on_event(

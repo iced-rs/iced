@@ -1,8 +1,4 @@
 //! Display a widget over another.
-use std::hash::Hash;
-
-use iced_core::Rectangle;
-
 use crate::event;
 use crate::layout;
 use crate::mouse;
@@ -11,8 +7,8 @@ use crate::text;
 use crate::widget::container;
 use crate::widget::text::Text;
 use crate::{
-    Clipboard, Element, Event, Hasher, Layout, Length, Padding, Point, Shell,
-    Size, Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 /// An element to display a widget over another.
@@ -267,13 +263,6 @@ where
                 );
             });
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.content.hash_layout(state);
     }
 }
 

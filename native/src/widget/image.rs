@@ -6,8 +6,7 @@ use crate::image;
 use crate::layout;
 use crate::renderer;
 use crate::{
-    ContentFit, Element, Hasher, Layout, Length, Point, Rectangle, Size,
-    Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -148,16 +147,6 @@ where
         } else {
             render(renderer)
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.handle.hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
-        self.content_fit.hash(state);
     }
 }
 

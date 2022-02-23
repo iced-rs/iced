@@ -7,11 +7,10 @@ use crate::mouse;
 use crate::renderer;
 use crate::touch;
 use crate::{
-    Background, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Shell, Size, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
+    Shell, Size, Widget,
 };
 
-use std::hash::Hash;
 use std::ops::RangeInclusive;
 
 pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
@@ -373,13 +372,6 @@ where
         } else {
             mouse::Interaction::default()
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
     }
 }
 

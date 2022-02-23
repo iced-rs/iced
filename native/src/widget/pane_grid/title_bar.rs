@@ -5,7 +5,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Padding, Point, Rectangle, Shell, Size,
+    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
 };
 
 /// The title bar of a [`Pane`].
@@ -154,17 +154,6 @@ where
             }
         } else {
             false
-        }
-    }
-
-    pub(crate) fn hash_layout(&self, hasher: &mut Hasher) {
-        use std::hash::Hash;
-
-        self.content.hash_layout(hasher);
-        self.padding.hash(hasher);
-
-        if let Some(controls) = &self.controls {
-            controls.hash_layout(hasher);
         }
     }
 
