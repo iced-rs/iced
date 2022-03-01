@@ -211,6 +211,11 @@ where
         use iced_native::Renderer as _;
 
         let bounds = layout.bounds();
+
+        if bounds.width < 1.0 || bounds.height < 1.0 {
+            return;
+        }
+
         let translation = Vector::new(bounds.x, bounds.y);
         let cursor = Cursor::from_window_position(cursor_position);
 
