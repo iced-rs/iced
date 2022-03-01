@@ -345,29 +345,35 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        if let Some(layout) = &self.overlay {
-            let base_cursor = if layout.bounds().contains(cursor_position) {
-                Point::new(-1.0, -1.0)
-            } else {
-                cursor_position
-            };
+        let base_cursor = if let Some(overlay) =
+            self.root.overlay(Layout::new(&self.base), renderer)
+        {
+            let overlay_layout = self
+                .overlay
+                .take()
+                .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
 
-            self.root.widget.draw(
-                renderer,
-                &renderer::Style::default(),
-                Layout::new(&self.base),
-                base_cursor,
-                &viewport,
-            );
+            let new_cursor_position =
+                if overlay_layout.bounds().contains(cursor_position) {
+                    Point::new(-1.0, -1.0)
+                } else {
+                    cursor_position
+                };
+
+            self.overlay = Some(overlay_layout);
+
+            new_cursor_position
         } else {
-            self.root.widget.draw(
-                renderer,
-                &renderer::Style::default(),
-                Layout::new(&self.base),
-                cursor_position,
-                &viewport,
-            );
+            cursor_position
         };
+
+        self.root.widget.draw(
+            renderer,
+            &renderer::Style::default(),
+            Layout::new(&self.base),
+            base_cursor,
+            &viewport,
+        );
 
         let base_interaction = self.root.widget.mouse_interaction(
             Layout::new(&self.base),
