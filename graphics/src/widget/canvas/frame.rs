@@ -244,34 +244,24 @@ impl Frame {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
-    /// Stores the current transform of the [`Frame`] and executes the given
-    /// drawing operations within a clipped [`Rectange`] at translation / size,
-    /// restoring the transform afterwards.
+    /// Executes the given drawing operations within a [`Rectangle`] region,
+    /// clipping any geometry that overflows its bounds. Any transformations
+    /// performed are local to the provided closure.
     ///
-    /// This method is userful to perform drawing operations that need to be
+    /// This method is useful to perform drawing operations that need to be
     /// clipped.
-    ///
-    /// [`Rectange`]: crate::Rectangle
     #[inline]
-    pub fn with_clip(
-        &mut self,
-        translation: Vector,
-        size: Size,
-        f: impl FnOnce(&mut Frame),
-    ) {
-        let mut frame = Frame::new(self.size());
-        frame.translate(translation);
+    pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
+        let mut frame = Frame::new(region.size());
 
         f(&mut frame);
 
         self.primitives.push(Primitive::Clip {
-            bounds: Rectangle {
-                x: translation.x,
-                y: translation.y,
-                width: size.width,
-                height: size.height,
-            },
-            content: Box::new(frame.into_geometry().into_primitive()),
+            bounds: region,
+            content: Box::new(Primitive::Translate {
+                translation: Vector::new(region.x, region.y),
+                content: Box::new(frame.into_geometry().into_primitive()),
+            }),
         });
     }
 
