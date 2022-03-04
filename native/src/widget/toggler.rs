@@ -232,6 +232,7 @@ where
                 self.font.clone(),
                 self.text_size,
                 None,
+                Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
             );

@@ -5,6 +5,17 @@ use crate::renderer;
 use crate::text;
 use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
+/// The background color for part of a [`Text`]
+#[derive(Clone, Debug)]
+pub struct Highlight {
+    /// The starting index of the highlight
+    pub start: usize,
+    /// The ending index of the highlight
+    pub end: usize,
+    /// The color of the highlight
+    pub color: Color,
+}
+
 /// A paragraph of text.
 ///
 /// # Example
@@ -23,6 +34,7 @@ pub struct Text<Renderer: text::Renderer> {
     content: String,
     size: Option<u16>,
     color: Option<Color>,
+    highlights: Vec<Highlight>,
     font: Renderer::Font,
     width: Length,
     height: Length,
@@ -37,6 +49,7 @@ impl<Renderer: text::Renderer> Text<Renderer> {
             content: label.into(),
             size: None,
             color: None,
+            highlights: Default::default(),
             font: Default::default(),
             width: Length::Shrink,
             height: Length::Shrink,
@@ -54,6 +67,13 @@ impl<Renderer: text::Renderer> Text<Renderer> {
     /// Sets the [`Color`] of the [`Text`].
     pub fn color<C: Into<Color>>(mut self, color: C) -> Self {
         self.color = Some(color.into());
+        self
+    }
+
+    /// Sets the background [`Color`] of the [`Text`] between the given indexes.
+    /// Can be called multiple times to highlight multiple parts of the text.
+    pub fn highlight(mut self, start: usize, end: usize, color: Color) -> Self {
+        self.highlights.push(Highlight { start, end, color });
         self
     }
 
@@ -143,6 +163,7 @@ where
             self.font.clone(),
             self.size,
             self.color,
+            &self.highlights,
             self.horizontal_alignment,
             self.vertical_alignment,
         );
@@ -167,6 +188,7 @@ pub fn draw<Renderer>(
     font: Renderer::Font,
     size: Option<u16>,
     color: Option<Color>,
+    highlights: &[Highlight],
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
 ) where
@@ -186,9 +208,33 @@ pub fn draw<Renderer>(
         alignment::Vertical::Bottom => bounds.y + bounds.height,
     };
 
+    let size = size.unwrap_or(renderer.default_size());
+
+    for &Highlight { start, end, color } in highlights {
+        let width_before_start =
+            renderer.measure_width(&content[..start], size, font.clone());
+
+        let width =
+            renderer.measure_width(&content[start..end], size, font.clone());
+
+        let quad = renderer::Quad {
+            bounds: Rectangle {
+                x: x + width_before_start,
+                y,
+                width,
+                height: bounds.height,
+            },
+            border_radius: 0.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        };
+
+        renderer.fill_quad(quad, color)
+    }
+
     renderer.fill_text(crate::text::Text {
         content,
-        size: f32::from(size.unwrap_or(renderer.default_size())),
+        size: f32::from(size),
         bounds: Rectangle { x, y, ..bounds },
         color: color.unwrap_or(style.text_color),
         font,
@@ -213,6 +259,7 @@ impl<Renderer: text::Renderer> Clone for Text<Renderer> {
             content: self.content.clone(),
             size: self.size,
             color: self.color,
+            highlights: self.highlights.clone(),
             font: self.font.clone(),
             width: self.width,
             height: self.height,

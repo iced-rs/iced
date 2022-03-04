@@ -273,6 +273,7 @@ where
                 self.font.clone(),
                 self.text_size,
                 custom_style.text_color,
+                Default::default(),
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
