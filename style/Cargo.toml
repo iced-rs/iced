@@ -12,5 +12,4 @@ categories = ["gui"]
 
 [dependencies]
 iced_core = {version = "0.4", path = "../core"}
-dyn-clone = "1.0.4"
 

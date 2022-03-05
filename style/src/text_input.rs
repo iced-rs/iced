@@ -23,6 +23,24 @@ impl std::default::Default for Style {
 
 /// A set of rules that dictate the style of a text input.
 pub trait StyleSheet {
+    fn get_style(&self, is_focused: bool, is_mouse_over: bool) -> Style {
+        if is_focused {
+            self.focused()
+        } else if is_mouse_over {
+            self.hovered()
+        } else {
+            self.active()
+        }
+    }
+
+    fn get_text_color(&self, is_empty: bool) -> Color {
+        if is_empty {
+            self.placeholder_color()
+        } else {
+            self.value_color()
+        }
+    }
+
     /// Produces the style of an active text input.
     fn active(&self) -> Style;
 

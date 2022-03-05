@@ -1,7 +1,6 @@
 //! Decorate content and apply alignment.
-use std::fmt::Debug;
-use dyn_clone::DynClone;
 use iced_core::{Background, Color};
+use std::fmt::Debug;
 
 /// The appearance of a container.
 #[derive(Debug, Clone, Copy)]
@@ -26,14 +25,11 @@ impl std::default::Default for Style {
 }
 
 /// A set of rules that dictate the style of a container.
-pub trait StyleSheet: Debug + DynClone {
+pub trait StyleSheet {
     /// Produces the style of a container.
     fn style(&self) -> Style;
 }
 
-dyn_clone::clone_trait_object!(StyleSheet);
-
-#[derive(Debug, Clone)]
 struct Default;
 
 impl StyleSheet for Default {

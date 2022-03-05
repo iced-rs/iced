@@ -17,7 +17,6 @@ use crate::conversion;
 use crate::{Mode, Position};
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
-use iced_native::renderer::Style;
 
 /// The settings of an application.
 #[derive(Debug, Default)]

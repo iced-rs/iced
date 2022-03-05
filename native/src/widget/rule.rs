@@ -11,7 +11,7 @@ pub struct Rule<'a> {
     width: Length,
     height: Length,
     is_horizontal: bool,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
 }
 
 impl<'a> Rule<'a> {
@@ -21,7 +21,7 @@ impl<'a> Rule<'a> {
             width: Length::Fill,
             height: Length::from(Length::Units(spacing)),
             is_horizontal: true,
-            style_sheet: Default::default(),
+            custom_style_sheet: None,
         }
     }
 
@@ -31,7 +31,7 @@ impl<'a> Rule<'a> {
             width: Length::from(Length::Units(spacing)),
             height: Length::Fill,
             is_horizontal: false,
-            style_sheet: Default::default(),
+            custom_style_sheet: None,
         }
     }
 
@@ -40,7 +40,7 @@ impl<'a> Rule<'a> {
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.custom_style_sheet = Some(style_sheet.into());
         self
     }
 }
@@ -70,13 +70,17 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _style: &renderer::Style,
+        renderer_style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let style = self.style_sheet.style();
+        let style_sheet = match &self.custom_style_sheet {
+            Some(style_sheet) => style_sheet,
+            None => &renderer_style.rule_style_sheet,
+        };
+        let style = style_sheet.style();
 
         let bounds = if self.is_horizontal {
             let line_y = (bounds.y + (bounds.height / 2.0)

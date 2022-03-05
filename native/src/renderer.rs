@@ -27,7 +27,10 @@ pub use null::Null;
 
 use crate::layout;
 use crate::{Background, Color, Element, Rectangle, Vector};
-use iced_style::{button, container};
+use iced_style::{
+    button, checkbox, container, menu, pane_grid, pick_list, progress_bar,
+    radio, rule, scrollable, slider, text_input, toggler,
+};
 
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
@@ -80,22 +83,58 @@ pub struct Quad {
 }
 
 /// The styling attributes of a [`Renderer`].
-#[derive(Debug, Clone)]
+#[allow(missing_debug_implementations)]
 pub struct Style {
-    /// The text color
+    /// The default text color used unless overridden by a widget's styling
     pub text_color: Color,
-    /// Container styling
-    pub container_style_sheet: Box<dyn container::StyleSheet + 'static>,
     /// Button styling
     pub button_style_sheet: Box<dyn button::StyleSheet + 'static>,
+    /// Container styling
+    pub container_style_sheet: Box<dyn container::StyleSheet + 'static>,
+    /// Checkbox styling
+    pub checkbox_style_sheet: Box<dyn checkbox::StyleSheet + 'static>,
+    /// Menu styling
+    pub menu_style: menu::Style,
+    /// PaneGrid styling
+    pub pane_grid_style_sheet: Box<dyn pane_grid::StyleSheet + 'static>,
+    /// PickList styling
+    pub pick_list_style_sheet: Box<dyn pick_list::StyleSheet + 'static>,
+    /// ProgressBar styling
+    pub progress_bar_style_sheet: Box<dyn progress_bar::StyleSheet + 'static>,
+    /// Radio styling
+    pub radio_style_sheet: Box<dyn radio::StyleSheet + 'static>,
+    /// Rule styling
+    pub rule_style_sheet: Box<dyn rule::StyleSheet + 'static>,
+    /// Scrollable styling
+    pub scrollable_style_sheet: Box<dyn scrollable::StyleSheet + 'static>,
+    /// Slider styling
+    pub slider_style_sheet: Box<dyn slider::StyleSheet + 'static>,
+    /// TextInput styling
+    pub text_input_style_sheet: Box<dyn text_input::StyleSheet + 'static>,
+    /// Toggler styling
+    pub toggler_style_sheet: Box<dyn toggler::StyleSheet + 'static>,
+    /// Tooltip styling
+    pub tooltip_style_sheet: Box<dyn container::StyleSheet + 'static>,
 }
 
 impl Default for Style {
     fn default() -> Self {
         Style {
             text_color: Color::BLACK,
+            button_style_sheet: Default::default(),
+            checkbox_style_sheet: Default::default(),
             container_style_sheet: Default::default(),
-            button_style_sheet: Default::default()
+            menu_style: Default::default(),
+            pane_grid_style_sheet: Default::default(),
+            pick_list_style_sheet: Default::default(),
+            progress_bar_style_sheet: Default::default(),
+            radio_style_sheet: Default::default(),
+            rule_style_sheet: Default::default(),
+            scrollable_style_sheet: Default::default(),
+            slider_style_sheet: Default::default(),
+            text_input_style_sheet: Default::default(),
+            toggler_style_sheet: Default::default(),
+            tooltip_style_sheet: Default::default(),
         }
     }
 }

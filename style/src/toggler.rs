@@ -12,6 +12,14 @@ pub struct Style {
 
 /// A set of rules that dictate the style of a toggler.
 pub trait StyleSheet {
+    fn get_style(&self, is_mouse_over: bool, is_active: bool) -> Style {
+        if is_mouse_over {
+            self.hovered(is_active)
+        } else {
+            self.active(is_active)
+        }
+    }
+
     fn active(&self, is_active: bool) -> Style;
 
     fn hovered(&self, is_active: bool) -> Style;

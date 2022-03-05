@@ -131,8 +131,8 @@ mod dark {
     pub struct Scrollable;
 
     impl scrollable::StyleSheet for Scrollable {
-        fn active(&self) -> scrollable::Scrollbar {
-            scrollable::Scrollbar {
+        fn active(&self) -> scrollable::Style {
+            scrollable::Style {
                 background: Color {
                     a: 0.8,
                     ..SCROLLBAR
@@ -150,10 +150,10 @@ mod dark {
             }
         }
 
-        fn hovered(&self) -> scrollable::Scrollbar {
+        fn hovered(&self) -> scrollable::Style {
             let active = self.active();
 
-            scrollable::Scrollbar {
+            scrollable::Style {
                 background: SCROLLBAR.into(),
                 scroller: scrollable::Scroller {
                     color: SCROLLER,
@@ -163,10 +163,10 @@ mod dark {
             }
         }
 
-        fn dragging(&self) -> scrollable::Scrollbar {
+        fn dragging(&self) -> scrollable::Style {
             let hovered = self.hovered();
 
-            scrollable::Scrollbar {
+            scrollable::Style {
                 scroller: scrollable::Scroller {
                     color: ACCENT,
                     ..hovered.scroller

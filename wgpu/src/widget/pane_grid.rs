@@ -10,8 +10,8 @@
 use crate::Renderer;
 
 pub use iced_graphics::pane_grid::{
-    Axis, Configuration, Direction, DragEvent, Line, Node, Pane, ResizeEvent,
-    Split, State, StyleSheet,
+    Axis, Configuration, Direction, DragEvent, Node, Pane, ResizeEvent, Split,
+    State, Style, StyleSheet,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits

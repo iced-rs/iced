@@ -13,6 +13,14 @@ pub struct Style {
 
 /// A set of rules that dictate the style of a radio button.
 pub trait StyleSheet {
+    fn get_style(&self, is_mouse_over: bool) -> Style {
+        if is_mouse_over {
+            self.hovered()
+        } else {
+            self.active()
+        }
+    }
+
     fn active(&self) -> Style;
 
     fn hovered(&self) -> Style;

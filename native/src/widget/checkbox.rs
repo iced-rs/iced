@@ -41,7 +41,7 @@ pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
 }
 
 impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
@@ -72,7 +72,7 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             font: Renderer::Font::default(),
-            style_sheet: Default::default(),
+            custom_style_sheet: None,
         }
     }
 
@@ -113,7 +113,7 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.custom_style_sheet = Some(style_sheet.into());
         self
     }
 }
@@ -197,7 +197,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -207,11 +207,11 @@ where
 
         let mut children = layout.children();
 
-        let custom_style = if is_mouse_over {
-            self.style_sheet.hovered(self.is_checked)
-        } else {
-            self.style_sheet.active(self.is_checked)
+        let style_sheet = match &self.custom_style_sheet {
+            Some(style_sheet) => style_sheet,
+            None => &renderer_style.checkbox_style_sheet,
         };
+        let style = style_sheet.get_style(is_mouse_over, self.is_checked);
 
         {
             let layout = children.next().unwrap();
@@ -220,11 +220,11 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border_radius: custom_style.border_radius,
-                    border_width: custom_style.border_width,
-                    border_color: custom_style.border_color,
+                    border_radius: style.border_radius,
+                    border_width: style.border_width,
+                    border_color: style.border_color,
                 },
-                custom_style.background,
+                style.background,
             );
 
             if self.is_checked {
@@ -237,7 +237,7 @@ where
                         y: bounds.center_y(),
                         ..bounds
                     },
-                    color: custom_style.checkmark_color,
+                    color: style.checkmark_color,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
                 });
@@ -249,12 +249,12 @@ where
 
             widget::text::draw(
                 renderer,
-                style,
+                renderer_style,
                 label_layout,
                 &self.label,
                 self.font.clone(),
                 self.text_size,
-                custom_style.text_color,
+                style.text_color,
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );

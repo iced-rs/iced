@@ -13,8 +13,8 @@ use iced_winit::user_interface;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
 use glutin::window::Window;
-use std::mem::ManuallyDrop;
 use iced_native::renderer::Style;
+use std::mem::ManuallyDrop;
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
@@ -268,8 +268,11 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.draw_started();
-                let new_mouse_interaction =
-                    user_interface.draw(&mut renderer, &default_styling, state.cursor_position());
+                let new_mouse_interaction = user_interface.draw(
+                    &mut renderer,
+                    &default_styling,
+                    state.cursor_position(),
+                );
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
@@ -321,8 +324,11 @@ async fn run_instance<A, E, C>(
                     debug.layout_finished();
 
                     debug.draw_started();
-                    let new_mouse_interaction = user_interface
-                        .draw(&mut renderer, &default_styling, state.cursor_position());
+                    let new_mouse_interaction = user_interface.draw(
+                        &mut renderer,
+                        &default_styling,
+                        state.cursor_position(),
+                    );
                     debug.draw_finished();
 
                     if new_mouse_interaction != mouse_interaction {

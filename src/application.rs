@@ -1,4 +1,4 @@
-use crate::{Style,  window};
+use crate::{window, Style};
 use crate::{Color, Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.

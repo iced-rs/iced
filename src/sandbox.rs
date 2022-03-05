@@ -1,4 +1,6 @@
-use crate::{Application, Color, Command, Element, Error, Settings, Style, Subscription};
+use crate::{
+    Application, Color, Command, Element, Error, Settings, Style, Subscription,
+};
 
 /// A sandboxed [`Application`].
 ///

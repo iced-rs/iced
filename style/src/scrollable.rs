@@ -3,7 +3,7 @@ use iced_core::{Background, Color};
 
 /// The appearance of a scrollable.
 #[derive(Debug, Clone, Copy)]
-pub struct Scrollbar {
+pub struct Style {
     pub background: Option<Background>,
     pub border_radius: f32,
     pub border_width: f32,
@@ -22,14 +22,28 @@ pub struct Scroller {
 
 /// A set of rules that dictate the style of a scrollable.
 pub trait StyleSheet {
+    fn get_style(
+        &self,
+        is_scroller_grabbed: bool,
+        is_mouse_over_scrollbar: bool,
+    ) -> Style {
+        if is_scroller_grabbed {
+            self.dragging()
+        } else if is_mouse_over_scrollbar {
+            self.hovered()
+        } else {
+            self.active()
+        }
+    }
+
     /// Produces the style of an active scrollbar.
-    fn active(&self) -> Scrollbar;
+    fn active(&self) -> Style;
 
     /// Produces the style of an hovered scrollbar.
-    fn hovered(&self) -> Scrollbar;
+    fn hovered(&self) -> Style;
 
     /// Produces the style of a scrollbar that is being dragged.
-    fn dragging(&self) -> Scrollbar {
+    fn dragging(&self) -> Style {
         self.hovered()
     }
 }
@@ -37,8 +51,8 @@ pub trait StyleSheet {
 struct Default;
 
 impl StyleSheet for Default {
-    fn active(&self) -> Scrollbar {
-        Scrollbar {
+    fn active(&self) -> Style {
+        Style {
             background: None,
             border_radius: 5.0,
             border_width: 0.0,
@@ -52,8 +66,8 @@ impl StyleSheet for Default {
         }
     }
 
-    fn hovered(&self) -> Scrollbar {
-        Scrollbar {
+    fn hovered(&self) -> Style {
+        Style {
             background: Some(Background::Color([0.0, 0.0, 0.0, 0.3].into())),
             ..self.active()
         }

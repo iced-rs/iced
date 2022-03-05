@@ -26,7 +26,7 @@ pub struct Container<'a, Message, Renderer> {
     max_height: u32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
     content: Element<'a, Message, Renderer>,
 }
 
@@ -47,7 +47,7 @@ where
             max_height: u32::MAX,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style_sheet: None,
+            custom_style_sheet: None,
             content: content.into(),
         }
     }
@@ -111,7 +111,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.style_sheet = Some(style_sheet.into());
+        self.custom_style_sheet = Some(style_sheet.into());
         self
     }
 }
@@ -200,10 +200,11 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        let style = match &self.style_sheet {
-            Some(style_sheet) => style_sheet.style(),
-            None => renderer_style.container_style_sheet.style()
+        let style_sheet = match &self.custom_style_sheet {
+            Some(style_sheet) => style_sheet,
+            None => &renderer_style.container_style_sheet,
         };
+        let style = style_sheet.style();
 
         draw_background(renderer, &style, layout.bounds());
 

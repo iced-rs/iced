@@ -1,9 +1,9 @@
 [package]
-name = "default_styling"
+name = "application_theme"
 version = "0.1.0"
 authors = ["Ethan Mann <emanndev7@gmail.com>"]
 edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["debug"] }
+iced = { path = "../.." }

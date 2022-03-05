@@ -26,6 +26,16 @@ pub enum HandleShape {
 
 /// A set of rules that dictate the style of a slider.
 pub trait StyleSheet {
+    fn get_style(&self, is_dragging: bool, is_mouse_over: bool) -> Style {
+        if is_dragging {
+            self.dragging()
+        } else if is_mouse_over {
+            self.hovered()
+        } else {
+            self.active()
+        }
+    }
+
     /// Produces the style of an active slider.
     fn active(&self) -> Style;
 

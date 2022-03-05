@@ -1,6 +1,5 @@
 //! Configure a renderer.
 pub use crate::Antialiasing;
-use iced_native::renderer::Style;
 
 /// The settings of a [`Backend`].
 ///

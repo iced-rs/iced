@@ -1,7 +1,6 @@
 //! Allow your users to perform actions by pressing a button.
-use std::fmt::Debug;
-use dyn_clone::DynClone;
 use iced_core::{Background, Color, Vector};
+use std::fmt::Debug;
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
@@ -11,7 +10,6 @@ pub struct Style {
     pub border_radius: f32,
     pub border_width: f32,
     pub border_color: Color,
-    pub text_color: Color,
 }
 
 impl std::default::Default for Style {
@@ -22,14 +20,18 @@ impl std::default::Default for Style {
             border_radius: 0.0,
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
-            text_color: Color::BLACK,
         }
     }
 }
 
 /// A set of rules that dictate the style of a button.
-pub trait StyleSheet: Debug + DynClone {
-    fn get_style(&self, is_disabled: bool, is_mouse_over: bool, is_pressed: bool) -> Style {
+pub trait StyleSheet {
+    fn get_style(
+        &self,
+        is_disabled: bool,
+        is_mouse_over: bool,
+        is_pressed: bool,
+    ) -> Style {
         if is_disabled {
             self.disabled()
         } else if is_mouse_over {
@@ -72,18 +74,11 @@ pub trait StyleSheet: Debug + DynClone {
                     ..color
                 }),
             }),
-            text_color: Color {
-                a: active.text_color.a * 0.5,
-                ..active.text_color
-            },
             ..active
         }
     }
 }
 
-dyn_clone::clone_trait_object!(StyleSheet);
-
-#[derive(Debug, Clone)]
 struct Default;
 
 impl StyleSheet for Default {
@@ -94,7 +89,6 @@ impl StyleSheet for Default {
             border_radius: 2.0,
             border_width: 1.0,
             border_color: [0.7, 0.7, 0.7].into(),
-            text_color: Color::BLACK,
         }
     }
 }

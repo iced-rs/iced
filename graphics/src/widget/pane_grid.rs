@@ -14,7 +14,7 @@ pub use iced_native::widget::pane_grid::{
     ResizeEvent, Split, State, TitleBar,
 };
 
-pub use iced_style::pane_grid::{Line, StyleSheet};
+pub use iced_style::pane_grid::{Style, StyleSheet};
 
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.

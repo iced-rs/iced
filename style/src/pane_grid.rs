@@ -4,33 +4,41 @@ use iced_core::Color;
 
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
+    fn get_style(&self, is_picked: bool) -> Option<Style> {
+        if is_picked {
+            self.picked_split()
+        } else {
+            self.hovered_split()
+        }
+    }
+
     /// The [`Line`] to draw when a split is picked.
-    fn picked_split(&self) -> Option<Line>;
+    fn picked_split(&self) -> Option<Style>;
 
     /// The [`Line`] to draw when a split is hovered.
-    fn hovered_split(&self) -> Option<Line>;
+    fn hovered_split(&self) -> Option<Style>;
 }
 
 /// A line.
 ///
 /// It is normally used to define the highlight of something, like a split.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Line {
-    /// The [`Color`] of the [`Line`].
+pub struct Style {
+    /// The [`Color`] of the line drawn.
     pub color: Color,
 
-    /// The width of the [`Line`].
+    /// The width of the line drawn.
     pub width: f32,
 }
 
 struct Default;
 
 impl StyleSheet for Default {
-    fn picked_split(&self) -> Option<Line> {
+    fn picked_split(&self) -> Option<Style> {
         None
     }
 
-    fn hovered_split(&self) -> Option<Line> {
+    fn hovered_split(&self) -> Option<Style> {
         None
     }
 }

@@ -2,9 +2,8 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::renderer;
-use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 use crate::renderer::Style;
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///

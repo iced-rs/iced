@@ -15,11 +15,9 @@ use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
 use iced_graphics::window;
 use iced_native::program::Program;
-use iced_native::renderer;
 use iced_native::user_interface::{self, UserInterface};
 
 use std::mem::ManuallyDrop;
-use iced_native::renderer::Style;
 
 /// An interactive, native cross-platform application.
 ///
@@ -339,7 +337,7 @@ async fn run_instance<A, E, C>(
 
                 debug.draw_started();
                 let new_mouse_interaction =
-                    user_interface.draw(&mut renderer,state.cursor_position());
+                    user_interface.draw(&mut renderer, state.cursor_position());
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
@@ -501,7 +499,8 @@ pub fn build_user_interface<'a, A: Application>(
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface = UserInterface::build(view, style, size, cache, renderer);
+    let user_interface =
+        UserInterface::build(view, style, size, cache, renderer);
     debug.layout_finished();
 
     user_interface

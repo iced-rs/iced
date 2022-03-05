@@ -36,7 +36,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
 }
 
 /// The local state of a [`PickList`].
@@ -101,7 +101,7 @@ where
             text_size: None,
             padding: Self::DEFAULT_PADDING,
             font: Default::default(),
-            style_sheet: Default::default(),
+            custom_style_sheet: None,
         }
     }
 
@@ -140,7 +140,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.custom_style_sheet = Some(style_sheet.into());
         self
     }
 }
@@ -328,7 +328,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _style: &renderer::Style,
+        renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -337,11 +337,11 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
         let is_selected = self.selected.is_some();
 
-        let style = if is_mouse_over {
-            self.style_sheet.hovered()
-        } else {
-            self.style_sheet.active()
+        let style_sheet = match &self.custom_style_sheet {
+            Some(style_sheet) => style_sheet,
+            None => &renderer_style.pick_list_style_sheet,
         };
+        let style = style_sheet.get_style(is_mouse_over);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -411,8 +411,11 @@ where
             )
             .width(bounds.width.round() as u16)
             .padding(self.padding)
-            .font(self.font.clone())
-            .style(self.style_sheet.menu());
+            .font(self.font.clone());
+
+            if let Some(style_sheet) = &self.custom_style_sheet {
+                menu = menu.style(style_sheet.menu_style());
+            }
 
             if let Some(text_size) = self.text_size {
                 menu = menu.text_size(text_size);

@@ -142,7 +142,7 @@ impl slider::StyleSheet for Slider {
 pub struct PickList;
 
 impl pick_list::StyleSheet for PickList {
-    fn menu(&self) -> pick_list::Menu {
+    fn menu_style(&self) -> pick_list::Menu {
         pick_list::Menu {
             text_color: Color::WHITE,
             background: BACKGROUND.into(),

@@ -3,8 +3,8 @@ use crate::{Command, Element, Renderer};
 
 mod state;
 
-pub use state::State;
 use crate::renderer::Style;
+pub use state::State;
 
 /// The core of a user interface application following The Elm Architecture.
 pub trait Program: Sized {

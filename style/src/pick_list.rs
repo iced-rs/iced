@@ -29,7 +29,15 @@ impl std::default::Default for Style {
 
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
-    fn menu(&self) -> menu::Style;
+    fn get_style(&self, is_mouse_over: bool) -> Style {
+        if is_mouse_over {
+            self.hovered()
+        } else {
+            self.active()
+        }
+    }
+
+    fn menu_style(&self) -> menu::Style;
 
     fn active(&self) -> Style;
 
@@ -37,11 +45,11 @@ pub trait StyleSheet {
     fn hovered(&self) -> Style;
 }
 
-struct Default;
+struct DefaultStyle;
 
-impl StyleSheet for Default {
-    fn menu(&self) -> menu::Style {
-        menu::Style::default()
+impl StyleSheet for DefaultStyle {
+    fn menu_style(&self) -> menu::Style {
+        Default::default()
     }
 
     fn active(&self) -> Style {
@@ -58,7 +66,7 @@ impl StyleSheet for Default {
 
 impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
     fn default() -> Self {
-        Box::new(Default)
+        Box::new(DefaultStyle)
     }
 }
 

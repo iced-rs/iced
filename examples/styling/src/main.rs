@@ -428,8 +428,8 @@ mod style {
         pub struct Scrollable;
 
         impl scrollable::StyleSheet for Scrollable {
-            fn active(&self) -> scrollable::Scrollbar {
-                scrollable::Scrollbar {
+            fn active(&self) -> scrollable::Style {
+                scrollable::Style {
                     background: SURFACE.into(),
                     border_radius: 2.0,
                     border_width: 0.0,
@@ -443,10 +443,10 @@ mod style {
                 }
             }
 
-            fn hovered(&self) -> scrollable::Scrollbar {
+            fn hovered(&self) -> scrollable::Style {
                 let active = self.active();
 
-                scrollable::Scrollbar {
+                scrollable::Style {
                     background: Color { a: 0.5, ..SURFACE }.into(),
                     scroller: scrollable::Scroller {
                         color: HOVERED,
@@ -456,10 +456,10 @@ mod style {
                 }
             }
 
-            fn dragging(&self) -> scrollable::Scrollbar {
+            fn dragging(&self) -> scrollable::Style {
                 let hovered = self.hovered();
 
-                scrollable::Scrollbar {
+                scrollable::Style {
                     scroller: scrollable::Scroller {
                         color: Color::from_rgb(0.85, 0.85, 0.85),
                         ..hovered.scroller

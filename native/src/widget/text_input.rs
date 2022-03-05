@@ -66,7 +66,7 @@ pub struct TextInput<'a, Message, Renderer: text::Renderer> {
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message>,
     on_submit: Option<Message>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
 }
 
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
@@ -102,7 +102,7 @@ where
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
-            style_sheet: Default::default(),
+            custom_style_sheet: None,
         }
     }
 
@@ -156,7 +156,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.custom_style_sheet = Some(style_sheet.into());
         self
     }
 
@@ -175,6 +175,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         value: Option<&Value>,
@@ -188,13 +189,11 @@ where
 
         let is_mouse_over = bounds.contains(cursor_position);
 
-        let style = if self.state.is_focused() {
-            self.style_sheet.focused()
-        } else if is_mouse_over {
-            self.style_sheet.hovered()
-        } else {
-            self.style_sheet.active()
+        let style_sheet = match &self.custom_style_sheet {
+            Some(style_sheet) => style_sheet,
+            None => &renderer_style.text_input_style_sheet,
         };
+        let style = style_sheet.get_style(self.state.is_focused, is_mouse_over);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -235,7 +234,7 @@ where
                                 border_width: 0.0,
                                 border_color: Color::TRANSPARENT,
                             },
-                            self.style_sheet.value_color(),
+                            style_sheet.value_color(),
                         )),
                         offset,
                     )
@@ -279,7 +278,7 @@ where
                                 border_width: 0.0,
                                 border_color: Color::TRANSPARENT,
                             },
-                            self.style_sheet.selection_color(),
+                            style_sheet.selection_color(),
                         )),
                         if end == right {
                             right_offset
@@ -314,11 +313,7 @@ where
                 } else {
                     &text
                 },
-                color: if text.is_empty() {
-                    self.style_sheet.placeholder_color()
-                } else {
-                    self.style_sheet.value_color()
-                },
+                color: style_sheet.get_text_color(text.is_empty()),
                 font: self.font.clone(),
                 bounds: Rectangle {
                     y: text_bounds.center_y(),
@@ -776,12 +771,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _style: &renderer::Style,
+        renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        self.draw(renderer, layout, cursor_position, None)
+        self.draw(renderer, renderer_style, layout, cursor_position, None)
     }
 }
 

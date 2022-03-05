@@ -38,7 +38,7 @@ use crate::{
     Vector, Widget,
 };
 
-pub use iced_style::pane_grid::{Line, StyleSheet};
+pub use iced_style::pane_grid::{Style, StyleSheet};
 
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
@@ -99,7 +99,7 @@ pub struct PaneGrid<'a, Message, Renderer> {
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
@@ -131,7 +131,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style_sheet: Default::default(),
+            custom_style_sheet: None,
         }
     }
 
@@ -192,7 +192,7 @@ where
 
     /// Sets the style of the [`PaneGrid`].
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet + 'a>>) -> Self {
-        self.style_sheet = style.into();
+        self.custom_style_sheet = Some(style.into());
         self
     }
 }
@@ -526,7 +526,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -605,7 +605,7 @@ where
                             renderer.with_layer(bounds, |renderer| {
                                 pane.draw(
                                     renderer,
-                                    style,
+                                    renderer_style,
                                     layout,
                                     pane_cursor_position,
                                     viewport,
@@ -617,7 +617,7 @@ where
                 _ => {
                     pane.draw(
                         renderer,
-                        style,
+                        renderer_style,
                         layout,
                         pane_cursor_position,
                         viewport,
@@ -627,32 +627,31 @@ where
         }
 
         if let Some((axis, split_region, is_picked)) = picked_split {
-            let highlight = if is_picked {
-                self.style_sheet.picked_split()
-            } else {
-                self.style_sheet.hovered_split()
+            let style_sheet = match &self.custom_style_sheet {
+                Some(style_sheet) => style_sheet,
+                None => &renderer_style.pane_grid_style_sheet,
             };
+            let style = style_sheet.get_style(is_picked);
 
-            if let Some(highlight) = highlight {
+            if let Some(style) = style {
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: match axis {
                             Axis::Horizontal => Rectangle {
                                 x: split_region.x,
                                 y: (split_region.y
-                                    + (split_region.height - highlight.width)
+                                    + (split_region.height - style.width)
                                         / 2.0)
                                     .round(),
                                 width: split_region.width,
-                                height: highlight.width,
+                                height: style.width,
                             },
                             Axis::Vertical => Rectangle {
                                 x: (split_region.x
-                                    + (split_region.width - highlight.width)
-                                        / 2.0)
+                                    + (split_region.width - style.width) / 2.0)
                                     .round(),
                                 y: split_region.y,
-                                width: highlight.width,
+                                width: style.width,
                                 height: split_region.height,
                             },
                         },
@@ -660,7 +659,7 @@ where
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
-                    highlight.color,
+                    style.color,
                 );
             }
         }
