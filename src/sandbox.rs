@@ -1,6 +1,4 @@
-use crate::{
-    Application, Color, Command, Element, Error, Settings, Subscription,
-};
+use crate::{Application, Color, Command, Element, Error, Settings, Style, Subscription};
 
 /// A sandboxed [`Application`].
 ///
@@ -118,6 +116,11 @@ pub trait Sandbox {
         Color::WHITE
     }
 
+    /// Returns the styling to be used
+    fn styling(&self) -> Style {
+        Default::default()
+    }
+
     /// Returns the scale factor of the [`Sandbox`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
@@ -184,6 +187,10 @@ where
 
     fn background_color(&self) -> Color {
         T::background_color(self)
+    }
+
+    fn styling(&self) -> Style {
+        T::styling(self)
     }
 
     fn scale_factor(&self) -> f64 {

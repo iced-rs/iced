@@ -64,7 +64,7 @@ pub struct Button<'a, Message, Renderer> {
     min_width: u32,
     min_height: u32,
     padding: Padding,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style_sheet: Option<Box<dyn StyleSheet + 'a>>,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -87,7 +87,7 @@ where
             min_width: 0,
             min_height: 0,
             padding: Padding::new(5),
-            style_sheet: Default::default(),
+            style_sheet: None,
         }
     }
 
@@ -133,7 +133,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style_sheet = Some(style_sheet.into());
         self
     }
 }
@@ -266,7 +266,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _style: &renderer::Style,
+        renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -277,16 +277,9 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
         let is_disabled = self.on_press.is_none();
 
-        let styling = if is_disabled {
-            self.style_sheet.disabled()
-        } else if is_mouse_over {
-            if self.state.is_pressed {
-                self.style_sheet.pressed()
-            } else {
-                self.style_sheet.hovered()
-            }
-        } else {
-            self.style_sheet.active()
+        let styling = match &self.style_sheet {
+            Some(style_sheet) => style_sheet.get_style(is_disabled, is_mouse_over, self.state.is_pressed),
+            None => renderer_style.button_style_sheet.get_style(is_disabled, is_mouse_over, self.state.is_pressed)
         };
 
         if styling.background.is_some() || styling.border_width > 0.0 {
@@ -322,9 +315,7 @@ where
 
         self.content.draw(
             renderer,
-            &renderer::Style {
-                text_color: styling.text_color,
-            },
+            renderer_style,
             content_layout,
             cursor_position,
             &bounds,

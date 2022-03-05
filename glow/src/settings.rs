@@ -1,5 +1,6 @@
 //! Configure a renderer.
 pub use iced_graphics::Antialiasing;
+use iced_native::renderer::Style;
 
 /// The settings of a [`Backend`].
 ///
@@ -15,6 +16,8 @@ pub struct Settings {
     ///
     /// By default, it will be set to 20.
     pub default_text_size: u16,
+
+    pub default_styling: Style,
 
     /// If enabled, spread text workload in multiple threads when multiple cores
     /// are available.

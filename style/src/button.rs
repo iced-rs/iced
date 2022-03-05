@@ -1,4 +1,6 @@
 //! Allow your users to perform actions by pressing a button.
+use std::fmt::Debug;
+use dyn_clone::DynClone;
 use iced_core::{Background, Color, Vector};
 
 /// The appearance of a button.
@@ -26,7 +28,21 @@ impl std::default::Default for Style {
 }
 
 /// A set of rules that dictate the style of a button.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug + DynClone {
+    fn get_style(&self, is_disabled: bool, is_mouse_over: bool, is_pressed: bool) -> Style {
+        if is_disabled {
+            self.disabled()
+        } else if is_mouse_over {
+            if is_pressed {
+                self.pressed()
+            } else {
+                self.hovered()
+            }
+        } else {
+            self.active()
+        }
+    }
+
     fn active(&self) -> Style;
 
     fn hovered(&self) -> Style {
@@ -65,6 +81,9 @@ pub trait StyleSheet {
     }
 }
 
+dyn_clone::clone_trait_object!(StyleSheet);
+
+#[derive(Debug, Clone)]
 struct Default;
 
 impl StyleSheet for Default {

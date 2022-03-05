@@ -1,8 +1,9 @@
 //! Configure your application.
+use iced_winit::renderer::Style;
 use crate::window;
 
 /// The settings of an application.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Settings<Flags> {
     /// The identifier of the application.
     ///

@@ -66,6 +66,7 @@ members = [
     "examples/component",
     "examples/counter",
     "examples/custom_widget",
+    "examples/default_styling",
     "examples/download_progress",
     "examples/events",
     "examples/exit",

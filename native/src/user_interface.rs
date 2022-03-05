@@ -4,6 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::renderer::Style;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -20,6 +21,7 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
+    style: Style,
     base: layout::Node,
     overlay: Option<layout::Node>,
     bounds: Size,
@@ -85,6 +87,7 @@ where
     /// ```
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
+        style: Style,
         bounds: Size,
         _cache: Cache,
         renderer: &mut Renderer,
@@ -96,6 +99,7 @@ where
 
         UserInterface {
             root,
+            style,
             base,
             overlay: None,
             bounds,
@@ -369,7 +373,7 @@ where
 
         self.root.widget.draw(
             renderer,
-            &renderer::Style::default(),
+            &self.style,
             Layout::new(&self.base),
             base_cursor,
             &viewport,
@@ -410,7 +414,7 @@ where
                     renderer.with_layer(overlay_bounds, |renderer| {
                         overlay.draw(
                             renderer,
-                            &renderer::Style::default(),
+                            &self.style,
                             Layout::new(layout),
                             cursor_position,
                         );
@@ -429,7 +433,7 @@ where
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(self.root, bounds, Cache, renderer)
+        Self::build(self.root, self.style, bounds, Cache, renderer)
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the

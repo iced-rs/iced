@@ -1,10 +1,11 @@
 //! Configure a renderer.
 pub use crate::Antialiasing;
+use iced_native::renderer::Style;
 
 /// The settings of a [`Backend`].
 ///
 /// [`Backend`]: crate::Backend
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Settings {
     /// The present mode of the [`Backend`].
     ///

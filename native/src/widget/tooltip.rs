@@ -179,6 +179,7 @@ where
                 text_color: style
                     .text_color
                     .unwrap_or(inherited_style.text_color),
+                ..Default::default()
             };
 
             let text_layout = Widget::<(), Renderer>::layout(

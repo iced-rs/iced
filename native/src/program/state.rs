@@ -1,6 +1,7 @@
 use crate::mouse;
 use crate::user_interface::{self, UserInterface};
 use crate::{Clipboard, Command, Debug, Event, Point, Program, Size};
+use crate::renderer::Style;
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -86,6 +87,7 @@ where
         bounds: Size,
         cursor_position: Point,
         renderer: &mut P::Renderer,
+        style: &Style,
         clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
@@ -169,7 +171,7 @@ fn build_user_interface<'a, P: Program>(
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface = UserInterface::build(view, size, cache, renderer);
+    let user_interface = UserInterface::build(view, Default::default(), size, cache, renderer);
     debug.layout_finished();
 
     user_interface

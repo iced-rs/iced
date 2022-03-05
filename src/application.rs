@@ -1,4 +1,4 @@
-use crate::window;
+use crate::{Style,  window};
 use crate::{Color, Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
@@ -165,6 +165,11 @@ pub trait Application: Sized {
         Color::WHITE
     }
 
+    /// Returns the styling to be used
+    fn styling(&self) -> Style {
+        Default::default()
+    }
+
     /// Returns the scale factor of the [`Application`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
@@ -233,6 +238,10 @@ where
 
     fn view(&mut self) -> Element<'_, Self::Message> {
         self.0.view()
+    }
+
+    fn styling(&self) -> Style {
+        self.0.styling()
     }
 }
 

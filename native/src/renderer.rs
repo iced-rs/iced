@@ -21,11 +21,13 @@
 //! [`checkbox::Renderer`]: crate::widget::checkbox::Renderer
 #[cfg(debug_assertions)]
 mod null;
+
 #[cfg(debug_assertions)]
 pub use null::Null;
 
 use crate::layout;
 use crate::{Background, Color, Element, Rectangle, Vector};
+use iced_style::{button, container};
 
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
@@ -78,16 +80,22 @@ pub struct Quad {
 }
 
 /// The styling attributes of a [`Renderer`].
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Style {
     /// The text color
     pub text_color: Color,
+    /// Container styling
+    pub container_style_sheet: Box<dyn container::StyleSheet + 'static>,
+    /// Button styling
+    pub button_style_sheet: Box<dyn button::StyleSheet + 'static>,
 }
 
 impl Default for Style {
     fn default() -> Self {
         Style {
             text_color: Color::BLACK,
+            container_style_sheet: Default::default(),
+            button_style_sheet: Default::default()
         }
     }
 }
