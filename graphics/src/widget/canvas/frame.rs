@@ -253,6 +253,27 @@ impl Frame {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
+    /// Executes the given drawing operations within a [`Rectangle`] region,
+    /// clipping any geometry that overflows its bounds. Any transformations
+    /// performed are local to the provided closure.
+    ///
+    /// This method is useful to perform drawing operations that need to be
+    /// clipped.
+    #[inline]
+    pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
+        let mut frame = Frame::new(region.size());
+
+        f(&mut frame);
+
+        self.primitives.push(Primitive::Clip {
+            bounds: region,
+            content: Box::new(Primitive::Translate {
+                translation: Vector::new(region.x, region.y),
+                content: Box::new(frame.into_geometry().into_primitive()),
+            }),
+        });
+    }
+
     /// Applies a translation to the current transform of the [`Frame`].
     #[inline]
     pub fn translate(&mut self, translation: Vector) {
