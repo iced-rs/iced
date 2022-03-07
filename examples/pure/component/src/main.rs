@@ -49,7 +49,7 @@ impl Sandbox for Component {
 mod numeric_input {
     use iced::pure::widget::Element;
     use iced::pure::widget::{row, text, text_input};
-    use iced_lazy::pure::component::{self, Component};
+    use iced_lazy::pure::{self, Component};
     use iced_native::alignment::{self, Alignment};
     use iced_native::text;
     use iced_native::Length;
@@ -162,7 +162,7 @@ mod numeric_input {
         Renderer: 'static + text::Renderer,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {
-            component::view(numeric_input)
+            pure::component(numeric_input)
         }
     }
 }
