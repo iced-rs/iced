@@ -53,7 +53,7 @@ impl Compositor {
             .using_resolution(adapter.limits());
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits = wgpu::Limits::default();
+        let limits = wgpu::Limits::downlevel_defaults();
 
         let (device, queue) = adapter
             .request_device(
