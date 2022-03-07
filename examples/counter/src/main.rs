@@ -1,5 +1,5 @@
 use iced::{
-    button, Alignment, Button, Column, Element, Sandbox, Settings, Text,
+    button, Align, Button, Column, Element, Sandbox, Settings, Text,
 };
 
 pub fn main() -> iced::Result {
