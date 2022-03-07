@@ -101,27 +101,6 @@ where
         &self,
         f: impl FnOnce(&mut Element<'_, Event, Renderer>) -> T,
     ) -> T {
-        if self
-            .state
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .borrow_element()
-            .is_none()
-        {
-            let heads = self.state.borrow_mut().take().unwrap().into_heads();
-
-            *self.state.borrow_mut() = Some(
-                StateBuilder {
-                    component: heads.component,
-                    message: PhantomData,
-                    state: PhantomData,
-                    element_builder: |state| Some(state.view(&S::default())),
-                }
-                .build(),
-            );
-        }
-
         self.state
             .borrow_mut()
             .as_mut()
@@ -145,10 +124,36 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
+        let heads = self.state.borrow_mut().take().unwrap().into_heads();
+
+        *self.state.borrow_mut() = Some(
+            StateBuilder {
+                component: heads.component,
+                message: PhantomData,
+                state: PhantomData,
+                element_builder: |state| Some(state.view(&S::default())),
+            }
+            .build(),
+        );
+
         self.with_element(|element| vec![Tree::new(element)])
     }
 
     fn diff(&self, tree: &mut Tree) {
+        let heads = self.state.borrow_mut().take().unwrap().into_heads();
+
+        *self.state.borrow_mut() = Some(
+            StateBuilder {
+                component: heads.component,
+                message: PhantomData,
+                state: PhantomData,
+                element_builder: |state| {
+                    Some(state.view(tree.state.downcast_ref()))
+                },
+            }
+            .build(),
+        );
+
         self.with_element(|element| {
             tree.diff_children(std::slice::from_ref(&element))
         })
