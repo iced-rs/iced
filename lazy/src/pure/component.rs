@@ -90,6 +90,20 @@ impl<'a, Message, Renderer, Event, S> Instance<'a, Message, Renderer, Event, S>
 where
     S: Default,
 {
+    fn rebuild_element(&self, state: &S) {
+        let heads = self.state.borrow_mut().take().unwrap().into_heads();
+
+        *self.state.borrow_mut() = Some(
+            StateBuilder {
+                component: heads.component,
+                message: PhantomData,
+                state: PhantomData,
+                element_builder: |component| Some(component.view(state)),
+            }
+            .build(),
+        );
+    }
+
     fn with_element<T>(
         &self,
         f: impl FnOnce(&Element<'_, Event, Renderer>) -> T,
@@ -124,36 +138,12 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        let heads = self.state.borrow_mut().take().unwrap().into_heads();
-
-        *self.state.borrow_mut() = Some(
-            StateBuilder {
-                component: heads.component,
-                message: PhantomData,
-                state: PhantomData,
-                element_builder: |state| Some(state.view(&S::default())),
-            }
-            .build(),
-        );
-
+        self.rebuild_element(&S::default());
         self.with_element(|element| vec![Tree::new(element)])
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let heads = self.state.borrow_mut().take().unwrap().into_heads();
-
-        *self.state.borrow_mut() = Some(
-            StateBuilder {
-                component: heads.component,
-                message: PhantomData,
-                state: PhantomData,
-                element_builder: |state| {
-                    Some(state.view(tree.state.downcast_ref()))
-                },
-            }
-            .build(),
-        );
-
+        self.rebuild_element(tree.state.downcast_ref());
         self.with_element(|element| {
             tree.diff_children(std::slice::from_ref(&element))
         })
