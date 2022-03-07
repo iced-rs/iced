@@ -4,7 +4,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::{Clipboard, Hasher, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -100,11 +100,6 @@ where
     ) {
         self.overlay.draw(renderer, style, layout, cursor_position)
     }
-
-    /// Computes the _layout_ hash of the [`Element`].
-    pub fn hash_layout(&self, state: &mut Hasher) {
-        self.overlay.hash_layout(state, self.position);
-    }
 }
 
 struct Map<'a, A, B, Renderer> {
@@ -183,9 +178,5 @@ where
         cursor_position: Point,
     ) {
         self.content.draw(renderer, style, layout, cursor_position)
-    }
-
-    fn hash_layout(&self, state: &mut Hasher, position: Point) {
-        self.content.hash_layout(state, position);
     }
 }

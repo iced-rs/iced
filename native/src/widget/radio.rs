@@ -1,6 +1,4 @@
 //! Create choices using radio buttons.
-use std::hash::Hash;
-
 use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
@@ -10,8 +8,8 @@ use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text};
 use crate::{
-    Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
+    Shell, Widget,
 };
 
 pub use iced_style::radio::{Style, StyleSheet};
@@ -279,13 +277,6 @@ where
                 alignment::Vertical::Center,
             );
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.label.hash(state);
     }
 }
 

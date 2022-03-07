@@ -38,7 +38,7 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
-use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
+use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 use std::borrow::Cow;
 
@@ -46,8 +46,6 @@ pub trait Widget<Message, Renderer> {
     fn width(&self) -> Length;
 
     fn height(&self) -> Length;
-
-    fn hash_layout(&self, state: &mut Hasher);
 
     fn layout(
         &self,

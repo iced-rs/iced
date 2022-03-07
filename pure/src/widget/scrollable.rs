@@ -7,7 +7,7 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::widget::scrollable;
-use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell, Vector};
+use iced_native::{Clipboard, Length, Point, Rectangle, Shell, Vector};
 
 pub use iced_style::scrollable::StyleSheet;
 
@@ -113,14 +113,6 @@ where
 
     fn height(&self) -> Length {
         self.height
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash;
-
-        self.tag().hash(state);
-        self.height.hash(state);
-        self.content.as_widget().hash_layout(state)
     }
 
     fn layout(

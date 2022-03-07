@@ -10,7 +10,7 @@ use iced_native::renderer;
 use iced_native::text;
 use iced_native::widget::pick_list;
 use iced_native::{
-    Clipboard, Hasher, Layout, Length, Padding, Point, Rectangle, Shell,
+    Clipboard, Layout, Length, Padding, Point, Rectangle, Shell,
 };
 
 use std::borrow::Cow;
@@ -140,17 +140,6 @@ where
             self.padding,
             self.text_size,
             &self.font,
-            self.placeholder.as_ref().map(String::as_str),
-            &self.options,
-        )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        pick_list::hash_layout(
-            state,
-            self.width,
-            self.padding,
-            self.text_size,
             self.placeholder.as_ref().map(String::as_str),
             &self.options,
         )

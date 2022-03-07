@@ -7,9 +7,7 @@ use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::text;
 use iced_native::widget::text_input;
-use iced_native::{
-    Clipboard, Hasher, Length, Padding, Point, Rectangle, Shell,
-};
+use iced_native::{Clipboard, Length, Padding, Point, Rectangle, Shell};
 
 pub use iced_style::text_input::StyleSheet;
 
@@ -151,10 +149,6 @@ where
 
     fn height(&self) -> Length {
         Length::Shrink
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        text_input::hash_layout(state, self.width, self.padding, self.size);
     }
 
     fn layout(

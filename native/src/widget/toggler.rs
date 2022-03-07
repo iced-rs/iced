@@ -1,5 +1,4 @@
 //! Show toggle controls using togglers.
-use std::hash::Hash;
 
 use crate::alignment;
 use crate::event;
@@ -9,8 +8,8 @@ use crate::renderer;
 use crate::text;
 use crate::widget::{Row, Text};
 use crate::{
-    Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
+    Shell, Widget,
 };
 
 pub use iced_style::toggler::{Style, StyleSheet};
@@ -294,13 +293,6 @@ where
             },
             style.foreground,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.label.hash(state)
     }
 }
 

@@ -4,7 +4,7 @@ use crate::Element;
 use iced_native::layout::{self, Layout};
 use iced_native::renderer;
 use iced_native::widget::image;
-use iced_native::{Hasher, Length, Point, Rectangle};
+use iced_native::{Length, Point, Rectangle};
 
 use std::hash::Hash;
 
@@ -49,12 +49,6 @@ where
             layout,
             cursor_position,
             viewport,
-        )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        <Self as iced_native::Widget<Message, Renderer>>::hash_layout(
-            self, state,
         )
     }
 }

@@ -9,7 +9,7 @@ use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
-use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
+use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 pub struct Pure<'a, Message, Renderer> {
     state: &'a mut State,
@@ -63,10 +63,6 @@ where
 
     fn height(&self) -> Length {
         self.element.as_widget().height()
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.element.as_widget().hash_layout(state)
     }
 
     fn layout(

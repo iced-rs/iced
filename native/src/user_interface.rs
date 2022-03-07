@@ -2,11 +2,8 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::overlay;
 use crate::renderer;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
-
-use std::hash::Hasher;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -23,8 +20,8 @@ use std::hash::Hasher;
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
-    base: Layer,
-    overlay: Option<Layer>,
+    base: layout::Node,
+    overlay: Option<layout::Node>,
     bounds: Size,
 }
 
@@ -89,41 +86,18 @@ where
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
         bounds: Size,
-        cache: Cache,
+        _cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
         let root = root.into();
 
-        let (base, overlay) = {
-            let hash = {
-                let hasher = &mut crate::Hasher::default();
-                root.hash_layout(hasher);
-
-                hasher.finish()
-            };
-
-            let layout_is_cached =
-                hash == cache.base.hash && bounds == cache.bounds;
-
-            let (layout, overlay) = if layout_is_cached {
-                (cache.base.layout, cache.overlay)
-            } else {
-                (
-                    renderer.layout(
-                        &root,
-                        &layout::Limits::new(Size::ZERO, bounds),
-                    ),
-                    None,
-                )
-            };
-
-            (Layer { layout, hash }, overlay)
-        };
+        let base =
+            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
 
         UserInterface {
             root,
             base,
-            overlay,
+            overlay: None,
             bounds,
         }
     }
@@ -206,16 +180,10 @@ where
         let mut state = State::Updated;
 
         let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
-            self.root.overlay(Layout::new(&self.base.layout), renderer)
+            self.root.overlay(Layout::new(&self.base), renderer)
         {
             let bounds = self.bounds;
-
-            let mut layer = Self::overlay_layer(
-                self.overlay.take(),
-                bounds,
-                &mut overlay,
-                renderer,
-            );
+            let mut layout = overlay.layout(renderer, bounds);
 
             let event_statuses = events
                 .iter()
@@ -225,7 +193,7 @@ where
 
                     let event_status = overlay.on_event(
                         event,
-                        Layout::new(&layer.layout),
+                        Layout::new(&layout),
                         cursor_position,
                         renderer,
                         clipboard,
@@ -233,12 +201,7 @@ where
                     );
 
                     shell.revalidate_layout(|| {
-                        layer = Self::overlay_layer(
-                            None,
-                            bounds,
-                            &mut overlay,
-                            renderer,
-                        );
+                        layout = overlay.layout(renderer, bounds);
                     });
 
                     if shell.are_widgets_invalid() {
@@ -249,15 +212,14 @@ where
                 })
                 .collect();
 
-            let base_cursor = if layer.layout.bounds().contains(cursor_position)
-            {
+            let base_cursor = if layout.bounds().contains(cursor_position) {
                 // TODO: Type-safe cursor availability
                 Point::new(-1.0, -1.0)
             } else {
                 cursor_position
             };
 
-            self.overlay = Some(layer);
+            self.overlay = Some(layout);
 
             (base_cursor, event_statuses)
         } else {
@@ -273,7 +235,7 @@ where
 
                 let event_status = self.root.widget.on_event(
                     event,
-                    Layout::new(&self.base.layout),
+                    Layout::new(&self.base),
                     base_cursor,
                     renderer,
                     clipboard,
@@ -281,19 +243,11 @@ where
                 );
 
                 shell.revalidate_layout(|| {
-                    let hash = {
-                        let hasher = &mut crate::Hasher::default();
-                        self.root.hash_layout(hasher);
-
-                        hasher.finish()
-                    };
-
-                    let layout = renderer.layout(
+                    self.base = renderer.layout(
                         &self.root,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    self.base = Layer { layout, hash };
                     self.overlay = None;
                 });
 
@@ -391,24 +345,8 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        self.overlay = if let Some(mut overlay) =
-            self.root.overlay(Layout::new(&self.base.layout), renderer)
-        {
-            let layer = Self::overlay_layer(
-                self.overlay.take(),
-                self.bounds,
-                &mut overlay,
-                renderer,
-            );
-
-            Some(layer)
-        } else {
-            None
-        };
-
-        if let Some(layer) = &self.overlay {
-            let base_cursor = if layer.layout.bounds().contains(cursor_position)
-            {
+        if let Some(layout) = &self.overlay {
+            let base_cursor = if layout.bounds().contains(cursor_position) {
                 Point::new(-1.0, -1.0)
             } else {
                 cursor_position
@@ -417,7 +355,7 @@ where
             self.root.widget.draw(
                 renderer,
                 &renderer::Style::default(),
-                Layout::new(&self.base.layout),
+                Layout::new(&self.base),
                 base_cursor,
                 &viewport,
             );
@@ -425,14 +363,14 @@ where
             self.root.widget.draw(
                 renderer,
                 &renderer::Style::default(),
-                Layout::new(&self.base.layout),
+                Layout::new(&self.base),
                 cursor_position,
                 &viewport,
             );
         };
 
         let base_interaction = self.root.widget.mouse_interaction(
-            Layout::new(&self.base.layout),
+            Layout::new(&self.base),
             cursor_position,
             &viewport,
             renderer,
@@ -452,34 +390,32 @@ where
         // avoid this additional call.
         overlay
             .as_ref()
-            .and_then(|layer| {
-                root.overlay(Layout::new(&base.layout), renderer).map(
-                    |overlay| {
-                        let overlay_interaction = overlay.mouse_interaction(
-                            Layout::new(&layer.layout),
-                            cursor_position,
-                            &viewport,
+            .and_then(|layout| {
+                root.overlay(Layout::new(&base), renderer).map(|overlay| {
+                    let overlay_interaction = overlay.mouse_interaction(
+                        Layout::new(layout),
+                        cursor_position,
+                        &viewport,
+                        renderer,
+                    );
+
+                    let overlay_bounds = layout.bounds();
+
+                    renderer.with_layer(overlay_bounds, |renderer| {
+                        overlay.draw(
                             renderer,
+                            &renderer::Style::default(),
+                            Layout::new(layout),
+                            cursor_position,
                         );
+                    });
 
-                        let overlay_bounds = layer.layout.bounds();
-
-                        renderer.with_layer(overlay_bounds, |renderer| {
-                            overlay.draw(
-                                renderer,
-                                &renderer::Style::default(),
-                                Layout::new(&layer.layout),
-                                cursor_position,
-                            );
-                        });
-
-                        if overlay_bounds.contains(cursor_position) {
-                            overlay_interaction
-                        } else {
-                            base_interaction
-                        }
-                    },
-                )
+                    if overlay_bounds.contains(cursor_position) {
+                        overlay_interaction
+                    } else {
+                        base_interaction
+                    }
+                })
             })
             .unwrap_or(base_interaction)
     }
@@ -487,66 +423,19 @@ where
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(
-            self.root,
-            bounds,
-            Cache {
-                base: self.base,
-                overlay: self.overlay,
-                bounds: self.bounds,
-            },
-            renderer,
-        )
+        Self::build(self.root, bounds, Cache, renderer)
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
     pub fn into_cache(self) -> Cache {
-        Cache {
-            base: self.base,
-            overlay: self.overlay,
-            bounds: self.bounds,
-        }
+        Cache
     }
-
-    fn overlay_layer(
-        cache: Option<Layer>,
-        bounds: Size,
-        overlay: &mut overlay::Element<'_, Message, Renderer>,
-        renderer: &Renderer,
-    ) -> Layer {
-        let new_hash = {
-            let hasher = &mut crate::Hasher::default();
-            overlay.hash_layout(hasher);
-
-            hasher.finish()
-        };
-
-        let layout = match cache {
-            Some(Layer { hash, layout }) if new_hash == hash => layout,
-            _ => overlay.layout(renderer, bounds),
-        };
-
-        Layer {
-            layout,
-            hash: new_hash,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Layer {
-    layout: layout::Node,
-    hash: u64,
 }
 
 /// Reusable data of a specific [`UserInterface`].
 #[derive(Debug, Clone)]
-pub struct Cache {
-    base: Layer,
-    overlay: Option<Layer>,
-    bounds: Size,
-}
+pub struct Cache;
 
 impl Cache {
     /// Creates an empty [`Cache`].
@@ -554,14 +443,7 @@ impl Cache {
     /// You should use this to initialize a [`Cache`] before building your first
     /// [`UserInterface`].
     pub fn new() -> Cache {
-        Cache {
-            base: Layer {
-                layout: layout::Node::new(Size::new(0.0, 0.0)),
-                hash: 0,
-            },
-            overlay: None,
-            bounds: Size::ZERO,
-        }
+        Cache
     }
 }
 

@@ -5,8 +5,7 @@ use crate::Backend;
 
 use iced_native::layout;
 use iced_native::{
-    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Vector,
-    Widget,
+    Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 use thiserror::Error;
 
@@ -72,12 +71,6 @@ where
             f32::from(side_length),
             f32::from(side_length),
         ))
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash;
-
-        self.state.contents.hash(state);
     }
 
     fn draw(

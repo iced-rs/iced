@@ -75,7 +75,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle, Shell};
+use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
 /// A component that displays information and allows interaction.
 ///
@@ -130,19 +130,6 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     );
-
-    /// Computes the _layout_ hash of the [`Widget`].
-    ///
-    /// The produced hash is used by the runtime to decide if the [`Layout`]
-    /// needs to be recomputed between frames. Therefore, to ensure maximum
-    /// efficiency, the hash should only be affected by the properties of the
-    /// [`Widget`] that can affect layouting.
-    ///
-    /// For example, the [`Text`] widget does not hash its color property, as
-    /// its value cannot affect the overall [`Layout`] of the user interface.
-    ///
-    /// [`Text`]: crate::widget::Text
-    fn hash_layout(&self, state: &mut Hasher);
 
     /// Processes a runtime [`Event`].
     ///

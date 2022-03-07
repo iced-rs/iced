@@ -5,7 +5,7 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::text;
-use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
+use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 pub use iced_native::widget::Checkbox;
 
@@ -86,12 +86,6 @@ where
             cursor_position,
             viewport,
             renderer,
-        )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        <Self as iced_native::Widget<Message, Renderer>>::hash_layout(
-            self, state,
         )
     }
 }

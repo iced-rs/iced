@@ -5,9 +5,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
 use crate::widget::pane_grid::TitleBar;
-use crate::{
-    Clipboard, Element, Hasher, Layout, Point, Rectangle, Shell, Size,
-};
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// The content of a [`Pane`].
 ///
@@ -234,14 +232,6 @@ where
         self.body
             .mouse_interaction(body_layout, cursor_position, viewport, renderer)
             .max(title_bar_interaction)
-    }
-
-    pub(crate) fn hash_layout(&self, state: &mut Hasher) {
-        if let Some(title_bar) = &self.title_bar {
-            title_bar.hash_layout(state);
-        }
-
-        self.body.hash_layout(state);
     }
 
     pub(crate) fn overlay(

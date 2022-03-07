@@ -8,7 +8,7 @@ use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::widget::button;
 use iced_native::{
-    Clipboard, Hasher, Layout, Length, Padding, Point, Rectangle, Shell,
+    Clipboard, Layout, Length, Padding, Point, Rectangle, Shell,
 };
 use iced_style::button::StyleSheet;
 
@@ -99,16 +99,6 @@ where
 
     fn height(&self) -> Length {
         self.height
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash;
-
-        self.tag().hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
-        self.padding.hash(state);
-        self.content.as_widget().hash_layout(state);
     }
 
     fn layout(

@@ -7,7 +7,7 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::{
-    Alignment, Clipboard, Hasher, Length, Padding, Point, Rectangle, Shell,
+    Alignment, Clipboard, Length, Padding, Point, Rectangle, Shell,
 };
 
 pub struct Row<'a, Message, Renderer> {
@@ -186,21 +186,6 @@ where
                 cursor_position,
                 viewport,
             );
-        }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash;
-
-        self.tag().hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
-        self.align_items.hash(state);
-        self.spacing.hash(state);
-        self.padding.hash(state);
-
-        for child in &self.children {
-            child.as_widget().hash_layout(state);
         }
     }
 

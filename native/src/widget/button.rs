@@ -8,11 +8,9 @@ use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::{
-    Background, Clipboard, Color, Element, Hasher, Layout, Length, Padding,
-    Point, Rectangle, Shell, Vector, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
+    Rectangle, Shell, Vector, Widget,
 };
-
-use std::hash::Hash;
 
 pub use iced_style::button::{Style, StyleSheet};
 
@@ -382,16 +380,6 @@ where
             cursor_position,
             &bounds,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
-        self.padding.hash(state);
-        self.content.hash_layout(state);
     }
 
     fn overlay(

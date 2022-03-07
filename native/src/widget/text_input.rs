@@ -20,8 +20,8 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::{
-    Clipboard, Color, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::text_input::{Style, StyleSheet};
@@ -725,21 +725,6 @@ pub fn mouse_interaction(
     }
 }
 
-/// Hashes the layout attributes of a [`TextInput`].
-pub fn hash_layout(
-    state: &mut Hasher,
-    width: Length,
-    padding: Padding,
-    size: Option<u16>,
-) {
-    use std::hash::Hash;
-
-    std::any::TypeId::of::<State>().hash(state);
-    width.hash(state);
-    padding.hash(state);
-    size.hash(state);
-}
-
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for TextInput<'a, Message, Renderer>
 where
@@ -818,10 +803,6 @@ where
             self.is_secure,
             self.style_sheet.as_ref(),
         )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        hash_layout(state, self.width, self.padding, self.size)
     }
 }
 

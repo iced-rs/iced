@@ -1,6 +1,4 @@
 //! Show toggle controls using checkboxes.
-use std::hash::Hash;
-
 use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
@@ -10,8 +8,8 @@ use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text};
 use crate::{
-    Alignment, Clipboard, Element, Hasher, Layout, Length, Point, Rectangle,
-    Shell, Widget,
+    Alignment, Clipboard, Element, Layout, Length, Point, Rectangle, Shell,
+    Widget,
 };
 
 pub use iced_style::checkbox::{Style, StyleSheet};
@@ -261,13 +259,6 @@ where
                 alignment::Vertical::Center,
             );
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.label.hash(state);
     }
 }
 

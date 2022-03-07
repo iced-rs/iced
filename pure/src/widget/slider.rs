@@ -9,9 +9,7 @@ use iced_native::layout;
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::widget::slider;
-use iced_native::{
-    Clipboard, Hasher, Layout, Length, Point, Rectangle, Shell, Size,
-};
+use iced_native::{Clipboard, Layout, Length, Point, Rectangle, Shell, Size};
 
 use std::ops::RangeInclusive;
 
@@ -229,10 +227,6 @@ where
             cursor_position,
             tree.state.downcast_ref::<slider::State>(),
         )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        slider::hash_layout(state, self.width)
     }
 }
 

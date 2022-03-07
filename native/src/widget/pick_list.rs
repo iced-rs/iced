@@ -10,8 +10,8 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Widget,
+    Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
+    Widget,
 };
 use std::borrow::Cow;
 
@@ -192,40 +192,6 @@ where
     };
 
     layout::Node::new(size)
-}
-
-/// Hashes the layout attributes of a [`PickList`].
-pub fn hash_layout<T>(
-    state: &mut Hasher,
-    width: Length,
-    padding: Padding,
-    text_size: Option<u16>,
-    placeholder: Option<&str>,
-    options: &[T],
-) where
-    T: ToString,
-{
-    use std::hash::Hash as _;
-
-    struct Marker;
-    std::any::TypeId::of::<Marker>().hash(state);
-
-    padding.hash(state);
-    text_size.hash(state);
-
-    match width {
-        Length::Shrink => {
-            placeholder.hash(state);
-
-            options
-                .iter()
-                .map(ToString::to_string)
-                .for_each(|label| label.hash(state));
-        }
-        _ => {
-            width.hash(state);
-        }
-    }
 }
 
 /// Processes an [`Event`] and updates the [`State`] of a [`PickList`]
@@ -482,17 +448,6 @@ where
             self.padding,
             self.text_size,
             &self.font,
-            self.placeholder.as_ref().map(String::as_str),
-            &self.options,
-        )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        hash_layout(
-            state,
-            self.width,
-            self.padding,
-            self.text_size,
             self.placeholder.as_ref().map(String::as_str),
             &self.options,
         )

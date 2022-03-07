@@ -4,7 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
-    Clipboard, Color, Hasher, Layout, Length, Point, Rectangle, Shell, Widget,
+    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
 };
 
 /// A generic [`Widget`].
@@ -269,11 +269,6 @@ where
         )
     }
 
-    /// Computes the _layout_ hash of the [`Element`].
-    pub fn hash_layout(&self, state: &mut Hasher) {
-        self.widget.hash_layout(state);
-    }
-
     /// Returns the overlay of the [`Element`], if there is any.
     pub fn overlay<'b>(
         &'b mut self,
@@ -377,10 +372,6 @@ where
             viewport,
             renderer,
         )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.widget.hash_layout(state);
     }
 
     fn overlay(
@@ -502,10 +493,6 @@ where
             viewport,
             renderer,
         )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.element.widget.hash_layout(state);
     }
 
     fn overlay(

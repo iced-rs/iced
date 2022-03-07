@@ -7,11 +7,11 @@ use crate::renderer;
 use crate::touch;
 use crate::widget::Column;
 use crate::{
-    Alignment, Background, Clipboard, Color, Element, Hasher, Layout, Length,
-    Padding, Point, Rectangle, Shell, Size, Vector, Widget,
+    Alignment, Background, Clipboard, Color, Element, Layout, Length, Padding,
+    Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
-use std::{f32, hash::Hash, u32};
+use std::{f32, u32};
 
 pub use iced_style::scrollable::StyleSheet;
 
@@ -719,16 +719,6 @@ where
                 )
             },
         )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.height.hash(state);
-        self.max_height.hash(state);
-
-        self.content.hash_layout(state)
     }
 
     fn overlay(

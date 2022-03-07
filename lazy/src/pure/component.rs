@@ -4,13 +4,12 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
-use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell, Size};
+use iced_native::{Clipboard, Length, Point, Rectangle, Shell, Size};
 use iced_pure::widget::tree::{self, Tree};
 use iced_pure::{Element, Widget};
 
 use ouroboros::self_referencing;
 use std::cell::{Ref, RefCell};
-use std::hash::Hash;
 use std::marker::PhantomData;
 
 /// A reusable, custom widget that uses The Elm Architecture.
@@ -250,12 +249,6 @@ where
         });
     }
 
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.with_element(|element| {
-            element.as_widget().hash_layout(state);
-        });
-    }
-
     fn mouse_interaction(
         &self,
         tree: &Tree,
@@ -407,18 +400,6 @@ where
             )
         })
         .unwrap_or_default()
-    }
-
-    fn hash_layout(&self, state: &mut Hasher, position: Point) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        (position.x as u32).hash(state);
-        (position.y as u32).hash(state);
-
-        self.with_overlay_maybe(|overlay| {
-            overlay.hash_layout(state);
-        });
     }
 
     fn on_event(

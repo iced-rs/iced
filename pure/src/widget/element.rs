@@ -5,7 +5,7 @@ use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
-use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell};
+use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 pub struct Element<'a, Message, Renderer> {
     widget: Box<dyn Widget<Message, Renderer> + 'a>,
@@ -159,9 +159,5 @@ where
             viewport,
             renderer,
         )
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        self.widget.hash_layout(state);
     }
 }

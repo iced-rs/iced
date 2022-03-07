@@ -9,10 +9,9 @@ use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::widget::container;
 use iced_native::{
-    Clipboard, Hasher, Layout, Length, Padding, Point, Rectangle, Shell,
+    Clipboard, Layout, Length, Padding, Point, Rectangle, Shell,
 };
 
-use std::hash::Hash;
 use std::u32;
 
 pub use iced_style::container::{Style, StyleSheet};
@@ -222,21 +221,6 @@ where
             cursor_position,
             viewport,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.padding.hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
-        self.max_width.hash(state);
-        self.max_height.hash(state);
-        self.horizontal_alignment.hash(state);
-        self.vertical_alignment.hash(state);
-
-        self.content.as_widget().hash_layout(state);
     }
 
     fn overlay<'b>(

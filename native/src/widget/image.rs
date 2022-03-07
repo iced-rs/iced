@@ -5,7 +5,9 @@ pub use viewer::Viewer;
 use crate::image;
 use crate::layout;
 use crate::renderer;
-use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
+use crate::{
+    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+};
 
 use std::hash::Hash;
 
@@ -26,6 +28,7 @@ pub struct Image<Handle> {
     handle: Handle,
     width: Length,
     height: Length,
+    content_fit: ContentFit,
 }
 
 impl<Handle> Image<Handle> {
@@ -35,6 +38,7 @@ impl<Handle> Image<Handle> {
             handle: handle.into(),
             width: Length::Shrink,
             height: Length::Shrink,
+            content_fit: ContentFit::Contain,
         }
     }
 
@@ -49,6 +53,16 @@ impl<Handle> Image<Handle> {
         self.height = height;
         self
     }
+
+    /// Sets the [`ContentFit`] of the [`Image`].
+    ///
+    /// Defaults to [`ContentFit::Contain`]
+    pub fn content_fit(self, content_fit: ContentFit) -> Self {
+        Self {
+            content_fit,
+            ..self
+        }
+    }
 }
 
 /// Computes the layout of an [`Image`].
@@ -58,44 +72,37 @@ pub fn layout<Renderer, Handle>(
     handle: &Handle,
     width: Length,
     height: Length,
+    content_fit: ContentFit,
 ) -> layout::Node
 where
     Renderer: image::Renderer<Handle = Handle>,
 {
-    let (original_width, original_height) = renderer.dimensions(handle);
+    // The raw w/h of the underlying image
+    let image_size = {
+        let (width, height) = renderer.dimensions(handle);
 
-    let mut size = limits
-        .width(width)
-        .height(height)
-        .resolve(Size::new(original_width as f32, original_height as f32));
+        Size::new(width as f32, height as f32)
+    };
 
-    let aspect_ratio = original_width as f32 / original_height as f32;
-    let viewport_aspect_ratio = size.width / size.height;
+    // The size to be available to the widget prior to `Shrink`ing
+    let raw_size = limits.width(width).height(height).resolve(image_size);
 
-    if viewport_aspect_ratio > aspect_ratio {
-        size.width =
-            original_width as f32 * size.height / original_height as f32;
-    } else {
-        size.height =
-            original_height as f32 * size.width / original_width as f32;
-    }
+    // The uncropped size of the image when fit to the bounds above
+    let full_size = content_fit.fit(image_size, raw_size);
 
-    layout::Node::new(size)
-}
+    // Shrink the widget to fit the resized image, if requested
+    let final_size = Size {
+        width: match width {
+            Length::Shrink => f32::min(raw_size.width, full_size.width),
+            _ => raw_size.width,
+        },
+        height: match height {
+            Length::Shrink => f32::min(raw_size.height, full_size.height),
+            _ => raw_size.height,
+        },
+    };
 
-/// Hashes the layout attributes of an [`Image`].
-pub fn hash_layout<Handle: Hash>(
-    state: &mut Hasher,
-    handle: &Handle,
-    width: Length,
-    height: Length,
-) {
-    struct Marker;
-    std::any::TypeId::of::<Marker>().hash(state);
-
-    handle.hash(state);
-    width.hash(state);
-    height.hash(state);
+    layout::Node::new(final_size)
 }
 
 impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
@@ -116,7 +123,14 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(renderer, limits, &self.handle, self.width, self.height)
+        layout(
+            renderer,
+            limits,
+            &self.handle,
+            self.width,
+            self.height,
+            self.content_fit,
+        )
     }
 
     fn draw(
@@ -127,11 +141,34 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        renderer.draw(self.handle.clone(), layout.bounds());
-    }
+        let (width, height) = renderer.dimensions(&self.handle);
+        let image_size = Size::new(width as f32, height as f32);
 
-    fn hash_layout(&self, state: &mut Hasher) {
-        hash_layout(state, &self.handle, self.width, self.height)
+        let bounds = layout.bounds();
+        let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
+
+        let render = |renderer: &mut Renderer| {
+            let offset = Vector::new(
+                (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
+                (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
+            );
+
+            let drawing_bounds = Rectangle {
+                width: adjusted_fit.width,
+                height: adjusted_fit.height,
+                ..bounds
+            };
+
+            renderer.draw(self.handle.clone(), drawing_bounds + offset)
+        };
+
+        if adjusted_fit.width > bounds.width
+            || adjusted_fit.height > bounds.height
+        {
+            renderer.with_layer(bounds, render);
+        } else {
+            render(renderer)
+        }
     }
 }
 

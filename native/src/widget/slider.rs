@@ -7,11 +7,10 @@ use crate::mouse;
 use crate::renderer;
 use crate::touch;
 use crate::{
-    Background, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Shell, Size, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
+    Shell, Size, Widget,
 };
 
-use std::hash::Hash;
 use std::ops::RangeInclusive;
 
 pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
@@ -344,14 +343,6 @@ pub fn mouse_interaction(
     }
 }
 
-/// Hashes the layout of a [`Slider`].
-pub fn hash_layout(state: &mut Hasher, width: Length) {
-    struct Marker;
-    std::any::TypeId::of::<Marker>().hash(state);
-
-    width.hash(state);
-}
-
 /// The local state of a [`Slider`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
@@ -443,10 +434,6 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         mouse_interaction(layout, cursor_position, &self.state)
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        hash_layout(state, self.width)
     }
 }
 
