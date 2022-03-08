@@ -583,25 +583,16 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                         system.refresh_all();
 
                         let cpu = system.global_processor_info();
-                        let unknown = String::from("unknown");
 
                         let information = system::Information {
-                            system_name: system
-                                .name()
-                                .unwrap_or(unknown.clone()),
-                            system_kernel: system
-                                .kernel_version()
-                                .unwrap_or(unknown.clone()),
-                            system_version: system
-                                .long_os_version()
-                                .unwrap_or(unknown.clone()),
+                            system_name: system.name(),
+                            system_kernel: system.kernel_version(),
+                            system_version: system.long_os_version(),
                             cpu_brand: cpu.brand().into(),
                             cpu_vendor: cpu.vendor_id().into(),
                             cpu_name: cpu.name().into(),
-                            cpu_cores: system
-                                .physical_core_count()
-                                .map_or(unknown, |cores| cores.to_string()),
-                            memory_total: system.total_memory().to_string(),
+                            cpu_cores: system.physical_core_count(),
+                            memory_total: system.total_memory(),
                         };
 
                         Some(information)

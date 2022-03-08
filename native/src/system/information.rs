@@ -1,12 +1,20 @@
 /// Contains informations about the system (e.g. system name, processor, memory, graphics adapter).
 #[derive(Debug)]
 pub struct Information {
-    system_name: String,
-    system_kernel: String,
-    system_version: String,
-    cpu_brand: String,
-    cpu_vendor: String,
-    cpu_name: String,
-    cpu_cores: String,
-    memory_total: String,
+    /// Contains the system name.
+    pub system_name: Option<String>,
+    /// Contains the kernel version.
+    pub system_kernel: Option<String>,
+    /// Contains the systme version.
+    pub system_version: Option<String>,
+    /// Contains the processor brand.
+    pub cpu_brand: String,
+    /// Contains the processor vendor id.
+    pub cpu_vendor: String,
+    /// Contains the processor name.
+    pub cpu_name: String,
+    /// Contains the number of physical cores on the processor.
+    pub cpu_cores: Option<usize>,
+    /// Contains the total RAM size in KB.
+    pub memory_total: u64,
 }
