@@ -540,6 +540,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     window: &winit::window::Window,
 ) {
     use iced_native::command;
+    use iced_native::system;
     use iced_native::window;
 
     for action in command.actions() {
@@ -573,7 +574,49 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                     });
                 }
             },
-            command::Action::System(_action) => {}
+            command::Action::System(action) => match action {
+                system::Action::QueryInformation(tag) => {
+                    #[cfg(feature = "sysinfo")]
+                    let information = {
+                        use sysinfo::{ProcessorExt, System, SystemExt};
+                        let mut system = System::new_all();
+                        system.refresh_all();
+
+                        let cpu = system.global_processor_info();
+                        let unknown = String::from("unknown");
+
+                        let information = system::Information {
+                            system_name: system
+                                .name()
+                                .unwrap_or(unknown.clone()),
+                            system_kernel: system
+                                .kernel_version()
+                                .unwrap_or(unknown.clone()),
+                            system_version: system
+                                .long_os_version()
+                                .unwrap_or(unknown.clone()),
+                            cpu_brand: cpu.brand().into(),
+                            cpu_vendor: cpu.vendor_id().into(),
+                            cpu_name: cpu.name().into(),
+                            cpu_cores: system
+                                .physical_core_count()
+                                .map_or(unknown, |cores| cores.to_string()),
+                            memory_total: system.total_memory().to_string(),
+                        };
+
+                        Some(information)
+                    };
+
+                    #[cfg(not(feature = "sysinfo"))]
+                    let information = None;
+
+                    let message = tag(information);
+
+                    proxy
+                        .send_event(message)
+                        .expect("Send message to event loop");
+                }
+            },
         }
     }
 }
