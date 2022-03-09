@@ -76,7 +76,9 @@ impl Application for Clock {
     }
 }
 
-impl canvas::Program<Message> for Clock {
+impl canvas::Program for Clock {
+    type Message = Message;
+
     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let clock = self.clock.draw(bounds.size(), |frame| {
             let center = frame.center();

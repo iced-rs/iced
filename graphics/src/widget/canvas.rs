@@ -12,7 +12,6 @@ use iced_native::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
 };
-use std::marker::PhantomData;
 
 pub mod event;
 pub mod path;
@@ -73,7 +72,9 @@ pub use text::Text;
 /// }
 ///
 /// // Then, we implement the `Program` trait
-/// impl Program<()> for Circle {
+/// impl Program for Circle {
+///     type Message = ();
+///
 ///     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
 ///         // We prepare a new `Frame`
 ///         let mut frame = Frame::new(bounds.size());
@@ -93,14 +94,13 @@ pub use text::Text;
 /// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<Message, P: Program<Message>> {
+pub struct Canvas<P: Program> {
     width: Length,
     height: Length,
     program: P,
-    phantom: PhantomData<Message>,
 }
 
-impl<Message, P: Program<Message>> Canvas<Message, P> {
+impl<P: Program> Canvas<P> {
     const DEFAULT_SIZE: u16 = 100;
 
     /// Creates a new [`Canvas`].
@@ -109,7 +109,6 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
             program,
-            phantom: PhantomData,
         }
     }
 
@@ -126,9 +125,9 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
     }
 }
 
-impl<Message, P, B> Widget<Message, Renderer<B>> for Canvas<Message, P>
+impl<P, B> Widget<P::Message, Renderer<B>> for Canvas<P>
 where
-    P: Program<Message>,
+    P: Program,
     B: Backend,
 {
     fn width(&self) -> Length {
@@ -157,7 +156,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer<B>,
         _clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
+        shell: &mut Shell<'_, P::Message>,
     ) -> event::Status {
         let bounds = layout.bounds();
 
@@ -232,14 +231,13 @@ where
     }
 }
 
-impl<'a, Message, P, B> From<Canvas<Message, P>>
-    for Element<'a, Message, Renderer<B>>
+impl<'a, P, B> From<Canvas<P>> for Element<'a, P::Message, Renderer<B>>
 where
-    Message: 'static,
-    P: Program<Message> + 'a,
+    P::Message: 'static,
+    P: Program + 'a,
     B: Backend,
 {
-    fn from(canvas: Canvas<Message, P>) -> Element<'a, Message, Renderer<B>> {
+    fn from(canvas: Canvas<P>) -> Element<'a, P::Message, Renderer<B>> {
         Element::new(canvas)
     }
 }

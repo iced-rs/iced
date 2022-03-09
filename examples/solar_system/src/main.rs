@@ -128,7 +128,9 @@ impl State {
     }
 }
 
-impl<Message> canvas::Program<Message> for State {
+impl canvas::Program for State {
+    type Message = Message;
+
     fn draw(
         &self,
         bounds: Rectangle,

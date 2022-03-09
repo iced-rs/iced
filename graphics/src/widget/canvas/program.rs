@@ -8,7 +8,10 @@ use iced_native::{mouse, Rectangle};
 /// application.
 ///
 /// [`Canvas`]: crate::widget::Canvas
-pub trait Program<Message> {
+pub trait Program {
+    /// The [`Message`] produced by the [`Program`].
+    type Message;
+
     /// Updates the state of the [`Program`].
     ///
     /// When a [`Program`] is used in a [`Canvas`], the runtime will call this
@@ -25,7 +28,7 @@ pub trait Program<Message> {
         _event: Event,
         _bounds: Rectangle,
         _cursor: Cursor,
-    ) -> (event::Status, Option<Message>) {
+    ) -> (event::Status, Option<Self::Message>) {
         (event::Status::Ignored, None)
     }
 
@@ -53,16 +56,18 @@ pub trait Program<Message> {
     }
 }
 
-impl<T, Message> Program<Message> for &mut T
+impl<T> Program for &mut T
 where
-    T: Program<Message>,
+    T: Program,
 {
+    type Message = T::Message;
+
     fn update(
         &mut self,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Message>) {
+    ) -> (event::Status, Option<Self::Message>) {
         T::update(self, event, bounds, cursor)
     }
 
