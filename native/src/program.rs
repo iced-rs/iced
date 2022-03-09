@@ -1,9 +1,9 @@
 //! Build interactive programs using The Elm Architecture.
 use crate::{Command, Element, Renderer};
+use iced_style::Theme;
 
 mod state;
 
-use crate::renderer::Theme;
 pub use state::State;
 
 /// The core of a user interface application following The Elm Architecture.

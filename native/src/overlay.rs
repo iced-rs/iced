@@ -4,6 +4,7 @@ mod element;
 pub mod menu;
 
 pub use element::Element;
+use iced_style::Theme;
 pub use menu::Menu;
 
 use crate::event::{self, Event};
@@ -34,7 +35,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     );

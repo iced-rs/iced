@@ -1,4 +1,5 @@
 //! Show toggle controls using checkboxes.
+use crate::Theme;
 use iced_core::{Background, Color};
 
 /// The appearance of a checkbox.
@@ -14,37 +15,42 @@ pub struct Style {
 
 /// A set of rules that dictate the style of a checkbox.
 pub trait StyleSheet {
-    fn get_style(&self, is_mouse_over: bool, is_checked: bool) -> Style {
+    fn get_style(
+        &self,
+        theme: &Theme,
+        is_mouse_over: bool,
+        is_checked: bool,
+    ) -> Style {
         if is_mouse_over {
-            self.hovered(is_checked)
+            self.hovered(theme, is_checked)
         } else {
-            self.active(is_checked)
+            self.active(theme, is_checked)
         }
     }
 
-    fn active(&self, is_checked: bool) -> Style;
+    fn active(&self, theme: &Theme, is_checked: bool) -> Style;
 
-    fn hovered(&self, is_checked: bool) -> Style;
+    fn hovered(&self, theme: &Theme, is_checked: bool) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet for Default {
-    fn active(&self, _is_checked: bool) -> Style {
+    fn active(&self, theme: &Theme, _is_checked: bool) -> Style {
         Style {
-            background: Background::Color(Color::from_rgb(0.95, 0.95, 0.95)),
-            checkmark_color: Color::from_rgb(0.3, 0.3, 0.3),
+            background: theme.surface.into(),
+            checkmark_color: theme.needs_better_naming,
             border_radius: 5.0,
             border_width: 1.0,
-            border_color: Color::from_rgb(0.6, 0.6, 0.6),
+            border_color: theme.accent,
             text_color: None,
         }
     }
 
-    fn hovered(&self, is_checked: bool) -> Style {
+    fn hovered(&self, theme: &Theme, is_checked: bool) -> Style {
         Style {
-            background: Background::Color(Color::from_rgb(0.90, 0.90, 0.90)),
-            ..self.active(is_checked)
+            background: theme.hover.into(),
+            ..self.active(theme, is_checked)
         }
     }
 }

@@ -1,4 +1,5 @@
 //! Decorate content and apply alignment.
+use crate::Theme;
 use iced_core::{Background, Color};
 use std::fmt::Debug;
 
@@ -12,30 +13,18 @@ pub struct Style {
     pub border_color: Color,
 }
 
-impl std::default::Default for Style {
-    fn default() -> Self {
-        Self {
-            text_color: None,
-            background: None,
-            border_radius: 0.0,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        }
-    }
-}
-
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
     /// Produces the style of a container.
-    fn style(&self) -> Style;
+    fn style(&self, theme: &Theme) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet for Default {
-    fn style(&self) -> Style {
+    fn style(&self, theme: &Theme) -> Style {
         Style {
-            text_color: None,
+            text_color: Some(theme.text),
             background: None,
             border_radius: 0.0,
             border_width: 0.0,

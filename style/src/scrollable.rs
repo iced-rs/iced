@@ -1,4 +1,5 @@
 //! Navigate an endless amount of content with a scrollbar.
+use crate::Theme;
 use iced_core::{Background, Color};
 
 /// The appearance of a scrollable.
@@ -24,41 +25,42 @@ pub struct Scroller {
 pub trait StyleSheet {
     fn get_style(
         &self,
+        theme: &Theme,
         is_scroller_grabbed: bool,
         is_mouse_over_scrollbar: bool,
     ) -> Style {
         if is_scroller_grabbed {
-            self.dragging()
+            self.dragging(theme)
         } else if is_mouse_over_scrollbar {
-            self.hovered()
+            self.hovered(theme)
         } else {
-            self.active()
+            self.active(theme)
         }
     }
 
     /// Produces the style of an active scrollbar.
-    fn active(&self) -> Style;
+    fn active(&self, theme: &Theme) -> Style;
 
     /// Produces the style of an hovered scrollbar.
-    fn hovered(&self) -> Style;
+    fn hovered(&self, theme: &Theme) -> Style;
 
     /// Produces the style of a scrollbar that is being dragged.
-    fn dragging(&self) -> Style {
-        self.hovered()
+    fn dragging(&self, theme: &Theme) -> Style {
+        self.hovered(theme)
     }
 }
 
 struct Default;
 
 impl StyleSheet for Default {
-    fn active(&self) -> Style {
+    fn active(&self, theme: &Theme) -> Style {
         Style {
             background: None,
             border_radius: 5.0,
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
             scroller: Scroller {
-                color: [0.0, 0.0, 0.0, 0.7].into(),
+                color: theme.active,
                 border_radius: 5.0,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
@@ -66,10 +68,16 @@ impl StyleSheet for Default {
         }
     }
 
-    fn hovered(&self) -> Style {
+    fn hovered(&self, theme: &Theme) -> Style {
         Style {
-            background: Some(Background::Color([0.0, 0.0, 0.0, 0.3].into())),
-            ..self.active()
+            background: Some(
+                Color {
+                    a: 0.5,
+                    ..theme.surface
+                }
+                .into(),
+            ),
+            ..self.active(theme)
         }
     }
 }

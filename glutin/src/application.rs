@@ -13,7 +13,7 @@ use iced_winit::user_interface;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
 use glutin::window::Window;
-use iced_native::renderer::Theme;
+use iced_style::Theme;
 use std::mem::ManuallyDrop;
 
 /// Runs an [`Application`] with an executor, compositor, and the provided

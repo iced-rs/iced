@@ -81,31 +81,3 @@ pub struct Quad {
     /// The border color of the [`Quad`].
     pub border_color: Color,
 }
-
-/// The styling attributes of a [`Renderer`].
-#[allow(missing_debug_implementations)]
-pub struct Theme {
-    pub text: Color,
-    pub base: Color,
-    pub surface: Color,
-    pub accent: Color,
-    pub action: Color,
-    pub hover: Color,
-    pub positive: Color,
-    pub negative: Color,
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        Theme {
-            text: Color::BLACK,
-            action: Color::BLACK,
-            hover: Color::BLACK,
-            base: Color::BLACK,
-            surface: Color::BLACK,
-            accent: Color::BLACK,
-            positive: Color::BLACK,
-            negative: Color::BLACK,
-        }
-    }
-}

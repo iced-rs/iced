@@ -1,4 +1,4 @@
-use crate::menu;
+use crate::{menu, Theme};
 use iced_core::{Background, Color};
 
 /// The appearance of a pick list.
@@ -13,53 +13,48 @@ pub struct Style {
     pub icon_size: f32,
 }
 
-impl std::default::Default for Style {
-    fn default() -> Self {
-        Self {
-            text_color: Color::BLACK,
-            placeholder_color: [0.4, 0.4, 0.4].into(),
-            background: Background::Color([0.87, 0.87, 0.87].into()),
-            border_radius: 0.0,
-            border_width: 1.0,
-            border_color: [0.7, 0.7, 0.7].into(),
-            icon_size: 0.7,
-        }
-    }
-}
-
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
-    fn get_style(&self, is_mouse_over: bool) -> Style {
+    fn get_style(&self, theme: &Theme, is_mouse_over: bool) -> Style {
         if is_mouse_over {
-            self.hovered()
+            self.hovered(theme)
         } else {
-            self.active()
+            self.active(theme)
         }
     }
 
-    fn menu_style(&self) -> menu::Style;
+    fn menu_style(&self, theme: &Theme) -> menu::Style;
 
-    fn active(&self) -> Style;
+    fn active(&self, theme: &Theme) -> Style;
 
     /// Produces the style of a container.
-    fn hovered(&self) -> Style;
+    fn hovered(&self, theme: &Theme) -> Style;
 }
 
 struct DefaultStyle;
 
 impl StyleSheet for DefaultStyle {
-    fn menu_style(&self) -> menu::Style {
-        Default::default()
+    fn menu_style(&self, theme: &Theme) -> menu::Style {
+        let style_sheet: Box<dyn menu::StyleSheet> = Default::default();
+        style_sheet.style(theme)
     }
 
-    fn active(&self) -> Style {
-        Style::default()
-    }
-
-    fn hovered(&self) -> Style {
+    fn active(&self, theme: &Theme) -> Style {
         Style {
-            border_color: Color::BLACK,
-            ..self.active()
+            text_color: theme.text,
+            placeholder_color: theme.needs_better_naming,
+            background: theme.surface.into(),
+            border_radius: 0.0,
+            border_width: 1.0,
+            border_color: theme.accent,
+            icon_size: 0.7,
+        }
+    }
+
+    fn hovered(&self, theme: &Theme) -> Style {
+        Style {
+            border_color: theme.hover,
+            ..self.active(theme)
         }
     }
 }

@@ -1,4 +1,5 @@
 //! Show toggle controls using togglers.
+use crate::Theme;
 use iced_core::Color;
 
 /// The appearance of a toggler.
@@ -12,39 +13,48 @@ pub struct Style {
 
 /// A set of rules that dictate the style of a toggler.
 pub trait StyleSheet {
-    fn get_style(&self, is_mouse_over: bool, is_active: bool) -> Style {
+    fn get_style(
+        &self,
+        theme: &Theme,
+        is_mouse_over: bool,
+        is_active: bool,
+    ) -> Style {
         if is_mouse_over {
-            self.hovered(is_active)
+            self.hovered(theme, is_active)
         } else {
-            self.active(is_active)
+            self.active(theme, is_active)
         }
     }
 
-    fn active(&self, is_active: bool) -> Style;
+    fn active(&self, theme: &Theme, is_active: bool) -> Style;
 
-    fn hovered(&self, is_active: bool) -> Style;
+    fn hovered(&self, theme: &Theme, is_active: bool) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet for Default {
-    fn active(&self, is_active: bool) -> Style {
+    fn active(&self, theme: &Theme, is_active: bool) -> Style {
         Style {
             background: if is_active {
-                Color::from_rgb(0.0, 1.0, 0.0)
+                theme.accent
             } else {
-                Color::from_rgb(0.7, 0.7, 0.7)
+                theme.surface
             },
             background_border: None,
-            foreground: Color::WHITE,
+            foreground: theme.surface,
             foreground_border: None,
         }
     }
 
-    fn hovered(&self, is_active: bool) -> Style {
+    fn hovered(&self, theme: &Theme, is_active: bool) -> Style {
         Style {
-            foreground: Color::from_rgb(0.95, 0.95, 0.95),
-            ..self.active(is_active)
+            foreground: Color::from_rgb(
+                theme.surface.r - 0.05,
+                theme.surface.g - 0.05,
+                theme.surface.b - 0.05,
+            ),
+            ..self.active(theme, is_active)
         }
     }
 }

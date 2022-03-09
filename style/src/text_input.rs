@@ -1,4 +1,5 @@
 //! Display fields that can be filled with text.
+use crate::Theme;
 use iced_core::{Background, Color};
 
 /// The appearance of a text input.
@@ -10,84 +11,82 @@ pub struct Style {
     pub border_color: Color,
 }
 
-impl std::default::Default for Style {
-    fn default() -> Self {
-        Self {
-            background: Background::Color(Color::WHITE),
-            border_radius: 0.0,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        }
-    }
-}
-
 /// A set of rules that dictate the style of a text input.
 pub trait StyleSheet {
-    fn get_style(&self, is_focused: bool, is_mouse_over: bool) -> Style {
+    fn get_style(
+        &self,
+        theme: &Theme,
+        is_focused: bool,
+        is_mouse_over: bool,
+    ) -> Style {
         if is_focused {
-            self.focused()
+            self.focused(theme)
         } else if is_mouse_over {
-            self.hovered()
+            self.hovered(theme)
         } else {
-            self.active()
+            self.active(theme)
         }
     }
 
-    fn get_text_color(&self, is_empty: bool) -> Color {
+    fn get_text_color(&self, theme: &Theme, is_empty: bool) -> Color {
         if is_empty {
-            self.placeholder_color()
+            self.placeholder_color(theme)
         } else {
-            self.value_color()
+            self.value_color(theme)
         }
     }
 
     /// Produces the style of an active text input.
-    fn active(&self) -> Style;
+    fn active(&self, theme: &Theme) -> Style;
 
     /// Produces the style of a focused text input.
-    fn focused(&self) -> Style;
+    fn focused(&self, theme: &Theme) -> Style;
 
-    fn placeholder_color(&self) -> Color;
+    fn placeholder_color(&self, theme: &Theme) -> Color;
 
-    fn value_color(&self) -> Color;
+    fn value_color(&self, theme: &Theme) -> Color;
 
-    fn selection_color(&self) -> Color;
+    fn selection_color(&self, theme: &Theme) -> Color;
 
     /// Produces the style of an hovered text input.
-    fn hovered(&self) -> Style {
-        self.focused()
+    fn hovered(&self, theme: &Theme) -> Style {
+        self.focused(theme)
     }
 }
 
 struct Default;
 
 impl StyleSheet for Default {
-    fn active(&self) -> Style {
+    fn active(&self, theme: &Theme) -> Style {
         Style {
-            background: Background::Color(Color::WHITE),
+            background: theme.surface.into(),
             border_radius: 5.0,
             border_width: 1.0,
-            border_color: Color::from_rgb(0.7, 0.7, 0.7),
+            border_color: theme.accent,
         }
     }
 
-    fn focused(&self) -> Style {
+    fn focused(&self, theme: &Theme) -> Style {
         Style {
-            border_color: Color::from_rgb(0.5, 0.5, 0.5),
-            ..self.active()
+            border_color: Color::from_rgb(
+                theme.accent.r - 0.2,
+                theme.accent.g - 0.2,
+                theme.accent.b - 0.2,
+            ),
+            ..self.active(theme)
         }
     }
 
-    fn placeholder_color(&self) -> Color {
-        Color::from_rgb(0.7, 0.7, 0.7)
+    fn placeholder_color(&self, theme: &Theme) -> Color {
+        theme.accent
     }
 
-    fn value_color(&self) -> Color {
-        Color::from_rgb(0.3, 0.3, 0.3)
+    fn value_color(&self, theme: &Theme) -> Color {
+        theme.needs_better_naming
     }
 
-    fn selection_color(&self) -> Color {
-        Color::from_rgb(0.8, 0.8, 1.0)
+    fn selection_color(&self, theme: &Theme) -> Color {
+        theme.text_highlight
     }
 }
 

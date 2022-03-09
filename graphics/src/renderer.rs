@@ -6,7 +6,7 @@ use iced_native::renderer;
 use iced_native::text::{self, Text};
 use iced_native::{Background, Element, Font, Point, Rectangle, Size};
 
-pub use iced_native::renderer::Theme;
+pub use iced_style::Theme;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]

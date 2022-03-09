@@ -1,6 +1,6 @@
 //! Configure a renderer.
 pub use iced_graphics::Antialiasing;
-use iced_native::renderer::Theme;
+use iced_style::Theme;
 
 /// The settings of a [`Backend`].
 ///

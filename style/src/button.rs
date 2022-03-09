@@ -1,4 +1,5 @@
 //! Allow your users to perform actions by pressing a button.
+use crate::Theme;
 use iced_core::{Background, Color, Vector};
 use std::fmt::Debug;
 
@@ -12,43 +13,32 @@ pub struct Style {
     pub border_color: Color,
 }
 
-impl std::default::Default for Style {
-    fn default() -> Self {
-        Self {
-            shadow_offset: Vector::default(),
-            background: None,
-            border_radius: 0.0,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        }
-    }
-}
-
 /// A set of rules that dictate the style of a button.
 pub trait StyleSheet {
     fn get_style(
         &self,
+        theme: &Theme,
         is_disabled: bool,
         is_mouse_over: bool,
         is_pressed: bool,
     ) -> Style {
         if is_disabled {
-            self.disabled()
+            self.disabled(theme)
         } else if is_mouse_over {
             if is_pressed {
-                self.pressed()
+                self.pressed(theme)
             } else {
-                self.hovered()
+                self.hovered(theme)
             }
         } else {
-            self.active()
+            self.active(theme)
         }
     }
 
-    fn active(&self) -> Style;
+    fn active(&self, theme: &Theme) -> Style;
 
-    fn hovered(&self) -> Style {
-        let active = self.active();
+    fn hovered(&self, theme: &Theme) -> Style {
+        let active = self.active(theme);
 
         Style {
             shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
@@ -56,15 +46,15 @@ pub trait StyleSheet {
         }
     }
 
-    fn pressed(&self) -> Style {
+    fn pressed(&self, theme: &Theme) -> Style {
         Style {
             shadow_offset: Vector::default(),
-            ..self.active()
+            ..self.active(theme)
         }
     }
 
-    fn disabled(&self) -> Style {
-        let active = self.active();
+    fn disabled(&self, theme: &Theme) -> Style {
+        let active = self.active(theme);
 
         Style {
             shadow_offset: Vector::default(),
@@ -82,13 +72,13 @@ pub trait StyleSheet {
 struct Default;
 
 impl StyleSheet for Default {
-    fn active(&self) -> Style {
+    fn active(&self, theme: &Theme) -> Style {
         Style {
             shadow_offset: Vector::new(0.0, 0.0),
-            background: Some(Background::Color([0.87, 0.87, 0.87].into())),
+            background: Some(theme.surface.into()),
             border_radius: 2.0,
             border_width: 1.0,
-            border_color: [0.7, 0.7, 0.7].into(),
+            border_color: theme.accent,
         }
     }
 }

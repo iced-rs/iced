@@ -1,4 +1,5 @@
 //! Create choices using radio buttons.
+use crate::Theme;
 use iced_core::{Background, Color};
 
 /// The appearance of a radio button.
@@ -13,36 +14,36 @@ pub struct Style {
 
 /// A set of rules that dictate the style of a radio button.
 pub trait StyleSheet {
-    fn get_style(&self, is_mouse_over: bool) -> Style {
+    fn get_style(&self, theme: &Theme, is_mouse_over: bool) -> Style {
         if is_mouse_over {
-            self.hovered()
+            self.hovered(theme)
         } else {
-            self.active()
+            self.active(theme)
         }
     }
 
-    fn active(&self) -> Style;
+    fn active(&self, theme: &Theme) -> Style;
 
-    fn hovered(&self) -> Style;
+    fn hovered(&self, theme: &Theme) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet for Default {
-    fn active(&self) -> Style {
+    fn active(&self, theme: &Theme) -> Style {
         Style {
-            background: Background::Color(Color::from_rgb(0.95, 0.95, 0.95)),
-            dot_color: Color::from_rgb(0.3, 0.3, 0.3),
+            background: theme.surface.into(),
+            dot_color: theme.needs_better_naming,
             border_width: 1.0,
-            border_color: Color::from_rgb(0.6, 0.6, 0.6),
-            text_color: None,
+            border_color: theme.accent,
+            text_color: Some(theme.text),
         }
     }
 
-    fn hovered(&self) -> Style {
+    fn hovered(&self, theme: &Theme) -> Style {
         Style {
-            background: Background::Color(Color::from_rgb(0.90, 0.90, 0.90)),
-            ..self.active()
+            background: theme.hover.into(),
+            ..self.active(theme)
         }
     }
 }

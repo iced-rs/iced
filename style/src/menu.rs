@@ -1,3 +1,4 @@
+use crate::Theme;
 use iced_core::{Background, Color};
 
 /// The appearance of a menu.
@@ -11,15 +12,38 @@ pub struct Style {
     pub selected_background: Background,
 }
 
-impl std::default::Default for Style {
-    fn default() -> Self {
-        Self {
-            text_color: Color::BLACK,
-            background: Background::Color([0.87, 0.87, 0.87].into()),
+/// A set of rules that dictate the style of a menu.
+pub trait StyleSheet {
+    /// Produces the style of a menu.
+    fn style(&self, theme: &Theme) -> Style;
+}
+
+struct Default;
+
+impl StyleSheet for Default {
+    fn style(&self, theme: &Theme) -> Style {
+        Style {
+            text_color: theme.text,
+            background: theme.surface.into(),
             border_width: 1.0,
-            border_color: [0.7, 0.7, 0.7].into(),
-            selected_text_color: Color::WHITE,
-            selected_background: Background::Color([0.4, 0.4, 1.0].into()),
+            border_color: theme.accent,
+            selected_text_color: theme.text.inverse(),
+            selected_background: theme.highlight.into(),
         }
+    }
+}
+
+impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
+    fn default() -> Self {
+        Box::new(Default)
+    }
+}
+
+impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
+where
+    T: StyleSheet + 'a,
+{
+    fn from(style_sheet: T) -> Self {
+        Box::new(style_sheet)
     }
 }

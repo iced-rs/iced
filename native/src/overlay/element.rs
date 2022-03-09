@@ -1,4 +1,5 @@
 pub use crate::Overlay;
+use iced_style::Theme;
 
 use crate::event::{self, Event};
 use crate::layout;
@@ -94,7 +95,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
@@ -173,7 +174,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {

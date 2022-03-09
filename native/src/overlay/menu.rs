@@ -15,6 +15,7 @@ use crate::{
 };
 
 pub use iced_style::menu::Style;
+use iced_style::Theme;
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
@@ -241,7 +242,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
@@ -393,7 +394,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         viewport: &Rectangle,

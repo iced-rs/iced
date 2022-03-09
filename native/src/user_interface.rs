@@ -1,9 +1,9 @@
 //! Implement your own event loop to drive a user interface.
-use crate::event::{self, Event};
+use crate::event::{self, Event, Theme};
 use crate::layout;
 use crate::mouse;
-use crate::renderer::Theme;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use iced_style::Theme;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -20,7 +20,7 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
-    style: Theme,
+    theme: Theme,
     base: layout::Node,
     overlay: Option<layout::Node>,
     bounds: Size,
@@ -98,7 +98,7 @@ where
 
         UserInterface {
             root,
-            style,
+            theme: style,
             base,
             overlay: None,
             bounds,
@@ -372,7 +372,7 @@ where
 
         self.root.widget.draw(
             renderer,
-            &self.style,
+            &self.theme,
             Layout::new(&self.base),
             base_cursor,
             &viewport,
@@ -413,7 +413,7 @@ where
                     renderer.with_layer(overlay_bounds, |renderer| {
                         overlay.draw(
                             renderer,
-                            &self.style,
+                            &self.theme,
                             Layout::new(layout),
                             cursor_position,
                         );
@@ -432,7 +432,7 @@ where
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(self.root, self.style, bounds, Cache, renderer)
+        Self::build(self.root, self.theme, bounds, Cache, renderer)
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the

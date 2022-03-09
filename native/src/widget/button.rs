@@ -7,12 +7,14 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::Renderer;
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
 };
 
 pub use iced_style::button::{Style, StyleSheet};
+use iced_style::Theme;
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -266,7 +268,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,

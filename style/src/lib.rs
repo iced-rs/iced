@@ -22,3 +22,33 @@ pub mod scrollable;
 pub mod slider;
 pub mod text_input;
 pub mod toggler;
+
+/// The styling attributes of a [`Renderer`].
+#[allow(missing_debug_implementations)]
+pub struct Theme {
+    pub text: Color,
+    pub needs_better_naming: Color,
+    pub surface: Color,
+    pub accent: Color,
+    pub active: Color,
+    pub hover: Color,
+    pub highlight: Color,
+    pub text_highlight: Color,
+}
+
+const DEFAULT_THEME: Theme = Theme {
+    text: Color::BLACK,
+    active: Color::from_rgb(0.3, 0.9, 0.3),
+    accent: Color::from_rgb(0.7, 0.7, 0.7),
+    surface: Color::from_rgb(0.9, 0.9, 0.9),
+    hover: Color::from_rgb(0.8, 0.8, 0.8),
+    needs_better_naming: Color::from_rgb(0.3, 0.3, 0.3),
+    highlight: Color::from_rgb(0.4, 0.4, 0.1),
+    text_highlight: Color::from_rgb(0.8, 0.8, 0.1),
+};
+
+impl Default for Theme {
+    fn default() -> Self {
+        DEFAULT_THEME
+    }
+}
