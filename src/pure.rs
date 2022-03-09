@@ -48,11 +48,11 @@ pub type Image = iced_pure::Image<crate::widget::image::Handle>;
 mod application;
 mod sandbox;
 
+pub use application::Application;
+pub use sandbox::Sandbox;
+
 #[cfg(feature = "canvas")]
 pub use iced_graphics::widget::pure::canvas;
 
 #[cfg(feature = "canvas")]
 pub use canvas::Canvas;
-
-pub use application::Application;
-pub use sandbox::Sandbox;
