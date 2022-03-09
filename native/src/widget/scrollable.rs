@@ -15,6 +15,13 @@ use std::{f32, u32};
 
 pub use iced_style::scrollable::StyleSheet;
 
+pub mod style {
+    //! The styles of a [`Scrollable`].
+    //!
+    //! [`Scrollable`]: crate::widget::Scrollable
+    pub use iced_style::scrollable::{Scrollbar, Scroller};
+}
+
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
 #[allow(missing_debug_implementations)]

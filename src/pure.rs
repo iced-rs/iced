@@ -41,6 +41,7 @@ pub type Button<'a, Message> = iced_pure::Button<'a, Message, crate::Renderer>;
 /// A pure text widget.
 pub type Text = iced_pure::Text<crate::Renderer>;
 
+#[cfg(feature = "image")]
 /// A pure image widget.
 pub type Image = iced_pure::Image<crate::widget::image::Handle>;
 

@@ -32,7 +32,6 @@
 
 pub mod settings;
 pub mod triangle;
-pub mod widget;
 pub mod window;
 
 mod backend;
@@ -44,9 +43,6 @@ pub use wgpu;
 
 pub use backend::Backend;
 pub use settings::Settings;
-
-#[doc(no_inline)]
-pub use widget::*;
 
 pub(crate) use iced_graphics::Transformation;
 

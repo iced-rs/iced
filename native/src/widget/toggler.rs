@@ -1,5 +1,4 @@
 //! Show toggle controls using togglers.
-
 use crate::alignment;
 use crate::event;
 use crate::layout;
@@ -14,7 +13,7 @@ use crate::{
 
 pub use iced_style::toggler::{Style, StyleSheet};
 
-/// A toggler widget
+/// A toggler widget.
 ///
 /// # Example
 ///

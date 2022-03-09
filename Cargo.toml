@@ -14,24 +14,20 @@ resolver = "2"
 
 [features]
 default = ["wgpu"]
-# Enables the `iced_wgpu` renderer
-wgpu = ["iced_wgpu"]
 # Enables the `Image` widget
 image = ["iced_wgpu/image"]
 # Enables the `Svg` widget
 svg = ["iced_wgpu/svg"]
 # Enables the `Canvas` widget
-canvas = ["iced_wgpu/canvas"]
+canvas = ["iced_graphics/canvas"]
 # Enables the `QRCode` widget
-qr_code = ["iced_wgpu/qr_code"]
+qr_code = ["iced_graphics/qr_code"]
+# Enables the `iced_wgpu` renderer
+wgpu = ["iced_wgpu"]
 # Enables using system fonts
 default_system_font = ["iced_wgpu/default_system_font"]
 # Enables the `iced_glow` renderer. Overrides `iced_wgpu`
 glow = ["iced_glow", "iced_glutin"]
-# Enables the `Canvas` widget for `iced_glow`
-glow_canvas = ["iced_glow/canvas"]
-# Enables the `QRCode` widget for `iced_glow`
-glow_qr_code = ["iced_glow/qr_code"]
 # Enables using system fonts for `iced_glow`
 glow_default_system_font = ["iced_glow/default_system_font"]
 # Enables a debug view in native platforms (press F12)
@@ -101,6 +97,8 @@ members = [
 [dependencies]
 iced_core = { version = "0.4", path = "core" }
 iced_futures = { version = "0.3", path = "futures" }
+iced_native = { version = "0.4", path = "native" }
+iced_graphics = { version = "0.2", path = "graphics" }
 iced_winit = { version = "0.3", path = "winit" }
 iced_glutin = { version = "0.2", path = "glutin", optional = true }
 iced_glow = { version = "0.2", path = "glow", optional = true }
