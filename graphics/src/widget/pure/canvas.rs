@@ -105,6 +105,10 @@ where
     P: Program,
     B: Backend,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<P::State>()
+    }
+
     fn state(&self) -> tree::State {
         tree::State::new(P::State::default())
     }
