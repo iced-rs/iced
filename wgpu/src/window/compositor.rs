@@ -32,17 +32,25 @@ impl Compositor {
         let compatible_surface = compatible_window
             .map(|window| unsafe { instance.create_surface(window) });
 
-        let adapter = instance
+        let adapter = match instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: if settings.antialiasing.is_none() {
-                    wgpu::PowerPreference::LowPower
-                } else {
-                    wgpu::PowerPreference::HighPerformance
-                },
+                power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: compatible_surface.as_ref(),
                 force_fallback_adapter: false,
             })
-            .await?;
+            .await
+        {
+            Some(adapter) => adapter,
+            None => {
+                instance
+                    .request_adapter(&wgpu::RequestAdapterOptions {
+                        power_preference: wgpu::PowerPreference::LowPower,
+                        compatible_surface: compatible_surface.as_ref(),
+                        force_fallback_adapter: false,
+                    })
+                    .await?
+            }
+        };
 
         let format = compatible_surface
             .as_ref()
@@ -53,7 +61,7 @@ impl Compositor {
             .using_resolution(adapter.limits());
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits = wgpu::Limits::downlevel_defaults();
+        let limits = adapter.limits();
 
         let (device, queue) = adapter
             .request_device(
@@ -62,10 +70,7 @@ impl Compositor {
                         "iced_wgpu::window::compositor device descriptor",
                     ),
                     features: wgpu::Features::empty(),
-                    limits: wgpu::Limits {
-                        max_bind_groups: 2,
-                        ..limits
-                    },
+                    limits,
                 },
                 None,
             )
@@ -188,7 +193,7 @@ impl iced_graphics::window::Compositor for Compositor {
 
                 renderer.with_primitives(|backend, primitives| {
                     backend.present(
-                        &mut self.device,
+                        &self.device,
                         &mut self.staging_belt,
                         &mut encoder,
                         view,
