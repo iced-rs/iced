@@ -83,6 +83,7 @@ fn backend_from_env() -> Option<wgpu::Backends> {
             "gl" => wgpu::Backends::GL,
             "webgpu" => wgpu::Backends::BROWSER_WEBGPU,
             "primary" => wgpu::Backends::PRIMARY,
+            "secondary" => wgpu::Backends::SECONDARY,
             other => panic!("Unknown backend: {}", other),
         }
     })
