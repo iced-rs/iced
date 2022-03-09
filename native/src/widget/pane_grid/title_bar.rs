@@ -86,7 +86,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        inherited_style: &renderer::Theme,
+        inherited_style: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,

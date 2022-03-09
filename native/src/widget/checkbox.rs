@@ -13,6 +13,7 @@ use crate::{
 };
 
 pub use iced_style::checkbox::{Style, StyleSheet};
+use iced_style::Theme;
 
 /// A box that can be checked.
 ///
@@ -197,7 +198,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,

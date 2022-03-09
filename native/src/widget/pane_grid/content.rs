@@ -6,6 +6,7 @@ use crate::renderer;
 use crate::widget::container;
 use crate::widget::pane_grid::TitleBar;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use iced_style::Theme;
 
 /// The content of a [`Pane`].
 ///
@@ -59,7 +60,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,

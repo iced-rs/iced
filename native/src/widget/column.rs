@@ -9,6 +9,7 @@ use crate::{
     Shell, Widget,
 };
 
+use iced_style::Theme;
 use std::u32;
 
 /// A container that distributes its contents vertically.
@@ -187,7 +188,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,

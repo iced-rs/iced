@@ -13,6 +13,7 @@ use crate::{
 use std::u32;
 
 pub use iced_style::container::{Style, StyleSheet};
+use iced_style::Theme;
 
 /// An element decorating some content.
 ///
@@ -195,7 +196,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
