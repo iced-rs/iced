@@ -50,7 +50,7 @@ mod rainbow {
         fn draw(
             &self,
             renderer: &mut Renderer<B>,
-            _style: &renderer::Style,
+            _style: &renderer::Theme,
             layout: Layout<'_>,
             cursor_position: Point,
             _viewport: &Rectangle,

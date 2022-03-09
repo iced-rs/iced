@@ -526,7 +526,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -605,7 +605,7 @@ where
                             renderer.with_layer(bounds, |renderer| {
                                 pane.draw(
                                     renderer,
-                                    renderer_style,
+                                    theme,
                                     layout,
                                     pane_cursor_position,
                                     viewport,
@@ -617,7 +617,7 @@ where
                 _ => {
                     pane.draw(
                         renderer,
-                        renderer_style,
+                        theme,
                         layout,
                         pane_cursor_position,
                         viewport,
@@ -629,7 +629,7 @@ where
         if let Some((axis, split_region, is_picked)) = picked_split {
             let style_sheet = match &self.custom_style_sheet {
                 Some(style_sheet) => style_sheet,
-                None => &renderer_style.pane_grid_style_sheet,
+                None => &theme.pane_grid_style_sheet,
             };
             let style = style_sheet.get_style(is_picked);
 

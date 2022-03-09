@@ -86,7 +86,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        inherited_style: &renderer::Style,
+        inherited_style: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -94,7 +94,7 @@ where
     ) {
         let bounds = layout.bounds();
         let style = self.style_sheet.style();
-        let inherited_style = renderer::Style {
+        let inherited_style = renderer::Theme {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
             ..Default::default()
         };

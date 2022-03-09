@@ -266,7 +266,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -279,7 +279,7 @@ where
 
         let style_sheet = match &self.custom_style_sheet {
             Some(style_sheet) => style_sheet,
-            None => &renderer_style.button_style_sheet,
+            None => &theme.button_style_sheet,
         };
         let style = style_sheet.get_style(
             is_disabled,
@@ -320,7 +320,7 @@ where
 
         self.content.draw(
             renderer,
-            renderer_style,
+            theme,
             content_layout,
             cursor_position,
             &bounds,

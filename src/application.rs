@@ -1,4 +1,4 @@
-use crate::{window, Style};
+use crate::{window, Theme};
 use crate::{Color, Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
@@ -166,7 +166,7 @@ pub trait Application: Sized {
     }
 
     /// Returns the styling to be used
-    fn styling(&self) -> Style {
+    fn theme(&self) -> Theme {
         Default::default()
     }
 
@@ -240,7 +240,7 @@ where
         self.0.view()
     }
 
-    fn styling(&self) -> Style {
+    fn theme(&self) -> Theme {
         self.0.styling()
     }
 }

@@ -13,7 +13,7 @@ use iced_winit::user_interface;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
 use glutin::window::Window;
-use iced_native::renderer::Style;
+use iced_native::renderer::Theme;
 use std::mem::ManuallyDrop;
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -172,7 +172,7 @@ async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
     mut renderer: A::Renderer,
-    default_styling: Style,
+    default_styling: Theme,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut clipboard: Clipboard,
     mut proxy: glutin::event_loop::EventLoopProxy<A::Message>,

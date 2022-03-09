@@ -3,7 +3,7 @@ mod themes;
 use iced::{
     button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color,
     Column, Container, Element, Length, ProgressBar, Radio, Row, Rule, Sandbox,
-    Scrollable, Settings, Slider, Space, Style, Text, TextInput, Toggler,
+    Scrollable, Settings, Slider, Space, Text, TextInput, Theme, Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -154,7 +154,7 @@ impl Sandbox for ApplicationTheme {
             .into()
     }
 
-    fn styling(&self) -> Style {
+    fn theme(&self) -> Theme {
         self.theme.into()
     }
 }

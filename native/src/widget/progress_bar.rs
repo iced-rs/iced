@@ -97,7 +97,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -114,7 +114,7 @@ where
 
         let style_sheet = match &self.custom_style_sheet {
             Some(style_sheet) => style_sheet,
-            None => &renderer_style.progress_bar_style_sheet,
+            None => &theme.progress_bar_style_sheet,
         };
         let style = style_sheet.style();
 

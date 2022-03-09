@@ -2,7 +2,7 @@
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::renderer::Style;
+use crate::renderer::Theme;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -20,7 +20,7 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
-    style: Style,
+    style: Theme,
     base: layout::Node,
     overlay: Option<layout::Node>,
     bounds: Size,
@@ -86,7 +86,7 @@ where
     /// ```
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
-        style: Style,
+        style: Theme,
         bounds: Size,
         _cache: Cache,
         renderer: &mut Renderer,

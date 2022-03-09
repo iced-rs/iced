@@ -1,7 +1,7 @@
 mod dark;
 mod ugly;
 
-use iced::Style;
+use iced::Theme;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Theme {
@@ -23,10 +23,10 @@ impl std::default::Default for Theme {
     }
 }
 
-impl From<Theme> for Style {
+impl From<Theme> for Theme {
     fn from(theme: Theme) -> Self {
         match theme {
-            Theme::IcedDefault => Style::default(),
+            Theme::IcedDefault => Theme::default(),
             Theme::Dark => dark::get_style(),
             Theme::Ugly => ugly::get_style(),
         }

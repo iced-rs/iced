@@ -264,7 +264,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -274,7 +274,7 @@ where
 
         let style_sheet = match &self.custom_style_sheet {
             Some(style_sheet) => style_sheet,
-            None => &renderer_style.slider_style_sheet,
+            None => &theme.slider_style_sheet,
         };
         let style =
             style_sheet.get_style(self.state.is_dragging, is_mouse_over);

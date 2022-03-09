@@ -195,14 +195,14 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         let style_sheet = match &self.custom_style_sheet {
             Some(style_sheet) => style_sheet,
-            None => &renderer_style.container_style_sheet,
+            None => &theme.container_style_sheet,
         };
         let style = style_sheet.style();
 
@@ -210,7 +210,7 @@ where
 
         self.content.draw(
             renderer,
-            renderer_style,
+            theme,
             layout.children().next().unwrap(),
             cursor_position,
             viewport,

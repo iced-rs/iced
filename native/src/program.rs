@@ -3,7 +3,7 @@ use crate::{Command, Element, Renderer};
 
 mod state;
 
-use crate::renderer::Style;
+use crate::renderer::Theme;
 pub use state::State;
 
 /// The core of a user interface application following The Elm Architecture.
@@ -30,5 +30,5 @@ pub trait Program: Sized {
     fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer>;
 
     /// Returns the styling to use when rendering widgets
-    fn styling(&self) -> Style;
+    fn theme(&self) -> Theme;
 }

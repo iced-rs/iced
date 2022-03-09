@@ -466,7 +466,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -496,7 +496,7 @@ where
                     |renderer| {
                         self.content.draw(
                             renderer,
-                            renderer_style,
+                            theme,
                             content_layout,
                             cursor_position,
                             &Rectangle {
@@ -510,7 +510,7 @@ where
 
             let style_sheet = match &self.custom_style_sheet {
                 Some(style_sheet) => style_sheet,
-                None => &renderer_style.scrollable_style_sheet,
+                None => &theme.scrollable_style_sheet,
             };
             let style = style_sheet.get_style(
                 self.state.is_scroller_grabbed(),
@@ -560,7 +560,7 @@ where
         } else {
             self.content.draw(
                 renderer,
-                renderer_style,
+                theme,
                 content_layout,
                 cursor_position,
                 &Rectangle {

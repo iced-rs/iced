@@ -241,7 +241,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
@@ -249,7 +249,7 @@ where
 
         let style = match &self.custom_style {
             Some(style) => style,
-            None => &renderer_style.menu_style,
+            None => &theme.menu_style,
         };
         renderer.fill_quad(
             renderer::Quad {
@@ -261,13 +261,8 @@ where
             style.background,
         );
 
-        self.container.draw(
-            renderer,
-            renderer_style,
-            layout,
-            cursor_position,
-            &bounds,
-        );
+        self.container
+            .draw(renderer, theme, layout, cursor_position, &bounds);
     }
 }
 
@@ -398,7 +393,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         viewport: &Rectangle,
@@ -407,7 +402,7 @@ where
 
         let style = match &self.custom_style {
             Some(style) => style,
-            None => &renderer_style.menu_style,
+            None => &theme.menu_style,
         };
         let text_size = self.text_size.unwrap_or(renderer.default_size());
         let option_height = (text_size + self.padding.vertical()) as usize;

@@ -206,7 +206,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        style: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -337,7 +337,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Style,
+        style: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {

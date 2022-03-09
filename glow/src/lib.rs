@@ -36,7 +36,7 @@ pub use widget::*;
 pub use iced_graphics::{Error, Viewport};
 
 pub use iced_native::alignment;
-pub use iced_native::renderer::Style;
+pub use iced_native::renderer::Theme;
 pub use iced_native::{Alignment, Background, Color, Command, Length, Vector};
 
 /// A [`glow`] graphics renderer for [`iced`].

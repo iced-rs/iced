@@ -175,7 +175,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         value: Option<&Value>,
@@ -191,7 +191,7 @@ where
 
         let style_sheet = match &self.custom_style_sheet {
             Some(style_sheet) => style_sheet,
-            None => &renderer_style.text_input_style_sheet,
+            None => &theme.text_input_style_sheet,
         };
         let style = style_sheet.get_style(self.state.is_focused, is_mouse_over);
 
@@ -771,12 +771,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        renderer_style: &renderer::Style,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        self.draw(renderer, renderer_style, layout, cursor_position, None)
+        self.draw(renderer, theme, layout, cursor_position, None)
     }
 }
 

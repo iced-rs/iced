@@ -156,7 +156,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        inherited_style: &renderer::Style,
+        inherited_style: &renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,

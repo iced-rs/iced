@@ -1,4 +1,4 @@
-use crate::Style;
+use crate::Theme;
 use iced::{
     button, container, progress_bar, radio, rule, scrollable, slider,
     text_input, Background, Color, Vector,
@@ -234,8 +234,8 @@ impl progress_bar::StyleSheet for ProgressBar {
     }
 }
 
-pub fn get_style() -> Style {
-    Style {
+pub fn get_style() -> Theme {
+    Theme {
         text_color: TEXT_COLOR,
         button_style_sheet: Button.into(),
         container_style_sheet: Container.into(),

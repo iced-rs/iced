@@ -84,57 +84,28 @@ pub struct Quad {
 
 /// The styling attributes of a [`Renderer`].
 #[allow(missing_debug_implementations)]
-pub struct Style {
-    /// The default text color used unless overridden by a widget's styling
-    pub text_color: Color,
-    /// Button styling
-    pub button_style_sheet: Box<dyn button::StyleSheet + 'static>,
-    /// Container styling
-    pub container_style_sheet: Box<dyn container::StyleSheet + 'static>,
-    /// Checkbox styling
-    pub checkbox_style_sheet: Box<dyn checkbox::StyleSheet + 'static>,
-    /// Menu styling
-    pub menu_style: menu::Style,
-    /// PaneGrid styling
-    pub pane_grid_style_sheet: Box<dyn pane_grid::StyleSheet + 'static>,
-    /// PickList styling
-    pub pick_list_style_sheet: Box<dyn pick_list::StyleSheet + 'static>,
-    /// ProgressBar styling
-    pub progress_bar_style_sheet: Box<dyn progress_bar::StyleSheet + 'static>,
-    /// Radio styling
-    pub radio_style_sheet: Box<dyn radio::StyleSheet + 'static>,
-    /// Rule styling
-    pub rule_style_sheet: Box<dyn rule::StyleSheet + 'static>,
-    /// Scrollable styling
-    pub scrollable_style_sheet: Box<dyn scrollable::StyleSheet + 'static>,
-    /// Slider styling
-    pub slider_style_sheet: Box<dyn slider::StyleSheet + 'static>,
-    /// TextInput styling
-    pub text_input_style_sheet: Box<dyn text_input::StyleSheet + 'static>,
-    /// Toggler styling
-    pub toggler_style_sheet: Box<dyn toggler::StyleSheet + 'static>,
-    /// Tooltip styling
-    pub tooltip_style_sheet: Box<dyn container::StyleSheet + 'static>,
+pub struct Theme {
+    pub text: Color,
+    pub base: Color,
+    pub surface: Color,
+    pub accent: Color,
+    pub action: Color,
+    pub hover: Color,
+    pub positive: Color,
+    pub negative: Color,
 }
 
-impl Default for Style {
+impl Default for Theme {
     fn default() -> Self {
-        Style {
-            text_color: Color::BLACK,
-            button_style_sheet: Default::default(),
-            checkbox_style_sheet: Default::default(),
-            container_style_sheet: Default::default(),
-            menu_style: Default::default(),
-            pane_grid_style_sheet: Default::default(),
-            pick_list_style_sheet: Default::default(),
-            progress_bar_style_sheet: Default::default(),
-            radio_style_sheet: Default::default(),
-            rule_style_sheet: Default::default(),
-            scrollable_style_sheet: Default::default(),
-            slider_style_sheet: Default::default(),
-            text_input_style_sheet: Default::default(),
-            toggler_style_sheet: Default::default(),
-            tooltip_style_sheet: Default::default(),
+        Theme {
+            text: Color::BLACK,
+            action: Color::BLACK,
+            hover: Color::BLACK,
+            base: Color::BLACK,
+            surface: Color::BLACK,
+            accent: Color::BLACK,
+            positive: Color::BLACK,
+            negative: Color::BLACK,
         }
     }
 }
