@@ -5,14 +5,14 @@ use crate::renderer;
 use crate::text;
 use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
-/// The background color for part of a [`Text`]
+/// The background color for part of a [`Text`].
 #[derive(Clone, Debug)]
 pub struct Highlight {
-    /// The starting index of the highlight
+    /// The starting index of the [`Highlight`].
     pub start: usize,
-    /// The ending index of the highlight
+    /// The ending index of the [`Highlight`].
     pub end: usize,
-    /// The color of the highlight
+    /// The color of the [`Highlight`].
     pub color: Color,
 }
 
@@ -71,6 +71,7 @@ impl<Renderer: text::Renderer> Text<Renderer> {
     }
 
     /// Sets the background [`Color`] of the [`Text`] between the given indexes.
+    ///
     /// Can be called multiple times to highlight multiple parts of the text.
     pub fn highlight(mut self, start: usize, end: usize, color: Color) -> Self {
         self.highlights.push(Highlight { start, end, color });
