@@ -589,8 +589,6 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                             system_kernel: system.kernel_version(),
                             system_version: system.long_os_version(),
                             cpu_brand: cpu.brand().into(),
-                            cpu_vendor: cpu.vendor_id().into(),
-                            cpu_name: cpu.name().into(),
                             cpu_cores: system.physical_core_count(),
                             memory_total: system.total_memory(),
                         };

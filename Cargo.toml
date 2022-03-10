@@ -96,6 +96,7 @@ members = [
     "examples/pure/todos",
     "examples/pure/tour",
     "examples/websocket",
+    "examples/system_information"
 ]
 
 [dependencies]
