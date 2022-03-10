@@ -42,6 +42,19 @@ impl Tree {
         &mut self,
         new_children: &[Element<'_, Message, Renderer>],
     ) {
+        self.diff_children_custom(
+            new_children,
+            |new, child_state| child_state.diff(new),
+            Self::new,
+        )
+    }
+
+    pub fn diff_children_custom<T>(
+        &mut self,
+        new_children: &[T],
+        diff: impl Fn(&T, &mut Tree),
+        new_state: impl Fn(&T) -> Self,
+    ) {
         if self.children.len() > new_children.len() {
             self.children.truncate(new_children.len());
         }
@@ -49,12 +62,12 @@ impl Tree {
         for (child_state, new) in
             self.children.iter_mut().zip(new_children.iter())
         {
-            child_state.diff(new);
+            diff(new, child_state);
         }
 
         if self.children.len() < new_children.len() {
             self.children.extend(
-                new_children[self.children.len()..].iter().map(Self::new),
+                new_children[self.children.len()..].iter().map(new_state),
             );
         }
     }

@@ -10,7 +10,9 @@ pub enum Axis {
 }
 
 impl Axis {
-    pub(super) fn split(
+    /// Splits the provided [`Rectangle`] on the current [`Axis`] with the
+    /// given `ratio` and `spacing`.
+    pub fn split(
         &self,
         rectangle: &Rectangle,
         ratio: f32,
@@ -54,7 +56,8 @@ impl Axis {
         }
     }
 
-    pub(super) fn split_line_bounds(
+    /// Calculates the bounds of the split line in a [`Rectangle`] region.
+    pub fn split_line_bounds(
         &self,
         rectangle: Rectangle,
         ratio: f32,

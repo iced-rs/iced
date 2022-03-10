@@ -1,4 +1,5 @@
 pub mod image;
+pub mod pane_grid;
 pub mod progress_bar;
 pub mod rule;
 pub mod tree;
@@ -24,6 +25,7 @@ pub use column::Column;
 pub use container::Container;
 pub use element::Element;
 pub use image::Image;
+pub use pane_grid::PaneGrid;
 pub use pick_list::PickList;
 pub use progress_bar::ProgressBar;
 pub use radio::Radio;

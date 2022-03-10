@@ -1,11 +1,15 @@
-use crate::event::{self, Event};
-use crate::layout;
-use crate::mouse;
-use crate::overlay;
-use crate::renderer;
-use crate::widget::container;
-use crate::widget::pane_grid::{Draggable, TitleBar};
-use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::widget::pane_grid::TitleBar;
+use crate::widget::tree::Tree;
+use crate::Element;
+
+use iced_native::event::{self, Event};
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::overlay;
+use iced_native::renderer;
+use iced_native::widget::container;
+use iced_native::widget::pane_grid::Draggable;
+use iced_native::{Clipboard, Layout, Point, Rectangle, Shell, Size};
 
 /// The content of a [`Pane`].
 ///
@@ -19,7 +23,7 @@ pub struct Content<'a, Message, Renderer> {
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
     pub fn new(body: impl Into<Element<'a, Message, Renderer>>) -> Self {
@@ -51,13 +55,39 @@ where
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
 {
+    pub fn state(&self) -> Tree {
+        let children = if let Some(title_bar) = self.title_bar.as_ref() {
+            vec![Tree::new(&self.body), title_bar.state()]
+        } else {
+            vec![Tree::new(&self.body), Tree::empty()]
+        };
+
+        Tree {
+            children,
+            ..Tree::empty()
+        }
+    }
+
+    pub fn diff(&self, tree: &mut Tree) {
+        if tree.children.len() == 2 {
+            if let Some(title_bar) = self.title_bar.as_ref() {
+                title_bar.diff(&mut tree.children[1]);
+            }
+
+            tree.children[0].diff(&self.body);
+        } else {
+            *tree = self.state();
+        }
+    }
+
     /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
     ///
     /// [`Renderer`]: crate::widget::pane_grid::Renderer
     pub fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
         style: &renderer::Style,
         layout: Layout<'_>,
@@ -80,6 +110,7 @@ where
             let show_controls = bounds.contains(cursor_position);
 
             title_bar.draw(
+                &tree.children[1],
                 renderer,
                 style,
                 title_bar_layout,
@@ -88,7 +119,8 @@ where
                 show_controls,
             );
 
-            self.body.draw(
+            self.body.as_widget().draw(
+                &tree.children[0],
                 renderer,
                 style,
                 body_layout,
@@ -96,8 +128,14 @@ where
                 viewport,
             );
         } else {
-            self.body
-                .draw(renderer, style, layout, cursor_position, viewport);
+            self.body.as_widget().draw(
+                &tree.children[0],
+                renderer,
+                style,
+                layout,
+                cursor_position,
+                viewport,
+            );
         }
     }
 
@@ -114,7 +152,7 @@ where
 
             let title_bar_size = title_bar_layout.size();
 
-            let mut body_layout = self.body.layout(
+            let mut body_layout = self.body.as_widget().layout(
                 renderer,
                 &layout::Limits::new(
                     Size::ZERO,
@@ -132,12 +170,13 @@ where
                 vec![title_bar_layout, body_layout],
             )
         } else {
-            self.body.layout(renderer, limits)
+            self.body.as_widget().layout(renderer, limits)
         }
     }
 
     pub(crate) fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -152,6 +191,7 @@ where
             let mut children = layout.children();
 
             event_status = title_bar.on_event(
+                &mut tree.children[1],
                 event.clone(),
                 children.next().unwrap(),
                 cursor_position,
@@ -168,7 +208,8 @@ where
         let body_status = if is_picked {
             event::Status::Ignored
         } else {
-            self.body.on_event(
+            self.body.as_widget_mut().on_event(
+                &mut tree.children[0],
                 event,
                 body_layout,
                 cursor_position,
@@ -183,6 +224,7 @@ where
 
     pub(crate) fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -201,6 +243,7 @@ where
                 }
 
                 let mouse_interaction = title_bar.mouse_interaction(
+                    &tree.children[1],
                     title_bar_layout,
                     cursor_position,
                     viewport,
@@ -213,32 +256,53 @@ where
             };
 
         self.body
-            .mouse_interaction(body_layout, cursor_position, viewport, renderer)
+            .as_widget()
+            .mouse_interaction(
+                &tree.children[0],
+                body_layout,
+                cursor_position,
+                viewport,
+                renderer,
+            )
             .max(title_bar_interaction)
     }
 
-    pub(crate) fn overlay(
-        &mut self,
+    pub(crate) fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        if let Some(title_bar) = self.title_bar.as_mut() {
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        if let Some(title_bar) = self.title_bar.as_ref() {
             let mut children = layout.children();
             let title_bar_layout = children.next()?;
 
-            match title_bar.overlay(title_bar_layout, renderer) {
+            let mut states = tree.children.iter_mut();
+            let body_state = states.next().unwrap();
+            let title_bar_state = states.next().unwrap();
+
+            match title_bar.overlay(title_bar_state, title_bar_layout, renderer)
+            {
                 Some(overlay) => Some(overlay),
-                None => self.body.overlay(children.next()?, renderer),
+                None => self.body.as_widget().overlay(
+                    body_state,
+                    children.next()?,
+                    renderer,
+                ),
             }
         } else {
-            self.body.overlay(layout, renderer)
+            self.body.as_widget().overlay(
+                &mut tree.children[0],
+                layout,
+                renderer,
+            )
         }
     }
 }
 
 impl<'a, Message, Renderer> Draggable for &Content<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
 {
     fn can_be_dragged_at(
         &self,
@@ -259,7 +323,7 @@ where
 impl<'a, T, Message, Renderer> From<T> for Content<'a, Message, Renderer>
 where
     T: Into<Element<'a, Message, Renderer>>,
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
 {
     fn from(element: T) -> Self {
         Self::new(element)
