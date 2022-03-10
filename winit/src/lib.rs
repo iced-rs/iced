@@ -31,6 +31,7 @@ pub mod application;
 pub mod clipboard;
 pub mod conversion;
 pub mod settings;
+pub mod system;
 pub mod window;
 
 mod error;
