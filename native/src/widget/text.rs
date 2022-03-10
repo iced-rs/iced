@@ -213,16 +213,26 @@ pub fn draw<Renderer>(
 
     let size = size.unwrap_or(renderer.default_size());
 
-    for &Highlight { start, end, color } in highlights {
-        let mut grapheme_indices = content.grapheme_indices(true);
+    // Cache byte offsets up to the highest accessed index
+    let mut byte_offsets = Vec::new();
+    let mut grapheme_indices = content.grapheme_indices(true).map(|(i, _)| i);
+    let mut get_byte_offset = |grapheme_index| {
+        byte_offsets.get(grapheme_index).copied().or_else(|| {
+            byte_offsets.extend(
+                grapheme_indices
+                    .by_ref()
+                    .take((grapheme_index - byte_offsets.len()) + 1),
+            );
+            byte_offsets.get(grapheme_index).copied()
+        })
+    };
 
-        let start_index = grapheme_indices.nth(start).unwrap().0;
+    for &Highlight { start, end, color } in highlights {
+        let start_index = get_byte_offset(start).unwrap();
+        let end_index = get_byte_offset(end).unwrap();
 
         let width_before_start =
             renderer.measure_width(&content[..start_index], size, font.clone());
-
-        // Calculating `start_index` consumed the iterator up to and _including_ `start`, so offset by start + 1 to account for that
-        let end_index = grapheme_indices.nth((end - start) - 1).unwrap().0;
 
         let width = renderer.measure_width(
             &content[start_index..end_index],
