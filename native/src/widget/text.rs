@@ -5,12 +5,14 @@ use crate::renderer;
 use crate::text;
 use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
+use unicode_segmentation::UnicodeSegmentation;
+
 /// The background color for part of a [`Text`].
 #[derive(Clone, Debug)]
 pub struct Highlight {
-    /// The starting index of the [`Highlight`].
+    /// The starting grapheme index of the [`Highlight`].
     pub start: usize,
-    /// The ending index of the [`Highlight`].
+    /// The ending grapheme index of the [`Highlight`].
     pub end: usize,
     /// The color of the [`Highlight`].
     pub color: Color,
@@ -70,7 +72,7 @@ impl<Renderer: text::Renderer> Text<Renderer> {
         self
     }
 
-    /// Sets the background [`Color`] of the [`Text`] between the given indexes.
+    /// Sets the background [`Color`] of the [`Text`] between the given grapheme indexes.
     ///
     /// Can be called multiple times to highlight multiple parts of the text.
     pub fn highlight(mut self, start: usize, end: usize, color: Color) -> Self {
@@ -212,11 +214,21 @@ pub fn draw<Renderer>(
     let size = size.unwrap_or(renderer.default_size());
 
     for &Highlight { start, end, color } in highlights {
-        let width_before_start =
-            renderer.measure_width(&content[..start], size, font.clone());
+        let mut grapheme_indices = content.grapheme_indices(true);
 
-        let width =
-            renderer.measure_width(&content[start..end], size, font.clone());
+        let start_index = grapheme_indices.nth(start).unwrap().0;
+
+        let width_before_start =
+            renderer.measure_width(&content[..start_index], size, font.clone());
+
+        // Calculating `start_index` consumed the iterator up to and _including_ `start`, so offset by start + 1 to account for that
+        let end_index = grapheme_indices.nth((end - start) - 1).unwrap().0;
+
+        let width = renderer.measure_width(
+            &content[start_index..end_index],
+            size,
+            font.clone(),
+        );
 
         let quad = renderer::Quad {
             bounds: Rectangle {
