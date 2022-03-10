@@ -1,4 +1,5 @@
 pub mod image;
+pub mod rule;
 pub mod tree;
 
 mod button;
@@ -25,6 +26,7 @@ pub use image::Image;
 pub use pick_list::PickList;
 pub use radio::Radio;
 pub use row::Row;
+pub use rule::Rule;
 pub use scrollable::Scrollable;
 pub use slider::Slider;
 pub use space::Space;
@@ -233,4 +235,14 @@ pub fn horizontal_space(width: Length) -> Space {
 
 pub fn vertical_space(height: Length) -> Space {
     Space::with_height(height)
+}
+
+/// Creates a horizontal [`Rule`] with the given height.
+pub fn horizontal_rule<'a>(height: u16) -> Rule<'a> {
+    Rule::horizontal(height)
+}
+
+/// Creates a vertical [`Rule`] with the given width.
+pub fn vertical_rule<'a>(width: u16) -> Rule<'a> {
+    Rule::horizontal(width)
 }
