@@ -1,4 +1,5 @@
 pub mod image;
+pub mod progress_bar;
 pub mod rule;
 pub mod tree;
 
@@ -24,6 +25,7 @@ pub use container::Container;
 pub use element::Element;
 pub use image::Image;
 pub use pick_list::PickList;
+pub use progress_bar::ProgressBar;
 pub use radio::Radio;
 pub use row::Row;
 pub use rule::Rule;
@@ -43,6 +45,7 @@ use iced_native::renderer;
 use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 use std::borrow::Cow;
+use std::ops::RangeInclusive;
 
 pub trait Widget<Message, Renderer> {
     fn width(&self) -> Length;
@@ -245,4 +248,16 @@ pub fn horizontal_rule<'a>(height: u16) -> Rule<'a> {
 /// Creates a vertical [`Rule`] with the given width.
 pub fn vertical_rule<'a>(width: u16) -> Rule<'a> {
     Rule::horizontal(width)
+}
+
+/// Creates a new [`ProgressBar`].
+///
+/// It expects:
+///   * an inclusive range of possible values
+///   * the current value of the [`ProgressBar`]
+pub fn progress_bar<'a>(
+    range: RangeInclusive<f32>,
+    value: f32,
+) -> ProgressBar<'a> {
+    ProgressBar::new(range, value)
 }
