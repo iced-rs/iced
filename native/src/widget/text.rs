@@ -1,11 +1,13 @@
 //! Write some text for your users to read.
+use unicode_segmentation::UnicodeSegmentation;
+
 use crate::alignment;
 use crate::layout;
 use crate::renderer;
 use crate::text;
 use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
-use unicode_segmentation::UnicodeSegmentation;
+use std::cmp::Ordering;
 
 /// The background color for part of a [`Text`].
 #[derive(Clone, Debug)]
@@ -240,28 +242,92 @@ pub fn draw<Renderer>(
             continue;
         };
 
-        let width_before_start =
-            renderer.measure_width(&content[..start_index], size, font.clone());
+        // The content prior to the start of the highlight is relevant for calculating offsets:
+        // The total height of all the lines of text above the line with the highlight,
+        // and the width of all the text in the line with the highlight, up until the start of the highlight.
+        let before_start = &content[..start_index];
 
-        let width = renderer.measure_width(
-            &content[start_index..end_index],
+        // Iced's text layouting treats standalone carriage returns (\r) as line endings, but `str::lines`
+        // does not, so we must manually search for the relevant line ending* instead.
+        let r = before_start.rfind('\r');
+        let n = before_start.rfind('\n');
+        let before_start_linebreak = r
+            .zip(n)
+            // If `zip` returns `Some(_)`, there may be multiple line endings
+            .map(|(r, n)| match (r + 1).cmp(&n) {
+                // The rightmost line ending is `\n`
+                Ordering::Less => (n, n),
+                // The rightmost line ending is `\r\n`
+                Ordering::Equal => (r, n),
+                // The rightmost line ending is `\r`
+                Ordering::Greater => (r, r),
+            })
+            // If `zip` returns `None`, there is either 1 or 0 line endings - if 1, `xor` returns `Some(_)`
+            .or_else(|| r.xor(n).map(|i| (i, i)));
+
+        // *Get the text preceding and following the rightmost line ending
+        let (above_lines, before_start_line) = match before_start_linebreak {
+            Some((l, r)) => (&before_start[..l], &before_start[(r + 1)..]),
+            None => (Default::default(), before_start),
+        };
+
+        // Measure height of lines up until the line that contains the start of the highlight
+        let (_, mut height_offset) =
+            renderer.measure(above_lines, size, font.clone(), Size::INFINITY);
+
+        // If the highlight crosses over multiple lines, draw a seperate rect on each line
+        // BUG: This ignores single `\r` but Iced's text layouting does not (See above)
+        // BUG #2: Text wrapping caused by the text not being given wide enough bounds is not handled at all
+        //         (And furthermore it currently _can't_ be handled because there's no way to get information about it)
+        let mut lines = content[start_index..end_index].lines();
+
+        // Unroll the first iteration of the loop as only the first line needs this offset
+        let first_line_offset =
+            renderer.measure_width(before_start_line, size, font.clone());
+
+        let (width, height) = renderer.measure(
+            lines.next().unwrap_or_default(),
             size,
             font.clone(),
+            Size::INFINITY,
         );
 
         let quad = renderer::Quad {
             bounds: Rectangle {
-                x: x + width_before_start,
-                y,
+                x: x + first_line_offset,
+                y: y + height_offset,
                 width,
-                height: bounds.height,
+                height,
             },
             border_radius: 0.0,
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
         };
 
-        renderer.fill_quad(quad, color)
+        renderer.fill_quad(quad, color);
+
+        height_offset += height;
+
+        for line in lines {
+            let (width, height) =
+                renderer.measure(line, size, font.clone(), Size::INFINITY);
+
+            let quad = renderer::Quad {
+                bounds: Rectangle {
+                    x,
+                    y: y + height_offset,
+                    width,
+                    height,
+                },
+                border_radius: 0.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            };
+
+            renderer.fill_quad(quad, color);
+
+            height_offset += height;
+        }
     }
 
     renderer.fill_text(crate::text::Text {
