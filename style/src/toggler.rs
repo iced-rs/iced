@@ -12,49 +12,49 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a toggler.
-pub trait StyleSheet {
+pub trait StyleSheet<ColorPalette> {
     fn get_style(
         &self,
-        theme: &Theme,
+        color_palette: &ColorPalette,
         is_mouse_over: bool,
         is_active: bool,
     ) -> Style {
         if is_mouse_over {
-            self.hovered(theme, is_active)
+            self.hovered(color_palette, is_active)
         } else {
-            self.active(theme, is_active)
+            self.active(color_palette, is_active)
         }
     }
 
-    fn active(&self, theme: &Theme, is_active: bool) -> Style;
+    fn active(&self, color_palette: &ColorPalette, is_active: bool) -> Style;
 
-    fn hovered(&self, theme: &Theme, is_active: bool) -> Style;
+    fn hovered(&self, color_palette: &ColorPalette, is_active: bool) -> Style;
 }
 
 struct Default;
 
-impl StyleSheet for Default {
-    fn active(&self, theme: &Theme, is_active: bool) -> Style {
+impl StyleSheet<IcedColorPalette> for Default {
+    fn active(&self, color_palette: &ColorPalette, is_active: bool) -> Style {
         Style {
             background: if is_active {
-                theme.accent
+                color_palette.accent
             } else {
-                theme.surface
+                color_palette.surface
             },
             background_border: None,
-            foreground: theme.surface,
+            foreground: color_palette.surface,
             foreground_border: None,
         }
     }
 
-    fn hovered(&self, theme: &Theme, is_active: bool) -> Style {
+    fn hovered(&self, color_palette: &ColorPalette, is_active: bool) -> Style {
         Style {
             foreground: Color::from_rgb(
-                theme.surface.r - 0.05,
-                theme.surface.g - 0.05,
-                theme.surface.b - 0.05,
+                color_palette.surface.r - 0.05,
+                color_palette.surface.g - 0.05,
+                color_palette.surface.b - 0.05,
             ),
-            ..self.active(theme, is_active)
+            ..self.active(color_palette, is_active)
         }
     }
 }

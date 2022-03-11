@@ -3,13 +3,11 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::renderer;
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Widget,
 };
 
-use iced_style::Theme;
 use std::u32;
 
 /// A container that distributes its contents vertically.
@@ -188,13 +186,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         for (child, layout) in self.children.iter().zip(layout.children()) {
-            child.draw(renderer, style, layout, cursor_position, viewport);
+            child.draw(renderer, theme, layout, cursor_position, viewport);
         }
     }
 

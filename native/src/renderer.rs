@@ -22,19 +22,16 @@
 #[cfg(debug_assertions)]
 mod null;
 
+use iced_style::Theme;
 #[cfg(debug_assertions)]
 pub use null::Null;
 
 use crate::layout;
 use crate::{Background, Color, Element, Rectangle, Vector};
-use iced_style::{
-    button, checkbox, container, menu, pane_grid, pick_list, progress_bar,
-    radio, rule, scrollable, slider, text_input, toggler,
-};
 
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
-pub trait Renderer: Sized {
+pub trait Renderer<Theme: Theme>: Sized {
     /// Lays out the elements of a user interface.
     ///
     /// You should override this if you need to perform any operations before or

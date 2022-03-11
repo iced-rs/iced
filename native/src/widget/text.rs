@@ -130,7 +130,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -161,7 +161,7 @@ where
 ///   [`Layout`].
 pub fn draw<Renderer>(
     renderer: &mut Renderer,
-    style: &renderer::Theme,
+    theme: &iced_style::Theme,
     layout: Layout<'_>,
     content: &str,
     font: Renderer::Font,

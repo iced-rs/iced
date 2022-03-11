@@ -214,6 +214,7 @@ pub use application::Application;
 pub use element::Element;
 pub use error::Error;
 pub use executor::Executor;
+pub use iced_style::Theme;
 pub use renderer::Theme;
 pub use result::Result;
 pub use sandbox::Sandbox;

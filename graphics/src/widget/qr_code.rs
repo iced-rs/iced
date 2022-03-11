@@ -76,7 +76,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer<B>,
-        _style: &renderer::Theme,
+        theme: &renderer::Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

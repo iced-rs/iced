@@ -13,37 +13,41 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a radio button.
-pub trait StyleSheet {
-    fn get_style(&self, theme: &Theme, is_mouse_over: bool) -> Style {
+pub trait StyleSheet<ColorPalette> {
+    fn get_style(
+        &self,
+        color_palette: &ColorPalette,
+        is_mouse_over: bool,
+    ) -> Style {
         if is_mouse_over {
-            self.hovered(theme)
+            self.hovered(color_palette)
         } else {
-            self.active(theme)
+            self.active(color_palette)
         }
     }
 
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, color_palette: &ColorPalette) -> Style;
 
-    fn hovered(&self, theme: &Theme) -> Style;
+    fn hovered(&self, color_palette: &ColorPalette) -> Style;
 }
 
 struct Default;
 
-impl StyleSheet for Default {
-    fn active(&self, theme: &Theme) -> Style {
+impl StyleSheet<IcedColorPalette> for Default {
+    fn active(&self, color_palette: &ColorPalette) -> Style {
         Style {
-            background: theme.surface.into(),
-            dot_color: theme.needs_better_naming,
+            background: color_palette.surface.into(),
+            dot_color: color_palette.needs_better_naming,
             border_width: 1.0,
-            border_color: theme.accent,
-            text_color: Some(theme.text),
+            border_color: color_palette.accent,
+            text_color: Some(color_palette.text),
         }
     }
 
-    fn hovered(&self, theme: &Theme) -> Style {
+    fn hovered(&self, color_palette: &ColorPalette) -> Style {
         Style {
-            background: theme.hover.into(),
-            ..self.active(theme)
+            background: color_palette.hover.into(),
+            ..self.active(color_palette)
         }
     }
 }

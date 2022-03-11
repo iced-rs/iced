@@ -1,4 +1,4 @@
-use crate::{menu, Theme};
+use crate::{menu, IcedColorPalette, Theme};
 use iced_core::{Background, Color};
 
 /// The appearance of a pick list.
@@ -14,47 +14,52 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a container.
-pub trait StyleSheet {
-    fn get_style(&self, theme: &Theme, is_mouse_over: bool) -> Style {
+pub trait StyleSheet<ColorPalette> {
+    fn get_style(
+        &self,
+        color_palette: &ColorPalette,
+        is_mouse_over: bool,
+    ) -> Style {
         if is_mouse_over {
-            self.hovered(theme)
+            self.hovered(color_palette)
         } else {
-            self.active(theme)
+            self.active(color_palette)
         }
     }
 
-    fn menu_style(&self, theme: &Theme) -> menu::Style;
+    fn menu_style(&self, color_palette: &ColorPalette) -> menu::Style;
 
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, color_palette: &ColorPalette) -> Style;
 
     /// Produces the style of a container.
-    fn hovered(&self, theme: &Theme) -> Style;
+    fn hovered(&self, color_palette: &ColorPalette) -> Style;
 }
 
-struct DefaultStyle;
+struct Default;
 
-impl StyleSheet for DefaultStyle {
-    fn menu_style(&self, theme: &Theme) -> menu::Style {
-        let style_sheet: Box<dyn menu::StyleSheet> = Default::default();
-        style_sheet.style(theme)
+impl StyleSheet<IcedColorPalette> for Default {
+    fn menu_style(&self, color_palette: &ColorPalette) -> menu::Style {
+        let style_sheet: Box<dyn menu::StyleSheet<ColorPalette>> =
+            Default::default();
+        style_sheet.style(color_palette)
     }
 
-    fn active(&self, theme: &Theme) -> Style {
+    fn active(&self, color_palette: &ColorPalette) -> Style {
         Style {
-            text_color: theme.text,
-            placeholder_color: theme.needs_better_naming,
-            background: theme.surface.into(),
+            text_color: color_palette.text,
+            placeholder_color: color_palette.needs_better_naming,
+            background: color_palette.surface.into(),
             border_radius: 0.0,
             border_width: 1.0,
-            border_color: theme.accent,
+            border_color: color_palette.accent,
             icon_size: 0.7,
         }
     }
 
-    fn hovered(&self, theme: &Theme) -> Style {
+    fn hovered(&self, color_palette: &ColorPalette) -> Style {
         Style {
-            border_color: theme.hover,
-            ..self.active(theme)
+            border_color: color_palette.hover,
+            ..self.active(color_palette)
         }
     }
 }

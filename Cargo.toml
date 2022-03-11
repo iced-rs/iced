@@ -95,6 +95,7 @@ members = [
 iced_core = { version = "0.4", path = "core" }
 iced_futures = { version = "0.3", path = "futures" }
 iced_winit = { version = "0.3", path = "winit" }
+iced_style = { version = "0.3", path = "style" }
 iced_glutin = { version = "0.2", path = "glutin", optional = true }
 iced_glow = { version = "0.2", path = "glow", optional = true }
 thiserror = "1.0"

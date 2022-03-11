@@ -169,8 +169,7 @@ fn build_user_interface<'a, P: Program>(
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface =
-        UserInterface::build(view, Default::default(), size, cache, renderer);
+    let user_interface = UserInterface::build(view, size, cache, renderer);
     debug.layout_finished();
 
     user_interface

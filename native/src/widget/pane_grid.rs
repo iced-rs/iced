@@ -38,7 +38,7 @@ use crate::{
     Vector, Widget,
 };
 
-pub use iced_style::pane_grid::{Style, StyleSheet};
+pub use iced_style::pane_grid::StyleSheet;
 
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
@@ -99,7 +99,7 @@ pub struct PaneGrid<'a, Message, Renderer> {
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
@@ -131,7 +131,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
         }
     }
 
@@ -192,7 +192,7 @@ where
 
     /// Sets the style of the [`PaneGrid`].
     pub fn style(mut self, style: impl Into<Box<dyn StyleSheet + 'a>>) -> Self {
-        self.custom_style_sheet = Some(style.into());
+        self.style_sheet = style.into();
         self
     }
 }
@@ -526,7 +526,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -605,7 +605,7 @@ where
                             renderer.with_layer(bounds, |renderer| {
                                 pane.draw(
                                     renderer,
-                                    theme,
+                                    style,
                                     layout,
                                     pane_cursor_position,
                                     viewport,
@@ -617,7 +617,7 @@ where
                 _ => {
                     pane.draw(
                         renderer,
-                        theme,
+                        style,
                         layout,
                         pane_cursor_position,
                         viewport,
@@ -627,31 +627,28 @@ where
         }
 
         if let Some((axis, split_region, is_picked)) = picked_split {
-            let style_sheet = match &self.custom_style_sheet {
-                Some(style_sheet) => style_sheet,
-                None => &theme.pane_grid_style_sheet,
-            };
-            let style = style_sheet.get_style(is_picked);
+            let highlight = self.style_sheet.get_style(theme, is_picked);
 
-            if let Some(style) = style {
+            if let Some(highlight) = highlight {
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: match axis {
                             Axis::Horizontal => Rectangle {
                                 x: split_region.x,
                                 y: (split_region.y
-                                    + (split_region.height - style.width)
+                                    + (split_region.height - highlight.width)
                                         / 2.0)
                                     .round(),
                                 width: split_region.width,
-                                height: style.width,
+                                height: highlight.width,
                             },
                             Axis::Vertical => Rectangle {
                                 x: (split_region.x
-                                    + (split_region.width - style.width) / 2.0)
+                                    + (split_region.width - highlight.width)
+                                        / 2.0)
                                     .round(),
                                 y: split_region.y,
-                                width: style.width,
+                                width: highlight.width,
                                 height: split_region.height,
                             },
                         },
@@ -659,7 +656,7 @@ where
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
-                    style.color,
+                    highlight.color,
                 );
             }
         }

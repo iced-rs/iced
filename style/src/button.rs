@@ -1,5 +1,5 @@
 //! Allow your users to perform actions by pressing a button.
-use crate::Theme;
+use crate::{IcedColorPalette, Theme};
 use iced_core::{Background, Color, Vector};
 use std::fmt::Debug;
 
@@ -14,31 +14,51 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a button.
-pub trait StyleSheet {
+pub trait StyleSheet<ColorPalette> {
     fn get_style(
         &self,
-        theme: &Theme,
+        color_palette: &ColorPalette,
         is_disabled: bool,
         is_mouse_over: bool,
         is_pressed: bool,
     ) -> Style {
         if is_disabled {
-            self.disabled(theme)
+            self.disabled(color_palette)
         } else if is_mouse_over {
             if is_pressed {
-                self.pressed(theme)
+                self.pressed(color_palette)
             } else {
-                self.hovered(theme)
+                self.hovered(color_palette)
             }
         } else {
-            self.active(theme)
+            self.active(color_palette)
         }
     }
 
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, color_palette: &ColorPalette) -> Style;
 
-    fn hovered(&self, theme: &Theme) -> Style {
-        let active = self.active(theme);
+    fn hovered(&self, color_palette: &ColorPalette) -> Style;
+
+    fn pressed(&self, color_palette: &ColorPalette) -> Style;
+
+    fn disabled(&self, color_palette: &ColorPalette) -> Style;
+}
+
+struct Default;
+
+impl StyleSheet<IcedColorPalette> for Default {
+    fn active(&self, color_palette: &IcedColorPalette) -> Style {
+        Style {
+            shadow_offset: Vector::new(0.0, 0.0),
+            background: Some(color_palette.surface.into()),
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: color_palette.accent,
+        }
+    }
+
+    fn hovered(&self, color_palette: &IcedColorPalette) -> Style {
+        let active = self.active(color_palette);
 
         Style {
             shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
@@ -46,15 +66,15 @@ pub trait StyleSheet {
         }
     }
 
-    fn pressed(&self, theme: &Theme) -> Style {
+    fn pressed(&self, color_palette: &IcedColorPalette) -> Style {
         Style {
             shadow_offset: Vector::default(),
-            ..self.active(theme)
+            ..self.active(color_palette)
         }
     }
 
-    fn disabled(&self, theme: &Theme) -> Style {
-        let active = self.active(theme);
+    fn disabled(&self, color_palette: &IcedColorPalette) -> Style {
+        let active = self.active(color_palette);
 
         Style {
             shadow_offset: Vector::default(),
@@ -69,29 +89,15 @@ pub trait StyleSheet {
     }
 }
 
-struct Default;
-
-impl StyleSheet for Default {
-    fn active(&self, theme: &Theme) -> Style {
-        Style {
-            shadow_offset: Vector::new(0.0, 0.0),
-            background: Some(theme.surface.into()),
-            border_radius: 2.0,
-            border_width: 1.0,
-            border_color: theme.accent,
-        }
-    }
-}
-
-impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
+impl<'a> std::default::Default for Box<dyn StyleSheet<IcedColorPalette> + 'a> {
     fn default() -> Self {
         Box::new(Default)
     }
 }
 
-impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
+impl<'a, T> From<T> for Box<dyn StyleSheet<IcedColorPalette> + 'a>
 where
-    T: StyleSheet + 'a,
+    T: StyleSheet<IcedColorPalette> + 'a,
 {
     fn from(style_sheet: T) -> Self {
         Box::new(style_sheet)

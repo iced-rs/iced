@@ -12,81 +12,85 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a text input.
-pub trait StyleSheet {
+pub trait StyleSheet<ColorPalette> {
     fn get_style(
         &self,
-        theme: &Theme,
+        color_palette: &ColorPalette,
         is_focused: bool,
         is_mouse_over: bool,
     ) -> Style {
         if is_focused {
-            self.focused(theme)
+            self.focused(color_palette)
         } else if is_mouse_over {
-            self.hovered(theme)
+            self.hovered(color_palette)
         } else {
-            self.active(theme)
+            self.active(color_palette)
         }
     }
 
-    fn get_text_color(&self, theme: &Theme, is_empty: bool) -> Color {
+    fn get_text_color(
+        &self,
+        color_palette: &ColorPalette,
+        is_empty: bool,
+    ) -> Color {
         if is_empty {
-            self.placeholder_color(theme)
+            self.placeholder_color(color_palette)
         } else {
-            self.value_color(theme)
+            self.value_color(color_palette)
         }
     }
 
     /// Produces the style of an active text input.
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, color_palette: &ColorPalette) -> Style;
 
     /// Produces the style of a focused text input.
-    fn focused(&self, theme: &Theme) -> Style;
+    fn focused(&self, color_palette: &ColorPalette) -> Style;
 
-    fn placeholder_color(&self, theme: &Theme) -> Color;
+    fn placeholder_color(&self, color_palette: &ColorPalette) -> Color;
 
-    fn value_color(&self, theme: &Theme) -> Color;
+    fn value_color(&self, color_palette: &ColorPalette) -> Color;
 
-    fn selection_color(&self, theme: &Theme) -> Color;
+    fn selection_color(&self, color_palette: &ColorPalette) -> Color;
 
     /// Produces the style of an hovered text input.
-    fn hovered(&self, theme: &Theme) -> Style {
-        self.focused(theme)
+    fn hovered(&self, color_palette: &ColorPalette) -> Style {
+        self.focused(color_palette)
     }
 }
 
 struct Default;
 
-impl StyleSheet for Default {
-    fn active(&self, theme: &Theme) -> Style {
+impl StyleSheet<IcedColorPalette> for Default {
+    fn active(&self, color_palette: &ColorPalette) -> Style {
         Style {
-            background: theme.surface.into(),
+            background: color_palette.surface.into(),
             border_radius: 5.0,
             border_width: 1.0,
-            border_color: theme.accent,
+            border_color: color_palette.accent,
         }
     }
 
-    fn focused(&self, theme: &Theme) -> Style {
+    fn focused(&self, color_palette: &ColorPalette) -> Style {
         Style {
             border_color: Color::from_rgb(
-                theme.accent.r - 0.2,
-                theme.accent.g - 0.2,
-                theme.accent.b - 0.2,
+                color_palette.accent.r - 0.2,
+                color_palette.accent.g - 0.2,
+                color_palette.accent.b - 0.2,
             ),
-            ..self.active(theme)
+            ..self.active(color_palette)
         }
     }
 
-    fn placeholder_color(&self, theme: &Theme) -> Color {
-        theme.accent
+    fn placeholder_color(&self, color_palette: &ColorPalette) -> Color {
+        color_palette.accent
     }
 
-    fn value_color(&self, theme: &Theme) -> Color {
-        theme.needs_better_naming
+    fn value_color(&self, color_palette: &ColorPalette) -> Color {
+        color_palette.needs_better_naming
     }
 
-    fn selection_color(&self, theme: &Theme) -> Color {
-        theme.text_highlight
+    fn selection_color(&self, color_palette: &ColorPalette) -> Color {
+        color_palette.text_highlight
     }
 }
 

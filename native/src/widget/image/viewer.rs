@@ -9,7 +9,6 @@ use crate::{
     Widget,
 };
 
-use iced_style::Theme;
 use std::hash::Hash;
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -304,7 +303,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _style: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,

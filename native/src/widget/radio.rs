@@ -50,7 +50,7 @@ pub struct Radio<'a, Message, Renderer: text::Renderer> {
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
-    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer: text::Renderer> Radio<'a, Message, Renderer>
@@ -90,7 +90,7 @@ where
             spacing: Self::DEFAULT_SPACING, //15
             text_size: None,
             font: Default::default(),
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
         }
     }
 
@@ -129,7 +129,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.custom_style_sheet = Some(style_sheet.into());
+        self.style_sheet = style_sheet.into();
         self
     }
 }
@@ -211,7 +211,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -221,11 +221,11 @@ where
 
         let mut children = layout.children();
 
-        let style_sheet = match &self.custom_style_sheet {
-            Some(style_sheet) => style_sheet,
-            None => &theme.radio_style_sheet,
+        let custom_style = if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
         };
-        let style = style_sheet.get_style(is_mouse_over);
 
         {
             let layout = children.next().unwrap();
@@ -238,10 +238,10 @@ where
                 renderer::Quad {
                     bounds,
                     border_radius: size / 2.0,
-                    border_width: style.border_width,
-                    border_color: style.border_color,
+                    border_width: custom_style.border_width,
+                    border_color: custom_style.border_color,
                 },
-                style.background,
+                custom_style.background,
             );
 
             if self.is_selected {
@@ -257,7 +257,7 @@ where
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
-                    style.dot_color,
+                    custom_style.dot_color,
                 );
             }
         }
@@ -267,12 +267,12 @@ where
 
             widget::text::draw(
                 renderer,
-                theme,
+                style,
                 label_layout,
                 &self.label,
                 self.font.clone(),
                 self.text_size,
-                style.text_color,
+                custom_style.text_color,
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );

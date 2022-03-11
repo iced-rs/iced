@@ -27,7 +27,7 @@ pub struct Scrollable<'a, Message, Renderer> {
     scroller_width: u16,
     content: Column<'a, Message, Renderer>,
     on_scroll: Option<Box<dyn Fn(f32) -> Message>>,
-    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
@@ -42,7 +42,7 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
             scroller_width: 10,
             content: Column::new(),
             on_scroll: None,
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
         }
     }
 
@@ -127,7 +127,7 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.custom_style_sheet = Some(style_sheet.into());
+        self.style_sheet = style_sheet.into();
         self
     }
 
@@ -466,7 +466,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -496,7 +496,7 @@ where
                     |renderer| {
                         self.content.draw(
                             renderer,
-                            theme,
+                            style,
                             content_layout,
                             cursor_position,
                             &Rectangle {
@@ -508,14 +508,13 @@ where
                 );
             });
 
-            let style_sheet = match &self.custom_style_sheet {
-                Some(style_sheet) => style_sheet,
-                None => &theme.scrollable_style_sheet,
+            let style = if self.state.is_scroller_grabbed() {
+                self.style_sheet.dragging()
+            } else if is_mouse_over_scrollbar {
+                self.style_sheet.hovered()
+            } else {
+                self.style_sheet.active()
             };
-            let style = style_sheet.get_style(
-                self.state.is_scroller_grabbed(),
-                is_mouse_over_scrollbar,
-            );
 
             let is_scrollbar_visible =
                 style.background.is_some() || style.border_width > 0.0;
@@ -560,7 +559,7 @@ where
         } else {
             self.content.draw(
                 renderer,
-                theme,
+                style,
                 content_layout,
                 cursor_position,
                 &Rectangle {

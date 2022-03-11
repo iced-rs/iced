@@ -1,6 +1,6 @@
 //! Let your users split regions of your application and organize layout
 //! dynamically.
-use crate::Theme;
+use crate::{IcedColorPalette, Theme};
 use iced_core::Color;
 
 /// A line.
@@ -16,30 +16,34 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a pane grid.
-pub trait StyleSheet {
-    fn get_style(&self, theme: &Theme, is_picked: bool) -> Option<Style> {
+pub trait StyleSheet<ColorPalette> {
+    fn get_style(
+        &self,
+        color_palette: &ColorPalette,
+        is_picked: bool,
+    ) -> Option<Style> {
         if is_picked {
-            self.picked_split(theme)
+            self.picked_split(color_palette)
         } else {
-            self.hovered_split(theme)
+            self.hovered_split(color_palette)
         }
     }
 
     /// The [`Line`] to draw when a split is picked.
-    fn picked_split(&self, theme: &Theme) -> Option<Style>;
+    fn picked_split(&self, color_palette: &ColorPalette) -> Option<Style>;
 
     /// The [`Line`] to draw when a split is hovered.
-    fn hovered_split(&self, theme: &Theme) -> Option<Style>;
+    fn hovered_split(&self, color_palette: &ColorPalette) -> Option<Style>;
 }
 
 struct Default;
 
-impl StyleSheet for Default {
-    fn picked_split(&self, _theme: &Theme) -> Option<Style> {
+impl StyleSheet<IcedColorPalette> for Default {
+    fn picked_split(&self, _color_palette: &ColorPalette) -> Option<Style> {
         None
     }
 
-    fn hovered_split(&self, _theme: &Theme) -> Option<Style> {
+    fn hovered_split(&self, _color_palette: &ColorPalette) -> Option<Style> {
         None
     }
 }

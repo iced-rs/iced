@@ -1,5 +1,5 @@
 //! Implement your own event loop to drive a user interface.
-use crate::event::{self, Event, Theme};
+use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};

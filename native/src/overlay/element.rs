@@ -1,10 +1,7 @@
-pub use crate::Overlay;
-use iced_style::Theme;
-
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::renderer;
+pub use crate::Overlay;
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// A generic [`Overlay`].
@@ -95,11 +92,11 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.overlay.draw(renderer, style, layout, cursor_position)
+        self.overlay.draw(renderer, theme, layout, cursor_position)
     }
 }
 
@@ -174,10 +171,10 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.content.draw(renderer, style, layout, cursor_position)
+        self.content.draw(renderer, theme, layout, cursor_position)
     }
 }

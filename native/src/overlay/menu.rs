@@ -14,8 +14,7 @@ use crate::{
     Shell, Size, Vector, Widget,
 };
 
-pub use iced_style::menu::Style;
-use iced_style::Theme;
+pub use iced_style::menu::StyleSheet;
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
@@ -28,7 +27,7 @@ pub struct Menu<'a, T, Renderer: text::Renderer> {
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    custom_style: Option<Style>,
+    style: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, T, Renderer> Menu<'a, T, Renderer>
@@ -53,7 +52,7 @@ where
             padding: Padding::ZERO,
             text_size: None,
             font: Default::default(),
-            custom_style: None,
+            style: Default::default(),
         }
     }
 
@@ -82,8 +81,8 @@ where
     }
 
     /// Sets the style of the [`Menu`].
-    pub fn style(mut self, style: impl Into<Style>) -> Self {
-        self.custom_style = Some(style.into());
+    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet + 'a>>) -> Self {
+        self.style = style.into();
         self
     }
 
@@ -122,7 +121,7 @@ struct Overlay<'a, Message, Renderer: text::Renderer> {
     container: Container<'a, Message, Renderer>,
     width: u16,
     target_height: f32,
-    custom_style: Option<Style>,
+    style: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer: text::Renderer> Overlay<'a, Message, Renderer>
@@ -143,7 +142,7 @@ where
             padding,
             font,
             text_size,
-            custom_style,
+            style,
         } = menu;
 
         let container =
@@ -154,15 +153,15 @@ where
                 font,
                 text_size,
                 padding,
-                custom_style,
+                style: style.clone(),
             }))
             .padding(1);
 
         Self {
             container,
-            width: width,
+            width,
             target_height,
-            custom_style,
+            style,
         }
     }
 }
@@ -242,24 +241,20 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
         let bounds = layout.bounds();
 
-        let style = match &self.custom_style {
-            Some(style) => style,
-            None => &theme.menu_style,
-        };
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_color: style.border_color,
-                border_width: style.border_width,
+                border_color: self.style.border_color,
+                border_width: self.style.border_width,
                 border_radius: 0.0,
             },
-            style.background,
+            self.style.background,
         );
 
         self.container
@@ -274,7 +269,7 @@ struct List<'a, T, Renderer: text::Renderer> {
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    custom_style: Option<Style>,
+    style: Style,
 }
 
 impl<'a, T, Message, Renderer> Widget<Message, Renderer>
@@ -394,17 +389,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
 
-        let style = match &self.custom_style {
-            Some(style) => style,
-            None => &theme.menu_style,
-        };
         let text_size = self.text_size.unwrap_or(renderer.default_size());
         let option_height = (text_size + self.padding.vertical()) as usize;
 
@@ -434,7 +425,7 @@ where
                         border_width: 0.0,
                         border_radius: 0.0,
                     },
-                    style.selected_background,
+                    self.style.selected_background,
                 );
             }
 
@@ -449,9 +440,9 @@ where
                 size: f32::from(text_size),
                 font: self.font.clone(),
                 color: if is_selected {
-                    style.selected_text_color
+                    self.style.selected_text_color
                 } else {
-                    style.text_color
+                    self.style.text_color
                 },
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Center,

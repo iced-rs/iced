@@ -26,41 +26,41 @@ pub enum HandleShape {
 }
 
 /// A set of rules that dictate the style of a slider.
-pub trait StyleSheet {
+pub trait StyleSheet<ColorPalette> {
     fn get_style(
         &self,
-        theme: &Theme,
+        color_palette: &ColorPalette,
         is_dragging: bool,
         is_mouse_over: bool,
     ) -> Style {
         if is_dragging {
-            self.dragging(theme)
+            self.dragging(color_palette)
         } else if is_mouse_over {
-            self.hovered(theme)
+            self.hovered(color_palette)
         } else {
-            self.active(theme)
+            self.active(color_palette)
         }
     }
 
     /// Produces the style of an active slider.
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, color_palette: &ColorPalette) -> Style;
 
     /// Produces the style of an hovered slider.
-    fn hovered(&self, theme: &Theme) -> Style;
+    fn hovered(&self, color_palette: &ColorPalette) -> Style;
 
     /// Produces the style of a slider that is being dragged.
-    fn dragging(&self, theme: &Theme) -> Style;
+    fn dragging(&self, color_palette: &ColorPalette) -> Style;
 }
 
 struct Default;
 
-impl StyleSheet for Default {
-    fn active(&self, theme: &Theme) -> Style {
+impl StyleSheet<IcedColorPalette> for Default {
+    fn active(&self, color_palette: &ColorPalette) -> Style {
         Style {
             rail_colors: (
                 Color {
                     a: 0.5,
-                    ..theme.accent
+                    ..color_palette.accent
                 }
                 .into(),
                 Color::WHITE,
@@ -70,34 +70,34 @@ impl StyleSheet for Default {
                     width: 8,
                     border_radius: 4.0,
                 },
-                color: theme.surface,
-                border_color: theme.accent,
+                color: color_palette.surface,
+                border_color: color_palette.accent,
                 border_width: 1.0,
             },
         }
     }
 
-    fn hovered(&self, theme: &Theme) -> Style {
-        let active = self.active(theme);
+    fn hovered(&self, color_palette: &ColorPalette) -> Style {
+        let active = self.active(color_palette);
 
         Style {
             handle: Handle {
-                color: theme.hover,
+                color: color_palette.hover,
                 ..active.handle
             },
             ..active
         }
     }
 
-    fn dragging(&self, theme: &Theme) -> Style {
-        let active = self.active(theme);
+    fn dragging(&self, color_palette: &ColorPalette) -> Style {
+        let active = self.active(color_palette);
 
         Style {
             handle: Handle {
                 color: Color::from_rgb(
-                    theme.hover.r - 0.05,
-                    theme.hover.g - 0.05,
-                    theme.hover.b - 0.05,
+                    color_palette.hover.r - 0.05,
+                    color_palette.hover.g - 0.05,
+                    color_palette.hover.b - 0.05,
                 ),
                 ..active.handle
             },

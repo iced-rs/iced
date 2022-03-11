@@ -24,7 +24,7 @@ pub struct ProgressBar<'a> {
     value: f32,
     width: Length,
     height: Option<Length>,
-    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a> ProgressBar<'a> {
@@ -42,7 +42,7 @@ impl<'a> ProgressBar<'a> {
             range,
             width: Length::Fill,
             height: None,
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
         }
     }
 
@@ -63,7 +63,7 @@ impl<'a> ProgressBar<'a> {
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.custom_style_sheet = Some(style_sheet.into());
+        self.style_sheet = style_sheet.into();
         self
     }
 }
@@ -97,7 +97,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -112,11 +112,7 @@ where
                 / (range_end - range_start)
         };
 
-        let style_sheet = match &self.custom_style_sheet {
-            Some(style_sheet) => style_sheet,
-            None => &theme.progress_bar_style_sheet,
-        };
-        let style = style_sheet.style();
+        let style = self.style_sheet.style();
 
         renderer.fill_quad(
             renderer::Quad {

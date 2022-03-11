@@ -13,7 +13,6 @@ use crate::{
 use std::u32;
 
 pub use iced_style::container::{Style, StyleSheet};
-use iced_style::Theme;
 
 /// An element decorating some content.
 ///
@@ -27,7 +26,7 @@ pub struct Container<'a, Message, Renderer> {
     max_height: u32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
     content: Element<'a, Message, Renderer>,
 }
 
@@ -48,7 +47,7 @@ where
             max_height: u32::MAX,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
             content: content.into(),
         }
     }
@@ -112,7 +111,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.custom_style_sheet = Some(style_sheet.into());
+        self.style_sheet = style_sheet.into();
         self
     }
 }
@@ -196,22 +195,21 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        let style_sheet = match &self.custom_style_sheet {
-            Some(style_sheet) => style_sheet,
-            None => &theme.container_style_sheet,
-        };
-        let style = style_sheet.style();
+        let style = self.style_sheet.style(theme);
 
         draw_background(renderer, &style, layout.bounds());
 
         self.content.draw(
             renderer,
-            theme,
+            &iced_style::Theme {
+                text: style.text_color.unwrap_or(theme.text),
+                ..*theme
+            },
             layout.children().next().unwrap(),
             cursor_position,
             viewport,

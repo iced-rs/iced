@@ -7,11 +7,11 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
-use crate::Renderer;
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
 };
+use std::fmt::Debug;
 
 pub use iced_style::button::{Style, StyleSheet};
 use iced_style::Theme;
@@ -66,7 +66,7 @@ pub struct Button<'a, Message, Renderer> {
     min_width: u32,
     min_height: u32,
     padding: Padding,
-    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -89,7 +89,7 @@ where
             min_width: 0,
             min_height: 0,
             padding: Padding::new(5),
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
         }
     }
 
@@ -135,7 +135,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.custom_style_sheet = Some(style_sheet.into());
+        self.style_sheet = style_sheet.into();
         self
     }
 }
@@ -157,7 +157,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: crate::Renderer,
+    Renderer: crate::Renderer<Theme: Debug>,
 {
     fn width(&self) -> Length {
         self.width
@@ -268,7 +268,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -279,27 +279,21 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
         let is_disabled = self.on_press.is_none();
 
-        let style_sheet = match &self.custom_style_sheet {
-            Some(style_sheet) => style_sheet,
-            None => &theme.button_style_sheet,
-        };
-        let style = style_sheet.get_style(
-            is_disabled,
-            is_mouse_over,
-            self.state.is_pressed,
-        );
+        let styling =
+            self.style
+                .get_style(theme, is_mouse_over, self.state.is_pressed);
 
-        if style.background.is_some() || style.border_width > 0.0 {
-            if style.shadow_offset != Vector::default() {
+        if styling.background.is_some() || styling.border_width > 0.0 {
+            if styling.shadow_offset != Vector::default() {
                 // TODO: Implement proper shadow support
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
-                            x: bounds.x + style.shadow_offset.x,
-                            y: bounds.y + style.shadow_offset.y,
+                            x: bounds.x + styling.shadow_offset.x,
+                            y: bounds.y + styling.shadow_offset.y,
                             ..bounds
                         },
-                        border_radius: style.border_radius,
+                        border_radius: styling.border_radius,
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
@@ -310,11 +304,11 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border_radius: style.border_radius,
-                    border_width: style.border_width,
-                    border_color: style.border_color,
+                    border_radius: styling.border_radius,
+                    border_width: styling.border_width,
+                    border_color: styling.border_color,
                 },
-                style
+                styling
                     .background
                     .unwrap_or(Background::Color(Color::TRANSPARENT)),
             );

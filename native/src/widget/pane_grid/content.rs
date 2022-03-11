@@ -2,11 +2,9 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::renderer;
 use crate::widget::container;
 use crate::widget::pane_grid::TitleBar;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
-use iced_style::Theme;
 
 /// The content of a [`Pane`].
 ///
@@ -60,7 +58,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -68,7 +66,7 @@ where
         let bounds = layout.bounds();
 
         {
-            let style = self.style_sheet.style();
+            let style = self.style_sheet.style(theme);
 
             container::draw_background(renderer, &style, bounds);
         }
@@ -82,7 +80,7 @@ where
 
             title_bar.draw(
                 renderer,
-                style,
+                theme,
                 title_bar_layout,
                 cursor_position,
                 viewport,
@@ -91,14 +89,14 @@ where
 
             self.body.draw(
                 renderer,
-                style,
+                theme,
                 body_layout,
                 cursor_position,
                 viewport,
             );
         } else {
             self.body
-                .draw(renderer, style, layout, cursor_position, viewport);
+                .draw(renderer, theme, layout, cursor_position, viewport);
         }
     }
 

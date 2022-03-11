@@ -40,7 +40,7 @@ pub struct Toggler<'a, Message, Renderer: text::Renderer> {
     text_alignment: alignment::Horizontal,
     spacing: u16,
     font: Renderer::Font,
-    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
@@ -73,7 +73,7 @@ impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
             text_alignment: alignment::Horizontal::Left,
             spacing: 0,
             font: Renderer::Font::default(),
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
         }
     }
 
@@ -118,7 +118,7 @@ impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.custom_style_sheet = Some(style_sheet.into());
+        self.style_sheet = style_sheet.into();
         self
     }
 }
@@ -207,7 +207,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -226,7 +226,7 @@ where
 
             crate::widget::text::draw(
                 renderer,
-                theme,
+                style,
                 label_layout,
                 &label,
                 self.font.clone(),
@@ -242,11 +242,11 @@ where
 
         let is_mouse_over = bounds.contains(cursor_position);
 
-        let style_sheet = match &self.custom_style_sheet {
-            Some(style_sheet) => style_sheet,
-            None => &theme.toggler_style_sheet,
+        let style = if is_mouse_over {
+            self.style_sheet.hovered(self.is_active)
+        } else {
+            self.style_sheet.active(self.is_active)
         };
-        let style = style_sheet.get_style(is_mouse_over, self.is_active);
 
         let border_radius = bounds.height as f32 / BORDER_RADIUS_RATIO;
         let space = SPACE_RATIO * bounds.height as f32;

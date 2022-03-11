@@ -11,17 +11,17 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a progress bar.
-pub trait StyleSheet {
-    fn style(&self, theme: &Theme) -> Style;
+pub trait StyleSheet<ColorPalette> {
+    fn style(&self, color_palette: &ColorPalette) -> Style;
 }
 
 struct Default;
 
-impl StyleSheet for Default {
-    fn style(&self, theme: &Theme) -> Style {
+impl StyleSheet<IcedColorPalette> for Default {
+    fn style(&self, color_palette: &ColorPalette) -> Style {
         Style {
-            background: theme.accent.into(),
-            bar: theme.active.into(),
+            background: color_palette.accent.into(),
+            bar: color_palette.active.into(),
             border_radius: 5.0,
         }
     }

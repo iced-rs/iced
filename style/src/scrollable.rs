@@ -22,45 +22,45 @@ pub struct Scroller {
 }
 
 /// A set of rules that dictate the style of a scrollable.
-pub trait StyleSheet {
+pub trait StyleSheet<ColorPalette> {
     fn get_style(
         &self,
-        theme: &Theme,
+        color_palette: &ColorPalette,
         is_scroller_grabbed: bool,
         is_mouse_over_scrollbar: bool,
     ) -> Style {
         if is_scroller_grabbed {
-            self.dragging(theme)
+            self.dragging(color_palette)
         } else if is_mouse_over_scrollbar {
-            self.hovered(theme)
+            self.hovered(color_palette)
         } else {
-            self.active(theme)
+            self.active(color_palette)
         }
     }
 
     /// Produces the style of an active scrollbar.
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, color_palette: &ColorPalette) -> Style;
 
     /// Produces the style of an hovered scrollbar.
-    fn hovered(&self, theme: &Theme) -> Style;
+    fn hovered(&self, color_palette: &ColorPalette) -> Style;
 
     /// Produces the style of a scrollbar that is being dragged.
-    fn dragging(&self, theme: &Theme) -> Style {
-        self.hovered(theme)
+    fn dragging(&self, color_palette: &ColorPalette) -> Style {
+        self.hovered(color_palette)
     }
 }
 
 struct Default;
 
-impl StyleSheet for Default {
-    fn active(&self, theme: &Theme) -> Style {
+impl StyleSheet<IcedColorPalette> for Default {
+    fn active(&self, color_palette: &ColorPalette) -> Style {
         Style {
             background: None,
             border_radius: 5.0,
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
             scroller: Scroller {
-                color: theme.active,
+                color: color_palette.active,
                 border_radius: 5.0,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
@@ -68,16 +68,16 @@ impl StyleSheet for Default {
         }
     }
 
-    fn hovered(&self, theme: &Theme) -> Style {
+    fn hovered(&self, color_palette: &ColorPalette) -> Style {
         Style {
             background: Some(
                 Color {
                     a: 0.5,
-                    ..theme.surface
+                    ..color_palette.surface
                 }
                 .into(),
             ),
-            ..self.active(theme)
+            ..self.active(color_palette)
         }
     }
 }

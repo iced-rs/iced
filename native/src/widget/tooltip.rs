@@ -17,7 +17,7 @@ pub struct Tooltip<'a, Message, Renderer: text::Renderer> {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
-    custom_style_sheet: Option<Box<dyn container::StyleSheet + 'a>>,
+    style_sheet: Box<dyn container::StyleSheet + 'a>,
     gap: u16,
     padding: u16,
 }
@@ -41,7 +41,7 @@ where
             content: content.into(),
             tooltip: Text::new(tooltip.to_string()),
             position,
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
             gap: 0,
             padding: Self::DEFAULT_PADDING,
         }
@@ -78,7 +78,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn container::StyleSheet + 'a>>,
     ) -> Self {
-        self.custom_style_sheet = Some(style_sheet.into());
+        self.style_sheet = style_sheet.into();
         self
     }
 }
@@ -156,7 +156,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        inherited_style: &renderer::Theme,
+        inherited_theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -173,11 +173,13 @@ where
 
         if bounds.contains(cursor_position) {
             let gap = f32::from(self.gap);
-            let style_sheet = match &self.custom_style_sheet {
-                Some(style_sheet) => style_sheet,
-                None => &inherited_style.tooltip_style_sheet,
+            let style = self.style_sheet.style();
+
+            let defaults = renderer::Style {
+                text_color: style
+                    .text_color
+                    .unwrap_or(inherited_style.text_color),
             };
-            let style = style_sheet.style();
 
             let text_layout = Widget::<(), Renderer>::layout(
                 &self.tooltip,
@@ -248,7 +250,7 @@ where
                 Widget::<(), Renderer>::draw(
                     &self.tooltip,
                     renderer,
-                    inherited_style,
+                    &defaults,
                     Layout::with_offset(
                         Vector::new(
                             tooltip_bounds.x + padding,

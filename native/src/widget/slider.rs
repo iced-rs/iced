@@ -49,7 +49,7 @@ pub struct Slider<'a, T, Message> {
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    custom_style_sheet: Option<Box<dyn StyleSheet + 'a>>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
 impl<'a, T, Message> Slider<'a, T, Message>
@@ -99,7 +99,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            custom_style_sheet: None,
+            style_sheet: Default::default(),
         }
     }
 
@@ -131,7 +131,7 @@ where
         mut self,
         style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
-        self.custom_style_sheet = Some(style_sheet.into());
+        self.style_sheet = style_sheet.into();
         self
     }
 
@@ -264,7 +264,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &renderer::Theme,
+        theme: &iced_style::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -272,12 +272,13 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
 
-        let style_sheet = match &self.custom_style_sheet {
-            Some(style_sheet) => style_sheet,
-            None => &theme.slider_style_sheet,
+        let style = if self.state.is_dragging {
+            self.style_sheet.dragging()
+        } else if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
         };
-        let style =
-            style_sheet.get_style(self.state.is_dragging, is_mouse_over);
 
         let rail_y = bounds.y + (bounds.height / 2.0).round();
 

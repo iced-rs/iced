@@ -10,22 +10,26 @@
 pub use iced_core::{Background, Color};
 
 pub mod button;
-pub mod checkbox;
-pub mod container;
-pub mod menu;
-pub mod pane_grid;
-pub mod pick_list;
-pub mod progress_bar;
-pub mod radio;
-pub mod rule;
-pub mod scrollable;
-pub mod slider;
-pub mod text_input;
-pub mod toggler;
+// pub mod checkbox;
+// pub mod container;
+// pub mod menu;
+// pub mod pane_grid;
+// pub mod pick_list;
+// pub mod progress_bar;
+// pub mod radio;
+// pub mod rule;
+// pub mod scrollable;
+// pub mod slider;
+// pub mod text_input;
+// pub mod toggler;
+
+pub trait Theme {
+    type ColorPalette;
+}
 
 /// The styling attributes of a [`Renderer`].
 #[allow(missing_debug_implementations)]
-pub struct Theme {
+pub struct IcedColorPalette {
     pub text: Color,
     pub needs_better_naming: Color,
     pub surface: Color,
@@ -36,7 +40,7 @@ pub struct Theme {
     pub text_highlight: Color,
 }
 
-const DEFAULT_THEME: Theme = Theme {
+const DEFAULT_ICED_COLOR_PALETTE: IcedColorPalette = IcedColorPalette {
     text: Color::BLACK,
     active: Color::from_rgb(0.3, 0.9, 0.3),
     accent: Color::from_rgb(0.7, 0.7, 0.7),
@@ -47,8 +51,8 @@ const DEFAULT_THEME: Theme = Theme {
     text_highlight: Color::from_rgb(0.8, 0.8, 0.1),
 };
 
-impl Default for Theme {
+impl Default for IcedColorPalette {
     fn default() -> Self {
-        DEFAULT_THEME
+        DEFAULT_ICED_COLOR_PALETTE
     }
 }

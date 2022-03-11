@@ -1,5 +1,5 @@
 //! Show toggle controls using checkboxes.
-use crate::Theme;
+use crate::{IcedColorPalette, Theme};
 use iced_core::{Background, Color};
 
 /// The appearance of a checkbox.
@@ -14,43 +14,43 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a checkbox.
-pub trait StyleSheet {
+pub trait StyleSheet<ColorPalette> {
     fn get_style(
         &self,
-        theme: &Theme,
+        color_palette: &ColorPalette,
         is_mouse_over: bool,
         is_checked: bool,
     ) -> Style {
         if is_mouse_over {
-            self.hovered(theme, is_checked)
+            self.hovered(color_palette, is_checked)
         } else {
-            self.active(theme, is_checked)
+            self.active(color_palette, is_checked)
         }
     }
 
-    fn active(&self, theme: &Theme, is_checked: bool) -> Style;
+    fn active(&self, color_palette: &ColorPalette, is_checked: bool) -> Style;
 
-    fn hovered(&self, theme: &Theme, is_checked: bool) -> Style;
+    fn hovered(&self, color_palette: &ColorPalette, is_checked: bool) -> Style;
 }
 
 struct Default;
 
-impl StyleSheet for Default {
-    fn active(&self, theme: &Theme, _is_checked: bool) -> Style {
+impl StyleSheet<IcedColorPalette> for Default {
+    fn active(&self, color_palette: &ColorPalette, _is_checked: bool) -> Style {
         Style {
-            background: theme.surface.into(),
-            checkmark_color: theme.needs_better_naming,
+            background: color_palette.surface.into(),
+            checkmark_color: color_palette.needs_better_naming,
             border_radius: 5.0,
             border_width: 1.0,
-            border_color: theme.accent,
+            border_color: color_palette.accent,
             text_color: None,
         }
     }
 
-    fn hovered(&self, theme: &Theme, is_checked: bool) -> Style {
+    fn hovered(&self, color_palette: &ColorPalette, is_checked: bool) -> Style {
         Style {
-            background: theme.hover.into(),
-            ..self.active(theme, is_checked)
+            background: color_palette.hover.into(),
+            ..self.active(color_palette, is_checked)
         }
     }
 }

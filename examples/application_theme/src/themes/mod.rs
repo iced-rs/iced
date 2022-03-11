@@ -1,10 +1,11 @@
 mod dark;
+mod test;
 mod ugly;
 
-use iced::Theme;
+use iced::{Color, Theme};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Theme {
+pub enum Theme1 {
     /// The default iced theme
     IcedDefault,
     /// The dark theme
