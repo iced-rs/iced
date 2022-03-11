@@ -228,8 +228,17 @@ pub fn draw<Renderer>(
     };
 
     for &Highlight { start, end, color } in highlights {
-        let start_index = get_byte_offset(start).unwrap();
-        let end_index = get_byte_offset(end).unwrap();
+        let start_index = if let Some(index) = get_byte_offset(start.min(end)) {
+            index
+        } else {
+            continue;
+        };
+
+        let end_index = if let Some(index) = get_byte_offset(start.max(end)) {
+            index
+        } else {
+            continue;
+        };
 
         let width_before_start =
             renderer.measure_width(&content[..start_index], size, font.clone());
