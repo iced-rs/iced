@@ -160,6 +160,17 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        draw_highlights(
+            renderer,
+            layout,
+            &self.content,
+            self.font.clone(),
+            self.size,
+            &self.highlights,
+            self.horizontal_alignment,
+            self.vertical_alignment,
+        );
+
         draw(
             renderer,
             style,
@@ -168,7 +179,6 @@ where
             self.font.clone(),
             self.size,
             self.color,
-            &self.highlights,
             self.horizontal_alignment,
             self.vertical_alignment,
         );
@@ -193,7 +203,6 @@ pub fn draw<Renderer>(
     font: Renderer::Font,
     size: Option<u16>,
     color: Option<Color>,
-    highlights: &[Highlight],
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
 ) where
@@ -214,6 +223,53 @@ pub fn draw<Renderer>(
     };
 
     let size = size.unwrap_or(renderer.default_size());
+
+    renderer.fill_text(crate::text::Text {
+        content,
+        size: f32::from(size),
+        bounds: Rectangle { x, y, ..bounds },
+        color: color.unwrap_or(style.text_color),
+        font,
+        horizontal_alignment,
+        vertical_alignment,
+    });
+}
+
+/// Draws highlights behind text (But not the text itself) using the same logic as the [`Text`] widget.
+///
+/// Specifically:
+///
+/// * If no `size` is provided, the default text size of the `Renderer` will be
+///   used.
+/// * The alignment attributes do not affect the position of the bounds of the
+///   [`Layout`].
+pub fn draw_highlights<Renderer>(
+    renderer: &mut Renderer,
+    layout: Layout<'_>,
+    content: &str,
+    font: Renderer::Font,
+    size: Option<u16>,
+    highlights: &[Highlight],
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
+) where
+    Renderer: text::Renderer,
+{
+    let bounds = layout.bounds();
+
+    let x = match horizontal_alignment {
+        alignment::Horizontal::Left => bounds.x,
+        alignment::Horizontal::Center => bounds.center_x(),
+        alignment::Horizontal::Right => bounds.x + bounds.width,
+    };
+
+    let y = match vertical_alignment {
+        alignment::Vertical::Top => bounds.y,
+        alignment::Vertical::Center => bounds.center_y(),
+        alignment::Vertical::Bottom => bounds.y + bounds.height,
+    };
+
+    let size = size.unwrap_or_else(|| renderer.default_size());
 
     // Cache byte offsets up to the highest accessed index
     let mut byte_offsets = Vec::new();
@@ -329,16 +385,6 @@ pub fn draw<Renderer>(
             height_offset += height;
         }
     }
-
-    renderer.fill_text(crate::text::Text {
-        content,
-        size: f32::from(size),
-        bounds: Rectangle { x, y, ..bounds },
-        color: color.unwrap_or(style.text_color),
-        font,
-        horizontal_alignment,
-        vertical_alignment,
-    });
 }
 
 impl<'a, Message, Renderer> From<Text<Renderer>>
