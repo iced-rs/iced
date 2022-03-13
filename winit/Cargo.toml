@@ -31,6 +31,10 @@ path = "../native"
 version = "0.2"
 path = "../graphics"
 
+[dependencies.iced_style]
+version = "0.3"
+path = "../style"
+
 [dependencies.iced_futures]
 version = "0.3"
 path = "../futures"

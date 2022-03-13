@@ -18,7 +18,7 @@ pub use iced_style::container::{Style, StyleSheet};
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer> {
+pub struct Container<'a, Message, Renderer, Styling, Theme> {
     padding: Padding,
     width: Length,
     height: Length,
@@ -26,13 +26,16 @@ pub struct Container<'a, Message, Renderer> {
     max_height: u32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style_sheet: Box<dyn StyleSheet<Theme = Theme> + 'a>,
     content: Element<'a, Message, Renderer, Styling>,
 }
 
-impl<'a, Message, Renderer> Container<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme>
+    Container<'a, Message, Renderer, Styling, Theme>
 where
-    Renderer: crate::Renderer,
+    Styling:
+        iced_style::Styling<Theme = Theme> + StyleSheet<Theme = Theme> + 'a,
+    Renderer: crate::Renderer<Styling>,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
@@ -47,7 +50,7 @@ where
             max_height: u32::MAX,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
             content: content.into(),
         }
     }
@@ -109,17 +112,18 @@ where
     /// Sets the style of the [`Container`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Container<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Container<'a, Message, Renderer, Styling, Theme>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme> + StyleSheet<Theme = Theme>,
+    Renderer: crate::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.width
@@ -206,10 +210,7 @@ where
 
         self.content.draw(
             renderer,
-            &iced_style::Styling {
-                text: style.text_color.unwrap_or(theme.text),
-                ..*theme
-            },
+            theme,
             layout.children().next().unwrap(),
             cursor_position,
             viewport,
@@ -220,19 +221,20 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         self.content
             .overlay(layout.children().next().unwrap(), renderer)
     }
 }
 
 /// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
-pub fn draw_background<Renderer>(
+pub fn draw_background<Renderer, Styling, Theme>(
     renderer: &mut Renderer,
     style: &Style,
     bounds: Rectangle,
 ) where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme> + StyleSheet<Theme = Theme>,
+    Renderer: crate::Renderer<Styling>,
 {
     if style.background.is_some() || style.border_width > 0.0 {
         renderer.fill_quad(
@@ -249,14 +251,18 @@ pub fn draw_background<Renderer>(
     }
 }
 
-impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
+impl<'a, Message, Renderer, Styling, Theme>
+    From<Container<'a, Message, Renderer, Styling, Theme>>
     for Element<'a, Message, Renderer, Styling>
 where
-    Renderer: 'a + crate::Renderer,
+    Styling:
+        'a + iced_style::Styling<Theme = Theme> + StyleSheet<Theme = Theme>,
+    Theme: 'a,
+    Renderer: 'a + crate::Renderer<Styling>,
     Message: 'a,
 {
     fn from(
-        column: Container<'a, Message, Renderer>,
+        column: Container<'a, Message, Renderer, Styling, Theme>,
     ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(column)
     }

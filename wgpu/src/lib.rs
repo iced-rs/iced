@@ -53,8 +53,6 @@ pub(crate) use iced_graphics::Transformation;
 #[cfg(any(feature = "image_rs", feature = "svg"))]
 mod image;
 
-pub use iced_style::Theme;
-
 /// A [`wgpu`] graphics renderer for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs

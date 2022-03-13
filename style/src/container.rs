@@ -1,5 +1,4 @@
 //! Decorate content and apply alignment.
-use crate::{IcedTheme};
 use iced_core::{Background, Color};
 use std::fmt::Debug;
 
@@ -14,34 +13,35 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a container.
-pub trait StyleSheet<Theme> {
+pub trait StyleSheet {
+    type Theme;
     /// Produces the style of a container.
-    fn style(&self, theme: &Theme) -> Style;
+    fn style(&self, theme: &Self::Theme) -> Style;
 }
 
-struct Default;
+// struct Default;
+//
+// impl StyleSheet<IcedTheme> for Default {
+//     fn style(&self, theme: &Self::Theme) -> Style {
+//         Style {
+//             text_color: Some(theme.text),
+//             background: None,
+//             border_radius: 0.0,
+//             border_width: 0.0,
+//             border_color: Color::TRANSPARENT,
+//         }
+//     }
+// }
+//
+// impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
+//     fn default() -> Self {
+//         Box::new(Default)
+//     }
+// }
 
-impl StyleSheet<IcedTheme> for Default {
-    fn style(&self, theme: &Theme) -> Style {
-        Style {
-            text_color: Some(theme.text),
-            background: None,
-            border_radius: 0.0,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        }
-    }
-}
-
-impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
-    fn default() -> Self {
-        Box::new(Default)
-    }
-}
-
-impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
+impl<'a, T, S> From<T> for Box<dyn StyleSheet<Theme = S> + 'a>
 where
-    T: StyleSheet + 'a,
+    T: StyleSheet<Theme = S> + 'a,
 {
     fn from(style_sheet: T) -> Self {
         Box::new(style_sheet)

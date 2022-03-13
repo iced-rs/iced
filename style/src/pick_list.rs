@@ -14,12 +14,9 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a container.
-pub trait StyleSheet<Theme> {
-    fn get_style(
-        &self,
-        theme: &Theme,
-        is_mouse_over: bool,
-    ) -> Style {
+pub trait StyleSheet {
+    type Theme;
+    fn get_style(&self, theme: &Self::Theme, is_mouse_over: bool) -> Style {
         if is_mouse_over {
             self.hovered(theme)
         } else {
@@ -27,24 +24,23 @@ pub trait StyleSheet<Theme> {
         }
     }
 
-    fn menu_style(&self, theme: &Theme) -> menu::Style;
+    fn menu_style(&self, theme: &Self::Theme) -> menu::Style;
 
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, theme: &Self::Theme) -> Style;
 
     /// Produces the style of a container.
-    fn hovered(&self, theme: &Theme) -> Style;
+    fn hovered(&self, theme: &Self::Theme) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet<IcedTheme> for Default {
-    fn menu_style(&self, theme: &Theme) -> menu::Style {
-        let style_sheet: Box<dyn menu::StyleSheet<Theme>> =
-            Default::default();
+    fn menu_style(&self, theme: &Self::Theme) -> menu::Style {
+        let style_sheet: Box<dyn menu::StyleSheet<Theme>> = Default::default();
         style_sheet.style(theme)
     }
 
-    fn active(&self, theme: &Theme) -> Style {
+    fn active(&self, theme: &Self::Theme) -> Style {
         Style {
             text_color: theme.text,
             placeholder_color: theme.needs_better_naming,
@@ -56,7 +52,7 @@ impl StyleSheet<IcedTheme> for Default {
         }
     }
 
-    fn hovered(&self, theme: &Theme) -> Style {
+    fn hovered(&self, theme: &Self::Theme) -> Style {
         Style {
             border_color: theme.hover,
             ..self.active(theme)

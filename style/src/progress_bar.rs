@@ -1,6 +1,6 @@
 //! Provide progress feedback to your users.
-use iced_core::Background;
 use crate::IcedTheme;
+use iced_core::Background;
 
 /// The appearance of a progress bar.
 #[derive(Debug, Clone, Copy)]
@@ -11,14 +11,15 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a progress bar.
-pub trait StyleSheet<Theme> {
-    fn style(&self, theme: &Theme) -> Style;
+pub trait StyleSheet {
+    type Theme;
+    fn style(&self, theme: &Self::Theme) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet<IcedTheme> for Default {
-    fn style(&self, theme: &Theme) -> Style {
+    fn style(&self, theme: &Self::Theme) -> Style {
         Style {
             background: theme.accent.into(),
             bar: theme.active.into(),

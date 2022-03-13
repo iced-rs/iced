@@ -11,12 +11,12 @@ pub use iced_core::{Background, Color};
 
 pub mod button;
 // pub mod checkbox;
-// pub mod container;
+pub mod container;
 // pub mod menu;
 // pub mod pane_grid;
 // pub mod pick_list;
 // pub mod progress_bar;
-// pub mod radio;
+pub mod radio;
 // pub mod rule;
 // pub mod scrollable;
 // pub mod slider;
@@ -24,7 +24,7 @@ pub mod button;
 // pub mod toggler;
 
 pub trait Styling: Default {
-    type Theme;
+    type Theme: Default;
 
     fn default_text_color(theme: &Self::Theme) -> Color;
 }

@@ -26,10 +26,11 @@ pub enum HandleShape {
 }
 
 /// A set of rules that dictate the style of a slider.
-pub trait StyleSheet<Theme> {
+pub trait StyleSheet {
+    type Theme;
     fn get_style(
         &self,
-        theme: &Theme,
+        theme: &Self::Theme,
         is_dragging: bool,
         is_mouse_over: bool,
     ) -> Style {
@@ -43,19 +44,19 @@ pub trait StyleSheet<Theme> {
     }
 
     /// Produces the style of an active slider.
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, theme: &Self::Theme) -> Style;
 
     /// Produces the style of an hovered slider.
-    fn hovered(&self, theme: &Theme) -> Style;
+    fn hovered(&self, theme: &Self::Theme) -> Style;
 
     /// Produces the style of a slider that is being dragged.
-    fn dragging(&self, theme: &Theme) -> Style;
+    fn dragging(&self, theme: &Self::Theme) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet<IcedTheme> for Default {
-    fn active(&self, theme: &Theme) -> Style {
+    fn active(&self, theme: &Self::Theme) -> Style {
         Style {
             rail_colors: (
                 Color {
@@ -77,7 +78,7 @@ impl StyleSheet<IcedTheme> for Default {
         }
     }
 
-    fn hovered(&self, theme: &Theme) -> Style {
+    fn hovered(&self, theme: &Self::Theme) -> Style {
         let active = self.active(theme);
 
         Style {
@@ -89,7 +90,7 @@ impl StyleSheet<IcedTheme> for Default {
         }
     }
 
-    fn dragging(&self, theme: &Theme) -> Style {
+    fn dragging(&self, theme: &Self::Theme) -> Style {
         let active = self.active(theme);
 
         Style {

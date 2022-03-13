@@ -12,10 +12,11 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a toggler.
-pub trait StyleSheet<Theme> {
+pub trait StyleSheet {
+    type Theme;
     fn get_style(
         &self,
-        theme: &Theme,
+        theme: &Self::Theme,
         is_mouse_over: bool,
         is_active: bool,
     ) -> Style {
@@ -26,15 +27,15 @@ pub trait StyleSheet<Theme> {
         }
     }
 
-    fn active(&self, theme: &Theme, is_active: bool) -> Style;
+    fn active(&self, theme: &Self::Theme, is_active: bool) -> Style;
 
-    fn hovered(&self, theme: &Theme, is_active: bool) -> Style;
+    fn hovered(&self, theme: &Self::Theme, is_active: bool) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet<IcedTheme> for Default {
-    fn active(&self, theme: &Theme, is_active: bool) -> Style {
+    fn active(&self, theme: &Self::Theme, is_active: bool) -> Style {
         Style {
             background: if is_active {
                 theme.accent
@@ -47,7 +48,7 @@ impl StyleSheet<IcedTheme> for Default {
         }
     }
 
-    fn hovered(&self, theme: &Theme, is_active: bool) -> Style {
+    fn hovered(&self, theme: &Self::Theme, is_active: bool) -> Style {
         Style {
             foreground: Color::from_rgb(
                 theme.surface.r - 0.05,

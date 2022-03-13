@@ -102,7 +102,7 @@ where
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -154,7 +154,7 @@ where
     /// Sets the style of the [`TextInput`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
@@ -341,7 +341,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
     for TextInput<'a, Message, Renderer>
 where
     Message: Clone,

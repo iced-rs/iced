@@ -3,7 +3,6 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::renderer;
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Widget,
@@ -13,7 +12,7 @@ use std::u32;
 
 /// A container that distributes its contents horizontally.
 #[allow(missing_debug_implementations)]
-pub struct Row<'a, Message, Renderer> {
+pub struct Row<'a, Message, Renderer, Styling> {
     spacing: u16,
     padding: Padding,
     width: Length,
@@ -24,7 +23,7 @@ pub struct Row<'a, Message, Renderer> {
     children: Vec<Element<'a, Message, Renderer, Styling>>,
 }
 
-impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
+impl<'a, Message, Renderer, Styling> Row<'a, Message, Renderer, Styling> {
     /// Creates an empty [`Row`].
     pub fn new() -> Self {
         Self::with_children(Vec::new())
@@ -102,10 +101,11 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Row<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Row<'a, Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: crate::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.width
@@ -201,7 +201,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         self.children
             .iter_mut()
             .zip(layout.children())
@@ -212,13 +212,17 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
+impl<'a, Message, Renderer, Styling, Theme>
+    From<Row<'a, Message, Renderer, Styling>>
     for Element<'a, Message, Renderer, Styling>
 where
-    Renderer: 'a + crate::Renderer,
+    Styling: 'a + iced_style::Styling<Theme = Theme>,
+    Renderer: 'a + crate::Renderer<Styling>,
     Message: 'a,
 {
-    fn from(row: Row<'a, Message, Renderer>) -> Element<'a, Message, Renderer, Styling> {
+    fn from(
+        row: Row<'a, Message, Renderer, Styling>,
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(row)
     }
 }

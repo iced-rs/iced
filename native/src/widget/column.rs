@@ -12,7 +12,7 @@ use std::u32;
 
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
-pub struct Column<'a, Message, Renderer> {
+pub struct Column<'a, Message, Renderer, Styling> {
     spacing: u16,
     padding: Padding,
     width: Length,
@@ -23,7 +23,7 @@ pub struct Column<'a, Message, Renderer> {
     children: Vec<Element<'a, Message, Renderer, Styling>>,
 }
 
-impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
+impl<'a, Message, Renderer, Styling> Column<'a, Message, Renderer, Styling> {
     /// Creates an empty [`Column`].
     pub fn new() -> Self {
         Self::with_children(Vec::new())
@@ -101,10 +101,11 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Column<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Column<'a, Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: crate::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.width
@@ -200,7 +201,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         self.children
             .iter_mut()
             .zip(layout.children())
@@ -211,14 +212,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Column<'a, Message, Renderer>>
+impl<'a, Message, Renderer, Styling, Theme>
+    From<Column<'a, Message, Renderer, Styling>>
     for Element<'a, Message, Renderer, Styling>
 where
-    Renderer: 'a + crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme> + 'a,
+    Renderer: 'a + crate::Renderer<Styling>,
     Message: 'a,
 {
     fn from(
-        column: Column<'a, Message, Renderer>,
+        column: Column<'a, Message, Renderer, Styling>,
     ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(column)
     }

@@ -42,7 +42,7 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
             scroller_width: 10,
             content: Column::new(),
             on_scroll: None,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -125,7 +125,7 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
     /// Sets the style of the [`Scrollable`] .
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
@@ -209,7 +209,7 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
     for Scrollable<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
@@ -574,7 +574,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         let Self { content, state, .. } = self;
 
         content

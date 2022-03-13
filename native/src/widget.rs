@@ -13,18 +13,18 @@
 //! [renderer]: crate::renderer
 pub mod button;
 // pub mod checkbox;
-// pub mod column;
-// pub mod container;
+pub mod column;
+pub mod container;
 pub mod image;
 // pub mod pane_grid;
 // pub mod pick_list;
 // pub mod progress_bar;
-// pub mod radio;
-// pub mod row;
+pub mod radio;
+pub mod row;
 // pub mod rule;
 // pub mod scrollable;
 // pub mod slider;
-// pub mod space;
+pub mod space;
 pub mod svg;
 pub mod text;
 // pub mod text_input;
@@ -35,10 +35,10 @@ pub mod text;
 pub use button::Button;
 // #[doc(no_inline)]
 // pub use checkbox::Checkbox;
-// #[doc(no_inline)]
-// pub use column::Column;
-// #[doc(no_inline)]
-// pub use container::Container;
+#[doc(no_inline)]
+pub use column::Column;
+#[doc(no_inline)]
+pub use container::Container;
 #[doc(no_inline)]
 pub use image::Image;
 // #[doc(no_inline)]
@@ -47,18 +47,18 @@ pub use image::Image;
 // pub use pick_list::PickList;
 // #[doc(no_inline)]
 // pub use progress_bar::ProgressBar;
-// #[doc(no_inline)]
-// pub use radio::Radio;
-// #[doc(no_inline)]
-// pub use row::Row;
+#[doc(no_inline)]
+pub use radio::Radio;
+#[doc(no_inline)]
+pub use row::Row;
 // #[doc(no_inline)]
 // pub use rule::Rule;
 // #[doc(no_inline)]
 // pub use scrollable::Scrollable;
 // #[doc(no_inline)]
 // pub use slider::Slider;
-// #[doc(no_inline)]
-// pub use space::Space;
+#[doc(no_inline)]
+pub use space::Space;
 #[doc(no_inline)]
 pub use svg::Svg;
 #[doc(no_inline)]

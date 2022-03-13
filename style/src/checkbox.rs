@@ -1,5 +1,5 @@
 //! Show toggle controls using checkboxes.
-use crate::{IcedTheme};
+use crate::IcedTheme;
 use iced_core::{Background, Color};
 
 /// The appearance of a checkbox.
@@ -14,10 +14,11 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a checkbox.
-pub trait StyleSheet<Theme> {
+pub trait StyleSheet {
+    type Theme;
     fn get_style(
         &self,
-        theme: &Theme,
+        theme: &Self::Theme,
         is_mouse_over: bool,
         is_checked: bool,
     ) -> Style {
@@ -28,15 +29,15 @@ pub trait StyleSheet<Theme> {
         }
     }
 
-    fn active(&self, theme: &Theme, is_checked: bool) -> Style;
+    fn active(&self, theme: &Self::Theme, is_checked: bool) -> Style;
 
-    fn hovered(&self, theme: &Theme, is_checked: bool) -> Style;
+    fn hovered(&self, theme: &Self::Theme, is_checked: bool) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet<IcedTheme> for Default {
-    fn active(&self, theme: &Theme, _is_checked: bool) -> Style {
+    fn active(&self, theme: &Self::Theme, _is_checked: bool) -> Style {
         Style {
             background: theme.surface.into(),
             checkmark_color: theme.needs_better_naming,
@@ -47,7 +48,7 @@ impl StyleSheet<IcedTheme> for Default {
         }
     }
 
-    fn hovered(&self, theme: &Theme, is_checked: bool) -> Style {
+    fn hovered(&self, theme: &Self::Theme, is_checked: bool) -> Style {
         Style {
             background: theme.hover.into(),
             ..self.active(theme, is_checked)

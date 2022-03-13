@@ -72,7 +72,7 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             font: Renderer::Font::default(),
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -111,14 +111,14 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
     /// Sets the style of the [`Checkbox`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
     for Checkbox<'a, Message, Renderer>
 where
     Renderer: text::Renderer,

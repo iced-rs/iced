@@ -41,7 +41,13 @@ pub use iced_style::radio::{Style, StyleSheet};
 ///
 /// ![Radio buttons drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Radio<'a, Message, Renderer: text::Renderer> {
+pub struct Radio<
+    'a,
+    Message,
+    Renderer: text::Renderer<Styling>,
+    Styling: iced_style::Styling,
+    Theme,
+> {
     is_selected: bool,
     on_click: Message,
     label: String,
@@ -50,12 +56,16 @@ pub struct Radio<'a, Message, Renderer: text::Renderer> {
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style_sheet: Box<dyn StyleSheet<Theme = Theme> + 'a>,
 }
 
-impl<'a, Message, Renderer: text::Renderer> Radio<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme>
+    Radio<'a, Message, Renderer, Styling, Theme>
 where
     Message: Clone,
+    Styling:
+        iced_style::Styling<Theme = Theme> + StyleSheet<Theme = Theme> + 'a,
+    Renderer: text::Renderer<Styling>,
 {
     /// The default size of a [`Radio`] button.
     pub const DEFAULT_SIZE: u16 = 28;
@@ -90,7 +100,7 @@ where
             spacing: Self::DEFAULT_SPACING, //15
             text_size: None,
             font: Default::default(),
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -127,18 +137,19 @@ where
     /// Sets the style of the [`Radio`] button.
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Radio<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Radio<'a, Message, Renderer, Styling, Theme>
 where
     Message: Clone,
-    Renderer: text::Renderer,
+    Styling: iced_style::Styling<Theme = Theme> + StyleSheet,
+    Renderer: text::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.width
@@ -153,7 +164,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        Row::<(), Renderer>::new()
+        Row::<(), Renderer, Styling>::new()
             .width(self.width)
             .spacing(self.spacing)
             .align_items(Alignment::Center)
@@ -221,11 +232,7 @@ where
 
         let mut children = layout.children();
 
-        let custom_style = if is_mouse_over {
-            self.style_sheet.hovered()
-        } else {
-            self.style_sheet.active()
-        };
+        let custom_style = self.style_sheet.get_style(theme, is_mouse_over);
 
         {
             let layout = children.next().unwrap();
@@ -267,7 +274,7 @@ where
 
             widget::text::draw(
                 renderer,
-                style,
+                theme,
                 label_layout,
                 &self.label,
                 self.font.clone(),
@@ -280,14 +287,17 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Radio<'a, Message, Renderer>>
+impl<'a, Message, Renderer, Styling, Theme>
+    From<Radio<'a, Message, Renderer, Styling, Theme>>
     for Element<'a, Message, Renderer, Styling>
 where
+    Styling: iced_style::Styling<Theme = Theme> + StyleSheet + 'a,
+    Theme: 'a,
     Message: 'a + Clone,
-    Renderer: 'a + text::Renderer,
+    Renderer: 'a + text::Renderer<Styling>,
 {
     fn from(
-        radio: Radio<'a, Message, Renderer>,
+        radio: Radio<'a, Message, Renderer, Styling, Theme>,
     ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(radio)
     }

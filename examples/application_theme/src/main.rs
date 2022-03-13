@@ -1,9 +1,16 @@
 mod themes;
 
+use themes::{Styling, Theme, ThemeChoice};
+
+// use iced::{
+//     button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color,
+//     Column, Container, Element, Length, ProgressBar, Radio, Row, Rule, Sandbox,
+//     Scrollable, Settings, Slider, Space, Styling, Text, TextInput, Toggler,
+// };
+use iced::button::{Style, StyleSheet};
 use iced::{
-    button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color,
-    Column, Container, Element, Length, ProgressBar, Radio, Row, Rule, Sandbox,
-    Scrollable, Settings, Slider, Space, Text, TextInput, Styling, Toggler,
+    button, Alignment, Button, Color, Column, Container, Element, Length,
+    Radio, Row, Sandbox, Settings, Space, Text, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -12,13 +19,13 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct ApplicationTheme {
-    theme: themes::Styling,
-    scroll: scrollable::State,
-    input: text_input::State,
-    input_value: String,
+    theme: ThemeChoice,
+    // scroll: scrollable::State,
+    // input: text_input::State,
+    // input_value: String,
     submit_button: button::State,
     custom_style_button: button::State,
-    slider: slider::State,
+    // slider: slider::State,
     slider_value: f32,
     checkbox_value: bool,
     toggler_value: bool,
@@ -26,7 +33,7 @@ struct ApplicationTheme {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(themes::Styling),
+    ThemeChanged(ThemeChoice),
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
@@ -36,6 +43,7 @@ enum Message {
 
 impl Sandbox for ApplicationTheme {
     type Message = Message;
+    type Styling = Styling;
 
     fn new() -> Self {
         ApplicationTheme::default()
@@ -48,16 +56,17 @@ impl Sandbox for ApplicationTheme {
     fn update(&mut self, message: Message) {
         match message {
             Message::ThemeChanged(theme) => self.theme = theme,
-            Message::InputChanged(value) => self.input_value = value,
+            // Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => {}
-            Message::SliderChanged(value) => self.slider_value = value,
-            Message::CheckboxToggled(value) => self.checkbox_value = value,
-            Message::TogglerToggled(value) => self.toggler_value = value,
+            // Message::SliderChanged(value) => self.slider_value = value,
+            // Message::CheckboxToggled(value) => self.checkbox_value = value,
+            // Message::TogglerToggled(value) => self.toggler_value = value,
+            _ => {}
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let choose_theme = themes::Styling::ALL.iter().fold(
+    fn view(&mut self) -> Element<Self::Message, Self::Styling> {
+        let choose_theme = ThemeChoice::ALL.iter().fold(
             Column::new().spacing(10).push(Text::new("Choose a theme:")),
             |column, theme| {
                 column.push(Radio::new(
@@ -69,49 +78,49 @@ impl Sandbox for ApplicationTheme {
             },
         );
 
-        let text_input = TextInput::new(
-            &mut self.input,
-            "Type something...",
-            &self.input_value,
-            Message::InputChanged,
-        )
-        .padding(10)
-        .size(20);
+        // let text_input = TextInput::new(
+        //     &mut self.input,
+        //     "Type something...",
+        //     &self.input_value,
+        //     Message::InputChanged,
+        // )
+        // .padding(10)
+        // .size(20);
 
         let submit_button =
             Button::new(&mut self.submit_button, Text::new("Submit"))
                 .padding(10)
                 .on_press(Message::ButtonPressed);
 
-        let slider = Slider::new(
-            &mut self.slider,
-            0.0..=100.0,
-            self.slider_value,
-            Message::SliderChanged,
-        );
-
-        let progress_bar = ProgressBar::new(0.0..=100.0, self.slider_value);
-
-        let scrollable = Scrollable::new(&mut self.scroll)
-            .width(Length::Fill)
-            .height(Length::Units(100))
-            .push(Text::new("Scroll me!"))
-            .push(Space::with_height(Length::Units(800)))
-            .push(Text::new("You did it!"));
-
-        let checkbox = Checkbox::new(
-            self.checkbox_value,
-            "Check me!",
-            Message::CheckboxToggled,
-        );
-
-        let toggler = Toggler::new(
-            self.toggler_value,
-            String::from("Toggle me!"),
-            Message::TogglerToggled,
-        )
-        .width(Length::Shrink)
-        .spacing(10);
+        // let slider = Slider::new(
+        //     &mut self.slider,
+        //     0.0..=100.0,
+        //     self.slider_value,
+        //     Message::SliderChanged,
+        // );
+        //
+        // let progress_bar = ProgressBar::new(0.0..=100.0, self.slider_value);
+        //
+        // let scrollable = Scrollable::new(&mut self.scroll)
+        //     .width(Length::Fill)
+        //     .height(Length::Units(100))
+        //     .push(Text::new("Scroll me!"))
+        //     .push(Space::with_height(Length::Units(800)))
+        //     .push(Text::new("You did it!"));
+        //
+        // let checkbox = Checkbox::new(
+        //     self.checkbox_value,
+        //     "Check me!",
+        //     Message::CheckboxToggled,
+        // );
+        //
+        // let toggler = Toggler::new(
+        //     self.toggler_value,
+        //     String::from("Toggle me!"),
+        //     Message::TogglerToggled,
+        // )
+        // .width(Length::Shrink)
+        // .spacing(10);
 
         let custom_style_button = Button::new(
             &mut self.custom_style_button,
@@ -125,25 +134,26 @@ impl Sandbox for ApplicationTheme {
             .padding(20)
             .max_width(600)
             .push(choose_theme)
-            .push(Rule::horizontal(38))
-            .push(Row::new().spacing(10).push(text_input).push(submit_button))
-            .push(slider)
-            .push(progress_bar)
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .height(Length::Units(100))
-                    .align_items(Alignment::Center)
-                    .push(scrollable)
-                    .push(Rule::vertical(38))
-                    .push(
-                        Column::new()
-                            .width(Length::Shrink)
-                            .spacing(20)
-                            .push(checkbox)
-                            .push(toggler),
-                    ),
-            )
+            // .push(Rule::horizontal(38))
+            // .push(Row::new().spacing(10).push(text_input).push(submit_button))
+            .push(Row::new().spacing(10).push(submit_button))
+            // .push(slider)
+            // .push(progress_bar)
+            // .push(
+            //     Row::new()
+            //         .spacing(10)
+            //         .height(Length::Units(100))
+            //         .align_items(Alignment::Center)
+            //         .push(scrollable)
+            //         .push(Rule::vertical(38))
+            //         .push(
+            //             Column::new()
+            //                 .width(Length::Shrink)
+            //                 .spacing(20)
+            //                 .push(checkbox)
+            //                 .push(toggler),
+            //         ),
+            // )
             .push(custom_style_button);
 
         Container::new(content)
@@ -154,7 +164,7 @@ impl Sandbox for ApplicationTheme {
             .into()
     }
 
-    fn theme(&self) -> Styling {
+    fn theme(&self) -> Theme {
         self.theme.into()
     }
 }
@@ -162,26 +172,34 @@ impl Sandbox for ApplicationTheme {
 pub struct CustomButtonStyling;
 
 impl button::StyleSheet for CustomButtonStyling {
-    fn active(&self) -> button::Style {
+    type Theme = Theme;
+
+    fn active(&self, theme: &Theme) -> button::Style {
         button::Style {
             background: Color::from_rgb(0.02, 0.54, 0.14).into(),
             border_radius: 50.0,
-            ..button::Style::default()
+            shadow_offset: Vector::default(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
         }
     }
 
-    fn hovered(&self) -> button::Style {
+    fn hovered(&self, theme: &Theme) -> button::Style {
         button::Style {
             background: Color::from_rgb(0.03, 0.64, 0.16).into(),
-            ..self.active()
+            ..self.active(theme)
         }
     }
 
-    fn pressed(&self) -> button::Style {
+    fn pressed(&self, theme: &Theme) -> button::Style {
         button::Style {
             border_width: 1.0,
             border_color: Color::WHITE,
-            ..self.hovered()
+            ..self.hovered(theme)
         }
+    }
+
+    fn disabled(&self, theme: &Theme) -> Style {
+        self.pressed(theme)
     }
 }

@@ -99,7 +99,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -129,7 +129,7 @@ where
     /// Sets the style of the [`Slider`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
@@ -382,7 +382,9 @@ where
     Message: 'a + Clone,
     Renderer: 'a + crate::Renderer,
 {
-    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message, Renderer, Styling> {
+    fn from(
+        slider: Slider<'a, T, Message>,
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(slider)
     }
 }

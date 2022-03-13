@@ -42,7 +42,7 @@ impl<'a> ProgressBar<'a> {
             range,
             width: Length::Fill,
             height: None,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -61,14 +61,15 @@ impl<'a> ProgressBar<'a> {
     /// Sets the style of the [`ProgressBar`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for ProgressBar<'a>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for ProgressBar<'a>
 where
     Renderer: crate::Renderer,
 {
@@ -147,7 +148,9 @@ where
     Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
-    fn from(progress_bar: ProgressBar<'a>) -> Element<'a, Message, Renderer, Styling> {
+    fn from(
+        progress_bar: ProgressBar<'a>,
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(progress_bar)
     }
 }

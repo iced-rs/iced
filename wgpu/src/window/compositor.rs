@@ -92,7 +92,10 @@ impl Compositor {
     }
 }
 
-impl iced_graphics::window::Compositor for Compositor {
+impl<Styling> iced_graphics::window::Compositor<Styling> for Compositor
+where
+    Styling: iced_style::Styling,
+{
     type Settings = Settings;
     type Renderer = Renderer;
     type Surface = wgpu::Surface;

@@ -41,7 +41,7 @@ where
             content: content.into(),
             tooltip: Text::new(tooltip.to_string()),
             position,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
             gap: 0,
             padding: Self::DEFAULT_PADDING,
         }
@@ -98,7 +98,7 @@ pub enum Position {
     Right,
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
     for Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,

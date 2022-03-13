@@ -21,11 +21,13 @@ where
     Renderer: crate::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
-    pub fn new(body: impl Into<Element<'a, Message, Renderer, Styling>>) -> Self {
+    pub fn new(
+        body: impl Into<Element<'a, Message, Renderer, Styling>>,
+    ) -> Self {
         Self {
             title_bar: None,
             body: body.into(),
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -237,7 +239,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
             let title_bar_layout = children.next()?;

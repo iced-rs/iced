@@ -46,6 +46,10 @@ features = ["derive"]
 version = "0.4"
 path = "../native"
 
+[dependencies.iced_style]
+version = "0.3"
+path = "../style"
+
 [dependencies.iced_graphics]
 version = "0.2"
 path = "../graphics"

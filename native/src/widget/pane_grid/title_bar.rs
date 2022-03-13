@@ -34,7 +34,7 @@ where
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -282,7 +282,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         let mut children = layout.children();
         let padded = children.next()?;
 

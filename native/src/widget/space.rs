@@ -1,6 +1,5 @@
 //! Distribute content vertically.
 use crate::layout;
-use crate::renderer;
 use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 /// An amount of empty space.
@@ -35,9 +34,11 @@ impl Space {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Space
+impl<Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Space
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: crate::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.width
@@ -60,7 +61,7 @@ where
     fn draw(
         &self,
         _renderer: &mut Renderer,
-        theme: &Theme,
+        _theme: &Theme,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -68,9 +69,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Space> for Element<'a, Message, Renderer, Styling>
+impl<'a, Message, Renderer, Styling, Theme> From<Space>
+    for Element<'a, Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: crate::Renderer<Styling>,
     Message: 'a,
 {
     fn from(space: Space) -> Element<'a, Message, Renderer, Styling> {

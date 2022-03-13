@@ -21,7 +21,7 @@ impl<'a> Rule<'a> {
             width: Length::Fill,
             height: Length::from(Length::Units(spacing)),
             is_horizontal: true,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -31,21 +31,22 @@ impl<'a> Rule<'a> {
             width: Length::from(Length::Units(spacing)),
             height: Length::Fill,
             is_horizontal: false,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
     /// Sets the style of the [`Rule`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Rule<'a>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Rule<'a>
 where
     Renderer: crate::Renderer,
 {
@@ -120,7 +121,8 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Rule<'a>> for Element<'a, Message, Renderer, Styling>
+impl<'a, Message, Renderer> From<Rule<'a>>
+    for Element<'a, Message, Renderer, Styling>
 where
     Renderer: 'a + crate::Renderer,
     Message: 'a,

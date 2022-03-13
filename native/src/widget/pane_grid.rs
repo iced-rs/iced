@@ -131,7 +131,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -313,7 +313,7 @@ pub struct ResizeEvent {
     pub ratio: f32,
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
     for PaneGrid<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
@@ -666,7 +666,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         self.elements
             .iter_mut()
             .zip(layout.children())

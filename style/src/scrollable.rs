@@ -22,10 +22,11 @@ pub struct Scroller {
 }
 
 /// A set of rules that dictate the style of a scrollable.
-pub trait StyleSheet<Theme> {
+pub trait StyleSheet {
+    type Theme;
     fn get_style(
         &self,
-        theme: &Theme,
+        theme: &Self::Theme,
         is_scroller_grabbed: bool,
         is_mouse_over_scrollbar: bool,
     ) -> Style {
@@ -39,13 +40,13 @@ pub trait StyleSheet<Theme> {
     }
 
     /// Produces the style of an active scrollbar.
-    fn active(&self, theme: &Theme) -> Style;
+    fn active(&self, theme: &Self::Theme) -> Style;
 
     /// Produces the style of an hovered scrollbar.
-    fn hovered(&self, theme: &Theme) -> Style;
+    fn hovered(&self, theme: &Self::Theme) -> Style;
 
     /// Produces the style of a scrollbar that is being dragged.
-    fn dragging(&self, theme: &Theme) -> Style {
+    fn dragging(&self, theme: &Self::Theme) -> Style {
         self.hovered(theme)
     }
 }
@@ -53,7 +54,7 @@ pub trait StyleSheet<Theme> {
 struct Default;
 
 impl StyleSheet<IcedTheme> for Default {
-    fn active(&self, theme: &Theme) -> Style {
+    fn active(&self, theme: &Self::Theme) -> Style {
         Style {
             background: None,
             border_radius: 5.0,
@@ -68,7 +69,7 @@ impl StyleSheet<IcedTheme> for Default {
         }
     }
 
-    fn hovered(&self, theme: &Theme) -> Style {
+    fn hovered(&self, theme: &Self::Theme) -> Style {
         Style {
             background: Some(
                 Color {

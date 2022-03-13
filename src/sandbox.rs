@@ -1,5 +1,5 @@
 use crate::{
-    Application, Color, Command, Element, Error, Settings, Subscription, Styling,
+    Application, Color, Command, Element, Error, Settings, Subscription,
 };
 
 /// A sandboxed [`Application`].
@@ -88,6 +88,8 @@ use crate::{
 pub trait Sandbox {
     /// The type of __messages__ your [`Sandbox`] will produce.
     type Message: std::fmt::Debug + Send;
+    /// The styling used to draw widgets
+    type Styling: iced_style::Styling;
 
     /// Initializes the [`Sandbox`].
     ///
@@ -109,7 +111,7 @@ pub trait Sandbox {
     /// Returns the widgets to display in the [`Sandbox`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message>;
+    fn view(&mut self) -> Element<'_, Self::Message, Self::Styling>;
 
     /// Returns the background color of the [`Sandbox`].
     ///
@@ -119,7 +121,7 @@ pub trait Sandbox {
     }
 
     /// Returns the styling to be used
-    fn theme(&self) -> Styling {
+    fn theme(&self) -> <Self::Styling as iced_style::Styling>::Theme {
         Default::default()
     }
 
@@ -164,6 +166,7 @@ where
     type Executor = iced_futures::backend::null::Executor;
     type Flags = ();
     type Message = T::Message;
+    type Styling = T::Styling;
 
     fn new(_flags: ()) -> (Self, Command<T::Message>) {
         (T::new(), Command::none())
@@ -183,7 +186,7 @@ where
         Subscription::none()
     }
 
-    fn view(&mut self) -> Element<'_, T::Message> {
+    fn view(&mut self) -> Element<'_, T::Message, T::Styling> {
         T::view(self)
     }
 
@@ -191,8 +194,8 @@ where
         T::background_color(self)
     }
 
-    fn theme(&self) -> Styling {
-        T::styling(self)
+    fn theme(&self) -> <T::Styling as iced_style::Styling>::Theme {
+        T::theme(self)
     }
 
     fn scale_factor(&self) -> f64 {

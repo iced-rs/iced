@@ -499,14 +499,14 @@ pub fn build_user_interface<'a, A: Application>(
     A::Styling,
     <A::Styling as iced_style::Styling>::Theme,
 > {
-    let style = application.styling();
+    let theme = application.theme();
     debug.view_started();
     let view = application.view();
     debug.view_finished();
 
     debug.layout_started();
     let user_interface =
-        UserInterface::build(view, style, size, cache, renderer);
+        UserInterface::build(view, theme, size, cache, renderer);
     debug.layout_finished();
 
     user_interface

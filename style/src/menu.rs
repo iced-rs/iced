@@ -1,4 +1,4 @@
-use crate::{IcedTheme};
+use crate::IcedTheme;
 use iced_core::{Background, Color};
 
 /// The appearance of a menu.
@@ -13,15 +13,16 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a menu.
-pub trait StyleSheet<Theme> {
+pub trait StyleSheet {
+    type Theme;
     /// Produces the style of a menu.
-    fn style(&self, theme: &Theme) -> Style;
+    fn style(&self, theme: &Self::Theme) -> Style;
 }
 
 struct Default;
 
 impl StyleSheet<IcedTheme> for Default {
-    fn style(&self, theme: &Theme) -> Style {
+    fn style(&self, theme: &Self::Theme) -> Style {
         Style {
             text_color: theme.text,
             background: theme.surface.into(),

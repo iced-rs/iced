@@ -101,7 +101,7 @@ where
             text_size: None,
             padding: Self::DEFAULT_PADDING,
             font: Default::default(),
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -138,7 +138,7 @@ where
     /// Sets the style of the [`PickList`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
@@ -399,7 +399,7 @@ where
         &mut self,
         layout: Layout<'_>,
         _renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         if *self.is_open {
             let bounds = layout.bounds();
 

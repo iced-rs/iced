@@ -1,5 +1,7 @@
 use crate::window;
-use crate::{Color, Command, Element, Executor, Settings, Subscription, Styling};
+use crate::{
+    Color, Command, Element, Executor, Settings, Styling, Subscription,
+};
 
 /// An interactive cross-platform application.
 ///
@@ -102,6 +104,7 @@ pub trait Application: Sized {
     /// The data needed to initialize your [`Application`].
     type Flags;
 
+    /// The styling used to draw widgets
     type Styling: Styling;
 
     /// Initializes the [`Application`] with the flags provided to
@@ -146,7 +149,7 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message>;
+    fn view(&mut self) -> Element<'_, Self::Message, Self::Styling>;
 
     /// Returns the current [`Application`] mode.
     ///
@@ -220,7 +223,6 @@ pub trait Application: Sized {
         Ok(crate::runtime::application::run::<
             Instance<Self>,
             Self::Executor,
-            Self::Styling,
             crate::renderer::window::Compositor,
         >(settings.into(), renderer_settings)?)
     }
@@ -232,6 +234,7 @@ impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
 {
+    type Styling = A::Styling;
     type Renderer = crate::renderer::Renderer;
     type Message = A::Message;
 
@@ -239,12 +242,12 @@ where
         self.0.update(message)
     }
 
-    fn view(&mut self) -> Element<'_, Self::Message> {
+    fn view(&mut self) -> Element<'_, Self::Message, Self::Styling> {
         self.0.view()
     }
 
-    fn theme(&self) -> Styling {
-        self.0.styling()
+    fn theme(&self) -> <Self::Styling as iced_style::Styling>::Theme {
+        self.0.theme()
     }
 }
 
