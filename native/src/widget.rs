@@ -12,69 +12,68 @@
 //!
 //! [renderer]: crate::renderer
 pub mod button;
-pub mod checkbox;
-pub mod column;
-pub mod container;
+// pub mod checkbox;
+// pub mod column;
+// pub mod container;
 pub mod image;
-pub mod pane_grid;
-pub mod pick_list;
-pub mod progress_bar;
-pub mod radio;
-pub mod row;
-pub mod rule;
-pub mod scrollable;
-pub mod slider;
-pub mod space;
+// pub mod pane_grid;
+// pub mod pick_list;
+// pub mod progress_bar;
+// pub mod radio;
+// pub mod row;
+// pub mod rule;
+// pub mod scrollable;
+// pub mod slider;
+// pub mod space;
 pub mod svg;
 pub mod text;
-pub mod text_input;
-pub mod toggler;
-pub mod tooltip;
+// pub mod text_input;
+// pub mod toggler;
+// pub mod tooltip;
 
 #[doc(no_inline)]
 pub use button::Button;
-#[doc(no_inline)]
-pub use checkbox::Checkbox;
-#[doc(no_inline)]
-pub use column::Column;
-#[doc(no_inline)]
-pub use container::Container;
+// #[doc(no_inline)]
+// pub use checkbox::Checkbox;
+// #[doc(no_inline)]
+// pub use column::Column;
+// #[doc(no_inline)]
+// pub use container::Container;
 #[doc(no_inline)]
 pub use image::Image;
-#[doc(no_inline)]
-pub use pane_grid::PaneGrid;
-#[doc(no_inline)]
-pub use pick_list::PickList;
-#[doc(no_inline)]
-pub use progress_bar::ProgressBar;
-#[doc(no_inline)]
-pub use radio::Radio;
-#[doc(no_inline)]
-pub use row::Row;
-#[doc(no_inline)]
-pub use rule::Rule;
-#[doc(no_inline)]
-pub use scrollable::Scrollable;
-#[doc(no_inline)]
-pub use slider::Slider;
-#[doc(no_inline)]
-pub use space::Space;
+// #[doc(no_inline)]
+// pub use pane_grid::PaneGrid;
+// #[doc(no_inline)]
+// pub use pick_list::PickList;
+// #[doc(no_inline)]
+// pub use progress_bar::ProgressBar;
+// #[doc(no_inline)]
+// pub use radio::Radio;
+// #[doc(no_inline)]
+// pub use row::Row;
+// #[doc(no_inline)]
+// pub use rule::Rule;
+// #[doc(no_inline)]
+// pub use scrollable::Scrollable;
+// #[doc(no_inline)]
+// pub use slider::Slider;
+// #[doc(no_inline)]
+// pub use space::Space;
 #[doc(no_inline)]
 pub use svg::Svg;
 #[doc(no_inline)]
 pub use text::Text;
-#[doc(no_inline)]
-pub use text_input::TextInput;
-#[doc(no_inline)]
-pub use toggler::Toggler;
-#[doc(no_inline)]
-pub use tooltip::Tooltip;
+// #[doc(no_inline)]
+// pub use text_input::TextInput;
+// #[doc(no_inline)]
+// pub use toggler::Toggler;
+// #[doc(no_inline)]
+// pub use tooltip::Tooltip;
 
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::renderer;
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
 /// A component that displays information and allows interaction.
@@ -99,9 +98,10 @@ use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 /// [`geometry`]: https://github.com/iced-rs/iced/tree/0.3/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
 /// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.3/wgpu
-pub trait Widget<Message, Renderer>
+pub trait Widget<Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling>,
 {
     /// Returns the width of the [`Widget`].
     fn width(&self) -> Length;
@@ -125,7 +125,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Styling::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -173,7 +173,7 @@ where
         &mut self,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         None
     }
 }

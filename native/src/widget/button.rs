@@ -14,7 +14,6 @@ use crate::{
 use std::fmt::Debug;
 
 pub use iced_style::button::{Style, StyleSheet};
-use iced_style::Theme;
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -57,28 +56,31 @@ use iced_style::Theme;
 /// }
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer> {
+pub struct Button<'a, Message, Renderer, Styling, Theme> {
     state: &'a mut State,
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, Renderer, Styling>,
     on_press: Option<Message>,
     width: Length,
     height: Length,
     min_width: u32,
     min_height: u32,
     padding: Padding,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style_sheet: Box<dyn StyleSheet<Theme = Theme> + 'a>,
 }
 
-impl<'a, Message, Renderer> Button<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme>
+    Button<'a, Message, Renderer, Styling, Theme>
 where
     Message: Clone,
-    Renderer: crate::Renderer,
+    Styling:
+        iced_style::Styling<Theme = Theme> + StyleSheet<Theme = Theme> + 'a,
+    Renderer: crate::Renderer<Styling>,
 {
     /// Creates a new [`Button`] with some local [`State`] and the given
     /// content.
     pub fn new<E>(state: &'a mut State, content: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer>>,
+        E: Into<Element<'a, Message, Renderer, Styling>>,
     {
         Button {
             state,
@@ -89,7 +91,7 @@ where
             min_width: 0,
             min_height: 0,
             padding: Padding::new(5),
-            style_sheet: Default::default(),
+            style_sheet: Styling::default().into(),
         }
     }
 
@@ -133,7 +135,7 @@ where
     /// Sets the style of the [`Button`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet<Theme = Theme> + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
@@ -153,11 +155,12 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Button<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Button<'a, Message, Renderer, Styling, Theme>
 where
     Message: Clone,
-    Renderer: crate::Renderer<Theme: Debug>,
+    Styling: iced_style::Styling<Theme = Theme> + StyleSheet,
+    Renderer: crate::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.width
@@ -268,7 +271,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -279,9 +282,12 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
         let is_disabled = self.on_press.is_none();
 
-        let styling =
-            self.style
-                .get_style(theme, is_mouse_over, self.state.is_pressed);
+        let styling = self.style_sheet.get_style(
+            theme,
+            is_disabled,
+            is_mouse_over,
+            self.state.is_pressed,
+        );
 
         if styling.background.is_some() || styling.border_width > 0.0 {
             if styling.shadow_offset != Vector::default() {
@@ -327,21 +333,24 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         self.content
             .overlay(layout.children().next().unwrap(), renderer)
     }
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme>
+    From<Button<'a, Message, Renderer, Styling, Theme>>
+    for Element<'a, Message, Renderer, Styling>
 where
     Message: 'a + Clone,
-    Renderer: 'a + crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme> + StyleSheet + 'a,
+    Theme: 'a,
+    Renderer: 'a + crate::Renderer<Styling>,
 {
     fn from(
-        button: Button<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        button: Button<'a, Message, Renderer, Styling, Theme>,
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(button)
     }
 }

@@ -13,8 +13,8 @@ use crate::{
 /// [`Pane`]: crate::widget::pane_grid::Pane
 #[allow(missing_debug_implementations)]
 pub struct TitleBar<'a, Message, Renderer> {
-    content: Element<'a, Message, Renderer>,
-    controls: Option<Element<'a, Message, Renderer>>,
+    content: Element<'a, Message, Renderer, Styling>,
+    controls: Option<Element<'a, Message, Renderer, Styling>>,
     padding: Padding,
     always_show_controls: bool,
     style_sheet: Box<dyn container::StyleSheet + 'a>,
@@ -27,7 +27,7 @@ where
     /// Creates a new [`TitleBar`] with the given content.
     pub fn new<E>(content: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer>>,
+        E: Into<Element<'a, Message, Renderer, Styling>>,
     {
         Self {
             content: content.into(),
@@ -41,7 +41,7 @@ where
     /// Sets the controls of the [`TitleBar`].
     pub fn controls(
         mut self,
-        controls: impl Into<Element<'a, Message, Renderer>>,
+        controls: impl Into<Element<'a, Message, Renderer, Styling>>,
     ) -> Self {
         self.controls = Some(controls.into());
         self
@@ -86,7 +86,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        inherited_theme: &iced_style::Theme,
+        inherited_theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,

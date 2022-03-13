@@ -96,7 +96,7 @@ where
         self,
         position: Point,
         target_height: f32,
-    ) -> overlay::Element<'a, Message, Renderer> {
+    ) -> overlay::Element<'a, Message, Renderer, Styling> {
         overlay::Element::new(
             position,
             Box::new(Overlay::new(self, target_height)),
@@ -241,7 +241,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
@@ -389,7 +389,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         viewport: &Rectangle,
@@ -451,14 +451,14 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
+impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer, Styling>>
     for List<'a, T, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
     Renderer: 'a + text::Renderer,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
+    fn into(self) -> Element<'a, Message, Renderer, Styling> {
         Element::new(self)
     }
 }

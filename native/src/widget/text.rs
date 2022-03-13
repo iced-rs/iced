@@ -1,7 +1,6 @@
 //! Write some text for your users to read.
 use crate::alignment;
 use crate::layout;
-use crate::renderer;
 use crate::text;
 use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
@@ -19,7 +18,10 @@ use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 ///
 /// ![Text drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
 #[derive(Debug)]
-pub struct Text<Renderer: text::Renderer> {
+pub struct Text<Renderer: text::Renderer<Styling>, Styling>
+where
+    Styling: iced_style::Styling,
+{
     content: String,
     size: Option<u16>,
     color: Option<Color>,
@@ -30,7 +32,10 @@ pub struct Text<Renderer: text::Renderer> {
     vertical_alignment: alignment::Vertical,
 }
 
-impl<Renderer: text::Renderer> Text<Renderer> {
+impl<Renderer: text::Renderer<Styling>, Styling> Text<Renderer, Styling>
+where
+    Styling: iced_style::Styling,
+{
     /// Create a new fragment of [`Text`] with the given contents.
     pub fn new<T: Into<String>>(label: T) -> Self {
         Text {
@@ -96,9 +101,11 @@ impl<Renderer: text::Renderer> Text<Renderer> {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Text<Renderer>
+impl<Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Text<Renderer, Styling>
 where
-    Renderer: text::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: text::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.width
@@ -130,14 +137,14 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
         draw(
             renderer,
-            style,
+            theme,
             layout,
             &self.content,
             self.font.clone(),
@@ -159,9 +166,9 @@ where
 ///   used.
 /// * The alignment attributes do not affect the position of the bounds of the
 ///   [`Layout`].
-pub fn draw<Renderer>(
+pub fn draw<Renderer, Styling, Theme>(
     renderer: &mut Renderer,
-    theme: &iced_style::Theme,
+    theme: &Theme,
     layout: Layout<'_>,
     content: &str,
     font: Renderer::Font,
@@ -170,7 +177,8 @@ pub fn draw<Renderer>(
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
 ) where
-    Renderer: text::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: text::Renderer<Styling>,
 {
     let bounds = layout.bounds();
 
@@ -190,24 +198,31 @@ pub fn draw<Renderer>(
         content,
         size: f32::from(size.unwrap_or(renderer.default_size())),
         bounds: Rectangle { x, y, ..bounds },
-        color: color.unwrap_or(style.text_color),
+        color: color.unwrap_or(Styling::default_text_color(theme)),
         font,
         horizontal_alignment,
         vertical_alignment,
     });
 }
 
-impl<'a, Message, Renderer> From<Text<Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling> From<Text<Renderer, Styling>>
+    for Element<'a, Message, Renderer, Styling>
 where
-    Renderer: text::Renderer + 'a,
+    Styling: iced_style::Styling + 'a,
+    Renderer: text::Renderer<Styling> + 'a,
 {
-    fn from(text: Text<Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(
+        text: Text<Renderer, Styling>,
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(text)
     }
 }
 
-impl<Renderer: text::Renderer> Clone for Text<Renderer> {
+impl<Renderer: text::Renderer<Styling>, Styling> Clone
+    for Text<Renderer, Styling>
+where
+    Styling: iced_style::Styling,
+{
     fn clone(&self) -> Self {
         Self {
             content: self.content.clone(),

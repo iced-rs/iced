@@ -3,7 +3,6 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
-use iced_style::Theme;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -18,17 +17,19 @@ use iced_style::Theme;
 ///
 /// [`integration` example]: https://github.com/iced-rs/iced/tree/0.3/examples/integration
 #[allow(missing_debug_implementations)]
-pub struct UserInterface<'a, Message, Renderer> {
-    root: Element<'a, Message, Renderer>,
+pub struct UserInterface<'a, Message, Renderer, Styling, Theme> {
+    root: Element<'a, Message, Renderer, Styling>,
     theme: Theme,
     base: layout::Node,
     overlay: Option<layout::Node>,
     bounds: Size,
 }
 
-impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme>
+    UserInterface<'a, Message, Renderer, Styling, Theme>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: crate::Renderer<Styling>,
 {
     /// Builds a user interface for an [`Element`].
     ///
@@ -84,9 +85,9 @@ where
     ///     cache = user_interface.into_cache();
     /// }
     /// ```
-    pub fn build<E: Into<Element<'a, Message, Renderer>>>(
+    pub fn build<E: Into<Element<'a, Message, Renderer, Styling>>>(
         root: E,
-        style: Theme,
+        theme: Theme,
         bounds: Size,
         _cache: Cache,
         renderer: &mut Renderer,
@@ -98,7 +99,7 @@ where
 
         UserInterface {
             root,
-            theme: style,
+            theme,
             base,
             overlay: None,
             bounds,

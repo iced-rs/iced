@@ -80,17 +80,17 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a rule.
-pub trait StyleSheet<ColorPalette> {
+pub trait StyleSheet<Theme> {
     /// Produces the style of a rule.
-    fn style(&self, color_palette: &ColorPalette) -> Style;
+    fn style(&self, theme: &Theme) -> Style;
 }
 
 struct Default;
 
-impl StyleSheet<IcedColorPalette> for Default {
-    fn style(&self, color_palette: &ColorPalette) -> Style {
+impl StyleSheet<IcedTheme> for Default {
+    fn style(&self, theme: &Theme) -> Style {
         Style {
-            color: color_palette.accent,
+            color: theme.accent,
             width: 1,
             radius: 0.0,
             fill_mode: FillMode::Full,

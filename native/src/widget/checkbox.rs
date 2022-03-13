@@ -197,7 +197,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -259,14 +259,14 @@ where
 }
 
 impl<'a, Message, Renderer> From<Checkbox<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Renderer, Styling>
 where
     Renderer: 'a + text::Renderer,
     Message: 'a,
 {
     fn from(
         checkbox: Checkbox<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(checkbox)
     }
 }

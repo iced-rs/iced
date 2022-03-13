@@ -526,7 +526,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -676,14 +676,14 @@ where
 }
 
 impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Renderer, Styling>
 where
     Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(
         pane_grid: PaneGrid<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(pane_grid)
     }
 }

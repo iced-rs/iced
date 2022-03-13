@@ -1,21 +1,21 @@
 //! Display interactive elements on top of other widgets.
 mod element;
 
-pub mod menu;
+// pub mod menu;
 
 pub use element::Element;
-pub use menu::Menu;
+// pub use menu::Menu;
 
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::renderer;
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
 
 /// An interactive component that can be displayed on top of other widgets.
-pub trait Overlay<Message, Renderer>
+pub trait Overlay<Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling>,
 {
     /// Returns the layout [`Node`] of the [`Overlay`].
     ///
@@ -34,7 +34,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Styling::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     );

@@ -12,49 +12,49 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a toggler.
-pub trait StyleSheet<ColorPalette> {
+pub trait StyleSheet<Theme> {
     fn get_style(
         &self,
-        color_palette: &ColorPalette,
+        theme: &Theme,
         is_mouse_over: bool,
         is_active: bool,
     ) -> Style {
         if is_mouse_over {
-            self.hovered(color_palette, is_active)
+            self.hovered(theme, is_active)
         } else {
-            self.active(color_palette, is_active)
+            self.active(theme, is_active)
         }
     }
 
-    fn active(&self, color_palette: &ColorPalette, is_active: bool) -> Style;
+    fn active(&self, theme: &Theme, is_active: bool) -> Style;
 
-    fn hovered(&self, color_palette: &ColorPalette, is_active: bool) -> Style;
+    fn hovered(&self, theme: &Theme, is_active: bool) -> Style;
 }
 
 struct Default;
 
-impl StyleSheet<IcedColorPalette> for Default {
-    fn active(&self, color_palette: &ColorPalette, is_active: bool) -> Style {
+impl StyleSheet<IcedTheme> for Default {
+    fn active(&self, theme: &Theme, is_active: bool) -> Style {
         Style {
             background: if is_active {
-                color_palette.accent
+                theme.accent
             } else {
-                color_palette.surface
+                theme.surface
             },
             background_border: None,
-            foreground: color_palette.surface,
+            foreground: theme.surface,
             foreground_border: None,
         }
     }
 
-    fn hovered(&self, color_palette: &ColorPalette, is_active: bool) -> Style {
+    fn hovered(&self, theme: &Theme, is_active: bool) -> Style {
         Style {
             foreground: Color::from_rgb(
-                color_palette.surface.r - 0.05,
-                color_palette.surface.g - 0.05,
-                color_palette.surface.b - 0.05,
+                theme.surface.r - 0.05,
+                theme.surface.g - 0.05,
+                theme.surface.b - 0.05,
             ),
-            ..self.active(color_palette, is_active)
+            ..self.active(theme, is_active)
         }
     }
 }

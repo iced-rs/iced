@@ -1,5 +1,5 @@
 use crate::{
-    Application, Color, Command, Element, Error, Settings, Subscription, Theme,
+    Application, Color, Command, Element, Error, Settings, Subscription, Styling,
 };
 
 /// A sandboxed [`Application`].
@@ -119,7 +119,7 @@ pub trait Sandbox {
     }
 
     /// Returns the styling to be used
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Styling {
         Default::default()
     }
 
@@ -191,7 +191,7 @@ where
         T::background_color(self)
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Styling {
         T::styling(self)
     }
 

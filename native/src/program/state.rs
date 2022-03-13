@@ -163,13 +163,21 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, P::Message, P::Renderer> {
+) -> UserInterface<
+    'a,
+    P::Message,
+    P::Renderer,
+    P::Styling,
+    <P::Styling as iced_style::Styling>::Theme,
+> {
+    let theme = program.theme();
     debug.view_started();
     let view = program.view();
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface = UserInterface::build(view, size, cache, renderer);
+    let user_interface =
+        UserInterface::build(view, theme, size, cache, renderer);
     debug.layout_finished();
 
     user_interface

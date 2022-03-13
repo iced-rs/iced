@@ -134,7 +134,7 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
     /// Adds an element to the [`Scrollable`].
     pub fn push<E>(mut self, child: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer>>,
+        E: Into<Element<'a, Message, Renderer, Styling>>,
     {
         self.content = self.content.push(child);
         self
@@ -466,7 +466,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -754,14 +754,14 @@ struct Scroller {
 }
 
 impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Renderer, Styling>
 where
     Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(
         scrollable: Scrollable<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(scrollable)
     }
 }

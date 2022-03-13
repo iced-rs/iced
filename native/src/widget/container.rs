@@ -27,7 +27,7 @@ pub struct Container<'a, Message, Renderer> {
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     style_sheet: Box<dyn StyleSheet + 'a>,
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, Renderer, Styling>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
@@ -37,7 +37,7 @@ where
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
     where
-        T: Into<Element<'a, Message, Renderer>>,
+        T: Into<Element<'a, Message, Renderer, Styling>>,
     {
         Container {
             padding: Padding::ZERO,
@@ -195,7 +195,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -206,7 +206,7 @@ where
 
         self.content.draw(
             renderer,
-            &iced_style::Theme {
+            &iced_style::Styling {
                 text: style.text_color.unwrap_or(theme.text),
                 ..*theme
             },
@@ -250,14 +250,14 @@ pub fn draw_background<Renderer>(
 }
 
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Renderer, Styling>
 where
     Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(
         column: Container<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(column)
     }
 }

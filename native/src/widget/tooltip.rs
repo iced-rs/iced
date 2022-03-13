@@ -14,7 +14,7 @@ use crate::{
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
 pub struct Tooltip<'a, Message, Renderer: text::Renderer> {
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, Renderer, Styling>,
     tooltip: Text<Renderer>,
     position: Position,
     style_sheet: Box<dyn container::StyleSheet + 'a>,
@@ -33,7 +33,7 @@ where
     ///
     /// [`Tooltip`]: struct.Tooltip.html
     pub fn new(
-        content: impl Into<Element<'a, Message, Renderer>>,
+        content: impl Into<Element<'a, Message, Renderer, Styling>>,
         tooltip: impl ToString,
         position: Position,
     ) -> Self {
@@ -156,7 +156,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        inherited_theme: &iced_style::Theme,
+        inherited_theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -267,14 +267,14 @@ where
 }
 
 impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Renderer, Styling>
 where
     Renderer: 'a + text::Renderer,
     Message: 'a,
 {
     fn from(
         column: Tooltip<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(column)
     }
 }

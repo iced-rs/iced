@@ -36,7 +36,6 @@
 #![deny(unused_results)]
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
-#![feature(associated_type_bounds)]
 pub mod clipboard;
 pub mod command;
 pub mod event;

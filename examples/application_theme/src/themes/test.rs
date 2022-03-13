@@ -1,6 +1,6 @@
 use crate::button::Style;
 use iced::button;
-use iced::{Color, Theme};
+use iced::{Color, Styling};
 
 struct MyColorPalette {
     text: Color,
@@ -9,8 +9,8 @@ struct MyColorPalette {
 
 struct MyTheme;
 
-impl Theme for MyTheme {
-    type ColorPalette = MyColorPalette;
+impl Styling for MyTheme {
+    type Theme = MyColorPalette;
 }
 
 impl button::StyleSheet<MyColorPalette> for MyTheme {

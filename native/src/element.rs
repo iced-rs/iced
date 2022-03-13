@@ -17,18 +17,19 @@ use crate::{
 ///
 /// [built-in widget]: widget/index.html#built-in-widgets
 #[allow(missing_debug_implementations)]
-pub struct Element<'a, Message, Renderer> {
-    pub(crate) widget: Box<dyn Widget<Message, Renderer> + 'a>,
+pub struct Element<'a, Message, Renderer, Styling> {
+    pub(crate) widget: Box<dyn Widget<Message, Renderer, Styling> + 'a>,
 }
 
-impl<'a, Message, Renderer> Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling> Element<'a, Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling>,
 {
     /// Creates a new [`Element`] containing the given [`Widget`].
     pub fn new(
-        widget: impl Widget<Message, Renderer> + 'a,
-    ) -> Element<'a, Message, Renderer> {
+        widget: impl Widget<Message, Renderer, Styling> + 'a,
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element {
             widget: Box::new(widget),
         }
@@ -111,13 +112,13 @@ where
     /// use iced_wgpu::Renderer;
     ///
     /// impl ManyCounters {
-    ///     pub fn view(&mut self) -> Row<Message, Renderer> {
+    ///     pub fn view(&mut self) -> Row<Message, Renderer, Styling> {
     ///         // We can quickly populate a `Row` by folding over our counters
     ///         self.counters.iter_mut().enumerate().fold(
     ///             Row::new().spacing(20),
     ///             |row, (index, counter)| {
     ///                 // We display the counter
-    ///                 let element: Element<counter::Message, Renderer> =
+    ///                 let element: Element<counter::Message, Renderer, Styling> =
     ///                     counter.view().into();
     ///
     ///                 row.push(
@@ -168,10 +169,11 @@ where
     ///     }
     /// }
     /// ```
-    pub fn map<F, B>(self, f: F) -> Element<'a, B, Renderer>
+    pub fn map<F, B>(self, f: F) -> Element<'a, B, Renderer, Styling>
     where
         Message: 'static,
         Renderer: 'a,
+        Styling: 'a,
         B: 'static,
         F: 'static + Fn(Message) -> B,
     {
@@ -189,10 +191,11 @@ where
     pub fn explain<C: Into<Color>>(
         self,
         color: C,
-    ) -> Element<'a, Message, Renderer>
+    ) -> Element<'a, Message, Renderer, Styling>
     where
         Message: 'static,
         Renderer: 'a,
+        Styling: 'a,
     {
         Element {
             widget: Box::new(Explain::new(self, color.into())),
@@ -244,13 +247,13 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Styling::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         self.widget
-            .draw(renderer, style, layout, cursor_position, viewport)
+            .draw(renderer, theme, layout, cursor_position, viewport)
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Element`].
@@ -274,21 +277,21 @@ where
         &'b mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Renderer, Styling>> {
         self.widget.overlay(layout, renderer)
     }
 }
 
-struct Map<'a, A, B, Renderer> {
-    widget: Box<dyn Widget<A, Renderer> + 'a>,
+struct Map<'a, A, B, Renderer, Styling> {
+    widget: Box<dyn Widget<A, Renderer, Styling> + 'a>,
     mapper: Box<dyn Fn(A) -> B>,
 }
 
-impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
+impl<'a, A, B, Renderer, Styling> Map<'a, A, B, Renderer, Styling> {
     pub fn new<F>(
-        widget: Box<dyn Widget<A, Renderer> + 'a>,
+        widget: Box<dyn Widget<A, Renderer, Styling> + 'a>,
         mapper: F,
-    ) -> Map<'a, A, B, Renderer>
+    ) -> Map<'a, A, B, Renderer, Styling>
     where
         F: 'static + Fn(A) -> B,
     {
@@ -299,9 +302,11 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     }
 }
 
-impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
+impl<'a, A, B, Renderer, Styling> Widget<B, Renderer, Styling>
+    for Map<'a, A, B, Renderer, Styling>
 where
-    Renderer: crate::Renderer + 'a,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling> + 'a,
     A: 'static,
     B: 'static,
 {
@@ -350,13 +355,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Styling::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         self.widget
-            .draw(renderer, style, layout, cursor_position, viewport)
+            .draw(renderer, theme, layout, cursor_position, viewport)
     }
 
     fn mouse_interaction(
@@ -378,7 +383,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, B, Renderer>> {
+    ) -> Option<overlay::Element<'_, B, Renderer, Styling>> {
         let mapper = &self.mapper;
 
         self.widget
@@ -387,24 +392,29 @@ where
     }
 }
 
-struct Explain<'a, Message, Renderer: crate::Renderer> {
-    element: Element<'a, Message, Renderer>,
+struct Explain<'a, Message, Renderer, Styling> {
+    element: Element<'a, Message, Renderer, Styling>,
     color: Color,
 }
 
-impl<'a, Message, Renderer> Explain<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling> Explain<'a, Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling>,
 {
-    fn new(element: Element<'a, Message, Renderer>, color: Color) -> Self {
+    fn new(
+        element: Element<'a, Message, Renderer, Styling>,
+        color: Color,
+    ) -> Self {
         Explain { element, color }
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Explain<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling> Widget<Message, Renderer, Styling>
+    for Explain<'a, Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.element.widget.width()
@@ -444,16 +454,18 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Styling::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        fn explain_layout<Renderer: crate::Renderer>(
+        fn explain_layout<T, Renderer: crate::Renderer<T>>(
             renderer: &mut Renderer,
             color: Color,
             layout: Layout<'_>,
-        ) {
+        ) where
+            T: iced_style::Styling,
+        {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
@@ -471,7 +483,7 @@ where
 
         self.element.widget.draw(
             renderer,
-            style,
+            theme,
             layout,
             cursor_position,
             viewport,
@@ -499,7 +511,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer, Styling>> {
         self.element.overlay(layout, renderer)
     }
 }

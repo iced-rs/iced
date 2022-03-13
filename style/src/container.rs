@@ -1,5 +1,5 @@
 //! Decorate content and apply alignment.
-use crate::{IcedColorPalette, Theme};
+use crate::{IcedTheme};
 use iced_core::{Background, Color};
 use std::fmt::Debug;
 
@@ -14,17 +14,17 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a container.
-pub trait StyleSheet<ColorPalette> {
+pub trait StyleSheet<Theme> {
     /// Produces the style of a container.
-    fn style(&self, color_palette: &ColorPalette) -> Style;
+    fn style(&self, theme: &Theme) -> Style;
 }
 
 struct Default;
 
-impl StyleSheet<IcedColorPalette> for Default {
-    fn style(&self, color_palette: &ColorPalette) -> Style {
+impl StyleSheet<IcedTheme> for Default {
+    fn style(&self, theme: &Theme) -> Style {
         Style {
-            text_color: Some(color_palette.text),
+            text_color: Some(theme.text),
             background: None,
             border_radius: 0.0,
             border_width: 0.0,

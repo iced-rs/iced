@@ -328,7 +328,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -425,7 +425,7 @@ where
     }
 }
 
-impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
+impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer, Styling>>
     for PickList<'a, T, Message, Renderer>
 where
     T: Clone + ToString + Eq,
@@ -433,7 +433,7 @@ where
     Renderer: text::Renderer + 'a,
     Message: 'static,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
+    fn into(self) -> Element<'a, Message, Renderer, Styling> {
         Element::new(self)
     }
 }

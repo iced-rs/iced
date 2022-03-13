@@ -56,17 +56,18 @@ impl Axis {
 /// padding and alignment to the items as needed.
 ///
 /// It returns a new layout [`Node`].
-pub fn resolve<Message, Renderer>(
+pub fn resolve<Message, Renderer, Styling>(
     axis: Axis,
     renderer: &Renderer,
     limits: &Limits,
     padding: Padding,
     spacing: f32,
     align_items: Alignment,
-    items: &[Element<'_, Message, Renderer>],
+    items: &[Element<'_, Message, Renderer, Styling>],
 ) -> Node
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling>,
 {
     let limits = limits.pad(padding);
     let total_spacing = spacing * items.len().saturating_sub(1) as f32;

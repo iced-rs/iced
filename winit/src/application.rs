@@ -110,7 +110,7 @@ pub fn run<A, E, C>(
 where
     A: Application + 'static,
     E: Executor + 'static,
-    C: window::Compositor<Renderer = A::Renderer> + 'static,
+    C: window::Compositor<A::Styling, Renderer = A::Renderer> + 'static,
 {
     use futures::task;
     use futures::Future;
@@ -242,7 +242,7 @@ async fn run_instance<A, E, C>(
 ) where
     A: Application + 'static,
     E: Executor + 'static,
-    C: window::Compositor<Renderer = A::Renderer> + 'static,
+    C: window::Compositor<A::Styling, Renderer = A::Renderer> + 'static,
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
@@ -492,7 +492,13 @@ pub fn build_user_interface<'a, A: Application>(
     renderer: &mut A::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, A::Message, A::Renderer> {
+) -> UserInterface<
+    'a,
+    A::Message,
+    A::Renderer,
+    A::Styling,
+    <A::Styling as iced_style::Styling>::Theme,
+> {
     let style = application.styling();
     debug.view_started();
     let view = application.view();

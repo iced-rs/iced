@@ -4,7 +4,6 @@ pub use viewer::Viewer;
 
 use crate::image;
 use crate::layout;
-use crate::renderer;
 use crate::{
     ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
@@ -65,9 +64,11 @@ impl<Handle> Image<Handle> {
     }
 }
 
-impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
+impl<Message, Renderer, Handle, Styling, Theme>
+    Widget<Message, Renderer, Styling> for Image<Handle>
 where
-    Renderer: image::Renderer<Handle = Handle>,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: image::Renderer<Styling, Handle = Handle>,
     Handle: Clone + Hash,
 {
     fn width(&self) -> Length {
@@ -114,7 +115,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        _theme: &Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -150,13 +151,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer, Handle> From<Image<Handle>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Handle, Styling, Theme> From<Image<Handle>>
+    for Element<'a, Message, Renderer, Styling>
 where
-    Renderer: image::Renderer<Handle = Handle>,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: image::Renderer<Styling, Handle = Handle>,
     Handle: Clone + Hash + 'a,
 {
-    fn from(image: Image<Handle>) -> Element<'a, Message, Renderer> {
+    fn from(image: Image<Handle>) -> Element<'a, Message, Renderer, Styling> {
         Element::new(image)
     }
 }

@@ -5,7 +5,7 @@ use ouroboros::self_referencing;
 
 #[self_referencing(pub_extras)]
 pub struct Cache<'a, Message: 'a, Renderer: 'a> {
-    pub element: Element<'a, Message, Renderer>,
+    pub element: Element<'a, Message, Renderer, Styling>,
 
     #[borrows(mut element)]
     #[covariant]

@@ -114,7 +114,9 @@ impl std::fmt::Debug for Data {
 /// A [`Renderer`] that can render raster graphics.
 ///
 /// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer {
+pub trait Renderer<Styling>: crate::Renderer<Styling>
+where Styling: iced_style::Styling
+{
     /// The image Handle to be displayed. Iced exposes its own default implementation of a [`Handle`]
     ///
     /// [`Handle`]: Self::Handle

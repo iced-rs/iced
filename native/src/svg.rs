@@ -79,7 +79,10 @@ impl std::fmt::Debug for Data {
 /// A [`Renderer`] that can render vector graphics.
 ///
 /// [renderer]: crate::renderer
-pub trait Renderer: crate::Renderer {
+pub trait Renderer<Styling>: crate::Renderer<Styling>
+where
+    Styling: iced_style::Styling,
+{
     /// Returns the default dimensions of an SVG for the given [`Handle`].
     fn dimensions(&self, handle: &Handle) -> (u32, u32);
 

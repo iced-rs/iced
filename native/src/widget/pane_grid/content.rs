@@ -12,7 +12,7 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 #[allow(missing_debug_implementations)]
 pub struct Content<'a, Message, Renderer> {
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
-    body: Element<'a, Message, Renderer>,
+    body: Element<'a, Message, Renderer, Styling>,
     style_sheet: Box<dyn container::StyleSheet + 'a>,
 }
 
@@ -21,7 +21,7 @@ where
     Renderer: crate::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
-    pub fn new(body: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    pub fn new(body: impl Into<Element<'a, Message, Renderer, Styling>>) -> Self {
         Self {
             title_bar: None,
             body: body.into(),
@@ -58,7 +58,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -254,7 +254,7 @@ where
 
 impl<'a, T, Message, Renderer> From<T> for Content<'a, Message, Renderer>
 where
-    T: Into<Element<'a, Message, Renderer>>,
+    T: Into<Element<'a, Message, Renderer, Styling>>,
     Renderer: crate::Renderer,
 {
     fn from(element: T) -> Self {

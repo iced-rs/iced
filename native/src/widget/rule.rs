@@ -70,7 +70,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -120,12 +120,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Rule<'a>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Rule<'a>> for Element<'a, Message, Renderer, Styling>
 where
     Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
-    fn from(rule: Rule<'a>) -> Element<'a, Message, Renderer> {
+    fn from(rule: Rule<'a>) -> Element<'a, Message, Renderer, Styling> {
         Element::new(rule)
     }
 }

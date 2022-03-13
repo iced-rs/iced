@@ -3,7 +3,6 @@ use crate::event::{self, Event};
 use crate::image;
 use crate::layout;
 use crate::mouse;
-use crate::renderer;
 use crate::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
@@ -85,9 +84,14 @@ impl<'a, Handle> Viewer<'a, Handle> {
     /// Returns the bounds of the underlying image, given the bounds of
     /// the [`Viewer`]. Scaling will be applied and original aspect ratio
     /// will be respected.
-    fn image_size<Renderer>(&self, renderer: &Renderer, bounds: Size) -> Size
+    fn image_size<Renderer, Styling, Theme>(
+        &self,
+        renderer: &Renderer,
+        bounds: Size,
+    ) -> Size
     where
-        Renderer: image::Renderer<Handle = Handle>,
+        Styling: iced_style::Styling<Theme = Theme>,
+        Renderer: image::Renderer<Styling, Handle = Handle>,
     {
         let (width, height) = renderer.dimensions(&self.handle);
 
@@ -112,10 +116,11 @@ impl<'a, Handle> Viewer<'a, Handle> {
     }
 }
 
-impl<'a, Message, Renderer, Handle> Widget<Message, Renderer>
-    for Viewer<'a, Handle>
+impl<'a, Message, Renderer, Handle, Styling, Theme>
+    Widget<Message, Renderer, Styling> for Viewer<'a, Handle>
 where
-    Renderer: image::Renderer<Handle = Handle>,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: image::Renderer<Styling, Handle = Handle>,
     Handle: Clone + Hash,
 {
     fn width(&self) -> Length {
@@ -303,7 +308,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        _theme: &Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -384,14 +389,17 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer, Handle> From<Viewer<'a, Handle>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Handle, Styling, Theme> From<Viewer<'a, Handle>>
+    for Element<'a, Message, Renderer, Styling>
 where
-    Renderer: 'a + image::Renderer<Handle = Handle>,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: 'a + image::Renderer<Styling, Handle = Handle>,
     Message: 'a,
     Handle: Clone + Hash + 'a,
 {
-    fn from(viewer: Viewer<'a, Handle>) -> Element<'a, Message, Renderer> {
+    fn from(
+        viewer: Viewer<'a, Handle>,
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(viewer)
     }
 }

@@ -60,7 +60,7 @@ where
     fn draw(
         &self,
         _renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -68,12 +68,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Space> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Space> for Element<'a, Message, Renderer, Styling>
 where
     Renderer: crate::Renderer,
     Message: 'a,
 {
-    fn from(space: Space) -> Element<'a, Message, Renderer> {
+    fn from(space: Space) -> Element<'a, Message, Renderer, Styling> {
         Element::new(space)
     }
 }

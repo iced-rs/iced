@@ -52,7 +52,7 @@ impl<'a, Message, Renderer> Responsive<'a, Message, Renderer> {
     /// contents of the widget in a responsive way.
     pub fn new(
         state: &'a mut State,
-        view: impl FnOnce(Size) -> Element<'a, Message, Renderer> + 'a,
+        view: impl FnOnce(Size) -> Element<'a, Message, Renderer, Styling> + 'a,
     ) -> Self {
         Self(RefCell::new(Internal {
             state,
@@ -119,7 +119,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &renderer::Styling,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -217,7 +217,7 @@ where
     fn resolve<R, T>(
         &mut self,
         renderer: R,
-        f: impl FnOnce(&State, R, &mut Element<'a, Message, Renderer>) -> T,
+        f: impl FnOnce(&State, R, &mut Element<'a, Message, Renderer, Styling>) -> T,
     ) -> T
     where
         R: Deref<Target = Renderer>,
@@ -228,7 +228,7 @@ where
 
 enum Content<'a, Message, Renderer> {
     Pending(
-        Option<Box<dyn FnOnce(Size) -> Element<'a, Message, Renderer> + 'a>>,
+        Option<Box<dyn FnOnce(Size) -> Element<'a, Message, Renderer, Styling> + 'a>>,
     ),
     Ready(Option<Cache<'a, Message, Renderer>>),
 }
@@ -241,7 +241,7 @@ where
         &mut self,
         state: &mut State,
         renderer: R,
-        f: impl FnOnce(&State, R, &mut Element<'a, Message, Renderer>) -> T,
+        f: impl FnOnce(&State, R, &mut Element<'a, Message, Renderer, Styling>) -> T,
     ) -> T
     where
         R: Deref<Target = Renderer>,
@@ -289,7 +289,7 @@ where
 }
 
 impl<'a, Message, Renderer> From<Responsive<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Renderer, Styling>
 where
     Renderer: iced_native::Renderer + 'a,
     Message: 'a,
@@ -356,12 +356,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &renderer::Styling,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
         self.with_overlay_maybe(|overlay| {
-            overlay.draw(renderer, style, layout, cursor_position);
+            overlay.draw(renderer, theme, layout, cursor_position);
         });
     }
 

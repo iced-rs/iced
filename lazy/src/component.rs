@@ -45,7 +45,7 @@ pub trait Component<Message, Renderer> {
 /// embedded in any application.
 pub fn view<'a, C, Message, Renderer>(
     component: C,
-) -> Element<'a, Message, Renderer>
+) -> Element<'a, Message, Renderer, Styling>
 where
     C: Component<Message, Renderer> + 'a,
     Message: 'a,
@@ -206,13 +206,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &renderer::Styling,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         self.with_element(|element| {
-            element.draw(renderer, style, layout, cursor_position, viewport);
+            element.draw(renderer, theme, layout, cursor_position, viewport);
         });
     }
 
@@ -337,12 +337,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        style: &renderer::Theme,
+        style: &renderer::Styling,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
         self.with_overlay_maybe(|overlay| {
-            overlay.draw(renderer, style, layout, cursor_position);
+            overlay.draw(renderer, theme, layout, cursor_position);
         });
     }
 

@@ -55,7 +55,10 @@ impl Hit {
 }
 
 /// A renderer capable of measuring and drawing [`Text`].
-pub trait Renderer: crate::Renderer {
+pub trait Renderer<Styling>: crate::Renderer<Styling>
+where
+    Styling: iced_style::Styling,
+{
     /// The font type used.
     type Font: Default + Clone;
 

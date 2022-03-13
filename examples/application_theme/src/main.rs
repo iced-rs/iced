@@ -3,7 +3,7 @@ mod themes;
 use iced::{
     button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color,
     Column, Container, Element, Length, ProgressBar, Radio, Row, Rule, Sandbox,
-    Scrollable, Settings, Slider, Space, Text, TextInput, Theme, Toggler,
+    Scrollable, Settings, Slider, Space, Text, TextInput, Styling, Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -12,7 +12,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct ApplicationTheme {
-    theme: themes::Theme,
+    theme: themes::Styling,
     scroll: scrollable::State,
     input: text_input::State,
     input_value: String,
@@ -26,7 +26,7 @@ struct ApplicationTheme {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(themes::Theme),
+    ThemeChanged(themes::Styling),
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
@@ -57,7 +57,7 @@ impl Sandbox for ApplicationTheme {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let choose_theme = themes::Theme::ALL.iter().fold(
+        let choose_theme = themes::Styling::ALL.iter().fold(
             Column::new().spacing(10).push(Text::new("Choose a theme:")),
             |column, theme| {
                 column.push(Radio::new(
@@ -154,7 +154,7 @@ impl Sandbox for ApplicationTheme {
             .into()
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Styling {
         self.theme.into()
     }
 }

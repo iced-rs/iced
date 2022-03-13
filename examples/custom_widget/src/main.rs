@@ -46,7 +46,7 @@ mod circle {
         fn draw(
             &self,
             renderer: &mut Renderer,
-            theme: &renderer::Theme,
+            theme: &renderer::Styling,
             layout: Layout<'_>,
             _cursor_position: Point,
             _viewport: &Rectangle,
@@ -63,11 +63,11 @@ mod circle {
         }
     }
 
-    impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for Circle
+    impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer, Styling>> for Circle
     where
         Renderer: renderer::Renderer,
     {
-        fn into(self) -> Element<'a, Message, Renderer> {
+        fn into(self) -> Element<'a, Message, Renderer, Styling> {
             Element::new(self)
         }
     }

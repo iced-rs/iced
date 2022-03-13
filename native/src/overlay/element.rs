@@ -6,19 +6,20 @@ use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
-pub struct Element<'a, Message, Renderer> {
+pub struct Element<'a, Message, Renderer, Styling> {
     position: Point,
-    overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
+    overlay: Box<dyn Overlay<Message, Renderer, Styling> + 'a>,
 }
 
-impl<'a, Message, Renderer> Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling> Element<'a, Message, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling>,
 {
     /// Creates a new [`Element`] containing the given [`Overlay`].
     pub fn new(
         position: Point,
-        overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
+        overlay: Box<dyn Overlay<Message, Renderer, Styling> + 'a>,
     ) -> Self {
         Self { position, overlay }
     }
@@ -35,10 +36,14 @@ where
     }
 
     /// Applies a transformation to the produced message of the [`Element`].
-    pub fn map<B>(self, f: &'a dyn Fn(Message) -> B) -> Element<'a, B, Renderer>
+    pub fn map<B>(
+        self,
+        f: &'a dyn Fn(Message) -> B,
+    ) -> Element<'a, B, Renderer, Styling>
     where
         Message: 'a,
         Renderer: 'a,
+        Styling: 'a,
         B: 'static,
     {
         Element {
@@ -92,7 +97,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Styling::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
@@ -100,23 +105,25 @@ where
     }
 }
 
-struct Map<'a, A, B, Renderer> {
-    content: Box<dyn Overlay<A, Renderer> + 'a>,
+struct Map<'a, A, B, Renderer, Styling> {
+    content: Box<dyn Overlay<A, Renderer, Styling> + 'a>,
     mapper: &'a dyn Fn(A) -> B,
 }
 
-impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
+impl<'a, A, B, Renderer, Styling> Map<'a, A, B, Renderer, Styling> {
     pub fn new(
-        content: Box<dyn Overlay<A, Renderer> + 'a>,
+        content: Box<dyn Overlay<A, Renderer, Styling> + 'a>,
         mapper: &'a dyn Fn(A) -> B,
-    ) -> Map<'a, A, B, Renderer> {
+    ) -> Map<'a, A, B, Renderer, Styling> {
         Map { content, mapper }
     }
 }
 
-impl<'a, A, B, Renderer> Overlay<B, Renderer> for Map<'a, A, B, Renderer>
+impl<'a, A, B, Renderer, Styling> Overlay<B, Renderer, Styling>
+    for Map<'a, A, B, Renderer, Styling>
 where
-    Renderer: crate::Renderer,
+    Styling: iced_style::Styling,
+    Renderer: crate::Renderer<Styling>,
 {
     fn layout(
         &self,
@@ -171,7 +178,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Styling::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {

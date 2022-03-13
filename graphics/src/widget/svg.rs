@@ -6,8 +6,9 @@ use iced_native::svg;
 pub use iced_native::widget::svg::Svg;
 pub use svg::Handle;
 
-impl<B> svg::Renderer for Renderer<B>
+impl<B, Styling> svg::Renderer<Styling> for Renderer<B>
 where
+    Styling: iced_style::Styling,
     B: Backend + backend::Svg,
 {
     fn dimensions(&self, handle: &svg::Handle) -> (u32, u32) {

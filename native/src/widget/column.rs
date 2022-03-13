@@ -20,7 +20,7 @@ pub struct Column<'a, Message, Renderer> {
     max_width: u32,
     max_height: u32,
     align_items: Alignment,
-    children: Vec<Element<'a, Message, Renderer>>,
+    children: Vec<Element<'a, Message, Renderer, Styling>>,
 }
 
 impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
@@ -31,7 +31,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 
     /// Creates a [`Column`] with the given elements.
     pub fn with_children(
-        children: Vec<Element<'a, Message, Renderer>>,
+        children: Vec<Element<'a, Message, Renderer, Styling>>,
     ) -> Self {
         Column {
             spacing: 0,
@@ -94,7 +94,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Adds an element to the [`Column`].
     pub fn push<E>(mut self, child: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer>>,
+        E: Into<Element<'a, Message, Renderer, Styling>>,
     {
         self.children.push(child.into());
         self
@@ -186,7 +186,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -212,14 +212,14 @@ where
 }
 
 impl<'a, Message, Renderer> From<Column<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Renderer, Styling>
 where
     Renderer: 'a + crate::Renderer,
     Message: 'a,
 {
     fn from(
         column: Column<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    ) -> Element<'a, Message, Renderer, Styling> {
         Element::new(column)
     }
 }

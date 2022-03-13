@@ -12,85 +12,85 @@ pub struct Style {
 }
 
 /// A set of rules that dictate the style of a text input.
-pub trait StyleSheet<ColorPalette> {
+pub trait StyleSheet<Theme> {
     fn get_style(
         &self,
-        color_palette: &ColorPalette,
+        theme: &Theme,
         is_focused: bool,
         is_mouse_over: bool,
     ) -> Style {
         if is_focused {
-            self.focused(color_palette)
+            self.focused(theme)
         } else if is_mouse_over {
-            self.hovered(color_palette)
+            self.hovered(theme)
         } else {
-            self.active(color_palette)
+            self.active(theme)
         }
     }
 
     fn get_text_color(
         &self,
-        color_palette: &ColorPalette,
+        theme: &Theme,
         is_empty: bool,
     ) -> Color {
         if is_empty {
-            self.placeholder_color(color_palette)
+            self.placeholder_color(theme)
         } else {
-            self.value_color(color_palette)
+            self.value_color(theme)
         }
     }
 
     /// Produces the style of an active text input.
-    fn active(&self, color_palette: &ColorPalette) -> Style;
+    fn active(&self, theme: &Theme) -> Style;
 
     /// Produces the style of a focused text input.
-    fn focused(&self, color_palette: &ColorPalette) -> Style;
+    fn focused(&self, theme: &Theme) -> Style;
 
-    fn placeholder_color(&self, color_palette: &ColorPalette) -> Color;
+    fn placeholder_color(&self, theme: &Theme) -> Color;
 
-    fn value_color(&self, color_palette: &ColorPalette) -> Color;
+    fn value_color(&self, theme: &Theme) -> Color;
 
-    fn selection_color(&self, color_palette: &ColorPalette) -> Color;
+    fn selection_color(&self, theme: &Theme) -> Color;
 
     /// Produces the style of an hovered text input.
-    fn hovered(&self, color_palette: &ColorPalette) -> Style {
-        self.focused(color_palette)
+    fn hovered(&self, theme: &Theme) -> Style {
+        self.focused(theme)
     }
 }
 
 struct Default;
 
-impl StyleSheet<IcedColorPalette> for Default {
-    fn active(&self, color_palette: &ColorPalette) -> Style {
+impl StyleSheet<IcedTheme> for Default {
+    fn active(&self, theme: &Theme) -> Style {
         Style {
-            background: color_palette.surface.into(),
+            background: theme.surface.into(),
             border_radius: 5.0,
             border_width: 1.0,
-            border_color: color_palette.accent,
+            border_color: theme.accent,
         }
     }
 
-    fn focused(&self, color_palette: &ColorPalette) -> Style {
+    fn focused(&self, theme: &Theme) -> Style {
         Style {
             border_color: Color::from_rgb(
-                color_palette.accent.r - 0.2,
-                color_palette.accent.g - 0.2,
-                color_palette.accent.b - 0.2,
+                theme.accent.r - 0.2,
+                theme.accent.g - 0.2,
+                theme.accent.b - 0.2,
             ),
-            ..self.active(color_palette)
+            ..self.active(theme)
         }
     }
 
-    fn placeholder_color(&self, color_palette: &ColorPalette) -> Color {
-        color_palette.accent
+    fn placeholder_color(&self, theme: &Theme) -> Color {
+        theme.accent
     }
 
-    fn value_color(&self, color_palette: &ColorPalette) -> Color {
-        color_palette.needs_better_naming
+    fn value_color(&self, theme: &Theme) -> Color {
+        theme.needs_better_naming
     }
 
-    fn selection_color(&self, color_palette: &ColorPalette) -> Color {
-        color_palette.text_highlight
+    fn selection_color(&self, theme: &Theme) -> Color {
+        theme.text_highlight
     }
 }
 

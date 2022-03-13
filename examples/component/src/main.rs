@@ -168,7 +168,7 @@ mod numeric_input {
     }
 
     impl<'a, Message, Renderer> From<NumericInput<'a, Message>>
-        for Element<'a, Message, Renderer>
+        for Element<'a, Message, Renderer, Styling>
     where
         Message: 'a,
         Renderer: text::Renderer + 'a,

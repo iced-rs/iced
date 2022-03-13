@@ -4,12 +4,15 @@ use raw_window_handle::HasRawWindowHandle;
 use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
-pub trait Compositor: Sized {
+pub trait Compositor<Styling>: Sized
+where
+    Styling: iced_style::Styling,
+{
     /// The settings of the backend.
     type Settings: Default;
 
     /// The iced renderer of the backend.
-    type Renderer: iced_native::Renderer;
+    type Renderer: iced_native::Renderer<Styling>;
 
     /// The surface of the backend.
     type Surface;

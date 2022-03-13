@@ -15,7 +15,9 @@ impl Null {
     }
 }
 
-impl Renderer for Null {
+impl<Styling> Renderer<Styling> for Null
+where Styling: iced_style::Styling
+{
     fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
 
     fn with_translation(
@@ -35,7 +37,8 @@ impl Renderer for Null {
     }
 }
 
-impl text::Renderer for Null {
+impl<Styling> text::Renderer<Styling> for Null
+    where Styling: iced_style::Styling{
     type Font = Font;
 
     const ICON_FONT: Font = Font::Default;

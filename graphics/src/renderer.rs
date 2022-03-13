@@ -6,7 +6,7 @@ use iced_native::renderer;
 use iced_native::text::{self, Text};
 use iced_native::{Background, Element, Font, Point, Rectangle, Size};
 
-pub use iced_style::Theme;
+pub use iced_style::Styling;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
@@ -41,13 +41,14 @@ impl<B: Backend> Renderer<B> {
     }
 }
 
-impl<B> iced_native::Renderer for Renderer<B>
+impl<B, Styling> iced_native::Renderer<Styling> for Renderer<B>
 where
+    Styling: iced_style::Styling,
     B: Backend,
 {
     fn layout<'a, Message>(
         &mut self,
-        element: &Element<'a, Message, Self>,
+        element: &Element<'a, Message, Self, Styling>,
         limits: &layout::Limits,
     ) -> layout::Node {
         let layout = element.layout(self, limits);
@@ -112,8 +113,9 @@ where
     }
 }
 
-impl<B> text::Renderer for Renderer<B>
+impl<B, Styling> text::Renderer<Styling> for Renderer<B>
 where
+    Styling: iced_style::Styling,
     B: Backend + backend::Text,
 {
     type Font = Font;

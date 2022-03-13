@@ -22,7 +22,6 @@
 #[cfg(debug_assertions)]
 mod null;
 
-use iced_style::Theme;
 #[cfg(debug_assertions)]
 pub use null::Null;
 
@@ -31,14 +30,14 @@ use crate::{Background, Color, Element, Rectangle, Vector};
 
 /// A component that can take the state of a user interface and produce an
 /// output for its users.
-pub trait Renderer<Theme: Theme>: Sized {
+pub trait Renderer<Styling: iced_style::Styling>: Sized {
     /// Lays out the elements of a user interface.
     ///
     /// You should override this if you need to perform any operations before or
     /// after layouting. For instance, trimming the measurements cache.
     fn layout<'a, Message>(
         &mut self,
-        element: &Element<'a, Message, Self>,
+        element: &Element<'a, Message, Self, Styling>,
         limits: &layout::Limits,
     ) -> layout::Node {
         element.layout(self, limits)

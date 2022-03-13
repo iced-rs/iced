@@ -1,6 +1,5 @@
 //! Display vector graphics in your application.
 use crate::layout;
-use crate::renderer;
 use crate::svg::{self, Handle};
 use crate::{
     ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
@@ -62,9 +61,11 @@ impl Svg {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Svg
+impl<Message, Renderer, Styling, Theme> Widget<Message, Renderer, Styling>
+    for Svg
 where
-    Renderer: svg::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: svg::Renderer<Styling>,
 {
     fn width(&self) -> Length {
         self.width
@@ -110,7 +111,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        _theme: &Theme,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -146,11 +147,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Svg> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer, Styling, Theme> From<Svg>
+    for Element<'a, Message, Renderer, Styling>
 where
-    Renderer: svg::Renderer,
+    Styling: iced_style::Styling<Theme = Theme>,
+    Renderer: svg::Renderer<Styling>,
 {
-    fn from(icon: Svg) -> Element<'a, Message, Renderer> {
+    fn from(icon: Svg) -> Element<'a, Message, Renderer, Styling> {
         Element::new(icon)
     }
 }

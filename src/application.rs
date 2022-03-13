@@ -1,5 +1,5 @@
 use crate::window;
-use crate::{Color, Command, Element, Executor, Settings, Subscription, Theme};
+use crate::{Color, Command, Element, Executor, Settings, Subscription, Styling};
 
 /// An interactive cross-platform application.
 ///
@@ -102,7 +102,7 @@ pub trait Application: Sized {
     /// The data needed to initialize your [`Application`].
     type Flags;
 
-    type Theme: Theme;
+    type Styling: Styling;
 
     /// Initializes the [`Application`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
@@ -167,8 +167,8 @@ pub trait Application: Sized {
         Color::WHITE
     }
 
-    /// Returns the color palette used to render widgets according to the specified [`Theme`]
-    fn color_palette(&self) -> <Self::Theme as Theme>::ColorPalette {
+    /// Returns the theme used to render widgets according to the specified [`Styling`]
+    fn theme(&self) -> <Self::Styling as Styling>::Theme {
         Default::default()
     }
 
@@ -220,7 +220,7 @@ pub trait Application: Sized {
         Ok(crate::runtime::application::run::<
             Instance<Self>,
             Self::Executor,
-            Self::Theme,
+            Self::Styling,
             crate::renderer::window::Compositor,
         >(settings.into(), renderer_settings)?)
     }
@@ -243,7 +243,7 @@ where
         self.0.view()
     }
 
-    fn theme(&self) -> Theme {
+    fn theme(&self) -> Styling {
         self.0.styling()
     }
 }

@@ -23,13 +23,15 @@ pub mod button;
 // pub mod text_input;
 // pub mod toggler;
 
-pub trait Theme {
-    type ColorPalette;
+pub trait Styling: Default {
+    type Theme;
+
+    fn default_text_color(theme: &Self::Theme) -> Color;
 }
 
 /// The styling attributes of a [`Renderer`].
 #[allow(missing_debug_implementations)]
-pub struct IcedColorPalette {
+pub struct IcedTheme {
     pub text: Color,
     pub needs_better_naming: Color,
     pub surface: Color,
@@ -40,7 +42,7 @@ pub struct IcedColorPalette {
     pub text_highlight: Color,
 }
 
-const DEFAULT_ICED_COLOR_PALETTE: IcedColorPalette = IcedColorPalette {
+const DEFAULT_ICED_THEME: IcedTheme = IcedTheme {
     text: Color::BLACK,
     active: Color::from_rgb(0.3, 0.9, 0.3),
     accent: Color::from_rgb(0.7, 0.7, 0.7),
@@ -51,8 +53,8 @@ const DEFAULT_ICED_COLOR_PALETTE: IcedColorPalette = IcedColorPalette {
     text_highlight: Color::from_rgb(0.8, 0.8, 0.1),
 };
 
-impl Default for IcedColorPalette {
+impl Default for IcedTheme {
     fn default() -> Self {
-        DEFAULT_ICED_COLOR_PALETTE
+        DEFAULT_ICED_THEME
     }
 }

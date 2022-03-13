@@ -9,8 +9,9 @@ use iced_native::image;
 pub use iced_native::widget::image::{Image, Viewer};
 pub use image::Handle;
 
-impl<B> image::Renderer for Renderer<B>
+impl<B, Styling> image::Renderer<Styling> for Renderer<B>
 where
+    Styling: iced_style::Styling,
     B: Backend + backend::Image,
 {
     type Handle = image::Handle;

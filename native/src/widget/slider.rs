@@ -264,7 +264,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &iced_style::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -376,13 +376,13 @@ where
 }
 
 impl<'a, T, Message, Renderer> From<Slider<'a, T, Message>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Renderer, Styling>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
     Message: 'a + Clone,
     Renderer: 'a + crate::Renderer,
 {
-    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message, Renderer> {
+    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message, Renderer, Styling> {
         Element::new(slider)
     }
 }
