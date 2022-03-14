@@ -9,7 +9,7 @@ use iced_pure::widget::tree::{self, Tree};
 use iced_pure::{Element, Widget};
 
 use ouroboros::self_referencing;
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{RefCell, RefMut};
 use std::marker::PhantomData;
 use std::ops::Deref;
 
@@ -236,11 +236,27 @@ where
         let state = tree.state.downcast_ref::<State>();
 
         let overlay = OverlayBuilder {
-            content: self.content.borrow(),
+            content: self.content.borrow_mut(),
             tree: state.tree.borrow_mut(),
             types: PhantomData,
             overlay_builder: |content, tree| {
-                content.element.as_widget().overlay(tree, layout, renderer)
+                content.update(
+                    tree,
+                    renderer,
+                    layout.bounds().size(),
+                    &self.view,
+                );
+
+                let content_layout = Layout::with_offset(
+                    layout.position() - Point::ORIGIN,
+                    &content.layout,
+                );
+
+                content.element.as_widget().overlay(
+                    tree,
+                    content_layout,
+                    renderer,
+                )
             },
         }
         .build();
@@ -267,11 +283,11 @@ where
 
 #[self_referencing]
 struct Overlay<'a, 'b, Message, Renderer> {
-    content: Ref<'a, Content<'b, Message, Renderer>>,
+    content: RefMut<'a, Content<'b, Message, Renderer>>,
     tree: RefMut<'a, Tree>,
     types: PhantomData<Message>,
 
-    #[borrows(content, mut tree)]
+    #[borrows(mut content, mut tree)]
     #[covariant]
     overlay: Option<overlay::Element<'this, Message, Renderer>>,
 }
