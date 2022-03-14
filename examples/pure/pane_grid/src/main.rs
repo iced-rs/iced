@@ -13,7 +13,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Example {
-    panes: pane_grid::Map<Pane>,
+    panes: pane_grid::State<Pane>,
     panes_created: usize,
     focus: Option<pane_grid::Pane>,
 }
@@ -37,7 +37,7 @@ impl Application for Example {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let (panes, _) = pane_grid::Map::new(Pane::new(0));
+        let (panes, _) = pane_grid::State::new(Pane::new(0));
 
         (
             Example {
@@ -154,21 +154,20 @@ impl Application for Example {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
-        let pane_grid = PaneGrid::new(&mut self.panes, |id, pane| {
+        let pane_grid = PaneGrid::new(&self.panes, |id, pane| {
             let is_focused = focus == Some(id);
 
-            let Pane { id, is_pinned } = pane;
-
-            let pin_button =
-                button(text(if *is_pinned { "Unpin" } else { "Pin" }).size(14))
-                    .on_press(Message::TogglePin(id))
-                    .style(style::Button::Pin)
-                    .padding(3);
+            let pin_button = button(
+                text(if pane.is_pinned { "Unpin" } else { "Pin" }).size(14),
+            )
+            .on_press(Message::TogglePin(id))
+            .style(style::Button::Pin)
+            .padding(3);
 
             let title = row()
                 .push(pin_button)
                 .push("Pane")
-                .push(text(id.to_string()).color(if is_focused {
+                .push(text(pane.id.to_string()).color(if is_focused {
                     PANE_ID_COLOR_FOCUSED
                 } else {
                     PANE_ID_COLOR_UNFOCUSED
@@ -176,7 +175,7 @@ impl Application for Example {
                 .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
-                .controls(view_controls(id, total_panes, *is_pinned))
+                .controls(view_controls(id, total_panes, pane.is_pinned))
                 .padding(10)
                 .style(if is_focused {
                     style::TitleBar::Focused
@@ -185,7 +184,7 @@ impl Application for Example {
                 });
 
             pane_grid::Content::new(responsive(move |size| {
-                view_content(id, total_panes, *is_pinned, size)
+                view_content(id, total_panes, pane.is_pinned, size)
             }))
             .title_bar(title_bar)
             .style(if is_focused {
