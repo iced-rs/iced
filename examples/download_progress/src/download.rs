@@ -70,9 +70,7 @@ async fn download<I: Copy>(
             // We do not let the stream die, as it would start a
             // new download repeatedly if the user is not careful
             // in case of errors.
-            let _: () = iced::futures::future::pending().await;
-
-            unreachable!()
+            iced::futures::future::pending().await
         }
     }
 }
