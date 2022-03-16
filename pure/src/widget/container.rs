@@ -1,5 +1,6 @@
 //! Decorate content and apply alignment.
-use crate::{Element, Tree, Widget};
+use crate::widget::Tree;
+use crate::{Element, Widget};
 
 use iced_native::alignment;
 use iced_native::event::{self, Event};

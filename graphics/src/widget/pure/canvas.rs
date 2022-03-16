@@ -16,7 +16,7 @@ use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::{Clipboard, Length, Point, Rectangle, Shell, Size, Vector};
 use iced_pure::widget::tree::{self, Tree};
-use iced_pure::widget::{Element, Widget};
+use iced_pure::{Element, Widget};
 
 /// A widget capable of drawing 2D graphics.
 ///

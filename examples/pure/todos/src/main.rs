@@ -1,8 +1,9 @@
 use iced::alignment::{self, Alignment};
-use iced::pure::widget::{
+use iced::pure::widget::Text;
+use iced::pure::{
     button, checkbox, column, container, row, scrollable, text, text_input,
+    Application, Element,
 };
-use iced::pure::{Application, Element, Text};
 use iced::window;
 use iced::{Command, Font, Length, Settings};
 use serde::{Deserialize, Serialize};

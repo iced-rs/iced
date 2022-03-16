@@ -1,4 +1,4 @@
-use crate::widget::Element;
+use crate::Element;
 
 use std::any::{self, Any};
 

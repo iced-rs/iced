@@ -3,8 +3,8 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::{Clipboard, Length, Point, Rectangle, Shell, Size};
+use iced_pure::horizontal_space;
 use iced_pure::overlay;
-use iced_pure::widget::horizontal_space;
 use iced_pure::widget::tree::{self, Tree};
 use iced_pure::{Element, Widget};
 

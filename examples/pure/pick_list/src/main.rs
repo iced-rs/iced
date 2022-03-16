@@ -1,6 +1,4 @@
-use iced::pure::widget::{
-    column, container, pick_list, scrollable, vertical_space,
-};
+use iced::pure::{column, container, pick_list, scrollable, vertical_space};
 use iced::pure::{Element, Sandbox};
 use iced::{Alignment, Length, Settings};
 

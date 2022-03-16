@@ -1,5 +1,5 @@
 use crate::widget::tree::{self, Tree};
-use crate::widget::{Element, Widget};
+use crate::{Element, Widget};
 
 use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
@@ -9,7 +9,7 @@ use iced_native::text;
 use iced_native::widget::text_input;
 use iced_native::{Clipboard, Length, Padding, Point, Rectangle, Shell};
 
-pub use iced_style::text_input::StyleSheet;
+pub use iced_style::text_input::{Style, StyleSheet};
 
 /// A field that can be filled with text.
 ///

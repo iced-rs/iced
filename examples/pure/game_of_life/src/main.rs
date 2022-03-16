@@ -5,7 +5,7 @@ mod style;
 
 use grid::Grid;
 use iced::executor;
-use iced::pure::widget::{
+use iced::pure::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
 use iced::pure::{Application, Element};
@@ -207,8 +207,8 @@ fn view_controls<'a>(
 
 mod grid {
     use crate::Preset;
-    use iced::pure::canvas::event::{self, Event};
-    use iced::pure::canvas::{
+    use iced::pure::widget::canvas::event::{self, Event};
+    use iced::pure::widget::canvas::{
         self, Cache, Canvas, Cursor, Frame, Geometry, Path, Text,
     };
     use iced::pure::Element;

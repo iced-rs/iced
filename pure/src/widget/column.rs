@@ -1,6 +1,7 @@
 use crate::flex;
 use crate::overlay;
-use crate::widget::{Element, Tree, Widget};
+use crate::widget::Tree;
+use crate::{Element, Widget};
 
 use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};

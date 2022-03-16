@@ -1,9 +1,10 @@
 use iced::alignment;
-use iced::pure::widget::{
+use iced::pure::widget::{Button, Column, Container, Slider};
+use iced::pure::{
     checkbox, column, container, horizontal_space, image, radio, row,
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
-use iced::pure::{Button, Column, Container, Element, Sandbox, Slider};
+use iced::pure::{Element, Sandbox};
 use iced::{Color, Length, Settings};
 
 pub fn main() -> iced::Result {

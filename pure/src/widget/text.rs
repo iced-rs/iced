@@ -1,4 +1,5 @@
-use crate::{Element, Tree, Widget};
+use crate::widget::Tree;
+use crate::{Element, Widget};
 
 use iced_native::layout::{self, Layout};
 use iced_native::renderer;

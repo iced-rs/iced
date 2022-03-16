@@ -1,5 +1,4 @@
-use iced::pure::widget::{button, column, text};
-use iced::pure::{Element, Sandbox};
+use iced::pure::{button, column, text, Element, Sandbox};
 use iced::{Alignment, Settings};
 
 pub fn main() -> iced::Result {

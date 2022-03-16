@@ -1,4 +1,5 @@
-use crate::{Element, Tree, Widget};
+use crate::widget::Tree;
+use crate::{Element, Widget};
 
 use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};
@@ -7,7 +8,7 @@ use iced_native::renderer;
 use iced_native::text;
 use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
-pub use iced_native::widget::Checkbox;
+pub use iced_native::widget::checkbox::{Checkbox, Style, StyleSheet};
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Checkbox<'a, Message, Renderer>

@@ -1,4 +1,4 @@
-use crate::Tree;
+use crate::widget::Tree;
 
 use iced_native::Layout;
 

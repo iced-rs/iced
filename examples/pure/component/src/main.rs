@@ -1,4 +1,4 @@
-use iced::pure::widget::container;
+use iced::pure::container;
 use iced::pure::{Element, Sandbox};
 use iced::{Length, Settings};
 
@@ -47,12 +47,12 @@ impl Sandbox for Component {
 }
 
 mod numeric_input {
-    use iced::pure::widget::Element;
-    use iced::pure::widget::{row, text, text_input};
+    use iced::pure::{button, row, text, text_input};
     use iced_lazy::pure::{self, Component};
     use iced_native::alignment::{self, Alignment};
     use iced_native::text;
     use iced_native::Length;
+    use iced_pure::Element;
 
     pub struct NumericInput<Message> {
         value: Option<u32>,
@@ -120,8 +120,6 @@ mod numeric_input {
 
         fn view(&self, _state: &Self::State) -> Element<Event, Renderer> {
             let button = |label, on_press| {
-                use iced::pure::widget::button;
-
                 button(
                     text(label)
                         .width(Length::Fill)

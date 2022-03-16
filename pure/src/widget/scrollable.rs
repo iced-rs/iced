@@ -9,7 +9,7 @@ use iced_native::renderer;
 use iced_native::widget::scrollable;
 use iced_native::{Clipboard, Length, Point, Rectangle, Shell, Vector};
 
-pub use iced_style::scrollable::StyleSheet;
+pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.

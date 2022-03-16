@@ -1,7 +1,7 @@
 use iced::alignment::{self, Alignment};
 use iced::executor;
 use iced::keyboard;
-use iced::pure::pane_grid::{self, PaneGrid};
+use iced::pure::widget::pane_grid::{self, PaneGrid};
 use iced::pure::{button, column, container, row, scrollable, text};
 use iced::pure::{Application, Element};
 use iced::{Color, Command, Length, Settings, Size, Subscription};

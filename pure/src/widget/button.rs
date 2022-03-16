@@ -1,6 +1,6 @@
 use crate::overlay;
 use crate::widget::tree::{self, Tree};
-use crate::widget::{Element, Widget};
+use crate::{Element, Widget};
 
 use iced_native::event::{self, Event};
 use iced_native::layout;
@@ -10,9 +10,10 @@ use iced_native::widget::button;
 use iced_native::{
     Clipboard, Layout, Length, Padding, Point, Rectangle, Shell,
 };
-use iced_style::button::StyleSheet;
 
-pub use button::State;
+pub use iced_style::button::{Style, StyleSheet};
+
+use button::State;
 
 pub struct Button<'a, Message, Renderer> {
     content: Element<'a, Message, Renderer>,

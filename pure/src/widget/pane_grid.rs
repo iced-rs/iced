@@ -54,7 +54,8 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 /// ## Example
 ///
 /// ```
-/// # use iced_pure::widget::{pane_grid, text};
+/// # use iced_pure::widget::pane_grid;
+/// # use iced_pure::text;
 /// #
 /// # type PaneGrid<'a, Message> =
 /// #     iced_pure::widget::PaneGrid<'a, Message, iced_native::renderer::Null>;

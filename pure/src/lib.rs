@@ -1,9 +1,14 @@
+pub mod helpers;
 pub mod overlay;
 pub mod widget;
 
 pub(crate) mod flex;
 
-pub use widget::*;
+mod element;
+
+pub use element::Element;
+pub use helpers::*;
+pub use widget::Widget;
 
 use iced_native::event::{self, Event};
 use iced_native::layout::{self, Layout};

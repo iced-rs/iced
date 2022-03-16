@@ -17,33 +17,7 @@
 //! [the original widgets]: crate::widget
 //! [`button::State`]: crate::widget::button::State
 //! [impure `Application`]: crate::Application
-pub use iced_pure::{
-    Button as _, Column as _, Element as _, Image as _, Row as _, Text as _, *,
-};
-
-/// A generic, pure [`Widget`].
-pub type Element<'a, Message> =
-    iced_pure::Element<'a, Message, crate::Renderer>;
-
-/// A pure container widget.
-pub type Container<'a, Message> =
-    iced_pure::Container<'a, Message, crate::Renderer>;
-
-/// A pure column widget.
-pub type Column<'a, Message> = iced_pure::Column<'a, Message, crate::Renderer>;
-
-/// A pure row widget.
-pub type Row<'a, Message> = iced_pure::Row<'a, Message, crate::Renderer>;
-
-/// A pure button widget.
-pub type Button<'a, Message> = iced_pure::Button<'a, Message, crate::Renderer>;
-
-/// A pure text widget.
-pub type Text = iced_pure::Text<crate::Renderer>;
-
-#[cfg(feature = "image")]
-/// A pure image widget.
-pub type Image = iced_pure::Image<crate::widget::image::Handle>;
+pub mod widget;
 
 mod application;
 mod sandbox;
@@ -51,8 +25,9 @@ mod sandbox;
 pub use application::Application;
 pub use sandbox::Sandbox;
 
-#[cfg(feature = "canvas")]
-pub use iced_graphics::widget::pure::canvas;
+pub use iced_pure::helpers::*;
+pub use iced_pure::{Pure, State};
 
-#[cfg(feature = "canvas")]
-pub use canvas::Canvas;
+/// A generic, pure [`Widget`].
+pub type Element<'a, Message> =
+    iced_pure::Element<'a, Message, crate::Renderer>;
