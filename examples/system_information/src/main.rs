@@ -91,9 +91,15 @@ impl Application for Example {
                             .to_string())
                 ));
 
+                let memory_readable =
+                    ByteSize::kb(information.memory_total).to_string();
+
                 let memory_total = Text::new(format!(
                     "Memory (total): {}",
-                    ByteSize::kb(information.memory_total).to_string()
+                    format!(
+                        "{} kb ({})",
+                        information.memory_total, memory_readable
+                    )
                 ));
 
                 Column::with_children(vec![
