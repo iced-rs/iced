@@ -113,15 +113,16 @@ impl Application for Example {
                 ));
 
                 Column::with_children(vec![
-                    system_name.into(),
-                    system_kernel.into(),
-                    system_version.into(),
-                    cpu_brand.into(),
-                    cpu_cores.into(),
-                    memory_total.into(),
-                    graphics_adapter.into(),
-                    graphics_backend.into(),
+                    system_name.size(30).into(),
+                    system_kernel.size(30).into(),
+                    system_version.size(30).into(),
+                    cpu_brand.size(30).into(),
+                    cpu_cores.size(30).into(),
+                    memory_total.size(30).into(),
+                    graphics_adapter.size(30).into(),
+                    graphics_backend.size(30).into(),
                 ])
+                .spacing(10)
                 .into()
             }
             Example::Unsupported => Text::new("Unsupported!").size(20).into(),
