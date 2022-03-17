@@ -13,4 +13,8 @@ pub struct Information {
     pub cpu_cores: Option<usize>,
     /// Contains the total RAM size in KB.
     pub memory_total: u64,
+    /// Contains the graphics backend.
+    pub graphics_backend: String,
+    /// Contains the graphics adapter.
+    pub graphics_adapter: String,
 }
