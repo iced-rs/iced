@@ -4,7 +4,7 @@ mod compositor;
 #[cfg(feature = "opengl")]
 mod gl_compositor;
 
-pub use compositor::{Compositor, SurfaceError};
+pub use compositor::{Compositor, GraphicsInformation, SurfaceError};
 
 #[cfg(feature = "opengl")]
 pub use gl_compositor::GLCompositor;

@@ -71,3 +71,12 @@ pub enum SurfaceError {
     #[error("There is no more memory left to allocate a new frame")]
     OutOfMemory,
 }
+
+/// Contains informations about the graphics (e.g. graphics adapter, graphics backend).
+#[derive(Debug)]
+pub struct GraphicsInformation {
+    /// Contains the graphics adapter.
+    pub adapter: String,
+    /// Contains the graphics backend.
+    pub backend: String,
+}
