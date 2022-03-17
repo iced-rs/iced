@@ -167,16 +167,17 @@ where
 
     let mut clipboard = Clipboard::connect(&window);
 
+    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
+
     run_command(
         init_command,
         &mut runtime,
         &mut clipboard,
         &mut proxy,
         &window,
+        &compositor.get_information(),
     );
     runtime.track(subscription);
-
-    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
     let (mut sender, receiver) = mpsc::unbounded();
 
@@ -262,6 +263,8 @@ async fn run_instance<A, E, C>(
         physical_size.height,
     );
 
+    let graphics_info = compositor.get_information();
+
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &mut application,
         user_interface::Cache::default(),
@@ -317,6 +320,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         &window,
+                        &graphics_info,
                     );
 
                     // Update window
@@ -516,6 +520,7 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
+    graphics_info: &window::GraphicsInformation,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -524,7 +529,7 @@ pub fn update<A: Application, E: Executor>(
         let command = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        run_command(command, runtime, clipboard, proxy, window);
+        run_command(command, runtime, clipboard, proxy, window, graphics_info);
     }
 
     let subscription = application.subscription();
@@ -538,6 +543,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
     window: &winit::window::Window,
+    graphics_info: &window::GraphicsInformation,
 ) {
     use iced_native::command;
     use iced_native::system;
@@ -591,6 +597,8 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                             cpu_brand: cpu.brand().into(),
                             cpu_cores: system.physical_core_count(),
                             memory_total: system.total_memory(),
+                            graphics_adapter: graphics_info.adapter.clone(),
+                            graphics_backend: graphics_info.backend.clone(),
                         };
 
                         Some(information)
