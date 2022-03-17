@@ -102,6 +102,16 @@ impl Application for Example {
                     )
                 ));
 
+                let graphics_adapter = Text::new(format!(
+                    "Graphics adapter: {}",
+                    information.graphics_adapter
+                ));
+
+                let graphics_backend = Text::new(format!(
+                    "Graphics backend: {}",
+                    information.graphics_backend
+                ));
+
                 Column::with_children(vec![
                     system_name.into(),
                     system_kernel.into(),
@@ -109,6 +119,8 @@ impl Application for Example {
                     cpu_brand.into(),
                     cpu_cores.into(),
                     memory_total.into(),
+                    graphics_adapter.into(),
+                    graphics_backend.into(),
                 ])
                 .into()
             }
