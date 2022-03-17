@@ -9,6 +9,7 @@ use raw_window_handle::HasRawWindowHandle;
 pub struct Compositor {
     settings: Settings,
     instance: wgpu::Instance,
+    adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     staging_belt: wgpu::util::StagingBelt,
@@ -93,6 +94,7 @@ impl Compositor {
         Some(Compositor {
             instance,
             settings,
+            adapter,
             device,
             queue,
             staging_belt,
@@ -153,6 +155,15 @@ impl iced_graphics::window::Compositor for Compositor {
                 height,
             },
         );
+    }
+
+    fn get_information(&self) -> iced_graphics::window::GraphicsInformation {
+        let information = self.adapter.get_info();
+
+        iced_graphics::window::GraphicsInformation {
+            adapter: information.name,
+            backend: format!("{:?}", information.backend),
+        }
     }
 
     fn present<T: AsRef<str>>(

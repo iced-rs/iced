@@ -38,6 +38,9 @@ pub trait Compositor: Sized {
         height: u32,
     );
 
+    /// Returns [`GraphicsInformation`] used by this [`Compositor`].
+    fn get_information(&self) -> GraphicsInformation;
+
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
     ///
     /// [`SwapChain`]: Self::SwapChain
