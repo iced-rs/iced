@@ -104,9 +104,7 @@ mod bezier {
         curves: &'a [Curve],
     }
 
-    impl<'a> canvas::Program for Bezier<'a> {
-        type Message = Curve;
-
+    impl<'a> canvas::Program<Curve> for Bezier<'a> {
         fn update(
             &mut self,
             event: Event,

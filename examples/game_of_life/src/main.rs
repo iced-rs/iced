@@ -328,9 +328,7 @@ mod grid {
         }
     }
 
-    impl<'a> canvas::Program for Grid {
-        type Message = Message;
-
+    impl<'a> canvas::Program<Message> for Grid {
         fn update(
             &mut self,
             event: Event,

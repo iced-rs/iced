@@ -9,10 +9,7 @@ use crate::Rectangle;
 /// application.
 ///
 /// [`Canvas`]: crate::widget::Canvas
-pub trait Program {
-    /// The [`Message`] produced by the [`Program`].
-    type Message;
-
+pub trait Program<Message> {
     /// The internal [`State`] mutated by the [`Program`].
     type State: Default + 'static;
 
@@ -33,7 +30,7 @@ pub trait Program {
         _event: Event,
         _bounds: Rectangle,
         _cursor: Cursor,
-    ) -> (event::Status, Option<Self::Message>) {
+    ) -> (event::Status, Option<Message>) {
         (event::Status::Ignored, None)
     }
 
@@ -67,11 +64,10 @@ pub trait Program {
     }
 }
 
-impl<T> Program for &T
+impl<Message, T> Program<Message> for &T
 where
-    T: Program,
+    T: Program<Message>,
 {
-    type Message = T::Message;
     type State = T::State;
 
     fn update(
@@ -80,7 +76,7 @@ where
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Self::Message>) {
+    ) -> (event::Status, Option<Message>) {
         T::update(self, state, event, bounds, cursor)
     }
 

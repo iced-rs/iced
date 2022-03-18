@@ -394,8 +394,7 @@ mod grid {
         }
     }
 
-    impl canvas::Program for Grid {
-        type Message = Message;
+    impl canvas::Program<Message> for Grid {
         type State = Interaction;
 
         fn update(

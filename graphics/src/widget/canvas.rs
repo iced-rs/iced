@@ -6,13 +6,6 @@
 use crate::renderer::{self, Renderer};
 use crate::{Backend, Primitive};
 
-use iced_native::layout;
-use iced_native::mouse;
-use iced_native::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
-};
-
 pub mod event;
 pub mod path;
 
@@ -35,6 +28,15 @@ pub use path::Path;
 pub use program::Program;
 pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use text::Text;
+
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::{
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
+};
+
+use std::marker::PhantomData;
 
 /// A widget capable of drawing 2D graphics.
 ///
@@ -72,9 +74,7 @@ pub use text::Text;
 /// }
 ///
 /// // Then, we implement the `Program` trait
-/// impl Program for Circle {
-///     type Message = ();
-///
+/// impl Program<()> for Circle {
 ///     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
 ///         // We prepare a new `Frame`
 ///         let mut frame = Frame::new(bounds.size());
@@ -94,13 +94,14 @@ pub use text::Text;
 /// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<P: Program> {
+pub struct Canvas<Message, P: Program<Message>> {
     width: Length,
     height: Length,
     program: P,
+    message_: PhantomData<Message>,
 }
 
-impl<P: Program> Canvas<P> {
+impl<Message, P: Program<Message>> Canvas<Message, P> {
     const DEFAULT_SIZE: u16 = 100;
 
     /// Creates a new [`Canvas`].
@@ -109,6 +110,7 @@ impl<P: Program> Canvas<P> {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
             program,
+            message_: PhantomData,
         }
     }
 
@@ -125,9 +127,9 @@ impl<P: Program> Canvas<P> {
     }
 }
 
-impl<P, B> Widget<P::Message, Renderer<B>> for Canvas<P>
+impl<Message, P, B> Widget<Message, Renderer<B>> for Canvas<Message, P>
 where
-    P: Program,
+    P: Program<Message>,
     B: Backend,
 {
     fn width(&self) -> Length {
@@ -156,7 +158,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer<B>,
         _clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, P::Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();
 
@@ -231,13 +233,14 @@ where
     }
 }
 
-impl<'a, P, B> From<Canvas<P>> for Element<'a, P::Message, Renderer<B>>
+impl<'a, Message, P, B> From<Canvas<Message, P>>
+    for Element<'a, Message, Renderer<B>>
 where
-    P::Message: 'static,
-    P: Program + 'a,
+    Message: 'static,
+    P: Program<Message> + 'a,
     B: Backend,
 {
-    fn from(canvas: Canvas<P>) -> Element<'a, P::Message, Renderer<B>> {
+    fn from(canvas: Canvas<Message, P>) -> Element<'a, Message, Renderer<B>> {
         Element::new(canvas)
     }
 }
