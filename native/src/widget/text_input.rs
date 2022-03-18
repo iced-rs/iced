@@ -154,6 +154,29 @@ where
     pub fn state(&self) -> &State {
         self.state
     }
+
+    /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
+    /// [`Value`] if provided.
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        value: Option<&Value>,
+    ) {
+        draw(
+            renderer,
+            layout,
+            cursor_position,
+            &self.state,
+            value.unwrap_or(&self.value),
+            &self.placeholder,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.style_sheet.as_ref(),
+        )
+    }
 }
 
 /// Computes the layout of a [`TextInput`].
@@ -791,18 +814,7 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        draw(
-            renderer,
-            layout,
-            cursor_position,
-            &self.state,
-            &self.value,
-            &self.placeholder,
-            self.size,
-            &self.font,
-            self.is_secure,
-            self.style_sheet.as_ref(),
-        )
+        self.draw(renderer, layout, cursor_position, None)
     }
 }
 
