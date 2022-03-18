@@ -22,9 +22,3 @@ impl Geometry {
         self.0
     }
 }
-
-impl From<Geometry> for Primitive {
-    fn from(geometry: Geometry) -> Primitive {
-        geometry.0
-    }
-}

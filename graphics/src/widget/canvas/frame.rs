@@ -265,12 +265,30 @@ impl Frame {
 
         f(&mut frame);
 
-        self.primitives.push(Primitive::Clip {
-            bounds: region,
-            content: Box::new(Primitive::Translate {
-                translation: Vector::new(region.x, region.y),
-                content: Box::new(frame.into_geometry().into_primitive()),
-            }),
+        let primitives = frame.into_primitives();
+
+        let (text, meshes) = primitives
+            .into_iter()
+            .partition(|primitive| matches!(primitive, Primitive::Text { .. }));
+
+        let translation = Vector::new(region.x, region.y);
+
+        self.primitives.push(Primitive::Group {
+            primitives: vec![
+                Primitive::Translate {
+                    translation,
+                    content: Box::new(Primitive::Group { primitives: meshes }),
+                },
+                Primitive::Translate {
+                    translation,
+                    content: Box::new(Primitive::Clip {
+                        bounds: region,
+                        content: Box::new(Primitive::Group {
+                            primitives: text,
+                        }),
+                    }),
+                },
+            ],
         });
     }
 
@@ -308,7 +326,13 @@ impl Frame {
     }
 
     /// Produces the [`Geometry`] representing everything drawn on the [`Frame`].
-    pub fn into_geometry(mut self) -> Geometry {
+    pub fn into_geometry(self) -> Geometry {
+        Geometry::from_primitive(Primitive::Group {
+            primitives: self.into_primitives(),
+        })
+    }
+
+    fn into_primitives(mut self) -> Vec<Primitive> {
         if !self.buffers.indices.is_empty() {
             self.primitives.push(Primitive::Mesh2D {
                 buffers: triangle::Mesh2D {
@@ -319,9 +343,7 @@ impl Frame {
             });
         }
 
-        Geometry::from_primitive(Primitive::Group {
-            primitives: self.primitives,
-        })
+        self.primitives
     }
 }
 
