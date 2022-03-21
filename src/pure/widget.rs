@@ -139,6 +139,9 @@ pub use toggler::Toggler;
 #[cfg(feature = "canvas")]
 pub use iced_graphics::widget::pure::canvas;
 
+#[cfg(feature = "qr_code")]
+pub use iced_graphics::widget::pure::qr_code;
+
 #[cfg(feature = "image")]
 pub mod image {
     //! Display images in your user interface.
@@ -150,6 +153,9 @@ pub mod image {
 
 #[cfg(feature = "canvas")]
 pub use canvas::Canvas;
+
+#[cfg(feature = "qr_code")]
+pub use qr_code::QRCode;
 
 #[cfg(feature = "image")]
 pub use image::Image;
