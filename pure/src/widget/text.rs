@@ -60,8 +60,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for &'static str
+impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for &'a str
 where
     Renderer: text::Renderer + 'static,
 {
