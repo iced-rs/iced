@@ -151,6 +151,9 @@ pub mod image {
     pub type Image = iced_pure::widget::Image<Handle>;
 }
 
+#[cfg(feature = "svg")]
+pub use iced_pure::widget::svg;
+
 #[cfg(feature = "canvas")]
 pub use canvas::Canvas;
 
@@ -159,3 +162,6 @@ pub use qr_code::QRCode;
 
 #[cfg(feature = "image")]
 pub use image::Image;
+
+#[cfg(feature = "svg")]
+pub use svg::Svg;
