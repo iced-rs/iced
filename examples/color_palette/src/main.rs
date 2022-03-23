@@ -235,7 +235,7 @@ impl Theme {
     }
 }
 
-impl canvas::Program<Message> for Theme {
+impl<Message> canvas::Program<Message> for Theme {
     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(bounds.size(), |frame| {
             self.draw(frame);

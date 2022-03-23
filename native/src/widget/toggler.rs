@@ -1,5 +1,4 @@
 //! Show toggle controls using togglers.
-
 use crate::alignment;
 use crate::event;
 use crate::layout;
@@ -14,7 +13,7 @@ use crate::{
 
 pub use iced_style::toggler::{Style, StyleSheet};
 
-/// A toggler widget
+/// A toggler widget.
 ///
 /// # Example
 ///
@@ -32,7 +31,7 @@ pub use iced_style::toggler::{Style, StyleSheet};
 #[allow(missing_debug_implementations)]
 pub struct Toggler<'a, Message, Renderer: text::Renderer> {
     is_active: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message>,
+    on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
     size: u16,
@@ -61,7 +60,7 @@ impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
         f: F,
     ) -> Self
     where
-        F: 'static + Fn(bool) -> Message,
+        F: 'a + Fn(bool) -> Message,
     {
         Toggler {
             is_active,

@@ -65,6 +65,46 @@ impl<Handle> Image<Handle> {
     }
 }
 
+/// Computes the layout of an [`Image`].
+pub fn layout<Renderer, Handle>(
+    renderer: &Renderer,
+    limits: &layout::Limits,
+    handle: &Handle,
+    width: Length,
+    height: Length,
+    content_fit: ContentFit,
+) -> layout::Node
+where
+    Renderer: image::Renderer<Handle = Handle>,
+{
+    // The raw w/h of the underlying image
+    let image_size = {
+        let (width, height) = renderer.dimensions(handle);
+
+        Size::new(width as f32, height as f32)
+    };
+
+    // The size to be available to the widget prior to `Shrink`ing
+    let raw_size = limits.width(width).height(height).resolve(image_size);
+
+    // The uncropped size of the image when fit to the bounds above
+    let full_size = content_fit.fit(image_size, raw_size);
+
+    // Shrink the widget to fit the resized image, if requested
+    let final_size = Size {
+        width: match width {
+            Length::Shrink => f32::min(raw_size.width, full_size.width),
+            _ => raw_size.width,
+        },
+        height: match height {
+            Length::Shrink => f32::min(raw_size.height, full_size.height),
+            _ => raw_size.height,
+        },
+    };
+
+    layout::Node::new(final_size)
+}
+
 impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -83,32 +123,14 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        // The raw w/h of the underlying image
-        let (width, height) = renderer.dimensions(&self.handle);
-        let image_size = Size::new(width as f32, height as f32);
-
-        // The size to be available to the widget prior to `Shrink`ing
-        let raw_size = limits
-            .width(self.width)
-            .height(self.height)
-            .resolve(image_size);
-
-        // The uncropped size of the image when fit to the bounds above
-        let full_size = self.content_fit.fit(image_size, raw_size);
-
-        // Shrink the widget to fit the resized image, if requested
-        let final_size = Size {
-            width: match self.width {
-                Length::Shrink => f32::min(raw_size.width, full_size.width),
-                _ => raw_size.width,
-            },
-            height: match self.height {
-                Length::Shrink => f32::min(raw_size.height, full_size.height),
-                _ => raw_size.height,
-            },
-        };
-
-        layout::Node::new(final_size)
+        layout(
+            renderer,
+            limits,
+            &self.handle,
+            self.width,
+            self.height,
+            self.content_fit,
+        )
     }
 
     fn draw(

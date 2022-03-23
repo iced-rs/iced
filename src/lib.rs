@@ -195,6 +195,9 @@ pub mod time;
 pub mod widget;
 pub mod window;
 
+#[cfg(feature = "pure")]
+pub mod pure;
+
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_winit as runtime;
 
@@ -214,6 +217,7 @@ pub use application::Application;
 pub use element::Element;
 pub use error::Error;
 pub use executor::Executor;
+pub use renderer::Renderer;
 pub use result::Result;
 pub use sandbox::Sandbox;
 pub use settings::Settings;

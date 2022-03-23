@@ -24,8 +24,6 @@ use crate::{
     Shell, Size, Vector, Widget,
 };
 
-use std::u32;
-
 pub use iced_style::text_input::{Style, StyleSheet};
 
 /// A field that can be filled with text.
@@ -61,10 +59,9 @@ pub struct TextInput<'a, Message, Renderer: text::Renderer> {
     is_secure: bool,
     font: Renderer::Font,
     width: Length,
-    max_width: u32,
     padding: Padding,
     size: Option<u16>,
-    on_change: Box<dyn Fn(String) -> Message>,
+    on_change: Box<dyn Fn(String) -> Message + 'a>,
     on_submit: Option<Message>,
     style_sheet: Box<dyn StyleSheet + 'a>,
 }
@@ -88,7 +85,7 @@ where
         on_change: F,
     ) -> Self
     where
-        F: 'static + Fn(String) -> Message,
+        F: 'a + Fn(String) -> Message,
     {
         TextInput {
             state,
@@ -97,7 +94,6 @@ where
             is_secure: false,
             font: Default::default(),
             width: Length::Fill,
-            max_width: u32::MAX,
             padding: Padding::ZERO,
             size: None,
             on_change: Box::new(on_change),
@@ -123,12 +119,6 @@ where
     /// Sets the width of the [`TextInput`].
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
-        self
-    }
-
-    /// Sets the maximum width of the [`TextInput`].
-    pub fn max_width(mut self, max_width: u32) -> Self {
-        self.max_width = max_width;
         self
     }
 
@@ -164,12 +154,7 @@ where
     pub fn state(&self) -> &State {
         self.state
     }
-}
 
-impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
-where
-    Renderer: text::Renderer,
-{
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
     /// [`Value`] if provided.
     pub fn draw(
@@ -179,165 +164,587 @@ where
         cursor_position: Point,
         value: Option<&Value>,
     ) {
-        let value = value.unwrap_or(&self.value);
-        let secure_value = self.is_secure.then(|| value.secure());
-        let value = secure_value.as_ref().unwrap_or(&value);
+        draw(
+            renderer,
+            layout,
+            cursor_position,
+            &self.state,
+            value.unwrap_or(&self.value),
+            &self.placeholder,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.style_sheet.as_ref(),
+        )
+    }
+}
 
-        let bounds = layout.bounds();
-        let text_bounds = layout.children().next().unwrap().bounds();
+/// Computes the layout of a [`TextInput`].
+pub fn layout<Renderer>(
+    renderer: &Renderer,
+    limits: &layout::Limits,
+    width: Length,
+    padding: Padding,
+    size: Option<u16>,
+) -> layout::Node
+where
+    Renderer: text::Renderer,
+{
+    let text_size = size.unwrap_or(renderer.default_size());
 
-        let is_mouse_over = bounds.contains(cursor_position);
+    let limits = limits
+        .pad(padding)
+        .width(width)
+        .height(Length::Units(text_size));
 
-        let style = if self.state.is_focused() {
-            self.style_sheet.focused()
-        } else if is_mouse_over {
-            self.style_sheet.hovered()
-        } else {
-            self.style_sheet.active()
-        };
+    let mut text = layout::Node::new(limits.resolve(Size::ZERO));
+    text.move_to(Point::new(padding.left.into(), padding.top.into()));
 
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border_radius: style.border_radius,
-                border_width: style.border_width,
-                border_color: style.border_color,
-            },
-            style.background,
-        );
+    layout::Node::with_children(text.size().pad(padding), vec![text])
+}
 
-        let text = value.to_string();
-        let size = self.size.unwrap_or(renderer.default_size());
+/// Processes an [`Event`] and updates the [`State`] of a [`TextInput`]
+/// accordingly.
+pub fn update<'a, Message, Renderer>(
+    event: Event,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    renderer: &Renderer,
+    clipboard: &mut dyn Clipboard,
+    shell: &mut Shell<'_, Message>,
+    value: &mut Value,
+    size: Option<u16>,
+    font: &Renderer::Font,
+    is_secure: bool,
+    on_change: &dyn Fn(String) -> Message,
+    on_submit: &Option<Message>,
+    state: impl FnOnce() -> &'a mut State,
+) -> event::Status
+where
+    Message: Clone,
+    Renderer: text::Renderer,
+{
+    match event {
+        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+        | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            let state = state();
+            let is_clicked = layout.bounds().contains(cursor_position);
 
-        let (cursor, offset) = if self.state.is_focused() {
-            match self.state.cursor.state(&value) {
-                cursor::State::Index(position) => {
-                    let (text_value_width, offset) =
-                        measure_cursor_and_scroll_offset(
-                            renderer,
-                            text_bounds,
-                            &value,
-                            size,
-                            position,
-                            self.font.clone(),
-                        );
+            state.is_focused = is_clicked;
 
-                    (
-                        Some((
-                            renderer::Quad {
-                                bounds: Rectangle {
-                                    x: text_bounds.x + text_value_width,
-                                    y: text_bounds.y,
-                                    width: 1.0,
-                                    height: text_bounds.height,
-                                },
-                                border_radius: 0.0,
-                                border_width: 0.0,
-                                border_color: Color::TRANSPARENT,
-                            },
-                            self.style_sheet.value_color(),
-                        )),
-                        offset,
-                    )
-                }
-                cursor::State::Selection { start, end } => {
-                    let left = start.min(end);
-                    let right = end.max(start);
+            if is_clicked {
+                let text_layout = layout.children().next().unwrap();
+                let target = cursor_position.x - text_layout.bounds().x;
 
-                    let (left_position, left_offset) =
-                        measure_cursor_and_scroll_offset(
-                            renderer,
-                            text_bounds,
-                            &value,
-                            size,
-                            left,
-                            self.font.clone(),
-                        );
+                let click =
+                    mouse::Click::new(cursor_position, state.last_click);
 
-                    let (right_position, right_offset) =
-                        measure_cursor_and_scroll_offset(
-                            renderer,
-                            text_bounds,
-                            &value,
-                            size,
-                            right,
-                            self.font.clone(),
-                        );
+                match click.kind() {
+                    click::Kind::Single => {
+                        let position = if target > 0.0 {
+                            let value = if is_secure {
+                                value.secure()
+                            } else {
+                                value.clone()
+                            };
 
-                    let width = right_position - left_position;
-
-                    (
-                        Some((
-                            renderer::Quad {
-                                bounds: Rectangle {
-                                    x: text_bounds.x + left_position,
-                                    y: text_bounds.y,
-                                    width,
-                                    height: text_bounds.height,
-                                },
-                                border_radius: 0.0,
-                                border_width: 0.0,
-                                border_color: Color::TRANSPARENT,
-                            },
-                            self.style_sheet.selection_color(),
-                        )),
-                        if end == right {
-                            right_offset
+                            find_cursor_position(
+                                renderer,
+                                text_layout.bounds(),
+                                font.clone(),
+                                size,
+                                &value,
+                                state,
+                                target,
+                            )
                         } else {
-                            left_offset
-                        },
-                    )
+                            None
+                        };
+
+                        state.cursor.move_to(position.unwrap_or(0));
+                        state.is_dragging = true;
+                    }
+                    click::Kind::Double => {
+                        if is_secure {
+                            state.cursor.select_all(value);
+                        } else {
+                            let position = find_cursor_position(
+                                renderer,
+                                text_layout.bounds(),
+                                font.clone(),
+                                size,
+                                value,
+                                state,
+                                target,
+                            )
+                            .unwrap_or(0);
+
+                            state.cursor.select_range(
+                                value.previous_start_of_word(position),
+                                value.next_end_of_word(position),
+                            );
+                        }
+
+                        state.is_dragging = false;
+                    }
+                    click::Kind::Triple => {
+                        state.cursor.select_all(value);
+                        state.is_dragging = false;
+                    }
+                }
+
+                state.last_click = Some(click);
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+        | Event::Touch(touch::Event::FingerLifted { .. })
+        | Event::Touch(touch::Event::FingerLost { .. }) => {
+            state().is_dragging = false;
+        }
+        Event::Mouse(mouse::Event::CursorMoved { position })
+        | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
+            let state = state();
+
+            if state.is_dragging {
+                let text_layout = layout.children().next().unwrap();
+                let target = position.x - text_layout.bounds().x;
+
+                let value = if is_secure {
+                    value.secure()
+                } else {
+                    value.clone()
+                };
+
+                let position = find_cursor_position(
+                    renderer,
+                    text_layout.bounds(),
+                    font.clone(),
+                    size,
+                    &value,
+                    state,
+                    target,
+                )
+                .unwrap_or(0);
+
+                state
+                    .cursor
+                    .select_range(state.cursor.start(&value), position);
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Keyboard(keyboard::Event::CharacterReceived(c)) => {
+            let state = state();
+
+            if state.is_focused
+                && state.is_pasting.is_none()
+                && !state.keyboard_modifiers.command()
+                && !c.is_control()
+            {
+                let mut editor = Editor::new(value, &mut state.cursor);
+
+                editor.insert(c);
+
+                let message = (on_change)(editor.contents());
+                shell.publish(message);
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
+            let state = state();
+
+            if state.is_focused {
+                let modifiers = state.keyboard_modifiers;
+
+                match key_code {
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter => {
+                        if let Some(on_submit) = on_submit.clone() {
+                            shell.publish(on_submit);
+                        }
+                    }
+                    keyboard::KeyCode::Backspace => {
+                        if platform::is_jump_modifier_pressed(modifiers)
+                            && state.cursor.selection(value).is_none()
+                        {
+                            if is_secure {
+                                let cursor_pos = state.cursor.end(value);
+                                state.cursor.select_range(0, cursor_pos);
+                            } else {
+                                state.cursor.select_left_by_words(value);
+                            }
+                        }
+
+                        let mut editor = Editor::new(value, &mut state.cursor);
+                        editor.backspace();
+
+                        let message = (on_change)(editor.contents());
+                        shell.publish(message);
+                    }
+                    keyboard::KeyCode::Delete => {
+                        if platform::is_jump_modifier_pressed(modifiers)
+                            && state.cursor.selection(value).is_none()
+                        {
+                            if is_secure {
+                                let cursor_pos = state.cursor.end(value);
+                                state
+                                    .cursor
+                                    .select_range(cursor_pos, value.len());
+                            } else {
+                                state.cursor.select_right_by_words(value);
+                            }
+                        }
+
+                        let mut editor = Editor::new(value, &mut state.cursor);
+                        editor.delete();
+
+                        let message = (on_change)(editor.contents());
+                        shell.publish(message);
+                    }
+                    keyboard::KeyCode::Left => {
+                        if platform::is_jump_modifier_pressed(modifiers)
+                            && !is_secure
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_left_by_words(value);
+                            } else {
+                                state.cursor.move_left_by_words(value);
+                            }
+                        } else if modifiers.shift() {
+                            state.cursor.select_left(value)
+                        } else {
+                            state.cursor.move_left(value);
+                        }
+                    }
+                    keyboard::KeyCode::Right => {
+                        if platform::is_jump_modifier_pressed(modifiers)
+                            && !is_secure
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_right_by_words(value);
+                            } else {
+                                state.cursor.move_right_by_words(value);
+                            }
+                        } else if modifiers.shift() {
+                            state.cursor.select_right(value)
+                        } else {
+                            state.cursor.move_right(value);
+                        }
+                    }
+                    keyboard::KeyCode::Home => {
+                        if modifiers.shift() {
+                            state
+                                .cursor
+                                .select_range(state.cursor.start(value), 0);
+                        } else {
+                            state.cursor.move_to(0);
+                        }
+                    }
+                    keyboard::KeyCode::End => {
+                        if modifiers.shift() {
+                            state.cursor.select_range(
+                                state.cursor.start(value),
+                                value.len(),
+                            );
+                        } else {
+                            state.cursor.move_to(value.len());
+                        }
+                    }
+                    keyboard::KeyCode::C
+                        if state.keyboard_modifiers.command() =>
+                    {
+                        match state.cursor.selection(value) {
+                            Some((start, end)) => {
+                                clipboard.write(
+                                    value.select(start, end).to_string(),
+                                );
+                            }
+                            None => {}
+                        }
+                    }
+                    keyboard::KeyCode::X
+                        if state.keyboard_modifiers.command() =>
+                    {
+                        match state.cursor.selection(value) {
+                            Some((start, end)) => {
+                                clipboard.write(
+                                    value.select(start, end).to_string(),
+                                );
+                            }
+                            None => {}
+                        }
+
+                        let mut editor = Editor::new(value, &mut state.cursor);
+                        editor.delete();
+
+                        let message = (on_change)(editor.contents());
+                        shell.publish(message);
+                    }
+                    keyboard::KeyCode::V => {
+                        if state.keyboard_modifiers.command() {
+                            let content = match state.is_pasting.take() {
+                                Some(content) => content,
+                                None => {
+                                    let content: String = clipboard
+                                        .read()
+                                        .unwrap_or(String::new())
+                                        .chars()
+                                        .filter(|c| !c.is_control())
+                                        .collect();
+
+                                    Value::new(&content)
+                                }
+                            };
+
+                            let mut editor =
+                                Editor::new(value, &mut state.cursor);
+
+                            editor.paste(content.clone());
+
+                            let message = (on_change)(editor.contents());
+                            shell.publish(message);
+
+                            state.is_pasting = Some(content);
+                        } else {
+                            state.is_pasting = None;
+                        }
+                    }
+                    keyboard::KeyCode::A
+                        if state.keyboard_modifiers.command() =>
+                    {
+                        state.cursor.select_all(value);
+                    }
+                    keyboard::KeyCode::Escape => {
+                        state.is_focused = false;
+                        state.is_dragging = false;
+                        state.is_pasting = None;
+
+                        state.keyboard_modifiers =
+                            keyboard::Modifiers::default();
+                    }
+                    keyboard::KeyCode::Tab
+                    | keyboard::KeyCode::Up
+                    | keyboard::KeyCode::Down => {
+                        return event::Status::Ignored;
+                    }
+                    _ => {}
                 }
             }
-        } else {
-            (None, 0.0)
-        };
 
-        let text_width = renderer.measure_width(
-            if text.is_empty() {
-                &self.placeholder
-            } else {
-                &text
-            },
-            size,
-            self.font.clone(),
-        );
-
-        let render = |renderer: &mut Renderer| {
-            if let Some((cursor, color)) = cursor {
-                renderer.fill_quad(cursor, color);
-            }
-
-            renderer.fill_text(Text {
-                content: if text.is_empty() {
-                    &self.placeholder
-                } else {
-                    &text
-                },
-                color: if text.is_empty() {
-                    self.style_sheet.placeholder_color()
-                } else {
-                    self.style_sheet.value_color()
-                },
-                font: self.font.clone(),
-                bounds: Rectangle {
-                    y: text_bounds.center_y(),
-                    width: f32::INFINITY,
-                    ..text_bounds
-                },
-                size: f32::from(size),
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Center,
-            });
-        };
-
-        if text_width > text_bounds.width {
-            renderer.with_layer(text_bounds, |renderer| {
-                renderer.with_translation(Vector::new(-offset, 0.0), render)
-            });
-        } else {
-            render(renderer);
+            return event::Status::Captured;
         }
+        Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
+            let state = state();
+
+            if state.is_focused {
+                match key_code {
+                    keyboard::KeyCode::V => {
+                        state.is_pasting = None;
+                    }
+                    keyboard::KeyCode::Tab
+                    | keyboard::KeyCode::Up
+                    | keyboard::KeyCode::Down => {
+                        return event::Status::Ignored;
+                    }
+                    _ => {}
+                }
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+            let state = state();
+
+            if state.is_focused {
+                state.keyboard_modifiers = modifiers;
+            }
+        }
+        _ => {}
+    }
+
+    event::Status::Ignored
+}
+
+/// Draws the [`TextInput`] with the given [`Renderer`], overriding its
+/// [`Value`] if provided.
+pub fn draw<Renderer>(
+    renderer: &mut Renderer,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    state: &State,
+    value: &Value,
+    placeholder: &str,
+    size: Option<u16>,
+    font: &Renderer::Font,
+    is_secure: bool,
+    style_sheet: &dyn StyleSheet,
+) where
+    Renderer: text::Renderer,
+{
+    let secure_value = is_secure.then(|| value.secure());
+    let value = secure_value.as_ref().unwrap_or(&value);
+
+    let bounds = layout.bounds();
+    let text_bounds = layout.children().next().unwrap().bounds();
+
+    let is_mouse_over = bounds.contains(cursor_position);
+
+    let style = if state.is_focused() {
+        style_sheet.focused()
+    } else if is_mouse_over {
+        style_sheet.hovered()
+    } else {
+        style_sheet.active()
+    };
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds,
+            border_radius: style.border_radius,
+            border_width: style.border_width,
+            border_color: style.border_color,
+        },
+        style.background,
+    );
+
+    let text = value.to_string();
+    let size = size.unwrap_or(renderer.default_size());
+
+    let (cursor, offset) = if state.is_focused() {
+        match state.cursor.state(&value) {
+            cursor::State::Index(position) => {
+                let (text_value_width, offset) =
+                    measure_cursor_and_scroll_offset(
+                        renderer,
+                        text_bounds,
+                        &value,
+                        size,
+                        position,
+                        font.clone(),
+                    );
+
+                (
+                    Some((
+                        renderer::Quad {
+                            bounds: Rectangle {
+                                x: text_bounds.x + text_value_width,
+                                y: text_bounds.y,
+                                width: 1.0,
+                                height: text_bounds.height,
+                            },
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        },
+                        style_sheet.value_color(),
+                    )),
+                    offset,
+                )
+            }
+            cursor::State::Selection { start, end } => {
+                let left = start.min(end);
+                let right = end.max(start);
+
+                let (left_position, left_offset) =
+                    measure_cursor_and_scroll_offset(
+                        renderer,
+                        text_bounds,
+                        &value,
+                        size,
+                        left,
+                        font.clone(),
+                    );
+
+                let (right_position, right_offset) =
+                    measure_cursor_and_scroll_offset(
+                        renderer,
+                        text_bounds,
+                        &value,
+                        size,
+                        right,
+                        font.clone(),
+                    );
+
+                let width = right_position - left_position;
+
+                (
+                    Some((
+                        renderer::Quad {
+                            bounds: Rectangle {
+                                x: text_bounds.x + left_position,
+                                y: text_bounds.y,
+                                width,
+                                height: text_bounds.height,
+                            },
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        },
+                        style_sheet.selection_color(),
+                    )),
+                    if end == right {
+                        right_offset
+                    } else {
+                        left_offset
+                    },
+                )
+            }
+        }
+    } else {
+        (None, 0.0)
+    };
+
+    let text_width = renderer.measure_width(
+        if text.is_empty() { placeholder } else { &text },
+        size,
+        font.clone(),
+    );
+
+    let render = |renderer: &mut Renderer| {
+        if let Some((cursor, color)) = cursor {
+            renderer.fill_quad(cursor, color);
+        }
+
+        renderer.fill_text(Text {
+            content: if text.is_empty() { placeholder } else { &text },
+            color: if text.is_empty() {
+                style_sheet.placeholder_color()
+            } else {
+                style_sheet.value_color()
+            },
+            font: font.clone(),
+            bounds: Rectangle {
+                y: text_bounds.center_y(),
+                width: f32::INFINITY,
+                ..text_bounds
+            },
+            size: f32::from(size),
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Center,
+        });
+    };
+
+    if text_width > text_bounds.width {
+        renderer.with_layer(text_bounds, |renderer| {
+            renderer.with_translation(Vector::new(-offset, 0.0), render)
+        });
+    } else {
+        render(renderer);
+    }
+}
+
+/// Computes the current [`mouse::Interaction`] of the [`TextInput`].
+pub fn mouse_interaction(
+    layout: Layout<'_>,
+    cursor_position: Point,
+) -> mouse::Interaction {
+    if layout.bounds().contains(cursor_position) {
+        mouse::Interaction::Text
+    } else {
+        mouse::Interaction::default()
     }
 }
 
@@ -360,21 +767,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let text_size = self.size.unwrap_or(renderer.default_size());
-
-        let limits = limits
-            .pad(self.padding)
-            .width(self.width)
-            .max_width(self.max_width)
-            .height(Length::Units(text_size));
-
-        let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-        text.move_to(Point::new(
-            self.padding.left.into(),
-            self.padding.top.into(),
-        ));
-
-        layout::Node::with_children(text.size().pad(self.padding), vec![text])
+        layout(renderer, limits, self.width, self.padding, self.size)
     }
 
     fn on_event(
@@ -386,377 +779,21 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                let is_clicked = layout.bounds().contains(cursor_position);
-
-                self.state.is_focused = is_clicked;
-
-                if is_clicked {
-                    let text_layout = layout.children().next().unwrap();
-                    let target = cursor_position.x - text_layout.bounds().x;
-
-                    let click = mouse::Click::new(
-                        cursor_position,
-                        self.state.last_click,
-                    );
-
-                    match click.kind() {
-                        click::Kind::Single => {
-                            let position = if target > 0.0 {
-                                let value = if self.is_secure {
-                                    self.value.secure()
-                                } else {
-                                    self.value.clone()
-                                };
-
-                                find_cursor_position(
-                                    renderer,
-                                    text_layout.bounds(),
-                                    self.font.clone(),
-                                    self.size,
-                                    &value,
-                                    &self.state,
-                                    target,
-                                )
-                            } else {
-                                None
-                            };
-
-                            self.state.cursor.move_to(position.unwrap_or(0));
-                            self.state.is_dragging = true;
-                        }
-                        click::Kind::Double => {
-                            if self.is_secure {
-                                self.state.cursor.select_all(&self.value);
-                            } else {
-                                let position = find_cursor_position(
-                                    renderer,
-                                    text_layout.bounds(),
-                                    self.font.clone(),
-                                    self.size,
-                                    &self.value,
-                                    &self.state,
-                                    target,
-                                )
-                                .unwrap_or(0);
-
-                                self.state.cursor.select_range(
-                                    self.value.previous_start_of_word(position),
-                                    self.value.next_end_of_word(position),
-                                );
-                            }
-
-                            self.state.is_dragging = false;
-                        }
-                        click::Kind::Triple => {
-                            self.state.cursor.select_all(&self.value);
-                            self.state.is_dragging = false;
-                        }
-                    }
-
-                    self.state.last_click = Some(click);
-
-                    return event::Status::Captured;
-                }
-            }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. })
-            | Event::Touch(touch::Event::FingerLost { .. }) => {
-                self.state.is_dragging = false;
-            }
-            Event::Mouse(mouse::Event::CursorMoved { position })
-            | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
-                if self.state.is_dragging {
-                    let text_layout = layout.children().next().unwrap();
-                    let target = position.x - text_layout.bounds().x;
-
-                    let value = if self.is_secure {
-                        self.value.secure()
-                    } else {
-                        self.value.clone()
-                    };
-
-                    let position = find_cursor_position(
-                        renderer,
-                        text_layout.bounds(),
-                        self.font.clone(),
-                        self.size,
-                        &value,
-                        &self.state,
-                        target,
-                    )
-                    .unwrap_or(0);
-
-                    self.state.cursor.select_range(
-                        self.state.cursor.start(&value),
-                        position,
-                    );
-
-                    return event::Status::Captured;
-                }
-            }
-            Event::Keyboard(keyboard::Event::CharacterReceived(c))
-                if self.state.is_focused
-                    && self.state.is_pasting.is_none()
-                    && !self.state.keyboard_modifiers.command()
-                    && !c.is_control() =>
-            {
-                let mut editor =
-                    Editor::new(&mut self.value, &mut self.state.cursor);
-
-                editor.insert(c);
-
-                let message = (self.on_change)(editor.contents());
-                shell.publish(message);
-
-                return event::Status::Captured;
-            }
-            Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code, ..
-            }) if self.state.is_focused => {
-                let modifiers = self.state.keyboard_modifiers;
-
-                match key_code {
-                    keyboard::KeyCode::Enter
-                    | keyboard::KeyCode::NumpadEnter => {
-                        if let Some(on_submit) = self.on_submit.clone() {
-                            shell.publish(on_submit);
-                        }
-                    }
-                    keyboard::KeyCode::Backspace => {
-                        if platform::is_jump_modifier_pressed(modifiers)
-                            && self
-                                .state
-                                .cursor
-                                .selection(&self.value)
-                                .is_none()
-                        {
-                            if self.is_secure {
-                                let cursor_pos =
-                                    self.state.cursor.end(&self.value);
-                                self.state.cursor.select_range(0, cursor_pos);
-                            } else {
-                                self.state
-                                    .cursor
-                                    .select_left_by_words(&self.value);
-                            }
-                        }
-
-                        let mut editor = Editor::new(
-                            &mut self.value,
-                            &mut self.state.cursor,
-                        );
-
-                        editor.backspace();
-
-                        let message = (self.on_change)(editor.contents());
-                        shell.publish(message);
-                    }
-                    keyboard::KeyCode::Delete => {
-                        if platform::is_jump_modifier_pressed(modifiers)
-                            && self
-                                .state
-                                .cursor
-                                .selection(&self.value)
-                                .is_none()
-                        {
-                            if self.is_secure {
-                                let cursor_pos =
-                                    self.state.cursor.end(&self.value);
-                                self.state
-                                    .cursor
-                                    .select_range(cursor_pos, self.value.len());
-                            } else {
-                                self.state
-                                    .cursor
-                                    .select_right_by_words(&self.value);
-                            }
-                        }
-
-                        let mut editor = Editor::new(
-                            &mut self.value,
-                            &mut self.state.cursor,
-                        );
-
-                        editor.delete();
-
-                        let message = (self.on_change)(editor.contents());
-                        shell.publish(message);
-                    }
-                    keyboard::KeyCode::Left => {
-                        if platform::is_jump_modifier_pressed(modifiers)
-                            && !self.is_secure
-                        {
-                            if modifiers.shift() {
-                                self.state
-                                    .cursor
-                                    .select_left_by_words(&self.value);
-                            } else {
-                                self.state
-                                    .cursor
-                                    .move_left_by_words(&self.value);
-                            }
-                        } else if modifiers.shift() {
-                            self.state.cursor.select_left(&self.value)
-                        } else {
-                            self.state.cursor.move_left(&self.value);
-                        }
-                    }
-                    keyboard::KeyCode::Right => {
-                        if platform::is_jump_modifier_pressed(modifiers)
-                            && !self.is_secure
-                        {
-                            if modifiers.shift() {
-                                self.state
-                                    .cursor
-                                    .select_right_by_words(&self.value);
-                            } else {
-                                self.state
-                                    .cursor
-                                    .move_right_by_words(&self.value);
-                            }
-                        } else if modifiers.shift() {
-                            self.state.cursor.select_right(&self.value)
-                        } else {
-                            self.state.cursor.move_right(&self.value);
-                        }
-                    }
-                    keyboard::KeyCode::Home => {
-                        if modifiers.shift() {
-                            self.state.cursor.select_range(
-                                self.state.cursor.start(&self.value),
-                                0,
-                            );
-                        } else {
-                            self.state.cursor.move_to(0);
-                        }
-                    }
-                    keyboard::KeyCode::End => {
-                        if modifiers.shift() {
-                            self.state.cursor.select_range(
-                                self.state.cursor.start(&self.value),
-                                self.value.len(),
-                            );
-                        } else {
-                            self.state.cursor.move_to(self.value.len());
-                        }
-                    }
-                    keyboard::KeyCode::C
-                        if self.state.keyboard_modifiers.command() =>
-                    {
-                        match self.state.cursor.selection(&self.value) {
-                            Some((start, end)) => {
-                                clipboard.write(
-                                    self.value.select(start, end).to_string(),
-                                );
-                            }
-                            None => {}
-                        }
-                    }
-                    keyboard::KeyCode::X
-                        if self.state.keyboard_modifiers.command() =>
-                    {
-                        match self.state.cursor.selection(&self.value) {
-                            Some((start, end)) => {
-                                clipboard.write(
-                                    self.value.select(start, end).to_string(),
-                                );
-                            }
-                            None => {}
-                        }
-
-                        let mut editor = Editor::new(
-                            &mut self.value,
-                            &mut self.state.cursor,
-                        );
-
-                        editor.delete();
-
-                        let message = (self.on_change)(editor.contents());
-                        shell.publish(message);
-                    }
-                    keyboard::KeyCode::V => {
-                        if self.state.keyboard_modifiers.command() {
-                            let content = match self.state.is_pasting.take() {
-                                Some(content) => content,
-                                None => {
-                                    let content: String = clipboard
-                                        .read()
-                                        .unwrap_or(String::new())
-                                        .chars()
-                                        .filter(|c| !c.is_control())
-                                        .collect();
-
-                                    Value::new(&content)
-                                }
-                            };
-
-                            let mut editor = Editor::new(
-                                &mut self.value,
-                                &mut self.state.cursor,
-                            );
-
-                            editor.paste(content.clone());
-
-                            let message = (self.on_change)(editor.contents());
-                            shell.publish(message);
-
-                            self.state.is_pasting = Some(content);
-                        } else {
-                            self.state.is_pasting = None;
-                        }
-                    }
-                    keyboard::KeyCode::A
-                        if self.state.keyboard_modifiers.command() =>
-                    {
-                        self.state.cursor.select_all(&self.value);
-                    }
-                    keyboard::KeyCode::Escape => {
-                        self.state.is_focused = false;
-                        self.state.is_dragging = false;
-                        self.state.is_pasting = None;
-
-                        self.state.keyboard_modifiers =
-                            keyboard::Modifiers::default();
-                    }
-                    keyboard::KeyCode::Tab
-                    | keyboard::KeyCode::Up
-                    | keyboard::KeyCode::Down => {
-                        return event::Status::Ignored;
-                    }
-                    _ => {}
-                }
-
-                return event::Status::Captured;
-            }
-            Event::Keyboard(keyboard::Event::KeyReleased {
-                key_code, ..
-            }) if self.state.is_focused => {
-                match key_code {
-                    keyboard::KeyCode::V => {
-                        self.state.is_pasting = None;
-                    }
-                    keyboard::KeyCode::Tab
-                    | keyboard::KeyCode::Up
-                    | keyboard::KeyCode::Down => {
-                        return event::Status::Ignored;
-                    }
-                    _ => {}
-                }
-
-                return event::Status::Captured;
-            }
-            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers))
-                if self.state.is_focused =>
-            {
-                self.state.keyboard_modifiers = modifiers;
-            }
-            _ => {}
-        }
-
-        event::Status::Ignored
+        update(
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+            &mut self.value,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.on_change.as_ref(),
+            &self.on_submit,
+            || &mut self.state,
+        )
     }
 
     fn mouse_interaction(
@@ -766,11 +803,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if layout.bounds().contains(cursor_position) {
-            mouse::Interaction::Text
-        } else {
-            mouse::Interaction::default()
-        }
+        mouse_interaction(layout, cursor_position)
     }
 
     fn draw(

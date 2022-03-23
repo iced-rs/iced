@@ -79,7 +79,7 @@ where
     ) -> Self
     where
         V: Eq + Copy,
-        F: 'static + Fn(V) -> Message,
+        F: FnOnce(V) -> Message,
     {
         Radio {
             is_selected: Some(value) == selected,

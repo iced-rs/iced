@@ -116,6 +116,32 @@ where
     }
 }
 
+/// Computes the layout of a [`Container`].
+pub fn layout<Renderer>(
+    renderer: &Renderer,
+    limits: &layout::Limits,
+    width: Length,
+    height: Length,
+    padding: Padding,
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
+    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
+) -> layout::Node {
+    let limits = limits.loose().width(width).height(height).pad(padding);
+
+    let mut content = layout_content(renderer, &limits.loose());
+    let size = limits.resolve(content.size());
+
+    content.move_to(Point::new(padding.left.into(), padding.top.into()));
+    content.align(
+        Alignment::from(horizontal_alignment),
+        Alignment::from(vertical_alignment),
+        size,
+    );
+
+    layout::Node::with_children(size.pad(padding), vec![content])
+}
+
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Container<'a, Message, Renderer>
 where
@@ -134,28 +160,16 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .loose()
-            .max_width(self.max_width)
-            .max_height(self.max_height)
-            .width(self.width)
-            .height(self.height)
-            .pad(self.padding);
-
-        let mut content = self.content.layout(renderer, &limits.loose());
-        let size = limits.resolve(content.size());
-
-        content.move_to(Point::new(
-            self.padding.left.into(),
-            self.padding.top.into(),
-        ));
-        content.align(
-            Alignment::from(self.horizontal_alignment),
-            Alignment::from(self.vertical_alignment),
-            size,
-        );
-
-        layout::Node::with_children(size.pad(self.padding), vec![content])
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.height,
+            self.padding,
+            self.horizontal_alignment,
+            self.vertical_alignment,
+            |renderer, limits| self.content.layout(renderer, limits),
+        )
     }
 
     fn on_event(

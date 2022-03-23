@@ -17,6 +17,7 @@ font-source = ["font-kit"]
 font-fallback = []
 font-icons = []
 opengl = []
+pure = ["iced_pure"]
 
 [dependencies]
 glam = "0.10"
@@ -34,6 +35,11 @@ path = "../native"
 [dependencies.iced_style]
 version = "0.3"
 path = "../style"
+
+[dependencies.iced_pure]
+version = "0.1"
+path = "../pure"
+optional = true
 
 [dependencies.lyon]
 version = "0.17"

@@ -1,0 +1,11 @@
+[package]
+name = "pure_pane_grid"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../../..", features = ["pure", "debug"] }
+iced_native = { path = "../../../native" }
+iced_lazy = { path = "../../../lazy", features = ["pure"] }

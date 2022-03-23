@@ -1,8 +1,10 @@
 //! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
 use crate::{Primitive, Vector};
+use iced_native::image;
 use iced_native::layout;
 use iced_native::renderer;
+use iced_native::svg;
 use iced_native::text::{self, Text};
 use iced_native::{Background, Element, Font, Point, Rectangle, Size};
 
@@ -166,5 +168,33 @@ where
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
         });
+    }
+}
+
+impl<B> image::Renderer for Renderer<B>
+where
+    B: Backend + backend::Image,
+{
+    type Handle = image::Handle;
+
+    fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
+        self.backend().dimensions(handle)
+    }
+
+    fn draw(&mut self, handle: image::Handle, bounds: Rectangle) {
+        self.draw_primitive(Primitive::Image { handle, bounds })
+    }
+}
+
+impl<B> svg::Renderer for Renderer<B>
+where
+    B: Backend + backend::Svg,
+{
+    fn dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
+        self.backend().viewport_dimensions(handle)
+    }
+
+    fn draw(&mut self, handle: svg::Handle, bounds: Rectangle) {
+        self.draw_primitive(Primitive::Svg { handle, bounds })
     }
 }

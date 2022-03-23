@@ -105,8 +105,8 @@ impl Application for Stopwatch {
                 Text::new(label)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
-            .min_width(80)
             .padding(10)
+            .width(Length::Units(80))
             .style(style)
         };
 

@@ -22,16 +22,12 @@ mod text;
 mod triangle;
 
 pub mod settings;
-pub mod widget;
 pub mod window;
 
 pub use backend::Backend;
 pub use settings::Settings;
 
 pub(crate) use iced_graphics::Transformation;
-
-#[doc(no_inline)]
-pub use widget::*;
 
 pub use iced_graphics::{Error, Viewport};
 

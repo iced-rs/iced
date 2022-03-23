@@ -6,14 +6,6 @@
 use crate::renderer::{self, Renderer};
 use crate::{Backend, Primitive};
 
-use iced_native::layout;
-use iced_native::mouse;
-use iced_native::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
-};
-use std::marker::PhantomData;
-
 pub mod event;
 pub mod path;
 
@@ -36,6 +28,15 @@ pub use path::Path;
 pub use program::Program;
 pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use text::Text;
+
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::{
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
+};
+
+use std::marker::PhantomData;
 
 /// A widget capable of drawing 2D graphics.
 ///
@@ -97,7 +98,7 @@ pub struct Canvas<Message, P: Program<Message>> {
     width: Length,
     height: Length,
     program: P,
-    phantom: PhantomData<Message>,
+    message_: PhantomData<Message>,
 }
 
 impl<Message, P: Program<Message>> Canvas<Message, P> {
@@ -109,7 +110,7 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
             program,
-            phantom: PhantomData,
+            message_: PhantomData,
         }
     }
 

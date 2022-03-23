@@ -23,11 +23,7 @@ pub struct PickList<'a, T, Message, Renderer: text::Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
 {
-    menu: &'a mut menu::State,
-    keyboard_modifiers: &'a mut keyboard::Modifiers,
-    is_open: &'a mut bool,
-    hovered_option: &'a mut Option<usize>,
-    last_selection: &'a mut Option<T>,
+    state: &'a mut State<T>,
     on_selected: Box<dyn Fn(T) -> Message>,
     options: Cow<'a, [T]>,
     placeholder: Option<String>,
@@ -49,8 +45,9 @@ pub struct State<T> {
     last_selection: Option<T>,
 }
 
-impl<T> Default for State<T> {
-    fn default() -> Self {
+impl<T> State<T> {
+    /// Creates a new [`State`] for a [`PickList`].
+    pub fn new() -> Self {
         Self {
             menu: menu::State::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
@@ -58,6 +55,12 @@ impl<T> Default for State<T> {
             hovered_option: Option::default(),
             last_selection: Option::default(),
         }
+    }
+}
+
+impl<T> Default for State<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -79,20 +82,8 @@ where
         selected: Option<T>,
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
-        let State {
-            menu,
-            keyboard_modifiers,
-            is_open,
-            hovered_option,
-            last_selection,
-        } = state;
-
         Self {
-            menu,
-            keyboard_modifiers,
-            is_open,
-            hovered_option,
-            last_selection,
+            state,
             on_selected: Box::new(on_selected),
             options: options.into(),
             placeholder: None,
@@ -145,6 +136,290 @@ where
     }
 }
 
+/// Computes the layout of a [`PickList`].
+pub fn layout<Renderer, T>(
+    renderer: &Renderer,
+    limits: &layout::Limits,
+    width: Length,
+    padding: Padding,
+    text_size: Option<u16>,
+    font: &Renderer::Font,
+    placeholder: Option<&str>,
+    options: &[T],
+) -> layout::Node
+where
+    Renderer: text::Renderer,
+    T: ToString,
+{
+    use std::f32;
+
+    let limits = limits.width(width).height(Length::Shrink).pad(padding);
+
+    let text_size = text_size.unwrap_or(renderer.default_size());
+
+    let max_width = match width {
+        Length::Shrink => {
+            let measure = |label: &str| -> u32 {
+                let (width, _) = renderer.measure(
+                    label,
+                    text_size,
+                    font.clone(),
+                    Size::new(f32::INFINITY, f32::INFINITY),
+                );
+
+                width.round() as u32
+            };
+
+            let labels = options.iter().map(ToString::to_string);
+
+            let labels_width =
+                labels.map(|label| measure(&label)).max().unwrap_or(100);
+
+            let placeholder_width = placeholder.map(measure).unwrap_or(100);
+
+            labels_width.max(placeholder_width)
+        }
+        _ => 0,
+    };
+
+    let size = {
+        let intrinsic = Size::new(
+            max_width as f32 + f32::from(text_size) + f32::from(padding.left),
+            f32::from(text_size),
+        );
+
+        limits.resolve(intrinsic).pad(padding)
+    };
+
+    layout::Node::new(size)
+}
+
+/// Processes an [`Event`] and updates the [`State`] of a [`PickList`]
+/// accordingly.
+pub fn update<'a, T, Message>(
+    event: Event,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    shell: &mut Shell<'_, Message>,
+    on_selected: &dyn Fn(T) -> Message,
+    selected: Option<&T>,
+    options: &[T],
+    state: impl FnOnce() -> &'a mut State<T>,
+) -> event::Status
+where
+    T: PartialEq + Clone + 'a,
+{
+    match event {
+        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+        | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            let state = state();
+
+            let event_status = if state.is_open {
+                // TODO: Encode cursor availability in the type system
+                state.is_open =
+                    cursor_position.x < 0.0 || cursor_position.y < 0.0;
+
+                event::Status::Captured
+            } else if layout.bounds().contains(cursor_position) {
+                state.is_open = true;
+                state.hovered_option =
+                    options.iter().position(|option| Some(option) == selected);
+
+                event::Status::Captured
+            } else {
+                event::Status::Ignored
+            };
+
+            if let Some(last_selection) = state.last_selection.take() {
+                shell.publish((on_selected)(last_selection));
+
+                state.is_open = false;
+
+                event::Status::Captured
+            } else {
+                event_status
+            }
+        }
+        Event::Mouse(mouse::Event::WheelScrolled {
+            delta: mouse::ScrollDelta::Lines { y, .. },
+        }) => {
+            let state = state();
+
+            if state.keyboard_modifiers.command()
+                && layout.bounds().contains(cursor_position)
+                && !state.is_open
+            {
+                fn find_next<'a, T: PartialEq>(
+                    selected: &'a T,
+                    mut options: impl Iterator<Item = &'a T>,
+                ) -> Option<&'a T> {
+                    let _ = options.find(|&option| option == selected);
+
+                    options.next()
+                }
+
+                let next_option = if y < 0.0 {
+                    if let Some(selected) = selected {
+                        find_next(selected, options.iter())
+                    } else {
+                        options.first()
+                    }
+                } else if y > 0.0 {
+                    if let Some(selected) = selected {
+                        find_next(selected, options.iter().rev())
+                    } else {
+                        options.last()
+                    }
+                } else {
+                    None
+                };
+
+                if let Some(next_option) = next_option {
+                    shell.publish((on_selected)(next_option.clone()));
+                }
+
+                event::Status::Captured
+            } else {
+                event::Status::Ignored
+            }
+        }
+        Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+            let state = state();
+
+            state.keyboard_modifiers = modifiers;
+
+            event::Status::Ignored
+        }
+        _ => event::Status::Ignored,
+    }
+}
+
+/// Returns the current [`mouse::Interaction`] of a [`PickList`].
+pub fn mouse_interaction(
+    layout: Layout<'_>,
+    cursor_position: Point,
+) -> mouse::Interaction {
+    let bounds = layout.bounds();
+    let is_mouse_over = bounds.contains(cursor_position);
+
+    if is_mouse_over {
+        mouse::Interaction::Pointer
+    } else {
+        mouse::Interaction::default()
+    }
+}
+
+/// Returns the current overlay of a [`PickList`].
+pub fn overlay<'a, T, Message, Renderer>(
+    layout: Layout<'_>,
+    state: &'a mut State<T>,
+    padding: Padding,
+    text_size: Option<u16>,
+    font: Renderer::Font,
+    options: &'a [T],
+    style_sheet: &dyn StyleSheet,
+) -> Option<overlay::Element<'a, Message, Renderer>>
+where
+    Message: 'a,
+    Renderer: text::Renderer + 'a,
+    T: Clone + ToString,
+{
+    if state.is_open {
+        let bounds = layout.bounds();
+
+        let mut menu = Menu::new(
+            &mut state.menu,
+            options,
+            &mut state.hovered_option,
+            &mut state.last_selection,
+        )
+        .width(bounds.width.round() as u16)
+        .padding(padding)
+        .font(font)
+        .style(style_sheet.menu());
+
+        if let Some(text_size) = text_size {
+            menu = menu.text_size(text_size);
+        }
+
+        Some(menu.overlay(layout.position(), bounds.height))
+    } else {
+        None
+    }
+}
+
+/// Draws a [`PickList`].
+pub fn draw<T, Renderer>(
+    renderer: &mut Renderer,
+    layout: Layout<'_>,
+    cursor_position: Point,
+    padding: Padding,
+    text_size: Option<u16>,
+    font: &Renderer::Font,
+    placeholder: Option<&str>,
+    selected: Option<&T>,
+    style_sheet: &dyn StyleSheet,
+) where
+    Renderer: text::Renderer,
+    T: ToString,
+{
+    let bounds = layout.bounds();
+    let is_mouse_over = bounds.contains(cursor_position);
+    let is_selected = selected.is_some();
+
+    let style = if is_mouse_over {
+        style_sheet.hovered()
+    } else {
+        style_sheet.active()
+    };
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds,
+            border_color: style.border_color,
+            border_width: style.border_width,
+            border_radius: style.border_radius,
+        },
+        style.background,
+    );
+
+    renderer.fill_text(Text {
+        content: &Renderer::ARROW_DOWN_ICON.to_string(),
+        font: Renderer::ICON_FONT,
+        size: bounds.height * style.icon_size,
+        bounds: Rectangle {
+            x: bounds.x + bounds.width - f32::from(padding.horizontal()),
+            y: bounds.center_y(),
+            ..bounds
+        },
+        color: style.text_color,
+        horizontal_alignment: alignment::Horizontal::Right,
+        vertical_alignment: alignment::Vertical::Center,
+    });
+
+    let label = selected.map(ToString::to_string);
+
+    if let Some(label) =
+        label.as_ref().map(String::as_str).or_else(|| placeholder)
+    {
+        renderer.fill_text(Text {
+            content: label,
+            size: f32::from(text_size.unwrap_or(renderer.default_size())),
+            font: font.clone(),
+            color: is_selected
+                .then(|| style.text_color)
+                .unwrap_or(style.placeholder_color),
+            bounds: Rectangle {
+                x: bounds.x + f32::from(padding.left),
+                y: bounds.center_y(),
+                ..bounds
+            },
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Center,
+        })
+    }
+}
+
 impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
     for PickList<'a, T, Message, Renderer>
 where
@@ -166,58 +441,16 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        use std::f32;
-
-        let limits = limits
-            .width(self.width)
-            .height(Length::Shrink)
-            .pad(self.padding);
-
-        let text_size = self.text_size.unwrap_or(renderer.default_size());
-        let font = self.font.clone();
-
-        let max_width = match self.width {
-            Length::Shrink => {
-                let measure = |label: &str| -> u32 {
-                    let (width, _) = renderer.measure(
-                        label,
-                        text_size,
-                        font.clone(),
-                        Size::new(f32::INFINITY, f32::INFINITY),
-                    );
-
-                    width.round() as u32
-                };
-
-                let labels = self.options.iter().map(ToString::to_string);
-
-                let labels_width =
-                    labels.map(|label| measure(&label)).max().unwrap_or(100);
-
-                let placeholder_width = self
-                    .placeholder
-                    .as_ref()
-                    .map(String::as_str)
-                    .map(measure)
-                    .unwrap_or(100);
-
-                labels_width.max(placeholder_width)
-            }
-            _ => 0,
-        };
-
-        let size = {
-            let intrinsic = Size::new(
-                max_width as f32
-                    + f32::from(text_size)
-                    + f32::from(self.padding.left),
-                f32::from(text_size),
-            );
-
-            limits.resolve(intrinsic).pad(self.padding)
-        };
-
-        layout::Node::new(size)
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.padding,
+            self.text_size,
+            &self.font,
+            self.placeholder.as_ref().map(String::as_str),
+            &self.options,
+        )
     }
 
     fn on_event(
@@ -229,83 +462,16 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                let event_status = if *self.is_open {
-                    // TODO: Encode cursor availability in the type system
-                    *self.is_open =
-                        cursor_position.x < 0.0 || cursor_position.y < 0.0;
-
-                    event::Status::Captured
-                } else if layout.bounds().contains(cursor_position) {
-                    let selected = self.selected.as_ref();
-
-                    *self.is_open = true;
-                    *self.hovered_option = self
-                        .options
-                        .iter()
-                        .position(|option| Some(option) == selected);
-
-                    event::Status::Captured
-                } else {
-                    event::Status::Ignored
-                };
-
-                if let Some(last_selection) = self.last_selection.take() {
-                    shell.publish((self.on_selected)(last_selection));
-
-                    *self.is_open = false;
-
-                    event::Status::Captured
-                } else {
-                    event_status
-                }
-            }
-            Event::Mouse(mouse::Event::WheelScrolled {
-                delta: mouse::ScrollDelta::Lines { y, .. },
-            }) if self.keyboard_modifiers.command()
-                && layout.bounds().contains(cursor_position)
-                && !*self.is_open =>
-            {
-                fn find_next<'a, T: PartialEq>(
-                    selected: &'a T,
-                    mut options: impl Iterator<Item = &'a T>,
-                ) -> Option<&'a T> {
-                    let _ = options.find(|&option| option == selected);
-
-                    options.next()
-                }
-
-                let next_option = if y < 0.0 {
-                    if let Some(selected) = self.selected.as_ref() {
-                        find_next(selected, self.options.iter())
-                    } else {
-                        self.options.first()
-                    }
-                } else if y > 0.0 {
-                    if let Some(selected) = self.selected.as_ref() {
-                        find_next(selected, self.options.iter().rev())
-                    } else {
-                        self.options.last()
-                    }
-                } else {
-                    None
-                };
-
-                if let Some(next_option) = next_option {
-                    shell.publish((self.on_selected)(next_option.clone()));
-                }
-
-                event::Status::Captured
-            }
-            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                *self.keyboard_modifiers = modifiers;
-
-                event::Status::Ignored
-            }
-            _ => event::Status::Ignored,
-        }
+        update(
+            event,
+            layout,
+            cursor_position,
+            shell,
+            self.on_selected.as_ref(),
+            self.selected.as_ref(),
+            &self.options,
+            || &mut self.state,
+        )
     }
 
     fn mouse_interaction(
@@ -315,14 +481,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
-
-        if is_mouse_over {
-            mouse::Interaction::Pointer
-        } else {
-            mouse::Interaction::default()
-        }
+        mouse_interaction(layout, cursor_position)
     }
 
     fn draw(
@@ -333,66 +492,17 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
-        let is_selected = self.selected.is_some();
-
-        let style = if is_mouse_over {
-            self.style_sheet.hovered()
-        } else {
-            self.style_sheet.active()
-        };
-
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border_color: style.border_color,
-                border_width: style.border_width,
-                border_radius: style.border_radius,
-            },
-            style.background,
-        );
-
-        renderer.fill_text(Text {
-            content: &Renderer::ARROW_DOWN_ICON.to_string(),
-            font: Renderer::ICON_FONT,
-            size: bounds.height * style.icon_size,
-            bounds: Rectangle {
-                x: bounds.x + bounds.width
-                    - f32::from(self.padding.horizontal()),
-                y: bounds.center_y(),
-                ..bounds
-            },
-            color: style.text_color,
-            horizontal_alignment: alignment::Horizontal::Right,
-            vertical_alignment: alignment::Vertical::Center,
-        });
-
-        if let Some(label) = self
-            .selected
-            .as_ref()
-            .map(ToString::to_string)
-            .as_ref()
-            .or_else(|| self.placeholder.as_ref())
-        {
-            renderer.fill_text(Text {
-                content: label,
-                size: f32::from(
-                    self.text_size.unwrap_or(renderer.default_size()),
-                ),
-                font: self.font.clone(),
-                color: is_selected
-                    .then(|| style.text_color)
-                    .unwrap_or(style.placeholder_color),
-                bounds: Rectangle {
-                    x: bounds.x + f32::from(self.padding.left),
-                    y: bounds.center_y(),
-                    ..bounds
-                },
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Center,
-            })
-        }
+        draw(
+            renderer,
+            layout,
+            cursor_position,
+            self.padding,
+            self.text_size,
+            &self.font,
+            self.placeholder.as_ref().map(String::as_str),
+            self.selected.as_ref(),
+            self.style_sheet.as_ref(),
+        )
     }
 
     fn overlay(
@@ -400,28 +510,15 @@ where
         layout: Layout<'_>,
         _renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        if *self.is_open {
-            let bounds = layout.bounds();
-
-            let mut menu = Menu::new(
-                &mut self.menu,
-                &self.options,
-                &mut self.hovered_option,
-                &mut self.last_selection,
-            )
-            .width(bounds.width.round() as u16)
-            .padding(self.padding)
-            .font(self.font.clone())
-            .style(self.style_sheet.menu());
-
-            if let Some(text_size) = self.text_size {
-                menu = menu.text_size(text_size);
-            }
-
-            Some(menu.overlay(layout.position(), bounds.height))
-        } else {
-            None
-        }
+        overlay(
+            layout,
+            &mut self.state,
+            self.padding,
+            self.text_size,
+            self.font.clone(),
+            &self.options,
+            self.style_sheet.as_ref(),
+        )
     }
 }
 
