@@ -43,7 +43,7 @@ Inspired by [Elm].
 __iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
 
-[Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg 
+[Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
 [the Web]: https://iced.rs/
 [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
 [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
@@ -200,29 +200,27 @@ end-user-oriented GUI library, while keeping [the ecosystem] modular:
 [`ggez`]: https://github.com/ggez/ggez
 [the ecosystem]: ECOSYSTEM.md
 
-## Common problems
+## Troubleshooting
+### `GraphicsAdapterNotFound`
+This occurs when the selected [built-in renderer] is not able to create a context.
 
-1. `Error: GraphicsAdapterNotFound`
-   
-   This occurs when the selected [built-in renderer] is not able to create a context.
-   
-   Often this will occur while using [`iced_wgpu`] as the renderer without
-   supported hardware (needs Vulkan, Metal or DX12). In this case, you could try using the
-   [`iced_glow`] renderer:
+Often this will occur while using [`iced_wgpu`] as the renderer without
+supported hardware (needs Vulkan, Metal or DX12). In this case, you could try using the
+[`iced_glow`] renderer:
 
-   First, check if it works with
-   ```console
-   $ cargo run --features "iced/glow iced/glow_canvas" --package game_of_life
-   ```
+First, check if it works with
+```console
+$ cargo run --features iced/glow --package game_of_life
+```
 
-   and then use it in your project with
-   ```toml
-   iced = { version = "0.3", default-features = false, features = ["glow"] }
-   ```
+and then use it in your project with
+```toml
+iced = { version = "0.3", default-features = false, features = ["glow"] }
+```
 
-   **NOTE:** Chances are you have hardware that supports at least OpenGL 2.1 or OpenGL ES 2.0,
-   but if you don't, right now there's no software fallback, so it means your hardware
-   doesn't support Iced.
+**NOTE:** Chances are you have hardware that supports at least OpenGL 2.1 or OpenGL ES 2.0,
+but if you don't, right now there's no software fallback, so it means your hardware
+doesn't support Iced.
 
 [built-in renderer]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md#Renderers
 
