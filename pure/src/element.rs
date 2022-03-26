@@ -1,3 +1,4 @@
+use crate::overlay;
 use crate::widget::tree::{self, Tree};
 use crate::widget::Widget;
 
@@ -33,7 +34,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     where
         Message: 'a,
         Renderer: iced_native::Renderer + 'a,
-        B: 'a,
+        B: 'static,
     {
         Element::new(Map::new(self.widget, f))
     }
@@ -63,7 +64,7 @@ impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
 where
     Renderer: iced_native::Renderer + 'a,
     A: 'a,
-    B: 'a,
+    B: 'static,
 {
     fn tag(&self) -> tree::Tag {
         self.widget.tag()
@@ -159,5 +160,18 @@ where
             viewport,
             renderer,
         )
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, B, Renderer>> {
+        let mapper = &self.mapper;
+
+        self.widget
+            .overlay(tree, layout, renderer)
+            .map(move |overlay| overlay.map(mapper))
     }
 }
