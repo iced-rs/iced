@@ -61,6 +61,7 @@ pub enum Primitive {
     Svg {
         /// The path of the SVG file
         handle: svg::Handle,
+        
         /// The bounds of the viewport
         bounds: Rectangle,
     },
