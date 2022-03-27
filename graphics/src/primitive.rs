@@ -1,13 +1,12 @@
 use iced_native::image;
-use iced_native::svg;
 use iced_native::image_filter;
+use iced_native::svg;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
 use crate::alignment;
 use crate::triangle;
 
 use std::sync::Arc;
-
 
 /// A rendering primitive.
 #[derive(Debug, Clone)]

@@ -1,5 +1,5 @@
 //! Load and draw raster graphics.
-use crate::{Hasher, Rectangle, image_filter};
+use crate::{image_filter, Hasher, Rectangle};
 
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
@@ -125,5 +125,10 @@ pub trait Renderer: crate::Renderer {
 
     /// Draws an image with the given [`Handle`] and inside the provided
     /// `bounds`.
-    fn draw(&mut self, handle: Self::Handle, bounds: Rectangle, filters: image_filter::FilterOptions);
+    fn draw(
+        &mut self,
+        handle: Self::Handle,
+        bounds: Rectangle,
+        filters: image_filter::FilterOptions,
+    );
 }

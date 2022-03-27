@@ -10,10 +10,13 @@ use crate::Transformation;
 use atlas::Atlas;
 
 use iced_graphics::layer;
-use iced_native::{Rectangle, image_filter::{FilterOptions, ImageFilter}};
+use iced_native::{
+    image_filter::{FilterOptions, ImageFilter},
+    Rectangle,
+};
 use std::cell::RefCell;
-use std::mem;
 use std::collections::HashMap;
+use std::mem;
 
 use bytemuck::{Pod, Zeroable};
 
@@ -23,13 +26,24 @@ use iced_native::image;
 #[cfg(feature = "svg")]
 use iced_native::svg;
 
-fn make_textureconstants_group(device: &wgpu::Device, constant_layout: &wgpu::BindGroupLayout, uniforms_buffer: &wgpu::Buffer, filters: FilterOptions) -> wgpu::BindGroup {
+fn make_textureconstants_group(
+    device: &wgpu::Device,
+    constant_layout: &wgpu::BindGroupLayout,
+    uniforms_buffer: &wgpu::Buffer,
+    filters: FilterOptions,
+) -> wgpu::BindGroup {
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         address_mode_u: wgpu::AddressMode::ClampToEdge,
         address_mode_v: wgpu::AddressMode::ClampToEdge,
         address_mode_w: wgpu::AddressMode::ClampToEdge,
-        mag_filter: match filters.mag_filter { ImageFilter::Linear => wgpu::FilterMode::Linear, ImageFilter::NearestNeighbor => wgpu::FilterMode::Nearest, },
-        min_filter: match filters.min_filter { ImageFilter::Linear => wgpu::FilterMode::Linear, ImageFilter::NearestNeighbor => wgpu::FilterMode::Nearest, },
+        mag_filter: match filters.mag_filter {
+            ImageFilter::Linear => wgpu::FilterMode::Linear,
+            ImageFilter::NearestNeighbor => wgpu::FilterMode::Nearest,
+        },
+        min_filter: match filters.min_filter {
+            ImageFilter::Linear => wgpu::FilterMode::Linear,
+            ImageFilter::NearestNeighbor => wgpu::FilterMode::Nearest,
+        },
         mipmap_filter: wgpu::FilterMode::Linear,
         ..Default::default()
     });
@@ -54,8 +68,7 @@ fn make_textureconstants_group(device: &wgpu::Device, constant_layout: &wgpu::Bi
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 },
             ],
-        }
-    );
+        });
 
     constant_bind_group
 }
@@ -308,7 +321,11 @@ impl Pipeline {
         for image in images {
             match &image {
                 #[cfg(feature = "image_rs")]
-                layer::Image::Raster { handle, bounds, filters } => {
+                layer::Image::Raster {
+                    handle,
+                    bounds,
+                    filters,
+                } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         handle,
                         device,
@@ -352,7 +369,7 @@ impl Pipeline {
 
                         // add this image's image filters to the filters array
                         while filter_list.len() < instances.len() {
-                            let filtering_options = FilterOptions { 
+                            let filtering_options = FilterOptions {
                                 mag_filter: ImageFilter::Linear,
                                 min_filter: ImageFilter::Linear,
                             };
@@ -444,7 +461,12 @@ impl Pipeline {
             let texture_constants: &wgpu::BindGroup = {
                 let filtering_options = filter_list[i];
                 self.constants.entry(filtering_options).or_insert_with(|| {
-                    make_textureconstants_group(device, &self.constant_layout, &self.uniforms, filtering_options)
+                    make_textureconstants_group(
+                        device,
+                        &self.constant_layout,
+                        &self.uniforms,
+                        filtering_options,
+                    )
                 })
             };
 

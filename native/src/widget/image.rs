@@ -41,7 +41,10 @@ impl<Handle> Image<Handle> {
             width: Length::Shrink,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
-            filters: image_filter::FilterOptions { mag_filter: image_filter::ImageFilter::Linear, min_filter: image_filter::ImageFilter::Linear, },
+            filters: image_filter::FilterOptions {
+                mag_filter: image_filter::ImageFilter::Linear,
+                min_filter: image_filter::ImageFilter::Linear,
+            },
         }
     }
 
@@ -66,7 +69,7 @@ impl<Handle> Image<Handle> {
             ..self
         }
     }
-    
+
     /// Sets the filtering option to use when rendering a down-scaled (IE zoomed-out) image
     ///
     /// Default is `Linear`
@@ -178,7 +181,11 @@ where
                 ..bounds
             };
 
-            renderer.draw(self.handle.clone(), drawing_bounds + offset, self.filters)
+            renderer.draw(
+                self.handle.clone(),
+                drawing_bounds + offset,
+                self.filters,
+            )
         };
 
         if adjusted_fit.width > bounds.width

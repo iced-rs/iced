@@ -37,7 +37,10 @@ impl<'a, Handle> Viewer<'a, Handle> {
             min_scale: 0.25,
             max_scale: 10.0,
             scale_step: 0.10,
-            filters: image_filter::FilterOptions { mag_filter: image_filter::ImageFilter::Linear, min_filter: image_filter::ImageFilter::Linear, },
+            filters: image_filter::FilterOptions {
+                mag_filter: image_filter::ImageFilter::Linear,
+                min_filter: image_filter::ImageFilter::Linear,
+            },
             handle,
         }
     }
@@ -350,7 +353,7 @@ where
                         y: bounds.y,
                         ..Rectangle::with_size(image_size)
                     },
-                    self.filters
+                    self.filters,
                 )
             });
         });

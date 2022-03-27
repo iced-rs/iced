@@ -5,8 +5,8 @@ use crate::{
     Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
 };
 
-use iced_native::image_filter;
 use iced_native::image;
+use iced_native::image_filter;
 use iced_native::svg;
 
 /// A group of primitives that should be clipped together.
@@ -215,7 +215,11 @@ impl<'a> Layer<'a> {
                     current_layer,
                 );
             }
-            Primitive::Image { handle, bounds, filters, } => {
+            Primitive::Image {
+                handle,
+                bounds,
+                filters,
+            } => {
                 let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Raster {
@@ -224,7 +228,7 @@ impl<'a> Layer<'a> {
                     filters: *filters,
                 });
             }
-            Primitive::Svg { handle, bounds, } => {
+            Primitive::Svg { handle, bounds } => {
                 let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Vector {

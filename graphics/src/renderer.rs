@@ -182,8 +182,17 @@ where
         self.backend().dimensions(handle)
     }
 
-    fn draw(&mut self, handle: image::Handle, bounds: Rectangle, filters: image_filter::FilterOptions) {
-        self.draw_primitive(Primitive::Image { handle, bounds, filters })
+    fn draw(
+        &mut self,
+        handle: image::Handle,
+        bounds: Rectangle,
+        filters: image_filter::FilterOptions,
+    ) {
+        self.draw_primitive(Primitive::Image {
+            handle,
+            bounds,
+            filters,
+        })
     }
 }
 
