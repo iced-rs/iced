@@ -1,6 +1,7 @@
 //! Zoom and pan on an image.
 use crate::event::{self, Event};
 use crate::image;
+use crate::image_filter;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
@@ -21,6 +22,7 @@ pub struct Viewer<'a, Handle> {
     min_scale: f32,
     max_scale: f32,
     scale_step: f32,
+    filters: image_filter::FilterOptions,
     handle: Handle,
 }
 
@@ -35,6 +37,7 @@ impl<'a, Handle> Viewer<'a, Handle> {
             min_scale: 0.25,
             max_scale: 10.0,
             scale_step: 0.10,
+            filters: image_filter::FilterOptions { mag_filter: image_filter::ImageFilter::Linear, min_filter: image_filter::ImageFilter::Linear, },
             handle,
         }
     }
@@ -79,6 +82,22 @@ impl<'a, Handle> Viewer<'a, Handle> {
     /// Default is `0.10`
     pub fn scale_step(mut self, scale_step: f32) -> Self {
         self.scale_step = scale_step;
+        self
+    }
+
+    /// Sets the filtering option to use when rendering a down-scaled (IE zoomed-out) image
+    ///
+    /// Default is `Linear`
+    pub fn min_filter(mut self, min_filter: image_filter::ImageFilter) -> Self {
+        self.filters.min_filter = min_filter;
+        self
+    }
+
+    /// Sets the filtering option to use when rendering a up-scaled (IE zoomed-in) image
+    ///
+    /// Default is `Linear`
+    pub fn mag_filter(mut self, mag_filter: image_filter::ImageFilter) -> Self {
+        self.filters.mag_filter = mag_filter;
         self
     }
 
@@ -331,6 +350,7 @@ where
                         y: bounds.y,
                         ..Rectangle::with_size(image_size)
                     },
+                    self.filters
                 )
             });
         });

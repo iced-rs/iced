@@ -1,11 +1,13 @@
 use iced_native::image;
 use iced_native::svg;
+use iced_native::image_filter;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
 use crate::alignment;
 use crate::triangle;
 
 use std::sync::Arc;
+
 
 /// A rendering primitive.
 #[derive(Debug, Clone)]
@@ -53,12 +55,13 @@ pub enum Primitive {
         handle: image::Handle,
         /// The bounds of the image
         bounds: Rectangle,
+        /// The filters to use when rendering a scaled image
+        filters: image_filter::FilterOptions,
     },
     /// An SVG primitive
     Svg {
         /// The path of the SVG file
         handle: svg::Handle,
-
         /// The bounds of the viewport
         bounds: Rectangle,
     },

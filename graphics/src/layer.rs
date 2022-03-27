@@ -5,6 +5,7 @@ use crate::{
     Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
 };
 
+use iced_native::image_filter;
 use iced_native::image;
 use iced_native::svg;
 
@@ -214,15 +215,16 @@ impl<'a> Layer<'a> {
                     current_layer,
                 );
             }
-            Primitive::Image { handle, bounds } => {
+            Primitive::Image { handle, bounds, filters, } => {
                 let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Raster {
                     handle: handle.clone(),
                     bounds: *bounds + translation,
+                    filters: *filters,
                 });
             }
-            Primitive::Svg { handle, bounds } => {
+            Primitive::Svg { handle, bounds, } => {
                 let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Vector {
@@ -307,6 +309,9 @@ pub enum Image {
 
         /// The bounds of the image.
         bounds: Rectangle,
+
+        /// The filters to use when rendering a scaled image
+        filters: image_filter::FilterOptions,
     },
     /// A vector image.
     Vector {

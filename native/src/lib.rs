@@ -40,6 +40,7 @@ pub mod clipboard;
 pub mod command;
 pub mod event;
 pub mod image;
+pub mod image_filter;
 pub mod keyboard;
 pub mod layout;
 pub mod mouse;

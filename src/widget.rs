@@ -174,6 +174,9 @@ pub mod image {
     //! Display images in your user interface.
     pub use iced_native::image::Handle;
 
+    /// The algorithm to use when rendering a scaled Image
+    pub use iced_native::image_filter::ImageFilter;
+
     /// A frame that displays an image.
     pub type Image = iced_native::widget::Image<Handle>;
 

@@ -2,6 +2,7 @@
 use crate::backend::{self, Backend};
 use crate::{Primitive, Vector};
 use iced_native::image;
+use iced_native::image_filter;
 use iced_native::layout;
 use iced_native::renderer;
 use iced_native::svg;
@@ -181,8 +182,8 @@ where
         self.backend().dimensions(handle)
     }
 
-    fn draw(&mut self, handle: image::Handle, bounds: Rectangle) {
-        self.draw_primitive(Primitive::Image { handle, bounds })
+    fn draw(&mut self, handle: image::Handle, bounds: Rectangle, filters: image_filter::FilterOptions) {
+        self.draw_primitive(Primitive::Image { handle, bounds, filters })
     }
 }
 

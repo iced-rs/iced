@@ -3,6 +3,7 @@ pub mod viewer;
 pub use viewer::Viewer;
 
 use crate::image;
+use crate::image_filter;
 use crate::layout;
 use crate::renderer;
 use crate::{
@@ -29,6 +30,7 @@ pub struct Image<Handle> {
     width: Length,
     height: Length,
     content_fit: ContentFit,
+    filters: image_filter::FilterOptions,
 }
 
 impl<Handle> Image<Handle> {
@@ -39,6 +41,7 @@ impl<Handle> Image<Handle> {
             width: Length::Shrink,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
+            filters: image_filter::FilterOptions { mag_filter: image_filter::ImageFilter::Linear, min_filter: image_filter::ImageFilter::Linear, },
         }
     }
 
@@ -62,6 +65,22 @@ impl<Handle> Image<Handle> {
             content_fit,
             ..self
         }
+    }
+    
+    /// Sets the filtering option to use when rendering a down-scaled (IE zoomed-out) image
+    ///
+    /// Default is `Linear`
+    pub fn min_filter(mut self, min_filter: image_filter::ImageFilter) -> Self {
+        self.filters.min_filter = min_filter;
+        self
+    }
+
+    /// Sets the filtering option to use when rendering a up-scaled (IE zoomed-in) image
+    ///
+    /// Default is `Linear`
+    pub fn mag_filter(mut self, mag_filter: image_filter::ImageFilter) -> Self {
+        self.filters.mag_filter = mag_filter;
+        self
     }
 }
 
@@ -159,7 +178,7 @@ where
                 ..bounds
             };
 
-            renderer.draw(self.handle.clone(), drawing_bounds + offset)
+            renderer.draw(self.handle.clone(), drawing_bounds + offset, self.filters)
         };
 
         if adjusted_fit.width > bounds.width

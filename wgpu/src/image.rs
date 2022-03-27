@@ -10,9 +10,10 @@ use crate::Transformation;
 use atlas::Atlas;
 
 use iced_graphics::layer;
-use iced_native::Rectangle;
+use iced_native::{Rectangle, image_filter::{FilterOptions, ImageFilter}};
 use std::cell::RefCell;
 use std::mem;
+use std::collections::HashMap;
 
 use bytemuck::{Pod, Zeroable};
 
@@ -21,6 +22,43 @@ use iced_native::image;
 
 #[cfg(feature = "svg")]
 use iced_native::svg;
+
+fn make_textureconstants_group(device: &wgpu::Device, constant_layout: &wgpu::BindGroupLayout, uniforms_buffer: &wgpu::Buffer, filters: FilterOptions) -> wgpu::BindGroup {
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        address_mode_w: wgpu::AddressMode::ClampToEdge,
+        mag_filter: match filters.mag_filter { ImageFilter::Linear => wgpu::FilterMode::Linear, ImageFilter::NearestNeighbor => wgpu::FilterMode::Nearest, },
+        min_filter: match filters.min_filter { ImageFilter::Linear => wgpu::FilterMode::Linear, ImageFilter::NearestNeighbor => wgpu::FilterMode::Nearest, },
+        mipmap_filter: wgpu::FilterMode::Linear,
+        ..Default::default()
+    });
+
+    let constant_bind_group =
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image constants bind group"),
+            layout: &constant_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(
+                        wgpu::BufferBinding {
+                            buffer: &uniforms_buffer,
+                            offset: 0,
+                            size: None,
+                        },
+                    ),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+        }
+    );
+
+    constant_bind_group
+}
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -34,7 +72,8 @@ pub struct Pipeline {
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
     instances: wgpu::Buffer,
-    constants: wgpu::BindGroup,
+    constants: HashMap<FilterOptions, wgpu::BindGroup>,
+    constant_layout: wgpu::BindGroupLayout,
     texture: wgpu::BindGroup,
     texture_version: usize,
     texture_layout: wgpu::BindGroupLayout,
@@ -44,16 +83,6 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         use wgpu::util::DeviceExt;
-
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
 
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -88,28 +117,6 @@ impl Pipeline {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-
-        let constant_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::image constants bind group"),
-                layout: &constant_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(
-                            wgpu::BufferBinding {
-                                buffer: &uniforms_buffer,
-                                offset: 0,
-                                size: None,
-                            },
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&sampler),
-                    },
-                ],
-            });
 
         let texture_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -253,7 +260,8 @@ impl Pipeline {
             vertices,
             indices,
             instances,
-            constants: constant_bind_group,
+            constants: HashMap::new(),
+            constant_layout,
             texture,
             texture_version: texture_atlas.layer_count(),
             texture_layout,
@@ -289,6 +297,7 @@ impl Pipeline {
         _scale: f32,
     ) {
         let instances: &mut Vec<Instance> = &mut Vec::new();
+        let mut filter_list = Vec::new();
 
         #[cfg(feature = "image_rs")]
         let mut raster_cache = self.raster_cache.borrow_mut();
@@ -299,7 +308,7 @@ impl Pipeline {
         for image in images {
             match &image {
                 #[cfg(feature = "image_rs")]
-                layer::Image::Raster { handle, bounds } => {
+                layer::Image::Raster { handle, bounds, filters } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         handle,
                         device,
@@ -312,6 +321,11 @@ impl Pipeline {
                             atlas_entry,
                             instances,
                         );
+                    }
+
+                    // add this image's image filters to the filters array
+                    while filter_list.len() < instances.len() {
+                        filter_list.push(*filters);
                     }
                 }
                 #[cfg(not(feature = "image_rs"))]
@@ -335,6 +349,15 @@ impl Pipeline {
                             atlas_entry,
                             instances,
                         );
+
+                        // add this image's image filters to the filters array
+                        while filter_list.len() < instances.len() {
+                            let filtering_options = FilterOptions { 
+                                mag_filter: ImageFilter::Linear,
+                                min_filter: ImageFilter::Linear,
+                            };
+                            filter_list.push(filtering_options);
+                        }
                     }
                 }
                 #[cfg(not(feature = "svg"))]
@@ -417,8 +440,16 @@ impl Pipeline {
                     depth_stencil_attachment: None,
                 });
 
+            // Lazily construct a new texture sampler and bind group based on this image's filtering options
+            let texture_constants: &wgpu::BindGroup = {
+                let filtering_options = filter_list[i];
+                self.constants.entry(filtering_options).or_insert_with(|| {
+                    make_textureconstants_group(device, &self.constant_layout, &self.uniforms, filtering_options)
+                })
+            };
+
             render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_bind_group(0, &self.constants, &[]);
+            render_pass.set_bind_group(0, texture_constants, &[]);
             render_pass.set_bind_group(1, &self.texture, &[]);
             render_pass.set_index_buffer(
                 self.indices.slice(..),
