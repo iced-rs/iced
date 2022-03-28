@@ -532,9 +532,9 @@ where
                     }
                     _ => {}
                 }
-            }
 
-            return event::Status::Captured;
+                return event::Status::Captured;
+            }
         }
         Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
             let state = state();
