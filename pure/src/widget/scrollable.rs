@@ -19,7 +19,7 @@ pub struct Scrollable<'a, Message, Renderer> {
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    on_scroll: Option<Box<dyn Fn(f32) -> Message>>,
+    on_scroll: Option<Box<dyn Fn(f32) -> Message + 'a>>,
     style_sheet: Box<dyn StyleSheet + 'a>,
     content: Element<'a, Message, Renderer>,
 }
@@ -71,7 +71,7 @@ impl<'a, Message, Renderer: iced_native::Renderer>
     ///
     /// The function takes the new relative offset of the [`Scrollable`]
     /// (e.g. `0` means top, while `1` means bottom).
-    pub fn on_scroll(mut self, f: impl Fn(f32) -> Message + 'static) -> Self {
+    pub fn on_scroll(mut self, f: impl Fn(f32) -> Message + 'a) -> Self {
         self.on_scroll = Some(Box::new(f));
         self
     }

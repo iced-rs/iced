@@ -1,3 +1,4 @@
+use crate::overlay;
 use crate::widget::tree::{self, Tree};
 use crate::widget::Widget;
 
@@ -159,5 +160,18 @@ where
             viewport,
             renderer,
         )
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, B, Renderer>> {
+        let mapper = &self.mapper;
+
+        self.widget
+            .overlay(tree, layout, renderer)
+            .map(move |overlay| overlay.map(mapper))
     }
 }

@@ -109,7 +109,7 @@ impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
 where
     T: Clone + ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
-    Message: 'static,
+    Message: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn tag(&self) -> tree::Tag {
@@ -226,7 +226,7 @@ where
     T: Clone + ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: text::Renderer + 'a,
-    Message: 'static,
+    Message: 'a,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

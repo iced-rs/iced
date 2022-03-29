@@ -41,7 +41,7 @@ where
     where
         Message: 'a,
         Renderer: 'a,
-        B: 'static,
+        B: 'a,
     {
         Element {
             position: self.position,

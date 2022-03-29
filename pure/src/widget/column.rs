@@ -216,8 +216,8 @@ where
 impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
     for Column<'a, Message, Renderer>
 where
-    Message: 'static,
-    Renderer: iced_native::Renderer + 'static,
+    Message: 'a,
+    Renderer: iced_native::Renderer + 'a,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)
