@@ -34,7 +34,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     where
         Message: 'a,
         Renderer: iced_native::Renderer + 'a,
-        B: 'static,
+        B: 'a,
     {
         Element::new(Map::new(self.widget, f))
     }
@@ -64,7 +64,7 @@ impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
 where
     Renderer: iced_native::Renderer + 'a,
     A: 'a,
-    B: 'static,
+    B: 'a,
 {
     fn tag(&self) -> tree::Tag {
         self.widget.tag()

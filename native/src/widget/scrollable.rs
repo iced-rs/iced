@@ -33,7 +33,7 @@ pub struct Scrollable<'a, Message, Renderer> {
     scrollbar_margin: u16,
     scroller_width: u16,
     content: Column<'a, Message, Renderer>,
-    on_scroll: Option<Box<dyn Fn(f32) -> Message>>,
+    on_scroll: Option<Box<dyn Fn(f32) -> Message + 'a>>,
     style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
@@ -181,7 +181,7 @@ pub fn update<Message>(
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    on_scroll: &Option<Box<dyn Fn(f32) -> Message>>,
+    on_scroll: &Option<Box<dyn Fn(f32) -> Message + '_>>,
     update_content: impl FnOnce(
         Event,
         Layout<'_>,
@@ -597,7 +597,7 @@ fn scrollbar(
 
 fn notify_on_scroll<Message>(
     state: &State,
-    on_scroll: &Option<Box<dyn Fn(f32) -> Message>>,
+    on_scroll: &Option<Box<dyn Fn(f32) -> Message + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,

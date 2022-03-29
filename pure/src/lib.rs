@@ -23,8 +23,8 @@ pub struct Pure<'a, Message, Renderer> {
 
 impl<'a, Message, Renderer> Pure<'a, Message, Renderer>
 where
-    Message: 'static,
-    Renderer: iced_native::Renderer + 'static,
+    Message: 'a,
+    Renderer: iced_native::Renderer + 'a,
 {
     pub fn new(
         state: &'a mut State,

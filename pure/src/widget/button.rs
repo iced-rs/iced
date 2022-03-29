@@ -75,8 +75,8 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
-    Message: 'static + Clone,
-    Renderer: 'static + iced_native::Renderer,
+    Message: 'a + Clone,
+    Renderer: 'a + iced_native::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -216,8 +216,8 @@ where
 impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
     for Button<'a, Message, Renderer>
 where
-    Message: Clone + 'static,
-    Renderer: iced_native::Renderer + 'static,
+    Message: Clone + 'a,
+    Renderer: iced_native::Renderer + 'a,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

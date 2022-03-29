@@ -53,7 +53,7 @@ where
 impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
     for Text<Renderer>
 where
-    Renderer: text::Renderer + 'static,
+    Renderer: text::Renderer + 'a,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)
@@ -62,7 +62,7 @@ where
 
 impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for &'a str
 where
-    Renderer: text::Renderer + 'static,
+    Renderer: text::Renderer + 'a,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Text::new(self).into()
