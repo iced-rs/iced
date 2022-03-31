@@ -41,6 +41,12 @@ pub struct State {
     state_tree: widget::Tree,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl State {
     pub fn new() -> Self {
         Self {
