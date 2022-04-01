@@ -181,6 +181,9 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
+#[cfg(feature = "multi_window")]
+pub mod multi_window;
+
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_winit as runtime;
 
