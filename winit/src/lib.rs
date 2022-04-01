@@ -35,6 +35,9 @@
 pub use iced_native::*;
 pub use winit;
 
+#[cfg(feature = "multi_window")]
+pub mod multi_window;
+
 #[cfg(feature = "application")]
 pub mod application;
 pub mod clipboard;
