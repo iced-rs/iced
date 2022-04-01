@@ -132,7 +132,7 @@ pub trait Application: Sized {
             ..crate::renderer::Settings::from_env()
         };
 
-        Ok(crate::runtime::application::run::<
+        Ok(crate::runtime::multi_window::run::<
             Instance<Self>,
             Self::Executor,
             crate::renderer::window::Compositor<Self::Theme>,
@@ -142,27 +142,13 @@ pub trait Application: Sized {
 
 struct Instance<A: Application>(A);
 
-impl<A> iced_winit::Program for Instance<A>
-where
-    A: Application,
-{
-    type Renderer = crate::Renderer<A::Theme>;
-    type Message = A::Message;
-
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
-    }
-
-    fn view(&self) -> Element<'_, Self::Message, Self::Renderer> {
-        self.0.view()
-    }
-}
-
-impl<A> crate::runtime::Application for Instance<A>
+impl<A> crate::runtime::multi_window::Application for Instance<A>
 where
     A: Application,
 {
     type Flags = A::Flags;
+    type Renderer = crate::Renderer<A::Theme>;
+    type Message = A::Message;
 
     fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
         let (app, command) = A::new(flags);
@@ -172,6 +158,14 @@ where
 
     fn title(&self) -> String {
         self.0.title()
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        self.0.update(message)
+    }
+
+    fn view(&self) -> Element<'_, Self::Message, Self::Renderer> {
+        self.0.view()
     }
 
     fn theme(&self) -> A::Theme {

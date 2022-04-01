@@ -9,15 +9,14 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget::operation;
 use crate::{
-    Command, Debug, Error, Executor, Proxy, Runtime, Settings, Size,
-    Subscription,
+    Command, Debug, Element, Error, Executor, Proxy, Renderer, Runtime,
+    Settings, Size, Subscription,
 };
 
 use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
 use iced_graphics::compositor;
 use iced_graphics::window;
-use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
 
 pub use iced_native::application::{Appearance, StyleSheet};
@@ -35,12 +34,33 @@ use std::mem::ManuallyDrop;
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-pub trait Application: Program
+pub trait Application: Sized
 where
     <Self::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
+
+    /// The graphics backend to use to draw the [`Program`].
+    type Renderer: Renderer;
+
+    /// The type of __messages__ your [`Program`] will produce.
+    type Message: std::fmt::Debug + Send;
+
+    /// Handles a __message__ and updates the state of the [`Program`].
+    ///
+    /// This is where you define your __update logic__. All the __messages__,
+    /// produced by either user interactions or commands, will be handled by
+    /// this method.
+    ///
+    /// Any [`Command`] returned will be executed immediately in the
+    /// background by shells.
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
+
+    /// Returns the widgets to display in the [`Program`].
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
+    fn view(&self) -> Element<'_, Self::Message, Self::Renderer>;
 
     /// Initializes the [`Application`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
