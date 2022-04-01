@@ -42,6 +42,8 @@ smol = ["iced_futures/smol"]
 palette = ["iced_core/palette"]
 # Enables querying system information
 system = ["iced_winit/system"]
+# Enables experimental multi-window support
+multi_window = []
 
 [badges]
 maintenance = { status = "actively-developed" }
