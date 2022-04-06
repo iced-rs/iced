@@ -89,7 +89,6 @@ members = [
     "examples/pure/component",
     "examples/pure/counter",
     "examples/pure/game_of_life",
-    "examples/pure/nested_component",
     "examples/pure/pane_grid",
     "examples/pure/pick_list",
     "examples/pure/todos",
