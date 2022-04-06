@@ -130,23 +130,24 @@ where
     Renderer: iced_native::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<S>()
+        tree::Tag::of::<(S, Tree)>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(S::default())
-    }
+        let state = S::default();
+        self.rebuild_element(&state);
 
-    fn children(&self) -> Vec<Tree> {
-        self.rebuild_element(&S::default());
-        self.with_element(|element| vec![Tree::new(element)])
+        tree::State::new((
+            state,
+            self.with_element(|element| Tree::new(element)),
+        ))
     }
 
     fn diff(&self, tree: &mut Tree) {
-        self.rebuild_element(tree.state.downcast_ref());
-        self.with_element(|element| {
-            tree.diff_children(std::slice::from_ref(&element))
-        })
+        let (state, tree) = tree.state.downcast_mut::<(S, Tree)>();
+        self.rebuild_element(&state);
+
+        self.with_element(|element| tree.diff(element));
     }
 
     fn width(&self) -> Length {
@@ -180,9 +181,11 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
+        let (s, tree) = tree.state.downcast_mut::<(S, Tree)>();
+
         let event_status = self.with_element_mut(|element| {
             element.as_widget_mut().on_event(
-                &mut tree.children[0],
+                tree,
                 event,
                 layout,
                 cursor_position,
@@ -197,11 +200,10 @@ where
         if !local_messages.is_empty() {
             let mut heads = self.state.take().unwrap().into_heads();
 
-            for message in local_messages.into_iter().filter_map(|message| {
-                heads
-                    .component
-                    .update(tree.state.downcast_mut::<S>(), message)
-            }) {
+            for message in local_messages
+                .into_iter()
+                .filter_map(|message| heads.component.update(s, message))
+            {
                 shell.publish(message);
             }
 
@@ -210,12 +212,12 @@ where
                     component: heads.component,
                     message: PhantomData,
                     state: PhantomData,
-                    element_builder: |state| {
-                        Some(state.view(tree.state.downcast_ref::<S>()))
-                    },
+                    element_builder: |state| Some(state.view(s)),
                 }
                 .build(),
             ));
+
+            self.with_element(|element| tree.diff(element));
 
             shell.invalidate_layout();
         }
@@ -232,9 +234,11 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
+        let (_, tree) = tree.state.downcast_ref::<(S, Tree)>();
+
         self.with_element(|element| {
             element.as_widget().draw(
-                &tree.children[0],
+                tree,
                 renderer,
                 style,
                 layout,
@@ -252,9 +256,11 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
+        let (_, tree) = tree.state.downcast_ref::<(S, Tree)>();
+
         self.with_element(|element| {
             element.as_widget().mouse_interaction(
-                &tree.children[0],
+                tree,
                 layout,
                 cursor_position,
                 viewport,
@@ -269,6 +275,8 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        let (_, tree) = tree.state.downcast_mut::<(S, Tree)>();
+
         let overlay = OverlayBuilder {
             instance: self,
             instance_ref_builder: |instance| instance.state.borrow(),
@@ -282,7 +290,7 @@ where
                     .as_ref()
                     .unwrap()
                     .as_widget()
-                    .overlay(&mut tree.children[0], layout, renderer)
+                    .overlay(tree, layout, renderer)
             },
         }
         .build();
