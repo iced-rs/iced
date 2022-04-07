@@ -137,10 +137,7 @@ where
         let state = S::default();
         self.rebuild_element(&state);
 
-        tree::State::new((
-            state,
-            self.with_element(|element| Tree::new(element)),
-        ))
+        tree::State::new((state, self.with_element(Tree::new)))
     }
 
     fn diff(&self, tree: &mut Tree) {
@@ -275,14 +272,14 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        let (_, tree) = tree.state.downcast_mut::<(S, Tree)>();
-
         let overlay = OverlayBuilder {
             instance: self,
             instance_ref_builder: |instance| instance.state.borrow(),
             tree,
             types: PhantomData,
             overlay_builder: |instance, tree| {
+                let (_, tree) = tree.state.downcast_mut::<(S, Tree)>();
+
                 instance
                     .as_ref()
                     .unwrap()
@@ -436,11 +433,12 @@ where
             let overlay = self.overlay.take().unwrap().into_heads();
             let mut heads = overlay.instance.state.take().unwrap().into_heads();
 
-            for message in local_messages.into_iter().filter_map(|message| {
-                heads
-                    .component
-                    .update(overlay.tree.state.downcast_mut::<S>(), message)
-            }) {
+            let (s, tree) = overlay.tree.state.downcast_mut::<(S, Tree)>();
+
+            for message in local_messages
+                .into_iter()
+                .filter_map(|message| heads.component.update(s, message))
+            {
                 shell.publish(message);
             }
 
@@ -449,12 +447,12 @@ where
                     component: heads.component,
                     message: PhantomData,
                     state: PhantomData,
-                    element_builder: |state| {
-                        Some(state.view(overlay.tree.state.downcast_ref::<S>()))
-                    },
+                    element_builder: |state| Some(state.view(s)),
                 }
                 .build(),
             );
+
+            overlay.instance.with_element(|element| tree.diff(element));
 
             self.overlay = Some(
                 OverlayBuilder {
@@ -463,6 +461,8 @@ where
                     tree: overlay.tree,
                     types: PhantomData,
                     overlay_builder: |instance, tree| {
+                        let (_, tree) = tree.state.downcast_mut::<(S, Tree)>();
+
                         instance
                             .as_ref()
                             .unwrap()
