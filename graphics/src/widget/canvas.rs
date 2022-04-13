@@ -173,6 +173,9 @@ where
             iced_native::Event::Mouse(mouse_event) => {
                 Some(Event::Mouse(mouse_event))
             }
+            iced_native::Event::Touch(touch_event) => {
+                Some(Event::Touch(touch_event))
+            }
             iced_native::Event::Keyboard(keyboard_event) => {
                 Some(Event::Keyboard(keyboard_event))
             }
