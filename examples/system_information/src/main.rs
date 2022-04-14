@@ -1,6 +1,6 @@
 use iced::{
-    executor, system, Application, Column, Command, Container, Element, Length,
-    Settings, Text,
+    button, executor, system, Application, Button, Column, Command, Container,
+    Element, Length, Settings, Text,
 };
 
 use bytesize::ByteSize;
@@ -11,13 +11,17 @@ pub fn main() -> iced::Result {
 
 enum Example {
     Loading,
-    Loaded { information: system::Information },
+    Loaded {
+        information: system::Information,
+        refresh_button: button::State,
+    },
     Unsupported,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum Message {
     InformationReceived(Option<system::Information>),
+    Refresh,
 }
 
 impl Application for Example {
@@ -38,9 +42,16 @@ impl Application for Example {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::Refresh => {
+                return system::information(Message::InformationReceived);
+            }
             Message::InformationReceived(information) => {
                 if let Some(information) = information {
-                    *self = Self::Loaded { information };
+                    let refresh_button = button::State::new();
+                    *self = Self::Loaded {
+                        information,
+                        refresh_button,
+                    };
                 } else {
                     *self = Self::Unsupported;
                 }
@@ -53,7 +64,10 @@ impl Application for Example {
     fn view(&mut self) -> Element<Message> {
         let content: Element<Message> = match self {
             Example::Loading => Text::new("Loading...").size(40).into(),
-            Example::Loaded { information } => {
+            Example::Loaded {
+                information,
+                refresh_button,
+            } => {
                 let system_name = Text::new(format!(
                     "System name: {}",
                     information
@@ -102,6 +116,19 @@ impl Application for Example {
                     )
                 ));
 
+                let memory_text = if let Some(memory_used) =
+                    information.memory_used
+                {
+                    let memory_readable = ByteSize::kb(memory_used).to_string();
+
+                    format!("{} kb ({})", memory_used, memory_readable)
+                } else {
+                    String::from("None")
+                };
+
+                let memory_used =
+                    Text::new(format!("Memory (used): {}", memory_text));
+
                 let graphics_adapter = Text::new(format!(
                     "Graphics adapter: {}",
                     information.graphics_adapter
@@ -119,8 +146,12 @@ impl Application for Example {
                     cpu_brand.size(30).into(),
                     cpu_cores.size(30).into(),
                     memory_total.size(30).into(),
+                    memory_used.size(30).into(),
                     graphics_adapter.size(30).into(),
                     graphics_backend.size(30).into(),
+                    Button::new(refresh_button, Text::new("Refresh"))
+                        .on_press(Message::Refresh)
+                        .into(),
                 ])
                 .spacing(10)
                 .into()

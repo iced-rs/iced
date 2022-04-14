@@ -1,5 +1,5 @@
 /// Contains informations about the system (e.g. system name, processor, memory, graphics adapter).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Information {
     /// Contains the system name.
     pub system_name: Option<String>,
@@ -13,6 +13,8 @@ pub struct Information {
     pub cpu_cores: Option<usize>,
     /// Contains the total RAM size in KB.
     pub memory_total: u64,
+    /// Contains the system used RAM size in KB.
+    pub memory_used: Option<u64>,
     /// Contains the graphics backend.
     pub graphics_backend: String,
     /// Contains the graphics adapter.
