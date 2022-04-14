@@ -582,40 +582,8 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(tag) => {
-                    #[cfg(feature = "sysinfo")]
-                    let information = {
-                        use sysinfo::{
-                            ProcessExt, ProcessorExt, System, SystemExt,
-                        };
-                        let mut system = System::new_all();
-                        system.refresh_all();
-
-                        let cpu = system.global_processor_info();
-
-                        let memory_used = sysinfo::get_current_pid()
-                            .and_then(|pid| {
-                                system.process(pid).ok_or("Process not found")
-                            })
-                            .and_then(|process| Ok(process.memory()))
-                            .ok();
-
-                        let information = system::Information {
-                            system_name: system.name(),
-                            system_kernel: system.kernel_version(),
-                            system_version: system.long_os_version(),
-                            cpu_brand: cpu.brand().into(),
-                            cpu_cores: system.physical_core_count(),
-                            memory_total: system.total_memory(),
-                            memory_used,
-                            graphics_adapter: graphics_info.adapter.clone(),
-                            graphics_backend: graphics_info.backend.clone(),
-                        };
-
-                        Some(information)
-                    };
-
-                    #[cfg(not(feature = "sysinfo"))]
-                    let information = None;
+                    let information =
+                        crate::system::get_information(graphics_info);
 
                     let message = tag(information);
 
