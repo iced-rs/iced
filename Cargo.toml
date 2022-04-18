@@ -93,6 +93,7 @@ members = [
     "examples/pure/pick_list",
     "examples/pure/todos",
     "examples/pure/tour",
+    "examples/pure/stateless_component",
     "examples/websocket",
 ]
 
