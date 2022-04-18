@@ -217,6 +217,10 @@ where
                 .build(),
             ));
 
+            self.with_element(|element| {
+                tree.diff_children(std::slice::from_ref(&element))
+            });
+
             shell.invalidate_layout();
         }
 
@@ -447,6 +451,10 @@ where
                 }
                 .build(),
             );
+
+            overlay.instance.with_element(|element| {
+                overlay.tree.diff_children(std::slice::from_ref(&element))
+            });
 
             self.overlay = Some(
                 OverlayBuilder {
