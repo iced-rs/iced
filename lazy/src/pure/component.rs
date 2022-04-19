@@ -472,7 +472,7 @@ where
                             .as_ref()
                             .unwrap()
                             .as_widget()
-                            .overlay(tree, layout, renderer)
+                            .overlay(&mut tree.children[0], layout, renderer)
                     },
                 }
                 .build(),
