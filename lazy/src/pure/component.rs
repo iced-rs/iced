@@ -70,6 +70,8 @@ where
     })
 }
 
+struct Tag<T>(T);
+
 struct Instance<'a, Message, Renderer, Event, S> {
     state: RefCell<Option<State<'a, Message, Renderer, Event, S>>>,
 }
@@ -130,7 +132,7 @@ where
     Renderer: iced_native::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<S>()
+        tree::Tag::of::<Tag<S>>()
     }
 
     fn state(&self) -> tree::State {
