@@ -12,6 +12,7 @@ pub mod slider;
 pub mod svg;
 pub mod text_input;
 pub mod toggler;
+pub mod tooltip;
 pub mod tree;
 
 mod column;
@@ -37,6 +38,7 @@ pub use svg::Svg;
 pub use text::Text;
 pub use text_input::TextInput;
 pub use toggler::Toggler;
+pub use tooltip::{Position, Tooltip};
 pub use tree::Tree;
 
 use iced_native::event::{self, Event};

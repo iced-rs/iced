@@ -1,15 +1,17 @@
 //! Display a widget over another.
-use crate::event;
-use crate::layout;
-use crate::mouse;
-use crate::renderer;
-use crate::text;
-use crate::widget::container;
-use crate::widget::text::Text;
-use crate::{
-    Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+use crate::widget::Tree;
+use crate::{Element, Widget};
+use iced_native::event::{self, Event};
+use iced_native::widget::container;
+pub use iced_native::widget::Text;
+use iced_native::{layout, mouse, overlay};
+use iced_native::{renderer, Size};
+use iced_native::{text, Vector};
+use iced_native::{
+    Clipboard, Layout, Length, Padding, Point, Rectangle, Shell,
 };
+
+pub use iced_style::container::{Style, StyleSheet};
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
@@ -17,7 +19,7 @@ pub struct Tooltip<'a, Message, Renderer: text::Renderer> {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
-    style_sheet: Box<dyn container::StyleSheet + 'a>,
+    style_sheet: Box<dyn StyleSheet + 'a>,
     gap: u16,
     padding: u16,
 }
@@ -76,7 +78,7 @@ where
     /// Sets the style of the [`Tooltip`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn container::StyleSheet + 'a>>,
+        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
     ) -> Self {
         self.style_sheet = style_sheet.into();
         self
@@ -103,12 +105,20 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: text::Renderer,
 {
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
     fn width(&self) -> Length {
-        self.content.width()
+        self.content.as_widget().width()
     }
 
     fn height(&self) -> Length {
-        self.content.height()
+        self.content.as_widget().height()
     }
 
     fn layout(
@@ -116,11 +126,12 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.layout(renderer, limits)
+        self.content.as_widget().layout(renderer, limits)
     }
 
     fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -128,7 +139,8 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        self.content.widget.on_event(
+        self.content.as_widget_mut().on_event(
+            &mut tree.children[0],
             event,
             layout,
             cursor_position,
@@ -140,13 +152,15 @@ where
 
     fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.mouse_interaction(
-            layout,
+        self.content.as_widget().mouse_interaction(
+            &tree.children[0],
+            layout.children().next().unwrap(),
             cursor_position,
             viewport,
             renderer,
@@ -155,13 +169,15 @@ where
 
     fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.content.draw(
+        self.content.as_widget().draw(
+            &tree.children[0],
             renderer,
             inherited_style,
             layout,
@@ -249,6 +265,7 @@ where
 
                 Widget::<(), Renderer>::draw(
                     &self.tooltip,
+                    &tree.children[0],
                     renderer,
                     &defaults,
                     Layout::with_offset(
@@ -263,6 +280,19 @@ where
                 );
             });
         }
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.content.as_widget().overlay(
+            &mut tree.children[0],
+            layout,
+            renderer,
+        )
     }
 }
 
