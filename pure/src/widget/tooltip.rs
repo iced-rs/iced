@@ -7,14 +7,12 @@ use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::text;
-use iced_native::widget::container;
+use iced_native::widget::tooltip;
 use iced_native::widget::Text;
-use iced_native::{
-    Clipboard, Layout, Length, Padding, Point, Rectangle, Shell, Size, Vector,
-};
+use iced_native::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
-pub use iced_native::widget::tooltip::Position;
 pub use iced_style::container::{Style, StyleSheet};
+pub use tooltip::Position;
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
@@ -173,101 +171,33 @@ where
             viewport,
         );
 
-        let bounds = layout.bounds();
+        let tooltip = &self.tooltip;
 
-        if bounds.contains(cursor_position) {
-            let gap = f32::from(self.gap);
-            let style = self.style_sheet.style();
-
-            let defaults = renderer::Style {
-                text_color: style
-                    .text_color
-                    .unwrap_or(inherited_style.text_color),
-            };
-
-            let text_layout = Widget::<(), Renderer>::layout(
-                &self.tooltip,
-                renderer,
-                &layout::Limits::new(Size::ZERO, viewport.size())
-                    .pad(Padding::new(self.padding)),
-            );
-
-            let padding = f32::from(self.padding);
-            let text_bounds = text_layout.bounds();
-            let x_center = bounds.x + (bounds.width - text_bounds.width) / 2.0;
-            let y_center =
-                bounds.y + (bounds.height - text_bounds.height) / 2.0;
-
-            let mut tooltip_bounds = {
-                let offset = match self.position {
-                    Position::Top => Vector::new(
-                        x_center,
-                        bounds.y - text_bounds.height - gap - padding,
-                    ),
-                    Position::Bottom => Vector::new(
-                        x_center,
-                        bounds.y + bounds.height + gap + padding,
-                    ),
-                    Position::Left => Vector::new(
-                        bounds.x - text_bounds.width - gap - padding,
-                        y_center,
-                    ),
-                    Position::Right => Vector::new(
-                        bounds.x + bounds.width + gap + padding,
-                        y_center,
-                    ),
-                    Position::FollowCursor => Vector::new(
-                        cursor_position.x,
-                        cursor_position.y - text_bounds.height,
-                    ),
-                };
-
-                Rectangle {
-                    x: offset.x - padding,
-                    y: offset.y - padding,
-                    width: text_bounds.width + padding * 2.0,
-                    height: text_bounds.height + padding * 2.0,
-                }
-            };
-
-            if tooltip_bounds.x < viewport.x {
-                tooltip_bounds.x = viewport.x;
-            } else if viewport.x + viewport.width
-                < tooltip_bounds.x + tooltip_bounds.width
-            {
-                tooltip_bounds.x =
-                    viewport.x + viewport.width - tooltip_bounds.width;
-            }
-
-            if tooltip_bounds.y < viewport.y {
-                tooltip_bounds.y = viewport.y;
-            } else if viewport.y + viewport.height
-                < tooltip_bounds.y + tooltip_bounds.height
-            {
-                tooltip_bounds.y =
-                    viewport.y + viewport.height - tooltip_bounds.height;
-            }
-
-            renderer.with_layer(*viewport, |renderer| {
-                container::draw_background(renderer, &style, tooltip_bounds);
-
+        tooltip::draw(
+            renderer,
+            inherited_style,
+            layout,
+            cursor_position,
+            viewport,
+            self.position,
+            self.gap,
+            self.padding,
+            self.style_sheet.as_ref(),
+            |renderer, limits| {
+                Widget::<(), Renderer>::layout(tooltip, renderer, limits)
+            },
+            |renderer, defaults, layout, cursor_position, viewport| {
                 Widget::<(), Renderer>::draw(
-                    &self.tooltip,
-                    &tree.children[0],
+                    tooltip,
+                    &Tree::empty(),
                     renderer,
-                    &defaults,
-                    Layout::with_offset(
-                        Vector::new(
-                            tooltip_bounds.x + padding,
-                            tooltip_bounds.y + padding,
-                        ),
-                        &text_layout,
-                    ),
+                    defaults,
+                    layout,
                     cursor_position,
                     viewport,
                 );
-            });
-        }
+            },
+        );
     }
 
     fn overlay<'b>(
