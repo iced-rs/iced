@@ -2,15 +2,18 @@
 use crate::widget::Tree;
 use crate::{Element, Widget};
 use iced_native::event::{self, Event};
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::overlay;
+use iced_native::renderer;
+use iced_native::text;
 use iced_native::widget::container;
-pub use iced_native::widget::Text;
-use iced_native::{layout, mouse, overlay};
-use iced_native::{renderer, Size};
-use iced_native::{text, Vector};
+use iced_native::widget::Text;
 use iced_native::{
-    Clipboard, Layout, Length, Padding, Point, Rectangle, Shell,
+    Clipboard, Layout, Length, Padding, Point, Rectangle, Shell, Size, Vector,
 };
 
+pub use iced_native::widget::tooltip::Position;
 pub use iced_style::container::{Style, StyleSheet};
 
 /// An element to display a widget over another.
@@ -83,21 +86,6 @@ where
         self.style_sheet = style_sheet.into();
         self
     }
-}
-
-/// The position of the tooltip. Defaults to following the cursor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Position {
-    /// The tooltip will follow the cursor.
-    FollowCursor,
-    /// The tooltip will appear on the top of the widget.
-    Top,
-    /// The tooltip will appear on the bottom of the widget.
-    Bottom,
-    /// The tooltip will appear on the left of the widget.
-    Left,
-    /// The tooltip will appear on the right of the widget.
-    Right,
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
