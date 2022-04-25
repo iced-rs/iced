@@ -402,22 +402,24 @@ pub fn draw<T, Renderer>(
     if let Some(label) =
         label.as_ref().map(String::as_str).or_else(|| placeholder)
     {
-        renderer.fill_text(Text {
-            content: label,
-            size: f32::from(text_size.unwrap_or(renderer.default_size())),
-            font: font.clone(),
-            color: is_selected
-                .then(|| style.text_color)
-                .unwrap_or(style.placeholder_color),
-            bounds: Rectangle {
-                x: bounds.x + f32::from(padding.left),
-                y: bounds.center_y(),
-                width: f32::INFINITY,
-                ..bounds
-            },
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
-        })
+        renderer.with_layer(bounds, |layer| {
+            layer.fill_text(Text {
+                content: label,
+                size: f32::from(text_size.unwrap_or(layer.default_size())),
+                font: font.clone(),
+                color: is_selected
+                    .then(|| style.text_color)
+                    .unwrap_or(style.placeholder_color),
+                bounds: Rectangle {
+                    x: bounds.x + f32::from(padding.left),
+                    y: bounds.center_y(),
+                    width: f32::INFINITY,
+                    ..bounds
+                },
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
+            })
+        });
     }
 }
 
