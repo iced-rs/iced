@@ -412,6 +412,7 @@ pub fn draw<T, Renderer>(
             bounds: Rectangle {
                 x: bounds.x + f32::from(padding.left),
                 y: bounds.center_y(),
+                width: f32::INFINITY,
                 ..bounds
             },
             horizontal_alignment: alignment::Horizontal::Left,
