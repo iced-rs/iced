@@ -1,7 +1,6 @@
 use iced::pure::container;
 use iced::pure::{Element, Sandbox};
 use iced::{Length, Settings};
-use iced_lazy::pure::responsive;
 
 use numeric_input::numeric_input;
 
@@ -39,14 +38,11 @@ impl Sandbox for Component {
     }
 
     fn view(&self) -> Element<Message> {
-        responsive(|_| {
-            container(numeric_input(self.value, Message::NumericInputChanged))
-                .padding(20)
-                .height(Length::Fill)
-                .center_y()
-                .into()
-        })
-        .into()
+        container(numeric_input(self.value, Message::NumericInputChanged))
+            .padding(20)
+            .height(Length::Fill)
+            .center_y()
+            .into()
     }
 }
 
