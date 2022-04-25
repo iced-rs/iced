@@ -38,6 +38,17 @@ pub fn button<'a, Message, Renderer>(
     widget::Button::new(content)
 }
 
+pub fn tooltip<'a, Message, Renderer>(
+    content: impl Into<Element<'a, Message, Renderer>>,
+    tooltip: impl ToString,
+    position: widget::tooltip::Position,
+) -> widget::Tooltip<'a, Message, Renderer>
+where
+    Renderer: iced_native::text::Renderer,
+{
+    widget::Tooltip::new(content, tooltip, position)
+}
+
 pub fn text<Renderer>(text: impl Into<String>) -> widget::Text<Renderer>
 where
     Renderer: iced_native::text::Renderer,
