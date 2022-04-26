@@ -1,3 +1,5 @@
+//! A compositor is responsible for initializing a renderer and managing window
+//! surfaces.
 use crate::{Color, Error, Viewport};
 
 use raw_window_handle::HasRawWindowHandle;

@@ -13,6 +13,7 @@ use crate::{
 
 use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
+use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
@@ -426,7 +427,7 @@ async fn run_instance<A, E, C>(
                     }
                     Err(error) => match error {
                         // This is an unrecoverable error.
-                        window::SurfaceError::OutOfMemory => {
+                        compositor::SurfaceError::OutOfMemory => {
                             panic!("{:?}", error);
                         }
                         _ => {
@@ -520,7 +521,7 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
-    graphics_info: &window::Information,
+    graphics_info: &compositor::Information,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -543,7 +544,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
     window: &winit::window::Window,
-    graphics_info: &window::Information,
+    graphics_info: &compositor::Information,
 ) {
     use iced_native::command;
     use iced_native::system;

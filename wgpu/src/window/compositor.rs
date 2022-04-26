@@ -1,6 +1,7 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::task::SpawnExt;
+use iced_graphics::compositor;
 use iced_native::futures;
 use raw_window_handle::HasRawWindowHandle;
 
@@ -157,10 +158,10 @@ impl iced_graphics::window::Compositor for Compositor {
         );
     }
 
-    fn get_information(&self) -> iced_graphics::window::Information {
+    fn get_information(&self) -> compositor::Information {
         let information = self.adapter.get_info();
 
-        iced_graphics::window::Information {
+        compositor::Information {
             adapter: information.name,
             backend: format!("{:?}", information.backend),
         }
@@ -173,7 +174,7 @@ impl iced_graphics::window::Compositor for Compositor {
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
-    ) -> Result<(), iced_graphics::window::SurfaceError> {
+    ) -> Result<(), compositor::SurfaceError> {
         match surface.get_current_texture() {
             Ok(frame) => {
                 let mut encoder = self.device.create_command_encoder(
@@ -241,16 +242,14 @@ impl iced_graphics::window::Compositor for Compositor {
             }
             Err(error) => match error {
                 wgpu::SurfaceError::Timeout => {
-                    Err(iced_graphics::window::SurfaceError::Timeout)
+                    Err(compositor::SurfaceError::Timeout)
                 }
                 wgpu::SurfaceError::Outdated => {
-                    Err(iced_graphics::window::SurfaceError::Outdated)
+                    Err(compositor::SurfaceError::Outdated)
                 }
-                wgpu::SurfaceError::Lost => {
-                    Err(iced_graphics::window::SurfaceError::Lost)
-                }
+                wgpu::SurfaceError::Lost => Err(compositor::SurfaceError::Lost),
                 wgpu::SurfaceError::OutOfMemory => {
-                    Err(iced_graphics::window::SurfaceError::OutOfMemory)
+                    Err(compositor::SurfaceError::OutOfMemory)
                 }
             },
         }
