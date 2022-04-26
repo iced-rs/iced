@@ -7,7 +7,7 @@ use iced_graphics::compositor;
 /// Query for available system information.
 ///
 /// Returns `None` if not using the `sysinfo` feature flag.
-pub fn information<Message>(
+pub fn fetch_information<Message>(
     f: impl Fn(Option<Information>) -> Message + 'static,
 ) -> Command<Message> {
     Command::single(command::Action::System(Action::QueryInformation(

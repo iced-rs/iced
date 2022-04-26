@@ -32,7 +32,7 @@ impl Application for Example {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             Self::Loading,
-            system::information(Message::InformationReceived),
+            system::fetch_information(Message::InformationReceived),
         )
     }
 
@@ -43,7 +43,7 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Refresh => {
-                return system::information(Message::InformationReceived);
+                return system::fetch_information(Message::InformationReceived);
             }
             Message::InformationReceived(information) => {
                 if let Some(information) = information {
