@@ -17,7 +17,7 @@ pub fn information<Message>(
 
 #[cfg(feature = "sysinfo")]
 pub(crate) fn get_information(
-    graphics_info: &window::GraphicsInformation,
+    graphics_info: &window::Information,
 ) -> Option<Information> {
     use sysinfo::{ProcessExt, ProcessorExt, System, SystemExt};
     let mut system = System::new_all();
@@ -47,7 +47,7 @@ pub(crate) fn get_information(
 
 #[cfg(not(feature = "sysinfo"))]
 pub(crate) fn get_information(
-    _graphics_info: &window::GraphicsInformation,
+    _graphics_info: &window::Information,
 ) -> Option<Information> {
     None
 }

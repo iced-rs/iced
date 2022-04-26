@@ -520,7 +520,7 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
-    graphics_info: &window::GraphicsInformation,
+    graphics_info: &window::Information,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -543,7 +543,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
     window: &winit::window::Window,
-    graphics_info: &window::GraphicsInformation,
+    graphics_info: &window::Information,
 ) {
     use iced_native::command;
     use iced_native::system;

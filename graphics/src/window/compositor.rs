@@ -39,7 +39,7 @@ pub trait Compositor: Sized {
     );
 
     /// Returns [`GraphicsInformation`] used by this [`Compositor`].
-    fn get_information(&self) -> GraphicsInformation;
+    fn get_information(&self) -> Information;
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
     ///
@@ -77,7 +77,7 @@ pub enum SurfaceError {
 
 /// Contains informations about the graphics (e.g. graphics adapter, graphics backend).
 #[derive(Debug)]
-pub struct GraphicsInformation {
+pub struct Information {
     /// Contains the graphics adapter.
     pub adapter: String,
     /// Contains the graphics backend.

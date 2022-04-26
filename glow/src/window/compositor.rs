@@ -67,10 +67,10 @@ impl iced_graphics::window::GLCompositor for Compositor {
         }
     }
 
-    fn get_information(&self) -> iced_graphics::window::GraphicsInformation {
+    fn get_information(&self) -> iced_graphics::window::Information {
         let adapter = unsafe { self.gl.get_parameter_string(glow::RENDERER) };
 
-        iced_graphics::window::GraphicsInformation {
+        iced_graphics::window::Information {
             backend: format!("{:?}", self.gl.version()),
             adapter,
         }

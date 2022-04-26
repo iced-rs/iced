@@ -1,4 +1,4 @@
-use crate::window::GraphicsInformation;
+use crate::window::Information;
 use crate::{Color, Error, Size, Viewport};
 
 use core::ffi::c_void;
@@ -50,7 +50,7 @@ pub trait GLCompositor: Sized {
     fn resize_viewport(&mut self, physical_size: Size<u32>);
 
     /// Returns [`GraphicsInformation`] used by this [`Compositor`].
-    fn get_information(&self) -> GraphicsInformation;
+    fn get_information(&self) -> Information;
 
     /// Presents the primitives of the [`Renderer`] to the next frame of the
     /// [`GLCompositor`].

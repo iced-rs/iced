@@ -157,10 +157,10 @@ impl iced_graphics::window::Compositor for Compositor {
         );
     }
 
-    fn get_information(&self) -> iced_graphics::window::GraphicsInformation {
+    fn get_information(&self) -> iced_graphics::window::Information {
         let information = self.adapter.get_info();
 
-        iced_graphics::window::GraphicsInformation {
+        iced_graphics::window::Information {
             adapter: information.name,
             backend: format!("{:?}", information.backend),
         }
