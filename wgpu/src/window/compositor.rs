@@ -158,7 +158,7 @@ impl iced_graphics::window::Compositor for Compositor {
         );
     }
 
-    fn get_information(&self) -> compositor::Information {
+    fn fetch_information(&self) -> compositor::Information {
         let information = self.adapter.get_info();
 
         compositor::Information {

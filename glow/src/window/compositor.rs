@@ -67,7 +67,7 @@ impl iced_graphics::window::GLCompositor for Compositor {
         }
     }
 
-    fn get_information(&self) -> compositor::Information {
+    fn fetch_information(&self) -> compositor::Information {
         let adapter = unsafe { self.gl.get_parameter_string(glow::RENDERER) };
 
         compositor::Information {

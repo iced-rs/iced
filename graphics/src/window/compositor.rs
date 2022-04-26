@@ -41,7 +41,7 @@ pub trait Compositor: Sized {
     );
 
     /// Returns [`GraphicsInformation`] used by this [`Compositor`].
-    fn get_information(&self) -> Information;
+    fn fetch_information(&self) -> Information;
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
     ///

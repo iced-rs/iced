@@ -52,7 +52,7 @@ pub trait GLCompositor: Sized {
     fn resize_viewport(&mut self, physical_size: Size<u32>);
 
     /// Returns [`GraphicsInformation`] used by this [`Compositor`].
-    fn get_information(&self) -> Information;
+    fn fetch_information(&self) -> Information;
 
     /// Presents the primitives of the [`Renderer`] to the next frame of the
     /// [`GLCompositor`].

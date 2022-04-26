@@ -176,7 +176,7 @@ where
         &mut clipboard,
         &mut proxy,
         &window,
-        &compositor.get_information(),
+        &compositor.fetch_information(),
     );
     runtime.track(subscription);
 
@@ -264,7 +264,7 @@ async fn run_instance<A, E, C>(
         physical_size.height,
     );
 
-    let graphics_info = compositor.get_information();
+    let graphics_info = compositor.fetch_information();
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &mut application,
