@@ -32,7 +32,7 @@ impl Compositor {
         log::info!("{:#?}", settings);
 
         #[cfg(not(target_arch = "wasm32"))]
-        {
+        if log::max_level() >= log::LevelFilter::Info {
             let available_adapters: Vec<_> = instance
                 .enumerate_adapters(settings.internal_backend)
                 .map(|adapter| adapter.get_info())
