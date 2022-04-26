@@ -11,13 +11,13 @@ pub enum Error {
     #[error("the application window could not be created")]
     WindowCreationFailed(winit::error::OsError),
 
-    /// The application context could not be created.
-    #[error("the application context could not be created")]
-    ContextCreationFailed(iced_graphics::Error),
+    /// The application graphics context could not be created.
+    #[error("the application graphics context could not be created")]
+    GraphicsCreationFailed(iced_graphics::Error),
 }
 
 impl From<iced_graphics::Error> for Error {
     fn from(error: iced_graphics::Error) -> Error {
-        Error::ContextCreationFailed(error)
+        Error::GraphicsCreationFailed(error)
     }
 }

@@ -94,16 +94,16 @@ where
                         Error::WindowCreationFailed(error)
                     }
                     CreationError::OpenGlVersionNotSupported => {
-                        Error::ContextCreationFailed(
+                        Error::GraphicsCreationFailed(
                             ContextError::VersionNotSupported,
                         )
                     }
                     CreationError::NoAvailablePixelFormat => {
-                        Error::ContextCreationFailed(
+                        Error::GraphicsCreationFailed(
                             ContextError::NoAvailablePixelFormat,
                         )
                     }
-                    error => Error::ContextCreationFailed(
+                    error => Error::GraphicsCreationFailed(
                         ContextError::BackendError(error.to_string()),
                     ),
                 }
