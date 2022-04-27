@@ -402,16 +402,18 @@ pub fn draw<T, Renderer>(
     if let Some(label) =
         label.as_ref().map(String::as_str).or_else(|| placeholder)
     {
+        let text_size = f32::from(text_size.unwrap_or(renderer.default_size()));
+
         renderer.fill_text(Text {
             content: label,
-            size: f32::from(text_size.unwrap_or(renderer.default_size())),
+            size: text_size,
             font: font.clone(),
             color: is_selected
                 .then(|| style.text_color)
                 .unwrap_or(style.placeholder_color),
             bounds: Rectangle {
                 x: bounds.x + f32::from(padding.left),
-                y: bounds.center_y(),
+                y: bounds.center_y() - text_size / 2.0,
                 ..bounds
             },
             horizontal_alignment: alignment::Horizontal::Left,
