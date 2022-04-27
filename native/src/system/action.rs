@@ -7,7 +7,7 @@ use std::fmt;
 /// An operation to be performed on the system.
 pub enum Action<T> {
     /// Query system information and produce `T` with the result.
-    QueryInformation(Box<dyn Fn(Option<system::Information>) -> T>),
+    QueryInformation(Box<dyn Fn(system::Information) -> T>),
 }
 
 impl<T> Action<T> {

@@ -582,7 +582,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(tag) => {
                     let information =
-                        crate::system::get_information(graphics_info());
+                        crate::system::information(graphics_info());
 
                     let message = tag(information);
 

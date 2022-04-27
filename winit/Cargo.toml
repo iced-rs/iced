@@ -17,7 +17,7 @@ debug = ["iced_native/debug"]
 window_clipboard = "0.2"
 log = "0.4"
 thiserror = "1.0"
-sysinfo = { version = "0.23", optional = true }
+sysinfo = "0.23"
 
 [dependencies.winit]
 version = "0.26"

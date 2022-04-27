@@ -15,12 +15,11 @@ enum Example {
         information: system::Information,
         refresh_button: button::State,
     },
-    Unsupported,
 }
 
 #[derive(Clone, Debug)]
 enum Message {
-    InformationReceived(Option<system::Information>),
+    InformationReceived(system::Information),
     Refresh,
 }
 
@@ -46,15 +45,11 @@ impl Application for Example {
                 return system::fetch_information(Message::InformationReceived);
             }
             Message::InformationReceived(information) => {
-                if let Some(information) = information {
-                    let refresh_button = button::State::new();
-                    *self = Self::Loaded {
-                        information,
-                        refresh_button,
-                    };
-                } else {
-                    *self = Self::Unsupported;
-                }
+                let refresh_button = button::State::new();
+                *self = Self::Loaded {
+                    information,
+                    refresh_button,
+                };
             }
         }
 
@@ -156,7 +151,6 @@ impl Application for Example {
                 .spacing(10)
                 .into()
             }
-            Example::Unsupported => Text::new("Unsupported!").size(20).into(),
         };
 
         Container::new(content)
