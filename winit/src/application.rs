@@ -176,7 +176,7 @@ where
         &mut clipboard,
         &mut proxy,
         &window,
-        &compositor.fetch_information(),
+        || compositor.fetch_information(),
     );
     runtime.track(subscription);
 
@@ -264,8 +264,6 @@ async fn run_instance<A, E, C>(
         physical_size.height,
     );
 
-    let graphics_info = compositor.fetch_information();
-
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &mut application,
         user_interface::Cache::default(),
@@ -321,7 +319,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         &window,
-                        &graphics_info,
+                        || compositor.fetch_information(),
                     );
 
                     // Update window
@@ -521,7 +519,7 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
-    graphics_info: &compositor::Information,
+    graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -544,7 +542,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
     window: &winit::window::Window,
-    graphics_info: &compositor::Information,
+    graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) {
     use iced_native::command;
     use iced_native::system;
@@ -584,7 +582,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(tag) => {
                     let information =
-                        crate::system::get_information(graphics_info);
+                        crate::system::get_information(graphics_info());
 
                     let message = tag(information);
 

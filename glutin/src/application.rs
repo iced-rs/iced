@@ -130,7 +130,7 @@ where
         &mut clipboard,
         &mut proxy,
         context.window(),
-        &compositor.fetch_information(),
+        || compositor.fetch_information(),
     );
     runtime.track(subscription);
 
@@ -209,7 +209,6 @@ async fn run_instance<A, E, C>(
 
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
-    let graphics_info = compositor.fetch_information();
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
             &mut application,
@@ -266,7 +265,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         context.window(),
-                        &graphics_info,
+                        || compositor.fetch_information(),
                     );
 
                     // Update window

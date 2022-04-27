@@ -17,7 +17,7 @@ pub fn fetch_information<Message>(
 
 #[cfg(feature = "sysinfo")]
 pub(crate) fn get_information(
-    graphics_info: &compositor::Information,
+    graphics_info: compositor::Information,
 ) -> Option<Information> {
     use sysinfo::{ProcessExt, ProcessorExt, System, SystemExt};
     let mut system = System::new_all();
@@ -38,8 +38,8 @@ pub(crate) fn get_information(
         cpu_cores: system.physical_core_count(),
         memory_total: system.total_memory(),
         memory_used,
-        graphics_adapter: graphics_info.adapter.clone(),
-        graphics_backend: graphics_info.backend.clone(),
+        graphics_adapter: graphics_info.adapter,
+        graphics_backend: graphics_info.backend,
     };
 
     Some(information)
@@ -47,7 +47,7 @@ pub(crate) fn get_information(
 
 #[cfg(not(feature = "sysinfo"))]
 pub(crate) fn get_information(
-    _graphics_info: &compositor::Information,
+    _graphics_info: compositor::Information,
 ) -> Option<Information> {
     None
 }
