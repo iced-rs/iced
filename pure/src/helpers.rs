@@ -142,11 +142,15 @@ pub fn vertical_space(height: Length) -> widget::Space {
 }
 
 /// Creates a horizontal [`Rule`] with the given height.
+///
+/// [`Rule`]: widget::Rule
 pub fn horizontal_rule<'a>(height: u16) -> widget::Rule<'a> {
     widget::Rule::horizontal(height)
 }
 
 /// Creates a vertical [`Rule`] with the given width.
+///
+/// [`Rule`]: widget::Rule
 pub fn vertical_rule<'a>(width: u16) -> widget::Rule<'a> {
     widget::Rule::horizontal(width)
 }
@@ -154,8 +158,10 @@ pub fn vertical_rule<'a>(width: u16) -> widget::Rule<'a> {
 /// Creates a new [`ProgressBar`].
 ///
 /// It expects:
-///   * an inclusive range of possible values
-///   * the current value of the [`ProgressBar`]
+///   * an inclusive range of possible values, and
+///   * the current value of the [`ProgressBar`].
+///
+/// [`ProgressBar`]: widget::ProgressBar
 pub fn progress_bar<'a>(
     range: RangeInclusive<f32>,
     value: f32,

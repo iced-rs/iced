@@ -43,9 +43,8 @@ where
     /// The default padding of a [`PickList`].
     pub const DEFAULT_PADDING: Padding = Padding::new(5);
 
-    /// Creates a new [`PickList`] with the given [`State`], a list of options,
-    /// the current selected value, and the message to produce when an option is
-    /// selected.
+    /// Creates a new [`PickList`] with the given list of options, the current
+    /// selected value, and the message to produce when an option is selected.
     pub fn new(
         options: impl Into<Cow<'a, [T]>>,
         selected: Option<T>,

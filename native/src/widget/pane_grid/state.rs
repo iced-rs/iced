@@ -1,4 +1,6 @@
 //! The state of a [`PaneGrid`].
+//!
+//! [`PaneGrid`]: crate::widget::PaneGrid
 use crate::widget::pane_grid::{
     Axis, Configuration, Direction, Node, Pane, Split,
 };
@@ -21,9 +23,13 @@ use std::collections::{BTreeMap, HashMap};
 #[derive(Debug, Clone)]
 pub struct State<T> {
     /// The panes of the [`PaneGrid`].
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     pub panes: HashMap<Pane, T>,
 
     /// The internal state of the [`PaneGrid`].
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     pub internal: Internal,
 
     pub(super) action: Action,
@@ -198,6 +204,8 @@ impl<T> State<T> {
 }
 
 /// The internal state of a [`PaneGrid`].
+///
+/// [`PaneGrid`]: crate::widget::PaneGrid
 #[derive(Debug, Clone)]
 pub struct Internal {
     layout: Node,
@@ -207,6 +215,8 @@ pub struct Internal {
 impl Internal {
     /// Initializes the [`Internal`] state of a [`PaneGrid`] from a
     /// [`Configuration`].
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     pub fn from_configuration<T>(
         panes: &mut HashMap<Pane, T>,
         content: Configuration<T>,
@@ -248,11 +258,17 @@ impl Internal {
 }
 
 /// The current action of a [`PaneGrid`].
+///
+/// [`PaneGrid`]: crate::widget::PaneGrid
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Action {
     /// The [`PaneGrid`] is idle.
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     Idle,
     /// A [`Pane`] in the [`PaneGrid`] is being dragged.
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     Dragging {
         /// The [`Pane`] being dragged.
         pane: Pane,
@@ -260,6 +276,8 @@ pub enum Action {
         origin: Point,
     },
     /// A [`Split`] in the [`PaneGrid`] is being dragged.
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     Resizing {
         /// The [`Split`] being dragged.
         split: Split,
@@ -288,6 +306,8 @@ impl Action {
 
 impl Internal {
     /// Calculates the current [`Pane`] regions from the [`PaneGrid`] layout.
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     pub fn pane_regions(
         &self,
         spacing: f32,
@@ -297,6 +317,8 @@ impl Internal {
     }
 
     /// Calculates the current [`Split`] regions from the [`PaneGrid`] layout.
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     pub fn split_regions(
         &self,
         spacing: f32,

@@ -26,6 +26,7 @@ pub use application::Application;
 pub use sandbox::Sandbox;
 
 pub use iced_pure::helpers::*;
+pub use iced_pure::Widget;
 pub use iced_pure::{Pure, State};
 
 /// A generic, pure [`Widget`].

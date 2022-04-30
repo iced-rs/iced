@@ -264,11 +264,10 @@ where
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
     ///
-    /// It returns the some [`Renderer::Output`]. You should update the icon of
-    /// the mouse cursor accordingly in your system.
+    /// It returns the current [`mouse::Interaction`]. You should update the
+    /// icon of the mouse cursor accordingly in your system.
     ///
     /// [`Renderer`]: crate::Renderer
-    /// [`Renderer::Output`]: crate::Renderer::Output
     ///
     /// # Example
     /// We can finally draw our [counter](index.html#usage) by

@@ -63,7 +63,7 @@ where
         event::Status::Ignored
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`Widget`].
+    /// Returns the current [`mouse::Interaction`] of the [`Overlay`].
     ///
     /// By default, it returns [`mouse::Interaction::Idle`].
     fn mouse_interaction(

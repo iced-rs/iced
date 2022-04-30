@@ -102,7 +102,7 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
 
     /// Sets the [`Font`] of the text of the [`Checkbox`].
     ///
-    /// [`Font`]: crate::widget::text::Renderer::Font
+    /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
