@@ -16,7 +16,7 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 /// The [`integration` example] uses a [`UserInterface`] to integrate Iced in
 /// an existing graphical application.
 ///
-/// [`integration` example]: https://github.com/iced-rs/iced/tree/0.3/examples/integration
+/// [`integration` example]: https://github.com/iced-rs/iced/tree/0.4/examples/integration
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,

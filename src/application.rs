@@ -37,15 +37,15 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 /// to listen to time.
 /// - [`todos`], a todos tracker inspired by [TodoMVC].
 ///
-/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.3/examples
-/// [`clock`]: https://github.com/hecrj/iced/tree/0.3/examples/clock
-/// [`download_progress`]: https://github.com/hecrj/iced/tree/0.3/examples/download_progress
-/// [`events`]: https://github.com/hecrj/iced/tree/0.3/examples/events
-/// [`game_of_life`]: https://github.com/hecrj/iced/tree/0.3/examples/game_of_life
-/// [`pokedex`]: https://github.com/hecrj/iced/tree/0.3/examples/pokedex
-/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.3/examples/solar_system
-/// [`stopwatch`]: https://github.com/hecrj/iced/tree/0.3/examples/stopwatch
-/// [`todos`]: https://github.com/hecrj/iced/tree/0.3/examples/todos
+/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.4/examples
+/// [`clock`]: https://github.com/hecrj/iced/tree/0.4/examples/clock
+/// [`download_progress`]: https://github.com/hecrj/iced/tree/0.4/examples/download_progress
+/// [`events`]: https://github.com/hecrj/iced/tree/0.4/examples/events
+/// [`game_of_life`]: https://github.com/hecrj/iced/tree/0.4/examples/game_of_life
+/// [`pokedex`]: https://github.com/hecrj/iced/tree/0.4/examples/pokedex
+/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.4/examples/solar_system
+/// [`stopwatch`]: https://github.com/hecrj/iced/tree/0.4/examples/stopwatch
+/// [`todos`]: https://github.com/hecrj/iced/tree/0.4/examples/todos
 /// [`Sandbox`]: crate::Sandbox
 /// [`Canvas`]: crate::widget::Canvas
 /// [PokéAPI]: https://pokeapi.co/
