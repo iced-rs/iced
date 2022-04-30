@@ -22,7 +22,6 @@ pub mod application;
 pub use iced_winit::clipboard;
 pub use iced_winit::conversion;
 pub use iced_winit::settings;
-pub use iced_winit::system;
 pub use iced_winit::window;
 pub use iced_winit::{Error, Mode};
 
@@ -32,3 +31,6 @@ pub use application::Application;
 pub use clipboard::Clipboard;
 #[doc(no_inline)]
 pub use settings::Settings;
+
+#[cfg(feature = "system")]
+pub use iced_winit::system;

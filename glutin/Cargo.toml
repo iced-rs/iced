@@ -12,6 +12,7 @@ categories = ["gui"]
 
 [features]
 debug = ["iced_winit/debug"]
+system = ["iced_winit/system"]
 
 [dependencies.log]
 version = "0.4"

@@ -542,7 +542,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
     window: &winit::window::Window,
-    graphics_info: impl FnOnce() -> compositor::Information + Copy,
+    _graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) {
     use iced_native::command;
     use iced_native::system;
@@ -580,15 +580,18 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                 }
             },
             command::Action::System(action) => match action {
-                system::Action::QueryInformation(tag) => {
-                    let information =
-                        crate::system::information(graphics_info());
+                system::Action::QueryInformation(_tag) => {
+                    #[cfg(feature = "sysinfo")]
+                    {
+                        let information =
+                            crate::system::information(_graphics_info());
 
-                    let message = tag(information);
+                        let message = _tag(information);
 
-                    proxy
-                        .send_event(message)
-                        .expect("Send message to event loop");
+                        proxy
+                            .send_event(message)
+                            .expect("Send message to event loop");
+                    }
                 }
             },
         }

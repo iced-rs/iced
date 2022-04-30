@@ -31,8 +31,10 @@ pub mod application;
 pub mod clipboard;
 pub mod conversion;
 pub mod settings;
-pub mod system;
 pub mod window;
+
+#[cfg(feature = "system")]
+pub mod system;
 
 mod error;
 mod mode;
