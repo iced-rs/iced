@@ -1,11 +1,11 @@
 [package]
 name = "iced_graphics"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
 license = "MIT"
-repository = "https://github.com/hecrj/iced"
+repository = "https://github.com/iced-rs/iced"
 documentation = "https://docs.rs/iced_graphics"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
@@ -29,15 +29,15 @@ version = "1.4"
 features = ["derive"]
 
 [dependencies.iced_native]
-version = "0.4"
+version = "0.5"
 path = "../native"
 
 [dependencies.iced_style]
-version = "0.3"
+version = "0.4"
 path = "../style"
 
 [dependencies.iced_pure]
-version = "0.1"
+version = "0.2"
 path = "../pure"
 optional = true
 

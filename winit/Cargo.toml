@@ -1,11 +1,11 @@
 [package]
 name = "iced_winit"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A winit runtime for Iced"
 license = "MIT"
-repository = "https://github.com/hecrj/iced"
+repository = "https://github.com/iced-rs/iced"
 documentation = "https://docs.rs/iced_winit"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
@@ -20,15 +20,15 @@ thiserror = "1.0"
 winit = "0.26"
 
 [dependencies.iced_native]
-version = "0.4"
+version = "0.5"
 path = "../native"
 
 [dependencies.iced_graphics]
-version = "0.2"
+version = "0.3"
 path = "../graphics"
 
 [dependencies.iced_futures]
-version = "0.3"
+version = "0.4"
 path = "../futures"
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]

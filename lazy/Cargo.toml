@@ -1,7 +1,14 @@
 [package]
 name = "iced_lazy"
 version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
+description = "Lazy widgets for Iced"
+license = "MIT"
+repository = "https://github.com/iced-rs/iced"
+documentation = "https://docs.rs/iced_lazy"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
 
 [features]
 pure = ["iced_pure"]
@@ -10,10 +17,10 @@ pure = ["iced_pure"]
 ouroboros = "0.13"
 
 [dependencies.iced_native]
-version = "0.4"
+version = "0.5"
 path = "../native"
 
 [dependencies.iced_pure]
-version = "0.1"
+version = "0.2"
 path = "../pure"
 optional = true

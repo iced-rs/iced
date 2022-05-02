@@ -1,11 +1,11 @@
 [package]
 name = "iced_glow"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A glow renderer for iced"
 license = "MIT AND OFL-1.1"
-repository = "https://github.com/hecrj/iced"
+repository = "https://github.com/iced-rs/iced"
 
 [features]
 canvas = ["iced_graphics/canvas"]
@@ -24,11 +24,11 @@ bytemuck = "1.4"
 log = "0.4"
 
 [dependencies.iced_native]
-version = "0.4"
+version = "0.5"
 path = "../native"
 
 [dependencies.iced_graphics]
-version = "0.2"
+version = "0.3"
 path = "../graphics"
 features = ["font-fallback", "font-icons", "opengl"]
 
