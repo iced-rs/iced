@@ -167,9 +167,11 @@ pub use toggler::Toggler;
 pub use tooltip::Tooltip;
 
 #[cfg(feature = "canvas")]
+#[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 pub use iced_graphics::widget::canvas;
 
 #[cfg(feature = "image")]
+#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub mod image {
     //! Display images in your user interface.
     pub use iced_native::image::Handle;
@@ -182,9 +184,11 @@ pub mod image {
 }
 
 #[cfg(feature = "qr_code")]
+#[cfg_attr(docsrs, doc(cfg(feature = "qr_code")))]
 pub use iced_graphics::widget::qr_code;
 
 #[cfg(feature = "svg")]
+#[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
 pub mod svg {
     //! Display vector graphics in your application.
     pub use iced_native::svg::Handle;
@@ -192,13 +196,17 @@ pub mod svg {
 }
 
 #[cfg(feature = "canvas")]
+#[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 pub use canvas::Canvas;
 
 #[cfg(feature = "image")]
+#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub use image::Image;
 
 #[cfg(feature = "qr_code")]
+#[cfg_attr(docsrs, doc(cfg(feature = "qr_code")))]
 pub use qr_code::QRCode;
 
 #[cfg(feature = "svg")]
+#[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
 pub use svg::Svg;

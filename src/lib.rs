@@ -196,6 +196,7 @@ pub mod widget;
 pub mod window;
 
 #[cfg(feature = "pure")]
+#[cfg_attr(docsrs, doc(cfg(feature = "pure")))]
 pub mod pure;
 
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
