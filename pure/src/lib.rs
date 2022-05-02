@@ -83,10 +83,9 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![deny(missing_docs)]
-//#![deny(missing_debug_implementations)]
-//#![deny(unused_results)]
+#![deny(unused_results)]
 #![forbid(unsafe_code)]
-//#![forbid(rust_2018_idioms)]
+#![forbid(rust_2018_idioms)]
 
 pub mod helpers;
 pub mod overlay;
@@ -175,7 +174,7 @@ impl State {
 
     fn diff<Message, Renderer>(
         &mut self,
-        new_element: &Element<Message, Renderer>,
+        new_element: &Element<'_, Message, Renderer>,
     ) {
         self.state_tree.diff(new_element);
     }
