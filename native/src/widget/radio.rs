@@ -1,6 +1,4 @@
 //! Create choices using radio buttons.
-use std::hash::Hash;
-
 use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
@@ -10,8 +8,8 @@ use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text};
 use crate::{
-    Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
+    Shell, Widget,
 };
 
 pub use iced_style::radio::{Style, StyleSheet};
@@ -51,7 +49,6 @@ pub struct Radio<'a, Message, Renderer: text::Renderer> {
     size: u16,
     spacing: u16,
     text_size: Option<u16>,
-    text_color: Option<Color>,
     font: Renderer::Font,
     style_sheet: Box<dyn StyleSheet + 'a>,
 }
@@ -82,7 +79,7 @@ where
     ) -> Self
     where
         V: Eq + Copy,
-        F: 'static + Fn(V) -> Message,
+        F: FnOnce(V) -> Message,
     {
         Radio {
             is_selected: Some(value) == selected,
@@ -92,7 +89,6 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING, //15
             text_size: None,
-            text_color: None,
             font: Default::default(),
             style_sheet: Default::default(),
         }
@@ -119,12 +115,6 @@ where
     /// Sets the text size of the [`Radio`] button.
     pub fn text_size(mut self, text_size: u16) -> Self {
         self.text_size = Some(text_size);
-        self
-    }
-
-    /// Sets the text color of the [`Radio`] button.
-    pub fn text_color(mut self, color: Color) -> Self {
-        self.text_color = Some(color);
         self
     }
 
@@ -209,6 +199,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         if layout.bounds().contains(cursor_position) {
             mouse::Interaction::Pointer
@@ -230,6 +221,12 @@ where
 
         let mut children = layout.children();
 
+        let custom_style = if is_mouse_over {
+            self.style_sheet.hovered()
+        } else {
+            self.style_sheet.active()
+        };
+
         {
             let layout = children.next().unwrap();
             let bounds = layout.bounds();
@@ -237,20 +234,14 @@ where
             let size = bounds.width;
             let dot_size = size / 2.0;
 
-            let style = if is_mouse_over {
-                self.style_sheet.hovered()
-            } else {
-                self.style_sheet.active()
-            };
-
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
                     border_radius: size / 2.0,
-                    border_width: style.border_width,
-                    border_color: style.border_color,
+                    border_width: custom_style.border_width,
+                    border_color: custom_style.border_color,
                 },
-                style.background,
+                custom_style.background,
             );
 
             if self.is_selected {
@@ -266,7 +257,7 @@ where
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
-                    style.dot_color,
+                    custom_style.dot_color,
                 );
             }
         }
@@ -281,18 +272,11 @@ where
                 &self.label,
                 self.font.clone(),
                 self.text_size,
-                self.text_color,
+                custom_style.text_color,
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.label.hash(state);
     }
 }
 

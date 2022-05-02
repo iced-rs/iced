@@ -10,8 +10,8 @@ use crate::touch;
 use crate::widget::scrollable::{self, Scrollable};
 use crate::widget::Container;
 use crate::{
-    Clipboard, Color, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::menu::Style;
@@ -204,17 +204,6 @@ where
         node
     }
 
-    fn hash_layout(&self, state: &mut Hasher, position: Point) {
-        use std::hash::Hash;
-
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        (position.x as u32).hash(state);
-        (position.y as u32).hash(state);
-        self.container.hash_layout(state);
-    }
-
     fn on_event(
         &mut self,
         event: Event,
@@ -239,9 +228,14 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.container
-            .mouse_interaction(layout, cursor_position, viewport)
+        self.container.mouse_interaction(
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     fn draw(
@@ -315,17 +309,6 @@ where
         layout::Node::new(size)
     }
 
-    fn hash_layout(&self, state: &mut Hasher) {
-        use std::hash::Hash as _;
-
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.options.len().hash(state);
-        self.text_size.hash(state);
-        self.padding.hash(state);
-    }
-
     fn on_event(
         &mut self,
         event: Event,
@@ -392,6 +375,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         let is_mouse_over = layout.bounds().contains(cursor_position);
 

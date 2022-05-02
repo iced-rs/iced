@@ -1,6 +1,6 @@
 //! Run commands and keep track of subscriptions.
-use crate::BoxFuture;
-use crate::{subscription, Executor, Subscription};
+use crate::subscription;
+use crate::{BoxFuture, Executor, MaybeSend, Subscription};
 
 use futures::{channel::mpsc, Sink};
 use std::marker::PhantomData;
@@ -9,6 +9,8 @@ use std::marker::PhantomData;
 ///
 /// If you have an [`Executor`], a [`Runtime`] can be leveraged to run any
 /// [`Command`] or [`Subscription`] and get notified of the results!
+///
+/// [`Command`]: crate::Command
 #[derive(Debug)]
 pub struct Runtime<Hasher, Event, Executor, Sender, Message> {
     executor: Executor,
@@ -23,9 +25,12 @@ where
     Hasher: std::hash::Hasher + Default,
     Event: Send + Clone + 'static,
     Executor: self::Executor,
-    Sender:
-        Sink<Message, Error = mpsc::SendError> + Unpin + Send + Clone + 'static,
-    Message: Send + 'static,
+    Sender: Sink<Message, Error = mpsc::SendError>
+        + Unpin
+        + MaybeSend
+        + Clone
+        + 'static,
+    Message: MaybeSend + 'static,
 {
     /// Creates a new empty [`Runtime`].
     ///
@@ -48,10 +53,12 @@ where
         self.executor.enter(f)
     }
 
-    /// Spawns a [`Command`] in the [`Runtime`].
+    /// Spawns a [`Future`] in the [`Runtime`].
     ///
     /// The resulting `Message` will be forwarded to the `Sender` of the
     /// [`Runtime`].
+    ///
+    /// [`Future`]: BoxFuture
     pub fn spawn(&mut self, future: BoxFuture<Message>) {
         use futures::{FutureExt, SinkExt};
 

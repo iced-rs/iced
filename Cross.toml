@@ -1,0 +1,7 @@
+[target.aarch64-unknown-linux-gnu]
+image = "ghcr.io/iced-rs/aarch64:latest"
+xargo = false
+
+[target.armv7-unknown-linux-gnueabihf]
+image = "ghcr.io/iced-rs/armv7:latest"
+xargo = false

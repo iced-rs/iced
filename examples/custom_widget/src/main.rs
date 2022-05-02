@@ -11,9 +11,7 @@ mod circle {
     // implemented by `iced_wgpu` and other renderers.
     use iced_native::layout::{self, Layout};
     use iced_native::renderer;
-    use iced_native::{
-        Color, Element, Hasher, Length, Point, Rectangle, Size, Widget,
-    };
+    use iced_native::{Color, Element, Length, Point, Rectangle, Size, Widget};
 
     pub struct Circle {
         radius: f32,
@@ -43,12 +41,6 @@ mod circle {
             _limits: &layout::Limits,
         ) -> layout::Node {
             layout::Node::new(Size::new(self.radius * 2.0, self.radius * 2.0))
-        }
-
-        fn hash_layout(&self, state: &mut Hasher) {
-            use std::hash::Hash;
-
-            self.radius.to_bits().hash(state);
         }
 
         fn draw(

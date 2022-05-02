@@ -3,7 +3,7 @@ use iced::{
     alignment, slider, Alignment, Canvas, Color, Column, Element, Length,
     Point, Rectangle, Row, Sandbox, Settings, Size, Slider, Text, Vector,
 };
-use palette::{self, Hsl, Limited, Srgb};
+use palette::{self, convert::FromColor, Hsl, Srgb};
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
@@ -49,25 +49,25 @@ impl Sandbox for ColorPalette {
     fn update(&mut self, message: Message) {
         let srgb = match message {
             Message::RgbColorChanged(rgb) => palette::Srgb::from(rgb),
-            Message::HslColorChanged(hsl) => palette::Srgb::from(hsl),
-            Message::HsvColorChanged(hsv) => palette::Srgb::from(hsv),
-            Message::HwbColorChanged(hwb) => palette::Srgb::from(hwb),
-            Message::LabColorChanged(lab) => palette::Srgb::from(lab),
-            Message::LchColorChanged(lch) => palette::Srgb::from(lch),
+            Message::HslColorChanged(hsl) => palette::Srgb::from_color(hsl),
+            Message::HsvColorChanged(hsv) => palette::Srgb::from_color(hsv),
+            Message::HwbColorChanged(hwb) => palette::Srgb::from_color(hwb),
+            Message::LabColorChanged(lab) => palette::Srgb::from_color(lab),
+            Message::LchColorChanged(lch) => palette::Srgb::from_color(lch),
         };
 
-        self.theme = Theme::new(srgb.clamp());
+        self.theme = Theme::new(srgb);
     }
 
     fn view(&mut self) -> Element<Message> {
         let base = self.theme.base;
 
         let srgb = palette::Srgb::from(base);
-        let hsl = palette::Hsl::from(srgb);
-        let hsv = palette::Hsv::from(srgb);
-        let hwb = palette::Hwb::from(srgb);
-        let lab = palette::Lab::from(srgb);
-        let lch = palette::Lch::from(srgb);
+        let hsl = palette::Hsl::from_color(srgb);
+        let hsv = palette::Hsv::from_color(srgb);
+        let hwb = palette::Hwb::from_color(srgb);
+        let lab = palette::Lab::from_color(srgb);
+        let lch = palette::Lch::from_color(srgb);
 
         Column::new()
             .padding(10)
@@ -98,7 +98,7 @@ impl Theme {
         let base = base.into();
 
         // Convert to HSL color for manipulation
-        let hsl = Hsl::from(Srgb::from(base));
+        let hsl = Hsl::from_color(Srgb::from(base));
 
         let lower = [
             hsl.shift_hue(-135.0).lighten(0.075),
@@ -117,12 +117,12 @@ impl Theme {
         Theme {
             lower: lower
                 .iter()
-                .map(|&color| Srgb::from(color).clamp().into())
+                .map(|&color| Srgb::from_color(color).into())
                 .collect(),
             base,
             higher: higher
                 .iter()
-                .map(|&color| Srgb::from(color).clamp().into())
+                .map(|&color| Srgb::from_color(color).into())
                 .collect(),
             canvas_cache: canvas::Cache::default(),
         }
@@ -207,14 +207,14 @@ impl Theme {
 
         text.vertical_alignment = alignment::Vertical::Bottom;
 
-        let hsl = Hsl::from(Srgb::from(self.base));
+        let hsl = Hsl::from_color(Srgb::from(self.base));
         for i in 0..self.len() {
             let pct = (i as f32 + 1.0) / (self.len() as f32 + 1.0);
             let graded = Hsl {
                 lightness: 1.0 - pct,
                 ..hsl
             };
-            let color: Color = Srgb::from(graded.clamp()).into();
+            let color: Color = Srgb::from_color(graded).into();
 
             let anchor = Point {
                 x: (i as f32) * box_size.width,
@@ -235,7 +235,7 @@ impl Theme {
     }
 }
 
-impl canvas::Program<Message> for Theme {
+impl<Message> canvas::Program<Message> for Theme {
     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(bounds.size(), |frame| {
             self.draw(frame);

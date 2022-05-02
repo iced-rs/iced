@@ -3,11 +3,7 @@ use crate::alignment;
 use crate::layout;
 use crate::renderer;
 use crate::text;
-use crate::{
-    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
-};
-
-use std::hash::Hash;
+use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 /// A paragraph of text.
 ///
@@ -63,7 +59,7 @@ impl<Renderer: text::Renderer> Text<Renderer> {
 
     /// Sets the [`Font`] of the [`Text`].
     ///
-    /// [`Font`]: Renderer::Font
+    /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = font.into();
         self
@@ -81,7 +77,7 @@ impl<Renderer: text::Renderer> Text<Renderer> {
         self
     }
 
-    /// Sets the [`HorizontalAlignment`] of the [`Text`].
+    /// Sets the [`alignment::Horizontal`] of the [`Text`].
     pub fn horizontal_alignment(
         mut self,
         alignment: alignment::Horizontal,
@@ -90,7 +86,7 @@ impl<Renderer: text::Renderer> Text<Renderer> {
         self
     }
 
-    /// Sets the [`VerticalAlignment`] of the [`Text`].
+    /// Sets the [`alignment::Vertical`] of the [`Text`].
     pub fn vertical_alignment(
         mut self,
         alignment: alignment::Vertical,
@@ -150,16 +146,6 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.content.hash(state);
-        self.size.hash(state);
-        self.width.hash(state);
-        self.height.hash(state);
     }
 }
 

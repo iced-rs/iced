@@ -1,6 +1,8 @@
 use crate::clipboard;
 use crate::window;
 
+use iced_futures::MaybeSend;
+
 use std::fmt;
 
 /// An action that a [`Command`] can perform.
@@ -8,6 +10,8 @@ use std::fmt;
 /// [`Command`]: crate::Command
 pub enum Action<T> {
     /// Run a [`Future`] to completion.
+    ///
+    /// [`Future`]: iced_futures::BoxFuture
     Future(iced_futures::BoxFuture<T>),
 
     /// Run a clipboard action.
@@ -19,7 +23,12 @@ pub enum Action<T> {
 
 impl<T> Action<T> {
     /// Applies a transformation to the result of a [`Command`].
-    pub fn map<A>(self, f: impl Fn(T) -> A + 'static + Send + Sync) -> Action<A>
+    ///
+    /// [`Command`]: crate::Command
+    pub fn map<A>(
+        self,
+        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
+    ) -> Action<A>
     where
         T: 'static,
     {

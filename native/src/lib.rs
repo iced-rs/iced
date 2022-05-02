@@ -23,8 +23,8 @@
 //! - Build a new renderer, see the [renderer] module.
 //! - Build a custom widget, start at the [`Widget`] trait.
 //!
-//! [`iced_core`]: https://github.com/iced-rs/iced/tree/master/core
-//! [`iced_winit`]: https://github.com/iced-rs/iced/tree/master/winit
+//! [`iced_core`]: https://github.com/iced-rs/iced/tree/0.4/core
+//! [`iced_winit`]: https://github.com/iced-rs/iced/tree/0.4/winit
 //! [`druid`]: https://github.com/xi-editor/druid
 //! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
 //! [renderer]: crate::renderer
@@ -50,6 +50,7 @@ pub mod subscription;
 pub mod svg;
 pub mod text;
 pub mod touch;
+pub mod user_interface;
 pub mod widget;
 pub mod window;
 
@@ -57,7 +58,6 @@ mod element;
 mod hasher;
 mod runtime;
 mod shell;
-mod user_interface;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.
@@ -69,9 +69,10 @@ mod debug;
 mod debug;
 
 pub use iced_core::alignment;
+pub use iced_core::time;
 pub use iced_core::{
-    Alignment, Background, Color, Font, Length, Padding, Point, Rectangle,
-    Size, Vector,
+    Alignment, Background, Color, ContentFit, Font, Length, Padding, Point,
+    Rectangle, Size, Vector,
 };
 pub use iced_futures::{executor, futures};
 
@@ -91,5 +92,5 @@ pub use renderer::Renderer;
 pub use runtime::Runtime;
 pub use shell::Shell;
 pub use subscription::Subscription;
-pub use user_interface::{Cache, UserInterface};
+pub use user_interface::UserInterface;
 pub use widget::Widget;

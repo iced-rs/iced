@@ -1,11 +1,9 @@
 //! Provide progress feedback to your users.
 use crate::layout;
 use crate::renderer;
-use crate::{
-    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
-};
+use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
-use std::{hash::Hash, ops::RangeInclusive};
+use std::ops::RangeInclusive;
 
 pub use iced_style::progress_bar::{Style, StyleSheet};
 
@@ -140,14 +138,6 @@ where
                 style.bar,
             );
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
     }
 }
 

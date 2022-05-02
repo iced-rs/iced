@@ -37,7 +37,17 @@ pub struct Settings<Flags> {
 
     /// Whether the [`Application`] should exit when the user requests the
     /// window to close (e.g. the user presses the close button).
+    ///
+    /// [`Application`]: crate::Application
     pub exit_on_close_request: bool,
+
+    /// Whether the [`Application`] should try to build the context
+    /// using OpenGL ES first then OpenGL.
+    ///
+    /// NOTE: Only works for the `glow` backend.
+    ///
+    /// [`Application`]: crate::Application
+    pub try_opengles_first: bool,
 }
 
 /// The window settings of an application.

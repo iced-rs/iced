@@ -2,7 +2,7 @@
 name = "iced_wgpu"
 version = "0.4.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A wgpu renderer for Iced"
 license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
@@ -25,6 +25,7 @@ canvas = ["iced_graphics/canvas"]
 qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
 spirv = ["wgpu/spirv"]
+webgl = ["wgpu/webgl"]
 
 [dependencies]
 wgpu = "0.12"

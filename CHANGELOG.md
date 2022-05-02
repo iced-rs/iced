@@ -108,7 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [qr_code]: https://github.com/iced-rs/iced/pull/622
 [#193]: https://github.com/iced-rs/iced/pull/193
 [`glutin`]: https://github.com/rust-windowing/glutin
-[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[`wgpu`]: https://github.com/gfx-rs/wgpu
 [`glow`]: https://github.com/grovesNL/glow
 [the `qrcode` crate]: https://docs.rs/qrcode/0.12.0/qrcode/
 [integration with existing applications]: https://github.com/iced-rs/iced/pull/183
@@ -207,7 +207,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [`wasm-bindgen-futures`]: https://github.com/rustwasm/wasm-bindgen/tree/master/crates/futures
 [`resvg`]: https://github.com/RazrFalcon/resvg
 [`raqote`]: https://github.com/jrmuizel/raqote
-[`iced_wgpu`]: https://github.com/iced-rs/iced/tree/master/wgpu
+[`iced_wgpu`]: wgpu/
 
 
 ## [0.1.0-beta] - 2019-11-25

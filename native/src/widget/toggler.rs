@@ -1,6 +1,4 @@
 //! Show toggle controls using togglers.
-use std::hash::Hash;
-
 use crate::alignment;
 use crate::event;
 use crate::layout;
@@ -9,13 +7,13 @@ use crate::renderer;
 use crate::text;
 use crate::widget::{Row, Text};
 use crate::{
-    Alignment, Clipboard, Element, Event, Hasher, Layout, Length, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
+    Shell, Widget,
 };
 
 pub use iced_style::toggler::{Style, StyleSheet};
 
-/// A toggler widget
+/// A toggler widget.
 ///
 /// # Example
 ///
@@ -33,7 +31,7 @@ pub use iced_style::toggler::{Style, StyleSheet};
 #[allow(missing_debug_implementations)]
 pub struct Toggler<'a, Message, Renderer: text::Renderer> {
     is_active: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message>,
+    on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
     size: u16,
@@ -62,7 +60,7 @@ impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
         f: F,
     ) -> Self
     where
-        F: 'static + Fn(bool) -> Message,
+        F: 'a + Fn(bool) -> Message,
     {
         Toggler {
             is_active,
@@ -109,6 +107,8 @@ impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
     }
 
     /// Sets the [`Font`] of the text of the [`Toggler`]
+    ///
+    /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
@@ -196,6 +196,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         if layout.bounds().contains(cursor_position) {
             mouse::Interaction::Pointer
@@ -293,13 +294,6 @@ where
             },
             style.foreground,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.label.hash(state)
     }
 }
 

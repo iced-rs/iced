@@ -20,15 +20,15 @@ Once a step is completed, it is collapsed and added to this list:
   * [x] Canvas for 2D graphics ([#193])
   * [x] Basic overlay support ([#444])
 
-[#24]: https://github.com/hecrj/iced/issues/24
-[#25]: https://github.com/hecrj/iced/issues/25
-[#26]: https://github.com/hecrj/iced/issues/26
-[#28]: https://github.com/hecrj/iced/issues/28
-[#52]: https://github.com/hecrj/iced/pull/52
-[#122]: https://github.com/hecrj/iced/pull/122
-[#146]: https://github.com/hecrj/iced/pull/146
-[#193]: https://github.com/hecrj/iced/pull/193
-[#444]: https://github.com/hecrj/iced/pull/444
+[#24]: https://github.com/iced-rs/iced/issues/24
+[#25]: https://github.com/iced-rs/iced/issues/25
+[#26]: https://github.com/iced-rs/iced/issues/26
+[#28]: https://github.com/iced-rs/iced/issues/28
+[#52]: https://github.com/iced-rs/iced/pull/52
+[#122]: https://github.com/iced-rs/iced/pull/122
+[#146]: https://github.com/iced-rs/iced/pull/146
+[#193]: https://github.com/iced-rs/iced/pull/193
+[#444]: https://github.com/iced-rs/iced/pull/444
 
 ### Multi-window support ([#27])
 Open and control multiple windows at runtime.
@@ -37,7 +37,7 @@ I think this could be achieved by implementing an additional trait in `iced_wini
 
 This approach should also allow us to perform custom optimizations for this particular use case.
 
-[#27]: https://github.com/hecrj/iced/issues/27
+[#27]: https://github.com/iced-rs/iced/issues/27
 
 ### Animations ([#31])
 Allow widgets to request a redraw at a specific time.
@@ -46,7 +46,7 @@ This is a necessary feature to render loading spinners, a blinking text cursor, 
 
 [`winit`] allows flexible control of its event loop. We may be able to use [`ControlFlow::WaitUntil`](https://docs.rs/winit/0.20.0-alpha3/winit/event_loop/enum.ControlFlow.html#variant.WaitUntil) for this purpose.
 
-[#31]: https://github.com/hecrj/iced/issues/31
+[#31]: https://github.com/iced-rs/iced/issues/31
 
 ### Canvas widget for 3D graphics ([#32])
 A widget to draw freely in 3D. It could be used to draw charts, implement a Paint clone, a CAD application, etc.
@@ -55,7 +55,7 @@ As a first approach, we could expose the underlying renderer directly here, and 
 
 In the long run, we could expose a renderer-agnostic abstraction to perform the drawing.
 
-[#32]: https://github.com/hecrj/iced/issues/32
+[#32]: https://github.com/iced-rs/iced/issues/32
 
 ### Text shaping and font fallback ([#33])
 [`wgpu_glyph`] uses [`glyph_brush`], which in turn uses [`rusttype`]. While the current implementation is able to layout text quite nicely, it does not perform any [text shaping].
@@ -66,7 +66,7 @@ The only available library that does a great job at shaping is [HarfBuzz], which
 
 This feature will probably imply rewriting [`wgpu_glyph`] entirely, as caching will be more complicated and the API will probably need to ask for more data.
 
-[#33]: https://github.com/hecrj/iced/issues/33
+[#33]: https://github.com/iced-rs/iced/issues/33
 [`rusttype`]: https://github.com/redox-os/rusttype
 [text shaping]: https://en.wikipedia.org/wiki/Complex_text_layout
 [HarfBuzz]: https://github.com/harfbuzz/harfbuzz
@@ -77,7 +77,7 @@ Currently, `iced_native` only supports flexbox items. For instance, it is not po
 
 We will need to enhance the layouting engine to support different strategies and improve the way we measure text to lay it out in a more flexible way.
 
-[#34]: https://github.com/hecrj/iced/issues/34
+[#34]: https://github.com/iced-rs/iced/issues/34
 
 ## Ideas that may be worth exploring
 
@@ -121,6 +121,6 @@ This could be very useful to build very performant user interfaces with a lot of
 
 [Elm]: https://elm-lang.org/
 [`winit`]: https://github.com/rust-windowing/winit
-[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[`wgpu`]: https://github.com/gfx-rs/wgpu
 [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
 [`glyph_brush`]: https://github.com/alexheretic/glyph-brush

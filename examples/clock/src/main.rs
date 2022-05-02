@@ -1,7 +1,7 @@
 use iced::{
     canvas::{self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke},
-    executor, time, Application, Color, Command, Container, Element, Length,
-    Point, Rectangle, Settings, Subscription, Vector,
+    executor, Application, Color, Command, Container, Element, Length, Point,
+    Rectangle, Settings, Subscription, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -12,13 +12,13 @@ pub fn main() -> iced::Result {
 }
 
 struct Clock {
-    now: chrono::DateTime<chrono::Local>,
+    now: time::OffsetDateTime,
     clock: Cache,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Tick(chrono::DateTime<chrono::Local>),
+    Tick(time::OffsetDateTime),
 }
 
 impl Application for Clock {
@@ -29,7 +29,8 @@ impl Application for Clock {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             Clock {
-                now: chrono::Local::now(),
+                now: time::OffsetDateTime::now_local()
+                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
                 clock: Default::default(),
             },
             Command::none(),
@@ -56,29 +57,27 @@ impl Application for Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(500))
-            .map(|_| Message::Tick(chrono::Local::now()))
+        iced::time::every(std::time::Duration::from_millis(500)).map(|_| {
+            Message::Tick(
+                time::OffsetDateTime::now_local()
+                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
+            )
+        })
     }
 
     fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new(self)
-            .width(Length::Units(400))
-            .height(Length::Units(400));
+        let canvas = Canvas::new(self).width(Length::Fill).height(Length::Fill);
 
         Container::new(canvas)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)
-            .center_x()
-            .center_y()
             .into()
     }
 }
 
-impl canvas::Program<Message> for Clock {
+impl<Message> canvas::Program<Message> for Clock {
     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
-        use chrono::Timelike;
-
         let clock = self.clock.draw(bounds.size(), |frame| {
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 2.0;
@@ -126,7 +125,7 @@ impl canvas::Program<Message> for Clock {
     }
 }
 
-fn hand_rotation(n: u32, total: u32) -> f32 {
+fn hand_rotation(n: u8, total: u8) -> f32 {
     let turns = n as f32 / total as f32;
 
     2.0 * std::f32::consts::PI * turns

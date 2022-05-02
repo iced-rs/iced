@@ -1,11 +1,12 @@
 //! Organize rendering primitives into a flattened list of layers.
 use crate::alignment;
-use crate::image;
-use crate::svg;
 use crate::triangle;
 use crate::{
     Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
 };
+
+use iced_native::image;
+use iced_native::svg;
 
 /// A group of primitives that should be clipped together.
 #[derive(Debug, Clone)]

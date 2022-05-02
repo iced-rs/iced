@@ -2,7 +2,7 @@
 name = "integration_opengl"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [dependencies]
@@ -10,4 +10,3 @@ iced_glutin = { path = "../../glutin" }
 iced_glow = { path = "../../glow" }
 iced_winit = { path = "../../winit" }
 env_logger = "0.8"
-glow = "0.6"

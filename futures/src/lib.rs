@@ -14,32 +14,16 @@
 pub use futures;
 
 mod command;
+mod maybe_send;
 mod runtime;
 
+pub mod backend;
 pub mod executor;
 pub mod subscription;
 
-#[cfg(all(
-    any(
-        feature = "tokio",
-        feature = "tokio_old",
-        feature = "async-std",
-        feature = "smol"
-    ),
-    not(target_arch = "wasm32")
-))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(
-        feature = "tokio",
-        feature = "async-std",
-        feature = "smol"
-    )))
-)]
-pub mod time;
-
 pub use command::Command;
 pub use executor::Executor;
+pub use maybe_send::MaybeSend;
 pub use platform::*;
 pub use runtime::Runtime;
 pub use subscription::Subscription;

@@ -7,8 +7,11 @@
 //! ![The foundations of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/foundations.png?raw=true)
 //!
 //! [Iced]: https://github.com/iced-rs/iced
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/master/native
-//! [`iced_web`]: https://github.com/iced-rs/iced/tree/master/web
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.4/native
+//! [`iced_web`]: https://github.com/iced-rs/iced_web
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
+)]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]
@@ -17,9 +20,11 @@
 pub mod alignment;
 pub mod keyboard;
 pub mod mouse;
+pub mod time;
 
 mod background;
 mod color;
+mod content_fit;
 mod font;
 mod length;
 mod padding;
@@ -31,6 +36,7 @@ mod vector;
 pub use alignment::Alignment;
 pub use background::Background;
 pub use color::Color;
+pub use content_fit::ContentFit;
 pub use font::Font;
 pub use length::Length;
 pub use padding::Padding;

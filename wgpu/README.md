@@ -2,7 +2,7 @@
 [![Documentation](https://docs.rs/iced_wgpu/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced_wgpu.svg)](https://crates.io/crates/iced_wgpu)
 [![License](https://img.shields.io/crates/l/iced_wgpu.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
-[![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
+[![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
 `iced_wgpu` is a [`wgpu`] renderer for [`iced_native`]. For now, it is the default renderer of Iced in native platforms.
 
@@ -21,7 +21,7 @@ Currently, `iced_wgpu` supports the following primitives:
 
 [documentation]: https://docs.rs/iced_wgpu
 [`iced_native`]: ../native
-[`wgpu`]: https://github.com/gfx-rs/wgpu-rs
+[`wgpu`]: https://github.com/gfx-rs/wgpu
 [WebGPU API]: https://gpuweb.github.io/gpuweb/
 [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
 

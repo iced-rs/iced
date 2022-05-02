@@ -1,6 +1,4 @@
 //! Show toggle controls using checkboxes.
-use std::hash::Hash;
-
 use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
@@ -10,8 +8,8 @@ use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text};
 use crate::{
-    Alignment, Clipboard, Color, Element, Hasher, Layout, Length, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Element, Layout, Length, Point, Rectangle, Shell,
+    Widget,
 };
 
 pub use iced_style::checkbox::{Style, StyleSheet};
@@ -36,14 +34,13 @@ pub use iced_style::checkbox::{Style, StyleSheet};
 #[allow(missing_debug_implementations)]
 pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
     is_checked: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message>,
+    on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: String,
     width: Length,
     size: u16,
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
-    text_color: Option<Color>,
     style_sheet: Box<dyn StyleSheet + 'a>,
 }
 
@@ -64,7 +61,7 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
     ///     `Message`.
     pub fn new<F>(is_checked: bool, label: impl Into<String>, f: F) -> Self
     where
-        F: 'static + Fn(bool) -> Message,
+        F: 'a + Fn(bool) -> Message,
     {
         Checkbox {
             is_checked,
@@ -75,7 +72,6 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             font: Renderer::Font::default(),
-            text_color: None,
             style_sheet: Default::default(),
         }
     }
@@ -106,15 +102,9 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
 
     /// Sets the [`Font`] of the text of the [`Checkbox`].
     ///
-    /// [`Font`]: crate::widget::text::Renderer::Font
+    /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
-        self
-    }
-
-    /// Sets the text color of the [`Checkbox`] button.
-    pub fn text_color(mut self, color: Color) -> Self {
-        self.text_color = Some(color);
         self
     }
 
@@ -195,6 +185,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         if layout.bounds().contains(cursor_position) {
             mouse::Interaction::Pointer
@@ -263,18 +254,11 @@ where
                 &self.label,
                 self.font.clone(),
                 self.text_size,
-                self.text_color.or(Some(custom_style.text_color)),
+                custom_style.text_color,
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
         }
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.label.hash(state);
     }
 }
 

@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-/// An [`Image`] handle.
+/// A handle of some image data.
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
@@ -79,7 +79,7 @@ impl Hash for Handle {
     }
 }
 
-/// The data of an [`Image`].
+/// The data of a raster image.
 #[derive(Clone, Hash)]
 pub enum Data {
     /// File data

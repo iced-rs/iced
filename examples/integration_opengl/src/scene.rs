@@ -1,4 +1,5 @@
 use glow::*;
+use iced_glow::glow;
 use iced_glow::Color;
 
 pub struct Scene {

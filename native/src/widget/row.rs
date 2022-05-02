@@ -5,11 +5,10 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::{
-    Alignment, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
+    Shell, Widget,
 };
 
-use std::hash::Hash;
 use std::u32;
 
 /// A container that distributes its contents horizontally.
@@ -49,7 +48,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
 
     /// Sets the horizontal spacing _between_ elements.
     ///
-    /// Custom margins per element do not exist in Iced. You should use this
+    /// Custom margins per element do not exist in iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
     /// elements consistent.
     pub fn spacing(mut self, units: u16) -> Self {
@@ -168,6 +167,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         self.children
             .iter()
@@ -177,6 +177,7 @@ where
                     layout,
                     cursor_position,
                     viewport,
+                    renderer,
                 )
             })
             .max()
@@ -196,31 +197,17 @@ where
         }
     }
 
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
-        self.max_width.hash(state);
-        self.max_height.hash(state);
-        self.align_items.hash(state);
-        self.spacing.hash(state);
-        self.padding.hash(state);
-
-        for child in &self.children {
-            child.widget.hash_layout(state);
-        }
-    }
-
     fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         self.children
             .iter_mut()
             .zip(layout.children())
-            .filter_map(|(child, layout)| child.widget.overlay(layout))
+            .filter_map(|(child, layout)| {
+                child.widget.overlay(layout, renderer)
+            })
             .next()
     }
 }

@@ -37,15 +37,15 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 /// to listen to time.
 /// - [`todos`], a todos tracker inspired by [TodoMVC].
 ///
-/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.3/examples
-/// [`clock`]: https://github.com/hecrj/iced/tree/0.3/examples/clock
-/// [`download_progress`]: https://github.com/hecrj/iced/tree/0.3/examples/download_progress
-/// [`events`]: https://github.com/hecrj/iced/tree/0.3/examples/events
-/// [`game_of_life`]: https://github.com/hecrj/iced/tree/0.3/examples/game_of_life
-/// [`pokedex`]: https://github.com/hecrj/iced/tree/0.3/examples/pokedex
-/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.3/examples/solar_system
-/// [`stopwatch`]: https://github.com/hecrj/iced/tree/0.3/examples/stopwatch
-/// [`todos`]: https://github.com/hecrj/iced/tree/0.3/examples/todos
+/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.4/examples
+/// [`clock`]: https://github.com/iced-rs/iced/tree/0.4/examples/clock
+/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.4/examples/download_progress
+/// [`events`]: https://github.com/iced-rs/iced/tree/0.4/examples/events
+/// [`game_of_life`]: https://github.com/iced-rs/iced/tree/0.4/examples/game_of_life
+/// [`pokedex`]: https://github.com/iced-rs/iced/tree/0.4/examples/pokedex
+/// [`solar_system`]: https://github.com/iced-rs/iced/tree/0.4/examples/solar_system
+/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.4/examples/stopwatch
+/// [`todos`]: https://github.com/iced-rs/iced/tree/0.4/examples/todos
 /// [`Sandbox`]: crate::Sandbox
 /// [`Canvas`]: crate::widget::Canvas
 /// [PokéAPI]: https://pokeapi.co/
@@ -198,39 +198,28 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let renderer_settings = crate::renderer::Settings {
-                default_font: settings.default_font,
-                default_text_size: settings.default_text_size,
-                text_multithreading: settings.text_multithreading,
-                antialiasing: if settings.antialiasing {
-                    Some(crate::renderer::settings::Antialiasing::MSAAx4)
-                } else {
-                    None
-                },
-                ..crate::renderer::Settings::from_env()
-            };
+        let renderer_settings = crate::renderer::Settings {
+            default_font: settings.default_font,
+            default_text_size: settings.default_text_size,
+            text_multithreading: settings.text_multithreading,
+            antialiasing: if settings.antialiasing {
+                Some(crate::renderer::settings::Antialiasing::MSAAx4)
+            } else {
+                None
+            },
+            ..crate::renderer::Settings::from_env()
+        };
 
-            Ok(crate::runtime::application::run::<
-                Instance<Self>,
-                Self::Executor,
-                crate::renderer::window::Compositor,
-            >(settings.into(), renderer_settings)?)
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            <Instance<Self> as iced_web::Application>::run(settings.flags);
-
-            Ok(())
-        }
+        Ok(crate::runtime::application::run::<
+            Instance<Self>,
+            Self::Executor,
+            crate::renderer::window::Compositor,
+        >(settings.into(), renderer_settings)?)
     }
 }
 
 struct Instance<A: Application>(A);
 
-#[cfg(not(target_arch = "wasm32"))]
 impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
@@ -247,7 +236,6 @@ where
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl<A> crate::runtime::Application for Instance<A>
 where
     A: Application,
@@ -286,37 +274,5 @@ where
 
     fn should_exit(&self) -> bool {
         self.0.should_exit()
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-impl<A> iced_web::Application for Instance<A>
-where
-    A: Application,
-{
-    type Executor = A::Executor;
-    type Message = A::Message;
-    type Flags = A::Flags;
-
-    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
-        let (app, command) = A::new(flags);
-
-        (Instance(app), command)
-    }
-
-    fn title(&self) -> String {
-        self.0.title()
-    }
-
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
-    }
-
-    fn subscription(&self) -> Subscription<Self::Message> {
-        self.0.subscription()
-    }
-
-    fn view(&mut self) -> Element<'_, Self::Message> {
-        self.0.view()
     }
 }

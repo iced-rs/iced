@@ -2,7 +2,7 @@
 name = "iced_graphics"
 version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
 license = "MIT"
 repository = "https://github.com/hecrj/iced"
@@ -17,6 +17,7 @@ font-source = ["font-kit"]
 font-fallback = []
 font-icons = []
 opengl = []
+pure = ["iced_pure"]
 
 [dependencies]
 glam = "0.10"
@@ -34,6 +35,11 @@ path = "../native"
 [dependencies.iced_style]
 version = "0.3"
 path = "../style"
+
+[dependencies.iced_pure]
+version = "0.1"
+path = "../pure"
+optional = true
 
 [dependencies.lyon]
 version = "0.17"

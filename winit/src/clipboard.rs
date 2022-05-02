@@ -26,6 +26,14 @@ impl Clipboard {
         Clipboard { state }
     }
 
+    /// Creates a new [`Clipboard`] that isn't associated with a window.
+    /// This clipboard will never contain a copied value.
+    pub fn unconnected() -> Clipboard {
+        Clipboard {
+            state: State::Unavailable,
+        }
+    }
+
     /// Reads the current content of the [`Clipboard`] as text.
     pub fn read(&self) -> Option<String> {
         match &self.state {

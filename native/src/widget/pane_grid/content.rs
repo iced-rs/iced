@@ -4,10 +4,8 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
-use crate::widget::pane_grid::TitleBar;
-use crate::{
-    Clipboard, Element, Hasher, Layout, Point, Rectangle, Shell, Size,
-};
+use crate::widget::pane_grid::{Draggable, TitleBar};
+use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// The content of a [`Pane`].
 ///
@@ -57,7 +55,7 @@ where
 {
     /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::widget::pane_grid::Renderer
+    /// [`Renderer`]: crate::Renderer
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -100,23 +98,6 @@ where
         } else {
             self.body
                 .draw(renderer, style, layout, cursor_position, viewport);
-        }
-    }
-
-    /// Returns whether the [`Content`] with the given [`Layout`] can be picked
-    /// at the provided cursor position.
-    pub fn can_be_picked_at(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> bool {
-        if let Some(title_bar) = &self.title_bar {
-            let mut children = layout.children();
-            let title_bar_layout = children.next().unwrap();
-
-            title_bar.is_over_pick_area(title_bar_layout, cursor_position)
-        } else {
-            false
         }
     }
 
@@ -205,6 +186,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         let (body_layout, title_bar_interaction) =
             if let Some(title_bar) = &self.title_bar {
@@ -222,6 +204,7 @@ where
                     title_bar_layout,
                     cursor_position,
                     viewport,
+                    renderer,
                 );
 
                 (children.next().unwrap(), mouse_interaction)
@@ -230,32 +213,45 @@ where
             };
 
         self.body
-            .mouse_interaction(body_layout, cursor_position, viewport)
+            .mouse_interaction(body_layout, cursor_position, viewport, renderer)
             .max(title_bar_interaction)
-    }
-
-    pub(crate) fn hash_layout(&self, state: &mut Hasher) {
-        if let Some(title_bar) = &self.title_bar {
-            title_bar.hash_layout(state);
-        }
-
-        self.body.hash_layout(state);
     }
 
     pub(crate) fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
             let title_bar_layout = children.next()?;
 
-            match title_bar.overlay(title_bar_layout) {
+            match title_bar.overlay(title_bar_layout, renderer) {
                 Some(overlay) => Some(overlay),
-                None => self.body.overlay(children.next()?),
+                None => self.body.overlay(children.next()?, renderer),
             }
         } else {
-            self.body.overlay(layout)
+            self.body.overlay(layout, renderer)
+        }
+    }
+}
+
+impl<'a, Message, Renderer> Draggable for &Content<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+{
+    fn can_be_dragged_at(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> bool {
+        if let Some(title_bar) = &self.title_bar {
+            let mut children = layout.children();
+            let title_bar_layout = children.next().unwrap();
+
+            title_bar.is_over_pick_area(title_bar_layout, cursor_position)
+        } else {
+            false
         }
     }
 }

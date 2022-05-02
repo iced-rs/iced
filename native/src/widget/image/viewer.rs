@@ -5,8 +5,8 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 use std::hash::Hash;
@@ -286,6 +286,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
@@ -333,17 +334,6 @@ where
                 )
             });
         });
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
-        self.padding.hash(state);
-
-        self.handle.hash(state);
     }
 }
 

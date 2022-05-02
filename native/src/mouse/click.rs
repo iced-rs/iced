@@ -1,6 +1,6 @@
 //! Track mouse clicks.
+use crate::time::Instant;
 use crate::Point;
-use std::time::Instant;
 
 /// A mouse click.
 #[derive(Debug, Clone, Copy)]
@@ -62,9 +62,14 @@ impl Click {
     }
 
     fn is_consecutive(&self, new_position: Point, time: Instant) -> bool {
+        let duration = if time > self.time {
+            Some(time - self.time)
+        } else {
+            None
+        };
+
         self.position == new_position
-            && time
-                .checked_duration_since(self.time)
+            && duration
                 .map(|duration| duration.as_millis() <= 300)
                 .unwrap_or(false)
     }

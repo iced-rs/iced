@@ -5,7 +5,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
 use crate::{
-    Clipboard, Element, Hasher, Layout, Padding, Point, Rectangle, Shell, Size,
+    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
 };
 
 /// The title bar of a [`Pane`].
@@ -82,7 +82,7 @@ where
 {
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::widget::pane_grid::Renderer
+    /// [`Renderer`]: crate::Renderer
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -154,17 +154,6 @@ where
             }
         } else {
             false
-        }
-    }
-
-    pub(crate) fn hash_layout(&self, hasher: &mut Hasher) {
-        use std::hash::Hash;
-
-        self.content.hash_layout(hasher);
-        self.padding.hash(hasher);
-
-        if let Some(controls) = &self.controls {
-            controls.hash_layout(hasher);
         }
     }
 
@@ -258,6 +247,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
+        renderer: &Renderer,
     ) -> mouse::Interaction {
         let mut children = layout.children();
         let padded = children.next().unwrap();
@@ -269,13 +259,19 @@ where
             title_layout,
             cursor_position,
             viewport,
+            renderer,
         );
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
 
             controls
-                .mouse_interaction(controls_layout, cursor_position, viewport)
+                .mouse_interaction(
+                    controls_layout,
+                    cursor_position,
+                    viewport,
+                    renderer,
+                )
                 .max(title_interaction)
         } else {
             title_interaction
@@ -285,6 +281,7 @@ where
     pub(crate) fn overlay(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         let mut children = layout.children();
         let padded = children.next()?;
@@ -296,11 +293,11 @@ where
             content, controls, ..
         } = self;
 
-        content.overlay(title_layout).or_else(move || {
+        content.overlay(title_layout, renderer).or_else(move || {
             controls.as_mut().and_then(|controls| {
                 let controls_layout = children.next()?;
 
-                controls.overlay(controls_layout)
+                controls.overlay(controls_layout, renderer)
             })
         })
     }

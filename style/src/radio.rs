@@ -8,6 +8,7 @@ pub struct Style {
     pub dot_color: Color,
     pub border_width: f32,
     pub border_color: Color,
+    pub text_color: Option<Color>,
 }
 
 /// A set of rules that dictate the style of a radio button.
@@ -26,6 +27,7 @@ impl StyleSheet for Default {
             dot_color: Color::from_rgb(0.3, 0.3, 0.3),
             border_width: 1.0,
             border_color: Color::from_rgb(0.6, 0.6, 0.6),
+            text_color: None,
         }
     }
 

@@ -1,6 +1,9 @@
+use std::borrow::Cow;
+
 use iced_native::{Point, Rectangle, Size, Vector};
 
 use crate::{
+    canvas::path,
     canvas::{Fill, Geometry, Path, Stroke, Text},
     triangle, Primitive,
 };
@@ -150,7 +153,7 @@ impl Frame {
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
-    pub fn stroke(&mut self, path: &Path, stroke: impl Into<Stroke>) {
+    pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
         let stroke = stroke.into();
 
         let mut buffers = tessellation::BuffersBuilder::new(
@@ -163,6 +166,12 @@ impl Frame {
         options.start_cap = stroke.line_cap.into();
         options.end_cap = stroke.line_cap.into();
         options.line_join = stroke.line_join.into();
+
+        let path = if stroke.line_dash.segments.is_empty() {
+            Cow::Borrowed(path)
+        } else {
+            Cow::Owned(path::dashed(path, stroke.line_dash))
+        };
 
         let result = if self.transforms.current.is_identity {
             self.stroke_tessellator.tessellate_path(
@@ -244,6 +253,45 @@ impl Frame {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
+    /// Executes the given drawing operations within a [`Rectangle`] region,
+    /// clipping any geometry that overflows its bounds. Any transformations
+    /// performed are local to the provided closure.
+    ///
+    /// This method is useful to perform drawing operations that need to be
+    /// clipped.
+    #[inline]
+    pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
+        let mut frame = Frame::new(region.size());
+
+        f(&mut frame);
+
+        let primitives = frame.into_primitives();
+
+        let (text, meshes) = primitives
+            .into_iter()
+            .partition(|primitive| matches!(primitive, Primitive::Text { .. }));
+
+        let translation = Vector::new(region.x, region.y);
+
+        self.primitives.push(Primitive::Group {
+            primitives: vec![
+                Primitive::Translate {
+                    translation,
+                    content: Box::new(Primitive::Group { primitives: meshes }),
+                },
+                Primitive::Translate {
+                    translation,
+                    content: Box::new(Primitive::Clip {
+                        bounds: region,
+                        content: Box::new(Primitive::Group {
+                            primitives: text,
+                        }),
+                    }),
+                },
+            ],
+        });
+    }
+
     /// Applies a translation to the current transform of the [`Frame`].
     #[inline]
     pub fn translate(&mut self, translation: Vector) {
@@ -278,7 +326,13 @@ impl Frame {
     }
 
     /// Produces the [`Geometry`] representing everything drawn on the [`Frame`].
-    pub fn into_geometry(mut self) -> Geometry {
+    pub fn into_geometry(self) -> Geometry {
+        Geometry::from_primitive(Primitive::Group {
+            primitives: self.into_primitives(),
+        })
+    }
+
+    fn into_primitives(mut self) -> Vec<Primitive> {
         if !self.buffers.indices.is_empty() {
             self.primitives.push(Primitive::Mesh2D {
                 buffers: triangle::Mesh2D {
@@ -289,9 +343,7 @@ impl Frame {
             });
         }
 
-        Geometry::from_primitive(Primitive::Group {
-            primitives: self.primitives,
-        })
+        self.primitives
     }
 }
 

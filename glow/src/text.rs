@@ -46,11 +46,15 @@ impl Pipeline {
                     .expect("Load fallback font")
             });
 
-        let draw_brush =
+        let draw_brush_builder =
             glow_glyph::GlyphBrushBuilder::using_font(font.clone())
                 .initial_cache_size((2048, 2048))
-                .draw_cache_multithread(multithreading)
-                .build(&gl);
+                .draw_cache_multithread(multithreading);
+
+        #[cfg(target_arch = "wasm32")]
+        let draw_brush_builder = draw_brush_builder.draw_cache_align_4x4(true);
+
+        let draw_brush = draw_brush_builder.build(&gl);
 
         let measure_brush =
             glyph_brush::GlyphBrushBuilder::using_font(font).build();

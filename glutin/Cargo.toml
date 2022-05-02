@@ -2,7 +2,7 @@
 name = "iced_glutin"
 version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A glutin runtime for Iced"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"

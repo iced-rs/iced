@@ -40,7 +40,8 @@ pub trait Compositor: Sized {
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
     ///
-    /// [`SwapChain`]: Self::SwapChain
+    /// [`Renderer`]: Self::Renderer
+    /// [`Surface`]: Self::Surface
     fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
@@ -51,7 +52,7 @@ pub trait Compositor: Sized {
     ) -> Result<(), SurfaceError>;
 }
 
-/// Result of an unsuccessful call to [`Compositor::draw`].
+/// Result of an unsuccessful call to [`Compositor::present`].
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum SurfaceError {
     /// A timeout was encountered while trying to acquire the next frame.

@@ -35,19 +35,19 @@ use crate::{
 /// - [`tour`], a simple UI tour that can run both on native platforms and the
 /// web!
 ///
-/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.3/examples
-/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.3/examples/bezier_tool
-/// [`counter`]: https://github.com/hecrj/iced/tree/0.3/examples/counter
-/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.3/examples/custom_widget
-/// [`geometry`]: https://github.com/hecrj/iced/tree/0.3/examples/geometry
-/// [`pane_grid`]: https://github.com/hecrj/iced/tree/0.3/examples/pane_grid
-/// [`progress_bar`]: https://github.com/hecrj/iced/tree/0.3/examples/progress_bar
-/// [`styling`]: https://github.com/hecrj/iced/tree/0.3/examples/styling
-/// [`svg`]: https://github.com/hecrj/iced/tree/0.3/examples/svg
-/// [`tour`]: https://github.com/hecrj/iced/tree/0.3/examples/tour
+/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.4/examples
+/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.4/examples/bezier_tool
+/// [`counter`]: https://github.com/iced-rs/iced/tree/0.4/examples/counter
+/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.4/examples/custom_widget
+/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.4/examples/geometry
+/// [`pane_grid`]: https://github.com/iced-rs/iced/tree/0.4/examples/pane_grid
+/// [`progress_bar`]: https://github.com/iced-rs/iced/tree/0.4/examples/progress_bar
+/// [`styling`]: https://github.com/iced-rs/iced/tree/0.4/examples/styling
+/// [`svg`]: https://github.com/iced-rs/iced/tree/0.4/examples/svg
+/// [`tour`]: https://github.com/iced-rs/iced/tree/0.4/examples/tour
 /// [`Canvas widget`]: crate::widget::Canvas
 /// [the overview]: index.html#overview
-/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.3/wgpu
+/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.4/wgpu
 /// [`Svg` widget]: crate::widget::Svg
 /// [Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
 ///
@@ -156,7 +156,7 @@ impl<T> Application for T
 where
     T: Sandbox,
 {
-    type Executor = crate::runtime::executor::Null;
+    type Executor = iced_futures::backend::null::Executor;
     type Flags = ();
     type Message = T::Message;
 

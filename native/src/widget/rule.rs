@@ -1,11 +1,7 @@
 //! Display a horizontal or vertical rule for dividing content.
 use crate::layout;
 use crate::renderer;
-use crate::{
-    Color, Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget,
-};
-
-use std::hash::Hash;
+use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 pub use iced_style::rule::{FillMode, Style, StyleSheet};
 
@@ -19,20 +15,20 @@ pub struct Rule<'a> {
 }
 
 impl<'a> Rule<'a> {
-    /// Creates a horizontal [`Rule`] for dividing content by the given vertical spacing.
-    pub fn horizontal(spacing: u16) -> Self {
+    /// Creates a horizontal [`Rule`] with the given height.
+    pub fn horizontal(height: u16) -> Self {
         Rule {
             width: Length::Fill,
-            height: Length::from(Length::Units(spacing)),
+            height: Length::Units(height),
             is_horizontal: true,
             style_sheet: Default::default(),
         }
     }
 
-    /// Creates a vertical [`Rule`] for dividing content by the given horizontal spacing.
-    pub fn vertical(spacing: u16) -> Self {
+    /// Creates a vertical [`Rule`] with the given width.
+    pub fn vertical(width: u16) -> Self {
         Rule {
-            width: Length::from(Length::Units(spacing)),
+            width: Length::from(Length::Units(width)),
             height: Length::Fill,
             is_horizontal: false,
             style_sheet: Default::default(),
@@ -121,14 +117,6 @@ where
             },
             style.color,
         );
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
     }
 }
 

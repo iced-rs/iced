@@ -14,7 +14,7 @@ The __[`main`]__ file contains all the code of the example! All the cross-platfo
 [`iced_winit`]: ../../winit
 [`iced_native`]: ../../native
 [`iced_wgpu`]: ../../wgpu
-[`iced_web`]: ../../web
+[`iced_web`]: https://github.com/iced-rs/iced_web
 [`winit`]: https://github.com/rust-windowing/winit
 [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 
@@ -25,4 +25,4 @@ cargo run --package tour
 
 The web version can be run by following [the usage instructions of `iced_web`] or by accessing [iced.rs](https://iced.rs/)!
 
-[the usage instructions of `iced_web`]: ../../web#usage
+[the usage instructions of `iced_web`]: https://github.com/iced-rs/iced_web#usage

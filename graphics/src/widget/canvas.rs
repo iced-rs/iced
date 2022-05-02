@@ -6,15 +6,6 @@
 use crate::renderer::{self, Renderer};
 use crate::{Backend, Primitive};
 
-use iced_native::layout;
-use iced_native::mouse;
-use iced_native::{
-    Clipboard, Element, Hasher, Layout, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget,
-};
-use std::hash::Hash;
-use std::marker::PhantomData;
-
 pub mod event;
 pub mod path;
 
@@ -35,8 +26,17 @@ pub use frame::Frame;
 pub use geometry::Geometry;
 pub use path::Path;
 pub use program::Program;
-pub use stroke::{LineCap, LineJoin, Stroke};
+pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use text::Text;
+
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::{
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
+};
+
+use std::marker::PhantomData;
 
 /// A widget capable of drawing 2D graphics.
 ///
@@ -51,10 +51,10 @@ pub use text::Text;
 /// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
 /// and showcasing how to compose different transforms.
 ///
-/// [examples]: https://github.com/hecrj/iced/tree/master/examples
-/// [`clock`]: https://github.com/hecrj/iced/tree/master/examples/clock
-/// [`game_of_life`]: https://github.com/hecrj/iced/tree/master/examples/game_of_life
-/// [`solar_system`]: https://github.com/hecrj/iced/tree/master/examples/solar_system
+/// [examples]: https://github.com/iced-rs/iced/tree/0.4/examples
+/// [`clock`]: https://github.com/iced-rs/iced/tree/0.4/examples/clock
+/// [`game_of_life`]: https://github.com/iced-rs/iced/tree/0.4/examples/game_of_life
+/// [`solar_system`]: https://github.com/iced-rs/iced/tree/0.4/examples/solar_system
 ///
 /// ## Drawing a simple circle
 /// If you want to get a quick overview, here's how we can draw a simple circle:
@@ -98,7 +98,7 @@ pub struct Canvas<Message, P: Program<Message>> {
     width: Length,
     height: Length,
     program: P,
-    phantom: PhantomData<Message>,
+    message_: PhantomData<Message>,
 }
 
 impl<Message, P: Program<Message>> Canvas<Message, P> {
@@ -110,7 +110,7 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
             width: Length::Units(Self::DEFAULT_SIZE),
             height: Length::Units(Self::DEFAULT_SIZE),
             program,
-            phantom: PhantomData,
+            message_: PhantomData,
         }
     }
 
@@ -193,6 +193,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
+        _renderer: &Renderer<B>,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let cursor = Cursor::from_window_position(cursor_position);
@@ -211,6 +212,11 @@ where
         use iced_native::Renderer as _;
 
         let bounds = layout.bounds();
+
+        if bounds.width < 1.0 || bounds.height < 1.0 {
+            return;
+        }
+
         let translation = Vector::new(bounds.x, bounds.y);
         let cursor = Cursor::from_window_position(cursor_position);
 
@@ -224,14 +230,6 @@ where
                     .collect(),
             });
         });
-    }
-
-    fn hash_layout(&self, state: &mut Hasher) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.width.hash(state);
-        self.height.hash(state);
     }
 }
 
