@@ -17,7 +17,7 @@ impl<T> Command<T> {
         Self(Internal::None)
     }
 
-    /// Creates a [`Command`] that performs a single [`Action`].
+    /// Creates a [`Command`] that performs a single action.
     pub const fn single(action: T) -> Self {
         Self(Internal::Single(action))
     }

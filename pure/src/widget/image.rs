@@ -1,3 +1,4 @@
+//! Display images in your user interface.
 use crate::widget::{Tree, Widget};
 use crate::Element;
 

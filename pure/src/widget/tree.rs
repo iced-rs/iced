@@ -1,14 +1,24 @@
+//! Store internal widget state in a state tree to ensure continuity.
 use crate::Element;
 
 use std::any::{self, Any};
 
+/// A persistent state widget tree.
+///
+/// A [`Tree`] is normally associated with a specific widget in the widget tree.
 pub struct Tree {
+    /// The tag of the [`Tree`].
     pub tag: Tag,
+
+    /// The [`State`] of the [`Tree`].
     pub state: State,
+
+    /// The children of the root widget of the [`Tree`].
     pub children: Vec<Tree>,
 }
 
 impl Tree {
+    /// Creates an empty, stateless [`Tree`] with no children.
     pub fn empty() -> Self {
         Self {
             tag: Tag::stateless(),
@@ -17,6 +27,7 @@ impl Tree {
         }
     }
 
+    /// Creates a new [`Tree`] for the provided [`Element`].
     pub fn new<Message, Renderer>(
         element: &Element<'_, Message, Renderer>,
     ) -> Self {
@@ -27,6 +38,14 @@ impl Tree {
         }
     }
 
+    /// Reconciliates the current tree with the provided [`Element`].
+    ///
+    /// If the tag of the [`Element`] matches the tag of the [`Tree`], then the
+    /// [`Element`] proceeds with the reconciliation (i.e. [`Widget::diff`] is called).
+    ///
+    /// Otherwise, the whole [`Tree`] is recreated.
+    ///
+    /// [`Widget::diff`]: crate::Widget::diff
     pub fn diff<Message, Renderer>(
         &mut self,
         new: &Element<'_, Message, Renderer>,
@@ -38,21 +57,20 @@ impl Tree {
         }
     }
 
+    /// Reconciliates the children of the tree with the provided list of [`Element`].
     pub fn diff_children<Message, Renderer>(
         &mut self,
         new_children: &[Element<'_, Message, Renderer>],
     ) {
-        self.diff_children_custom(
-            new_children,
-            |new, child_state| child_state.diff(new),
-            Self::new,
-        )
+        self.diff_children_custom(new_children, Self::diff, Self::new)
     }
 
+    /// Reconciliates the children of the tree with the provided list of [`Element`] using custom
+    /// logic both for diffing and creating new widget state.
     pub fn diff_children_custom<T>(
         &mut self,
         new_children: &[T],
-        diff: impl Fn(&T, &mut Tree),
+        diff: impl Fn(&mut Tree, &T),
         new_state: impl Fn(&T) -> Self,
     ) {
         if self.children.len() > new_children.len() {
@@ -62,7 +80,7 @@ impl Tree {
         for (child_state, new) in
             self.children.iter_mut().zip(new_children.iter())
         {
-            diff(new, child_state);
+            diff(child_state, new);
         }
 
         if self.children.len() < new_children.len() {
@@ -73,10 +91,12 @@ impl Tree {
     }
 }
 
+/// The identifier of some widget state.
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct Tag(any::TypeId);
 
 impl Tag {
+    /// Creates a [`Tag`] for a state of type `T`.
     pub fn of<T>() -> Self
     where
         T: 'static,
@@ -84,17 +104,23 @@ impl Tag {
         Self(any::TypeId::of::<T>())
     }
 
+    /// Creates a [`Tag`] for a stateless widget.
     pub fn stateless() -> Self {
         Self::of::<()>()
     }
 }
 
+/// The internal [`State`] of a widget.
 pub enum State {
+    /// No meaningful internal state.
     None,
+
+    /// Some meaningful internal state.
     Some(Box<dyn Any>),
 }
 
 impl State {
+    /// Creates a new [`State`].
     pub fn new<T>(state: T) -> Self
     where
         T: 'static,
@@ -102,6 +128,10 @@ impl State {
         State::Some(Box::new(state))
     }
 
+    /// Downcasts the [`State`] to `T` and returns a reference to it.
+    ///
+    /// # Panics
+    /// This method will panic if the downcast fails or the [`State`] is [`State::None`].
     pub fn downcast_ref<T>(&self) -> &T
     where
         T: 'static,
@@ -114,6 +144,10 @@ impl State {
         }
     }
 
+    /// Downcasts the [`State`] to `T` and returns a mutable reference to it.
+    ///
+    /// # Panics
+    /// This method will panic if the downcast fails or the [`State`] is [`State::None`].
     pub fn downcast_mut<T>(&mut self) -> &mut T
     where
         T: 'static,

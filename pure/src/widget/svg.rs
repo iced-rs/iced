@@ -1,3 +1,4 @@
+//! Display vector graphics in your application.
 use crate::widget::{Tree, Widget};
 use crate::Element;
 

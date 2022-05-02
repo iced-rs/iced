@@ -13,7 +13,7 @@ use iced_native::{Font, Size};
 /// A [`glow`] graphics backend for [`iced`].
 ///
 /// [`glow`]: https://github.com/grovesNL/glow
-/// [`iced`]: https://github.com/hecrj/iced
+/// [`iced`]: https://github.com/iced-rs/iced
 #[derive(Debug)]
 pub struct Backend {
     quad_pipeline: quad::Pipeline,

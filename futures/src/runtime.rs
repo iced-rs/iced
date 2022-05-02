@@ -9,6 +9,8 @@ use std::marker::PhantomData;
 ///
 /// If you have an [`Executor`], a [`Runtime`] can be leveraged to run any
 /// [`Command`] or [`Subscription`] and get notified of the results!
+///
+/// [`Command`]: crate::Command
 #[derive(Debug)]
 pub struct Runtime<Hasher, Event, Executor, Sender, Message> {
     executor: Executor,
@@ -51,10 +53,12 @@ where
         self.executor.enter(f)
     }
 
-    /// Spawns a [`Command`] in the [`Runtime`].
+    /// Spawns a [`Future`] in the [`Runtime`].
     ///
     /// The resulting `Message` will be forwarded to the `Sender` of the
     /// [`Runtime`].
+    ///
+    /// [`Future`]: BoxFuture
     pub fn spawn(&mut self, future: BoxFuture<Message>) {
         use futures::{FutureExt, SinkExt};
 

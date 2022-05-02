@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-/// An [`Svg`] handle.
+/// A handle of Svg data.
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
@@ -55,7 +55,7 @@ impl Hash for Handle {
     }
 }
 
-/// The data of an [`Svg`].
+/// The data of a vectorial image.
 #[derive(Clone, Hash)]
 pub enum Data {
     /// File data

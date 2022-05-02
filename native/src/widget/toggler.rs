@@ -107,6 +107,8 @@ impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
     }
 
     /// Sets the [`Font`] of the text of the [`Toggler`]
+    ///
+    /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self

@@ -81,7 +81,7 @@ impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
-    pub fn state(&self) -> Tree {
+    pub(super) fn state(&self) -> Tree {
         let children = if let Some(controls) = self.controls.as_ref() {
             vec![Tree::new(&self.content), Tree::new(controls)]
         } else {
@@ -94,7 +94,7 @@ where
         }
     }
 
-    pub fn diff(&self, tree: &mut Tree) {
+    pub(super) fn diff(&self, tree: &mut Tree) {
         if tree.children.len() == 2 {
             if let Some(controls) = self.controls.as_ref() {
                 tree.children[1].diff(controls);
@@ -108,7 +108,7 @@ where
 
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::widget::pane_grid::Renderer
+    /// [`Renderer`]: iced_native::Renderer
     pub fn draw(
         &self,
         tree: &Tree,

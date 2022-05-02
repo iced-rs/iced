@@ -65,7 +65,7 @@ pub fn resolve<Message, Renderer>(
     padding: Padding,
     spacing: f32,
     align_items: Alignment,
-    items: &[Element<Message, Renderer>],
+    items: &[Element<'_, Message, Renderer>],
 ) -> Node
 where
     Renderer: iced_native::Renderer,

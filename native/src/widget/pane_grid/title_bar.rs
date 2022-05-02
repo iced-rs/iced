@@ -82,7 +82,7 @@ where
 {
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::widget::pane_grid::Renderer
+    /// [`Renderer`]: crate::Renderer
     pub fn draw(
         &self,
         renderer: &mut Renderer,

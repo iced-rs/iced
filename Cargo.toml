@@ -116,4 +116,4 @@ iced_wgpu = { version = "0.4", path = "wgpu", features = ["webgl"], optional = t
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
-features = ["image", "svg", "canvas", "qr_code"]
+features = ["image", "svg", "canvas", "qr_code", "pure"]

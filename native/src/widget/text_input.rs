@@ -108,10 +108,9 @@ where
         self
     }
 
-    /// Sets the [`Font`] of the [`Text`].
+    /// Sets the [`Font`] of the [`TextInput`].
     ///
-    /// [`Font`]: crate::widget::text::Renderer::Font
-    /// [`Text`]: crate::widget::Text
+    /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
@@ -157,6 +156,8 @@ where
 
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
     /// [`Value`] if provided.
+    ///
+    /// [`Renderer`]: text::Renderer
     pub fn draw(
         &self,
         renderer: &mut Renderer,
@@ -570,6 +571,8 @@ where
 
 /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
 /// [`Value`] if provided.
+///
+/// [`Renderer`]: text::Renderer
 pub fn draw<Renderer>(
     renderer: &mut Renderer,
     layout: Layout<'_>,

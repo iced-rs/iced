@@ -1,6 +1,4 @@
 //! Display an interactive selector of a single value from a range of values.
-//!
-//! A [`Slider`] has some local [`State`].
 use crate::widget::tree::{self, Tree};
 use crate::{Element, Widget};
 
@@ -25,17 +23,16 @@ pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_native::widget::slider::{self, Slider};
+/// # use iced_pure::widget::Slider;
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {
 ///     SliderChanged(f32),
 /// }
 ///
-/// let state = &mut slider::State::new();
 /// let value = 50.0;
 ///
-/// Slider::new(state, 0.0..=100.0, value, Message::SliderChanged);
+/// Slider::new(0.0..=100.0, value, Message::SliderChanged);
 /// ```
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)

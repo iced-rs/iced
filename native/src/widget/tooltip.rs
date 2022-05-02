@@ -29,7 +29,7 @@ where
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16 = 5;
 
-    /// Creates an empty [`Tooltip`].
+    /// Creates a new [`Tooltip`].
     ///
     /// [`Tooltip`]: struct.Tooltip.html
     pub fn new(

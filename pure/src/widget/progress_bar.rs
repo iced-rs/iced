@@ -1,3 +1,4 @@
+//! Provide progress feedback to your users.
 use crate::widget::Tree;
 use crate::{Element, Widget};
 

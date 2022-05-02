@@ -10,6 +10,8 @@ use std::fmt;
 /// [`Command`]: crate::Command
 pub enum Action<T> {
     /// Run a [`Future`] to completion.
+    ///
+    /// [`Future`]: iced_futures::BoxFuture
     Future(iced_futures::BoxFuture<T>),
 
     /// Run a clipboard action.
@@ -21,6 +23,8 @@ pub enum Action<T> {
 
 impl<T> Action<T> {
     /// Applies a transformation to the result of a [`Command`].
+    ///
+    /// [`Command`]: crate::Command
     pub fn map<A>(
         self,
         f: impl Fn(T) -> A + 'static + MaybeSend + Sync,

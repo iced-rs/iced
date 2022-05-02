@@ -16,7 +16,7 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 /// The [`integration` example] uses a [`UserInterface`] to integrate Iced in
 /// an existing graphical application.
 ///
-/// [`integration` example]: https://github.com/iced-rs/iced/tree/0.3/examples/integration
+/// [`integration` example]: https://github.com/iced-rs/iced/tree/0.4/examples/integration
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
@@ -264,11 +264,10 @@ where
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
     ///
-    /// It returns the some [`Renderer::Output`]. You should update the icon of
-    /// the mouse cursor accordingly in your system.
+    /// It returns the current [`mouse::Interaction`]. You should update the
+    /// icon of the mouse cursor accordingly in your system.
     ///
     /// [`Renderer`]: crate::Renderer
-    /// [`Renderer::Output`]: crate::Renderer::Output
     ///
     /// # Example
     /// We can finally draw our [counter](index.html#usage) by
