@@ -6,7 +6,7 @@
 
 `iced_glow` is a [`glow`] renderer for [`iced_native`]. This renderer supports OpenGL 3.0+ and OpenGL ES 2.0.
 
-This is renderer is mostly used as a fallback for hardware that doesn't support [`wgpu`] (Vulkan, Metal or DX12).
+This renderer is mostly used as a fallback for hardware that doesn't support [`wgpu`] (Vulkan, Metal or DX12).
 
 Currently, `iced_glow` supports the following primitives:
 - Text, which is rendered using [`glow_glyph`]. No shaping at all.
