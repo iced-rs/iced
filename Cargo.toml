@@ -1,6 +1,6 @@
 [package]
 name = "iced"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A cross-platform GUI library inspired by Elm"
@@ -98,21 +98,21 @@ members = [
 ]
 
 [dependencies]
-iced_core = { version = "0.4", path = "core" }
-iced_futures = { version = "0.3", path = "futures" }
-iced_native = { version = "0.4", path = "native" }
-iced_graphics = { version = "0.2", path = "graphics" }
-iced_winit = { version = "0.3", path = "winit" }
-iced_glutin = { version = "0.2", path = "glutin", optional = true }
-iced_glow = { version = "0.2", path = "glow", optional = true }
-iced_pure = { version = "0.1", path = "pure", optional = true }
+iced_core = { version = "0.5", path = "core" }
+iced_futures = { version = "0.4", path = "futures" }
+iced_native = { version = "0.5", path = "native" }
+iced_graphics = { version = "0.3", path = "graphics" }
+iced_winit = { version = "0.4", path = "winit" }
+iced_glutin = { version = "0.3", path = "glutin", optional = true }
+iced_glow = { version = "0.3", path = "glow", optional = true }
+iced_pure = { version = "0.2", path = "pure", optional = true }
 thiserror = "1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iced_wgpu = { version = "0.4", path = "wgpu", optional = true }
+iced_wgpu = { version = "0.5", path = "wgpu", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-iced_wgpu = { version = "0.4", path = "wgpu", features = ["webgl"], optional = true }
+iced_wgpu = { version = "0.5", path = "wgpu", features = ["webgl"], optional = true }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
