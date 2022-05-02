@@ -44,7 +44,7 @@ __iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
 
 [Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
-[the Web]: https://iced.rs/
+[the Web]: https://github.com/iced-rs/iced_web
 [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
 [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
