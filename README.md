@@ -2,7 +2,7 @@
 
 <img src="docs/logo.svg" width="140px" />
 
-# iced
+# Iced
 
 [![Documentation](https://docs.rs/iced/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
@@ -40,7 +40,7 @@ Inspired by [Elm].
     * A [windowing shell]
     * A [web runtime] leveraging the DOM
 
-__iced is currently experimental software.__ [Take a look at the roadmap],
+__Iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
 
 [Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
@@ -69,13 +69,13 @@ Add `iced` as a dependency in your `Cargo.toml`:
 iced = "0.3"
 ```
 
-__iced moves fast and the `master` branch can contain breaking changes!__ If
+__Iced moves fast and the `master` branch can contain breaking changes!__ If
 you want to learn about a specific release, check out [the release list].
 
 [the release list]: https://github.com/iced-rs/iced/releases
 
 ## Overview
-Inspired by [The Elm Architecture], iced expects you to split user interfaces
+Inspired by [The Elm Architecture], Iced expects you to split user interfaces
 into four different concepts:
 
   * __State__ — the state of your application
@@ -165,7 +165,7 @@ impl Counter {
 }
 ```
 
-And that's everything! We just wrote a whole user interface. iced is now able
+And that's everything! We just wrote a whole user interface. Iced is now able
 to:
 
   1. Take the result of our __view logic__ and layout its widgets.
@@ -176,7 +176,7 @@ to:
 Browse the [documentation] and the [examples] to learn more!
 
 ## Implementation details
-iced was originally born as an attempt at bringing the simplicity of [Elm] and
+Iced was originally born as an attempt at bringing the simplicity of [Elm] and
 [The Elm Architecture] into [Coffee], a 2D game engine I am working on.
 
 The core of the library was implemented during May 2019 in [this pull request].
@@ -189,7 +189,7 @@ end-user-oriented GUI library, while keeping [the ecosystem] modular:
 
 <p align="center">
   <a href="ECOSYSTEM.md">
-    <img alt="iced ecosystem" src="docs/graphs/ecosystem.png" width="80%">
+    <img alt="The Iced Ecosystem" src="docs/graphs/ecosystem.png" width="80%">
   </a>
 </p>
 
@@ -234,7 +234,7 @@ awesome folks) over the `#games-and-graphics` and `#gui-and-ui` channels in
 the [Rust Community Discord]. I go by `lone_scientist#9554` there.
 
 ## Sponsors
-The development of iced is sponsored by the [Cryptowatch] team at [Kraken.com]
+The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 
 [documentation]: https://docs.rs/iced/
 [examples]: https://github.com/iced-rs/iced/tree/master/examples
