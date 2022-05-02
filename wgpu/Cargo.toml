@@ -1,6 +1,6 @@
 [package]
 name = "iced_wgpu"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A wgpu renderer for Iced"
@@ -43,11 +43,11 @@ version = "1.4"
 features = ["derive"]
 
 [dependencies.iced_native]
-version = "0.4"
+version = "0.5"
 path = "../native"
 
 [dependencies.iced_graphics]
-version = "0.2"
+version = "0.3"
 path = "../graphics"
 features = ["font-fallback", "font-icons"]
 
