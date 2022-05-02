@@ -6,9 +6,9 @@
 
 [![Documentation](https://docs.rs/iced/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
-[![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+[![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/crates/d/iced.svg)](https://crates.io/crates/iced)
-[![Test Status](https://github.com/hecrj/iced/workflows/Test/badge.svg?event=push)](https://github.com/hecrj/iced/actions)
+[![Test Status](https://github.com/iced-rs/iced/workflows/Test/badge.svg?event=push)](https://github.com/iced-rs/iced/actions)
 [![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
 A cross-platform GUI library for Rust focused on simplicity and type-safety.
@@ -222,7 +222,7 @@ iced = { version = "0.3", default-features = false, features = ["glow"] }
 but if you don't, right now there's no software fallback, so it means your hardware
 doesn't support Iced.
 
-[built-in renderer]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md#Renderers
+[built-in renderer]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md#Renderers
 
 ## Contributing / Feedback
 Contributions are greatly appreciated! If you want to contribute, please
@@ -237,12 +237,12 @@ the [Rust Community Discord]. I go by `lone_scientist#9554` there.
 The development of iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 
 [documentation]: https://docs.rs/iced/
-[examples]: https://github.com/hecrj/iced/tree/master/examples
+[examples]: https://github.com/iced-rs/iced/tree/master/examples
 [Coffee]: https://github.com/hecrj/coffee
 [Elm]: https://elm-lang.org/
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-[the current issues]: https://github.com/hecrj/iced/issues
-[contributing guidelines]: https://github.com/hecrj/iced/blob/master/CONTRIBUTING.md
+[the current issues]: https://github.com/iced-rs/iced/issues
+[contributing guidelines]: https://github.com/iced-rs/iced/blob/master/CONTRIBUTING.md
 [Discord server]: https://discord.gg/3xZJ65GAhd
 [Rust Community Discord]: https://bit.ly/rust-community
 [Cryptowatch]: https://cryptowat.ch/charts

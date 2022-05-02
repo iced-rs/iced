@@ -1,7 +1,7 @@
 # `iced_glow`
 [![Documentation](https://docs.rs/iced_glow/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced_glow.svg)](https://crates.io/crates/iced_glow)
-[![License](https://img.shields.io/crates/l/iced_glow.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+[![License](https://img.shields.io/crates/l/iced_glow.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
 `iced_glow` is a [`glow`] renderer for [`iced_native`]. This renderer supports OpenGL 3.0+ and OpenGL ES 2.0.
@@ -34,7 +34,7 @@ iced_glow = "0.2"
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
 you want to learn about a specific release, check out [the release list].
 
-[the release list]: https://github.com/hecrj/iced/releases
+[the release list]: https://github.com/iced-rs/iced/releases
 
 ## Current limitations
 

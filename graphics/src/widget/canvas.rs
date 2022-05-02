@@ -51,10 +51,10 @@ use std::marker::PhantomData;
 /// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
 /// and showcasing how to compose different transforms.
 ///
-/// [examples]: https://github.com/hecrj/iced/tree/0.4/examples
-/// [`clock`]: https://github.com/hecrj/iced/tree/0.4/examples/clock
-/// [`game_of_life`]: https://github.com/hecrj/iced/tree/0.4/examples/game_of_life
-/// [`solar_system`]: https://github.com/hecrj/iced/tree/0.4/examples/solar_system
+/// [examples]: https://github.com/iced-rs/iced/tree/0.4/examples
+/// [`clock`]: https://github.com/iced-rs/iced/tree/0.4/examples/clock
+/// [`game_of_life`]: https://github.com/iced-rs/iced/tree/0.4/examples/game_of_life
+/// [`solar_system`]: https://github.com/iced-rs/iced/tree/0.4/examples/solar_system
 ///
 /// ## Drawing a simple circle
 /// If you want to get a quick overview, here's how we can draw a simple circle:

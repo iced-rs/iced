@@ -8,7 +8,7 @@
 //!
 //! [Iced]: https://github.com/iced-rs/iced
 //! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.4/native
-//! [`iced_web`]: https://github.com/iced-rs/iced/tree/0.4/web
+//! [`iced_web`]: https://github.com/iced-rs/iced_web
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unused_results)]

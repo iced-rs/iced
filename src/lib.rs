@@ -19,19 +19,19 @@
 //!
 //! Check out the [repository] and the [examples] for more details!
 //!
-//! [Cross-platform support]: https://github.com/hecrj/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
+//! [Cross-platform support]: https://github.com/iced-rs/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
 //! [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
 //! [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 //! [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
-//! [Modular ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
-//! [renderer-agnostic native runtime]: https://github.com/hecrj/iced/0.4/master/native
+//! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
+//! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/0.4/master/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-//! [built-in renderer]: https://github.com/hecrj/iced/tree/0.4/wgpu
-//! [windowing shell]: https://github.com/hecrj/iced/tree/0.4/winit
+//! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.4/wgpu
+//! [windowing shell]: https://github.com/iced-rs/iced/tree/0.4/winit
 //! [`dodrio`]: https://github.com/fitzgen/dodrio
-//! [web runtime]: https://github.com/hecrj/iced/tree/0.4/web
-//! [examples]: https://github.com/hecrj/iced/tree/0.4/examples
-//! [repository]: https://github.com/hecrj/iced
+//! [web runtime]: https://github.com/iced-rs/iced_web
+//! [examples]: https://github.com/iced-rs/iced/tree/0.4/examples
+//! [repository]: https://github.com/iced-rs/iced
 //!
 //! # Overview
 //! Inspired by [The Elm Architecture], Iced expects you to split user
