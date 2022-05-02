@@ -66,7 +66,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.3"
+iced = "0.4"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
@@ -215,7 +215,7 @@ $ cargo run --features iced/glow --package game_of_life
 
 and then use it in your project with
 ```toml
-iced = { version = "0.3", default-features = false, features = ["glow"] }
+iced = { version = "0.4", default-features = false, features = ["glow"] }
 ```
 
 **NOTE:** Chances are you have hardware that supports at least OpenGL 2.1 or OpenGL ES 2.0,
