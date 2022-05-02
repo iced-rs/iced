@@ -91,6 +91,7 @@ members = [
     "examples/url_handler",
     "examples/websocket",
     "examples/pure/arc",
+    "examples/pure/color_palette",
     "examples/pure/component",
     "examples/pure/counter",
     "examples/pure/game_of_life",
