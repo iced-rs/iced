@@ -48,7 +48,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 
     /// Sets the vertical spacing _between_ elements.
     ///
-    /// Custom margins per element do not exist in Iced. You should use this
+    /// Custom margins per element do not exist in iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
     /// elements consistent.
     pub fn spacing(mut self, units: u16) -> Self {

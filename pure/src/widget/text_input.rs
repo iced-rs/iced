@@ -1,3 +1,4 @@
+//! Display fields that can be filled with text.
 use crate::widget::tree::{self, Tree};
 use crate::{Element, Widget};
 
@@ -15,10 +16,7 @@ pub use iced_style::text_input::{Style, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_native::renderer::Null;
-/// # use iced_pure::widget::text_input;
-/// #
-/// # pub type TextInput<'a, Message> = iced_pure::widget::TextInput<'a, Message, Null>;
+/// # pub type TextInput<'a, Message> = iced_pure::widget::TextInput<'a, Message, iced_native::renderer::Null>;
 /// #[derive(Debug, Clone)]
 /// enum Message {
 ///     TextInputChanged(String),

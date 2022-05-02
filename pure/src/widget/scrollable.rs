@@ -1,3 +1,4 @@
+//! Navigate an endless amount of content with a scrollbar.
 use crate::overlay;
 use crate::widget::tree::{self, Tree};
 use crate::{Element, Widget};

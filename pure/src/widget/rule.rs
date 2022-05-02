@@ -1,3 +1,4 @@
+//! Display a horizontal or vertical rule for dividing content.
 use crate::widget::Tree;
 use crate::{Element, Widget};
 

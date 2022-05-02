@@ -13,6 +13,7 @@ use iced_native::{
 
 use std::u32;
 
+/// A container that distributes its contents vertically.
 pub struct Column<'a, Message, Renderer> {
     spacing: u16,
     padding: Padding,
@@ -24,10 +25,12 @@ pub struct Column<'a, Message, Renderer> {
 }
 
 impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
+    /// Creates an empty [`Column`].
     pub fn new() -> Self {
         Self::with_children(Vec::new())
     }
 
+    /// Creates a [`Column`] with the given elements.
     pub fn with_children(
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
@@ -42,21 +45,29 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         }
     }
 
+    /// Sets the vertical spacing _between_ elements.
+    ///
+    /// Custom margins per element do not exist in iced. You should use this
+    /// method instead! While less flexible, it helps you keep spacing between
+    /// elements consistent.
     pub fn spacing(mut self, units: u16) -> Self {
         self.spacing = units;
         self
     }
 
+    /// Sets the [`Padding`] of the [`Column`].
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
         self
     }
 
+    /// Sets the width of the [`Column`].
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
+    /// Sets the height of the [`Column`].
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
@@ -68,11 +79,13 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         self
     }
 
+    /// Sets the horizontal alignment of the contents of the [`Column`] .
     pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
         self
     }
 
+    /// Adds an element to the [`Column`].
     pub fn push(
         mut self,
         child: impl Into<Element<'a, Message, Renderer>>,

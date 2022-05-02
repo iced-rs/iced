@@ -1,3 +1,4 @@
+//! Allow your users to perform actions by pressing a button.
 use crate::overlay;
 use crate::widget::tree::{self, Tree};
 use crate::{Element, Widget};
@@ -15,6 +16,40 @@ pub use iced_style::button::{Style, StyleSheet};
 
 use button::State;
 
+/// A generic widget that produces a message when pressed.
+///
+/// ```
+/// # type Button<'a, Message> =
+/// #     iced_pure::widget::Button<'a, Message, iced_native::renderer::Null>;
+/// #
+/// #[derive(Clone)]
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// let button = Button::new("Press me!").on_press(Message::ButtonPressed);
+/// ```
+///
+/// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
+/// be disabled:
+///
+/// ```
+/// # type Button<'a, Message> =
+/// #     iced_pure::widget::Button<'a, Message, iced_native::renderer::Null>;
+/// #
+/// #[derive(Clone)]
+/// enum Message {
+///     ButtonPressed,
+/// }
+///
+/// fn disabled_button<'a>() -> Button<'a, Message> {
+///     Button::new("I'm disabled!")
+/// }
+///
+/// fn enabled_button<'a>() -> Button<'a, Message> {
+///     disabled_button().on_press(Message::ButtonPressed)
+/// }
+/// ```
 pub struct Button<'a, Message, Renderer> {
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
@@ -25,6 +60,7 @@ pub struct Button<'a, Message, Renderer> {
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
+    /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Button {
             content: content.into(),

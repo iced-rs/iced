@@ -213,7 +213,7 @@ where
     fn diff(&self, tree: &mut Tree) {
         tree.diff_children_custom(
             &self.elements,
-            |(_, content), state| content.diff(state),
+            |state, (_, content)| content.diff(state),
             |(_, content)| content.state(),
         )
     }

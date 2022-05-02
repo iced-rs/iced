@@ -57,7 +57,7 @@ impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
-    pub fn state(&self) -> Tree {
+    pub(super) fn state(&self) -> Tree {
         let children = if let Some(title_bar) = self.title_bar.as_ref() {
             vec![Tree::new(&self.body), title_bar.state()]
         } else {
@@ -70,7 +70,7 @@ where
         }
     }
 
-    pub fn diff(&self, tree: &mut Tree) {
+    pub(super) fn diff(&self, tree: &mut Tree) {
         if tree.children.len() == 2 {
             if let Some(title_bar) = self.title_bar.as_ref() {
                 title_bar.diff(&mut tree.children[1]);
