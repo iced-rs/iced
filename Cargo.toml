@@ -84,10 +84,12 @@ members = [
     "examples/stopwatch",
     "examples/styling",
     "examples/svg",
+    "examples/system_information",
     "examples/todos",
     "examples/tooltip",
     "examples/tour",
     "examples/url_handler",
+    "examples/websocket",
     "examples/pure/component",
     "examples/pure/counter",
     "examples/pure/game_of_life",
@@ -95,8 +97,6 @@ members = [
     "examples/pure/pick_list",
     "examples/pure/todos",
     "examples/pure/tour",
-    "examples/websocket",
-    "examples/system_information"
 ]
 
 [dependencies]
