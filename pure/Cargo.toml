@@ -1,6 +1,6 @@
 [package]
 name = "iced_pure"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Pure widgets for Iced"
 license = "MIT"

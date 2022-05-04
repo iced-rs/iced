@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2022-05-03
+### Fixed
+- `Padding` type not exposed in `iced`.
+
+## [0.4.1] - 2022-05-02
+### Fixed
+- Version number in `README`.
 
 ## [0.4.0] - 2022-05-02
 ### Added
@@ -250,7 +257,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.4.2...HEAD
+[0.4.2]: https://github.com/iced-rs/iced/compare/0.4.1...0.4.2
+[0.4.1]: https://github.com/iced-rs/iced/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/iced-rs/iced/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/iced-rs/iced/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/iced-rs/iced/compare/0.1.1...0.2.0
