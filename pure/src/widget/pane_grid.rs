@@ -6,7 +6,7 @@
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
 //! drag and drop, and hotkey support.
 //!
-//! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.3/examples/pane_grid
+//! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.4/examples/pane_grid
 mod content;
 mod title_bar;
 
@@ -213,7 +213,7 @@ where
     fn diff(&self, tree: &mut Tree) {
         tree.diff_children_custom(
             &self.elements,
-            |(_, content), state| content.diff(state),
+            |state, (_, content)| content.diff(state),
             |(_, content)| content.state(),
         )
     }

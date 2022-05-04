@@ -39,7 +39,7 @@ pub enum Hit {
 }
 
 impl Hit {
-    /// Computes the cursor position corresponding to this [`HitTestResult`] .
+    /// Computes the cursor position of the [`Hit`] .
     pub fn cursor(self) -> usize {
         match self {
             Self::CharOffset(i) => i,

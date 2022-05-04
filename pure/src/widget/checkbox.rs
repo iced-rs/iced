@@ -1,3 +1,4 @@
+//! Show toggle controls using checkboxes.
 use crate::widget::Tree;
 use crate::{Element, Widget};
 

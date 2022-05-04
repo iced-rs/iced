@@ -2,7 +2,7 @@ use crate::widget::pane_grid::Axis;
 
 /// The arrangement of a [`PaneGrid`].
 ///
-/// [`PaneGrid`]: crate::pane_grid::PaneGrid
+/// [`PaneGrid`]: crate::widget::PaneGrid
 #[derive(Debug, Clone)]
 pub enum Configuration<T> {
     /// A split of the available space.
@@ -21,6 +21,6 @@ pub enum Configuration<T> {
     },
     /// A [`Pane`].
     ///
-    /// [`Pane`]: crate::pane_grid::Pane
+    /// [`Pane`]: crate::widget::pane_grid::Pane
     Pane(T),
 }

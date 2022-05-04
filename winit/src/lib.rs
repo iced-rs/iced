@@ -1,6 +1,6 @@
 //! A windowing shell for Iced, on top of [`winit`].
 //!
-//! ![The native path of the Iced ecosystem](https://github.com/hecrj/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
+//! ![The native path of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
 //!
 //! `iced_winit` offers some convenient abstractions on top of [`iced_native`]
 //! to quickstart development when using [`winit`].
@@ -11,7 +11,7 @@
 //! Additionally, a [`conversion`] module is available for users that decide to
 //! implement a custom event loop.
 //!
-//! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.4/native
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`conversion`]: crate::conversion
 #![doc(

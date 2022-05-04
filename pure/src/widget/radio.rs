@@ -1,3 +1,4 @@
+//! Create choices using radio buttons.
 use crate::widget::Tree;
 use crate::{Element, Widget};
 

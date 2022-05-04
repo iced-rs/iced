@@ -6,6 +6,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2022-05-03
+### Fixed
+- `Padding` type not exposed in `iced`.
+
+## [0.4.1] - 2022-05-02
+### Fixed
+- Version number in `README`.
+
+## [0.4.0] - 2022-05-02
+### Added
+- __[Stateless widgets][stateless]__ (#1284)  
+  A brand new widget API that removes the need to keep track of internal widget state. No more `button::State` in your application!
+
+- __[`Component` trait][component]__ (#1131)  
+  A new trait to implement custom widgets with internal mutable state while using composition and [The Elm Architecture].
+
+- __[`Responsive` widget][responsive]__ (#1193)  
+  A widget that is aware of its dimensions and can be used to easily build responsive user interfaces.
+
+- __[Experimental WebGL support][webgl]__ (#1096)  
+  Applications can now be rendered into an HTML `canvas` when targeting Wasm by leveraging the WebGL support in [`wgpu`]. Thanks to @pacmancoder and @kaimast!
+
+- __[Support for Raspberry Pis and older devices][raspberry]__ (#1160)  
+  The compatibility of our OpenGL renderer has been improved and should run on any hardware that supports OpenGL 3.0+ or OpenGL ES 2.0+. Additionally, we started maintaining [Docker images for `aarch64` and `armv7`](https://github.com/orgs/iced-rs/packages) to easily cross-compile `iced` applications and target Raspberry Pis. Thanks to @derezzedex!
+
+- __[Simpler `Renderer` APIs][renderer_apis]__ (#1110)  
+  The surface of the `Renderer` APIs of the library has been considerably reduced. Instead of a `Renderer` trait per widget, now there are only 3 traits that are reused by all the widgets.
+
+[webgl]: https://github.com/iced-rs/iced/pull/1096
+[renderer_apis]: https://github.com/iced-rs/iced/pull/1110
+[component]: https://github.com/iced-rs/iced/pull/1131
+[raspberry]: https://github.com/iced-rs/iced/pull/1160
+[responsive]: https://github.com/iced-rs/iced/pull/1193
+[stateless]: https://github.com/iced-rs/iced/pull/1284
+[The Elm Architecture]: https://guide.elm-lang.org/architecture/
+[`wgpu`]: https://github.com/gfx-rs/wgpu
+
+
 ## [0.3.0] - 2021-03-31
 ### Added
 - Touch support. [#57] [#650] (thanks to @simlay and @discordance!)
@@ -219,7 +257,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.4.2...HEAD
+[0.4.2]: https://github.com/iced-rs/iced/compare/0.4.1...0.4.2
+[0.4.1]: https://github.com/iced-rs/iced/compare/0.4.0...0.4.1
+[0.4.0]: https://github.com/iced-rs/iced/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/iced-rs/iced/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/iced-rs/iced/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/iced-rs/iced/compare/0.1.0...0.1.1

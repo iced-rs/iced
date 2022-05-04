@@ -19,19 +19,19 @@
 //!
 //! Check out the [repository] and the [examples] for more details!
 //!
-//! [Cross-platform support]: https://github.com/hecrj/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
+//! [Cross-platform support]: https://github.com/iced-rs/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
 //! [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
 //! [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 //! [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
-//! [Modular ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
-//! [renderer-agnostic native runtime]: https://github.com/hecrj/iced/tree/master/native
+//! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
+//! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/0.4/master/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-//! [built-in renderer]: https://github.com/hecrj/iced/tree/master/wgpu
-//! [windowing shell]: https://github.com/hecrj/iced/tree/master/winit
+//! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.4/wgpu
+//! [windowing shell]: https://github.com/iced-rs/iced/tree/0.4/winit
 //! [`dodrio`]: https://github.com/fitzgen/dodrio
-//! [web runtime]: https://github.com/hecrj/iced/tree/master/web
-//! [examples]: https://github.com/hecrj/iced/tree/0.3/examples
-//! [repository]: https://github.com/hecrj/iced
+//! [web runtime]: https://github.com/iced-rs/iced_web
+//! [examples]: https://github.com/iced-rs/iced/tree/0.4/examples
+//! [repository]: https://github.com/iced-rs/iced
 //!
 //! # Overview
 //! Inspired by [The Elm Architecture], Iced expects you to split user
@@ -196,6 +196,7 @@ pub mod widget;
 pub mod window;
 
 #[cfg(feature = "pure")]
+#[cfg_attr(docsrs, doc(cfg(feature = "pure")))]
 pub mod pure;
 
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
@@ -225,8 +226,8 @@ pub use settings::Settings;
 pub use runtime::alignment;
 pub use runtime::futures;
 pub use runtime::{
-    Alignment, Background, Color, Command, ContentFit, Font, Length, Point,
-    Rectangle, Size, Subscription, Vector,
+    Alignment, Background, Color, Command, ContentFit, Font, Length, Padding,
+    Point, Rectangle, Size, Subscription, Vector,
 };
 
 #[cfg(feature = "system")]

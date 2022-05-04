@@ -1,3 +1,4 @@
+//! Show toggle controls using togglers.
 use crate::widget::{Tree, Widget};
 use crate::Element;
 

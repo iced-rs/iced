@@ -1,9 +1,9 @@
 //! A [`glow`] renderer for [`iced_native`].
 //!
-//! ![The native path of the Iced ecosystem](https://github.com/hecrj/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
+//! ![The native path of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
 //!
 //! [`glow`]: https://github.com/grovesNL/glow
-//! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.4/native
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
@@ -37,5 +37,5 @@ pub use iced_native::{Alignment, Background, Color, Command, Length, Vector};
 /// A [`glow`] graphics renderer for [`iced`].
 ///
 /// [`glow`]: https://github.com/grovesNL/glow
-/// [`iced`]: https://github.com/hecrj/iced
+/// [`iced`]: https://github.com/iced-rs/iced
 pub type Renderer = iced_graphics::Renderer<Backend>;

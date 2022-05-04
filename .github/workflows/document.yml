@@ -10,13 +10,19 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
     steps:
     - uses: hecrj/setup-rust-action@v1
+      with:
+        rust-version: nightly
     - uses: actions/checkout@v2
     - name: Generate documentation
       run: |
-        cargo doc --no-deps --all-features \
+        RUSTDOCFLAGS="--cfg docsrs" \
+          cargo doc --no-deps --all-features \
           -p iced_core \
+          -p iced_style \
+          -p iced_futures \
           -p iced_native \
           -p iced_lazy \
+          -p iced_pure \
           -p iced_graphics \
           -p iced_wgpu \
           -p iced_glow \

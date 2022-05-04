@@ -11,6 +11,7 @@ use iced_native::{
     Alignment, Clipboard, Length, Padding, Point, Rectangle, Shell,
 };
 
+/// A container that distributes its contents horizontally.
 pub struct Row<'a, Message, Renderer> {
     spacing: u16,
     padding: Padding,
@@ -21,10 +22,12 @@ pub struct Row<'a, Message, Renderer> {
 }
 
 impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
+    /// Creates an empty [`Row`].
     pub fn new() -> Self {
         Self::with_children(Vec::new())
     }
 
+    /// Creates a [`Row`] with the given elements.
     pub fn with_children(
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
@@ -38,31 +41,41 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         }
     }
 
+    /// Sets the horizontal spacing _between_ elements.
+    ///
+    /// Custom margins per element do not exist in iced. You should use this
+    /// method instead! While less flexible, it helps you keep spacing between
+    /// elements consistent.
     pub fn spacing(mut self, units: u16) -> Self {
         self.spacing = units;
         self
     }
 
+    /// Sets the [`Padding`] of the [`Row`].
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
         self
     }
 
+    /// Sets the width of the [`Row`].
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
         self
     }
 
+    /// Sets the height of the [`Row`].
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
+    /// Sets the vertical alignment of the contents of the [`Row`] .
     pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
         self
     }
 
+    /// Adds an [`Element`] to the [`Row`].
     pub fn push(
         mut self,
         child: impl Into<Element<'a, Message, Renderer>>,

@@ -23,8 +23,8 @@
 //! - Build a new renderer, see the [renderer] module.
 //! - Build a custom widget, start at the [`Widget`] trait.
 //!
-//! [`iced_core`]: https://github.com/iced-rs/iced/tree/master/core
-//! [`iced_winit`]: https://github.com/iced-rs/iced/tree/master/winit
+//! [`iced_core`]: https://github.com/iced-rs/iced/tree/0.4/core
+//! [`iced_winit`]: https://github.com/iced-rs/iced/tree/0.4/winit
 //! [`druid`]: https://github.com/xi-editor/druid
 //! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
 //! [renderer]: crate::renderer

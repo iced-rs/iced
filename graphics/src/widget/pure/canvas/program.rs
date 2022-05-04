@@ -10,10 +10,10 @@ use crate::Rectangle;
 ///
 /// [`Canvas`]: crate::widget::Canvas
 pub trait Program<Message> {
-    /// The internal [`State`] mutated by the [`Program`].
+    /// The internal state mutated by the [`Program`].
     type State: Default + 'static;
 
-    /// Updates the state of the [`Program`].
+    /// Updates the [`State`](Self::State) of the [`Program`].
     ///
     /// When a [`Program`] is used in a [`Canvas`], the runtime will call this
     /// method for each [`Event`].

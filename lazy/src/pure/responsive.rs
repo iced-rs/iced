@@ -67,12 +67,13 @@ impl<'a, Message, Renderer> Content<'a, Message, Renderer> {
 
         self.element = view(new_size);
         self.size = new_size;
+
+        tree.diff(&self.element);
+
         self.layout = self
             .element
             .as_widget()
             .layout(renderer, &layout::Limits::new(Size::ZERO, self.size));
-
-        tree.diff(&self.element);
     }
 
     fn resolve<R, T>(

@@ -47,7 +47,7 @@ pub mod pane_grid {
     //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
     //! drag and drop, and hotkey support.
     //!
-    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.3/examples/pane_grid
+    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.4/examples/pane_grid
     pub use iced_pure::widget::pane_grid::{
         Axis, Configuration, Direction, DragEvent, Line, Node, Pane,
         ResizeEvent, Split, State, StyleSheet,
@@ -118,6 +118,15 @@ pub mod text_input {
         iced_pure::widget::TextInput<'a, Message, Renderer>;
 }
 
+pub mod tooltip {
+    //! Display a widget over another.
+    pub use iced_pure::widget::tooltip::Position;
+
+    /// A widget allowing the selection of a single value from a list of options.
+    pub type Tooltip<'a, Message> =
+        iced_pure::widget::Tooltip<'a, Message, crate::Renderer>;
+}
+
 pub use iced_pure::widget::progress_bar;
 pub use iced_pure::widget::rule;
 pub use iced_pure::widget::slider;
@@ -135,6 +144,7 @@ pub use scrollable::Scrollable;
 pub use slider::Slider;
 pub use text_input::TextInput;
 pub use toggler::Toggler;
+pub use tooltip::Tooltip;
 
 #[cfg(feature = "canvas")]
 pub use iced_graphics::widget::pure::canvas;
