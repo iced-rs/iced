@@ -1,14 +1,17 @@
 use crate::system;
 
 use iced_futures::MaybeSend;
-
 use std::fmt;
 
 /// An operation to be performed on the system.
 pub enum Action<T> {
     /// Query system information and produce `T` with the result.
-    QueryInformation(Box<dyn Fn(system::Information) -> T>),
+    QueryInformation(Box<dyn Closure<T>>),
 }
+
+pub trait Closure<T>: Fn(system::Information) -> T + MaybeSend {}
+
+impl<T, O> Closure<O> for T where T: Fn(system::Information) -> O + MaybeSend {}
 
 impl<T> Action<T> {
     /// Maps the output of a system [`Action`] using the provided closure.

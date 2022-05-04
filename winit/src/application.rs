@@ -583,14 +583,19 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                 system::Action::QueryInformation(_tag) => {
                     #[cfg(feature = "system")]
                     {
-                        let information =
-                            crate::system::information(_graphics_info());
+                        let graphics_info = _graphics_info();
+                        let proxy = proxy.clone();
 
-                        let message = _tag(information);
+                        let _ = std::thread::spawn(move || {
+                            let information =
+                                crate::system::information(graphics_info);
 
-                        proxy
-                            .send_event(message)
-                            .expect("Send message to event loop");
+                            let message = _tag(information);
+
+                            proxy
+                                .send_event(message)
+                                .expect("Send message to event loop")
+                        });
                     }
                 }
             },

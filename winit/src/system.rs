@@ -6,7 +6,7 @@ use iced_graphics::compositor;
 
 /// Query for available system information.
 pub fn fetch_information<Message>(
-    f: impl Fn(Information) -> Message + 'static,
+    f: impl Fn(Information) -> Message + Send + 'static,
 ) -> Command<Message> {
     Command::single(command::Action::System(Action::QueryInformation(
         Box::new(f),
