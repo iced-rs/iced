@@ -581,7 +581,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
-                    #[cfg(feature = "sysinfo")]
+                    #[cfg(feature = "system")]
                     {
                         let information =
                             crate::system::information(_graphics_info());
