@@ -42,6 +42,8 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Refresh => {
+                *self = Self::Loading;
+
                 return system::fetch_information(Message::InformationReceived);
             }
             Message::InformationReceived(information) => {
