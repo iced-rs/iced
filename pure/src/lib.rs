@@ -87,11 +87,10 @@
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 
+pub mod flex;
 pub mod helpers;
 pub mod overlay;
 pub mod widget;
-
-pub(crate) mod flex;
 
 mod element;
 
