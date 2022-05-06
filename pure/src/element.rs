@@ -321,3 +321,11 @@ where
             .map(move |overlay| overlay.map(mapper))
     }
 }
+
+impl<'a, Message, Renderer> AsRef<dyn Widget<Message, Renderer> + 'a>
+    for Element<'a, Message, Renderer>
+{
+    fn as_ref(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+        self.widget.as_ref()
+    }
+}
