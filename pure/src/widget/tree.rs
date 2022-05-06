@@ -2,6 +2,7 @@
 use crate::Widget;
 
 use std::any::{self, Any};
+use std::borrow::Borrow;
 
 /// A persistent state widget tree.
 ///
@@ -29,9 +30,9 @@ impl Tree {
 
     /// Creates a new [`Tree`] for the provided [`Element`].
     pub fn new<'a, Message, Renderer>(
-        widget: impl AsRef<dyn Widget<Message, Renderer> + 'a>,
+        widget: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
     ) -> Self {
-        let widget = widget.as_ref();
+        let widget = widget.borrow();
 
         Self {
             tag: widget.tag(),
@@ -50,10 +51,10 @@ impl Tree {
     /// [`Widget::diff`]: crate::Widget::diff
     pub fn diff<'a, Message, Renderer>(
         &mut self,
-        new: impl AsRef<dyn Widget<Message, Renderer> + 'a>,
+        new: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
     ) {
-        if self.tag == new.as_ref().tag() {
-            new.as_ref().diff(self)
+        if self.tag == new.borrow().tag() {
+            new.borrow().diff(self)
         } else {
             *self = Self::new(new);
         }
@@ -62,12 +63,12 @@ impl Tree {
     /// Reconciliates the children of the tree with the provided list of [`Element`].
     pub fn diff_children<'a, Message, Renderer>(
         &mut self,
-        new_children: &[impl AsRef<dyn Widget<Message, Renderer> + 'a>],
+        new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],
     ) {
         self.diff_children_custom(
             new_children,
-            |tree, widget| Self::diff(tree, widget),
-            |widget| Self::new(widget),
+            |tree, widget| tree.diff(widget.borrow()),
+            |widget| Self::new(widget.borrow()),
         )
     }
 

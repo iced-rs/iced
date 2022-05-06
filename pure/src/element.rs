@@ -8,6 +8,8 @@ use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
+use std::borrow::Borrow;
+
 /// A generic [`Widget`].
 ///
 /// It is useful to build composable user interfaces that do not leak
@@ -322,10 +324,18 @@ where
     }
 }
 
-impl<'a, Message, Renderer> AsRef<dyn Widget<Message, Renderer> + 'a>
+impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
     for Element<'a, Message, Renderer>
 {
-    fn as_ref(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
-        self.widget.as_ref()
+    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow()
+    }
+}
+
+impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
+    for &Element<'a, Message, Renderer>
+{
+    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow()
     }
 }
