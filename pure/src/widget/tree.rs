@@ -1,7 +1,8 @@
 //! Store internal widget state in a state tree to ensure continuity.
-use crate::Element;
+use crate::Widget;
 
 use std::any::{self, Any};
+use std::borrow::Borrow;
 
 /// A persistent state widget tree.
 ///
@@ -28,13 +29,15 @@ impl Tree {
     }
 
     /// Creates a new [`Tree`] for the provided [`Element`].
-    pub fn new<Message, Renderer>(
-        element: &Element<'_, Message, Renderer>,
+    pub fn new<'a, Message, Renderer>(
+        widget: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
     ) -> Self {
+        let widget = widget.borrow();
+
         Self {
-            tag: element.as_widget().tag(),
-            state: element.as_widget().state(),
-            children: element.as_widget().children(),
+            tag: widget.tag(),
+            state: widget.state(),
+            children: widget.children(),
         }
     }
 
@@ -46,23 +49,27 @@ impl Tree {
     /// Otherwise, the whole [`Tree`] is recreated.
     ///
     /// [`Widget::diff`]: crate::Widget::diff
-    pub fn diff<Message, Renderer>(
+    pub fn diff<'a, Message, Renderer>(
         &mut self,
-        new: &Element<'_, Message, Renderer>,
+        new: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
     ) {
-        if self.tag == new.as_widget().tag() {
-            new.as_widget().diff(self)
+        if self.tag == new.borrow().tag() {
+            new.borrow().diff(self)
         } else {
             *self = Self::new(new);
         }
     }
 
     /// Reconciliates the children of the tree with the provided list of [`Element`].
-    pub fn diff_children<Message, Renderer>(
+    pub fn diff_children<'a, Message, Renderer>(
         &mut self,
-        new_children: &[Element<'_, Message, Renderer>],
+        new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],
     ) {
-        self.diff_children_custom(new_children, Self::diff, Self::new)
+        self.diff_children_custom(
+            new_children,
+            |tree, widget| tree.diff(widget.borrow()),
+            |widget| Self::new(widget.borrow()),
+        )
     }
 
     /// Reconciliates the children of the tree with the provided list of [`Element`] using custom
