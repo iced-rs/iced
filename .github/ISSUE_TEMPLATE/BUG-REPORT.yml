@@ -57,7 +57,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: What version of iced are you using?
+      description: What version of iced are you using? Please ensure it's the latest patch.
       options:
         - master
         - "0.4"
