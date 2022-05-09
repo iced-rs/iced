@@ -60,10 +60,7 @@ body:
       description: What version of iced are you using?
       options:
         - master
-        - 0.4.2
-        - 0.4.1
-        - 0.4.0
-        - 0.3.0
+        - "0.4"
     validations:
       required: true
   - type: dropdown
