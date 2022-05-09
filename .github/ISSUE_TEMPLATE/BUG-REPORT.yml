@@ -58,12 +58,9 @@ body:
     attributes:
       label: Version
       description: |
-        We only offer support for the `0.4` release on crates.io and the `master`
-        branch on this repository. Which version are you using? Please make sure
-        you are using the latest patch available (e.g. run `cargo update`).
+        We only offer support for the `0.4` release on crates.io and the `master` branch on this repository. Which version are you using? Please make sure you are using the latest patch available (e.g. run `cargo update`).
 
-        If you are using an older release, please upgrade to `0.4` before filing
-        an issue.
+        If you are using an older release, please upgrade to `0.4` before filing an issue.
       options:
         - master
         - 0.4
