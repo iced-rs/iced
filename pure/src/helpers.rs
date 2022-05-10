@@ -202,7 +202,7 @@ pub fn horizontal_rule<'a>(height: u16) -> widget::Rule<'a> {
 ///
 /// [`Rule`]: widget::Rule
 pub fn vertical_rule<'a>(width: u16) -> widget::Rule<'a> {
-    widget::Rule::horizontal(width)
+    widget::Rule::vertical(width)
 }
 
 /// Creates a new [`ProgressBar`].
