@@ -415,6 +415,35 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
+        if self
+            .overlay
+            .as_ref()
+            .and_then(|overlay| overlay.borrow_overlay().as_ref())
+            .is_none()
+        {
+            let overlay = self.overlay.take().unwrap().into_heads();
+
+            self.overlay = Some(
+                OverlayBuilder {
+                    instance: overlay.instance,
+                    instance_ref_builder: |instance| instance.state.borrow(),
+                    tree: overlay.tree,
+                    types: PhantomData,
+                    overlay_builder: |instance, tree| {
+                        instance
+                            .as_ref()
+                            .unwrap()
+                            .borrow_element()
+                            .as_ref()
+                            .unwrap()
+                            .as_widget()
+                            .overlay(&mut tree.children[0], layout, renderer)
+                    },
+                }
+                .build(),
+            );
+        }
+
         let event_status = self
             .with_overlay_mut_maybe(|overlay| {
                 overlay.on_event(
@@ -464,16 +493,7 @@ where
                     instance_ref_builder: |instance| instance.state.borrow(),
                     tree: overlay.tree,
                     types: PhantomData,
-                    overlay_builder: |instance, tree| {
-                        instance
-                            .as_ref()
-                            .unwrap()
-                            .borrow_element()
-                            .as_ref()
-                            .unwrap()
-                            .as_widget()
-                            .overlay(&mut tree.children[0], layout, renderer)
-                    },
+                    overlay_builder: |_, _| None,
                 }
                 .build(),
             );
