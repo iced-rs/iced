@@ -4,7 +4,7 @@ pub use iced_graphics::Antialiasing;
 /// The settings of a [`Backend`].
 ///
 /// [`Backend`]: crate::Backend
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Settings {
     /// The bytes of the font that will be used by default.
     ///
@@ -36,6 +36,18 @@ impl Default for Settings {
             text_multithreading: false,
             antialiasing: None,
         }
+    }
+}
+
+impl std::fmt::Debug for Settings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Settings")
+            // Instead of printing the font bytes, we simply show a `bool` indicating if using a default font or not.
+            .field("default_font", &self.default_font.is_none())
+            .field("default_text_size", &self.default_text_size)
+            .field("text_multithreading", &self.text_multithreading)
+            .field("antialiasing", &self.antialiasing)
+            .finish()
     }
 }
 

@@ -11,17 +11,13 @@ pub enum Error {
     #[error("the application window could not be created")]
     WindowCreationFailed(winit::error::OsError),
 
-    /// A suitable graphics adapter or device could not be found.
-    #[error("a suitable graphics adapter or device could not be found")]
-    GraphicsAdapterNotFound,
+    /// The application graphics context could not be created.
+    #[error("the application graphics context could not be created")]
+    GraphicsCreationFailed(iced_graphics::Error),
 }
 
 impl From<iced_graphics::Error> for Error {
     fn from(error: iced_graphics::Error) -> Error {
-        match error {
-            iced_graphics::Error::AdapterNotFound => {
-                Error::GraphicsAdapterNotFound
-            }
-        }
+        Error::GraphicsCreationFailed(error)
     }
 }

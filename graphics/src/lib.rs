@@ -39,6 +39,7 @@ pub use primitive::Primitive;
 pub use renderer::Renderer;
 pub use transformation::Transformation;
 pub use viewport::Viewport;
+pub use window::compositor;
 
 pub use iced_native::alignment;
 pub use iced_native::{

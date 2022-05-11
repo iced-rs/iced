@@ -13,6 +13,7 @@ use crate::{
 
 use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
+use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
@@ -137,14 +138,16 @@ where
 
     let subscription = application.subscription();
 
-    let window = settings
-        .window
-        .into_builder(
-            &application.title(),
-            application.mode(),
-            event_loop.primary_monitor(),
-            settings.id,
-        )
+    let builder = settings.window.into_builder(
+        &application.title(),
+        application.mode(),
+        event_loop.primary_monitor(),
+        settings.id,
+    );
+
+    log::info!("Window builder: {:#?}", builder);
+
+    let window = builder
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
@@ -165,16 +168,17 @@ where
 
     let mut clipboard = Clipboard::connect(&window);
 
+    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
+
     run_command(
         init_command,
         &mut runtime,
         &mut clipboard,
         &mut proxy,
         &window,
+        || compositor.fetch_information(),
     );
     runtime.track(subscription);
-
-    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
     let (mut sender, receiver) = mpsc::unbounded();
 
@@ -315,6 +319,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         &window,
+                        || compositor.fetch_information(),
                     );
 
                     // Update window
@@ -420,7 +425,7 @@ async fn run_instance<A, E, C>(
                     }
                     Err(error) => match error {
                         // This is an unrecoverable error.
-                        window::SurfaceError::OutOfMemory => {
+                        compositor::SurfaceError::OutOfMemory => {
                             panic!("{:?}", error);
                         }
                         _ => {
@@ -514,6 +519,7 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
+    graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -522,7 +528,7 @@ pub fn update<A: Application, E: Executor>(
         let command = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        run_command(command, runtime, clipboard, proxy, window);
+        run_command(command, runtime, clipboard, proxy, window, graphics_info);
     }
 
     let subscription = application.subscription();
@@ -536,8 +542,10 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
     window: &winit::window::Window,
+    _graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) {
     use iced_native::command;
+    use iced_native::system;
     use iced_native::window;
 
     for action in command.actions() {
@@ -569,6 +577,26 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                         x,
                         y,
                     });
+                }
+            },
+            command::Action::System(action) => match action {
+                system::Action::QueryInformation(_tag) => {
+                    #[cfg(feature = "system")]
+                    {
+                        let graphics_info = _graphics_info();
+                        let proxy = proxy.clone();
+
+                        let _ = std::thread::spawn(move || {
+                            let information =
+                                crate::system::information(graphics_info);
+
+                            let message = _tag(information);
+
+                            proxy
+                                .send_event(message)
+                                .expect("Send message to event loop")
+                        });
+                    }
                 }
             },
         }

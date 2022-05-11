@@ -1,6 +1,7 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::task::SpawnExt;
+use iced_graphics::compositor;
 use iced_native::futures;
 use raw_window_handle::HasRawWindowHandle;
 
@@ -9,6 +10,7 @@ use raw_window_handle::HasRawWindowHandle;
 pub struct Compositor {
     settings: Settings,
     instance: wgpu::Instance,
+    adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     staging_belt: wgpu::util::StagingBelt,
@@ -28,6 +30,17 @@ impl Compositor {
     ) -> Option<Self> {
         let instance = wgpu::Instance::new(settings.internal_backend);
 
+        log::info!("{:#?}", settings);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if log::max_level() >= log::LevelFilter::Info {
+            let available_adapters: Vec<_> = instance
+                .enumerate_adapters(settings.internal_backend)
+                .map(|adapter| adapter.get_info())
+                .collect();
+            log::info!("Available adapters: {:#?}", available_adapters);
+        }
+
         #[allow(unsafe_code)]
         let compatible_surface = compatible_window
             .map(|window| unsafe { instance.create_surface(window) });
@@ -44,9 +57,13 @@ impl Compositor {
             })
             .await?;
 
+        log::info!("Selected: {:#?}", adapter.get_info());
+
         let format = compatible_surface
             .as_ref()
             .and_then(|surface| surface.get_preferred_format(&adapter))?;
+
+        log::info!("Selected format: {:?}", format);
 
         #[cfg(target_arch = "wasm32")]
         let limits = wgpu::Limits::downlevel_webgl2_defaults()
@@ -78,6 +95,7 @@ impl Compositor {
         Some(Compositor {
             instance,
             settings,
+            adapter,
             device,
             queue,
             staging_belt,
@@ -105,7 +123,7 @@ impl iced_graphics::window::Compositor for Compositor {
             settings,
             compatible_window,
         ))
-        .ok_or(Error::AdapterNotFound)?;
+        .ok_or(Error::GraphicsAdapterNotFound)?;
 
         let backend = compositor.create_backend();
 
@@ -140,6 +158,15 @@ impl iced_graphics::window::Compositor for Compositor {
         );
     }
 
+    fn fetch_information(&self) -> compositor::Information {
+        let information = self.adapter.get_info();
+
+        compositor::Information {
+            adapter: information.name,
+            backend: format!("{:?}", information.backend),
+        }
+    }
+
     fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
@@ -147,7 +174,7 @@ impl iced_graphics::window::Compositor for Compositor {
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
-    ) -> Result<(), iced_graphics::window::SurfaceError> {
+    ) -> Result<(), compositor::SurfaceError> {
         match surface.get_current_texture() {
             Ok(frame) => {
                 let mut encoder = self.device.create_command_encoder(
@@ -215,16 +242,14 @@ impl iced_graphics::window::Compositor for Compositor {
             }
             Err(error) => match error {
                 wgpu::SurfaceError::Timeout => {
-                    Err(iced_graphics::window::SurfaceError::Timeout)
+                    Err(compositor::SurfaceError::Timeout)
                 }
                 wgpu::SurfaceError::Outdated => {
-                    Err(iced_graphics::window::SurfaceError::Outdated)
+                    Err(compositor::SurfaceError::Outdated)
                 }
-                wgpu::SurfaceError::Lost => {
-                    Err(iced_graphics::window::SurfaceError::Lost)
-                }
+                wgpu::SurfaceError::Lost => Err(compositor::SurfaceError::Lost),
                 wgpu::SurfaceError::OutOfMemory => {
-                    Err(iced_graphics::window::SurfaceError::OutOfMemory)
+                    Err(compositor::SurfaceError::OutOfMemory)
                 }
             },
         }

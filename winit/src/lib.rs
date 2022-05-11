@@ -33,6 +33,9 @@ pub mod conversion;
 pub mod settings;
 pub mod window;
 
+#[cfg(feature = "system")]
+pub mod system;
+
 mod error;
 mod mode;
 mod position;

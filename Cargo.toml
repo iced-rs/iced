@@ -42,6 +42,8 @@ smol = ["iced_futures/smol"]
 palette = ["iced_core/palette"]
 # Enables pure, virtual widgets in the `pure` module
 pure = ["iced_pure", "iced_graphics/pure"]
+# Enables querying system information
+system = ["iced_winit/system"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -82,19 +84,20 @@ members = [
     "examples/stopwatch",
     "examples/styling",
     "examples/svg",
+    "examples/system_information",
     "examples/todos",
     "examples/tooltip",
     "examples/tour",
     "examples/url_handler",
+    "examples/websocket",
     "examples/pure/component",
     "examples/pure/counter",
     "examples/pure/game_of_life",
     "examples/pure/pane_grid",
     "examples/pure/pick_list",
     "examples/pure/todos",
-    "examples/pure/tour",
     "examples/pure/tooltip",
-    "examples/websocket",
+    "examples/pure/tour",
 ]
 
 [dependencies]

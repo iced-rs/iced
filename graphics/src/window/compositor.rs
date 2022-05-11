@@ -1,3 +1,5 @@
+//! A compositor is responsible for initializing a renderer and managing window
+//! surfaces.
 use crate::{Color, Error, Viewport};
 
 use raw_window_handle::HasRawWindowHandle;
@@ -38,6 +40,9 @@ pub trait Compositor: Sized {
         height: u32,
     );
 
+    /// Returns [`GraphicsInformation`] used by this [`Compositor`].
+    fn fetch_information(&self) -> Information;
+
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
     ///
     /// [`Renderer`]: Self::Renderer
@@ -71,4 +76,13 @@ pub enum SurfaceError {
     /// There is no more memory left to allocate a new frame.
     #[error("There is no more memory left to allocate a new frame")]
     OutOfMemory,
+}
+
+/// Contains informations about the graphics (e.g. graphics adapter, graphics backend).
+#[derive(Debug)]
+pub struct Information {
+    /// Contains the graphics adapter.
+    pub adapter: String,
+    /// Contains the graphics backend.
+    pub backend: String,
 }

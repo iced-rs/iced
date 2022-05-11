@@ -11,9 +11,9 @@ pub enum Error {
     #[error("the application window could not be created")]
     WindowCreationFailed(Box<dyn std::error::Error + Send + Sync>),
 
-    /// A suitable graphics adapter or device could not be found.
-    #[error("a suitable graphics adapter or device could not be found")]
-    GraphicsAdapterNotFound,
+    /// The application graphics context could not be created.
+    #[error("the application graphics context could not be created")]
+    GraphicsCreationFailed(iced_graphics::Error),
 }
 
 impl From<iced_winit::Error> for Error {
@@ -25,8 +25,8 @@ impl From<iced_winit::Error> for Error {
             iced_winit::Error::WindowCreationFailed(error) => {
                 Error::WindowCreationFailed(Box::new(error))
             }
-            iced_winit::Error::GraphicsAdapterNotFound => {
-                Error::GraphicsAdapterNotFound
+            iced_winit::Error::GraphicsCreationFailed(error) => {
+                Error::GraphicsCreationFailed(error)
             }
         }
     }

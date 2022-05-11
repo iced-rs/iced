@@ -61,6 +61,8 @@ where
             settings.id,
         );
 
+        log::info!("Window builder: {:#?}", builder);
+
         let opengl_builder = ContextBuilder::new()
             .with_vsync(true)
             .with_multisampling(C::sample_count(&compositor_settings) as u16);
@@ -75,17 +77,35 @@ where
             (opengl_builder, opengles_builder)
         };
 
+        log::info!("Trying first builder: {:#?}", first_builder);
+
         let context = first_builder
             .build_windowed(builder.clone(), &event_loop)
-            .or_else(|_| second_builder.build_windowed(builder, &event_loop))
+            .or_else(|_| {
+                log::info!("Trying second builder: {:#?}", second_builder);
+                second_builder.build_windowed(builder, &event_loop)
+            })
             .map_err(|error| {
                 use glutin::CreationError;
+                use iced_graphics::Error as ContextError;
 
                 match error {
                     CreationError::Window(error) => {
                         Error::WindowCreationFailed(error)
                     }
-                    _ => Error::GraphicsAdapterNotFound,
+                    CreationError::OpenGlVersionNotSupported => {
+                        Error::GraphicsCreationFailed(
+                            ContextError::VersionNotSupported,
+                        )
+                    }
+                    CreationError::NoAvailablePixelFormat => {
+                        Error::GraphicsCreationFailed(
+                            ContextError::NoAvailablePixelFormat,
+                        )
+                    }
+                    error => Error::GraphicsCreationFailed(
+                        ContextError::BackendError(error.to_string()),
+                    ),
                 }
             })?;
 
@@ -110,6 +130,7 @@ where
         &mut clipboard,
         &mut proxy,
         context.window(),
+        || compositor.fetch_information(),
     );
     runtime.track(subscription);
 
@@ -244,6 +265,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         context.window(),
+                        || compositor.fetch_information(),
                     );
 
                     // Update window

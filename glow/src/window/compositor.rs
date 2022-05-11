@@ -2,7 +2,7 @@ use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use core::ffi::c_void;
 use glow::HasContext;
-use iced_graphics::{Antialiasing, Size};
+use iced_graphics::{compositor, Antialiasing, Size};
 
 /// A window graphics backend for iced powered by `glow`.
 #[allow(missing_debug_implementations)]
@@ -19,6 +19,8 @@ impl iced_graphics::window::GLCompositor for Compositor {
         loader_function: impl FnMut(&str) -> *const c_void,
     ) -> Result<(Self, Self::Renderer), Error> {
         let gl = glow::Context::from_loader_function(loader_function);
+
+        log::info!("{:#?}", settings);
 
         let version = gl.version();
         log::info!("Version: {:?}", version);
@@ -62,6 +64,15 @@ impl iced_graphics::window::GLCompositor for Compositor {
                 physical_size.width as i32,
                 physical_size.height as i32,
             );
+        }
+    }
+
+    fn fetch_information(&self) -> compositor::Information {
+        let adapter = unsafe { self.gl.get_parameter_string(glow::RENDERER) };
+
+        compositor::Information {
+            backend: format!("{:?}", self.gl.version()),
+            adapter,
         }
     }
 
