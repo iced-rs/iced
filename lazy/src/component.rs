@@ -376,38 +376,6 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        if self
-            .instance
-            .state
-            .borrow()
-            .as_ref()
-            .and_then(|state| state.borrow_cache().as_ref())
-            .and_then(|cache| cache.borrow_overlay().as_ref())
-            .is_none()
-        {
-            let component =
-                self.instance.state.take().unwrap().into_heads().component;
-
-            self.instance.state = RefCell::new(Some(
-                StateBuilder {
-                    component,
-                    message: PhantomData,
-                    cache_builder: |state| {
-                        Some(
-                            CacheBuilder {
-                                element: state.view(),
-                                overlay_builder: |element| {
-                                    element.overlay(layout, renderer)
-                                },
-                            }
-                            .build(),
-                        )
-                    },
-                }
-                .build(),
-            ));
-        }
-
         let event_status = self
             .with_overlay_mut_maybe(|overlay| {
                 overlay.on_event(
@@ -442,7 +410,9 @@ where
                         Some(
                             CacheBuilder {
                                 element: state.view(),
-                                overlay_builder: |_| None,
+                                overlay_builder: |element| {
+                                    element.overlay(layout, renderer)
+                                },
                             }
                             .build(),
                         )
