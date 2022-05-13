@@ -31,7 +31,10 @@ impl Tree {
     /// Creates a new [`Tree`] for the provided [`Element`].
     pub fn new<'a, Message, Renderer>(
         widget: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
-    ) -> Self {
+    ) -> Self
+    where
+        Renderer: iced_native::Renderer,
+    {
         let widget = widget.borrow();
 
         Self {
@@ -52,7 +55,9 @@ impl Tree {
     pub fn diff<'a, Message, Renderer>(
         &mut self,
         new: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
-    ) {
+    ) where
+        Renderer: iced_native::Renderer,
+    {
         if self.tag == new.borrow().tag() {
             new.borrow().diff(self)
         } else {
@@ -64,7 +69,9 @@ impl Tree {
     pub fn diff_children<'a, Message, Renderer>(
         &mut self,
         new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],
-    ) {
+    ) where
+        Renderer: iced_native::Renderer,
+    {
         self.diff_children_custom(
             new_children,
             |tree, widget| tree.diff(widget.borrow()),

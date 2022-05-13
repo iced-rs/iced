@@ -59,6 +59,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -81,6 +82,7 @@ where
 
             title_bar.draw(
                 renderer,
+                theme,
                 style,
                 title_bar_layout,
                 cursor_position,
@@ -90,14 +92,21 @@ where
 
             self.body.draw(
                 renderer,
+                theme,
                 style,
                 body_layout,
                 cursor_position,
                 viewport,
             );
         } else {
-            self.body
-                .draw(renderer, style, layout, cursor_position, viewport);
+            self.body.draw(
+                renderer,
+                theme,
+                style,
+                layout,
+                cursor_position,
+                viewport,
+            );
         }
     }
 

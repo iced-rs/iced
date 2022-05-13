@@ -50,25 +50,34 @@ use button::State;
 ///     disabled_button().on_press(Message::ButtonPressed)
 /// }
 /// ```
-pub struct Button<'a, Message, Renderer> {
+pub struct Button<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
     width: Length,
     height: Length,
     padding: Padding,
+    variant: <Renderer::Theme as StyleSheet>::Variant,
 }
 
-impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Button<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
+    <Renderer::Theme as StyleSheet>::Variant: Default,
+{
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Button {
             content: content.into(),
             on_press: None,
-            style_sheet: Default::default(),
             width: Length::Shrink,
             height: Length::Shrink,
             padding: Padding::new(5),
+            variant: <Renderer::Theme as StyleSheet>::Variant::default(),
         }
     }
 
@@ -98,12 +107,12 @@ impl<'a, Message, Renderer> Button<'a, Message, Renderer> {
         self
     }
 
-    /// Sets the style of the [`Button`].
+    /// Sets the style variant of this [`Button`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        variant: <Renderer::Theme as StyleSheet>::Variant,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.variant = variant;
         self
     }
 }
@@ -113,6 +122,8 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
+    <Renderer::Theme as StyleSheet>::Variant: Copy,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -191,6 +202,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -204,13 +216,15 @@ where
             bounds,
             cursor_position,
             self.on_press.is_some(),
-            self.style_sheet.as_ref(),
+            theme,
+            self.variant,
             || tree.state.downcast_ref::<State>(),
         );
 
         self.content.as_widget().draw(
             &tree.children[0],
             renderer,
+            theme,
             &renderer::Style {
                 text_color: styling.text_color,
             },
@@ -254,6 +268,8 @@ impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
 where
     Message: Clone + 'a,
     Renderer: iced_native::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
+    <Renderer::Theme as StyleSheet>::Variant: Copy,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

@@ -1,7 +1,13 @@
+use iced::alignment;
+use iced::button;
+use iced::executor;
+use iced::theme::{self, Theme};
+use iced::time;
 use iced::{
-    alignment, button, executor, time, Alignment, Application, Button, Column,
-    Command, Container, Element, Length, Row, Settings, Subscription, Text,
+    Alignment, Application, Button, Column, Command, Container, Element,
+    Length, Row, Settings, Subscription, Text,
 };
+
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
@@ -28,8 +34,9 @@ enum Message {
 }
 
 impl Application for Stopwatch {
-    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Stopwatch, Command<Message>) {
@@ -99,7 +106,7 @@ impl Application for Stopwatch {
         ))
         .size(40);
 
-        let button = |state, label, style| {
+        let button = |state, label| {
             Button::new(
                 state,
                 Text::new(label)
@@ -107,21 +114,20 @@ impl Application for Stopwatch {
             )
             .padding(10)
             .width(Length::Units(80))
-            .style(style)
         };
 
         let toggle_button = {
-            let (label, color) = match self.state {
-                State::Idle => ("Start", style::Button::Primary),
-                State::Ticking { .. } => ("Stop", style::Button::Destructive),
+            let label = match self.state {
+                State::Idle => "Start",
+                State::Ticking { .. } => "Stop",
             };
 
-            button(&mut self.toggle, label, color).on_press(Message::Toggle)
+            button(&mut self.toggle, label).on_press(Message::Toggle)
         };
 
-        let reset_button =
-            button(&mut self.reset, "Reset", style::Button::Secondary)
-                .on_press(Message::Reset);
+        let reset_button = button(&mut self.reset, "Reset")
+            .style(theme::Button::Destructive)
+            .on_press(Message::Reset);
 
         let controls = Row::new()
             .spacing(20)
@@ -140,31 +146,5 @@ impl Application for Stopwatch {
             .center_x()
             .center_y()
             .into()
-    }
-}
-
-mod style {
-    use iced::{button, Background, Color, Vector};
-
-    pub enum Button {
-        Primary,
-        Secondary,
-        Destructive,
-    }
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            button::Style {
-                background: Some(Background::Color(match self {
-                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
-                    Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
-                    Button::Destructive => Color::from_rgb(0.8, 0.2, 0.2),
-                })),
-                border_radius: 12.0,
-                shadow_offset: Vector::new(1.0, 1.0),
-                text_color: Color::WHITE,
-                ..button::Style::default()
-            }
-        }
     }
 }

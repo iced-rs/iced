@@ -1,7 +1,11 @@
+use iced::button;
+use iced::scrollable;
+use iced::slider;
+use iced::text_input;
 use iced::{
-    button, scrollable, slider, text_input, Alignment, Button, Checkbox,
-    Column, Container, Element, Length, ProgressBar, Radio, Row, Rule, Sandbox,
-    Scrollable, Settings, Slider, Space, Text, TextInput, Toggler,
+    Alignment, Button, Checkbox, Column, Container, Element, Length,
+    ProgressBar, Radio, Row, Rule, Sandbox, Scrollable, Settings, Slider,
+    Space, Text, TextInput, Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -81,8 +85,7 @@ impl Sandbox for Styling {
 
         let button = Button::new(&mut self.button, Text::new("Submit"))
             .padding(10)
-            .on_press(Message::ButtonPressed)
-            .style(self.theme);
+            .on_press(Message::ButtonPressed);
 
         let slider = Slider::new(
             &mut self.slider,
@@ -156,8 +159,8 @@ impl Sandbox for Styling {
 
 mod style {
     use iced::{
-        button, checkbox, container, progress_bar, radio, rule, scrollable,
-        slider, text_input, toggler,
+        checkbox, container, progress_bar, radio, rule, scrollable, slider,
+        text_input, toggler,
     };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -199,15 +202,6 @@ mod style {
             match theme {
                 Theme::Light => Default::default(),
                 Theme::Dark => dark::TextInput.into(),
-            }
-        }
-    }
-
-    impl<'a> From<Theme> for Box<dyn button::StyleSheet + 'a> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => light::Button.into(),
-                Theme::Dark => dark::Button.into(),
             }
         }
     }
@@ -266,36 +260,10 @@ mod style {
         }
     }
 
-    mod light {
-        use iced::{button, Color, Vector};
-
-        pub struct Button;
-
-        impl button::StyleSheet for Button {
-            fn active(&self) -> button::Style {
-                button::Style {
-                    background: Color::from_rgb(0.11, 0.42, 0.87).into(),
-                    border_radius: 12.0,
-                    shadow_offset: Vector::new(1.0, 1.0),
-                    text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
-                    ..button::Style::default()
-                }
-            }
-
-            fn hovered(&self) -> button::Style {
-                button::Style {
-                    text_color: Color::WHITE,
-                    shadow_offset: Vector::new(1.0, 2.0),
-                    ..self.active()
-                }
-            }
-        }
-    }
-
     mod dark {
         use iced::{
-            button, checkbox, container, progress_bar, radio, rule, scrollable,
-            slider, text_input, toggler, Color,
+            checkbox, container, progress_bar, radio, rule, scrollable, slider,
+            text_input, toggler, Color,
         };
 
         const SURFACE: Color = Color::from_rgb(
@@ -393,35 +361,6 @@ mod style {
 
             fn selection_color(&self) -> Color {
                 ACTIVE
-            }
-        }
-
-        pub struct Button;
-
-        impl button::StyleSheet for Button {
-            fn active(&self) -> button::Style {
-                button::Style {
-                    background: ACTIVE.into(),
-                    border_radius: 3.0,
-                    text_color: Color::WHITE,
-                    ..button::Style::default()
-                }
-            }
-
-            fn hovered(&self) -> button::Style {
-                button::Style {
-                    background: HOVERED.into(),
-                    text_color: Color::WHITE,
-                    ..self.active()
-                }
-            }
-
-            fn pressed(&self) -> button::Style {
-                button::Style {
-                    border_width: 1.0,
-                    border_color: Color::WHITE,
-                    ..self.hovered()
-                }
             }
         }
 

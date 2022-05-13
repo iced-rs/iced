@@ -51,6 +51,9 @@ pub trait Application: Program {
     /// title of your application when necessary.
     fn title(&self) -> String;
 
+    /// Returns the current [`Theme`] of the [`Application`].
+    fn theme(&self) -> <Self::Renderer as iced_native::Renderer>::Theme;
+
     /// Returns the event `Subscription` for the current state of the
     /// application.
     ///
@@ -255,6 +258,7 @@ async fn run_instance<A, E, C>(
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
+    let mut theme = application.theme();
 
     let physical_size = state.physical_size();
 
@@ -327,6 +331,7 @@ async fn run_instance<A, E, C>(
 
                     let should_exit = application.should_exit();
 
+                    theme = application.theme();
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &mut application,
                         cache,
@@ -341,8 +346,11 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.draw_started();
-                let new_mouse_interaction =
-                    user_interface.draw(&mut renderer, state.cursor_position());
+                let new_mouse_interaction = user_interface.draw(
+                    &mut renderer,
+                    &theme,
+                    state.cursor_position(),
+                );
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
@@ -389,8 +397,11 @@ async fn run_instance<A, E, C>(
                     debug.layout_finished();
 
                     debug.draw_started();
-                    let new_mouse_interaction = user_interface
-                        .draw(&mut renderer, state.cursor_position());
+                    let new_mouse_interaction = user_interface.draw(
+                        &mut renderer,
+                        &theme,
+                        state.cursor_position(),
+                    );
 
                     if new_mouse_interaction != mouse_interaction {
                         window.set_cursor_icon(conversion::mouse_interaction(

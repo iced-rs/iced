@@ -113,6 +113,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -136,6 +137,7 @@ where
         self.content.as_widget().draw(
             &tree.children[0],
             renderer,
+            theme,
             &inherited_style,
             title_layout,
             cursor_position,
@@ -149,6 +151,7 @@ where
                 controls.as_widget().draw(
                     &tree.children[1],
                     renderer,
+                    theme,
                     &inherited_style,
                     controls_layout,
                     cursor_position,

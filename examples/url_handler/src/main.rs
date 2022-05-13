@@ -1,6 +1,7 @@
+use iced::executor;
 use iced::{
-    executor, Application, Command, Container, Element, Length, Settings,
-    Subscription, Text,
+    Application, Command, Container, Element, Length, Settings, Subscription,
+    Text, Theme,
 };
 use iced_native::{
     event::{MacOS, PlatformSpecific},
@@ -22,8 +23,9 @@ enum Message {
 }
 
 impl Application for App {
-    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (App, Command<Message>) {

@@ -15,15 +15,16 @@
 //! [`TextInput`] has some [`text_input::State`].
 
 /// A container that distributes its contents vertically.
-pub type Column<'a, Message> =
-    iced_native::widget::Column<'a, Message, crate::Renderer>;
+pub type Column<'a, Message, Theme = crate::Theme> =
+    iced_native::widget::Column<'a, Message, crate::Renderer<Theme>>;
 
 /// A container that distributes its contents horizontally.
-pub type Row<'a, Message> =
-    iced_native::widget::Row<'a, Message, crate::Renderer>;
+pub type Row<'a, Message, Theme = crate::Theme> =
+    iced_native::widget::Row<'a, Message, crate::Renderer<Theme>>;
 
 /// A paragraph of text.
-pub type Text = iced_native::widget::Text<crate::Renderer>;
+pub type Text<Theme = crate::Theme> =
+    iced_native::widget::Text<crate::Renderer<Theme>>;
 
 pub mod button {
     //! Allow your users to perform actions by pressing a button.
@@ -32,8 +33,8 @@ pub mod button {
     pub use iced_native::widget::button::{State, Style, StyleSheet};
 
     /// A widget that produces a message when clicked.
-    pub type Button<'a, Message> =
-        iced_native::widget::Button<'a, Message, crate::Renderer>;
+    pub type Button<'a, Message, Theme = crate::Theme> =
+        iced_native::widget::Button<'a, Message, crate::Renderer<Theme>>;
 }
 
 pub mod checkbox {
@@ -41,8 +42,8 @@ pub mod checkbox {
     pub use iced_native::widget::checkbox::{Style, StyleSheet};
 
     /// A box that can be checked.
-    pub type Checkbox<'a, Message> =
-        iced_native::widget::Checkbox<'a, Message, crate::Renderer>;
+    pub type Checkbox<'a, Message, Theme> =
+        iced_native::widget::Checkbox<'a, Message, crate::Renderer<Theme>>;
 }
 
 pub mod container {
@@ -50,8 +51,8 @@ pub mod container {
     pub use iced_native::widget::container::{Style, StyleSheet};
 
     /// An element decorating some content.
-    pub type Container<'a, Message> =
-        iced_native::widget::Container<'a, Message, crate::Renderer>;
+    pub type Container<'a, Message, Theme = crate::Theme> =
+        iced_native::widget::Container<'a, Message, crate::Renderer<Theme>>;
 }
 
 pub mod pane_grid {
@@ -73,16 +74,24 @@ pub mod pane_grid {
     /// to completely fill the space available.
     ///
     /// [![Pane grid - Iced](https://thumbs.gfycat.com/MixedFlatJellyfish-small.gif)](https://gfycat.com/mixedflatjellyfish)
-    pub type PaneGrid<'a, Message> =
-        iced_native::widget::PaneGrid<'a, Message, crate::Renderer>;
+    pub type PaneGrid<'a, Message, Theme> =
+        iced_native::widget::PaneGrid<'a, Message, crate::Renderer<Theme>>;
 
     /// The content of a [`Pane`].
-    pub type Content<'a, Message> =
-        iced_native::widget::pane_grid::Content<'a, Message, crate::Renderer>;
+    pub type Content<'a, Message, Theme> =
+        iced_native::widget::pane_grid::Content<
+            'a,
+            Message,
+            crate::Renderer<Theme>,
+        >;
 
     /// The title bar of a [`Pane`].
-    pub type TitleBar<'a, Message> =
-        iced_native::widget::pane_grid::TitleBar<'a, Message, crate::Renderer>;
+    pub type TitleBar<'a, Message, Theme> =
+        iced_native::widget::pane_grid::TitleBar<
+            'a,
+            Message,
+            crate::Renderer<Theme>,
+        >;
 }
 
 pub mod pick_list {
@@ -91,8 +100,8 @@ pub mod pick_list {
     pub use iced_native::widget::pick_list::{State, Style, StyleSheet};
 
     /// A widget allowing the selection of a single value from a list of options.
-    pub type PickList<'a, T, Message> =
-        iced_native::widget::PickList<'a, T, Message, crate::Renderer>;
+    pub type PickList<'a, T, Message, Theme> =
+        iced_native::widget::PickList<'a, T, Message, crate::Renderer<Theme>>;
 }
 
 pub mod radio {
@@ -100,8 +109,8 @@ pub mod radio {
     pub use iced_native::widget::radio::{Style, StyleSheet};
 
     /// A circular button representing a choice.
-    pub type Radio<'a, Message> =
-        iced_native::widget::Radio<'a, Message, crate::Renderer>;
+    pub type Radio<'a, Message, Theme> =
+        iced_native::widget::Radio<'a, Message, crate::Renderer<Theme>>;
 }
 
 pub mod scrollable {
@@ -112,8 +121,8 @@ pub mod scrollable {
 
     /// A widget that can vertically display an infinite amount of content
     /// with a scrollbar.
-    pub type Scrollable<'a, Message> =
-        iced_native::widget::Scrollable<'a, Message, crate::Renderer>;
+    pub type Scrollable<'a, Message, Theme> =
+        iced_native::widget::Scrollable<'a, Message, crate::Renderer<Theme>>;
 }
 
 pub mod toggler {
@@ -121,8 +130,8 @@ pub mod toggler {
     pub use iced_native::widget::toggler::{Style, StyleSheet};
 
     /// A toggler widget.
-    pub type Toggler<'a, Message> =
-        iced_native::widget::Toggler<'a, Message, crate::Renderer>;
+    pub type Toggler<'a, Message, Theme> =
+        iced_native::widget::Toggler<'a, Message, crate::Renderer<Theme>>;
 }
 
 pub mod text_input {
@@ -134,8 +143,8 @@ pub mod text_input {
     pub use iced_native::widget::text_input::{State, Style, StyleSheet};
 
     /// A field that can be filled with text.
-    pub type TextInput<'a, Message> =
-        iced_native::widget::TextInput<'a, Message, Renderer>;
+    pub type TextInput<'a, Message, Theme> =
+        iced_native::widget::TextInput<'a, Message, Renderer<Theme>>;
 }
 
 pub mod tooltip {
@@ -143,8 +152,8 @@ pub mod tooltip {
     pub use iced_native::widget::tooltip::Position;
 
     /// A widget allowing the selection of a single value from a list of options.
-    pub type Tooltip<'a, Message> =
-        iced_native::widget::Tooltip<'a, Message, crate::Renderer>;
+    pub type Tooltip<'a, Message, Theme> =
+        iced_native::widget::Tooltip<'a, Message, crate::Renderer<Theme>>;
 }
 
 pub use iced_native::widget::progress_bar;

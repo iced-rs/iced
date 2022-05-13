@@ -94,11 +94,13 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.overlay.draw(renderer, style, layout, cursor_position)
+        self.overlay
+            .draw(renderer, theme, style, layout, cursor_position)
     }
 }
 
@@ -173,10 +175,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.content.draw(renderer, style, layout, cursor_position)
+        self.content
+            .draw(renderer, theme, style, layout, cursor_position)
     }
 }

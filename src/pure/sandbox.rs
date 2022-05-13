@@ -1,5 +1,5 @@
 use crate::pure;
-use crate::{Color, Command, Error, Settings, Subscription};
+use crate::{Color, Command, Error, Settings, Subscription, Theme};
 
 /// A pure version of [`Sandbox`].
 ///
@@ -33,6 +33,16 @@ pub trait Sandbox {
     ///
     /// These widgets can produce __messages__ based on user interaction.
     fn view(&self) -> pure::Element<'_, Self::Message>;
+
+    /// Returns the current [`Theme`] of the [`Sandbox`].
+    ///
+    /// If you want to use your own custom theme type, you will have to use an
+    /// [`Application`].
+    ///
+    /// By default, it returns [`Theme::default`].
+    fn theme(&self) -> Theme {
+        Theme::default()
+    }
 
     /// Returns the background color of the [`Sandbox`].
     ///
@@ -82,6 +92,7 @@ where
     type Executor = iced_futures::backend::null::Executor;
     type Flags = ();
     type Message = T::Message;
+    type Theme = Theme;
 
     fn new(_flags: ()) -> (Self, Command<T::Message>) {
         (T::new(), Command::none())
@@ -97,12 +108,16 @@ where
         Command::none()
     }
 
-    fn subscription(&self) -> Subscription<T::Message> {
-        Subscription::none()
-    }
-
     fn view(&self) -> pure::Element<'_, T::Message> {
         T::view(self)
+    }
+
+    fn theme(&self) -> Self::Theme {
+        T::theme(self)
+    }
+
+    fn subscription(&self) -> Subscription<T::Message> {
+        Subscription::none()
     }
 
     fn background_color(&self) -> Color {

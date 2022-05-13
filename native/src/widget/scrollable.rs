@@ -702,6 +702,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -719,6 +720,7 @@ where
             |renderer, layout, cursor_position, viewport| {
                 self.content.draw(
                     renderer,
+                    theme,
                     style,
                     layout,
                     cursor_position,

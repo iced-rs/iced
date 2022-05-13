@@ -211,6 +211,8 @@ use iced_wgpu as renderer;
 #[cfg(feature = "glow")]
 use iced_glow as renderer;
 
+pub use iced_native::theme;
+
 #[doc(no_inline)]
 pub use widget::*;
 
@@ -222,6 +224,7 @@ pub use renderer::Renderer;
 pub use result::Result;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
+pub use theme::Theme;
 
 pub use runtime::alignment;
 pub use runtime::futures;

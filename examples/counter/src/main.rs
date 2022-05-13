@@ -1,6 +1,5 @@
-use iced::{
-    button, Alignment, Button, Column, Element, Sandbox, Settings, Text,
-};
+use iced::button::{self, Button};
+use iced::{Alignment, Column, Element, Sandbox, Settings, Text};
 
 pub fn main() -> iced::Result {
     Counter::run(Settings::default())

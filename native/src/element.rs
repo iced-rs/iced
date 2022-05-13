@@ -244,13 +244,20 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.widget
-            .draw(renderer, style, layout, cursor_position, viewport)
+        self.widget.draw(
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            viewport,
+        )
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Element`].
@@ -350,13 +357,20 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.widget
-            .draw(renderer, style, layout, cursor_position, viewport)
+        self.widget.draw(
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            viewport,
+        )
     }
 
     fn mouse_interaction(
@@ -444,6 +458,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -471,6 +486,7 @@ where
 
         self.element.widget.draw(
             renderer,
+            theme,
             style,
             layout,
             cursor_position,

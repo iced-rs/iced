@@ -25,7 +25,10 @@ pub struct Element<'a, Message, Renderer> {
 
 impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// Creates a new [`Element`] containing the given [`Widget`].
-    pub fn new(widget: impl Widget<Message, Renderer> + 'a) -> Self {
+    pub fn new(widget: impl Widget<Message, Renderer> + 'a) -> Self
+    where
+        Renderer: iced_native::Renderer,
+    {
         Self {
             widget: Box::new(widget),
         }
@@ -278,6 +281,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -286,6 +290,7 @@ where
         self.widget.draw(
             tree,
             renderer,
+            theme,
             style,
             layout,
             cursor_position,

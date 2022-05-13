@@ -86,6 +86,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -108,6 +109,7 @@ where
 
         self.content.draw(
             renderer,
+            theme,
             &inherited_style,
             title_layout,
             cursor_position,
@@ -120,6 +122,7 @@ where
             if show_controls || self.always_show_controls {
                 controls.draw(
                     renderer,
+                    theme,
                     &inherited_style,
                     controls_layout,
                     cursor_position,

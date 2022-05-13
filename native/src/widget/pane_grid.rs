@@ -754,6 +754,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -772,7 +773,14 @@ where
             self.style_sheet.as_ref(),
             self.elements.iter().map(|(pane, content)| (*pane, content)),
             |pane, renderer, style, layout, cursor_position, rectangle| {
-                pane.draw(renderer, style, layout, cursor_position, rectangle);
+                pane.draw(
+                    renderer,
+                    theme,
+                    style,
+                    layout,
+                    cursor_position,
+                    rectangle,
+                );
             },
         )
     }

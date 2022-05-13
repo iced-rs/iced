@@ -1,15 +1,9 @@
-use iced::{button, container, pick_list, slider, Background, Color};
+use iced::{container, pick_list, slider, Color};
 
 const ACTIVE: Color = Color::from_rgb(
     0x72 as f32 / 255.0,
     0x89 as f32 / 255.0,
     0xDA as f32 / 255.0,
-);
-
-const DESTRUCTIVE: Color = Color::from_rgb(
-    0xC0 as f32 / 255.0,
-    0x47 as f32 / 255.0,
-    0x47 as f32 / 255.0,
 );
 
 const HOVERED: Color = Color::from_rgb(
@@ -31,67 +25,6 @@ impl container::StyleSheet for Container {
         container::Style {
             text_color: Some(Color::WHITE),
             ..container::Style::default()
-        }
-    }
-}
-
-pub struct Button;
-
-impl button::StyleSheet for Button {
-    fn active(&self) -> button::Style {
-        button::Style {
-            background: Some(Background::Color(ACTIVE)),
-            border_radius: 3.0,
-            text_color: Color::WHITE,
-            ..button::Style::default()
-        }
-    }
-
-    fn hovered(&self) -> button::Style {
-        button::Style {
-            background: Some(Background::Color(HOVERED)),
-            text_color: Color::WHITE,
-            ..self.active()
-        }
-    }
-
-    fn pressed(&self) -> button::Style {
-        button::Style {
-            border_width: 1.0,
-            border_color: Color::WHITE,
-            ..self.hovered()
-        }
-    }
-}
-
-pub struct Clear;
-
-impl button::StyleSheet for Clear {
-    fn active(&self) -> button::Style {
-        button::Style {
-            background: Some(Background::Color(DESTRUCTIVE)),
-            border_radius: 3.0,
-            text_color: Color::WHITE,
-            ..button::Style::default()
-        }
-    }
-
-    fn hovered(&self) -> button::Style {
-        button::Style {
-            background: Some(Background::Color(Color {
-                a: 0.5,
-                ..DESTRUCTIVE
-            })),
-            text_color: Color::WHITE,
-            ..self.active()
-        }
-    }
-
-    fn pressed(&self) -> button::Style {
-        button::Style {
-            border_width: 1.0,
-            border_color: Color::WHITE,
-            ..self.hovered()
         }
     }
 }

@@ -188,6 +188,7 @@ pub fn main() {
                             viewport.scale_factor(),
                         ),
                         &mut renderer,
+                        &iced_wgpu::Theme::Dark,
                         &mut clipboard,
                         &mut debug,
                     );

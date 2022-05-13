@@ -8,6 +8,7 @@ use iced::button::{self, Button};
 use iced::executor;
 use iced::pick_list::{self, PickList};
 use iced::slider::{self, Slider};
+use iced::theme::{self, Theme};
 use iced::time;
 use iced::window;
 use iced::{
@@ -55,6 +56,7 @@ enum Message {
 
 impl Application for GameOfLife {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
@@ -836,12 +838,12 @@ impl Controls {
                     Text::new(if is_playing { "Pause" } else { "Play" }),
                 )
                 .on_press(Message::TogglePlayback)
-                .style(style::Button),
+                .style(theme::Button::Primary),
             )
             .push(
                 Button::new(&mut self.next_button, Text::new("Next"))
                     .on_press(Message::Next)
-                    .style(style::Button),
+                    .style(theme::Button::Secondary),
             );
 
         let speed_controls = Row::new()
@@ -885,7 +887,7 @@ impl Controls {
             .push(
                 Button::new(&mut self.clear_button, Text::new("Clear"))
                     .on_press(Message::Clear)
-                    .style(style::Clear),
+                    .style(theme::Button::Destructive),
             )
             .into()
     }

@@ -1,7 +1,10 @@
+use iced::canvas::{
+    self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke,
+};
+use iced::executor;
 use iced::{
-    canvas::{self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke},
-    executor, Application, Color, Command, Container, Element, Length, Point,
-    Rectangle, Settings, Subscription, Vector,
+    Application, Color, Command, Container, Element, Length, Point, Rectangle,
+    Settings, Subscription, Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -22,8 +25,9 @@ enum Message {
 }
 
 impl Application for Clock {
-    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {

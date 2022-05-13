@@ -6,10 +6,13 @@
 //! Inspired by the example found in the MDN docs[1].
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
+use iced::canvas::{self, Cursor, Path, Stroke};
+use iced::executor;
+use iced::time;
+use iced::window;
 use iced::{
-    canvas::{self, Cursor, Path, Stroke},
-    executor, time, window, Application, Canvas, Color, Command, Element,
-    Length, Point, Rectangle, Settings, Size, Subscription, Vector,
+    Application, Canvas, Color, Command, Element, Length, Point, Rectangle,
+    Settings, Size, Subscription, Theme, Vector,
 };
 
 use std::time::Instant;
@@ -31,8 +34,9 @@ enum Message {
 }
 
 impl Application for SolarSystem {
-    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {

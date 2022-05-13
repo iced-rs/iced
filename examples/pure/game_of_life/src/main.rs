@@ -9,6 +9,7 @@ use iced::pure::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
 use iced::pure::{Application, Element};
+use iced::theme::{self, Theme};
 use iced::time;
 use iced::window;
 use iced::{Alignment, Color, Command, Length, Settings, Subscription};
@@ -52,6 +53,7 @@ enum Message {
 
 impl Application for GameOfLife {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
@@ -168,10 +170,13 @@ fn view_controls<'a>(
         .spacing(10)
         .push(
             button(if is_playing { "Pause" } else { "Play" })
-                .on_press(Message::TogglePlayback)
-                .style(style::Button),
+                .on_press(Message::TogglePlayback),
         )
-        .push(button("Next").on_press(Message::Next).style(style::Button));
+        .push(
+            button("Next")
+                .on_press(Message::Next)
+                .style(theme::Button::Secondary),
+        );
 
     let speed_controls = row()
         .width(Length::Fill)
@@ -201,7 +206,11 @@ fn view_controls<'a>(
                 .text_size(16)
                 .style(style::PickList),
         )
-        .push(button("Clear").on_press(Message::Clear).style(style::Clear))
+        .push(
+            button("Clear")
+                .on_press(Message::Clear)
+                .style(theme::Button::Destructive),
+        )
         .into()
 }
 

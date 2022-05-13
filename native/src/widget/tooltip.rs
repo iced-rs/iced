@@ -267,6 +267,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -274,6 +275,7 @@ where
     ) {
         self.content.draw(
             renderer,
+            theme,
             inherited_style,
             layout,
             cursor_position,
@@ -299,6 +301,7 @@ where
                 Widget::<(), Renderer>::draw(
                     tooltip,
                     renderer,
+                    theme,
                     defaults,
                     layout,
                     cursor_position,

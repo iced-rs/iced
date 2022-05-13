@@ -209,6 +209,8 @@ async fn run_instance<A, E, C>(
 
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
+    let theme = application.theme();
+
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
             &mut application,
@@ -288,8 +290,11 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.draw_started();
-                let new_mouse_interaction =
-                    user_interface.draw(&mut renderer, state.cursor_position());
+                let new_mouse_interaction = user_interface.draw(
+                    &mut renderer,
+                    &theme,
+                    state.cursor_position(),
+                );
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
@@ -341,8 +346,11 @@ async fn run_instance<A, E, C>(
                     debug.layout_finished();
 
                     debug.draw_started();
-                    let new_mouse_interaction = user_interface
-                        .draw(&mut renderer, state.cursor_position());
+                    let new_mouse_interaction = user_interface.draw(
+                        &mut renderer,
+                        &theme,
+                        state.cursor_position(),
+                    );
                     debug.draw_finished();
 
                     if new_mouse_interaction != mouse_interaction {

@@ -39,6 +39,7 @@ mod quad;
 mod text;
 
 pub use iced_graphics::{Antialiasing, Color, Error, Primitive, Viewport};
+pub use iced_native::Theme;
 pub use wgpu;
 
 pub use backend::Backend;
@@ -53,4 +54,5 @@ mod image;
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 /// [`iced`]: https://github.com/iced-rs/iced
-pub type Renderer = iced_graphics::Renderer<Backend>;
+pub type Renderer<Theme = iced_native::Theme> =
+    iced_graphics::Renderer<Backend, Theme>;

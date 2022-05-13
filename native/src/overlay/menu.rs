@@ -241,6 +241,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -257,8 +258,14 @@ where
             self.style.background,
         );
 
-        self.container
-            .draw(renderer, style, layout, cursor_position, &bounds);
+        self.container.draw(
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            &bounds,
+        );
     }
 }
 
@@ -389,6 +396,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        _theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,

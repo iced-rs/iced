@@ -60,6 +60,7 @@ where
         &self,
         _tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -68,6 +69,7 @@ where
         <Self as iced_native::Widget<Message, Renderer>>::draw(
             self,
             renderer,
+            theme,
             style,
             layout,
             cursor_position,

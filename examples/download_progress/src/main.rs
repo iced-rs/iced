@@ -1,6 +1,8 @@
+use iced::button;
+use iced::executor;
 use iced::{
-    button, executor, Alignment, Application, Button, Column, Command,
-    Container, Element, Length, ProgressBar, Settings, Subscription, Text,
+    Alignment, Application, Button, Column, Command, Container, Element,
+    Length, ProgressBar, Settings, Subscription, Text, Theme,
 };
 
 mod download;
@@ -24,8 +26,9 @@ pub enum Message {
 }
 
 impl Application for Example {
-    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Example, Command<Message>) {

@@ -209,6 +209,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -220,6 +221,7 @@ where
 
         self.content.draw(
             renderer,
+            theme,
             &renderer::Style {
                 text_color: style
                     .text_color

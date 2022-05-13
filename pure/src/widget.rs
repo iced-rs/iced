@@ -53,7 +53,10 @@ use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 ///
 /// If you want to build your own widgets, you will need to implement this
 /// trait.
-pub trait Widget<Message, Renderer> {
+pub trait Widget<Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+{
     /// Returns the width of the [`Widget`].
     fn width(&self) -> Length;
 
@@ -75,6 +78,7 @@ pub trait Widget<Message, Renderer> {
         &self,
         state: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,

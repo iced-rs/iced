@@ -125,6 +125,7 @@ pub fn main() {
                             viewport.scale_factor(),
                         ),
                         &mut renderer,
+                        &iced_glow::Theme::Dark,
                         &mut clipboard,
                         &mut debug,
                     );

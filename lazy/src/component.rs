@@ -206,13 +206,21 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         self.with_element(|element| {
-            element.draw(renderer, style, layout, cursor_position, viewport);
+            element.draw(
+                renderer,
+                theme,
+                style,
+                layout,
+                cursor_position,
+                viewport,
+            );
         });
     }
 
@@ -337,12 +345,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
         self.with_overlay_maybe(|overlay| {
-            overlay.draw(renderer, style, layout, cursor_position);
+            overlay.draw(renderer, theme, style, layout, cursor_position);
         });
     }
 

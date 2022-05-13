@@ -89,6 +89,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -112,6 +113,7 @@ where
             title_bar.draw(
                 &tree.children[1],
                 renderer,
+                theme,
                 style,
                 title_bar_layout,
                 cursor_position,
@@ -122,6 +124,7 @@ where
             self.body.as_widget().draw(
                 &tree.children[0],
                 renderer,
+                theme,
                 style,
                 body_layout,
                 cursor_position,
@@ -131,6 +134,7 @@ where
             self.body.as_widget().draw(
                 &tree.children[0],
                 renderer,
+                theme,
                 style,
                 layout,
                 cursor_position,

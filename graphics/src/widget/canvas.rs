@@ -127,7 +127,7 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
     }
 }
 
-impl<Message, P, B> Widget<Message, Renderer<B>> for Canvas<Message, P>
+impl<Message, P, B, T> Widget<Message, Renderer<B, T>> for Canvas<Message, P>
 where
     P: Program<Message>,
     B: Backend,
@@ -142,7 +142,7 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, T>,
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
@@ -156,7 +156,7 @@ where
         event: iced_native::Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, T>,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
@@ -193,7 +193,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, T>,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let cursor = Cursor::from_window_position(cursor_position);
@@ -203,7 +203,8 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer<B>,
+        renderer: &mut Renderer<B, T>,
+        _theme: &T,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -233,14 +234,16 @@ where
     }
 }
 
-impl<'a, Message, P, B> From<Canvas<Message, P>>
-    for Element<'a, Message, Renderer<B>>
+impl<'a, Message, P, B, T> From<Canvas<Message, P>>
+    for Element<'a, Message, Renderer<B, T>>
 where
     Message: 'static,
     P: Program<Message> + 'a,
     B: Backend,
 {
-    fn from(canvas: Canvas<Message, P>) -> Element<'a, Message, Renderer<B>> {
+    fn from(
+        canvas: Canvas<Message, P>,
+    ) -> Element<'a, Message, Renderer<B, T>> {
         Element::new(canvas)
     }
 }

@@ -1,6 +1,6 @@
 use iced::{
     button, executor, system, Application, Button, Column, Command, Container,
-    Element, Length, Settings, Text,
+    Element, Length, Settings, Text, Theme,
 };
 
 use bytesize::ByteSize;
@@ -25,6 +25,7 @@ enum Message {
 
 impl Application for Example {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 

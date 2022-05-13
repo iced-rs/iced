@@ -4,6 +4,7 @@ use iced::executor;
 use iced::keyboard;
 use iced::pane_grid::{self, PaneGrid};
 use iced::scrollable::{self, Scrollable};
+use iced::theme::{self, Theme};
 use iced::{
     Application, Color, Column, Command, Container, Element, Length, Row,
     Settings, Size, Subscription, Text,
@@ -36,6 +37,7 @@ enum Message {
 
 impl Application for Example {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
@@ -171,7 +173,7 @@ impl Application for Example {
             let text = if *is_pinned { "Unpin" } else { "Pin" };
             let pin_button = Button::new(pin_button, Text::new(text).size(14))
                 .on_press(Message::TogglePin(id))
-                .style(style::Button::Pin)
+                .style(theme::Button::Secondary)
                 .padding(3);
 
             let title = Row::with_children(vec![
@@ -309,7 +311,7 @@ impl Content {
             ..
         } = self;
 
-        let button = |state, label, message, style| {
+        let button = |state, label, message| {
             Button::new(
                 state,
                 Text::new(label)
@@ -320,7 +322,6 @@ impl Content {
             .width(Length::Fill)
             .padding(8)
             .on_press(message)
-            .style(style)
         };
 
         let mut controls = Column::new()
@@ -330,22 +331,18 @@ impl Content {
                 split_horizontally,
                 "Split horizontally",
                 Message::Split(pane_grid::Axis::Horizontal, pane),
-                style::Button::Primary,
             ))
             .push(button(
                 split_vertically,
                 "Split vertically",
                 Message::Split(pane_grid::Axis::Vertical, pane),
-                style::Button::Primary,
             ));
 
         if total_panes > 1 && !is_pinned {
-            controls = controls.push(button(
-                close,
-                "Close",
-                Message::Close(pane),
-                style::Button::Destructive,
-            ));
+            controls = controls.push(
+                button(close, "Close", Message::Close(pane))
+                    .style(theme::Button::Destructive),
+            );
         }
 
         let content = Scrollable::new(scroll)
@@ -379,8 +376,9 @@ impl Controls {
     ) -> Element<Message> {
         let mut button =
             Button::new(&mut self.close, Text::new("Close").size(14))
-                .style(style::Button::Control)
+                .style(theme::Button::Destructive)
                 .padding(3);
+
         if total_panes > 1 && !is_pinned {
             button = button.on_press(Message::Close(pane));
         }
@@ -389,25 +387,12 @@ impl Controls {
 }
 
 mod style {
-    use crate::PANE_ID_COLOR_FOCUSED;
-    use iced::{button, container, Background, Color, Vector};
+    use iced::{container, Background, Color};
 
     const SURFACE: Color = Color::from_rgb(
         0xF2 as f32 / 255.0,
         0xF3 as f32 / 255.0,
         0xF5 as f32 / 255.0,
-    );
-
-    const ACTIVE: Color = Color::from_rgb(
-        0x72 as f32 / 255.0,
-        0x89 as f32 / 255.0,
-        0xDA as f32 / 255.0,
-    );
-
-    const HOVERED: Color = Color::from_rgb(
-        0x67 as f32 / 255.0,
-        0x7B as f32 / 255.0,
-        0xC4 as f32 / 255.0,
     );
 
     pub enum TitleBar {
@@ -446,53 +431,6 @@ mod style {
                     Self::Focused => Color::BLACK,
                 },
                 ..Default::default()
-            }
-        }
-    }
-
-    pub enum Button {
-        Primary,
-        Destructive,
-        Control,
-        Pin,
-    }
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            let (background, text_color) = match self {
-                Button::Primary => (Some(ACTIVE), Color::WHITE),
-                Button::Destructive => {
-                    (None, Color::from_rgb8(0xFF, 0x47, 0x47))
-                }
-                Button::Control => (Some(PANE_ID_COLOR_FOCUSED), Color::WHITE),
-                Button::Pin => (Some(ACTIVE), Color::WHITE),
-            };
-
-            button::Style {
-                text_color,
-                background: background.map(Background::Color),
-                border_radius: 5.0,
-                shadow_offset: Vector::new(0.0, 0.0),
-                ..button::Style::default()
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            let active = self.active();
-
-            let background = match self {
-                Button::Primary => Some(HOVERED),
-                Button::Destructive => Some(Color {
-                    a: 0.2,
-                    ..active.text_color
-                }),
-                Button::Control => Some(PANE_ID_COLOR_FOCUSED),
-                Button::Pin => Some(HOVERED),
-            };
-
-            button::Style {
-                background: background.map(Background::Color),
-                ..active
             }
         }
     }

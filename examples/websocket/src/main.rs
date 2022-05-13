@@ -7,7 +7,7 @@ use iced::scrollable::{self, Scrollable};
 use iced::text_input::{self, TextInput};
 use iced::{
     Application, Color, Column, Command, Container, Element, Length, Row,
-    Settings, Subscription, Text,
+    Settings, Subscription, Text, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -34,6 +34,7 @@ enum Message {
 
 impl Application for WebSocket {
     type Message = Message;
+    type Theme = Theme;
     type Flags = ();
     type Executor = executor::Default;
 

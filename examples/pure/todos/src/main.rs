@@ -4,6 +4,7 @@ use iced::pure::{
     button, checkbox, column, container, row, scrollable, text, text_input,
     Application, Element,
 };
+use iced::theme::{self, Theme};
 use iced::window;
 use iced::{Command, Font, Length, Settings};
 use serde::{Deserialize, Serialize};
@@ -44,8 +45,9 @@ enum Message {
 }
 
 impl Application for Todos {
-    type Executor = iced::executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = iced::executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Todos, Command<Message>) {
@@ -287,7 +289,7 @@ impl Task {
                         button(edit_icon())
                             .on_press(TaskMessage::Edit)
                             .padding(10)
-                            .style(style::Button::Icon),
+                            .style(theme::Button::Text),
                     )
                     .into()
             }
@@ -313,7 +315,7 @@ impl Task {
                         )
                         .on_press(TaskMessage::Delete)
                         .padding(10)
-                        .style(style::Button::Destructive),
+                        .style(theme::Button::Destructive),
                     )
                     .into()
             }
@@ -328,9 +330,9 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
         let label = text(label).size(16);
 
         let button = button(label).style(if filter == current_filter {
-            style::Button::FilterSelected
+            theme::Button::Primary
         } else {
-            style::Button::FilterActive
+            theme::Button::Text
         });
 
         button.on_press(Message::FilterChanged(filter)).padding(8)
@@ -550,59 +552,5 @@ impl SavedState {
         let _ = wasm_timer::Delay::new(std::time::Duration::from_secs(2)).await;
 
         Ok(())
-    }
-}
-
-mod style {
-    use iced::{button, Background, Color, Vector};
-
-    pub enum Button {
-        FilterActive,
-        FilterSelected,
-        Icon,
-        Destructive,
-    }
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            match self {
-                Button::FilterActive => button::Style::default(),
-                Button::FilterSelected => button::Style {
-                    background: Some(Background::Color(Color::from_rgb(
-                        0.2, 0.2, 0.7,
-                    ))),
-                    border_radius: 10.0,
-                    text_color: Color::WHITE,
-                    ..button::Style::default()
-                },
-                Button::Icon => button::Style {
-                    text_color: Color::from_rgb(0.5, 0.5, 0.5),
-                    ..button::Style::default()
-                },
-                Button::Destructive => button::Style {
-                    background: Some(Background::Color(Color::from_rgb(
-                        0.8, 0.2, 0.2,
-                    ))),
-                    border_radius: 5.0,
-                    text_color: Color::WHITE,
-                    shadow_offset: Vector::new(1.0, 1.0),
-                    ..button::Style::default()
-                },
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            let active = self.active();
-
-            button::Style {
-                text_color: match self {
-                    Button::Icon => Color::from_rgb(0.2, 0.2, 0.7),
-                    Button::FilterActive => Color::from_rgb(0.2, 0.2, 0.7),
-                    _ => active.text_color,
-                },
-                shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
-                ..active
-            }
-        }
     }
 }

@@ -27,10 +27,12 @@ impl std::default::Default for Style {
 
 /// A set of rules that dictate the style of a button.
 pub trait StyleSheet {
-    fn active(&self) -> Style;
+    type Variant;
 
-    fn hovered(&self) -> Style {
-        let active = self.active();
+    fn active(&self, variant: Self::Variant) -> Style;
+
+    fn hovered(&self, variant: Self::Variant) -> Style {
+        let active = self.active(variant);
 
         Style {
             shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
@@ -38,15 +40,15 @@ pub trait StyleSheet {
         }
     }
 
-    fn pressed(&self) -> Style {
+    fn pressed(&self, variant: Self::Variant) -> Style {
         Style {
             shadow_offset: Vector::default(),
-            ..self.active()
+            ..self.active(variant)
         }
     }
 
-    fn disabled(&self) -> Style {
-        let active = self.active();
+    fn disabled(&self, variant: Self::Variant) -> Style {
+        let active = self.active(variant);
 
         Style {
             shadow_offset: Vector::default(),
@@ -62,35 +64,5 @@ pub trait StyleSheet {
             },
             ..active
         }
-    }
-}
-
-struct Default;
-
-impl StyleSheet for Default {
-    fn active(&self) -> Style {
-        Style {
-            shadow_offset: Vector::new(0.0, 0.0),
-            background: Some(Background::Color([0.87, 0.87, 0.87].into())),
-            border_radius: 2.0,
-            border_width: 1.0,
-            border_color: [0.7, 0.7, 0.7].into(),
-            text_color: Color::BLACK,
-        }
-    }
-}
-
-impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
-    fn default() -> Self {
-        Box::new(Default)
-    }
-}
-
-impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
-where
-    T: StyleSheet + 'a,
-{
-    fn from(style_sheet: T) -> Self {
-        Box::new(style_sheet)
     }
 }

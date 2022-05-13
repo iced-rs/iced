@@ -5,6 +5,7 @@ use iced::pure::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::pure::{Element, Sandbox};
+use iced::theme;
 use iced::{Color, Length, Settings};
 
 pub fn main() -> iced::Result {
@@ -55,7 +56,7 @@ impl Sandbox for Tour {
             controls = controls.push(
                 button("Back")
                     .on_press(Message::BackPressed)
-                    .style(style::Button::Secondary),
+                    .style(theme::Button::Secondary),
             );
         }
 
@@ -65,7 +66,7 @@ impl Sandbox for Tour {
             controls = controls.push(
                 button("Next")
                     .on_press(Message::NextPressed)
-                    .style(style::Button::Primary),
+                    .style(theme::Button::Primary),
             );
         }
 
@@ -668,36 +669,4 @@ impl From<Language> for String {
 pub enum Layout {
     Row,
     Column,
-}
-
-mod style {
-    use iced::{button, Background, Color, Vector};
-
-    pub enum Button {
-        Primary,
-        Secondary,
-    }
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            button::Style {
-                background: Some(Background::Color(match self {
-                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
-                    Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
-                })),
-                border_radius: 12.0,
-                shadow_offset: Vector::new(1.0, 1.0),
-                text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
-                ..button::Style::default()
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            button::Style {
-                text_color: Color::WHITE,
-                shadow_offset: Vector::new(1.0, 2.0),
-                ..self.active()
-            }
-        }
-    }
 }

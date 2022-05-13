@@ -21,6 +21,9 @@ pub trait Application: Sized {
     /// The type of __messages__ your [`Application`] will produce.
     type Message: std::fmt::Debug + Send;
 
+    /// The theme of your [`Application`].
+    type Theme: Default;
+
     /// The data needed to initialize your [`Application`].
     type Flags;
 
@@ -51,6 +54,16 @@ pub trait Application: Sized {
     /// Any [`Command`] returned will be executed immediately in the background.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
+    /// Returns the widgets to display in the [`Application`].
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
+    fn view(&self) -> pure::Element<'_, Self::Message, Self::Theme>;
+
+    /// Returns the current [`Theme`] of the [`Application`].
+    fn theme(&self) -> Self::Theme {
+        Self::Theme::default()
+    }
+
     /// Returns the event [`Subscription`] for the current state of the
     /// application.
     ///
@@ -62,11 +75,6 @@ pub trait Application: Sized {
     fn subscription(&self) -> Subscription<Self::Message> {
         Subscription::none()
     }
-
-    /// Returns the widgets to display in the [`Application`].
-    ///
-    /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> pure::Element<'_, Self::Message>;
 
     /// Returns the current [`Application`] mode.
     ///
@@ -137,6 +145,7 @@ where
     type Executor = A::Executor;
     type Message = A::Message;
     type Flags = A::Flags;
+    type Theme = A::Theme;
 
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>) {
         let (application, command) = A::new(flags);
@@ -162,10 +171,14 @@ where
         A::subscription(&self.application)
     }
 
-    fn view(&mut self) -> crate::Element<'_, Self::Message> {
+    fn view(&mut self) -> crate::Element<'_, Self::Message, Self::Theme> {
         let content = A::view(&self.application);
 
         Pure::new(&mut self.state, content).into()
+    }
+
+    fn theme(&self) -> Self::Theme {
+        A::theme(&self.application)
     }
 
     fn mode(&self) -> window::Mode {

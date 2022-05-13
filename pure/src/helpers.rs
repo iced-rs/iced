@@ -50,7 +50,12 @@ where
 /// [`Button`]: widget::Button
 pub fn button<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
-) -> widget::Button<'a, Message, Renderer> {
+) -> widget::Button<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::button::StyleSheet,
+    <Renderer::Theme as widget::button::StyleSheet>::Variant: Default,
+{
     widget::Button::new(content)
 }
 

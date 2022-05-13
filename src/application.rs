@@ -57,7 +57,7 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 /// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::{executor, Application, Command, Element, Settings, Text};
+/// use iced::{executor, Application, Command, Element, Settings, Text, Theme};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -67,8 +67,9 @@ use crate::{Color, Command, Element, Executor, Settings, Subscription};
 ///
 /// impl Application for Hello {
 ///     type Executor = executor::Default;
-///     type Message = ();
 ///     type Flags = ();
+///     type Message = ();
+///     type Theme = Theme;
 ///
 ///     fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
 ///         (Hello, Command::none())
@@ -98,6 +99,9 @@ pub trait Application: Sized {
 
     /// The type of __messages__ your [`Application`] will produce.
     type Message: std::fmt::Debug + Send;
+
+    /// The theme of your [`Application`].
+    type Theme: Default;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -129,6 +133,16 @@ pub trait Application: Sized {
     /// Any [`Command`] returned will be executed immediately in the background.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
+    /// Returns the widgets to display in the [`Application`].
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
+    fn view(&mut self) -> Element<'_, Self::Message, Self::Theme>;
+
+    /// Returns the current [`Theme`] of the [`Application`].
+    fn theme(&self) -> Self::Theme {
+        Self::Theme::default()
+    }
+
     /// Returns the event [`Subscription`] for the current state of the
     /// application.
     ///
@@ -140,11 +154,6 @@ pub trait Application: Sized {
     fn subscription(&self) -> Subscription<Self::Message> {
         Subscription::none()
     }
-
-    /// Returns the widgets to display in the [`Application`].
-    ///
-    /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message>;
 
     /// Returns the current [`Application`] mode.
     ///
@@ -213,7 +222,7 @@ pub trait Application: Sized {
         Ok(crate::runtime::application::run::<
             Instance<Self>,
             Self::Executor,
-            crate::renderer::window::Compositor,
+            crate::renderer::window::Compositor<Self::Theme>,
         >(settings.into(), renderer_settings)?)
     }
 }
@@ -224,14 +233,14 @@ impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
 {
-    type Renderer = crate::renderer::Renderer;
+    type Renderer = crate::renderer::Renderer<A::Theme>;
     type Message = A::Message;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
     }
 
-    fn view(&mut self) -> Element<'_, Self::Message> {
+    fn view(&mut self) -> Element<'_, Self::Message, A::Theme> {
         self.0.view()
     }
 }
@@ -250,6 +259,10 @@ where
 
     fn title(&self) -> String {
         self.0.title()
+    }
+
+    fn theme(&self) -> A::Theme {
+        self.0.theme()
     }
 
     fn mode(&self) -> iced_winit::Mode {

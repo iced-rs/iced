@@ -21,4 +21,7 @@ pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod text_input;
+pub mod theme;
 pub mod toggler;
+
+pub use theme::Theme;
