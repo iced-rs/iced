@@ -31,6 +31,11 @@ impl<'a, Message> Shell<'a, Message> {
         }
     }
 
+    /// Returns whether the current layout is invalid or not.
+    pub fn is_layout_invalid(&self) -> bool {
+        self.is_layout_invalid
+    }
+
     /// Publish the given `Message` for an application to process it.
     pub fn publish(&mut self, message: Message) {
         self.messages.push(message);
