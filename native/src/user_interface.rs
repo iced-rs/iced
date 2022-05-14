@@ -177,40 +177,61 @@ where
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> (State, Vec<event::Status>) {
+        use std::mem::ManuallyDrop;
+
         let mut state = State::Updated;
+        let mut manual_overlay = ManuallyDrop::new(
+            self.root.overlay(Layout::new(&self.base), renderer),
+        );
 
-        let (base_cursor, overlay_statuses) = if let Some(mut overlay) =
-            self.root.overlay(Layout::new(&self.base), renderer)
-        {
+        let (base_cursor, overlay_statuses) = if manual_overlay.is_some() {
             let bounds = self.bounds;
+
+            let mut overlay = manual_overlay.as_mut().unwrap();
             let mut layout = overlay.layout(renderer, bounds);
+            let mut event_statuses = Vec::new();
 
-            let event_statuses = events
-                .iter()
-                .cloned()
-                .map(|event| {
-                    let mut shell = Shell::new(messages);
+            for event in events.iter().cloned() {
+                let mut shell = Shell::new(messages);
 
-                    let event_status = overlay.on_event(
-                        event,
-                        Layout::new(&layout),
-                        cursor_position,
-                        renderer,
-                        clipboard,
-                        &mut shell,
+                let event_status = overlay.on_event(
+                    event,
+                    Layout::new(&layout),
+                    cursor_position,
+                    renderer,
+                    clipboard,
+                    &mut shell,
+                );
+
+                event_statuses.push(event_status);
+
+                if shell.is_layout_invalid() {
+                    let _ = ManuallyDrop::into_inner(manual_overlay);
+
+                    self.base = renderer.layout(
+                        &self.root,
+                        &layout::Limits::new(Size::ZERO, self.bounds),
                     );
+
+                    manual_overlay = ManuallyDrop::new(
+                        self.root.overlay(Layout::new(&self.base), renderer),
+                    );
+
+                    if manual_overlay.is_none() {
+                        break;
+                    }
+
+                    overlay = manual_overlay.as_mut().unwrap();
 
                     shell.revalidate_layout(|| {
                         layout = overlay.layout(renderer, bounds);
                     });
+                }
 
-                    if shell.are_widgets_invalid() {
-                        state = State::Outdated;
-                    }
-
-                    event_status
-                })
-                .collect();
+                if shell.are_widgets_invalid() {
+                    state = State::Outdated;
+                }
+            }
 
             let base_cursor = if layout.bounds().contains(cursor_position) {
                 // TODO: Type-safe cursor availability
@@ -225,6 +246,8 @@ where
         } else {
             (cursor_position, vec![event::Status::Ignored; events.len()])
         };
+
+        let _ = ManuallyDrop::into_inner(manual_overlay);
 
         let event_statuses = events
             .iter()

@@ -464,16 +464,7 @@ where
                     instance_ref_builder: |instance| instance.state.borrow(),
                     tree: overlay.tree,
                     types: PhantomData,
-                    overlay_builder: |instance, tree| {
-                        instance
-                            .as_ref()
-                            .unwrap()
-                            .borrow_element()
-                            .as_ref()
-                            .unwrap()
-                            .as_widget()
-                            .overlay(&mut tree.children[0], layout, renderer)
-                    },
+                    overlay_builder: |_, _| None,
                 }
                 .build(),
             );
