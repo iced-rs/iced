@@ -147,14 +147,16 @@ where
 /// Creates a new [`Slider`].
 ///
 /// [`Slider`]: widget::Slider
-pub fn slider<'a, Message, T>(
+pub fn slider<'a, T, Message, Renderer>(
     range: std::ops::RangeInclusive<T>,
     value: T,
     on_change: impl Fn(T) -> Message + 'a,
-) -> widget::Slider<'a, T, Message>
+) -> widget::Slider<'a, T, Message, Renderer>
 where
-    Message: Clone,
     T: Copy + From<u8> + std::cmp::PartialOrd,
+    Message: Clone,
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::slider::StyleSheet,
 {
     widget::Slider::new(range, value, on_change)
 }

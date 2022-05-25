@@ -37,7 +37,11 @@ pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message> {
+pub struct Slider<'a, T, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     range: RangeInclusive<T>,
     step: T,
     value: T,
@@ -45,13 +49,15 @@ pub struct Slider<'a, T, Message> {
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    variant: <Renderer::Theme as StyleSheet>::Variant,
 }
 
-impl<'a, T, Message> Slider<'a, T, Message>
+impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// The default height of a [`Slider`].
     pub const DEFAULT_HEIGHT: u16 = 22;
@@ -88,7 +94,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style_sheet: Default::default(),
+            variant: Default::default(),
         }
     }
 
@@ -118,9 +124,9 @@ where
     /// Sets the style of the [`Slider`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        variant: impl Into<<Renderer::Theme as StyleSheet>::Variant>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.variant = variant.into();
         self
     }
 
@@ -132,11 +138,12 @@ where
 }
 
 impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, T, Message>
+    for Slider<'a, T, Message, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
     Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<slider::State>()
@@ -208,7 +215,8 @@ where
             tree.state.downcast_ref::<slider::State>(),
             self.value,
             &self.range,
-            self.style_sheet.as_ref(),
+            theme,
+            self.variant,
         )
     }
 
@@ -228,14 +236,17 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> From<Slider<'a, T, Message>>
+impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
     Message: 'a + Clone,
     Renderer: 'a + iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
 {
-    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message, Renderer> {
+    fn from(
+        slider: Slider<'a, T, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }
 }

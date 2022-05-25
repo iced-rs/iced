@@ -776,7 +776,7 @@ fn color_slider(
     state: &mut slider::State,
     component: f32,
     update: impl Fn(f32) -> Color + 'static,
-) -> Slider<f64, StepMessage> {
+) -> Slider<f64, StepMessage, iced::Renderer> {
     Slider::new(state, 0.0..=1.0, f64::from(component), move |c| {
         StepMessage::TextColorChanged(update(c as f32))
     })

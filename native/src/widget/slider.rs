@@ -40,7 +40,11 @@ pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message> {
+pub struct Slider<'a, T, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     state: &'a mut State,
     range: RangeInclusive<T>,
     step: T,
@@ -49,13 +53,15 @@ pub struct Slider<'a, T, Message> {
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    variant: <Renderer::Theme as StyleSheet>::Variant,
 }
 
-impl<'a, T, Message> Slider<'a, T, Message>
+impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// The default height of a [`Slider`].
     pub const DEFAULT_HEIGHT: u16 = 22;
@@ -99,7 +105,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style_sheet: Default::default(),
+            variant: Default::default(),
         }
     }
 
@@ -129,9 +135,9 @@ where
     /// Sets the style of the [`Slider`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        variant: impl Into<<Renderer::Theme as StyleSheet>::Variant>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.variant = variant.into();
         self
     }
 
@@ -230,26 +236,29 @@ where
 }
 
 /// Draws a [`Slider`].
-pub fn draw<T>(
-    renderer: &mut impl crate::Renderer,
+pub fn draw<T, R>(
+    renderer: &mut R,
     layout: Layout<'_>,
     cursor_position: Point,
     state: &State,
     value: T,
     range: &RangeInclusive<T>,
-    style_sheet: &dyn StyleSheet,
+    style_sheet: &dyn StyleSheet<Variant = <R::Theme as StyleSheet>::Variant>,
+    variant: <R::Theme as StyleSheet>::Variant,
 ) where
     T: Into<f64> + Copy,
+    R: crate::Renderer,
+    R::Theme: StyleSheet,
 {
     let bounds = layout.bounds();
     let is_mouse_over = bounds.contains(cursor_position);
 
     let style = if state.is_dragging {
-        style_sheet.dragging()
+        style_sheet.dragging(variant)
     } else if is_mouse_over {
-        style_sheet.hovered()
+        style_sheet.hovered(variant)
     } else {
-        style_sheet.active()
+        style_sheet.active(variant)
     };
 
     let rail_y = bounds.y + (bounds.height / 2.0).round();
@@ -357,11 +366,12 @@ impl State {
 }
 
 impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, T, Message>
+    for Slider<'a, T, Message, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -423,7 +433,8 @@ where
             &self.state,
             self.value,
             &self.range,
-            self.style_sheet.as_ref(),
+            theme,
+            self.variant,
         )
     }
 
@@ -438,14 +449,17 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> From<Slider<'a, T, Message>>
+impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
     Message: 'a + Clone,
     Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
-    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message, Renderer> {
+    fn from(
+        slider: Slider<'a, T, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }
 }

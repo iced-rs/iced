@@ -26,70 +26,14 @@ pub enum HandleShape {
 
 /// A set of rules that dictate the style of a slider.
 pub trait StyleSheet {
+    type Variant: Default + Copy;
+
     /// Produces the style of an active slider.
-    fn active(&self) -> Style;
+    fn active(&self, variant: Self::Variant) -> Style;
 
     /// Produces the style of an hovered slider.
-    fn hovered(&self) -> Style;
+    fn hovered(&self, variant: Self::Variant) -> Style;
 
     /// Produces the style of a slider that is being dragged.
-    fn dragging(&self) -> Style;
-}
-
-struct Default;
-
-impl StyleSheet for Default {
-    fn active(&self) -> Style {
-        Style {
-            rail_colors: ([0.6, 0.6, 0.6, 0.5].into(), Color::WHITE),
-            handle: Handle {
-                shape: HandleShape::Rectangle {
-                    width: 8,
-                    border_radius: 4.0,
-                },
-                color: Color::from_rgb(0.95, 0.95, 0.95),
-                border_color: Color::from_rgb(0.6, 0.6, 0.6),
-                border_width: 1.0,
-            },
-        }
-    }
-
-    fn hovered(&self) -> Style {
-        let active = self.active();
-
-        Style {
-            handle: Handle {
-                color: Color::from_rgb(0.90, 0.90, 0.90),
-                ..active.handle
-            },
-            ..active
-        }
-    }
-
-    fn dragging(&self) -> Style {
-        let active = self.active();
-
-        Style {
-            handle: Handle {
-                color: Color::from_rgb(0.85, 0.85, 0.85),
-                ..active.handle
-            },
-            ..active
-        }
-    }
-}
-
-impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
-    fn default() -> Self {
-        Box::new(Default)
-    }
-}
-
-impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
-where
-    T: StyleSheet + 'a,
-{
-    fn from(style_sheet: T) -> Self {
-        Box::new(style_sheet)
-    }
+    fn dragging(&self, variant: Self::Variant) -> Style;
 }

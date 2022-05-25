@@ -3,6 +3,7 @@ mod palette;
 pub use self::palette::Palette;
 
 use crate::button;
+use crate::slider;
 
 use iced_core::{Background, Color};
 
@@ -114,6 +115,59 @@ impl button::StyleSheet for Theme {
 
         button::Style {
             background: background.map(Background::from),
+            ..active
+        }
+    }
+}
+
+impl slider::StyleSheet for Theme {
+    type Variant = ();
+
+    fn active(&self, _variant: Self::Variant) -> slider::Style {
+        let palette = self.extended_palette();
+
+        let handle = slider::Handle {
+            shape: slider::HandleShape::Rectangle {
+                width: 8,
+                border_radius: 4.0,
+            },
+            color: Color::WHITE,
+            border_color: Color::WHITE,
+            border_width: 1.0,
+        };
+
+        slider::Style {
+            rail_colors: (palette.background.strong, palette.background.base),
+            handle: slider::Handle {
+                color: palette.background.base,
+                border_color: palette.border,
+                ..handle
+            },
+        }
+    }
+
+    fn hovered(&self, variant: Self::Variant) -> slider::Style {
+        let active = self.active(variant);
+        let palette = self.extended_palette();
+
+        slider::Style {
+            handle: slider::Handle {
+                color: palette.background.weak,
+                ..active.handle
+            },
+            ..active
+        }
+    }
+
+    fn dragging(&self, variant: Self::Variant) -> slider::Style {
+        let active = self.active(variant);
+        let palette = self.extended_palette();
+
+        slider::Style {
+            handle: slider::Handle {
+                color: palette.background.strong,
+                ..active.handle
+            },
             ..active
         }
     }

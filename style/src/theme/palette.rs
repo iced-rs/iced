@@ -59,6 +59,7 @@ pub struct Extended {
     pub primary: Group,
     pub success: Group,
     pub danger: Group,
+    pub border: Color,
 }
 
 lazy_static! {
@@ -86,6 +87,7 @@ impl Extended {
                 palette.background,
                 palette.text,
             ),
+            border: mix(palette.background, palette.text, 0.7),
         }
     }
 }
