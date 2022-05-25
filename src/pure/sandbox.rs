@@ -1,5 +1,5 @@
 use crate::pure;
-use crate::{Color, Command, Error, Settings, Subscription, Theme};
+use crate::{Command, Error, Settings, Subscription, Theme};
 
 /// A pure version of [`Sandbox`].
 ///
@@ -42,13 +42,6 @@ pub trait Sandbox {
     /// By default, it returns [`Theme::default`].
     fn theme(&self) -> Theme {
         Theme::default()
-    }
-
-    /// Returns the background color of the [`Sandbox`].
-    ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
     }
 
     /// Returns the scale factor of the [`Sandbox`].
@@ -118,10 +111,6 @@ where
 
     fn subscription(&self) -> Subscription<T::Message> {
         Subscription::none()
-    }
-
-    fn background_color(&self) -> Color {
-        T::background_color(self)
     }
 
     fn scale_factor(&self) -> f64 {

@@ -1,5 +1,6 @@
+use crate::theme;
 use crate::window;
-use crate::{Color, Command, Element, Executor, Settings, Subscription};
+use crate::{Command, Element, Executor, Settings, Subscription};
 
 /// An interactive cross-platform application.
 ///
@@ -101,7 +102,7 @@ pub trait Application: Sized {
     type Message: std::fmt::Debug + Send;
 
     /// The theme of your [`Application`].
-    type Theme: Default;
+    type Theme: Default + theme::Definition;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -165,13 +166,6 @@ pub trait Application: Sized {
     /// By default, an application will run in windowed mode.
     fn mode(&self) -> window::Mode {
         window::Mode::Windowed
-    }
-
-    /// Returns the background color of the [`Application`].
-    ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
     }
 
     /// Returns the scale factor of the [`Application`].
@@ -275,10 +269,6 @@ where
 
     fn subscription(&self) -> Subscription<Self::Message> {
         self.0.subscription()
-    }
-
-    fn background_color(&self) -> Color {
-        self.0.background_color()
     }
 
     fn scale_factor(&self) -> f64 {

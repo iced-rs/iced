@@ -4,7 +4,7 @@ pub use self::palette::Palette;
 
 use crate::button;
 
-use iced_core::Background;
+use iced_core::{Background, Color};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Theme {
@@ -31,6 +31,18 @@ impl Theme {
 impl Default for Theme {
     fn default() -> Self {
         Self::Light
+    }
+}
+
+pub trait Definition {
+    fn background_color(&self) -> Color;
+}
+
+impl Definition for Theme {
+    fn background_color(&self) -> Color {
+        let palette = self.extended_palette();
+
+        palette.background.base
     }
 }
 

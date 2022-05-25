@@ -12,7 +12,7 @@ use iced::pure::{Application, Element};
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::window;
-use iced::{Alignment, Color, Command, Length, Settings, Subscription};
+use iced::{Alignment, Command, Length, Settings, Subscription};
 use preset::Preset;
 use std::time::{Duration, Instant};
 
@@ -69,10 +69,6 @@ impl Application for GameOfLife {
 
     fn title(&self) -> String {
         String::from("Game of Life - Iced")
-    }
-
-    fn background_color(&self) -> Color {
-        style::BACKGROUND
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {

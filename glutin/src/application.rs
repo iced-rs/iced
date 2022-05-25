@@ -9,6 +9,7 @@ use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
+use iced_winit::theme::{self, Definition as _};
 use iced_winit::user_interface;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
@@ -25,6 +26,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as iced_native::Renderer>::Theme: theme::Definition,
 {
     use futures::task;
     use futures::Future;
@@ -203,6 +205,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as iced_native::Renderer>::Theme: theme::Definition,
 {
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
@@ -376,7 +379,7 @@ async fn run_instance<A, E, C>(
                 compositor.present(
                     &mut renderer,
                     state.viewport(),
-                    state.background_color(),
+                    theme.background_color(),
                     &debug.overlay(),
                 );
 

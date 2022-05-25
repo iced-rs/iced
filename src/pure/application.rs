@@ -1,6 +1,7 @@
 use crate::pure::{self, Pure};
+use crate::theme;
 use crate::window;
-use crate::{Color, Command, Executor, Settings, Subscription};
+use crate::{Command, Executor, Settings, Subscription};
 
 /// A pure version of [`Application`].
 ///
@@ -22,7 +23,7 @@ pub trait Application: Sized {
     type Message: std::fmt::Debug + Send;
 
     /// The theme of your [`Application`].
-    type Theme: Default;
+    type Theme: Default + theme::Definition;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -86,13 +87,6 @@ pub trait Application: Sized {
     /// By default, an application will run in windowed mode.
     fn mode(&self) -> window::Mode {
         window::Mode::Windowed
-    }
-
-    /// Returns the background color of the [`Application`].
-    ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
     }
 
     /// Returns the scale factor of the [`Application`].
@@ -183,10 +177,6 @@ where
 
     fn mode(&self) -> window::Mode {
         A::mode(&self.application)
-    }
-
-    fn background_color(&self) -> Color {
-        A::background_color(&self.application)
     }
 
     fn scale_factor(&self) -> f64 {

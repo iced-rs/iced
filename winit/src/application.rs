@@ -6,9 +6,10 @@ pub use state::State;
 use crate::clipboard::{self, Clipboard};
 use crate::conversion;
 use crate::mouse;
+use crate::theme::{self, Definition as _};
 use crate::{
-    Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings,
-    Size, Subscription,
+    Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings, Size,
+    Subscription,
 };
 
 use iced_futures::futures;
@@ -77,13 +78,6 @@ pub trait Application: Program {
         Mode::Windowed
     }
 
-    /// Returns the background [`Color`] of the [`Application`].
-    ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
-    }
-
     /// Returns the scale factor of the [`Application`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
@@ -115,6 +109,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as iced_native::Renderer>::Theme: theme::Definition,
 {
     use futures::task;
     use futures::Future;
@@ -250,6 +245,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as iced_native::Renderer>::Theme: theme::Definition,
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
@@ -425,7 +421,7 @@ async fn run_instance<A, E, C>(
                     &mut renderer,
                     &mut surface,
                     state.viewport(),
-                    state.background_color(),
+                    theme.background_color(),
                     &debug.overlay(),
                 ) {
                     Ok(()) => {

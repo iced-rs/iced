@@ -1,5 +1,5 @@
 use crate::{
-    Application, Color, Command, Element, Error, Settings, Subscription, Theme,
+    Application, Command, Element, Error, Settings, Subscription, Theme,
 };
 
 /// A sandboxed [`Application`].
@@ -121,13 +121,6 @@ pub trait Sandbox {
         Theme::default()
     }
 
-    /// Returns the background color of the [`Sandbox`].
-    ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
-    }
-
     /// Returns the scale factor of the [`Sandbox`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
@@ -195,10 +188,6 @@ where
 
     fn subscription(&self) -> Subscription<T::Message> {
         Subscription::none()
-    }
-
-    fn background_color(&self) -> Color {
-        T::background_color(self)
     }
 
     fn scale_factor(&self) -> f64 {

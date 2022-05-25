@@ -1,5 +1,5 @@
 use crate::conversion;
-use crate::{Application, Color, Debug, Mode, Point, Size, Viewport};
+use crate::{Application, Debug, Mode, Point, Size, Viewport};
 
 use std::marker::PhantomData;
 use winit::event::{Touch, WindowEvent};
@@ -10,7 +10,6 @@ use winit::window::Window;
 pub struct State<A: Application> {
     title: String,
     mode: Mode,
-    background_color: Color,
     scale_factor: f64,
     viewport: Viewport,
     viewport_version: usize,
@@ -24,7 +23,6 @@ impl<A: Application> State<A> {
     pub fn new(application: &A, window: &Window) -> Self {
         let title = application.title();
         let mode = application.mode();
-        let background_color = application.background_color();
         let scale_factor = application.scale_factor();
 
         let viewport = {
@@ -39,7 +37,6 @@ impl<A: Application> State<A> {
         Self {
             title,
             mode,
-            background_color,
             scale_factor,
             viewport,
             viewport_version: 0,
@@ -48,11 +45,6 @@ impl<A: Application> State<A> {
             modifiers: winit::event::ModifiersState::default(),
             application: PhantomData,
         }
-    }
-
-    /// Returns the current background [`Color`] of the [`State`].
-    pub fn background_color(&self) -> Color {
-        self.background_color
     }
 
     /// Returns the current [`Viewport`] of the [`State`].
@@ -186,9 +178,6 @@ impl<A: Application> State<A> {
 
             self.mode = new_mode;
         }
-
-        // Update background color
-        self.background_color = application.background_color();
 
         // Update scale factor
         let new_scale_factor = application.scale_factor();
