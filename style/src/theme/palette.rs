@@ -34,8 +34,12 @@ impl Palette {
     };
 
     pub const DARK: Self = Self {
-        background: Color::WHITE,
-        text: Color::BLACK,
+        background: Color::from_rgb(
+            0x20 as f32 / 255.0,
+            0x22 as f32 / 255.0,
+            0x25 as f32 / 255.0,
+        ),
+        text: Color::from_rgb(0.90, 0.90, 0.90),
         primary: Color::from_rgb(
             0x5E as f32 / 255.0,
             0x7C as f32 / 255.0,
@@ -119,21 +123,17 @@ pub struct Group {
 
 impl Group {
     pub fn new(base: Color, background: Color, text: Color) -> Self {
+        let strong = if is_dark(base) {
+            lighten(base, 0.1)
+        } else {
+            darken(base, 0.1)
+        };
+
         Self {
             base,
             weak: mix(base, background, 0.4),
-            strong: if is_dark(background) {
-                lighten(base, 0.1)
-            } else {
-                darken(base, 0.1)
-            },
-            text: if is_readable(base, text) {
-                text
-            } else if is_dark(text) {
-                Color::WHITE
-            } else {
-                Color::BLACK
-            },
+            strong,
+            text: readable(strong, text),
         }
     }
 }
@@ -184,8 +184,18 @@ fn lighten(color: Color, amount: f32) -> Color {
     from_hsl(hsl)
 }
 
+fn readable(background: Color, text: Color) -> Color {
+    if is_readable(background, text) {
+        text
+    } else if is_dark(background) {
+        Color::WHITE
+    } else {
+        Color::BLACK
+    }
+}
+
 fn is_dark(color: Color) -> bool {
-    to_hsl(color).lightness < 0.5
+    to_hsl(color).lightness < 0.6
 }
 
 fn is_readable(a: Color, b: Color) -> bool {

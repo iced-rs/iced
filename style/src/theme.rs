@@ -31,12 +31,14 @@ impl Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        Self::Light
+        Self::Dark
     }
 }
 
 pub trait Definition {
     fn background_color(&self) -> Color;
+
+    fn text_color(&self) -> Color;
 }
 
 impl Definition for Theme {
@@ -44,6 +46,12 @@ impl Definition for Theme {
         let palette = self.extended_palette();
 
         palette.background.base
+    }
+
+    fn text_color(&self) -> Color {
+        let palette = self.extended_palette();
+
+        palette.background.text
     }
 }
 

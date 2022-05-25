@@ -3,6 +3,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::theme::{self, Definition as _};
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -28,6 +29,7 @@ pub struct UserInterface<'a, Message, Renderer> {
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: theme::Definition,
 {
     /// Builds a user interface for an [`Element`].
     ///
@@ -370,7 +372,9 @@ where
         self.root.widget.draw(
             renderer,
             theme,
-            &renderer::Style::default(),
+            &renderer::Style {
+                text_color: theme.text_color(),
+            },
             Layout::new(&self.base),
             base_cursor,
             &viewport,

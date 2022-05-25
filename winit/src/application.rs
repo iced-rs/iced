@@ -504,7 +504,10 @@ pub fn build_user_interface<'a, A: Application>(
     renderer: &mut A::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, A::Message, A::Renderer> {
+) -> UserInterface<'a, A::Message, A::Renderer>
+where
+    <A::Renderer as crate::Renderer>::Theme: theme::Definition,
+{
     debug.view_started();
     let view = application.view();
     debug.view_finished();
