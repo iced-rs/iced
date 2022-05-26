@@ -178,10 +178,7 @@ fn view_controls<'a>(
         .width(Length::Fill)
         .align_items(Alignment::Center)
         .spacing(10)
-        .push(
-            slider(1.0..=1000.0, speed as f32, Message::SpeedChanged)
-                .style(style::Slider),
-        )
+        .push(slider(1.0..=1000.0, speed as f32, Message::SpeedChanged))
         .push(text(format!("x{}", speed)).size(16));
 
     row()

@@ -6,7 +6,7 @@ use iced::pure::{
 };
 use iced::pure::{Element, Sandbox};
 use iced::theme;
-use iced::{Color, Length, Settings};
+use iced::{Color, Length, Renderer, Settings};
 
 pub fn main() -> iced::Result {
     env_logger::init();
@@ -622,7 +622,7 @@ fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
 fn color_slider<'a>(
     component: f32,
     update: impl Fn(f32) -> Color + 'a,
-) -> Slider<'a, f64, StepMessage> {
+) -> Slider<'a, f64, StepMessage, Renderer> {
     slider(0.0..=1.0, f64::from(component), move |c| {
         StepMessage::TextColorChanged(update(c as f32))
     })

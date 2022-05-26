@@ -288,7 +288,7 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
             range: RangeInclusive<f64>,
             component: f32,
             update: impl Fn(f32) -> C + 'static,
-        ) -> Slider<f64, C> {
+        ) -> Slider<f64, C, iced::Renderer> {
             Slider::new(state, range, f64::from(component), move |v| {
                 update(v as f32)
             })

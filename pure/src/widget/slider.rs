@@ -23,7 +23,10 @@ pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_pure::widget::Slider;
+/// # use iced_pure::widget::slider;
+/// # use iced_native::renderer::Null;
+/// #
+/// # type Slider<'a, T, Message> = slider::Slider<'a, T, Message, Null>;
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {

@@ -850,15 +850,12 @@ impl Controls {
             .width(Length::Fill)
             .align_items(Alignment::Center)
             .spacing(10)
-            .push(
-                Slider::new(
-                    &mut self.speed_slider,
-                    1.0..=1000.0,
-                    speed as f32,
-                    Message::SpeedChanged,
-                )
-                .style(style::Slider),
-            )
+            .push(Slider::new(
+                &mut self.speed_slider,
+                1.0..=1000.0,
+                speed as f32,
+                Message::SpeedChanged,
+            ))
             .push(Text::new(format!("x{}", speed)).size(16));
 
         Row::new()

@@ -92,8 +92,7 @@ impl Sandbox for Styling {
             0.0..=100.0,
             self.slider_value,
             Message::SliderChanged,
-        )
-        .style(self.theme);
+        );
 
         let progress_bar =
             ProgressBar::new(0.0..=100.0, self.slider_value).style(self.theme);
@@ -159,8 +158,8 @@ impl Sandbox for Styling {
 
 mod style {
     use iced::{
-        checkbox, container, progress_bar, radio, rule, scrollable, slider,
-        text_input, toggler,
+        checkbox, container, progress_bar, radio, rule, scrollable, text_input,
+        toggler,
     };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -215,15 +214,6 @@ mod style {
         }
     }
 
-    impl<'a> From<Theme> for Box<dyn slider::StyleSheet + 'a> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => Default::default(),
-                Theme::Dark => dark::Slider.into(),
-            }
-        }
-    }
-
     impl From<Theme> for Box<dyn progress_bar::StyleSheet> {
         fn from(theme: Theme) -> Self {
             match theme {
@@ -262,7 +252,7 @@ mod style {
 
     mod dark {
         use iced::{
-            checkbox, container, progress_bar, radio, rule, scrollable, slider,
+            checkbox, container, progress_bar, radio, rule, scrollable,
             text_input, toggler, Color,
         };
 
@@ -404,46 +394,6 @@ mod style {
                         ..hovered.scroller
                     },
                     ..hovered
-                }
-            }
-        }
-
-        pub struct Slider;
-
-        impl slider::StyleSheet for Slider {
-            fn active(&self) -> slider::Style {
-                slider::Style {
-                    rail_colors: (ACTIVE, Color { a: 0.1, ..ACTIVE }),
-                    handle: slider::Handle {
-                        shape: slider::HandleShape::Circle { radius: 9.0 },
-                        color: ACTIVE,
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
-                    },
-                }
-            }
-
-            fn hovered(&self) -> slider::Style {
-                let active = self.active();
-
-                slider::Style {
-                    handle: slider::Handle {
-                        color: HOVERED,
-                        ..active.handle
-                    },
-                    ..active
-                }
-            }
-
-            fn dragging(&self) -> slider::Style {
-                let active = self.active();
-
-                slider::Style {
-                    handle: slider::Handle {
-                        color: Color::from_rgb(0.85, 0.85, 0.85),
-                        ..active.handle
-                    },
-                    ..active
                 }
             }
         }
