@@ -1,4 +1,4 @@
-use iced::{container, radio, rule, scrollable};
+use iced::{container, rule, scrollable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Theme {
@@ -25,15 +25,6 @@ impl<'a> From<Theme> for Box<dyn container::StyleSheet + 'a> {
     }
 }
 
-impl<'a> From<Theme> for Box<dyn radio::StyleSheet + 'a> {
-    fn from(theme: Theme) -> Self {
-        match theme {
-            Theme::Light => Default::default(),
-            Theme::Dark => dark::Radio.into(),
-        }
-    }
-}
-
 impl<'a> From<Theme> for Box<dyn scrollable::StyleSheet + 'a> {
     fn from(theme: Theme) -> Self {
         match theme {
@@ -53,7 +44,7 @@ impl From<Theme> for Box<dyn rule::StyleSheet> {
 }
 
 mod dark {
-    use iced::{container, radio, rule, scrollable, Color};
+    use iced::{container, rule, scrollable, Color};
 
     const BACKGROUND: Color = Color::from_rgb(
         0x36 as f32 / 255.0,
@@ -71,12 +62,6 @@ mod dark {
         0x6F as f32 / 255.0,
         0xFF as f32 / 255.0,
         0xE9 as f32 / 255.0,
-    );
-
-    const ACTIVE: Color = Color::from_rgb(
-        0x72 as f32 / 255.0,
-        0x89 as f32 / 255.0,
-        0xDA as f32 / 255.0,
     );
 
     const SCROLLBAR: Color = Color::from_rgb(
@@ -103,27 +88,6 @@ mod dark {
                 .into(),
                 text_color: Color::WHITE.into(),
                 ..container::Style::default()
-            }
-        }
-    }
-
-    pub struct Radio;
-
-    impl radio::StyleSheet for Radio {
-        fn active(&self) -> radio::Style {
-            radio::Style {
-                background: SURFACE.into(),
-                dot_color: ACTIVE,
-                border_width: 1.0,
-                border_color: ACTIVE,
-                text_color: None,
-            }
-        }
-
-        fn hovered(&self) -> radio::Style {
-            radio::Style {
-                background: Color { a: 0.5, ..SURFACE }.into(),
-                ..self.active()
             }
         }
     }

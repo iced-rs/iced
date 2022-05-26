@@ -106,11 +106,11 @@ pub mod pick_list {
 
 pub mod radio {
     //! Create choices using radio buttons.
-    pub use iced_native::widget::radio::{Style, StyleSheet};
+    pub use iced_native::widget::radio::{Appearance, StyleSheet};
 
     /// A circular button representing a choice.
-    pub type Radio<'a, Message, Theme> =
-        iced_native::widget::Radio<'a, Message, crate::Renderer<Theme>>;
+    pub type Radio<Message, Theme> =
+        iced_native::widget::Radio<Message, crate::Renderer<Theme>>;
 }
 
 pub mod scrollable {

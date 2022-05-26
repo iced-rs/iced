@@ -69,15 +69,12 @@ impl Sandbox for ScrollableDemo {
         let choose_theme = style::Theme::ALL.iter().fold(
             Column::new().spacing(10).push(Text::new("Choose a theme:")),
             |column, option| {
-                column.push(
-                    Radio::new(
-                        *option,
-                        format!("{:?}", option),
-                        Some(*theme),
-                        Message::ThemeChanged,
-                    )
-                    .style(*theme),
-                )
+                column.push(Radio::new(
+                    *option,
+                    format!("{:?}", option),
+                    Some(*theme),
+                    Message::ThemeChanged,
+                ))
             },
         );
 

@@ -9,13 +9,13 @@ use iced_native::renderer;
 use iced_native::text;
 use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
-pub use iced_native::widget::radio::{Radio, Style, StyleSheet};
+pub use iced_native::widget::radio::{Appearance, Radio, StyleSheet};
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Radio<'a, Message, Renderer>
+impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         <Self as iced_native::Widget<Message, Renderer>>::width(self)
@@ -96,10 +96,11 @@ where
 }
 
 impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Radio<'a, Message, Renderer>
+    for Radio<Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: text::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

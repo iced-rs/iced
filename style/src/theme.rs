@@ -4,6 +4,7 @@ pub use self::palette::Palette;
 
 use crate::application;
 use crate::button;
+use crate::radio;
 use crate::slider;
 
 use iced_core::{Background, Color};
@@ -161,6 +162,33 @@ impl slider::StyleSheet for Theme {
                 color: palette.primary.base.color,
                 ..active.handle
             },
+            ..active
+        }
+    }
+}
+
+impl radio::StyleSheet for Theme {
+    type Style = ();
+
+    fn active(&self, _style: Self::Style) -> radio::Appearance {
+        let palette = self.extended_palette();
+
+        radio::Appearance {
+            background: Color::TRANSPARENT.into(),
+            dot_color: palette.primary.strong.color.into(),
+            border_width: 1.0,
+            border_color: palette.primary.strong.color,
+            text_color: None,
+        }
+    }
+
+    fn hovered(&self, style: Self::Style) -> radio::Appearance {
+        let active = self.active(style);
+        let palette = self.extended_palette();
+
+        radio::Appearance {
+            dot_color: palette.primary.weak.text.into(),
+            background: palette.primary.weak.color.into(),
             ..active
         }
     }

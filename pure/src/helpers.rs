@@ -100,15 +100,16 @@ where
 /// Creates a new [`Radio`].
 ///
 /// [`Radio`]: widget::Radio
-pub fn radio<'a, Message, Renderer, V>(
+pub fn radio<Message, Renderer, V>(
     label: impl Into<String>,
     value: V,
     selected: Option<V>,
     on_click: impl FnOnce(V) -> Message,
-) -> widget::Radio<'a, Message, Renderer>
+) -> widget::Radio<Message, Renderer>
 where
     Message: Clone,
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::radio::StyleSheet,
     V: Copy + Eq,
 {
     widget::Radio::new(value, label, selected, on_click)
