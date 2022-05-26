@@ -63,7 +63,6 @@ pub struct Extended {
     pub primary: Group,
     pub success: Group,
     pub danger: Group,
-    pub border: Color,
 }
 
 lazy_static! {
@@ -91,7 +90,6 @@ impl Extended {
                 palette.background,
                 palette.text,
             ),
-            border: mix(palette.background, palette.text, 0.7),
         }
     }
 }
@@ -107,8 +105,8 @@ impl Background {
     pub fn new(base: Color, text: Color) -> Self {
         Self {
             base,
-            weak: muted(base, 0.1),
-            strong: muted(base, 0.2),
+            weak: mix(base, text, 0.15),
+            strong: mix(base, text, 0.25),
             text,
         }
     }
@@ -142,7 +140,7 @@ fn muted(color: Color, amount: f32) -> Color {
     let mut hsl = to_hsl(color);
 
     hsl.lightness = if is_dark(color) {
-        let delta = amount * (1.0 - hsl.lightness).powi(7);
+        let delta = amount * (1.0 - hsl.lightness).powi(5);
         hsl.lightness + delta
     } else {
         let delta = amount * hsl.lightness.powi(5);
@@ -164,14 +162,6 @@ fn darken(color: Color, amount: f32) -> Color {
     from_hsl(hsl)
 }
 
-fn mix(a: Color, b: Color, factor: f32) -> Color {
-    let a_lin = Srgb::from(a).into_linear();
-    let b_lin = Srgb::from(b).into_linear();
-
-    let mixed = a_lin.mix(&b_lin, factor);
-    Srgb::from_linear(mixed).into()
-}
-
 fn lighten(color: Color, amount: f32) -> Color {
     let mut hsl = to_hsl(color);
 
@@ -182,6 +172,14 @@ fn lighten(color: Color, amount: f32) -> Color {
     };
 
     from_hsl(hsl)
+}
+
+fn mix(a: Color, b: Color, factor: f32) -> Color {
+    let a_lin = Srgb::from(a).into_linear();
+    let b_lin = Srgb::from(b).into_linear();
+
+    let mixed = a_lin.mix(&b_lin, factor);
+    Srgb::from_linear(mixed).into()
 }
 
 fn readable(background: Color, text: Color) -> Color {

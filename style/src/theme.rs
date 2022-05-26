@@ -31,7 +31,7 @@ impl Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        Self::Dark
+        Self::Light
     }
 }
 
@@ -145,10 +145,10 @@ impl slider::StyleSheet for Theme {
         };
 
         slider::Style {
-            rail_colors: (palette.background.strong, palette.background.base),
+            rail_colors: (palette.primary.base, palette.background.base),
             handle: slider::Handle {
                 color: palette.background.base,
-                border_color: palette.border,
+                border_color: palette.primary.base,
                 ..handle
             },
         }
@@ -160,7 +160,7 @@ impl slider::StyleSheet for Theme {
 
         slider::Style {
             handle: slider::Handle {
-                color: palette.background.weak,
+                color: palette.primary.weak,
                 ..active.handle
             },
             ..active
@@ -173,7 +173,7 @@ impl slider::StyleSheet for Theme {
 
         slider::Style {
             handle: slider::Handle {
-                color: palette.background.strong,
+                color: palette.primary.base,
                 ..active.handle
             },
             ..active
