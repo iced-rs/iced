@@ -60,9 +60,10 @@ impl Palette {
 
 pub struct Extended {
     pub background: Background,
-    pub primary: Group,
-    pub success: Group,
-    pub danger: Group,
+    pub primary: Primary,
+    pub secondary: Secondary,
+    pub success: Success,
+    pub danger: Danger,
 }
 
 lazy_static! {
@@ -75,17 +76,18 @@ impl Extended {
     pub fn generate(palette: Palette) -> Self {
         Self {
             background: Background::new(palette.background, palette.text),
-            primary: Group::new(
+            primary: Primary::generate(
                 palette.primary,
                 palette.background,
                 palette.text,
             ),
-            success: Group::new(
+            secondary: Secondary::generate(palette.background, palette.text),
+            success: Success::generate(
                 palette.success,
                 palette.background,
                 palette.text,
             ),
-            danger: Group::new(
+            danger: Danger::generate(
                 palette.danger,
                 palette.background,
                 palette.text,
@@ -94,44 +96,113 @@ impl Extended {
     }
 }
 
-pub struct Background {
-    pub base: Color,
-    pub weak: Color,
-    pub strong: Color,
+#[derive(Debug, Clone, Copy)]
+pub struct Pair {
+    pub color: Color,
     pub text: Color,
 }
 
-impl Background {
-    pub fn new(base: Color, text: Color) -> Self {
+impl Pair {
+    pub fn new(color: Color, text: Color) -> Self {
         Self {
-            base,
-            weak: mix(base, text, 0.15),
-            strong: mix(base, text, 0.25),
-            text,
+            color,
+            text: readable(color, text),
         }
     }
 }
 
-pub struct Group {
-    pub base: Color,
-    pub weak: Color,
-    pub strong: Color,
-    pub text: Color,
+pub struct Background {
+    pub base: Pair,
+    pub weak: Pair,
+    pub strong: Pair,
 }
 
-impl Group {
-    pub fn new(base: Color, background: Color, text: Color) -> Self {
-        let strong = if is_dark(base) {
-            lighten(base, 0.1)
-        } else {
-            darken(base, 0.1)
-        };
+impl Background {
+    pub fn new(base: Color, text: Color) -> Self {
+        let weak = mix(base, text, 0.15);
+        let strong = mix(base, text, 0.25);
 
         Self {
-            base,
-            weak: mix(base, background, 0.4),
-            strong,
-            text: readable(strong, text),
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+}
+
+pub struct Primary {
+    pub base: Pair,
+    pub weak: Pair,
+    pub strong: Pair,
+}
+
+impl Primary {
+    pub fn generate(base: Color, background: Color, text: Color) -> Self {
+        let weak = mix(base, background, 0.4);
+        let strong = deviate(base, 0.1);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+}
+
+pub struct Secondary {
+    pub base: Pair,
+    pub weak: Pair,
+    pub strong: Pair,
+}
+
+impl Secondary {
+    pub fn generate(base: Color, text: Color) -> Self {
+        let base = mix(base, text, 0.2);
+        let weak = mix(base, text, 0.1);
+        let strong = mix(base, text, 0.3);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+}
+
+pub struct Success {
+    pub base: Pair,
+    pub weak: Pair,
+    pub strong: Pair,
+}
+
+impl Success {
+    pub fn generate(base: Color, background: Color, text: Color) -> Self {
+        let weak = mix(base, background, 0.4);
+        let strong = deviate(base, 0.1);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+}
+
+pub struct Danger {
+    pub base: Pair,
+    pub weak: Pair,
+    pub strong: Pair,
+}
+
+impl Danger {
+    pub fn generate(base: Color, background: Color, text: Color) -> Self {
+        let weak = mix(base, background, 0.4);
+        let strong = deviate(base, 0.1);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
         }
     }
 }
@@ -172,6 +243,14 @@ fn lighten(color: Color, amount: f32) -> Color {
     };
 
     from_hsl(hsl)
+}
+
+fn deviate(color: Color, amount: f32) -> Color {
+    if is_dark(color) {
+        lighten(color, amount)
+    } else {
+        darken(color, amount)
+    }
 }
 
 fn mix(a: Color, b: Color, factor: f32) -> Color {

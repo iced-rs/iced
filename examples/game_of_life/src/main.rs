@@ -12,8 +12,8 @@ use iced::theme::{self, Theme};
 use iced::time;
 use iced::window;
 use iced::{
-    Alignment, Application, Checkbox, Column, Command, Container, Element,
-    Length, Row, Settings, Subscription, Text,
+    Alignment, Application, Checkbox, Column, Command, Element, Length, Row,
+    Settings, Subscription, Text,
 };
 use preset::Preset;
 use std::time::{Duration, Instant};
@@ -143,19 +143,18 @@ impl Application for GameOfLife {
             self.grid.preset(),
         );
 
-        let content = Column::new()
+        Column::new()
             .push(
                 self.grid
                     .view()
                     .map(move |message| Message::Grid(message, version)),
             )
-            .push(controls);
-
-        Container::new(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .style(style::Container)
+            .push(controls)
             .into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
     }
 }
 

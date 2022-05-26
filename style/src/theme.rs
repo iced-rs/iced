@@ -40,13 +40,13 @@ impl application::StyleSheet for Theme {
     fn background_color(&self) -> Color {
         let palette = self.extended_palette();
 
-        palette.background.base
+        palette.background.base.color
     }
 
     fn text_color(&self) -> Color {
         let palette = self.extended_palette();
 
-        palette.background.text
+        palette.background.base.text
     }
 }
 
@@ -76,29 +76,19 @@ impl button::StyleSheet for Theme {
             ..button::Appearance::default()
         };
 
+        let from_pair = |pair: palette::Pair| button::Appearance {
+            background: Some(pair.color.into()),
+            text_color: pair.text,
+            ..appearance
+        };
+
         match style {
-            Button::Primary => button::Appearance {
-                background: Some(palette.primary.strong.into()),
-                text_color: palette.primary.text,
-                ..appearance
-            },
-            Button::Secondary => button::Appearance {
-                background: Some(palette.background.weak.into()),
-                text_color: palette.background.text,
-                ..appearance
-            },
-            Button::Positive => button::Appearance {
-                background: Some(palette.success.base.into()),
-                text_color: palette.success.text,
-                ..appearance
-            },
-            Button::Destructive => button::Appearance {
-                background: Some(palette.danger.base.into()),
-                text_color: palette.danger.text,
-                ..appearance
-            },
+            Button::Primary => from_pair(palette.primary.strong),
+            Button::Secondary => from_pair(palette.secondary.base),
+            Button::Positive => from_pair(palette.success.base),
+            Button::Destructive => from_pair(palette.danger.base),
             Button::Text => button::Appearance {
-                text_color: palette.background.text,
+                text_color: palette.background.base.text,
                 ..appearance
             },
         }
@@ -109,10 +99,10 @@ impl button::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         let background = match style {
-            Button::Primary => Some(palette.primary.base),
-            Button::Secondary => Some(palette.background.strong),
-            Button::Positive => Some(palette.success.strong),
-            Button::Destructive => Some(palette.danger.strong),
+            Button::Primary => Some(palette.primary.base.color),
+            Button::Secondary => Some(palette.background.strong.color),
+            Button::Positive => Some(palette.success.strong.color),
+            Button::Destructive => Some(palette.danger.strong.color),
             Button::Text => None,
         };
 
@@ -140,10 +130,10 @@ impl slider::StyleSheet for Theme {
         };
 
         slider::Appearance {
-            rail_colors: (palette.primary.base, palette.background.base),
+            rail_colors: (palette.primary.base.color, Color::TRANSPARENT),
             handle: slider::Handle {
-                color: palette.background.base,
-                border_color: palette.primary.base,
+                color: palette.background.base.color,
+                border_color: palette.primary.base.color,
                 ..handle
             },
         }
@@ -155,7 +145,7 @@ impl slider::StyleSheet for Theme {
 
         slider::Appearance {
             handle: slider::Handle {
-                color: palette.primary.weak,
+                color: palette.primary.weak.color,
                 ..active.handle
             },
             ..active
@@ -168,7 +158,7 @@ impl slider::StyleSheet for Theme {
 
         slider::Appearance {
             handle: slider::Handle {
-                color: palette.primary.base,
+                color: palette.primary.base.color,
                 ..active.handle
             },
             ..active
