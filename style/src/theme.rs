@@ -2,6 +2,7 @@ mod palette;
 
 pub use self::palette::Palette;
 
+use crate::application;
 use crate::button;
 use crate::slider;
 
@@ -35,13 +36,7 @@ impl Default for Theme {
     }
 }
 
-pub trait Definition {
-    fn background_color(&self) -> Color;
-
-    fn text_color(&self) -> Color;
-}
-
-impl Definition for Theme {
+impl application::StyleSheet for Theme {
     fn background_color(&self) -> Color {
         let palette = self.extended_palette();
 

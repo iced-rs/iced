@@ -2,6 +2,7 @@
 use crate::mouse;
 use crate::{Error, Executor, Runtime};
 
+pub use iced_winit::application::StyleSheet;
 pub use iced_winit::Application;
 
 use iced_graphics::window;
@@ -9,7 +10,6 @@ use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
-use iced_winit::theme::{self, Definition as _};
 use iced_winit::user_interface;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
@@ -26,7 +26,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as iced_native::Renderer>::Theme: theme::Definition,
+    <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -205,7 +205,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as iced_native::Renderer>::Theme: theme::Definition,
+    <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;

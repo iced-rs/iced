@@ -9,6 +9,7 @@
 )]
 pub use iced_core::{Background, Color};
 
+pub mod application;
 pub mod button;
 pub mod checkbox;
 pub mod container;

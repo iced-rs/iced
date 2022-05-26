@@ -1,6 +1,7 @@
-use crate::theme;
 use crate::window;
 use crate::{Command, Element, Executor, Settings, Subscription};
+
+pub use iced_native::application::StyleSheet;
 
 /// An interactive cross-platform application.
 ///
@@ -102,7 +103,7 @@ pub trait Application: Sized {
     type Message: std::fmt::Debug + Send;
 
     /// The theme of your [`Application`].
-    type Theme: Default + theme::Definition;
+    type Theme: Default + StyleSheet;
 
     /// The data needed to initialize your [`Application`].
     type Flags;

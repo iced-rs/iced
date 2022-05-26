@@ -76,6 +76,7 @@ pub use iced_core::{
     Rectangle, Size, Vector,
 };
 pub use iced_futures::{executor, futures};
+pub use iced_style::application;
 pub use iced_style::theme;
 
 #[doc(no_inline)]

@@ -6,7 +6,6 @@ pub use state::State;
 use crate::clipboard::{self, Clipboard};
 use crate::conversion;
 use crate::mouse;
-use crate::theme::{self, Definition as _};
 use crate::{
     Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings, Size,
     Subscription,
@@ -18,6 +17,8 @@ use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
+
+pub use iced_native::application::StyleSheet;
 
 use std::mem::ManuallyDrop;
 
@@ -109,7 +110,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as iced_native::Renderer>::Theme: theme::Definition,
+    <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -245,7 +246,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as iced_native::Renderer>::Theme: theme::Definition,
+    <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
@@ -506,7 +507,7 @@ pub fn build_user_interface<'a, A: Application>(
     debug: &mut Debug,
 ) -> UserInterface<'a, A::Message, A::Renderer>
 where
-    <A::Renderer as crate::Renderer>::Theme: theme::Definition,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     debug.view_started();
     let view = application.view();

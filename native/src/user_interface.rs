@@ -1,9 +1,9 @@
 //! Implement your own event loop to drive a user interface.
+use crate::application;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::theme::{self, Definition as _};
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -29,7 +29,7 @@ pub struct UserInterface<'a, Message, Renderer> {
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
-    Renderer::Theme: theme::Definition,
+    Renderer::Theme: application::StyleSheet,
 {
     /// Builds a user interface for an [`Element`].
     ///
@@ -373,7 +373,10 @@ where
             renderer,
             theme,
             &renderer::Style {
-                text_color: theme.text_color(),
+                text_color: {
+                    use application::StyleSheet;
+                    theme.text_color()
+                },
             },
             Layout::new(&self.base),
             base_cursor,

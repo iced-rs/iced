@@ -1,5 +1,5 @@
+use crate::application;
 use crate::mouse;
-use crate::theme;
 use crate::user_interface::{self, UserInterface};
 use crate::{Clipboard, Command, Debug, Event, Point, Program, Size};
 
@@ -20,7 +20,7 @@ where
 impl<P> State<P>
 where
     P: Program + 'static,
-    <P::Renderer as crate::Renderer>::Theme: theme::Definition,
+    <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
@@ -168,7 +168,7 @@ fn build_user_interface<'a, P: Program>(
     debug: &mut Debug,
 ) -> UserInterface<'a, P::Message, P::Renderer>
 where
-    <P::Renderer as crate::Renderer>::Theme: theme::Definition,
+    <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
     debug.view_started();
     let view = program.view();

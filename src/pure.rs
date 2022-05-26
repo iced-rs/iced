@@ -95,9 +95,9 @@
 //! [the original widgets]: crate::widget
 //! [`button::State`]: crate::widget::button::State
 //! [impure `Application`]: crate::Application
+pub mod application;
 pub mod widget;
 
-mod application;
 mod sandbox;
 
 pub use application::Application;
