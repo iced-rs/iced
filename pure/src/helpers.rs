@@ -54,7 +54,6 @@ pub fn button<'a, Message, Renderer>(
 where
     Renderer: iced_native::Renderer,
     Renderer::Theme: widget::button::StyleSheet,
-    <Renderer::Theme as widget::button::StyleSheet>::Variant: Default,
 {
     widget::Button::new(content)
 }

@@ -3,7 +3,7 @@ use iced_core::{Background, Color, Vector};
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
-pub struct Style {
+pub struct Appearance {
     pub shadow_offset: Vector,
     pub background: Option<Background>,
     pub border_radius: f32,
@@ -12,7 +12,7 @@ pub struct Style {
     pub text_color: Color,
 }
 
-impl std::default::Default for Style {
+impl std::default::Default for Appearance {
     fn default() -> Self {
         Self {
             shadow_offset: Vector::default(),
@@ -27,30 +27,30 @@ impl std::default::Default for Style {
 
 /// A set of rules that dictate the style of a button.
 pub trait StyleSheet {
-    type Variant;
+    type Style: Default + Copy;
 
-    fn active(&self, variant: Self::Variant) -> Style;
+    fn active(&self, style: Self::Style) -> Appearance;
 
-    fn hovered(&self, variant: Self::Variant) -> Style {
-        let active = self.active(variant);
+    fn hovered(&self, style: Self::Style) -> Appearance {
+        let active = self.active(style);
 
-        Style {
+        Appearance {
             shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
             ..active
         }
     }
 
-    fn pressed(&self, variant: Self::Variant) -> Style {
-        Style {
+    fn pressed(&self, style: Self::Style) -> Appearance {
+        Appearance {
             shadow_offset: Vector::default(),
-            ..self.active(variant)
+            ..self.active(style)
         }
     }
 
-    fn disabled(&self, variant: Self::Variant) -> Style {
-        let active = self.active(variant);
+    fn disabled(&self, style: Self::Style) -> Appearance {
+        let active = self.active(style);
 
-        Style {
+        Appearance {
             shadow_offset: Vector::default(),
             background: active.background.map(|background| match background {
                 Background::Color(color) => Background::Color(Color {

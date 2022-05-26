@@ -66,49 +66,49 @@ impl Default for Button {
 }
 
 impl button::StyleSheet for Theme {
-    type Variant = Button;
+    type Style = Button;
 
-    fn active(&self, variant: Self::Variant) -> button::Style {
+    fn active(&self, style: Self::Style) -> button::Appearance {
         let palette = self.extended_palette();
 
-        let style = button::Style {
+        let appearance = button::Appearance {
             border_radius: 2.0,
-            ..button::Style::default()
+            ..button::Appearance::default()
         };
 
-        match variant {
-            Button::Primary => button::Style {
+        match style {
+            Button::Primary => button::Appearance {
                 background: Some(palette.primary.strong.into()),
                 text_color: palette.primary.text,
-                ..style
+                ..appearance
             },
-            Button::Secondary => button::Style {
+            Button::Secondary => button::Appearance {
                 background: Some(palette.background.weak.into()),
                 text_color: palette.background.text,
-                ..style
+                ..appearance
             },
-            Button::Positive => button::Style {
+            Button::Positive => button::Appearance {
                 background: Some(palette.success.base.into()),
                 text_color: palette.success.text,
-                ..style
+                ..appearance
             },
-            Button::Destructive => button::Style {
+            Button::Destructive => button::Appearance {
                 background: Some(palette.danger.base.into()),
                 text_color: palette.danger.text,
-                ..style
+                ..appearance
             },
-            Button::Text => button::Style {
+            Button::Text => button::Appearance {
                 text_color: palette.background.text,
-                ..style
+                ..appearance
             },
         }
     }
 
-    fn hovered(&self, variant: Self::Variant) -> button::Style {
-        let active = self.active(variant);
+    fn hovered(&self, style: Self::Style) -> button::Appearance {
+        let active = self.active(style);
         let palette = self.extended_palette();
 
-        let background = match variant {
+        let background = match style {
             Button::Primary => Some(palette.primary.base),
             Button::Secondary => Some(palette.background.strong),
             Button::Positive => Some(palette.success.strong),
@@ -116,7 +116,7 @@ impl button::StyleSheet for Theme {
             Button::Text => None,
         };
 
-        button::Style {
+        button::Appearance {
             background: background.map(Background::from),
             ..active
         }
@@ -124,9 +124,9 @@ impl button::StyleSheet for Theme {
 }
 
 impl slider::StyleSheet for Theme {
-    type Variant = ();
+    type Style = ();
 
-    fn active(&self, _variant: Self::Variant) -> slider::Style {
+    fn active(&self, _style: Self::Style) -> slider::Appearance {
         let palette = self.extended_palette();
 
         let handle = slider::Handle {
@@ -139,7 +139,7 @@ impl slider::StyleSheet for Theme {
             border_width: 1.0,
         };
 
-        slider::Style {
+        slider::Appearance {
             rail_colors: (palette.primary.base, palette.background.base),
             handle: slider::Handle {
                 color: palette.background.base,
@@ -149,11 +149,11 @@ impl slider::StyleSheet for Theme {
         }
     }
 
-    fn hovered(&self, variant: Self::Variant) -> slider::Style {
-        let active = self.active(variant);
+    fn hovered(&self, style: Self::Style) -> slider::Appearance {
+        let active = self.active(style);
         let palette = self.extended_palette();
 
-        slider::Style {
+        slider::Appearance {
             handle: slider::Handle {
                 color: palette.primary.weak,
                 ..active.handle
@@ -162,11 +162,11 @@ impl slider::StyleSheet for Theme {
         }
     }
 
-    fn dragging(&self, variant: Self::Variant) -> slider::Style {
-        let active = self.active(variant);
+    fn dragging(&self, style: Self::Style) -> slider::Appearance {
+        let active = self.active(style);
         let palette = self.extended_palette();
 
-        slider::Style {
+        slider::Appearance {
             handle: slider::Handle {
                 color: palette.primary.base,
                 ..active.handle

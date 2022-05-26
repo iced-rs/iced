@@ -96,7 +96,6 @@ mod numeric_input {
     where
         Renderer: 'a + text::Renderer,
         Renderer::Theme: button::StyleSheet,
-        <Renderer::Theme as button::StyleSheet>::Variant: Default + Copy,
     {
         type Event = Event;
 
@@ -175,7 +174,6 @@ mod numeric_input {
         Message: 'a,
         Renderer: text::Renderer + 'a,
         Renderer::Theme: button::StyleSheet,
-        <Renderer::Theme as button::StyleSheet>::Variant: Default + Copy,
     {
         fn from(numeric_input: NumericInput<'a, Message>) -> Self {
             component::view(numeric_input)

@@ -3,7 +3,7 @@ use iced_core::Color;
 
 /// The appearance of a slider.
 #[derive(Debug, Clone, Copy)]
-pub struct Style {
+pub struct Appearance {
     pub rail_colors: (Color, Color),
     pub handle: Handle,
 }
@@ -26,14 +26,14 @@ pub enum HandleShape {
 
 /// A set of rules that dictate the style of a slider.
 pub trait StyleSheet {
-    type Variant: Default + Copy;
+    type Style: Default + Copy;
 
     /// Produces the style of an active slider.
-    fn active(&self, variant: Self::Variant) -> Style;
+    fn active(&self, style: Self::Style) -> Appearance;
 
     /// Produces the style of an hovered slider.
-    fn hovered(&self, variant: Self::Variant) -> Style;
+    fn hovered(&self, style: Self::Style) -> Appearance;
 
     /// Produces the style of a slider that is being dragged.
-    fn dragging(&self, variant: Self::Variant) -> Style;
+    fn dragging(&self, style: Self::Style) -> Appearance;
 }

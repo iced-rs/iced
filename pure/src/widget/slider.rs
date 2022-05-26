@@ -11,7 +11,7 @@ use iced_native::{Clipboard, Layout, Length, Point, Rectangle, Shell, Size};
 
 use std::ops::RangeInclusive;
 
-pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
+pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -49,7 +49,7 @@ where
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    variant: <Renderer::Theme as StyleSheet>::Variant,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
@@ -94,7 +94,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            variant: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -124,9 +124,9 @@ where
     /// Sets the style of the [`Slider`].
     pub fn style(
         mut self,
-        variant: impl Into<<Renderer::Theme as StyleSheet>::Variant>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.variant = variant.into();
+        self.style = style.into();
         self
     }
 
@@ -216,7 +216,7 @@ where
             self.value,
             &self.range,
             theme,
-            self.variant,
+            self.style,
         )
     }
 

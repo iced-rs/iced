@@ -13,7 +13,7 @@ use crate::{
 
 use std::ops::RangeInclusive;
 
-pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
+pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -53,7 +53,7 @@ where
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    variant: <Renderer::Theme as StyleSheet>::Variant,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
@@ -105,7 +105,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            variant: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -135,9 +135,9 @@ where
     /// Sets the style of the [`Slider`].
     pub fn style(
         mut self,
-        variant: impl Into<<Renderer::Theme as StyleSheet>::Variant>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.variant = variant.into();
+        self.style = style.into();
         self
     }
 
@@ -243,8 +243,8 @@ pub fn draw<T, R>(
     state: &State,
     value: T,
     range: &RangeInclusive<T>,
-    style_sheet: &dyn StyleSheet<Variant = <R::Theme as StyleSheet>::Variant>,
-    variant: <R::Theme as StyleSheet>::Variant,
+    style_sheet: &dyn StyleSheet<Style = <R::Theme as StyleSheet>::Style>,
+    style: <R::Theme as StyleSheet>::Style,
 ) where
     T: Into<f64> + Copy,
     R: crate::Renderer,
@@ -254,11 +254,11 @@ pub fn draw<T, R>(
     let is_mouse_over = bounds.contains(cursor_position);
 
     let style = if state.is_dragging {
-        style_sheet.dragging(variant)
+        style_sheet.dragging(style)
     } else if is_mouse_over {
-        style_sheet.hovered(variant)
+        style_sheet.hovered(style)
     } else {
-        style_sheet.active(variant)
+        style_sheet.active(style)
     };
 
     let rail_y = bounds.y + (bounds.height / 2.0).round();
@@ -434,7 +434,7 @@ where
             self.value,
             &self.range,
             theme,
-            self.variant,
+            self.style,
         )
     }
 

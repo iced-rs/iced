@@ -90,8 +90,6 @@ mod numeric_input {
     where
         Renderer: text::Renderer + 'static,
         Renderer::Theme: widget::button::StyleSheet,
-        <Renderer::Theme as widget::button::StyleSheet>::Variant:
-            Default + Copy,
     {
         type State = ();
         type Event = Event;
@@ -163,8 +161,6 @@ mod numeric_input {
         Message: 'a,
         Renderer: 'static + text::Renderer,
         Renderer::Theme: widget::button::StyleSheet,
-        <Renderer::Theme as widget::button::StyleSheet>::Variant:
-            Default + Copy,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {
             pure::component(numeric_input)

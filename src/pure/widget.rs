@@ -14,7 +14,7 @@ pub type Text<Theme = crate::Theme> =
 
 pub mod button {
     //! Allow your users to perform actions by pressing a button.
-    pub use iced_pure::widget::button::{Style, StyleSheet};
+    pub use iced_pure::widget::button::{Appearance, StyleSheet};
 
     /// A widget that produces a message when clicked.
     pub type Button<'a, Message, Theme = crate::Theme> =

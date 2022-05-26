@@ -12,7 +12,7 @@ use crate::{
     Rectangle, Shell, Vector, Widget,
 };
 
-pub use iced_style::button::{Style, StyleSheet};
+pub use iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -66,7 +66,7 @@ where
     width: Length,
     height: Length,
     padding: Padding,
-    variant: <Renderer::Theme as StyleSheet>::Variant,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -74,7 +74,6 @@ where
     Message: Clone,
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
-    <Renderer::Theme as StyleSheet>::Variant: Default,
 {
     /// Creates a new [`Button`] with some local [`State`] and the given
     /// content.
@@ -89,7 +88,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             padding: Padding::new(5),
-            variant: <Renderer::Theme as StyleSheet>::Variant::default(),
+            style: Default::default(),
         }
     }
 
@@ -118,12 +117,12 @@ where
         self
     }
 
-    /// Sets the style variant of this [`Button`].
+    /// Sets the style of this [`Button`].
     pub fn style(
         mut self,
-        variant: <Renderer::Theme as StyleSheet>::Variant,
+        style: <Renderer::Theme as StyleSheet>::Style,
     ) -> Self {
-        self.variant = variant;
+        self.style = style;
         self
     }
 }
@@ -196,29 +195,34 @@ pub fn update<'a, Message: Clone>(
 }
 
 /// Draws a [`Button`].
-pub fn draw<'a, Renderer: crate::Renderer, Variant>(
+pub fn draw<'a, Renderer: crate::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
     cursor_position: Point,
     is_enabled: bool,
-    style_sheet: &dyn StyleSheet<Variant = Variant>,
-    variation: Variant,
+    style_sheet: &dyn StyleSheet<
+        Style = <Renderer::Theme as StyleSheet>::Style,
+    >,
+    style: <Renderer::Theme as StyleSheet>::Style,
     state: impl FnOnce() -> &'a State,
-) -> Style {
+) -> Appearance
+where
+    Renderer::Theme: StyleSheet,
+{
     let is_mouse_over = bounds.contains(cursor_position);
 
     let styling = if !is_enabled {
-        style_sheet.disabled(variation)
+        style_sheet.disabled(style)
     } else if is_mouse_over {
         let state = state();
 
         if state.is_pressed {
-            style_sheet.pressed(variation)
+            style_sheet.pressed(style)
         } else {
-            style_sheet.hovered(variation)
+            style_sheet.hovered(style)
         }
     } else {
-        style_sheet.active(variation)
+        style_sheet.active(style)
     };
 
     if styling.background.is_some() || styling.border_width > 0.0 {
@@ -295,7 +299,6 @@ where
     Message: Clone,
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
-    <Renderer::Theme as StyleSheet>::Variant: Copy,
 {
     fn width(&self) -> Length {
         self.width
@@ -378,7 +381,7 @@ where
             cursor_position,
             self.on_press.is_some(),
             theme,
-            self.variant,
+            self.style,
             || &self.state,
         );
 
@@ -410,7 +413,6 @@ where
     Message: 'a + Clone,
     Renderer: 'a + crate::Renderer,
     Renderer::Theme: StyleSheet,
-    <Renderer::Theme as StyleSheet>::Variant: Copy,
 {
     fn from(
         button: Button<'a, Message, Renderer>,

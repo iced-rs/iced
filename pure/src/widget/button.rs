@@ -12,7 +12,7 @@ use iced_native::{
     Clipboard, Layout, Length, Padding, Point, Rectangle, Shell,
 };
 
-pub use iced_style::button::{Style, StyleSheet};
+pub use iced_style::button::{Appearance, StyleSheet};
 
 use button::State;
 
@@ -60,14 +60,13 @@ where
     width: Length,
     height: Length,
     padding: Padding,
-    variant: <Renderer::Theme as StyleSheet>::Variant,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
     Renderer::Theme: StyleSheet,
-    <Renderer::Theme as StyleSheet>::Variant: Default,
 {
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
@@ -77,7 +76,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             padding: Padding::new(5),
-            variant: <Renderer::Theme as StyleSheet>::Variant::default(),
+            style: <Renderer::Theme as StyleSheet>::Style::default(),
         }
     }
 
@@ -110,9 +109,9 @@ where
     /// Sets the style variant of this [`Button`].
     pub fn style(
         mut self,
-        variant: <Renderer::Theme as StyleSheet>::Variant,
+        style: <Renderer::Theme as StyleSheet>::Style,
     ) -> Self {
-        self.variant = variant;
+        self.style = style;
         self
     }
 }
@@ -123,7 +122,6 @@ where
     Message: 'a + Clone,
     Renderer: 'a + iced_native::Renderer,
     Renderer::Theme: StyleSheet,
-    <Renderer::Theme as StyleSheet>::Variant: Copy,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -217,7 +215,7 @@ where
             cursor_position,
             self.on_press.is_some(),
             theme,
-            self.variant,
+            self.style,
             || tree.state.downcast_ref::<State>(),
         );
 
@@ -269,7 +267,6 @@ where
     Message: Clone + 'a,
     Renderer: iced_native::Renderer + 'a,
     Renderer::Theme: StyleSheet,
-    <Renderer::Theme as StyleSheet>::Variant: Copy,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)
