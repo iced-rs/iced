@@ -46,6 +46,7 @@ where
     padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
+    on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -75,6 +76,7 @@ where
             padding: Padding::ZERO,
             size: None,
             on_change: Box::new(on_change),
+            on_paste: None,
             on_submit: None,
             style: Default::default(),
         }
@@ -85,7 +87,14 @@ where
         self.is_secure = true;
         self
     }
-
+    /// Set's the message that should be produced when a message is pasted into the [`TextInput`].
+    pub fn on_paste<OnPaste>(mut self, on_paste: OnPaste) -> Self
+    where
+        OnPaste: 'a + Fn(String) -> Message,
+    {
+        self.on_paste = Some(Box::new(on_paste));
+        self
+    }
     /// Sets the [`Font`] of the [`TextInput`].
     ///
     /// [`Font`]: text::Renderer::Font
@@ -215,6 +224,7 @@ where
             &self.font,
             self.is_secure,
             self.on_change.as_ref(),
+            &self.on_paste,
             &self.on_submit,
             || tree.state.downcast_mut::<text_input::State>(),
         )
