@@ -254,6 +254,10 @@ where
             .cloned()
             .zip(overlay_statuses.into_iter())
             .map(|(event, overlay_status)| {
+                if matches!(overlay_status, event::Status::Captured) {
+                    return overlay_status;
+                }
+
                 let mut shell = Shell::new(messages);
 
                 let event_status = self.root.widget.on_event(
