@@ -4,6 +4,7 @@ pub use self::palette::Palette;
 
 use crate::application;
 use crate::button;
+use crate::pane_grid;
 use crate::radio;
 use crate::slider;
 use crate::toggler;
@@ -251,5 +252,30 @@ impl toggler::StyleSheet for Theme {
             },
             ..self.active(style, is_active)
         }
+    }
+}
+
+/*
+ * Pane Grid
+ */
+impl pane_grid::StyleSheet for Theme {
+    type Style = ();
+
+    fn picked_split(&self, _style: Self::Style) -> Option<pane_grid::Line> {
+        let palette = self.extended_palette();
+
+        Some(pane_grid::Line {
+            color: palette.primary.strong.color,
+            width: 2.0,
+        })
+    }
+
+    fn hovered_split(&self, _style: Self::Style) -> Option<pane_grid::Line> {
+        let palette = self.extended_palette();
+
+        Some(pane_grid::Line {
+            color: palette.primary.base.color,
+            width: 2.0,
+        })
     }
 }

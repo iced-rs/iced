@@ -93,7 +93,11 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 ///     .on_resize(10, Message::PaneResized);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct PaneGrid<'a, Message, Renderer> {
+pub struct PaneGrid<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     state: &'a mut state::Internal,
     action: &'a mut state::Action,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
@@ -103,12 +107,13 @@ pub struct PaneGrid<'a, Message, Renderer> {
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -136,7 +141,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -196,8 +201,11 @@ where
     }
 
     /// Sets the style of the [`PaneGrid`].
-    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet + 'a>>) -> Self {
-        self.style_sheet = style.into();
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+    ) -> Self {
+        self.style = style.into();
         self
     }
 }
@@ -468,11 +476,12 @@ pub fn draw<Renderer, T>(
     layout: Layout<'_>,
     cursor_position: Point,
     renderer: &mut Renderer,
-    style: &renderer::Style,
+    theme: &Renderer::Theme,
+    default_style: &renderer::Style,
     viewport: &Rectangle,
     spacing: u16,
     resize_leeway: Option<u16>,
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
     elements: impl Iterator<Item = (Pane, T)>,
     draw_pane: impl Fn(
         T,
@@ -484,6 +493,7 @@ pub fn draw<Renderer, T>(
     ),
 ) where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     let picked_pane = action.picked_pane();
 
@@ -545,7 +555,7 @@ pub fn draw<Renderer, T>(
                             draw_pane(
                                 pane,
                                 renderer,
-                                style,
+                                default_style,
                                 layout,
                                 pane_cursor_position,
                                 viewport,
@@ -558,7 +568,7 @@ pub fn draw<Renderer, T>(
                 draw_pane(
                     pane,
                     renderer,
-                    style,
+                    default_style,
                     layout,
                     pane_cursor_position,
                     viewport,
@@ -569,9 +579,9 @@ pub fn draw<Renderer, T>(
 
     if let Some((axis, split_region, is_picked)) = picked_split {
         let highlight = if is_picked {
-            style_sheet.picked_split()
+            theme.picked_split(style)
         } else {
-            style_sheet.hovered_split()
+            theme.hovered_split(style)
         };
 
         if let Some(highlight) = highlight {
@@ -649,6 +659,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -766,11 +777,12 @@ where
             layout,
             cursor_position,
             renderer,
+            theme,
             style,
             viewport,
             self.spacing,
             self.on_resize.as_ref().map(|(leeway, _)| *leeway),
-            self.style_sheet.as_ref(),
+            self.style,
             self.elements.iter().map(|(pane, content)| (*pane, content)),
             |pane, renderer, style, layout, cursor_position, rectangle| {
                 pane.draw(
@@ -801,8 +813,9 @@ where
 impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn from(
         pane_grid: PaneGrid<'a, Message, Renderer>,

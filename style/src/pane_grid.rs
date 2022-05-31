@@ -4,11 +4,13 @@ use iced_core::Color;
 
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
+    type Style: Default + Copy;
+
     /// The [`Line`] to draw when a split is picked.
-    fn picked_split(&self) -> Option<Line>;
+    fn picked_split(&self, style: Self::Style) -> Option<Line>;
 
     /// The [`Line`] to draw when a split is hovered.
-    fn hovered_split(&self) -> Option<Line>;
+    fn hovered_split(&self, style: Self::Style) -> Option<Line>;
 }
 
 /// A line.
@@ -21,31 +23,4 @@ pub struct Line {
 
     /// The width of the [`Line`].
     pub width: f32,
-}
-
-struct Default;
-
-impl StyleSheet for Default {
-    fn picked_split(&self) -> Option<Line> {
-        None
-    }
-
-    fn hovered_split(&self) -> Option<Line> {
-        None
-    }
-}
-
-impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
-    fn default() -> Self {
-        Box::new(Default)
-    }
-}
-
-impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
-where
-    T: StyleSheet + 'a,
-{
-    fn from(style_sheet: T) -> Self {
-        Box::new(style_sheet)
-    }
 }
