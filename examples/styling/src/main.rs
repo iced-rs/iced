@@ -147,7 +147,6 @@ impl Sandbox for Styling {
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .style(self.theme)
             .into()
     }
 
@@ -160,9 +159,7 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    use iced::{
-        checkbox, container, progress_bar, rule, scrollable, text_input,
-    };
+    use iced::{checkbox, progress_bar, rule, scrollable, text_input};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Theme {
@@ -177,15 +174,6 @@ mod style {
     impl Default for Theme {
         fn default() -> Theme {
             Theme::Light
-        }
-    }
-
-    impl<'a> From<Theme> for Box<dyn container::StyleSheet + 'a> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => Default::default(),
-                Theme::Dark => dark::Container.into(),
-            }
         }
     }
 
@@ -236,8 +224,7 @@ mod style {
 
     mod dark {
         use iced::{
-            checkbox, container, progress_bar, rule, scrollable, text_input,
-            Color,
+            checkbox, progress_bar, rule, scrollable, text_input, Color,
         };
 
         const SURFACE: Color = Color::from_rgb(
@@ -263,18 +250,6 @@ mod style {
             0x7B as f32 / 255.0,
             0xC4 as f32 / 255.0,
         );
-
-        pub struct Container;
-
-        impl container::StyleSheet for Container {
-            fn style(&self) -> container::Style {
-                container::Style {
-                    background: Color::from_rgb8(0x36, 0x39, 0x3F).into(),
-                    text_color: Color::WHITE.into(),
-                    ..container::Style::default()
-                }
-            }
-        }
 
         pub struct TextInput;
 
