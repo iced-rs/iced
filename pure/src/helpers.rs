@@ -202,14 +202,22 @@ pub fn vertical_space(height: Length) -> widget::Space {
 /// Creates a horizontal [`Rule`] with the given height.
 ///
 /// [`Rule`]: widget::Rule
-pub fn horizontal_rule<'a>(height: u16) -> widget::Rule<'a> {
+pub fn horizontal_rule<Renderer>(height: u16) -> widget::Rule<Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::rule::StyleSheet,
+{
     widget::Rule::horizontal(height)
 }
 
 /// Creates a vertical [`Rule`] with the given width.
 ///
 /// [`Rule`]: widget::Rule
-pub fn vertical_rule<'a>(width: u16) -> widget::Rule<'a> {
+pub fn vertical_rule<Renderer>(width: u16) -> widget::Rule<Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::rule::StyleSheet,
+{
     widget::Rule::vertical(width)
 }
 

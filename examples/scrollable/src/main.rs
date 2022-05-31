@@ -179,7 +179,7 @@ impl Sandbox for ScrollableDemo {
             .spacing(20)
             .padding(20)
             .push(choose_theme)
-            .push(Rule::horizontal(20).style(self.theme))
+            .push(Rule::horizontal(20))
             .push(scrollable_row);
 
         Container::new(content)

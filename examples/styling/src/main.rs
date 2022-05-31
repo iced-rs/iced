@@ -122,7 +122,7 @@ impl Sandbox for Styling {
             .padding(20)
             .max_width(600)
             .push(choose_theme)
-            .push(Rule::horizontal(38).style(self.theme))
+            .push(Rule::horizontal(38))
             .push(Row::new().spacing(10).push(text_input).push(button))
             .push(slider)
             .push(progress_bar)
@@ -132,7 +132,7 @@ impl Sandbox for Styling {
                     .height(Length::Units(100))
                     .align_items(Alignment::Center)
                     .push(scrollable)
-                    .push(Rule::vertical(38).style(self.theme))
+                    .push(Rule::vertical(38))
                     .push(
                         Column::new()
                             .width(Length::Shrink)
@@ -159,7 +159,7 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    use iced::{checkbox, progress_bar, rule, scrollable, text_input};
+    use iced::{checkbox, progress_bar, scrollable, text_input};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Theme {
@@ -213,19 +213,8 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn rule::StyleSheet> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => Default::default(),
-                Theme::Dark => dark::Rule.into(),
-            }
-        }
-    }
-
     mod dark {
-        use iced::{
-            checkbox, progress_bar, rule, scrollable, text_input, Color,
-        };
+        use iced::{checkbox, progress_bar, scrollable, text_input, Color};
 
         const SURFACE: Color = Color::from_rgb(
             0x40 as f32 / 255.0,
@@ -371,19 +360,6 @@ mod style {
                     }
                     .into(),
                     ..self.active(is_checked)
-                }
-            }
-        }
-
-        pub struct Rule;
-
-        impl rule::StyleSheet for Rule {
-            fn style(&self) -> rule::Style {
-                rule::Style {
-                    color: SURFACE,
-                    width: 2,
-                    radius: 1.0,
-                    fill_mode: rule::FillMode::Padded(15),
                 }
             }
         }

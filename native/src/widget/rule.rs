@@ -3,25 +3,33 @@ use crate::layout;
 use crate::renderer;
 use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
-pub use iced_style::rule::{FillMode, Style, StyleSheet};
+pub use iced_style::rule::{Appearance, FillMode, StyleSheet};
 
 /// Display a horizontal or vertical rule for dividing content.
 #[allow(missing_debug_implementations)]
-pub struct Rule<'a> {
+pub struct Rule<Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     width: Length,
     height: Length,
     is_horizontal: bool,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a> Rule<'a> {
+impl<Renderer> Rule<Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     /// Creates a horizontal [`Rule`] with the given height.
     pub fn horizontal(height: u16) -> Self {
         Rule {
             width: Length::Fill,
             height: Length::Units(height),
             is_horizontal: true,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -31,23 +39,24 @@ impl<'a> Rule<'a> {
             width: Length::from(Length::Units(width)),
             height: Length::Fill,
             is_horizontal: false,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
     /// Sets the style of the [`Rule`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Rule<'a>
+impl<Message, Renderer> Widget<Message, Renderer> for Rule<Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -77,7 +86,7 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let style = self.style_sheet.style();
+        let style = theme.style(self.style);
 
         let bounds = if self.is_horizontal {
             let line_y = (bounds.y + (bounds.height / 2.0)
@@ -121,12 +130,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Rule<'a>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Rule<Renderer>>
+    for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
-    fn from(rule: Rule<'a>) -> Element<'a, Message, Renderer> {
+    fn from(rule: Rule<Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(rule)
     }
 }

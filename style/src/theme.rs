@@ -6,6 +6,7 @@ use crate::application;
 use crate::button;
 use crate::pane_grid;
 use crate::radio;
+use crate::rule;
 use crate::slider;
 use crate::toggler;
 
@@ -277,5 +278,23 @@ impl pane_grid::StyleSheet for Theme {
             color: palette.primary.base.color,
             width: 2.0,
         })
+    }
+}
+
+/*
+ * Rule
+ */
+impl rule::StyleSheet for Theme {
+    type Style = ();
+
+    fn style(&self, _style: Self::Style) -> rule::Appearance {
+        let palette = self.extended_palette();
+
+        rule::Appearance {
+            color: palette.background.strong.color,
+            width: 1,
+            radius: 0.0,
+            fill_mode: rule::FillMode::Full,
+        }
     }
 }
