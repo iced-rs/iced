@@ -5,7 +5,7 @@ use iced::text_input;
 use iced::{
     Alignment, Button, Checkbox, Column, Container, Element, Length,
     ProgressBar, Radio, Row, Rule, Sandbox, Scrollable, Settings, Slider,
-    Space, Text, TextInput, Toggler,
+    Space, Text, TextInput, Theme, Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -115,8 +115,7 @@ impl Sandbox for Styling {
             Message::TogglerToggled,
         )
         .width(Length::Shrink)
-        .spacing(10)
-        .style(self.theme);
+        .spacing(10);
 
         let content = Column::new()
             .spacing(20)
@@ -151,12 +150,18 @@ impl Sandbox for Styling {
             .style(self.theme)
             .into()
     }
+
+    fn theme(&self) -> Theme {
+        match self.theme {
+            style::Theme::Light => Theme::Light,
+            style::Theme::Dark => Theme::Dark,
+        }
+    }
 }
 
 mod style {
     use iced::{
         checkbox, container, progress_bar, rule, scrollable, text_input,
-        toggler,
     };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -220,15 +225,6 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn toggler::StyleSheet> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => Default::default(),
-                Theme::Dark => dark::Toggler.into(),
-            }
-        }
-    }
-
     impl From<Theme> for Box<dyn rule::StyleSheet> {
         fn from(theme: Theme) -> Self {
             match theme {
@@ -241,7 +237,7 @@ mod style {
     mod dark {
         use iced::{
             checkbox, container, progress_bar, rule, scrollable, text_input,
-            toggler, Color,
+            Color,
         };
 
         const SURFACE: Color = Color::from_rgb(
@@ -400,35 +396,6 @@ mod style {
                     }
                     .into(),
                     ..self.active(is_checked)
-                }
-            }
-        }
-
-        pub struct Toggler;
-
-        impl toggler::StyleSheet for Toggler {
-            fn active(&self, is_active: bool) -> toggler::Style {
-                toggler::Style {
-                    background: if is_active { ACTIVE } else { SURFACE },
-                    background_border: None,
-                    foreground: if is_active { Color::WHITE } else { ACTIVE },
-                    foreground_border: None,
-                }
-            }
-
-            fn hovered(&self, is_active: bool) -> toggler::Style {
-                toggler::Style {
-                    background: if is_active { ACTIVE } else { SURFACE },
-                    background_border: None,
-                    foreground: if is_active {
-                        Color {
-                            a: 0.5,
-                            ..Color::WHITE
-                        }
-                    } else {
-                        Color { a: 0.5, ..ACTIVE }
-                    },
-                    foreground_border: None,
                 }
             }
         }

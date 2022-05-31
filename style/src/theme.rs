@@ -6,6 +6,7 @@ use crate::application;
 use crate::button;
 use crate::radio;
 use crate::slider;
+use crate::toggler;
 
 use iced_core::{Background, Color};
 
@@ -51,6 +52,9 @@ impl application::StyleSheet for Theme {
     }
 }
 
+/*
+ * Button
+ */
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Button {
     Primary,
@@ -114,6 +118,9 @@ impl button::StyleSheet for Theme {
     }
 }
 
+/*
+ * Slider
+ */
 impl slider::StyleSheet for Theme {
     type Style = ();
 
@@ -167,6 +174,9 @@ impl slider::StyleSheet for Theme {
     }
 }
 
+/*
+ * Radio
+ */
 impl radio::StyleSheet for Theme {
     type Style = ();
 
@@ -190,6 +200,56 @@ impl radio::StyleSheet for Theme {
             dot_color: palette.primary.weak.text.into(),
             background: palette.primary.weak.color.into(),
             ..active
+        }
+    }
+}
+
+/*
+ * Toggler
+ */
+impl toggler::StyleSheet for Theme {
+    type Style = ();
+
+    fn active(
+        &self,
+        _style: Self::Style,
+        is_active: bool,
+    ) -> toggler::Appearance {
+        let palette = self.extended_palette();
+
+        toggler::Appearance {
+            background: if is_active {
+                palette.primary.strong.color
+            } else {
+                palette.background.strong.color
+            },
+            background_border: None,
+            foreground: if is_active {
+                palette.primary.strong.text
+            } else {
+                palette.background.base.color
+            },
+            foreground_border: None,
+        }
+    }
+
+    fn hovered(
+        &self,
+        style: Self::Style,
+        is_active: bool,
+    ) -> toggler::Appearance {
+        let palette = self.extended_palette();
+
+        toggler::Appearance {
+            foreground: if is_active {
+                Color {
+                    a: 0.5,
+                    ..palette.primary.strong.text
+                }
+            } else {
+                palette.background.weak.color
+            },
+            ..self.active(style, is_active)
         }
     }
 }

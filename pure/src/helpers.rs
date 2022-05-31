@@ -125,6 +125,7 @@ pub fn toggler<'a, Message, Renderer>(
 ) -> widget::Toggler<'a, Message, Renderer>
 where
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::toggler::StyleSheet,
 {
     widget::Toggler::new(is_checked, label, f)
 }

@@ -109,7 +109,7 @@ pub mod scrollable {
 
 pub mod toggler {
     //! Show toggle controls using togglers.
-    pub use iced_pure::widget::toggler::{Style, StyleSheet};
+    pub use iced_pure::widget::toggler::{Appearance, StyleSheet};
 
     /// A toggler widget.
     pub type Toggler<'a, Message, Theme> =
