@@ -1,6 +1,8 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
+use futures::stream::{self, StreamExt};
 use futures::task::SpawnExt;
+
 use iced_native::futures;
 use raw_window_handle::HasRawWindowHandle;
 
@@ -49,28 +51,34 @@ impl Compositor {
             .and_then(|surface| surface.get_preferred_format(&adapter))?;
 
         #[cfg(target_arch = "wasm32")]
-        let limits = wgpu::Limits::downlevel_webgl2_defaults()
-            .using_resolution(adapter.limits());
+        let limits = [wgpu::Limits::downlevel_webgl2_defaults()
+            .using_resolution(adapter.limits())];
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits = wgpu::Limits::downlevel_defaults();
+        let limits =
+            [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
 
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some(
-                        "iced_wgpu::window::compositor device descriptor",
-                    ),
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits {
-                        max_bind_groups: 2,
-                        ..limits
+        let limits = limits.into_iter().map(|limits| wgpu::Limits {
+            max_bind_groups: 2,
+            ..limits
+        });
+
+        let (device, queue) = stream::iter(limits)
+            .filter_map(|limits| async {
+                adapter.request_device(
+                    &wgpu::DeviceDescriptor {
+                        label: Some(
+                            "iced_wgpu::window::compositor device descriptor",
+                        ),
+                        features: wgpu::Features::empty(),
+                        limits,
                     },
-                },
-                None,
-            )
-            .await
-            .ok()?;
+                    None,
+                ).await.ok()
+            })
+            .boxed()
+            .next()
+            .await?;
 
         let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
         let local_pool = futures::executor::LocalPool::new();
