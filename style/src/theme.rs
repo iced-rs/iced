@@ -5,6 +5,7 @@ pub use self::palette::Palette;
 use crate::application;
 use crate::button;
 use crate::pane_grid;
+use crate::progress_bar;
 use crate::radio;
 use crate::rule;
 use crate::slider;
@@ -278,6 +279,44 @@ impl pane_grid::StyleSheet for Theme {
             color: palette.primary.base.color,
             width: 2.0,
         })
+    }
+}
+
+/*
+ * Progress Bar
+ */
+#[derive(Clone, Copy)]
+pub enum ProgressBar {
+    Primary,
+    Success,
+    Danger,
+    Custom(fn(&Theme) -> progress_bar::Appearance),
+}
+
+impl Default for ProgressBar {
+    fn default() -> Self {
+        Self::Primary
+    }
+}
+
+impl progress_bar::StyleSheet for Theme {
+    type Style = ProgressBar;
+
+    fn appearance(&self, style: Self::Style) -> progress_bar::Appearance {
+        let palette = self.extended_palette();
+
+        let from_palette = |bar: Color| progress_bar::Appearance {
+            background: palette.background.weak.color.into(),
+            bar: bar.into(),
+            border_radius: 2.0,
+        };
+
+        match style {
+            ProgressBar::Primary => from_palette(palette.primary.base.color),
+            ProgressBar::Success => from_palette(palette.success.base.color),
+            ProgressBar::Danger => from_palette(palette.danger.base.color),
+            ProgressBar::Custom(f) => f(self),
+        }
     }
 }
 

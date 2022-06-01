@@ -91,8 +91,7 @@ impl Sandbox for Styling {
             Message::SliderChanged,
         );
 
-        let progress_bar =
-            ProgressBar::new(0.0..=100.0, self.slider_value).style(self.theme);
+        let progress_bar = ProgressBar::new(0.0..=100.0, self.slider_value);
 
         let scrollable = Scrollable::new(&mut self.scroll)
             .width(Length::Fill)
@@ -159,7 +158,7 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    use iced::{checkbox, progress_bar, scrollable, text_input};
+    use iced::{checkbox, scrollable, text_input};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Theme {
@@ -195,15 +194,6 @@ mod style {
         }
     }
 
-    impl From<Theme> for Box<dyn progress_bar::StyleSheet> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => Default::default(),
-                Theme::Dark => dark::ProgressBar.into(),
-            }
-        }
-    }
-
     impl<'a> From<Theme> for Box<dyn checkbox::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
@@ -214,7 +204,7 @@ mod style {
     }
 
     mod dark {
-        use iced::{checkbox, progress_bar, scrollable, text_input, Color};
+        use iced::{checkbox, scrollable, text_input, Color};
 
         const SURFACE: Color = Color::from_rgb(
             0x40 as f32 / 255.0,
@@ -321,18 +311,6 @@ mod style {
                         ..hovered.scroller
                     },
                     ..hovered
-                }
-            }
-        }
-
-        pub struct ProgressBar;
-
-        impl progress_bar::StyleSheet for ProgressBar {
-            fn style(&self) -> progress_bar::Style {
-                progress_bar::Style {
-                    background: SURFACE.into(),
-                    bar: ACTIVE.into(),
-                    border_radius: 10.0,
                 }
             }
         }

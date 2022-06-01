@@ -228,9 +228,13 @@ where
 ///   * the current value of the [`ProgressBar`].
 ///
 /// [`ProgressBar`]: widget::ProgressBar
-pub fn progress_bar<'a>(
+pub fn progress_bar<Renderer>(
     range: RangeInclusive<f32>,
     value: f32,
-) -> widget::ProgressBar<'a> {
+) -> widget::ProgressBar<Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::progress_bar::StyleSheet,
+{
     widget::ProgressBar::new(range, value)
 }
