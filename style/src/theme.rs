@@ -284,17 +284,32 @@ impl pane_grid::StyleSheet for Theme {
 /*
  * Rule
  */
-impl rule::StyleSheet for Theme {
-    type Style = ();
+#[derive(Clone, Copy)]
+pub enum Rule {
+    Default,
+    Custom(fn(&Theme) -> rule::Appearance),
+}
 
-    fn style(&self, _style: Self::Style) -> rule::Appearance {
+impl Default for Rule {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
+impl rule::StyleSheet for Theme {
+    type Style = Rule;
+
+    fn style(&self, style: Self::Style) -> rule::Appearance {
         let palette = self.extended_palette();
 
-        rule::Appearance {
-            color: palette.background.strong.color,
-            width: 1,
-            radius: 0.0,
-            fill_mode: rule::FillMode::Full,
+        match style {
+            Rule::Default => rule::Appearance {
+                color: palette.background.strong.color,
+                width: 1,
+                radius: 0.0,
+                fill_mode: rule::FillMode::Full,
+            },
+            Rule::Custom(f) => f(self),
         }
     }
 }
