@@ -42,23 +42,57 @@ impl Builder {
     /// Adds a circular arc to the [`Path`] with the given control points and
     /// radius.
     ///
-    /// The arc is connected to the previous point by a straight line, if
-    /// necessary.
+    /// This essentially draws two straight line segments, from the current
+    /// position to `a`, and from `a` to `b`, but smooths out the corner by
+    /// fitting a circular arc of `radius` tangent to both segments.
     pub fn arc_to(&mut self, a: Point, b: Point, radius: f32) {
         use lyon::{math, path};
 
-        let a = math::Point::new(a.x, a.y);
+        let start = self.raw.current_position();
+        let mid = math::Point::new(a.x, a.y);
+        let end = math::Point::new(b.x, b.y);
 
-        if self.raw.current_position() != a {
-            let _ = self.raw.line_to(a);
+        if start == mid || mid == end || radius == 0.0 {
+            let _ = self.raw.line_to(end);
+            return;
         }
+
+        let double_area = start.x * (mid.y - end.y)
+            + mid.x * (end.y - start.y)
+            + end.x * (start.y - mid.y);
+
+        if double_area == 0.0 {
+            let _ = self.raw.line_to(end);
+            return;
+        }
+
+        let to_start = (start - mid).normalize();
+        let to_end = (end - mid).normalize();
+
+        let inner_angle = to_start.dot(to_end).acos();
+
+        let origin_angle = inner_angle / 2.0;
+
+        let origin_adjacent = radius / origin_angle.tan();
+
+        let arc_start = mid + to_start * origin_adjacent;
+        let arc_end = mid + to_end * origin_adjacent;
+
+        let sweep = to_start.cross(to_end) < 0.0;
+
+        let _ = self.raw.line_to(arc_start);
 
         self.raw.arc_to(
             math::Vector::new(radius, radius),
             math::Angle::radians(0.0),
-            path::ArcFlags::default(),
-            math::Point::new(b.x, b.y),
+            path::ArcFlags {
+                large_arc: false,
+                sweep,
+            },
+            arc_end,
         );
+
+        let _ = self.raw.line_to(end);
     }
 
     /// Adds an ellipse to the [`Path`] using a clockwise direction.
