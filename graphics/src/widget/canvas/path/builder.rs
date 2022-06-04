@@ -42,9 +42,16 @@ impl Builder {
     /// Adds a circular arc to the [`Path`] with the given control points and
     /// radius.
     ///
-    /// This essentially draws two straight line segments, from the current
-    /// position to `a`, and from `a` to `b`, but smooths out the corner by
-    /// fitting a circular arc of `radius` tangent to both segments.
+    /// This essentially draws a straight line segment from the current
+    /// position to `a`, but fits a circular arc of `radius` tangent to that
+    /// segment and tangent to the line between `a` and `b`.
+    ///
+    /// With another `.line_to(b)`, the result will be a path connecting the
+    /// starting point and `b` with straight line segments towards `a` and a
+    /// circular arc smoothing out the corner at `a`.
+    ///
+    /// See [the HTML5 specification of `arcTo`](https://html.spec.whatwg.org/multipage/canvas.html#building-paths:dom-context-2d-arcto)
+    /// for more details and examples.
     pub fn arc_to(&mut self, a: Point, b: Point, radius: f32) {
         use lyon::{math, path};
 
@@ -53,7 +60,7 @@ impl Builder {
         let end = math::Point::new(b.x, b.y);
 
         if start == mid || mid == end || radius == 0.0 {
-            let _ = self.raw.line_to(end);
+            let _ = self.raw.line_to(mid);
             return;
         }
 
@@ -62,7 +69,7 @@ impl Builder {
             + end.x * (start.y - mid.y);
 
         if double_area == 0.0 {
-            let _ = self.raw.line_to(end);
+            let _ = self.raw.line_to(mid);
             return;
         }
 
@@ -91,8 +98,6 @@ impl Builder {
             },
             arc_end,
         );
-
-        let _ = self.raw.line_to(end);
     }
 
     /// Adds an ellipse to the [`Path`] using a clockwise direction.
