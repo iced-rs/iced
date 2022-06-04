@@ -1,4 +1,4 @@
-mod palette;
+pub mod palette;
 
 pub use self::palette::Palette;
 
@@ -27,7 +27,7 @@ impl Theme {
         }
     }
 
-    fn extended_palette(&self) -> &palette::Extended {
+    pub fn extended_palette(&self) -> &palette::Extended {
         match self {
             Self::Light => &palette::EXTENDED_LIGHT,
             Self::Dark => &palette::EXTENDED_DARK,
