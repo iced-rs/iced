@@ -93,6 +93,7 @@ pub fn checkbox<'a, Message, Renderer>(
 ) -> widget::Checkbox<'a, Message, Renderer>
 where
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::checkbox::StyleSheet,
 {
     widget::Checkbox::new(is_checked, label, f)
 }

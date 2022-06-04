@@ -39,7 +39,7 @@ pub mod button {
 
 pub mod checkbox {
     //! Show toggle controls using checkboxes.
-    pub use iced_native::widget::checkbox::{Style, StyleSheet};
+    pub use iced_native::widget::checkbox::{Appearance, StyleSheet};
 
     /// A box that can be checked.
     pub type Checkbox<'a, Message, Theme> =

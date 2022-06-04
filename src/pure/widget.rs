@@ -23,7 +23,7 @@ pub mod button {
 
 pub mod checkbox {
     //! Show toggle controls using checkboxes.
-    pub use iced_pure::widget::checkbox::{Style, StyleSheet};
+    pub use iced_pure::widget::checkbox::{Appearance, StyleSheet};
 
     /// A box that can be checked.
     pub type Checkbox<'a, Message, Theme> =

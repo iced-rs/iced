@@ -105,8 +105,7 @@ impl Sandbox for Styling {
             self.checkbox_value,
             "Check me!",
             Message::CheckboxToggled,
-        )
-        .style(self.theme);
+        );
 
         let toggler = Toggler::new(
             self.toggler_value,
@@ -158,7 +157,7 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    use iced::{checkbox, scrollable, text_input};
+    use iced::{scrollable, text_input};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Theme {
@@ -194,17 +193,8 @@ mod style {
         }
     }
 
-    impl<'a> From<Theme> for Box<dyn checkbox::StyleSheet + 'a> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => Default::default(),
-                Theme::Dark => dark::Checkbox.into(),
-            }
-        }
-    }
-
     mod dark {
-        use iced::{checkbox, scrollable, text_input, Color};
+        use iced::{scrollable, text_input, Color};
 
         const SURFACE: Color = Color::from_rgb(
             0x40 as f32 / 255.0,
@@ -311,33 +301,6 @@ mod style {
                         ..hovered.scroller
                     },
                     ..hovered
-                }
-            }
-        }
-
-        pub struct Checkbox;
-
-        impl checkbox::StyleSheet for Checkbox {
-            fn active(&self, is_checked: bool) -> checkbox::Style {
-                checkbox::Style {
-                    background: if is_checked { ACTIVE } else { SURFACE }
-                        .into(),
-                    checkmark_color: Color::WHITE,
-                    border_radius: 2.0,
-                    border_width: 1.0,
-                    border_color: ACTIVE,
-                    text_color: None,
-                }
-            }
-
-            fn hovered(&self, is_checked: bool) -> checkbox::Style {
-                checkbox::Style {
-                    background: Color {
-                        a: 0.8,
-                        ..if is_checked { ACTIVE } else { SURFACE }
-                    }
-                    .into(),
-                    ..self.active(is_checked)
                 }
             }
         }

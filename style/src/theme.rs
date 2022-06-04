@@ -4,6 +4,7 @@ pub use self::palette::Palette;
 
 use crate::application;
 use crate::button;
+use crate::checkbox;
 use crate::pane_grid;
 use crate::progress_bar;
 use crate::radio;
@@ -118,6 +119,109 @@ impl button::StyleSheet for Theme {
             background: background.map(Background::from),
             ..active
         }
+    }
+}
+
+/*
+ * Checkbox
+ */
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Checkbox {
+    Primary,
+    Secondary,
+    Success,
+    Danger,
+}
+
+impl Default for Checkbox {
+    fn default() -> Self {
+        Self::Primary
+    }
+}
+
+impl checkbox::StyleSheet for Theme {
+    type Style = Checkbox;
+
+    fn active(
+        &self,
+        style: Self::Style,
+        is_checked: bool,
+    ) -> checkbox::Appearance {
+        let palette = self.extended_palette();
+
+        match style {
+            Checkbox::Primary => checkbox_appearance(
+                palette.background.weak,
+                palette.primary.strong,
+                is_checked,
+            ),
+            Checkbox::Secondary => checkbox_appearance(
+                palette.background.weak,
+                palette.background.base,
+                is_checked,
+            ),
+            Checkbox::Success => checkbox_appearance(
+                palette.background.weak,
+                palette.success.base,
+                is_checked,
+            ),
+            Checkbox::Danger => checkbox_appearance(
+                palette.background.weak,
+                palette.danger.base,
+                is_checked,
+            ),
+        }
+    }
+
+    fn hovered(
+        &self,
+        style: Self::Style,
+        is_checked: bool,
+    ) -> checkbox::Appearance {
+        let palette = self.extended_palette();
+
+        match style {
+            Checkbox::Primary => checkbox_appearance(
+                palette.background.strong,
+                palette.primary.strong,
+                is_checked,
+            ),
+            Checkbox::Secondary => checkbox_appearance(
+                palette.background.strong,
+                palette.background.strong,
+                is_checked,
+            ),
+            Checkbox::Success => checkbox_appearance(
+                palette.background.strong,
+                palette.success.strong,
+                is_checked,
+            ),
+            Checkbox::Danger => checkbox_appearance(
+                palette.background.strong,
+                palette.danger.strong,
+                is_checked,
+            ),
+        }
+    }
+}
+
+fn checkbox_appearance(
+    base: palette::Pair,
+    accent: palette::Pair,
+    is_checked: bool,
+) -> checkbox::Appearance {
+    checkbox::Appearance {
+        background: Background::Color(if is_checked {
+            accent.color
+        } else {
+            base.color
+        }),
+        checkmark_color: accent.text,
+        border_radius: 2.0,
+        border_width: 1.0,
+        border_color: accent.color,
+        text_color: None,
     }
 }
 
