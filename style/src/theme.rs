@@ -10,6 +10,7 @@ use crate::progress_bar;
 use crate::radio;
 use crate::rule;
 use crate::slider;
+use crate::text_input;
 use crate::toggler;
 
 use iced_core::{Background, Color};
@@ -152,22 +153,22 @@ impl checkbox::StyleSheet for Theme {
 
         match style {
             Checkbox::Primary => checkbox_appearance(
-                palette.background.weak,
+                palette.background.base,
                 palette.primary.strong,
                 is_checked,
             ),
             Checkbox::Secondary => checkbox_appearance(
-                palette.background.weak,
+                palette.background.base,
                 palette.background.base,
                 is_checked,
             ),
             Checkbox::Success => checkbox_appearance(
-                palette.background.weak,
+                palette.background.base,
                 palette.success.base,
                 is_checked,
             ),
             Checkbox::Danger => checkbox_appearance(
-                palette.background.weak,
+                palette.background.base,
                 palette.danger.base,
                 is_checked,
             ),
@@ -183,23 +184,23 @@ impl checkbox::StyleSheet for Theme {
 
         match style {
             Checkbox::Primary => checkbox_appearance(
-                palette.background.strong,
-                palette.primary.strong,
+                palette.background.weak,
+                palette.primary.base,
                 is_checked,
             ),
             Checkbox::Secondary => checkbox_appearance(
-                palette.background.strong,
-                palette.background.strong,
+                palette.background.weak,
+                palette.background.base,
                 is_checked,
             ),
             Checkbox::Success => checkbox_appearance(
-                palette.background.strong,
-                palette.success.strong,
+                palette.background.weak,
+                palette.success.base,
                 is_checked,
             ),
             Checkbox::Danger => checkbox_appearance(
-                palette.background.strong,
-                palette.danger.strong,
+                palette.background.weak,
+                palette.danger.base,
                 is_checked,
             ),
         }
@@ -410,7 +411,7 @@ impl progress_bar::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         let from_palette = |bar: Color| progress_bar::Appearance {
-            background: palette.background.weak.color.into(),
+            background: palette.background.strong.color.into(),
             bar: bar.into(),
             border_radius: 2.0,
         };
@@ -454,5 +455,63 @@ impl rule::StyleSheet for Theme {
             },
             Rule::Custom(f) => f(self),
         }
+    }
+}
+
+/*
+ * Text Input
+ */
+impl text_input::StyleSheet for Theme {
+    type Style = ();
+
+    fn active(&self, _style: Self::Style) -> text_input::Appearance {
+        let palette = self.extended_palette();
+
+        text_input::Appearance {
+            background: palette.background.base.color.into(),
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: palette.background.strong.color,
+        }
+    }
+
+    fn hovered(&self, _style: Self::Style) -> text_input::Appearance {
+        let palette = self.extended_palette();
+
+        text_input::Appearance {
+            background: palette.background.base.color.into(),
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: palette.background.base.text,
+        }
+    }
+
+    fn focused(&self, _style: Self::Style) -> text_input::Appearance {
+        let palette = self.extended_palette();
+
+        text_input::Appearance {
+            background: palette.background.base.color.into(),
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: palette.primary.strong.color,
+        }
+    }
+
+    fn placeholder_color(&self, _style: Self::Style) -> Color {
+        let palette = self.extended_palette();
+
+        palette.background.strong.color
+    }
+
+    fn value_color(&self, _style: Self::Style) -> Color {
+        let palette = self.extended_palette();
+
+        palette.background.base.text
+    }
+
+    fn selection_color(&self, _style: Self::Style) -> Color {
+        let palette = self.extended_palette();
+
+        palette.primary.weak.color
     }
 }

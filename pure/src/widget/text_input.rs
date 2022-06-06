@@ -10,7 +10,7 @@ use iced_native::text;
 use iced_native::widget::text_input;
 use iced_native::{Clipboard, Length, Padding, Point, Rectangle, Shell};
 
-pub use iced_style::text_input::{Style, StyleSheet};
+pub use iced_style::text_input::{Appearance, StyleSheet};
 
 /// A field that can be filled with text.
 ///
@@ -33,7 +33,11 @@ pub use iced_style::text_input::{Style, StyleSheet};
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message, Renderer: text::Renderer> {
+pub struct TextInput<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     placeholder: String,
     value: text_input::Value,
     is_secure: bool,
@@ -43,13 +47,14 @@ pub struct TextInput<'a, Message, Renderer: text::Renderer> {
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
     on_submit: Option<Message>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`TextInput`].
     ///
@@ -71,7 +76,7 @@ where
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -83,7 +88,7 @@ where
 
     /// Sets the [`Font`] of the [`TextInput`].
     ///
-    /// [`Font`]: iced_native::text::Renderer::Font
+    /// [`Font`]: text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
@@ -116,9 +121,9 @@ where
     /// Sets the style of the [`TextInput`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -127,7 +132,8 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for TextInput<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: iced_native::text::Renderer,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<text_input::State>()
@@ -198,6 +204,7 @@ where
     ) {
         text_input::draw(
             renderer,
+            theme,
             layout,
             cursor_position,
             tree.state.downcast_ref::<text_input::State>(),
@@ -206,7 +213,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.style_sheet.as_ref(),
+            self.style,
         )
     }
 
@@ -227,6 +234,7 @@ impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
 where
     Message: 'a + Clone,
     Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn from(
         text_input: TextInput<'a, Message, Renderer>,

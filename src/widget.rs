@@ -140,7 +140,7 @@ pub mod text_input {
     //! A [`TextInput`] has some local [`State`].
     use crate::Renderer;
 
-    pub use iced_native::widget::text_input::{State, Style, StyleSheet};
+    pub use iced_native::widget::text_input::{Appearance, State, StyleSheet};
 
     /// A field that can be filled with text.
     pub type TextInput<'a, Message, Theme> =

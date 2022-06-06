@@ -95,7 +95,7 @@ mod numeric_input {
         for NumericInput<'a, Message>
     where
         Renderer: 'a + text::Renderer,
-        Renderer::Theme: button::StyleSheet,
+        Renderer::Theme: button::StyleSheet + text_input::StyleSheet,
     {
         type Event = Event;
 
@@ -173,7 +173,7 @@ mod numeric_input {
     where
         Message: 'a,
         Renderer: text::Renderer + 'a,
-        Renderer::Theme: button::StyleSheet,
+        Renderer::Theme: button::StyleSheet + text_input::StyleSheet,
     {
         fn from(numeric_input: NumericInput<'a, Message>) -> Self {
             component::view(numeric_input)

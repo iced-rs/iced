@@ -89,7 +89,8 @@ mod numeric_input {
     impl<Message, Renderer> Component<Message, Renderer> for NumericInput<Message>
     where
         Renderer: text::Renderer + 'static,
-        Renderer::Theme: widget::button::StyleSheet,
+        Renderer::Theme:
+            widget::button::StyleSheet + widget::text_input::StyleSheet,
     {
         type State = ();
         type Event = Event;
@@ -160,7 +161,8 @@ mod numeric_input {
     where
         Message: 'a,
         Renderer: 'static + text::Renderer,
-        Renderer::Theme: widget::button::StyleSheet,
+        Renderer::Theme:
+            widget::button::StyleSheet + widget::text_input::StyleSheet,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {
             pure::component(numeric_input)

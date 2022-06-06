@@ -120,7 +120,7 @@ pub struct Background {
 impl Background {
     pub fn new(base: Color, text: Color) -> Self {
         let weak = mix(base, text, 0.15);
-        let strong = mix(base, text, 0.25);
+        let strong = mix(base, text, 0.40);
 
         Self {
             base: Pair::new(base, text),

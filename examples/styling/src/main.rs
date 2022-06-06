@@ -77,8 +77,7 @@ impl Sandbox for Styling {
             Message::InputChanged,
         )
         .padding(10)
-        .size(20)
-        .style(self.theme);
+        .size(20);
 
         let button = Button::new(&mut self.button, Text::new("Submit"))
             .padding(10)
@@ -157,7 +156,7 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    use iced::{scrollable, text_input};
+    use iced::scrollable;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Theme {
@@ -175,15 +174,6 @@ mod style {
         }
     }
 
-    impl<'a> From<Theme> for Box<dyn text_input::StyleSheet + 'a> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => Default::default(),
-                Theme::Dark => dark::TextInput.into(),
-            }
-        }
-    }
-
     impl<'a> From<Theme> for Box<dyn scrollable::StyleSheet + 'a> {
         fn from(theme: Theme) -> Self {
             match theme {
@@ -194,18 +184,12 @@ mod style {
     }
 
     mod dark {
-        use iced::{scrollable, text_input, Color};
+        use iced::{scrollable, Color};
 
         const SURFACE: Color = Color::from_rgb(
             0x40 as f32 / 255.0,
             0x44 as f32 / 255.0,
             0x4B as f32 / 255.0,
-        );
-
-        const ACCENT: Color = Color::from_rgb(
-            0x6F as f32 / 255.0,
-            0xFF as f32 / 255.0,
-            0xE9 as f32 / 255.0,
         );
 
         const ACTIVE: Color = Color::from_rgb(
@@ -219,47 +203,6 @@ mod style {
             0x7B as f32 / 255.0,
             0xC4 as f32 / 255.0,
         );
-
-        pub struct TextInput;
-
-        impl text_input::StyleSheet for TextInput {
-            fn active(&self) -> text_input::Style {
-                text_input::Style {
-                    background: SURFACE.into(),
-                    border_radius: 2.0,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                }
-            }
-
-            fn focused(&self) -> text_input::Style {
-                text_input::Style {
-                    border_width: 1.0,
-                    border_color: ACCENT,
-                    ..self.active()
-                }
-            }
-
-            fn hovered(&self) -> text_input::Style {
-                text_input::Style {
-                    border_width: 1.0,
-                    border_color: Color { a: 0.3, ..ACCENT },
-                    ..self.focused()
-                }
-            }
-
-            fn placeholder_color(&self) -> Color {
-                Color::from_rgb(0.4, 0.4, 0.4)
-            }
-
-            fn value_color(&self) -> Color {
-                Color::WHITE
-            }
-
-            fn selection_color(&self) -> Color {
-                ACTIVE
-            }
-        }
 
         pub struct Scrollable;
 

@@ -43,12 +43,6 @@ mod dark {
         0x3F as f32 / 255.0,
     );
 
-    const SURFACE: Color = Color::from_rgb(
-        0x40 as f32 / 255.0,
-        0x44 as f32 / 255.0,
-        0x4B as f32 / 255.0,
-    );
-
     const ACCENT: Color = Color::from_rgb(
         0x6F as f32 / 255.0,
         0xFF as f32 / 255.0,

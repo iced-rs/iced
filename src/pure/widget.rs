@@ -120,7 +120,7 @@ pub mod text_input {
     //! Display fields that can be filled with text.
     use crate::Renderer;
 
-    pub use iced_pure::widget::text_input::{Style, StyleSheet};
+    pub use iced_pure::widget::text_input::{Appearance, StyleSheet};
 
     /// A field that can be filled with text.
     pub type TextInput<'a, Message, Theme> =

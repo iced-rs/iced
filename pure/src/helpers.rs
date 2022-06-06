@@ -142,6 +142,7 @@ pub fn text_input<'a, Message, Renderer>(
 where
     Message: Clone,
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::text_input::StyleSheet,
 {
     widget::TextInput::new(placeholder, value, on_change)
 }
