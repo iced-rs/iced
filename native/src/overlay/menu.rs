@@ -34,6 +34,7 @@ impl<'a, T, Renderer> Menu<'a, T, Renderer>
 where
     T: ToString + Clone,
     Renderer: text::Renderer + 'a,
+    Renderer::Theme: scrollable::StyleSheet,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
     /// the message to produced when an option is selected.
@@ -117,17 +118,19 @@ impl State {
     }
 }
 
-struct Overlay<'a, Message, Renderer: text::Renderer> {
+struct Overlay<'a, Message, Renderer> {
     container: Container<'a, Message, Renderer>,
     width: u16,
     target_height: f32,
     style: Style,
 }
 
-impl<'a, Message, Renderer: text::Renderer> Overlay<'a, Message, Renderer>
+impl<'a, Message, Renderer> Overlay<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: 'a,
+    Renderer: text::Renderer,
+    Renderer::Theme: scrollable::StyleSheet,
 {
     pub fn new<T>(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self
     where

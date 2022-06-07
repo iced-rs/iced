@@ -41,6 +41,7 @@ pub fn scrollable<'a, Message, Renderer>(
 ) -> widget::Scrollable<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::scrollable::StyleSheet,
 {
     widget::Scrollable::new(content)
 }

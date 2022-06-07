@@ -14,7 +14,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Styling {
-    theme: style::Theme,
+    theme: Theme,
     scroll: scrollable::State,
     input: text_input::State,
     input_value: String,
@@ -27,7 +27,7 @@ struct Styling {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(style::Theme),
+    ThemeChanged(Theme),
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
@@ -58,7 +58,7 @@ impl Sandbox for Styling {
     }
 
     fn view(&mut self) -> Element<Message> {
-        let choose_theme = style::Theme::ALL.iter().fold(
+        let choose_theme = [Theme::Light, Theme::Dark].iter().fold(
             Column::new().spacing(10).push(Text::new("Choose a theme:")),
             |column, theme| {
                 column.push(Radio::new(
@@ -95,7 +95,6 @@ impl Sandbox for Styling {
         let scrollable = Scrollable::new(&mut self.scroll)
             .width(Length::Fill)
             .height(Length::Units(100))
-            .style(self.theme)
             .push(Text::new("Scroll me!"))
             .push(Space::with_height(Length::Units(800)))
             .push(Text::new("You did it!"));
@@ -148,104 +147,6 @@ impl Sandbox for Styling {
     }
 
     fn theme(&self) -> Theme {
-        match self.theme {
-            style::Theme::Light => Theme::Light,
-            style::Theme::Dark => Theme::Dark,
-        }
-    }
-}
-
-mod style {
-    use iced::scrollable;
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub enum Theme {
-        Light,
-        Dark,
-    }
-
-    impl Theme {
-        pub const ALL: [Theme; 2] = [Theme::Light, Theme::Dark];
-    }
-
-    impl Default for Theme {
-        fn default() -> Theme {
-            Theme::Light
-        }
-    }
-
-    impl<'a> From<Theme> for Box<dyn scrollable::StyleSheet + 'a> {
-        fn from(theme: Theme) -> Self {
-            match theme {
-                Theme::Light => Default::default(),
-                Theme::Dark => dark::Scrollable.into(),
-            }
-        }
-    }
-
-    mod dark {
-        use iced::{scrollable, Color};
-
-        const SURFACE: Color = Color::from_rgb(
-            0x40 as f32 / 255.0,
-            0x44 as f32 / 255.0,
-            0x4B as f32 / 255.0,
-        );
-
-        const ACTIVE: Color = Color::from_rgb(
-            0x72 as f32 / 255.0,
-            0x89 as f32 / 255.0,
-            0xDA as f32 / 255.0,
-        );
-
-        const HOVERED: Color = Color::from_rgb(
-            0x67 as f32 / 255.0,
-            0x7B as f32 / 255.0,
-            0xC4 as f32 / 255.0,
-        );
-
-        pub struct Scrollable;
-
-        impl scrollable::StyleSheet for Scrollable {
-            fn active(&self) -> scrollable::Scrollbar {
-                scrollable::Scrollbar {
-                    background: SURFACE.into(),
-                    border_radius: 2.0,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                    scroller: scrollable::Scroller {
-                        color: ACTIVE,
-                        border_radius: 2.0,
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
-                    },
-                }
-            }
-
-            fn hovered(&self) -> scrollable::Scrollbar {
-                let active = self.active();
-
-                scrollable::Scrollbar {
-                    background: Color { a: 0.5, ..SURFACE }.into(),
-                    scroller: scrollable::Scroller {
-                        color: HOVERED,
-                        ..active.scroller
-                    },
-                    ..active
-                }
-            }
-
-            fn dragging(&self) -> scrollable::Scrollbar {
-                let hovered = self.hovered();
-
-                scrollable::Scrollbar {
-                    scroller: scrollable::Scroller {
-                        color: Color::from_rgb(0.85, 0.85, 0.85),
-                        ..hovered.scroller
-                    },
-                    ..hovered
-                }
-            }
-        }
+        self.theme
     }
 }

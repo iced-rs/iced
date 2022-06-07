@@ -9,6 +9,7 @@ use crate::pane_grid;
 use crate::progress_bar;
 use crate::radio;
 use crate::rule;
+use crate::scrollable;
 use crate::slider;
 use crate::text_input;
 use crate::toggler;
@@ -454,6 +455,48 @@ impl rule::StyleSheet for Theme {
                 fill_mode: rule::FillMode::Full,
             },
             Rule::Custom(f) => f(self),
+        }
+    }
+}
+
+/*
+ * Scrollable
+ */
+
+impl scrollable::StyleSheet for Theme {
+    type Style = ();
+
+    fn active(&self, _style: Self::Style) -> scrollable::Scrollbar {
+        let palette = self.extended_palette();
+
+        scrollable::Scrollbar {
+            background: palette.background.weak.color.into(),
+            border_radius: 2.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            scroller: scrollable::Scroller {
+                color: palette.background.strong.color.into(),
+                border_radius: 2.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            },
+        }
+    }
+
+    fn hovered(&self, _style: Self::Style) -> scrollable::Scrollbar {
+        let palette = self.extended_palette();
+
+        scrollable::Scrollbar {
+            background: palette.background.weak.color.into(),
+            border_radius: 2.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            scroller: scrollable::Scroller {
+                color: palette.primary.strong.color.into(),
+                border_radius: 2.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            },
         }
     }
 }

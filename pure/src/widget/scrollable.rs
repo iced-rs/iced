@@ -15,18 +15,24 @@ pub use iced_style::scrollable::{Scrollbar, Scroller, StyleSheet};
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
 #[allow(missing_debug_implementations)]
-pub struct Scrollable<'a, Message, Renderer> {
+pub struct Scrollable<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     height: Length,
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    on_scroll: Option<Box<dyn Fn(f32) -> Message + 'a>>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
     content: Element<'a, Message, Renderer>,
+    on_scroll: Option<Box<dyn Fn(f32) -> Message + 'a>>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer: iced_native::Renderer>
-    Scrollable<'a, Message, Renderer>
+impl<'a, Message, Renderer> Scrollable<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Scrollable`].
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
@@ -35,9 +41,9 @@ impl<'a, Message, Renderer: iced_native::Renderer>
             scrollbar_width: 10,
             scrollbar_margin: 0,
             scroller_width: 10,
-            on_scroll: None,
-            style_sheet: Default::default(),
             content: content.into(),
+            on_scroll: None,
+            style: Default::default(),
         }
     }
 
@@ -80,9 +86,9 @@ impl<'a, Message, Renderer: iced_native::Renderer>
     /// Sets the style of the [`Scrollable`] .
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -91,6 +97,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Scrollable<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<scrollable::State>()
@@ -180,12 +187,13 @@ where
         scrollable::draw(
             tree.state.downcast_ref::<scrollable::State>(),
             renderer,
+            theme,
             layout,
             cursor_position,
             self.scrollbar_width,
             self.scrollbar_margin,
             self.scroller_width,
-            self.style_sheet.as_ref(),
+            self.style,
             |renderer, layout, cursor_position, viewport| {
                 self.content.as_widget().draw(
                     &tree.children[0],
@@ -259,6 +267,7 @@ impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
 where
     Message: 'a + Clone,
     Renderer: 'a + iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn from(
         text_input: Scrollable<'a, Message, Renderer>,

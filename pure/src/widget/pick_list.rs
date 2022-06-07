@@ -1,4 +1,5 @@
 //! Display a dropdown list of selectable values.
+use crate::widget::scrollable;
 use crate::widget::tree::{self, Tree};
 use crate::{Element, Widget};
 
@@ -110,6 +111,7 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
     Renderer: text::Renderer + 'a,
+    Renderer::Theme: scrollable::StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<pick_list::State<T>>()
@@ -225,8 +227,9 @@ impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
 where
     T: Clone + ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
-    Renderer: text::Renderer + 'a,
     Message: 'a,
+    Renderer: text::Renderer + 'a,
+    Renderer::Theme: scrollable::StyleSheet,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)
