@@ -152,6 +152,10 @@ impl Application for GameOfLife {
             .height(Length::Fill)
             .into()
     }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
+    }
 }
 
 fn view_controls<'a>(
