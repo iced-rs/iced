@@ -207,20 +207,6 @@ impl Danger {
     }
 }
 
-fn muted(color: Color, amount: f32) -> Color {
-    let mut hsl = to_hsl(color);
-
-    hsl.lightness = if is_dark(color) {
-        let delta = amount * (1.0 - hsl.lightness).powi(5);
-        hsl.lightness + delta
-    } else {
-        let delta = amount * hsl.lightness.powi(5);
-        hsl.lightness - delta
-    };
-
-    from_hsl(hsl)
-}
-
 fn darken(color: Color, amount: f32) -> Color {
     let mut hsl = to_hsl(color);
 
