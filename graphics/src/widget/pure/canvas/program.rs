@@ -9,7 +9,7 @@ use crate::Rectangle;
 /// application.
 ///
 /// [`Canvas`]: crate::widget::Canvas
-pub trait Program<Message> {
+pub trait Program<Message, Theme = iced_native::Theme> {
     /// The internal state mutated by the [`Program`].
     type State: Default + 'static;
 
@@ -44,6 +44,7 @@ pub trait Program<Message> {
     fn draw(
         &self,
         state: &Self::State,
+        theme: &Theme,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry>;
@@ -64,9 +65,9 @@ pub trait Program<Message> {
     }
 }
 
-impl<Message, T> Program<Message> for &T
+impl<Message, Theme, T> Program<Message, Theme> for &T
 where
-    T: Program<Message>,
+    T: Program<Message, Theme>,
 {
     type State = T::State;
 
@@ -83,10 +84,11 @@ where
     fn draw(
         &self,
         state: &Self::State,
+        theme: &Theme,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        T::draw(self, state, bounds, cursor)
+        T::draw(self, state, theme, bounds, cursor)
     }
 
     fn mouse_interaction(

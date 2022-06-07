@@ -163,7 +163,7 @@ mod grid {
         alignment,
         canvas::event::{self, Event},
         canvas::{self, Cache, Canvas, Cursor, Frame, Geometry, Path, Text},
-        mouse, Color, Element, Length, Point, Rectangle, Size, Vector,
+        mouse, Color, Element, Length, Point, Rectangle, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -445,7 +445,12 @@ mod grid {
             }
         }
 
-        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+        fn draw(
+            &self,
+            _theme: &Theme,
+            bounds: Rectangle,
+            cursor: Cursor,
+        ) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
             let life = self.life_cache.draw(bounds.size(), |frame| {

@@ -3,6 +3,8 @@
 mod preset;
 
 use grid::Grid;
+use preset::Preset;
+
 use iced::executor;
 use iced::pure::{
     button, checkbox, column, container, pick_list, row, slider, text,
@@ -12,7 +14,6 @@ use iced::theme::{self, Theme};
 use iced::time;
 use iced::window;
 use iced::{Alignment, Command, Length, Settings, Subscription};
-use preset::Preset;
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
@@ -216,7 +217,7 @@ mod grid {
     };
     use iced::pure::Element;
     use iced::{
-        alignment, mouse, Color, Length, Point, Rectangle, Size, Vector,
+        alignment, mouse, Color, Length, Point, Rectangle, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -525,6 +526,7 @@ mod grid {
         fn draw(
             &self,
             _interaction: &Interaction,
+            _theme: &Theme,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> Vec<Geometry> {

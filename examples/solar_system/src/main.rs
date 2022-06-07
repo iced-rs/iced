@@ -135,6 +135,7 @@ impl State {
 impl<Message> canvas::Program<Message> for State {
     fn draw(
         &self,
+        _theme: &Theme,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<canvas::Geometry> {
