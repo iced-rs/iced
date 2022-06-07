@@ -36,6 +36,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::widget::container;
 use crate::{
     Clipboard, Color, Element, Layout, Length, Point, Rectangle, Shell, Size,
     Vector, Widget,
@@ -96,7 +97,7 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 pub struct PaneGrid<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     state: &'a mut state::Internal,
     action: &'a mut state::Action,
@@ -113,7 +114,7 @@ where
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -659,7 +660,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -815,7 +816,7 @@ impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
 where
     Message: 'a,
     Renderer: 'a + crate::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     fn from(
         pane_grid: PaneGrid<'a, Message, Renderer>,

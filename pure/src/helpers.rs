@@ -14,6 +14,7 @@ pub fn container<'a, Message, Renderer>(
 ) -> widget::Container<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::container::StyleSheet,
 {
     widget::Container::new(content)
 }
@@ -70,6 +71,7 @@ pub fn tooltip<'a, Message, Renderer>(
 ) -> widget::Tooltip<'a, Message, Renderer>
 where
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::container::StyleSheet,
 {
     widget::Tooltip::new(content, tooltip, position)
 }

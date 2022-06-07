@@ -179,9 +179,9 @@ impl Application for Example {
                 .controls(view_controls(id, total_panes, pane.is_pinned))
                 .padding(10)
                 .style(if is_focused {
-                    style::TitleBar::Focused
+                    style::title_bar_focused
                 } else {
-                    style::TitleBar::Active
+                    style::title_bar_active
                 });
 
             pane_grid::Content::new(responsive(move |size| {
@@ -189,9 +189,9 @@ impl Application for Example {
             }))
             .title_bar(title_bar)
             .style(if is_focused {
-                style::Pane::Focused
+                style::pane_focused
             } else {
-                style::Pane::Active
+                style::pane_active
             })
         })
         .width(Length::Fill)
@@ -323,51 +323,47 @@ fn view_controls<'a>(
 }
 
 mod style {
-    use iced::{container, Background, Color};
+    use iced::{container, Theme};
 
-    const SURFACE: Color = Color::from_rgb(
-        0xF2 as f32 / 255.0,
-        0xF3 as f32 / 255.0,
-        0xF5 as f32 / 255.0,
-    );
+    pub fn title_bar_active(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
 
-    pub enum TitleBar {
-        Active,
-        Focused,
-    }
-
-    impl container::StyleSheet for TitleBar {
-        fn style(&self) -> container::Style {
-            let pane = match self {
-                Self::Active => Pane::Active,
-                Self::Focused => Pane::Focused,
-            }
-            .style();
-
-            container::Style {
-                text_color: Some(Color::WHITE),
-                background: Some(pane.border_color.into()),
-                ..Default::default()
-            }
+        container::Appearance {
+            text_color: Some(palette.background.strong.text),
+            background: Some(palette.background.strong.color.into()),
+            ..Default::default()
         }
     }
 
-    pub enum Pane {
-        Active,
-        Focused,
+    pub fn title_bar_focused(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
+
+        container::Appearance {
+            text_color: Some(palette.primary.strong.text),
+            background: Some(palette.primary.strong.color.into()),
+            ..Default::default()
+        }
     }
 
-    impl container::StyleSheet for Pane {
-        fn style(&self) -> container::Style {
-            container::Style {
-                background: Some(Background::Color(SURFACE)),
-                border_width: 2.0,
-                border_color: match self {
-                    Self::Active => Color::from_rgb(0.7, 0.7, 0.7),
-                    Self::Focused => Color::BLACK,
-                },
-                ..Default::default()
-            }
+    pub fn pane_active(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
+
+        container::Appearance {
+            background: Some(palette.background.weak.color.into()),
+            border_width: 2.0,
+            border_color: palette.background.strong.color,
+            ..Default::default()
+        }
+    }
+
+    pub fn pane_focused(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
+
+        container::Appearance {
+            background: Some(palette.background.weak.color.into()),
+            border_width: 2.0,
+            border_color: palette.primary.strong.color,
+            ..Default::default()
         }
     }
 }

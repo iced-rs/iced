@@ -19,6 +19,7 @@ pub use iced_native::widget::pane_grid::{
 };
 
 use crate::overlay;
+use crate::widget::container;
 use crate::widget::tree::{self, Tree};
 use crate::{Element, Widget};
 
@@ -86,7 +87,7 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 pub struct PaneGrid<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     state: &'a state::Internal,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
@@ -102,7 +103,7 @@ where
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -202,7 +203,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for PaneGrid<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<state::Action>()
@@ -403,7 +404,7 @@ impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
 where
     Message: 'a,
     Renderer: 'a + iced_native::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     fn from(
         pane_grid: PaneGrid<'a, Message, Renderer>,

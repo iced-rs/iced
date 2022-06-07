@@ -9,6 +9,7 @@ use crate::overlay::menu::{self, Menu};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::container;
 use crate::widget::scrollable;
 use crate::{
     Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
@@ -323,7 +324,7 @@ pub fn overlay<'a, T, Message, Renderer>(
 where
     Message: 'a,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: scrollable::StyleSheet,
+    Renderer::Theme: container::StyleSheet + scrollable::StyleSheet,
     T: Clone + ToString,
 {
     if state.is_open {
@@ -432,7 +433,7 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'static,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: scrollable::StyleSheet,
+    Renderer::Theme: container::StyleSheet + scrollable::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -536,7 +537,7 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'static,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: scrollable::StyleSheet,
+    Renderer::Theme: container::StyleSheet + scrollable::StyleSheet,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

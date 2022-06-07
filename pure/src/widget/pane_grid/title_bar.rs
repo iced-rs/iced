@@ -13,17 +13,22 @@ use iced_native::{Clipboard, Layout, Padding, Point, Rectangle, Shell, Size};
 ///
 /// [`Pane`]: crate::widget::pane_grid::Pane
 #[allow(missing_debug_implementations)]
-pub struct TitleBar<'a, Message, Renderer> {
+pub struct TitleBar<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: container::StyleSheet,
+{
     content: Element<'a, Message, Renderer>,
     controls: Option<Element<'a, Message, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style_sheet: Box<dyn container::StyleSheet + 'a>,
+    style: <Renderer::Theme as container::StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     /// Creates a new [`TitleBar`] with the given content.
     pub fn new<E>(content: E) -> Self
@@ -35,7 +40,7 @@ where
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -57,9 +62,9 @@ where
     /// Sets the style of the [`TitleBar`].
     pub fn style(
         mut self,
-        style: impl Into<Box<dyn container::StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as container::StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style.into();
+        self.style = style.into();
         self
     }
 
@@ -80,6 +85,7 @@ where
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     pub(super) fn state(&self) -> Tree {
         let children = if let Some(controls) = self.controls.as_ref() {
@@ -120,8 +126,10 @@ where
         viewport: &Rectangle,
         show_controls: bool,
     ) {
+        use container::StyleSheet;
+
         let bounds = layout.bounds();
-        let style = self.style_sheet.style();
+        let style = theme.appearance(self.style);
         let inherited_style = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };

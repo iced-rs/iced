@@ -7,8 +7,8 @@ use crate::overlay;
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::container::{self, Container};
 use crate::widget::scrollable::{self, Scrollable};
-use crate::widget::Container;
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Size, Vector, Widget,
@@ -34,7 +34,7 @@ impl<'a, T, Renderer> Menu<'a, T, Renderer>
 where
     T: ToString + Clone,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: scrollable::StyleSheet,
+    Renderer::Theme: container::StyleSheet + scrollable::StyleSheet,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
     /// the message to produced when an option is selected.
@@ -118,7 +118,11 @@ impl State {
     }
 }
 
-struct Overlay<'a, Message, Renderer> {
+struct Overlay<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: container::StyleSheet,
+{
     container: Container<'a, Message, Renderer>,
     width: u16,
     target_height: f32,
@@ -130,7 +134,7 @@ where
     Message: 'a,
     Renderer: 'a,
     Renderer: text::Renderer,
-    Renderer::Theme: scrollable::StyleSheet,
+    Renderer::Theme: container::StyleSheet + scrollable::StyleSheet,
 {
     pub fn new<T>(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self
     where
@@ -173,6 +177,7 @@ impl<'a, Message, Renderer> crate::Overlay<Message, Renderer>
     for Overlay<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     fn layout(
         &self,

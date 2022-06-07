@@ -1,6 +1,7 @@
-use iced::pure::{
-    button, container, tooltip, widget::tooltip::Position, Element, Sandbox,
-};
+use iced::pure::widget::tooltip::Position;
+use iced::pure::{button, container, tooltip};
+use iced::pure::{Element, Sandbox};
+use iced::theme;
 use iced::{Length, Settings};
 
 pub fn main() -> iced::Result {
@@ -53,7 +54,7 @@ impl Sandbox for Example {
             self.position,
         )
         .gap(10)
-        .style(style::Tooltip);
+        .style(theme::Container::Box);
 
         container(tooltip)
             .width(Length::Fill)
@@ -71,23 +72,5 @@ fn position_to_text<'a>(position: Position) -> &'a str {
         Position::Bottom => "Bottom",
         Position::Left => "Left",
         Position::Right => "Right",
-    }
-}
-
-mod style {
-    use iced::container;
-    use iced::Color;
-
-    pub struct Tooltip;
-
-    impl container::StyleSheet for Tooltip {
-        fn style(&self) -> container::Style {
-            container::Style {
-                text_color: Some(Color::from_rgb8(0xEE, 0xEE, 0xEE)),
-                background: Some(Color::from_rgb(0.11, 0.42, 0.87).into()),
-                border_radius: 12.0,
-                ..container::Style::default()
-            }
-        }
     }
 }

@@ -12,13 +12,17 @@ use crate::{
 
 use std::u32;
 
-pub use iced_style::container::{Style, StyleSheet};
+pub use iced_style::container::{Appearance, StyleSheet};
 
 /// An element decorating some content.
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer> {
+pub struct Container<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     padding: Padding,
     width: Length,
     height: Length,
@@ -26,13 +30,14 @@ pub struct Container<'a, Message, Renderer> {
     max_height: u32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
     content: Element<'a, Message, Renderer>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
@@ -47,7 +52,7 @@ where
             max_height: u32::MAX,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style_sheet: Default::default(),
+            style: Default::default(),
             content: content.into(),
         }
     }
@@ -109,9 +114,9 @@ where
     /// Sets the style of the [`Container`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -146,6 +151,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Container<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -215,7 +221,7 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        let style = self.style_sheet.style();
+        let style = theme.appearance(self.style);
 
         draw_background(renderer, &style, layout.bounds());
 
@@ -246,20 +252,20 @@ where
 /// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
 pub fn draw_background<Renderer>(
     renderer: &mut Renderer,
-    style: &Style,
+    appearance: &Appearance,
     bounds: Rectangle,
 ) where
     Renderer: crate::Renderer,
 {
-    if style.background.is_some() || style.border_width > 0.0 {
+    if appearance.background.is_some() || appearance.border_width > 0.0 {
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: style.border_radius,
-                border_width: style.border_width,
-                border_color: style.border_color,
+                border_radius: appearance.border_radius,
+                border_width: appearance.border_width,
+                border_color: appearance.border_color,
             },
-            style
+            appearance
                 .background
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
@@ -269,8 +275,9 @@ pub fn draw_background<Renderer>(
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn from(
         column: Container<'a, Message, Renderer>,

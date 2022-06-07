@@ -7,27 +7,33 @@ use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::text;
+use iced_native::widget::container;
 use iced_native::widget::tooltip;
 use iced_native::widget::Text;
 use iced_native::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
-pub use iced_style::container::{Style, StyleSheet};
+pub use iced_style::container::{Appearance, StyleSheet};
 pub use tooltip::Position;
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
-pub struct Tooltip<'a, Message, Renderer: text::Renderer> {
+pub struct Tooltip<'a, Message, Renderer: text::Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet,
+{
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
-    style_sheet: Box<dyn StyleSheet + 'a>,
     gap: u16,
     padding: u16,
+    style: <Renderer::Theme as container::StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16 = 5;
@@ -44,9 +50,9 @@ where
             content: content.into(),
             tooltip: Text::new(tooltip.to_string()),
             position,
-            style_sheet: Default::default(),
             gap: 0,
             padding: Self::DEFAULT_PADDING,
+            style: Default::default(),
         }
     }
 
@@ -79,9 +85,9 @@ where
     /// Sets the style of the [`Tooltip`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as container::StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -90,6 +96,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
@@ -177,6 +184,7 @@ where
 
         tooltip::draw(
             renderer,
+            theme,
             inherited_style,
             layout,
             cursor_position,
@@ -184,7 +192,7 @@ where
             self.position,
             self.gap,
             self.padding,
-            self.style_sheet.as_ref(),
+            self.style,
             |renderer, limits| {
                 Widget::<(), Renderer>::layout(tooltip, renderer, limits)
             },
@@ -220,8 +228,9 @@ where
 impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + text::Renderer,
     Message: 'a,
+    Renderer: 'a + text::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     fn from(
         tooltip: Tooltip<'a, Message, Renderer>,

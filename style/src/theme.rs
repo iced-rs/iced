@@ -5,6 +5,7 @@ pub use self::palette::Palette;
 use crate::application;
 use crate::button;
 use crate::checkbox;
+use crate::container;
 use crate::pane_grid;
 use crate::progress_bar;
 use crate::radio;
@@ -127,7 +128,6 @@ impl button::StyleSheet for Theme {
 /*
  * Checkbox
  */
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Checkbox {
     Primary,
@@ -224,6 +224,50 @@ fn checkbox_appearance(
         border_width: 1.0,
         border_color: accent.color,
         text_color: None,
+    }
+}
+
+/*
+ * Container
+ */
+#[derive(Clone, Copy)]
+pub enum Container {
+    Transparent,
+    Box,
+    Custom(fn(&Theme) -> container::Appearance),
+}
+
+impl Default for Container {
+    fn default() -> Self {
+        Self::Transparent
+    }
+}
+
+impl From<fn(&Theme) -> container::Appearance> for Container {
+    fn from(f: fn(&Theme) -> container::Appearance) -> Self {
+        Self::Custom(f)
+    }
+}
+
+impl container::StyleSheet for Theme {
+    type Style = Container;
+
+    fn appearance(&self, style: Self::Style) -> container::Appearance {
+        match style {
+            Container::Transparent => Default::default(),
+            Container::Box => {
+                let palette = self.extended_palette();
+
+                container::Appearance {
+                    text_color: None,
+                    background: palette.background.weak.color.into(),
+                    border_radius: 2.0,
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                }
+            }
+            Container::Custom(f) => f(self),
+        }
     }
 }
 
