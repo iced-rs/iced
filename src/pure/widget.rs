@@ -80,8 +80,7 @@ pub mod pane_grid {
 
 pub mod pick_list {
     //! Display a dropdown list of selectable values.
-    pub use iced_pure::overlay::menu::Style as Menu;
-    pub use iced_pure::widget::pick_list::{Style, StyleSheet};
+    pub use iced_pure::widget::pick_list::{Appearance, StyleSheet};
 
     /// A widget allowing the selection of a single value from a list of options.
     pub type PickList<'a, T, Message, Theme> =

@@ -179,6 +179,7 @@ where
     T: ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::pick_list::StyleSheet,
 {
     widget::PickList::new(options, selected, on_selected)
 }

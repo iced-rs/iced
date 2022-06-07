@@ -6,7 +6,9 @@ use crate::application;
 use crate::button;
 use crate::checkbox;
 use crate::container;
+use crate::menu;
 use crate::pane_grid;
+use crate::pick_list;
 use crate::progress_bar;
 use crate::radio;
 use crate::rule;
@@ -328,6 +330,61 @@ impl slider::StyleSheet for Theme {
 }
 
 /*
+ * Menu
+ */
+impl menu::StyleSheet for Theme {
+    type Style = ();
+
+    fn appearance(&self, _style: Self::Style) -> menu::Appearance {
+        let palette = self.extended_palette();
+
+        menu::Appearance {
+            text_color: palette.background.weak.text,
+            background: palette.background.weak.color.into(),
+            border_width: 1.0,
+            border_color: palette.background.strong.color,
+            selected_text_color: palette.primary.strong.text,
+            selected_background: palette.primary.strong.color.into(),
+        }
+    }
+}
+
+/*
+ * Pick List
+ */
+impl pick_list::StyleSheet for Theme {
+    type Style = ();
+
+    fn active(&self, _style: ()) -> pick_list::Appearance {
+        let palette = self.extended_palette();
+
+        pick_list::Appearance {
+            text_color: palette.background.weak.text,
+            background: palette.background.weak.color.into(),
+            placeholder_color: palette.background.strong.color,
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: palette.background.strong.color,
+            icon_size: 0.7,
+        }
+    }
+
+    fn hovered(&self, _style: ()) -> pick_list::Appearance {
+        let palette = self.extended_palette();
+
+        pick_list::Appearance {
+            text_color: palette.background.weak.text,
+            background: palette.background.weak.color.into(),
+            placeholder_color: palette.background.strong.color,
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: palette.primary.strong.color,
+            icon_size: 0.7,
+        }
+    }
+}
+
+/*
  * Radio
  */
 impl radio::StyleSheet for Theme {
@@ -506,7 +563,6 @@ impl rule::StyleSheet for Theme {
 /*
  * Scrollable
  */
-
 impl scrollable::StyleSheet for Theme {
     type Style = ();
 

@@ -1,7 +1,6 @@
 //! This example showcases an interactive version of the Game of Life, invented
 //! by John Conway. It leverages a `Canvas` together with other widgets.
 mod preset;
-mod style;
 
 use grid::Grid;
 use iced::button::{self, Button};
@@ -877,8 +876,7 @@ impl Controls {
                     Message::PresetPicked,
                 )
                 .padding(8)
-                .text_size(16)
-                .style(style::PickList),
+                .text_size(16),
             )
             .push(
                 Button::new(&mut self.clear_button, Text::new("Clear"))
