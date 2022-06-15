@@ -7,6 +7,7 @@ use crate::clipboard::{self, Clipboard};
 use crate::conversion;
 use crate::mouse;
 use crate::renderer;
+use crate::settings;
 use crate::widget::operation;
 use crate::{
     Command, Debug, Element, Error, Executor, Proxy, Renderer, Runtime,
@@ -28,10 +29,17 @@ use std::mem::ManuallyDrop;
 // This is the an wrapper around the `Application::Message` associate type
 // to allows the `shell` to create internal messages, while still having
 // the current user specified custom messages.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Event<Message> {
     /// An [`Application`] generated message
     Application(Message),
+
+    /// TODO(derezzedex)
+    // Create a wrapper variant of `window::Event` type instead
+    // (maybe we should also allow users to listen/react to those internal messages?)
+    NewWindow(usize, settings::Window),
+    /// TODO(derezzedex)
+    WindowCreated(usize, winit::window::Window),
 }
 
 /// An interactive, native cross-platform application.
@@ -218,7 +226,7 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    platform::run(event_loop, move |event, _, control_flow| {
+    platform::run(event_loop, move |event, event_loop, control_flow| {
         use winit::event_loop::ControlFlow;
 
         if let ControlFlow::ExitWithCode(_) = control_flow {
@@ -237,6 +245,21 @@ where
                 event: winit::event::WindowEvent::Resized(*new_inner_size),
                 window_id,
             }),
+            winit::event::Event::UserEvent(Event::NewWindow(id, settings)) => {
+                // TODO(derezzedex)
+                let window = settings
+                    .into_builder(
+                        "fix window title",
+                        event_loop.primary_monitor(),
+                        None,
+                    )
+                    .build(event_loop)
+                    .expect("Failed to build window");
+
+                Some(winit::event::Event::UserEvent(Event::WindowCreated(
+                    id, window,
+                )))
+            }
             _ => event.to_static(),
         };
 
@@ -264,7 +287,7 @@ async fn run_instance<A, E, C>(
         winit::event::Event<'_, Event<A::Message>>,
     >,
     init_command: Command<A::Message>,
-    windows: HashMap<usize, winit::window::Window>,
+    mut windows: HashMap<usize, winit::window::Window>,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
@@ -275,12 +298,18 @@ async fn run_instance<A, E, C>(
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    let window = windows.values().next().expect("No window found");
-    let mut clipboard = Clipboard::connect(window);
+    // TODO(derezzedex)
+    let mut clipboard =
+        Clipboard::connect(windows.values().next().expect("No window found"));
     let mut cache = user_interface::Cache::default();
-    let mut surface = compositor.create_surface(&window);
+    let mut surface = compositor
+        .create_surface(&windows.values().next().expect("No window found"));
 
-    let mut state = State::new(&application, window);
+    // TODO(derezzedex)
+    let mut state = State::new(
+        &application,
+        windows.values().next().expect("No window found"),
+    );
     let mut viewport_version = state.viewport_version();
 
     let physical_size = state.physical_size();
@@ -368,7 +397,7 @@ async fn run_instance<A, E, C>(
                     );
 
                     // Update window
-                    state.synchronize(&application, window);
+                    state.synchronize(&application, &windows, &proxy);
 
                     let should_exit = application.should_exit();
 
@@ -396,6 +425,8 @@ async fn run_instance<A, E, C>(
                 );
                 debug.draw_finished();
 
+                // TODO(derezzedex)
+                let window = windows.values().next().expect("No window found");
                 if new_mouse_interaction != mouse_interaction {
                     window.set_cursor_icon(conversion::mouse_interaction(
                         new_mouse_interaction,
@@ -417,10 +448,15 @@ async fn run_instance<A, E, C>(
                     )),
                 ));
             }
-            event::Event::UserEvent(message) => {
-                let Event::Application(message) = message;
-                messages.push(message);
-            }
+            event::Event::UserEvent(event) => match event {
+                Event::Application(message) => {
+                    messages.push(message);
+                }
+                Event::WindowCreated(id, window) => {
+                    let _ = windows.insert(id, window);
+                }
+                Event::NewWindow(_, _) => unreachable!(),
+            },
             event::Event::RedrawRequested(_) => {
                 let physical_size = state.physical_size();
 
@@ -451,6 +487,9 @@ async fn run_instance<A, E, C>(
                         state.cursor_position(),
                     );
 
+                    // TODO(derezzedex)
+                    let window =
+                        windows.values().next().expect("No window found");
                     if new_mouse_interaction != mouse_interaction {
                         window.set_cursor_icon(conversion::mouse_interaction(
                             new_mouse_interaction,
@@ -491,7 +530,12 @@ async fn run_instance<A, E, C>(
                             debug.render_finished();
 
                             // Try rendering again next frame.
-                            window.request_redraw();
+                            // TODO(derezzedex)
+                            windows
+                                .values()
+                                .next()
+                                .expect("No window found")
+                                .request_redraw();
                         }
                     },
                 }
@@ -506,6 +550,8 @@ async fn run_instance<A, E, C>(
                     break;
                 }
 
+                // TODO(derezzedex)
+                let window = windows.values().next().expect("No window found");
                 state.update(window, &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(

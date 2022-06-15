@@ -1,10 +1,12 @@
 use crate::application::{self, StyleSheet as _};
 use crate::conversion;
-use crate::multi_window::Application;
+use crate::multi_window::{Application, Event};
 use crate::{Color, Debug, Point, Size, Viewport};
 
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use winit::event::{Touch, WindowEvent};
+use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
 
 /// The state of a windowed [`Application`].
@@ -181,7 +183,23 @@ where
     /// and window after calling [`Application::update`].
     ///
     /// [`Application::update`]: crate::Program::update
-    pub fn synchronize(&mut self, application: &A, window: &Window) {
+    pub fn synchronize(
+        &mut self,
+        application: &A,
+        windows: &HashMap<usize, Window>,
+        proxy: &EventLoopProxy<Event<A::Message>>,
+    ) {
+        let new_windows = application.windows();
+        for (id, settings) in new_windows {
+            if !windows.contains_key(&id) {
+                proxy
+                    .send_event(Event::NewWindow(id, settings))
+                    .expect("Failed to send message");
+            }
+        }
+
+        let window = windows.values().next().expect("No window found");
+
         // Update window title
         let new_title = application.title();
 
