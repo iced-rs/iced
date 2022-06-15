@@ -146,9 +146,9 @@ impl Window {
         {
             use winit::platform::windows::WindowBuilderExtWindows;
 
-            if let Some(parent) = self.platform_specific.parent {
-                window_builder = window_builder.with_parent_window(parent);
-            }
+            // if let Some(parent) = self.platform_specific.parent {
+            //     window_builder = window_builder.with_parent_window(parent);
+            // }
 
             window_builder = window_builder
                 .with_drag_and_drop(self.platform_specific.drag_and_drop);
