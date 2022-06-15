@@ -21,6 +21,7 @@ use iced_native::user_interface::{self, UserInterface};
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
+use std::collections::HashMap;
 use std::mem::ManuallyDrop;
 
 /// An interactive, native cross-platform application.
@@ -169,6 +170,10 @@ where
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
+    let windows: HashMap<usize, winit::window::Window> =
+        HashMap::from([(0usize, window)]);
+    let window = windows.values().next().expect("No window found");
+
     #[cfg(target_arch = "wasm32")]
     {
         use winit::platform::web::WindowExtWebSys;
@@ -197,7 +202,7 @@ where
         debug,
         receiver,
         init_command,
-        window,
+        windows,
         settings.exit_on_close_request,
     ));
 
@@ -247,7 +252,7 @@ async fn run_instance<A, E, C>(
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
     init_command: Command<A::Message>,
-    window: winit::window::Window,
+    windows: HashMap<usize, winit::window::Window>,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
@@ -258,11 +263,12 @@ async fn run_instance<A, E, C>(
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    let mut clipboard = Clipboard::connect(&window);
+    let window = windows.values().next().expect("No window found");
+    let mut clipboard = Clipboard::connect(window);
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(&window);
 
-    let mut state = State::new(&application, &window);
+    let mut state = State::new(&application, window);
     let mut viewport_version = state.viewport_version();
 
     let physical_size = state.physical_size();
@@ -283,7 +289,7 @@ async fn run_instance<A, E, C>(
         &mut clipboard,
         &mut proxy,
         &mut debug,
-        &window,
+        &windows,
         || compositor.fetch_information(),
     );
     runtime.track(application.subscription());
@@ -345,12 +351,12 @@ async fn run_instance<A, E, C>(
                         &mut proxy,
                         &mut debug,
                         &mut messages,
-                        &window,
+                        &windows,
                         || compositor.fetch_information(),
                     );
 
                     // Update window
-                    state.synchronize(&application, &window);
+                    state.synchronize(&application, window);
 
                     let should_exit = application.should_exit();
 
@@ -487,7 +493,7 @@ async fn run_instance<A, E, C>(
                     break;
                 }
 
-                state.update(&window, &window_event, &mut debug);
+                state.update(window, &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(
                     &window_event,
@@ -564,7 +570,7 @@ pub fn update<A: Application, E: Executor>(
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
-    window: &winit::window::Window,
+    windows: &HashMap<usize, winit::window::Window>,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
@@ -586,7 +592,7 @@ pub fn update<A: Application, E: Executor>(
             clipboard,
             proxy,
             debug,
-            window,
+            windows,
             graphics_info,
         );
     }
@@ -606,7 +612,7 @@ pub fn run_command<A, E>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
-    window: &winit::window::Window,
+    windows: &HashMap<usize, winit::window::Window>,
     _graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     A: Application,
@@ -616,6 +622,8 @@ pub fn run_command<A, E>(
     use iced_native::command;
     use iced_native::system;
     use iced_native::window;
+
+    let window = windows.values().next().expect("No window found");
 
     for action in command.actions() {
         match action {
