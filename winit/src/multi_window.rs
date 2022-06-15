@@ -13,8 +13,8 @@ use crate::{
     Settings, Size, Subscription,
 };
 
-use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
+use iced_futures::futures::{self, FutureExt};
 use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::user_interface::{self, UserInterface};
@@ -23,6 +23,16 @@ pub use iced_native::application::{Appearance, StyleSheet};
 
 use std::collections::HashMap;
 use std::mem::ManuallyDrop;
+
+/// TODO(derezzedex)
+// This is the an wrapper around the `Application::Message` associate type
+// to allows the `shell` to create internal messages, while still having
+// the current user specified custom messages.
+#[derive(Debug, Clone)]
+pub enum Event<Message> {
+    /// An [`Application`] generated message
+    Application(Message),
+}
 
 /// An interactive, native cross-platform application.
 ///
@@ -247,10 +257,12 @@ async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
     mut renderer: A::Renderer,
-    mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
-    mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
+    mut runtime: Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
+    mut proxy: winit::event_loop::EventLoopProxy<Event<A::Message>>,
     mut debug: Debug,
-    mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
+    mut receiver: mpsc::UnboundedReceiver<
+        winit::event::Event<'_, Event<A::Message>>,
+    >,
     init_command: Command<A::Message>,
     windows: HashMap<usize, winit::window::Window>,
     exit_on_close_request: bool,
@@ -292,7 +304,7 @@ async fn run_instance<A, E, C>(
         &windows,
         || compositor.fetch_information(),
     );
-    runtime.track(application.subscription());
+    runtime.track(application.subscription().map(Event::Application));
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &application,
@@ -406,6 +418,7 @@ async fn run_instance<A, E, C>(
                 ));
             }
             event::Event::UserEvent(message) => {
+                let Event::Application(message) = message;
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
@@ -565,9 +578,9 @@ pub fn update<A: Application, E: Executor>(
     cache: &mut user_interface::Cache,
     state: &State<A>,
     renderer: &mut A::Renderer,
-    runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
+    runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
     clipboard: &mut Clipboard,
-    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     windows: &HashMap<usize, winit::window::Window>,
@@ -597,7 +610,7 @@ pub fn update<A: Application, E: Executor>(
         );
     }
 
-    let subscription = application.subscription();
+    let subscription = application.subscription().map(Event::Application);
     runtime.track(subscription);
 }
 
@@ -608,9 +621,9 @@ pub fn run_command<A, E>(
     state: &State<A>,
     renderer: &mut A::Renderer,
     command: Command<A::Message>,
-    runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
+    runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
     clipboard: &mut Clipboard,
-    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
     debug: &mut Debug,
     windows: &HashMap<usize, winit::window::Window>,
     _graphics_info: impl FnOnce() -> compositor::Information + Copy,
@@ -628,14 +641,14 @@ pub fn run_command<A, E>(
     for action in command.actions() {
         match action {
             command::Action::Future(future) => {
-                runtime.spawn(future);
+                runtime.spawn(Box::pin(future.map(Event::Application)));
             }
             command::Action::Clipboard(action) => match action {
                 clipboard::Action::Read(tag) => {
                     let message = tag(clipboard.read());
 
                     proxy
-                        .send_event(message)
+                        .send_event(Event::Application(message))
                         .expect("Send message to event loop");
                 }
                 clipboard::Action::Write(contents) => {
@@ -670,7 +683,7 @@ pub fn run_command<A, E>(
                     };
 
                     proxy
-                        .send_event(tag(mode))
+                        .send_event(Event::Application(tag(mode)))
                         .expect("Send message to event loop");
                 }
             },
@@ -688,7 +701,7 @@ pub fn run_command<A, E>(
                             let message = _tag(information);
 
                             proxy
-                                .send_event(message)
+                                .send_event(Event::Application(message))
                                 .expect("Send message to event loop")
                         });
                     }
@@ -713,7 +726,7 @@ pub fn run_command<A, E>(
                         operation::Outcome::None => {}
                         operation::Outcome::Some(message) => {
                             proxy
-                                .send_event(message)
+                                .send_event(Event::Application(message))
                                 .expect("Send message to event loop");
                         }
                         operation::Outcome::Chain(next) => {
