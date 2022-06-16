@@ -48,6 +48,10 @@ impl Application for SolarSystem {
         String::from("Solar system - Iced")
     }
 
+    fn background_color(&self) -> Color {
+        Color::BLACK
+    }
+
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Tick(instant) => {
@@ -137,15 +141,11 @@ impl<Message> canvas::Program<Message> for State {
         use std::f32::consts::PI;
 
         let background = self.space_cache.draw(bounds.size(), |frame| {
-            let space = Path::rectangle(Point::new(0.0, 0.0), frame.size());
-
             let stars = Path::new(|path| {
                 for (p, size) in &self.stars {
                     path.rectangle(*p, Size::new(*size, *size));
                 }
             });
-
-            frame.fill(&space, Color::BLACK);
 
             frame.translate(frame.center() - Point::ORIGIN);
             frame.fill(&stars, Color::WHITE);
