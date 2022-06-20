@@ -1,12 +1,14 @@
 use iced_native::Color;
 
+use crate::canvas::Gradient;
+
 /// The style used to fill geometry.
 #[derive(Debug, Clone, Copy)]
-pub struct Fill {
-    /// The color used to fill geometry.
+pub struct Fill<'a> {
+    /// The color or gradient of the fill.
     ///
-    /// By default, it is set to `BLACK`.
-    pub color: Color,
+    /// By default, it is set to [`FillStyle::Solid`] `BLACK`.
+    pub style: FillStyle<'a>,
 
     /// The fill rule defines how to determine what is inside and what is
     /// outside of a shape.
@@ -19,22 +21,31 @@ pub struct Fill {
     pub rule: FillRule,
 }
 
-impl Default for Fill {
-    fn default() -> Fill {
+impl<'a> Default for Fill<'a> {
+    fn default() -> Fill<'a> {
         Fill {
-            color: Color::BLACK,
+            style: FillStyle::Solid(Color::BLACK),
             rule: FillRule::NonZero,
         }
     }
 }
 
-impl From<Color> for Fill {
-    fn from(color: Color) -> Fill {
+impl<'a> From<Color> for Fill<'a> {
+    fn from(color: Color) -> Fill<'a> {
         Fill {
-            color,
+            style: FillStyle::Solid(color),
             ..Fill::default()
         }
     }
+}
+
+/// The color or gradient of a [`Fill`].
+#[derive(Debug, Clone, Copy)]
+pub enum FillStyle<'a> {
+    /// A solid color
+    Solid(Color),
+    /// A color gradient
+    Gradient(&'a Gradient),
 }
 
 /// The fill rule defines how to determine what is inside and what is outside of

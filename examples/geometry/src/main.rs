@@ -139,6 +139,7 @@ mod rainbow {
                         0, 8, 1, // L
                     ],
                 },
+                pattern: None,
             };
 
             renderer.with_translation(Vector::new(b.x, b.y), |renderer| {

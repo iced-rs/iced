@@ -23,6 +23,7 @@ pub mod backend;
 pub mod font;
 pub mod layer;
 pub mod overlay;
+pub mod pattern;
 pub mod renderer;
 pub mod triangle;
 pub mod widget;

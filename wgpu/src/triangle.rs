@@ -3,10 +3,12 @@ use crate::{settings, Transformation};
 use iced_graphics::layer;
 
 use bytemuck::{Pod, Zeroable};
+use iced_graphics::pattern::Pattern;
 use std::mem;
 
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
+mod gradient;
 mod msaa;
 
 const UNIFORM_BUFFER_SIZE: usize = 50;
@@ -17,6 +19,7 @@ const INDEX_BUFFER_SIZE: usize = 10_000;
 pub(crate) struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     blit: Option<msaa::Blit>,
+    gradient: gradient::Gradient,
     constants_layout: wgpu::BindGroupLayout,
     constants: wgpu::BindGroup,
     uniforms_buffer: Buffer<Uniforms>,
@@ -173,9 +176,7 @@ impl Pipeline {
                 },
                 depth_stencil: None,
                 multisample: wgpu::MultisampleState {
-                    count: u32::from(
-                        antialiasing.map(|a| a.sample_count()).unwrap_or(1),
-                    ),
+                    count: antialiasing.map(|a| a.sample_count()).unwrap_or(1),
                     mask: !0,
                     alpha_to_coverage_enabled: false,
                 },
@@ -185,6 +186,7 @@ impl Pipeline {
         Pipeline {
             pipeline,
             blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
+            gradient: gradient::Gradient::new(device, format, antialiasing),
             constants_layout,
             constants: constant_bind_group,
             uniforms_buffer: constants_buffer,
@@ -254,6 +256,8 @@ impl Pipeline {
                 });
         }
 
+        self.gradient.prepare(device, meshes);
+
         let mut uniforms: Vec<Uniforms> = Vec::with_capacity(meshes.len());
         let mut offsets: Vec<(
             wgpu::BufferAddress,
@@ -265,54 +269,53 @@ impl Pipeline {
 
         // We upload everything upfront
         for mesh in meshes {
-            let transform = (transformation
-                * Transformation::translate(mesh.origin.x, mesh.origin.y))
-            .into();
+            let transform = transformation
+                * Transformation::translate(mesh.origin.x, mesh.origin.y);
 
             let vertices = bytemuck::cast_slice(&mesh.buffers.vertices);
             let indices = bytemuck::cast_slice(&mesh.buffers.indices);
 
-            match (
+            if let (Some(vertices_size), Some(indices_size)) = (
                 wgpu::BufferSize::new(vertices.len() as u64),
                 wgpu::BufferSize::new(indices.len() as u64),
             ) {
-                (Some(vertices_size), Some(indices_size)) => {
-                    {
-                        let mut vertex_buffer = staging_belt.write_buffer(
-                            encoder,
-                            &self.vertex_buffer.raw,
-                            (std::mem::size_of::<Vertex2D>() * last_vertex)
-                                as u64,
-                            vertices_size,
-                            device,
-                        );
+                {
+                    let mut vertex_buffer = staging_belt.write_buffer(
+                        encoder,
+                        &self.vertex_buffer.raw,
+                        (std::mem::size_of::<Vertex2D>() * last_vertex) as u64,
+                        vertices_size,
+                        device,
+                    );
 
-                        vertex_buffer.copy_from_slice(vertices);
-                    }
-
-                    {
-                        let mut index_buffer = staging_belt.write_buffer(
-                            encoder,
-                            &self.index_buffer.raw,
-                            (std::mem::size_of::<u32>() * last_index) as u64,
-                            indices_size,
-                            device,
-                        );
-
-                        index_buffer.copy_from_slice(indices);
-                    }
-
-                    uniforms.push(transform);
-                    offsets.push((
-                        last_vertex as u64,
-                        last_index as u64,
-                        mesh.buffers.indices.len(),
-                    ));
-
-                    last_vertex += mesh.buffers.vertices.len();
-                    last_index += mesh.buffers.indices.len();
+                    vertex_buffer.copy_from_slice(vertices);
                 }
-                _ => {}
+
+                {
+                    let mut index_buffer = staging_belt.write_buffer(
+                        encoder,
+                        &self.index_buffer.raw,
+                        (std::mem::size_of::<u32>() * last_index) as u64,
+                        indices_size,
+                        device,
+                    );
+
+                    index_buffer.copy_from_slice(indices);
+                }
+
+                uniforms.push(transform.into());
+                offsets.push((
+                    last_vertex as u64,
+                    last_index as u64,
+                    mesh.buffers.indices.len(),
+                ));
+
+                last_vertex += mesh.buffers.vertices.len();
+                last_index += mesh.buffers.indices.len();
+
+                if let Some(Pattern::Gradient(gradient)) = mesh.pattern {
+                    self.gradient.add(transform, gradient);
+                }
             }
         }
 
@@ -331,6 +334,8 @@ impl Pipeline {
 
             uniforms_buffer.copy_from_slice(uniforms);
         }
+
+        self.gradient.upload(device, staging_belt, encoder);
 
         {
             let (attachment, resolve_target, load) =
@@ -357,42 +362,64 @@ impl Pipeline {
                     }],
                     depth_stencil_attachment: None,
                 });
-
             render_pass.set_pipeline(&self.pipeline);
+
+            let mut gradient_i = 0;
 
             for (i, (vertex_offset, index_offset, indices)) in
                 offsets.into_iter().enumerate()
             {
                 let clip_bounds = (meshes[i].clip_bounds * scale_factor).snap();
 
-                render_pass.set_scissor_rect(
-                    clip_bounds.x,
-                    clip_bounds.y,
-                    clip_bounds.width,
-                    clip_bounds.height,
-                );
+                match meshes[i].pattern {
+                    None => {
+                        render_pass.set_scissor_rect(
+                            clip_bounds.x,
+                            clip_bounds.y,
+                            clip_bounds.width,
+                            clip_bounds.height,
+                        );
 
-                render_pass.set_bind_group(
-                    0,
-                    &self.constants,
-                    &[(std::mem::size_of::<Uniforms>() * i) as u32],
-                );
+                        render_pass.set_bind_group(
+                            0,
+                            &self.constants,
+                            &[(std::mem::size_of::<Uniforms>() * i) as u32],
+                        );
 
-                render_pass.set_index_buffer(
-                    self.index_buffer
-                        .raw
-                        .slice(index_offset * mem::size_of::<u32>() as u64..),
-                    wgpu::IndexFormat::Uint32,
-                );
+                        render_pass.set_index_buffer(
+                            self.index_buffer.raw.slice(
+                                index_offset * mem::size_of::<u32>() as u64..,
+                            ),
+                            wgpu::IndexFormat::Uint32,
+                        );
 
-                render_pass.set_vertex_buffer(
-                    0,
-                    self.vertex_buffer.raw.slice(
-                        vertex_offset * mem::size_of::<Vertex2D>() as u64..,
-                    ),
-                );
+                        render_pass.set_vertex_buffer(
+                            0,
+                            self.vertex_buffer.raw.slice(
+                                vertex_offset
+                                    * mem::size_of::<Vertex2D>() as u64..,
+                            ),
+                        );
 
-                render_pass.draw_indexed(0..indices as u32, 0, 0..1);
+                        render_pass.draw_indexed(0..indices as u32, 0, 0..1);
+                    }
+                    Some(Pattern::Gradient { .. }) => {
+                        self.gradient.draw(
+                            &mut render_pass,
+                            clip_bounds,
+                            &self.index_buffer,
+                            index_offset,
+                            &self.vertex_buffer,
+                            vertex_offset,
+                            indices,
+                            gradient_i,
+                        );
+
+                        gradient_i += 1;
+
+                        render_pass.set_pipeline(&self.pipeline);
+                    }
+                }
             }
         }
 

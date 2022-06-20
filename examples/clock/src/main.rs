@@ -1,5 +1,8 @@
 use iced::{
-    canvas::{self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke},
+    canvas::{
+        self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke,
+        StrokeStyle,
+    },
     executor, Application, Color, Command, Container, Element, Length, Point,
     Rectangle, Settings, Subscription, Vector,
 };
@@ -93,7 +96,7 @@ impl<Message> canvas::Program<Message> for Clock {
 
             let thin_stroke = Stroke {
                 width: radius / 100.0,
-                color: Color::WHITE,
+                style: StrokeStyle::Solid(Color::WHITE),
                 line_cap: LineCap::Round,
                 ..Stroke::default()
             };

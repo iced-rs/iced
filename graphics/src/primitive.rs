@@ -3,6 +3,7 @@ use iced_native::svg;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
 use crate::alignment;
+use crate::pattern::Pattern;
 use crate::triangle;
 
 use std::sync::Arc;
@@ -88,6 +89,9 @@ pub enum Primitive {
         ///
         /// Any geometry that falls out of this region will be clipped.
         size: Size,
+
+        /// The optional pattern of the mesh.
+        pattern: Option<Pattern>,
     },
     /// A cached primitive.
     ///

@@ -1,5 +1,6 @@
 //! Organize rendering primitives into a flattened list of layers.
 use crate::alignment;
+use crate::pattern::Pattern;
 use crate::triangle;
 use crate::{
     Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
@@ -159,7 +160,11 @@ impl<'a> Layer<'a> {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Mesh2D { buffers, size } => {
+            Primitive::Mesh2D {
+                buffers,
+                size,
+                pattern,
+            } => {
                 let layer = &mut layers[current_layer];
 
                 let bounds = Rectangle::new(
@@ -173,6 +178,7 @@ impl<'a> Layer<'a> {
                         origin: Point::new(translation.x, translation.y),
                         buffers,
                         clip_bounds,
+                        pattern,
                     });
                 }
             }
@@ -270,6 +276,9 @@ pub struct Mesh<'a> {
 
     /// The clipping bounds of the [`Mesh`].
     pub clip_bounds: Rectangle<f32>,
+
+    /// The optional pattern of the [`Mesh`].
+    pub pattern: &'a Option<Pattern>,
 }
 
 /// A paragraph of text.

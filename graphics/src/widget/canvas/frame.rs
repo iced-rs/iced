@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
-use iced_native::{Point, Rectangle, Size, Vector};
+use iced_native::{Color, Point, Rectangle, Size, Vector};
 
 use crate::{
     canvas::path,
-    canvas::{Fill, Geometry, Path, Stroke, Text},
+    canvas::{Fill, FillStyle, Geometry, Path, Stroke, StrokeStyle, Text},
     triangle, Primitive,
 };
 
@@ -23,7 +23,7 @@ pub struct Frame {
     stroke_tessellator: tessellation::StrokeTessellator,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Transforms {
     previous: Vec<Transform>,
     current: Transform,
@@ -83,72 +83,112 @@ impl Frame {
 
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
-    pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let Fill { color, rule } = fill.into();
+    pub fn fill<'a>(&mut self, path: &Path, fill: impl Into<Fill<'a>>) {
+        let Fill { style, rule } = fill.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            FillVertex(color.into_linear()),
-        );
+        let tesellate = |color: Color, frame: &mut Frame| {
+            let mut buffers = tessellation::BuffersBuilder::new(
+                &mut frame.buffers,
+                FillVertex(color.into_linear()),
+            );
 
-        let options =
-            tessellation::FillOptions::default().with_fill_rule(rule.into());
+            let options = tessellation::FillOptions::default()
+                .with_fill_rule(rule.into());
 
-        let result = if self.transforms.current.is_identity {
-            self.fill_tessellator.tessellate_path(
-                path.raw(),
-                &options,
-                &mut buffers,
-            )
-        } else {
-            let path = path.transformed(&self.transforms.current.raw);
+            let result = if frame.transforms.current.is_identity {
+                frame.fill_tessellator.tessellate_path(
+                    path.raw(),
+                    &options,
+                    &mut buffers,
+                )
+            } else {
+                let path = path.transformed(&frame.transforms.current.raw);
 
-            self.fill_tessellator.tessellate_path(
-                path.raw(),
-                &options,
-                &mut buffers,
-            )
+                frame.fill_tessellator.tessellate_path(
+                    path.raw(),
+                    &options,
+                    &mut buffers,
+                )
+            };
+
+            let _ = result.expect("Tessellate path");
         };
 
-        let _ = result.expect("Tessellate path");
+        match style {
+            FillStyle::Solid(color) => tesellate(color, self),
+            FillStyle::Gradient(gradient) => {
+                let mut frame = Frame::new(self.size());
+                frame.transforms = self.transforms.clone();
+
+                tesellate(Color::TRANSPARENT, &mut frame);
+
+                self.primitives.push(Primitive::Mesh2D {
+                    buffers: triangle::Mesh2D {
+                        vertices: frame.buffers.vertices,
+                        indices: frame.buffers.indices,
+                    },
+                    size: frame.size,
+                    pattern: Some(gradient.pattern()),
+                });
+            }
+        }
     }
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
     /// its `Size` on the [`Frame`] by filling it with the provided style.
-    pub fn fill_rectangle(
+    pub fn fill_rectangle<'a>(
         &mut self,
         top_left: Point,
         size: Size,
-        fill: impl Into<Fill>,
+        fill: impl Into<Fill<'a>>,
     ) {
-        let Fill { color, rule } = fill.into();
+        let Fill { style, rule } = fill.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            FillVertex(color.into_linear()),
-        );
+        let tesellate = |color: Color, frame: &mut Frame| {
+            let mut buffers = tessellation::BuffersBuilder::new(
+                &mut frame.buffers,
+                FillVertex(color.into_linear()),
+            );
 
-        let top_left =
-            self.transforms.current.raw.transform_point(
+            let top_left = frame.transforms.current.raw.transform_point(
                 lyon::math::Point::new(top_left.x, top_left.y),
             );
 
-        let size =
-            self.transforms.current.raw.transform_vector(
+            let size = frame.transforms.current.raw.transform_vector(
                 lyon::math::Vector::new(size.width, size.height),
             );
 
-        let options =
-            tessellation::FillOptions::default().with_fill_rule(rule.into());
+            let options = tessellation::FillOptions::default()
+                .with_fill_rule(rule.into());
 
-        let _ = self
-            .fill_tessellator
-            .tessellate_rectangle(
-                &lyon::math::Rect::new(top_left, size.into()),
-                &options,
-                &mut buffers,
-            )
-            .expect("Fill rectangle");
+            let _ = frame
+                .fill_tessellator
+                .tessellate_rectangle(
+                    &lyon::math::Rect::new(top_left, size.into()),
+                    &options,
+                    &mut buffers,
+                )
+                .expect("Fill rectangle");
+        };
+
+        match style {
+            FillStyle::Solid(color) => tesellate(color, self),
+            FillStyle::Gradient(gradient) => {
+                let mut frame = Frame::new(self.size());
+                frame.transforms = self.transforms.clone();
+
+                tesellate(Color::TRANSPARENT, &mut frame);
+
+                self.primitives.push(Primitive::Mesh2D {
+                    buffers: triangle::Mesh2D {
+                        vertices: frame.buffers.vertices,
+                        indices: frame.buffers.indices,
+                    },
+                    size: frame.size,
+                    pattern: Some(gradient.pattern()),
+                });
+            }
+        }
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
@@ -156,40 +196,61 @@ impl Frame {
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
         let stroke = stroke.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            StrokeVertex(stroke.color.into_linear()),
-        );
+        let tesellate = |color: Color, frame: &mut Frame| {
+            let mut buffers = tessellation::BuffersBuilder::new(
+                &mut frame.buffers,
+                StrokeVertex(color.into_linear()),
+            );
 
-        let mut options = tessellation::StrokeOptions::default();
-        options.line_width = stroke.width;
-        options.start_cap = stroke.line_cap.into();
-        options.end_cap = stroke.line_cap.into();
-        options.line_join = stroke.line_join.into();
+            let mut options = tessellation::StrokeOptions::default();
+            options.line_width = stroke.width;
+            options.start_cap = stroke.line_cap.into();
+            options.end_cap = stroke.line_cap.into();
+            options.line_join = stroke.line_join.into();
 
-        let path = if stroke.line_dash.segments.is_empty() {
-            Cow::Borrowed(path)
-        } else {
-            Cow::Owned(path::dashed(path, stroke.line_dash))
+            let path = if stroke.line_dash.segments.is_empty() {
+                Cow::Borrowed(path)
+            } else {
+                Cow::Owned(path::dashed(path, stroke.line_dash))
+            };
+
+            let result = if frame.transforms.current.is_identity {
+                frame.stroke_tessellator.tessellate_path(
+                    path.raw(),
+                    &options,
+                    &mut buffers,
+                )
+            } else {
+                let path = path.transformed(&frame.transforms.current.raw);
+
+                frame.stroke_tessellator.tessellate_path(
+                    path.raw(),
+                    &options,
+                    &mut buffers,
+                )
+            };
+
+            let _ = result.expect("Stroke path");
         };
 
-        let result = if self.transforms.current.is_identity {
-            self.stroke_tessellator.tessellate_path(
-                path.raw(),
-                &options,
-                &mut buffers,
-            )
-        } else {
-            let path = path.transformed(&self.transforms.current.raw);
+        match stroke.style {
+            StrokeStyle::Solid(color) => tesellate(color, self),
+            StrokeStyle::Gradient(gradient) => {
+                let mut frame = Frame::new(self.size());
+                frame.transforms = self.transforms.clone();
 
-            self.stroke_tessellator.tessellate_path(
-                path.raw(),
-                &options,
-                &mut buffers,
-            )
-        };
+                tesellate(Color::TRANSPARENT, &mut frame);
 
-        let _ = result.expect("Stroke path");
+                self.primitives.push(Primitive::Mesh2D {
+                    buffers: triangle::Mesh2D {
+                        vertices: frame.buffers.vertices,
+                        indices: frame.buffers.indices,
+                    },
+                    size: frame.size,
+                    pattern: Some(gradient.pattern()),
+                });
+            }
+        }
     }
 
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
@@ -340,6 +401,7 @@ impl Frame {
                     indices: self.buffers.indices,
                 },
                 size: self.size,
+                pattern: None,
             });
         }
 
