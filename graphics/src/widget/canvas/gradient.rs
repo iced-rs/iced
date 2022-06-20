@@ -1,4 +1,6 @@
 //! Define a color gradient.
+use iced_native::Point;
+
 use crate::pattern::Pattern;
 
 pub mod linear;
@@ -13,6 +15,11 @@ pub enum Gradient {
 }
 
 impl Gradient {
+    /// Creates a new linear [`linear::Builder`].
+    pub fn linear(start: Point, end: Point) -> linear::Builder {
+        linear::Builder::new(start, end)
+    }
+
     pub(super) fn pattern(&self) -> Pattern {
         match self {
             Gradient::Linear(linear) => Pattern::Gradient(linear.gradient()),

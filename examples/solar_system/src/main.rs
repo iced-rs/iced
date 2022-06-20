@@ -7,7 +7,6 @@
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::{
-    canvas::gradient,
     canvas::{self, Cursor, Fill, FillStyle, Path, Stroke, StrokeStyle},
     executor, time, window, Application, Canvas, Color, Command, Element,
     Length, Point, Rectangle, Settings, Size, Subscription, Vector,
@@ -158,23 +157,21 @@ impl<Message> canvas::Program<Message> for State {
             let sun = Path::circle(center, Self::SUN_RADIUS);
             let orbit = Path::circle(center, Self::ORBIT_RADIUS);
 
-            let gradient = canvas::Gradient::Linear(
-                gradient::linear::Builder::new(
-                    center - Vector::new(0.0, Self::SUN_RADIUS),
-                    center + Vector::new(0.0, Self::SUN_RADIUS),
-                )
-                .add_stop(0.0, Color::WHITE)
-                .add_stop(0.03, Color::from_rgb8(0xFF, 0xF5, 0x7B))
-                .add_stop(0.1, Color::from_rgb8(0xFF, 0xE4, 0x69))
-                .add_stop(0.2, Color::from_rgb8(0xFF, 0xCC, 0x51))
-                .add_stop(0.5, Color::from_rgb8(0xFC, 0xB0, 0x33))
-                .add_stop(0.8, Color::from_rgb8(0xFF, 0xCC, 0x51))
-                .add_stop(0.9, Color::from_rgb8(0xFF, 0xE4, 0x69))
-                .add_stop(0.97, Color::from_rgb8(0xFF, 0xF5, 0x7B))
-                .add_stop(1.0, Color::WHITE)
-                .build()
-                .unwrap(),
-            );
+            let gradient = canvas::Gradient::linear(
+                center - Vector::new(0.0, Self::SUN_RADIUS),
+                center + Vector::new(0.0, Self::SUN_RADIUS),
+            )
+            .add_stop(0.0, Color::WHITE)
+            .add_stop(0.03, Color::from_rgb8(0xFF, 0xF5, 0x7B))
+            .add_stop(0.1, Color::from_rgb8(0xFF, 0xE4, 0x69))
+            .add_stop(0.2, Color::from_rgb8(0xFF, 0xCC, 0x51))
+            .add_stop(0.5, Color::from_rgb8(0xFC, 0xB0, 0x33))
+            .add_stop(0.8, Color::from_rgb8(0xFF, 0xCC, 0x51))
+            .add_stop(0.9, Color::from_rgb8(0xFF, 0xE4, 0x69))
+            .add_stop(0.97, Color::from_rgb8(0xFF, 0xF5, 0x7B))
+            .add_stop(1.0, Color::WHITE)
+            .build()
+            .unwrap();
 
             frame.fill(
                 &sun,

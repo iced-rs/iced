@@ -4,6 +4,8 @@ use iced_native::{Color, Point};
 use crate::pattern;
 use crate::pattern::ColorStop;
 
+use super::Gradient;
+
 /// A linear gradient that can be used in the style of [`super::Fill`] or [`super::Stroke`].
 #[derive(Debug, Clone)]
 pub struct Linear {
@@ -55,19 +57,19 @@ impl Builder {
         self
     }
 
-    /// Builds the [`Linear`] gradient of this [`Builder`].
+    /// Builds the linear [`Gradient`] of this [`Builder`].
     ///
     /// Returns `None` if no stops were added to the builder or
     /// if stops not between 0.0 and 1.0 were added.
-    pub fn build(self) -> Option<Linear> {
+    pub fn build(self) -> Option<Gradient> {
         if self.stops.is_empty() || !self.valid {
             return None;
         }
 
-        Some(Linear {
+        Some(Gradient::Linear(Linear {
             start: self.start,
             end: self.end,
             color_stops: self.stops.into_iter().map(ColorStop::from).collect(),
-        })
+        }))
     }
 }
