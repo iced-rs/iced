@@ -2,6 +2,7 @@
 use crate::command::{self, Command};
 use iced_native::window;
 
+pub use window::Id;
 pub use window::{Event, Mode};
 
 /// Resizes the window to the given logical dimensions.

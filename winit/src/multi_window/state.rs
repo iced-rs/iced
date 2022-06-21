@@ -1,6 +1,7 @@
 use crate::application::{self, StyleSheet as _};
 use crate::conversion;
 use crate::multi_window::{Application, Event};
+use crate::window;
 use crate::{Color, Debug, Point, Size, Viewport};
 
 use std::collections::HashMap;
@@ -186,7 +187,7 @@ where
     pub fn synchronize(
         &mut self,
         application: &A,
-        windows: &HashMap<usize, Window>,
+        windows: &HashMap<window::Id, Window>,
         proxy: &EventLoopProxy<Event<A::Message>>,
     ) {
         let new_windows = application.windows();

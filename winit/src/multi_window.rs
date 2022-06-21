@@ -9,6 +9,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::settings;
 use crate::widget::operation;
+use crate::window;
 use crate::{
     Command, Debug, Element, Error, Executor, Proxy, Renderer, Runtime,
     Settings, Size, Subscription,
@@ -17,7 +18,6 @@ use crate::{
 use iced_futures::futures::channel::mpsc;
 use iced_futures::futures::{self, FutureExt};
 use iced_graphics::compositor;
-use iced_graphics::window;
 use iced_native::user_interface::{self, UserInterface};
 
 pub use iced_native::application::{Appearance, StyleSheet};
@@ -37,9 +37,9 @@ pub enum Event<Message> {
     /// TODO(derezzedex)
     // Create a wrapper variant of `window::Event` type instead
     // (maybe we should also allow users to listen/react to those internal messages?)
-    NewWindow(usize, settings::Window),
+    NewWindow(window::Id, settings::Window),
     /// TODO(derezzedex)
-    WindowCreated(usize, winit::window::Window),
+    WindowCreated(window::Id, winit::window::Window),
 }
 
 /// An interactive, native cross-platform application.
@@ -65,6 +65,9 @@ where
 
     /// The type of __messages__ your [`Program`] will produce.
     type Message: std::fmt::Debug + Send;
+
+    /// TODO(derezzedex)
+    fn windows(&self) -> Vec<(window::Id, settings::Window)>;
 
     /// Handles a __message__ and updates the state of the [`Program`].
     ///
@@ -150,7 +153,7 @@ pub fn run<A, E, C>(
 where
     A: Application + 'static,
     E: Executor + 'static,
-    C: window::Compositor<Renderer = A::Renderer> + 'static,
+    C: iced_graphics::window::Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
@@ -188,8 +191,8 @@ where
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
 
-    let windows: HashMap<usize, winit::window::Window> =
-        HashMap::from([(0usize, window)]);
+    let windows: HashMap<window::Id, winit::window::Window> =
+        HashMap::from([(window::Id::new(0usize), window)]);
     let window = windows.values().next().expect("No window found");
 
     #[cfg(target_arch = "wasm32")]
@@ -287,12 +290,12 @@ async fn run_instance<A, E, C>(
         winit::event::Event<'_, Event<A::Message>>,
     >,
     init_command: Command<A::Message>,
-    mut windows: HashMap<usize, winit::window::Window>,
+    mut windows: HashMap<window::Id, winit::window::Window>,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
-    C: window::Compositor<Renderer = A::Renderer> + 'static,
+    C: iced_graphics::window::Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     use iced_futures::futures::stream::StreamExt;
@@ -629,7 +632,7 @@ pub fn update<A: Application, E: Executor>(
     proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
-    windows: &HashMap<usize, winit::window::Window>,
+    windows: &HashMap<window::Id, winit::window::Window>,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
@@ -671,7 +674,7 @@ pub fn run_command<A, E>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
     debug: &mut Debug,
-    windows: &HashMap<usize, winit::window::Window>,
+    windows: &HashMap<window::Id, winit::window::Window>,
     _graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     A: Application,

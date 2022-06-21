@@ -1,3 +1,4 @@
+use crate::window;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
 pub use iced_native::application::{Appearance, StyleSheet};
@@ -44,6 +45,9 @@ pub trait Application: Sized {
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
     fn title(&self) -> String;
+
+    /// TODO(derezzedex)
+    fn windows(&self) -> Vec<(window::Id, window::Settings)>;
 
     /// Handles a __message__ and updates the state of the [`Application`].
     ///
@@ -158,6 +162,16 @@ where
 
     fn title(&self) -> String {
         self.0.title()
+    }
+
+    fn windows(&self) -> Vec<(window::Id, iced_winit::settings::Window)> {
+        self.0
+            .windows()
+            .into_iter()
+            .map(|(id, settings)| {
+                (id, iced_winit::settings::Window::from(settings))
+            })
+            .collect()
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
