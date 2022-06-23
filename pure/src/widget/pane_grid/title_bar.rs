@@ -132,18 +132,15 @@ where
 
         let mut children = padded.children();
         let title_layout = children.next().unwrap();
-
-        self.content.as_widget().draw(
-            &tree.children[0],
-            renderer,
-            &inherited_style,
-            title_layout,
-            cursor_position,
-            viewport,
-        );
+        let mut show_title = true;
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > padded.bounds().width
+            {
+                show_title = false;
+            }
 
             if show_controls || self.always_show_controls {
                 controls.as_widget().draw(
@@ -155,6 +152,17 @@ where
                     viewport,
                 );
             }
+        }
+
+        if show_title {
+            self.content.as_widget().draw(
+                &tree.children[0],
+                renderer,
+                &inherited_style,
+                title_layout,
+                cursor_position,
+                viewport,
+            );
         }
     }
 
@@ -247,9 +255,15 @@ where
 
         let mut children = padded.children();
         let title_layout = children.next().unwrap();
+        let mut show_title = true;
 
         let control_status = if let Some(controls) = &mut self.controls {
             let controls_layout = children.next().unwrap();
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > padded.bounds().width
+            {
+                show_title = false;
+            }
 
             controls.as_widget_mut().on_event(
                 &mut tree.children[1],
@@ -264,15 +278,19 @@ where
             event::Status::Ignored
         };
 
-        let title_status = self.content.as_widget_mut().on_event(
-            &mut tree.children[0],
-            event,
-            title_layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-        );
+        let title_status = if show_title {
+            self.content.as_widget_mut().on_event(
+                &mut tree.children[0],
+                event,
+                title_layout,
+                cursor_position,
+                renderer,
+                clipboard,
+                shell,
+            )
+        } else {
+            event::Status::Ignored
+        };
 
         control_status.merge(title_status)
     }
@@ -301,17 +319,21 @@ where
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
+            let controls_interaction = controls.as_widget().mouse_interaction(
+                &tree.children[1],
+                controls_layout,
+                cursor_position,
+                viewport,
+                renderer,
+            );
 
-            controls
-                .as_widget()
-                .mouse_interaction(
-                    &tree.children[1],
-                    controls_layout,
-                    cursor_position,
-                    viewport,
-                    renderer,
-                )
-                .max(title_interaction)
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > padded.bounds().width
+            {
+                controls_interaction
+            } else {
+                controls_interaction.max(title_interaction)
+            }
         } else {
             title_interaction
         }
