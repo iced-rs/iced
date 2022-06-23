@@ -6,7 +6,14 @@ use crate::{Color, Font, Point};
 pub struct Text {
     /// The contents of the text
     pub content: String,
-    /// The position where to begin drawing the text (top-left corner coordinates)
+    /// The position of the text relative to the alignment properties.
+    /// By default, this position will be relative to the top-left corner coordinate meaning that
+    /// if the horizontal and vertical alignments are unchanged, this property will tell where the
+    /// top-left corner of the text should be placed.
+    /// By changing the horizontal_alignment and vertical_alignment properties, you are are able to
+    /// change what part of text is placed at this positions.
+    /// For example, when the horizontal_alignment and vertical_alignment are set to Center, the
+    /// center of the text will be placed at the given position NOT the top-left coordinate.
     pub position: Point,
     /// The color of the text
     pub color: Color,
