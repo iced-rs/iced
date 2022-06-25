@@ -212,7 +212,7 @@ async fn run_instance<A, E, C>(
 
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
-    let theme = application.theme();
+    let mut theme = application.theme();
 
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
@@ -278,6 +278,7 @@ async fn run_instance<A, E, C>(
 
                     let should_exit = application.should_exit();
 
+                    theme = application.theme();
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(
                             &mut application,
