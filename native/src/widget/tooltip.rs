@@ -4,6 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text;
+use crate::widget;
 use crate::widget::container;
 use crate::widget::text::Text;
 use crate::{
@@ -16,7 +17,7 @@ use crate::{
 pub struct Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
@@ -29,7 +30,7 @@ where
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16 = 5;
@@ -224,7 +225,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.content.width()
@@ -330,7 +331,7 @@ impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn from(
         tooltip: Tooltip<'a, Message, Renderer>,

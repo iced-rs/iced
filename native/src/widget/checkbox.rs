@@ -35,7 +35,7 @@ pub use iced_style::checkbox::{Appearance, StyleSheet};
 pub struct Checkbox<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
@@ -51,7 +51,7 @@ where
 impl<'a, Message, Renderer> Checkbox<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     /// The default size of a [`Checkbox`].
     const DEFAULT_SIZE: u16 = 20;
@@ -130,7 +130,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Checkbox<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -262,9 +262,11 @@ where
                 style,
                 label_layout,
                 &self.label,
-                self.font.clone(),
                 self.text_size,
-                custom_style.text_color,
+                self.font.clone(),
+                widget::text::Appearance {
+                    color: custom_style.text_color,
+                },
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
@@ -277,7 +279,7 @@ impl<'a, Message, Renderer> From<Checkbox<'a, Message, Renderer>>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn from(
         checkbox: Checkbox<'a, Message, Renderer>,

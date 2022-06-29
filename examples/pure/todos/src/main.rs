@@ -6,7 +6,7 @@ use iced::pure::{
 };
 use iced::theme::{self, Theme};
 use iced::window;
-use iced::{Command, Font, Length, Settings};
+use iced::{Color, Command, Font, Length, Settings};
 use serde::{Deserialize, Serialize};
 
 pub fn main() -> iced::Result {
@@ -155,7 +155,7 @@ impl Application for Todos {
                 let title = text("todos")
                     .width(Length::Fill)
                     .size(100)
-                    .color([0.5, 0.5, 0.5])
+                    .style(Color::from([0.5, 0.5, 0.5]))
                     .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = text_input(
@@ -406,7 +406,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .width(Length::Fill)
             .size(25)
             .horizontal_alignment(alignment::Horizontal::Center)
-            .color([0.7, 0.7, 0.7]),
+            .style(Color::from([0.7, 0.7, 0.7])),
     )
     .width(Length::Fill)
     .height(Length::Units(200))

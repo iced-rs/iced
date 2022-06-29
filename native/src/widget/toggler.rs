@@ -5,7 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text;
-use crate::widget::{Row, Text};
+use crate::widget::{self, Row, Text};
 use crate::{
     Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
     Shell, Widget,
@@ -136,7 +136,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -240,9 +240,9 @@ where
                 style,
                 label_layout,
                 &label,
-                self.font.clone(),
                 self.text_size,
-                None,
+                self.font.clone(),
+                Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
             );
@@ -312,7 +312,7 @@ impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn from(
         toggler: Toggler<'a, Message, Renderer>,

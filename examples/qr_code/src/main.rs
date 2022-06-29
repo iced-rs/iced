@@ -1,7 +1,8 @@
 use iced::qr_code::{self, QRCode};
 use iced::text_input::{self, TextInput};
 use iced::{
-    Alignment, Column, Container, Element, Length, Sandbox, Settings, Text,
+    Alignment, Color, Column, Container, Element, Length, Sandbox, Settings,
+    Text,
 };
 
 pub fn main() -> iced::Result {
@@ -48,7 +49,7 @@ impl Sandbox for QRGenerator {
     fn view(&mut self) -> Element<Message> {
         let title = Text::new("QR Code Generator")
             .size(70)
-            .color([0.5, 0.5, 0.5]);
+            .style(Color::from([0.5, 0.5, 0.5]));
 
         let input = TextInput::new(
             &mut self.input,

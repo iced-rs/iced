@@ -4,8 +4,8 @@ use iced::scrollable::{self, Scrollable};
 use iced::text_input::{self, TextInput};
 use iced::theme::{self, Theme};
 use iced::{
-    Application, Checkbox, Column, Command, Container, Element, Font, Length,
-    Row, Settings, Text,
+    Application, Checkbox, Color, Column, Command, Container, Element, Font,
+    Length, Row, Settings, Text,
 };
 use serde::{Deserialize, Serialize};
 
@@ -155,7 +155,7 @@ impl Application for Todos {
                 let title = Text::new("todos")
                     .width(Length::Fill)
                     .size(100)
-                    .color([0.5, 0.5, 0.5])
+                    .style(Color::from([0.5, 0.5, 0.5]))
                     .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = TextInput::new(
@@ -453,7 +453,7 @@ fn empty_message<'a>(message: &str) -> Element<'a, Message> {
             .width(Length::Fill)
             .size(25)
             .horizontal_alignment(alignment::Horizontal::Center)
-            .color([0.7, 0.7, 0.7]),
+            .style(Color::from([0.7, 0.7, 0.7])),
     )
     .width(Length::Fill)
     .height(Length::Units(200))

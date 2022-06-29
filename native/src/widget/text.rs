@@ -3,45 +3,57 @@ use crate::alignment;
 use crate::layout;
 use crate::renderer;
 use crate::text;
-use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
+use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
+
+pub use iced_style::text::{Appearance, StyleSheet};
 
 /// A paragraph of text.
 ///
 /// # Example
 ///
 /// ```
+/// # use iced_native::Color;
+/// #
 /// # type Text = iced_native::widget::Text<iced_native::renderer::Null>;
 /// #
 /// Text::new("I <3 iced!")
-///     .color([0.0, 0.0, 1.0])
-///     .size(40);
+///     .size(40)
+///     .style(Color::from([0.0, 0.0, 1.0]));
 /// ```
 ///
 /// ![Text drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
-#[derive(Debug)]
-pub struct Text<Renderer: text::Renderer> {
+#[allow(missing_debug_implementations)]
+pub struct Text<Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     content: String,
     size: Option<u16>,
-    color: Option<Color>,
-    font: Renderer::Font,
     width: Length,
     height: Length,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
+    font: Renderer::Font,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<Renderer: text::Renderer> Text<Renderer> {
+impl<Renderer> Text<Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     /// Create a new fragment of [`Text`] with the given contents.
     pub fn new<T: Into<String>>(label: T) -> Self {
         Text {
             content: label.into(),
             size: None,
-            color: None,
             font: Default::default(),
             width: Length::Shrink,
             height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
+            style: Default::default(),
         }
     }
 
@@ -51,17 +63,20 @@ impl<Renderer: text::Renderer> Text<Renderer> {
         self
     }
 
-    /// Sets the [`Color`] of the [`Text`].
-    pub fn color<C: Into<Color>>(mut self, color: C) -> Self {
-        self.color = Some(color.into());
-        self
-    }
-
     /// Sets the [`Font`] of the [`Text`].
     ///
     /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = font.into();
+        self
+    }
+
+    /// Sets the [`Color`] of the [`Text`].
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+    ) -> Self {
+        self.style = style.into();
         self
     }
 
@@ -99,6 +114,7 @@ impl<Renderer: text::Renderer> Text<Renderer> {
 impl<Message, Renderer> Widget<Message, Renderer> for Text<Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -130,7 +146,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        _theme: &Renderer::Theme,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
@@ -141,9 +157,9 @@ where
             style,
             layout,
             &self.content,
-            self.font.clone(),
             self.size,
-            self.color,
+            self.font.clone(),
+            theme.appearance(self.style),
             self.horizontal_alignment,
             self.vertical_alignment,
         );
@@ -165,9 +181,9 @@ pub fn draw<Renderer>(
     style: &renderer::Style,
     layout: Layout<'_>,
     content: &str,
-    font: Renderer::Font,
     size: Option<u16>,
-    color: Option<Color>,
+    font: Renderer::Font,
+    appearance: Appearance,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
 ) where
@@ -191,7 +207,7 @@ pub fn draw<Renderer>(
         content,
         size: f32::from(size.unwrap_or(renderer.default_size())),
         bounds: Rectangle { x, y, ..bounds },
-        color: color.unwrap_or(style.text_color),
+        color: appearance.color.unwrap_or(style.text_color),
         font,
         horizontal_alignment,
         vertical_alignment,
@@ -202,23 +218,28 @@ impl<'a, Message, Renderer> From<Text<Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: text::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
 {
     fn from(text: Text<Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(text)
     }
 }
 
-impl<Renderer: text::Renderer> Clone for Text<Renderer> {
+impl<Renderer> Clone for Text<Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     fn clone(&self) -> Self {
         Self {
             content: self.content.clone(),
             size: self.size,
-            color: self.color,
-            font: self.font.clone(),
             width: self.width,
             height: self.height,
             horizontal_alignment: self.horizontal_alignment,
             vertical_alignment: self.vertical_alignment,
+            font: self.font.clone(),
+            style: self.style,
         }
     }
 }

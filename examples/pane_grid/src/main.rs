@@ -180,7 +180,7 @@ impl Application for Example {
                 pin_button.into(),
                 Text::new("Pane").into(),
                 Text::new(content.id.to_string())
-                    .color(if is_focused {
+                    .style(if is_focused {
                         PANE_ID_COLOR_FOCUSED
                     } else {
                         PANE_ID_COLOR_UNFOCUSED

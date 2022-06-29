@@ -11,6 +11,7 @@ pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod svg;
+pub mod text;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
@@ -19,7 +20,6 @@ pub mod tree;
 mod column;
 mod row;
 mod space;
-mod text;
 
 pub use button::Button;
 pub use checkbox::Checkbox;

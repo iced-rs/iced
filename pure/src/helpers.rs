@@ -71,7 +71,7 @@ pub fn tooltip<'a, Message, Renderer>(
 ) -> widget::Tooltip<'a, Message, Renderer>
 where
     Renderer: iced_native::text::Renderer,
-    Renderer::Theme: widget::container::StyleSheet,
+    Renderer::Theme: widget::container::StyleSheet + widget::text::StyleSheet,
 {
     widget::Tooltip::new(content, tooltip, position)
 }
@@ -82,6 +82,7 @@ where
 pub fn text<Renderer>(text: impl Into<String>) -> widget::Text<Renderer>
 where
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::text::StyleSheet,
 {
     widget::Text::new(text)
 }
@@ -96,7 +97,7 @@ pub fn checkbox<'a, Message, Renderer>(
 ) -> widget::Checkbox<'a, Message, Renderer>
 where
     Renderer: iced_native::text::Renderer,
-    Renderer::Theme: widget::checkbox::StyleSheet,
+    Renderer::Theme: widget::checkbox::StyleSheet + widget::text::StyleSheet,
 {
     widget::Checkbox::new(is_checked, label, f)
 }

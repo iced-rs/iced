@@ -9,7 +9,7 @@ use iced_native::renderer;
 use iced_native::text;
 use iced_native::widget::container;
 use iced_native::widget::tooltip;
-use iced_native::widget::Text;
+use iced_native::widget::{self, Text};
 use iced_native::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
 pub use iced_style::container::{Appearance, StyleSheet};
@@ -20,7 +20,7 @@ pub use tooltip::Position;
 pub struct Tooltip<'a, Message, Renderer: text::Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
@@ -33,7 +33,7 @@ where
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16 = 5;
@@ -96,7 +96,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
@@ -230,7 +230,7 @@ impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn from(
         tooltip: Tooltip<'a, Message, Renderer>,

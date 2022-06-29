@@ -433,7 +433,7 @@ impl<'a> Step {
             .padding(20)
             .spacing(20)
             .push("And its color:")
-            .push(text(format!("{:?}", color)).color(color))
+            .push(text(format!("{:?}", color)).style(color))
             .push(color_sliders);
 
         Self::container("Text")
@@ -576,7 +576,7 @@ impl<'a> Step {
             .push(if cfg!(target_arch = "wasm32") {
                 Element::new(
                     text("Not available on web yet!")
-                        .color([0.7, 0.7, 0.7])
+                        .style(Color::from([0.7, 0.7, 0.7]))
                         .horizontal_alignment(alignment::Horizontal::Center),
                 )
             } else {

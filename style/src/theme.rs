@@ -14,6 +14,7 @@ use crate::radio;
 use crate::rule;
 use crate::scrollable;
 use crate::slider;
+use crate::text;
 use crate::text_input;
 use crate::toggler;
 
@@ -597,6 +598,40 @@ impl scrollable::StyleSheet for Theme {
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },
+        }
+    }
+}
+
+/*
+ * Text
+ */
+#[derive(Clone, Copy)]
+pub enum Text {
+    Default,
+    Color(Color),
+    Custom(fn(&Theme) -> text::Appearance),
+}
+
+impl Default for Text {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
+impl From<Color> for Text {
+    fn from(color: Color) -> Self {
+        Text::Color(color)
+    }
+}
+
+impl text::StyleSheet for Theme {
+    type Style = Text;
+
+    fn appearance(&self, style: Self::Style) -> text::Appearance {
+        match style {
+            Text::Default => Default::default(),
+            Text::Color(c) => text::Appearance { color: Some(c) },
+            Text::Custom(f) => f(self),
         }
     }
 }

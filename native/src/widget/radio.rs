@@ -144,7 +144,7 @@ impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -277,9 +277,11 @@ where
                 style,
                 label_layout,
                 &self.label,
-                self.font.clone(),
                 self.text_size,
-                custom_style.text_color,
+                self.font.clone(),
+                widget::text::Appearance {
+                    color: custom_style.text_color,
+                },
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
@@ -292,7 +294,7 @@ impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
 where
     Message: 'a + Clone,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(radio)

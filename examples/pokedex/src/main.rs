@@ -2,7 +2,7 @@ use iced::button;
 use iced::futures;
 use iced::image;
 use iced::{
-    Alignment, Application, Button, Column, Command, Container, Element,
+    Alignment, Application, Button, Color, Column, Command, Container, Element,
     Length, Row, Settings, Text, Theme,
 };
 
@@ -143,7 +143,7 @@ impl Pokemon {
                             .push(
                                 Text::new(format!("#{}", self.number))
                                     .size(20)
-                                    .color([0.5, 0.5, 0.5]),
+                                    .style(Color::from([0.5, 0.5, 0.5])),
                             ),
                     )
                     .push(Text::new(&self.description)),

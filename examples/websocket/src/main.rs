@@ -92,7 +92,7 @@ impl Application for WebSocket {
         let message_log = if self.messages.is_empty() {
             Container::new(
                 Text::new("Your messages will appear here...")
-                    .color(Color::from_rgb8(0x88, 0x88, 0x88)),
+                    .style(Color::from_rgb8(0x88, 0x88, 0x88)),
             )
             .width(Length::Fill)
             .height(Length::Fill)
