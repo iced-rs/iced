@@ -32,7 +32,7 @@ use std::marker::PhantomData;
 /// #     }
 /// #     pub use iced_native::{Color, Rectangle, Theme};
 /// # }
-/// use iced::pure::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
+/// use iced::pure::widget::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
 /// use iced::{Color, Rectangle, Theme};
 ///
 /// // First, we define the data we need for drawing
