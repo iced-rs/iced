@@ -1,35 +1,35 @@
 [package]
 name = "iced_wgpu"
 version = "0.5.1"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+authors = [ "Héctor Ramón Jiménez <hector0193@gmail.com>" ]
 edition = "2021"
 description = "A wgpu renderer for Iced"
 license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
-svg = ["resvg", "usvg", "tiny-skia"]
-image = ["png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp"]
-png = ["image_rs/png"]
-jpeg = ["image_rs/jpeg"]
-jpeg_rayon = ["image_rs/jpeg_rayon"]
-gif = ["image_rs/gif"]
-webp = ["image_rs/webp"]
-pnm = ["image_rs/pnm"]
-ico = ["image_rs/ico"]
-bmp = ["image_rs/bmp"]
-hdr = ["image_rs/hdr"]
-dds = ["image_rs/dds"]
-farbfeld = ["image_rs/farbfeld"]
-canvas = ["iced_graphics/canvas"]
-qr_code = ["iced_graphics/qr_code"]
-default_system_font = ["iced_graphics/font-source"]
-spirv = ["wgpu/spirv"]
-webgl = ["wgpu/webgl"]
+svg = [ "resvg", "usvg", "tiny-skia" ]
+image = [ "png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp" ]
+png = [ "image_rs/png" ]
+jpeg = [ "image_rs/jpeg" ]
+jpeg_rayon = [ "image_rs/jpeg_rayon" ]
+gif = [ "image_rs/gif" ]
+webp = [ "image_rs/webp" ]
+pnm = [ "image_rs/pnm" ]
+ico = [ "image_rs/ico" ]
+bmp = [ "image_rs/bmp" ]
+hdr = [ "image_rs/hdr" ]
+dds = [ "image_rs/dds" ]
+farbfeld = [ "image_rs/farbfeld" ]
+canvas = [ "iced_graphics/canvas" ]
+qr_code = [ "iced_graphics/qr_code" ]
+default_system_font = [ "iced_graphics/font-source" ]
+spirv = [ "wgpu/spirv" ]
+webgl = [ "wgpu/webgl" ]
 
 [dependencies]
 wgpu = "0.13"
-wgpu_glyph = {version = "0.16",path = "../../wgpu_glyph"}
+wgpu_glyph = { version = "0.16", git = "https://github.com/Cupnfish/wgpu_glyph.git", branch = "wgpu-0.13" }
 glyph_brush = "0.7"
 raw-window-handle = "0.4"
 log = "0.4"
@@ -40,7 +40,7 @@ bitflags = "1.2"
 
 [dependencies.bytemuck]
 version = "1.9"
-features = ["derive"]
+features = [ "derive" ]
 
 [dependencies.iced_native]
 version = "0.5"
@@ -49,7 +49,7 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.3"
 path = "../graphics"
-features = ["font-fallback", "font-icons"]
+features = [ "font-fallback", "font-icons" ]
 
 [dependencies.image_rs]
 version = "0.23"
@@ -70,5 +70,5 @@ version = "0.6"
 optional = true
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = [ "--cfg", "docsrs" ]
 all-features = true
