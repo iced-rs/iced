@@ -1,6 +1,6 @@
 struct Globals {
     transform: mat4x4<f32>,
-};
+}
 
 @group(0) @binding(0) var<uniform> globals: Globals;
 @group(0) @binding(1) var u_sampler: sampler;
@@ -13,13 +13,13 @@ struct VertexInput {
     @location(3) atlas_pos: vec2<f32>,
     @location(4) atlas_scale: vec2<f32>,
     @location(5) layer: i32,
-};
+}
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
     @location(1) layer: f32, // this should be an i32, but naga currently reads that as requiring interpolation.
-};
+}
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {

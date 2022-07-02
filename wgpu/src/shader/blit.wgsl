@@ -21,12 +21,12 @@ var<private> uvs: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 
 struct VertexInput {
     @builtin(vertex_index) vertex_index: u32,
-};
+}
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
-};
+}
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {

@@ -1,7 +1,7 @@
 struct Globals {
     transform: mat4x4<f32>,
     scale: f32,
-};
+}
 
 @group(0) @binding(0) var<uniform> globals: Globals;
 
@@ -13,7 +13,7 @@ struct VertexInput {
     @location(4) border_color: vec4<f32>,
     @location(5) border_radius: f32,
     @location(6) border_width: f32,
-};
+}
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -23,7 +23,7 @@ struct VertexOutput {
     @location(3) scale: vec2<f32>,
     @location(4) border_radius: f32,
     @location(5) border_width: f32,
-};
+}
 
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
