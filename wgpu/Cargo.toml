@@ -28,8 +28,8 @@ spirv = ["wgpu/spirv"]
 webgl = ["wgpu/webgl"]
 
 [dependencies]
-wgpu = "0.12"
-wgpu_glyph = "0.16"
+wgpu = "0.13"
+wgpu_glyph = {version = "0.16",path = "../../wgpu_glyph"}
 glyph_brush = "0.7"
 raw-window-handle = "0.4"
 log = "0.4"
@@ -39,7 +39,7 @@ kamadak-exif = "0.5"
 bitflags = "1.2"
 
 [dependencies.bytemuck]
-version = "1.4"
+version = "1.9"
 features = ["derive"]
 
 [dependencies.iced_native]

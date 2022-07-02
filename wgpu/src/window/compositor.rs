@@ -1,7 +1,6 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::stream::{self, StreamExt};
-use futures::task::SpawnExt;
 
 use iced_graphics::compositor;
 use iced_native::futures;
@@ -16,7 +15,6 @@ pub struct Compositor {
     device: wgpu::Device,
     queue: wgpu::Queue,
     staging_belt: wgpu::util::StagingBelt,
-    local_pool: futures::executor::LocalPool,
     format: wgpu::TextureFormat,
 }
 
@@ -61,9 +59,14 @@ impl Compositor {
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
-        let format = compatible_surface
-            .as_ref()
-            .and_then(|surface| surface.get_preferred_format(&adapter))?;
+        let format = compatible_surface.as_ref().and_then(|surface| {
+            let formats = surface.get_supported_formats(&adapter);
+            if formats.is_empty() {
+                None
+            } else {
+                Some(formats[0])
+            }
+        })?;
 
         log::info!("Selected format: {:?}", format);
 
@@ -98,7 +101,6 @@ impl Compositor {
             .await?;
 
         let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
-        let local_pool = futures::executor::LocalPool::new();
 
         Some(Compositor {
             instance,
@@ -107,7 +109,6 @@ impl Compositor {
             device,
             queue,
             staging_belt,
-            local_pool,
             format,
         })
     }
@@ -200,24 +201,26 @@ impl iced_graphics::window::Compositor for Compositor {
                         label: Some(
                             "iced_wgpu::window::Compositor render pass",
                         ),
-                        color_attachments: &[wgpu::RenderPassColorAttachment {
-                            view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear({
-                                    let [r, g, b, a] =
-                                        background_color.into_linear();
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear({
+                                        let [r, g, b, a] =
+                                            background_color.into_linear();
 
-                                    wgpu::Color {
-                                        r: f64::from(r),
-                                        g: f64::from(g),
-                                        b: f64::from(b),
-                                        a: f64::from(a),
-                                    }
-                                }),
-                                store: true,
+                                        wgpu::Color {
+                                            r: f64::from(r),
+                                            g: f64::from(g),
+                                            b: f64::from(b),
+                                            a: f64::from(a),
+                                        }
+                                    }),
+                                    store: true,
+                                },
                             },
-                        }],
+                        )],
                         depth_stencil_attachment: None,
                     });
 
@@ -235,16 +238,11 @@ impl iced_graphics::window::Compositor for Compositor {
 
                 // Submit work
                 self.staging_belt.finish();
-                self.queue.submit(Some(encoder.finish()));
+                let _idx = self.queue.submit(Some(encoder.finish()));
                 frame.present();
 
                 // Recall staging buffers
-                self.local_pool
-                    .spawner()
-                    .spawn(self.staging_belt.recall())
-                    .expect("Recall staging belt");
-
-                self.local_pool.run_until_stalled();
+                self.staging_belt.recall();
 
                 Ok(())
             }
