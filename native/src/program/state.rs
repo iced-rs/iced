@@ -113,7 +113,7 @@ where
             &mut messages,
         );
 
-        messages.extend(self.queued_messages.drain(..));
+        messages.append(&mut self.queued_messages);
         self.queued_events.clear();
         debug.event_processing_finished();
 

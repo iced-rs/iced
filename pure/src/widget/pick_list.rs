@@ -143,7 +143,7 @@ where
             self.padding,
             self.text_size,
             &self.font,
-            self.placeholder.as_ref().map(String::as_str),
+            self.placeholder.as_deref(),
             &self.options,
         )
     }
@@ -199,7 +199,7 @@ where
             self.padding,
             self.text_size,
             &self.font,
-            self.placeholder.as_ref().map(String::as_str),
+            self.placeholder.as_deref(),
             self.selected.as_ref(),
             self.style,
         )

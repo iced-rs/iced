@@ -174,9 +174,9 @@ where
 
         Self {
             container,
-            width: width,
+            width,
             target_height,
-            style: style,
+            style,
         }
     }
 }
@@ -230,7 +230,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.container.on_event(
-            event.clone(),
+            event,
             layout,
             cursor_position,
             renderer,
@@ -326,7 +326,8 @@ where
         use std::f32;
 
         let limits = limits.width(Length::Fill).height(Length::Shrink);
-        let text_size = self.text_size.unwrap_or(renderer.default_size());
+        let text_size =
+            self.text_size.unwrap_or_else(|| renderer.default_size());
 
         let size = {
             let intrinsic = Size::new(
@@ -366,8 +367,9 @@ where
                 let bounds = layout.bounds();
 
                 if bounds.contains(cursor_position) {
-                    let text_size =
-                        self.text_size.unwrap_or(renderer.default_size());
+                    let text_size = self
+                        .text_size
+                        .unwrap_or_else(|| renderer.default_size());
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
@@ -380,8 +382,9 @@ where
                 let bounds = layout.bounds();
 
                 if bounds.contains(cursor_position) {
-                    let text_size =
-                        self.text_size.unwrap_or(renderer.default_size());
+                    let text_size = self
+                        .text_size
+                        .unwrap_or_else(|| renderer.default_size());
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
@@ -430,7 +433,8 @@ where
         let appearance = theme.appearance(self.style);
         let bounds = layout.bounds();
 
-        let text_size = self.text_size.unwrap_or(renderer.default_size());
+        let text_size =
+            self.text_size.unwrap_or_else(|| renderer.default_size());
         let option_height = (text_size + self.padding.vertical()) as usize;
 
         let offset = viewport.y - bounds.y;

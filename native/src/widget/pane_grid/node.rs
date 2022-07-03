@@ -36,14 +36,11 @@ impl Node {
 
         std::iter::from_fn(move || {
             while let Some(node) = unvisited_nodes.pop() {
-                match node {
-                    Node::Split { id, a, b, .. } => {
-                        unvisited_nodes.push(a);
-                        unvisited_nodes.push(b);
+                if let Node::Split { id, a, b, .. } = node {
+                    unvisited_nodes.push(a);
+                    unvisited_nodes.push(b);
 
-                        return Some(id);
-                    }
-                    _ => {}
+                    return Some(id);
                 }
             }
 
@@ -124,12 +121,9 @@ impl Node {
     }
 
     pub(crate) fn update(&mut self, f: &impl Fn(&mut Node)) {
-        match self {
-            Node::Split { a, b, .. } => {
-                a.update(f);
-                b.update(f);
-            }
-            _ => {}
+        if let Node::Split { a, b, .. } = self {
+            a.update(f);
+            b.update(f);
         }
 
         f(self);

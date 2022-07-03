@@ -93,7 +93,7 @@ impl Backend {
                 &layer,
                 staging_belt,
                 encoder,
-                &frame,
+                frame,
                 target_size.width,
                 target_size.height,
             );

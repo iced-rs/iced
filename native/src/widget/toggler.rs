@@ -162,7 +162,10 @@ where
                     .horizontal_alignment(self.text_alignment)
                     .font(self.font.clone())
                     .width(self.width)
-                    .size(self.text_size.unwrap_or(renderer.default_size())),
+                    .size(
+                        self.text_size
+                            .unwrap_or_else(|| renderer.default_size()),
+                    ),
             );
         }
 
@@ -239,7 +242,7 @@ where
                 renderer,
                 style,
                 label_layout,
-                &label,
+                label,
                 self.text_size,
                 self.font.clone(),
                 Default::default(),

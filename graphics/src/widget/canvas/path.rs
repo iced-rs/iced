@@ -74,7 +74,7 @@ impl Path {
 pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
     Path::new(|builder| {
         let segments_odd = (line_dash.segments.len() % 2 == 1).then(|| {
-            [&line_dash.segments[..], &line_dash.segments[..]].concat()
+            [line_dash.segments, line_dash.segments].concat()
         });
 
         let mut draw_line = false;
@@ -103,8 +103,7 @@ pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
                 },
                 index: line_dash.offset,
                 intervals: segments_odd
-                    .as_ref()
-                    .map(Vec::as_slice)
+                    .as_deref()
                     .unwrap_or(line_dash.segments),
             },
         );

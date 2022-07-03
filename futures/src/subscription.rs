@@ -183,11 +183,7 @@ where
 
         let mapper = self.mapper;
 
-        Box::pin(
-            self.recipe
-                .stream(input)
-                .map(move |element| mapper(element)),
-        )
+        Box::pin(self.recipe.stream(input).map(mapper))
     }
 }
 

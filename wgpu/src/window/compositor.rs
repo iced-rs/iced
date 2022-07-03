@@ -225,7 +225,7 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
 
                 renderer.with_primitives(|backend, primitives| {
                     backend.present(
-                        &mut self.device,
+                        &self.device,
                         &mut self.staging_belt,
                         &mut encoder,
                         view,

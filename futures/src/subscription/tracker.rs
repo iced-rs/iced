@@ -127,7 +127,7 @@ where
             futures.push(Box::pin(future));
         }
 
-        self.subscriptions.retain(|id, _| alive.contains(&id));
+        self.subscriptions.retain(|id, _| alive.contains(id));
 
         futures
     }

@@ -168,11 +168,9 @@ where
                     .width(Length::Units(self.size))
                     .height(Length::Units(self.size)),
             )
-            .push(
-                Text::new(&self.label)
-                    .width(self.width)
-                    .size(self.text_size.unwrap_or(renderer.default_size())),
-            )
+            .push(Text::new(&self.label).width(self.width).size(
+                self.text_size.unwrap_or_else(|| renderer.default_size()),
+            ))
             .layout(renderer, limits)
     }
 

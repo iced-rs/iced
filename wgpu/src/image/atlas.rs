@@ -118,7 +118,7 @@ impl Atlas {
                     height,
                     padding,
                     0,
-                    &allocation,
+                    allocation,
                     encoder,
                 );
             }

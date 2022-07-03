@@ -236,7 +236,7 @@ impl Pipeline {
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: wgpu::BindingResource::TextureView(
-                    &texture_atlas.view(),
+                    texture_atlas.view(),
                 ),
             }],
         });
@@ -264,7 +264,7 @@ impl Pipeline {
     #[cfg(feature = "image_rs")]
     pub fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
         let mut cache = self.raster_cache.borrow_mut();
-        let memory = cache.load(&handle);
+        let memory = cache.load(handle);
 
         memory.dimensions()
     }
@@ -272,7 +272,7 @@ impl Pipeline {
     #[cfg(feature = "svg")]
     pub fn viewport_dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
         let mut cache = self.vector_cache.borrow_mut();
-        let svg = cache.load(&handle);
+        let svg = cache.load(handle);
 
         svg.viewport_dimensions()
     }
@@ -358,7 +358,7 @@ impl Pipeline {
                     entries: &[wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::TextureView(
-                            &self.texture_atlas.view(),
+                            self.texture_atlas.view(),
                         ),
                     }],
                 });

@@ -110,10 +110,8 @@ impl Pipeline {
         bounds: Rectangle<u32>,
     ) {
         // TODO: Remove this allocation (probably by changing the shader and removing the need of two `position`)
-        let vertices: Vec<Vertex> = instances
-            .iter()
-            .flat_map(|quad| Vertex::from_quad(quad))
-            .collect();
+        let vertices: Vec<Vertex> =
+            instances.iter().flat_map(Vertex::from_quad).collect();
 
         // TODO: Remove this allocation (or allocate only when needed)
         let indices: Vec<i32> = (0..instances.len().min(MAX_QUADS) as i32)
@@ -187,13 +185,13 @@ impl Pipeline {
                 gl.buffer_sub_data_u8_slice(
                     glow::ARRAY_BUFFER,
                     0,
-                    bytemuck::cast_slice(&vertices),
+                    bytemuck::cast_slice(vertices),
                 );
 
                 gl.buffer_sub_data_u8_slice(
                     glow::ELEMENT_ARRAY_BUFFER,
                     0,
-                    bytemuck::cast_slice(&indices),
+                    bytemuck::cast_slice(indices),
                 );
 
                 gl.draw_elements(

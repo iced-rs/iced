@@ -146,7 +146,7 @@ where
         content: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
         let element = content.into();
-        let _ = state.diff(&element);
+        state.diff(&element);
 
         Self { state, element }
     }

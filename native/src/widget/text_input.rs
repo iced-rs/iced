@@ -198,7 +198,7 @@ pub fn layout<Renderer>(
 where
     Renderer: text::Renderer,
 {
-    let text_size = size.unwrap_or(renderer.default_size());
+    let text_size = size.unwrap_or_else(|| renderer.default_size());
 
     let limits = limits
         .pad(padding)
@@ -498,7 +498,7 @@ where
                                 None => {
                                     let content: String = clipboard
                                         .read()
-                                        .unwrap_or(String::new())
+                                        .unwrap_or_default()
                                         .chars()
                                         .filter(|c| !c.is_control())
                                         .collect();
@@ -597,7 +597,7 @@ pub fn draw<Renderer>(
     Renderer::Theme: StyleSheet,
 {
     let secure_value = is_secure.then(|| value.secure());
-    let value = secure_value.as_ref().unwrap_or(&value);
+    let value = secure_value.as_ref().unwrap_or(value);
 
     let bounds = layout.bounds();
     let text_bounds = layout.children().next().unwrap().bounds();
@@ -623,16 +623,16 @@ pub fn draw<Renderer>(
     );
 
     let text = value.to_string();
-    let size = size.unwrap_or(renderer.default_size());
+    let size = size.unwrap_or_else(|| renderer.default_size());
 
     let (cursor, offset) = if state.is_focused() {
-        match state.cursor.state(&value) {
+        match state.cursor.state(value) {
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        &value,
+                        value,
                         size,
                         position,
                         font.clone(),
@@ -664,7 +664,7 @@ pub fn draw<Renderer>(
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        &value,
+                        value,
                         size,
                         left,
                         font.clone(),
@@ -674,7 +674,7 @@ pub fn draw<Renderer>(
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        &value,
+                        value,
                         size,
                         right,
                         font.clone(),
@@ -998,16 +998,16 @@ fn find_cursor_position<Renderer>(
 where
     Renderer: text::Renderer,
 {
-    let size = size.unwrap_or(renderer.default_size());
+    let size = size.unwrap_or_else(|| renderer.default_size());
 
     let offset =
-        offset(renderer, text_bounds, font.clone(), size, &value, &state);
+        offset(renderer, text_bounds, font.clone(), size, value, state);
 
     renderer
         .hit_test(
             &value.to_string(),
             size.into(),
-            font.clone(),
+            font,
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),
             true,

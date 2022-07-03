@@ -59,7 +59,7 @@ impl Cache {
                 }
             }
             image::Data::Bytes(bytes) => {
-                if let Ok(image) = image_rs::load_from_memory(&bytes) {
+                if let Ok(image) = image_rs::load_from_memory(bytes) {
                     let operation =
                         Operation::from_exif(&mut std::io::Cursor::new(bytes))
                             .ok()

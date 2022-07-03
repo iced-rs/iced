@@ -160,7 +160,7 @@ where
 
     let limits = limits.width(width).height(Length::Shrink).pad(padding);
 
-    let text_size = text_size.unwrap_or(renderer.default_size());
+    let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
     let max_width = match width {
         Length::Shrink => {
@@ -407,10 +407,9 @@ pub fn draw<T, Renderer>(
 
     let label = selected.map(ToString::to_string);
 
-    if let Some(label) =
-        label.as_ref().map(String::as_str).or_else(|| placeholder)
-    {
-        let text_size = f32::from(text_size.unwrap_or(renderer.default_size()));
+    if let Some(label) = label.as_deref().or(placeholder) {
+        let text_size =
+            f32::from(text_size.unwrap_or_else(|| renderer.default_size()));
 
         renderer.fill_text(Text {
             content: label,
@@ -460,7 +459,7 @@ where
             self.padding,
             self.text_size,
             &self.font,
-            self.placeholder.as_ref().map(String::as_str),
+            self.placeholder.as_deref(),
             &self.options,
         )
     }
@@ -513,7 +512,7 @@ where
             self.padding,
             self.text_size,
             &self.font,
-            self.placeholder.as_ref().map(String::as_str),
+            self.placeholder.as_deref(),
             self.selected.as_ref(),
             self.style,
         )
