@@ -233,7 +233,7 @@ impl iced_graphics::window::Compositor for Compositor {
 
                 // Submit work
                 self.staging_belt.finish();
-                let _idx = self.queue.submit(Some(encoder.finish()));
+                let _submission = self.queue.submit(Some(encoder.finish()));
                 frame.present();
 
                 // Recall staging buffers
