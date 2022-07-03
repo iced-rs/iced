@@ -1,20 +1,20 @@
 struct Globals {
-    transform: mat4x4<f32>;
-};
+    transform: mat4x4<f32>,
+}
 
-[[group(0), binding(0)]] var<uniform> globals: Globals;
+@group(0) @binding(0) var<uniform> globals: Globals;
 
 struct VertexInput {
-    [[location(0)]] position: vec2<f32>;
-    [[location(1)]] color: vec4<f32>;
-};
+    @location(0) position: vec2<f32>,
+    @location(1) color: vec4<f32>,
+}
 
 struct VertexOutput {
-    [[builtin(position)]] position: vec4<f32>;
-    [[location(0)]] color: vec4<f32>;
-};
+    @builtin(position) position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+}
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
@@ -24,7 +24,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     return out;
 }
 
-[[stage(fragment)]]
-fn fs_main(input: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     return input.color;
 }

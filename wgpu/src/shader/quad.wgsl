@@ -1,31 +1,31 @@
 struct Globals {
-    transform: mat4x4<f32>;
-    scale: f32;
-};
+    transform: mat4x4<f32>,
+    scale: f32,
+}
 
-[[group(0), binding(0)]] var<uniform> globals: Globals;
+@group(0) @binding(0) var<uniform> globals: Globals;
 
 struct VertexInput {
-    [[location(0)]] v_pos: vec2<f32>;
-    [[location(1)]] pos: vec2<f32>;
-    [[location(2)]] scale: vec2<f32>;
-    [[location(3)]] color: vec4<f32>;
-    [[location(4)]] border_color: vec4<f32>;
-    [[location(5)]] border_radius: f32;
-    [[location(6)]] border_width: f32;
-};
+    @location(0) v_pos: vec2<f32>,
+    @location(1) pos: vec2<f32>,
+    @location(2) scale: vec2<f32>,
+    @location(3) color: vec4<f32>,
+    @location(4) border_color: vec4<f32>,
+    @location(5) border_radius: f32,
+    @location(6) border_width: f32,
+}
 
 struct VertexOutput {
-    [[builtin(position)]] position: vec4<f32>;
-    [[location(0)]] color: vec4<f32>;
-    [[location(1)]] border_color: vec4<f32>;
-    [[location(2)]] pos: vec2<f32>;
-    [[location(3)]] scale: vec2<f32>;
-    [[location(4)]] border_radius: f32;
-    [[location(5)]] border_width: f32;
-};
+    @builtin(position) position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+    @location(1) border_color: vec4<f32>,
+    @location(2) pos: vec2<f32>,
+    @location(3) scale: vec2<f32>,
+    @location(4) border_radius: f32,
+    @location(5) border_width: f32,
+}
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
@@ -77,10 +77,10 @@ fn distance_alg(
 }
 
 
-[[stage(fragment)]]
+@fragment
 fn fs_main(
     input: VertexOutput
-) -> [[location(0)]] vec4<f32> {
+) -> @location(0) vec4<f32> {
     var mixed_color: vec4<f32> = input.color;
 
     if (input.border_width > 0.0) {
@@ -96,7 +96,7 @@ fn fs_main(
             internal_border
         );
 
-        var border_mix: f32 = smoothStep(
+        var border_mix: f32 = smoothstep(
             max(internal_border - 0.5, 0.0),
             internal_border + 0.5,
             internal_distance
@@ -112,7 +112,7 @@ fn fs_main(
         input.border_radius
     );
 
-    var radius_alpha: f32 = 1.0 - smoothStep(
+    var radius_alpha: f32 = 1.0 - smoothstep(
         max(input.border_radius - 0.5, 0.0),
         input.border_radius + 0.5,
         dist);
