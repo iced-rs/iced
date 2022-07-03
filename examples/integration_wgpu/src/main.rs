@@ -89,7 +89,11 @@ pub fn main() {
         let needed_limits = wgpu::Limits::default();
 
         (
-            surface.get_supported_formats(&adapter)[0],
+            surface
+                .get_supported_formats(&adapter)
+                .first()
+                .copied()
+                .expect("Get preferred format"),
             adapter
                 .request_device(
                     &wgpu::DeviceDescriptor {
