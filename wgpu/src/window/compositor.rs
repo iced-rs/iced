@@ -60,12 +60,7 @@ impl Compositor {
         log::info!("Selected: {:#?}", adapter.get_info());
 
         let format = compatible_surface.as_ref().and_then(|surface| {
-            let formats = surface.get_supported_formats(&adapter);
-            if formats.is_empty() {
-                None
-            } else {
-                Some(formats[0])
-            }
+            surface.get_supported_formats(&adapter).first().copied()
         })?;
 
         log::info!("Selected format: {:?}", format);
