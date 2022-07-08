@@ -419,9 +419,7 @@ where
                         Some(
                             CacheBuilder {
                                 element: state.view(),
-                                overlay_builder: |element| {
-                                    element.overlay(layout, renderer)
-                                },
+                                overlay_builder: |_| None,
                             }
                             .build(),
                         )

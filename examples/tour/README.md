@@ -23,6 +23,11 @@ You can run the native version with `cargo run`:
 cargo run --package tour
 ```
 
-The web version can be run by following [the usage instructions of `iced_web`] or by accessing [iced.rs](https://iced.rs/)!
+The web version can be run with [`trunk`]:
 
-[the usage instructions of `iced_web`]: https://github.com/iced-rs/iced_web#usage
+```
+cd examples/tour
+trunk serve
+```
+
+[`trunk`]: https://trunkrs.dev/

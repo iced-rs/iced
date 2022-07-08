@@ -27,10 +27,6 @@ You can run the native version with `cargo run`:
 cargo run --package tour
 ```
 
-The web version can be run by following [the usage instructions of `iced_web`] or by accessing [iced.rs](https://iced.rs/)!
-
-[the usage instructions of `iced_web`]: https://github.com/iced-rs/iced_web#usage
-
 ## [Todos](todos)
 A todos tracker inspired by [TodoMVC]. It showcases dynamic layout, text input, checkboxes, scrollables, icons, and async actions! It automatically saves your tasks in the background, even if you did not finish typing them.
 
@@ -46,7 +42,6 @@ You can run the native version with `cargo run`:
 ```
 cargo run --package todos
 ```
-We have not yet implemented a `LocalStorage` version of the auto-save feature. Therefore, it does not work on web _yet_!
 
 [TodoMVC]: http://todomvc.com/
 

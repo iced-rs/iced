@@ -111,7 +111,8 @@ where
     B: Backend,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<P::State>()
+        struct Tag<T>(T);
+        tree::Tag::of::<Tag<P::State>>()
     }
 
     fn state(&self) -> tree::State {

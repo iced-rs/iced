@@ -1,6 +1,7 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
-use futures::task::SpawnExt;
+use futures::stream::{self, StreamExt};
+
 use iced_graphics::compositor;
 use iced_native::futures;
 use raw_window_handle::HasRawWindowHandle;
@@ -16,7 +17,6 @@ pub struct Compositor<Theme> {
     device: wgpu::Device,
     queue: wgpu::Queue,
     staging_belt: wgpu::util::StagingBelt,
-    local_pool: futures::executor::LocalPool,
     format: wgpu::TextureFormat,
     theme: PhantomData<Theme>,
 }
@@ -62,38 +62,43 @@ impl<Theme> Compositor<Theme> {
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
-        let format = compatible_surface
-            .as_ref()
-            .and_then(|surface| surface.get_preferred_format(&adapter))?;
+        let format = compatible_surface.as_ref().and_then(|surface| {
+            surface.get_supported_formats(&adapter).first().copied()
+        })?;
 
         log::info!("Selected format: {:?}", format);
 
         #[cfg(target_arch = "wasm32")]
-        let limits = wgpu::Limits::downlevel_webgl2_defaults()
-            .using_resolution(adapter.limits());
+        let limits = [wgpu::Limits::downlevel_webgl2_defaults()
+            .using_resolution(adapter.limits())];
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits = wgpu::Limits::downlevel_defaults();
+        let limits =
+            [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
 
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some(
-                        "iced_wgpu::window::compositor device descriptor",
-                    ),
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits {
-                        max_bind_groups: 2,
-                        ..limits
+        let limits = limits.into_iter().map(|limits| wgpu::Limits {
+            max_bind_groups: 2,
+            ..limits
+        });
+
+        let (device, queue) = stream::iter(limits)
+            .filter_map(|limits| async {
+                adapter.request_device(
+                    &wgpu::DeviceDescriptor {
+                        label: Some(
+                            "iced_wgpu::window::compositor device descriptor",
+                        ),
+                        features: wgpu::Features::empty(),
+                        limits,
                     },
-                },
-                None,
-            )
-            .await
-            .ok()?;
+                    None,
+                ).await.ok()
+            })
+            .boxed()
+            .next()
+            .await?;
 
         let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
-        let local_pool = futures::executor::LocalPool::new();
 
         Some(Compositor {
             instance,
@@ -102,7 +107,6 @@ impl<Theme> Compositor<Theme> {
             device,
             queue,
             staging_belt,
-            local_pool,
             format,
             theme: PhantomData,
         })
@@ -196,24 +200,26 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                         label: Some(
                             "iced_wgpu::window::Compositor render pass",
                         ),
-                        color_attachments: &[wgpu::RenderPassColorAttachment {
-                            view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear({
-                                    let [r, g, b, a] =
-                                        background_color.into_linear();
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear({
+                                        let [r, g, b, a] =
+                                            background_color.into_linear();
 
-                                    wgpu::Color {
-                                        r: f64::from(r),
-                                        g: f64::from(g),
-                                        b: f64::from(b),
-                                        a: f64::from(a),
-                                    }
-                                }),
-                                store: true,
+                                        wgpu::Color {
+                                            r: f64::from(r),
+                                            g: f64::from(g),
+                                            b: f64::from(b),
+                                            a: f64::from(a),
+                                        }
+                                    }),
+                                    store: true,
+                                },
                             },
-                        }],
+                        )],
                         depth_stencil_attachment: None,
                     });
 
@@ -231,16 +237,11 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
 
                 // Submit work
                 self.staging_belt.finish();
-                self.queue.submit(Some(encoder.finish()));
+                let _submission = self.queue.submit(Some(encoder.finish()));
                 frame.present();
 
                 // Recall staging buffers
-                self.local_pool
-                    .spawner()
-                    .spawn(self.staging_belt.recall())
-                    .expect("Recall staging belt");
-
-                self.local_pool.run_until_stalled();
+                self.staging_belt.recall();
 
                 Ok(())
             }

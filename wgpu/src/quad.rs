@@ -59,7 +59,7 @@ impl Pipeline {
             });
 
         let shader =
-            device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("iced_wgpu::quad::shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     include_str!("shader/quad.wgsl"),
@@ -100,7 +100,7 @@ impl Pipeline {
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
                     entry_point: "fs_main",
-                    targets: &[wgpu::ColorTargetState {
+                    targets: &[Some(wgpu::ColorTargetState {
                         format,
                         blend: Some(wgpu::BlendState {
                             color: wgpu::BlendComponent {
@@ -115,7 +115,7 @@ impl Pipeline {
                             },
                         }),
                         write_mask: wgpu::ColorWrites::ALL,
-                    }],
+                    })],
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
@@ -211,14 +211,16 @@ impl Pipeline {
                 let mut render_pass =
                     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("iced_wgpu::quad render pass"),
-                        color_attachments: &[wgpu::RenderPassColorAttachment {
-                            view: target,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: true,
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view: target,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: true,
+                                },
                             },
-                        }],
+                        )],
                         depth_stencil_attachment: None,
                     });
 

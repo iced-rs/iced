@@ -1,6 +1,6 @@
 [package]
 name = "iced_graphics"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"

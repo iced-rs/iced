@@ -114,20 +114,17 @@ where
 
         let mut children = padded.children();
         let title_layout = children.next().unwrap();
-
-        self.content.draw(
-            renderer,
-            theme,
-            &inherited_style,
-            title_layout,
-            cursor_position,
-            viewport,
-        );
+        let mut show_title = true;
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
 
             if show_controls || self.always_show_controls {
+                if title_layout.bounds().width + controls_layout.bounds().width
+                    > padded.bounds().width
+                {
+                    show_title = false;
+                }
                 controls.draw(
                     renderer,
                     theme,
@@ -137,6 +134,17 @@ where
                     viewport,
                 );
             }
+        }
+
+        if show_title {
+            self.content.draw(
+                renderer,
+                theme,
+                &inherited_style,
+                title_layout,
+                cursor_position,
+                viewport,
+            );
         }
     }
 
@@ -225,9 +233,15 @@ where
 
         let mut children = padded.children();
         let title_layout = children.next().unwrap();
+        let mut show_title = true;
 
         let control_status = if let Some(controls) = &mut self.controls {
             let controls_layout = children.next().unwrap();
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > padded.bounds().width
+            {
+                show_title = false;
+            }
 
             controls.on_event(
                 event.clone(),
@@ -241,14 +255,18 @@ where
             event::Status::Ignored
         };
 
-        let title_status = self.content.on_event(
-            event,
-            title_layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-        );
+        let title_status = if show_title {
+            self.content.on_event(
+                event,
+                title_layout,
+                cursor_position,
+                renderer,
+                clipboard,
+                shell,
+            )
+        } else {
+            event::Status::Ignored
+        };
 
         control_status.merge(title_status)
     }
@@ -275,15 +293,20 @@ where
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
+            let controls_interaction = controls.mouse_interaction(
+                controls_layout,
+                cursor_position,
+                viewport,
+                renderer,
+            );
 
-            controls
-                .mouse_interaction(
-                    controls_layout,
-                    cursor_position,
-                    viewport,
-                    renderer,
-                )
-                .max(title_interaction)
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > padded.bounds().width
+            {
+                controls_interaction
+            } else {
+                controls_interaction.max(title_interaction)
+            }
         } else {
             title_interaction
         }

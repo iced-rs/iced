@@ -126,6 +126,34 @@ where
         self.style = style.into();
         self
     }
+
+    /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
+    /// [`text_input::Value`] if provided.
+    ///
+    /// [`Renderer`]: text::Renderer
+    pub fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        value: Option<&text_input::Value>,
+    ) {
+        text_input::draw(
+            renderer,
+            theme,
+            layout,
+            cursor_position,
+            tree.state.downcast_ref::<text_input::State>(),
+            value.unwrap_or(&self.value),
+            &self.placeholder,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.style,
+        )
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>

@@ -70,8 +70,6 @@ where
     })
 }
 
-struct Tag<T>(T);
-
 struct Instance<'a, Message, Renderer, Event, S> {
     state: RefCell<Option<State<'a, Message, Renderer, Event, S>>>,
 }
@@ -132,6 +130,7 @@ where
     Renderer: iced_native::Renderer,
 {
     fn tag(&self) -> tree::Tag {
+        struct Tag<T>(T);
         tree::Tag::of::<Tag<S>>()
     }
 
@@ -467,16 +466,7 @@ where
                     instance_ref_builder: |instance| instance.state.borrow(),
                     tree: overlay.tree,
                     types: PhantomData,
-                    overlay_builder: |instance, tree| {
-                        instance
-                            .as_ref()
-                            .unwrap()
-                            .borrow_element()
-                            .as_ref()
-                            .unwrap()
-                            .as_widget()
-                            .overlay(&mut tree.children[0], layout, renderer)
-                    },
+                    overlay_builder: |_, _| None,
                 }
                 .build(),
             );

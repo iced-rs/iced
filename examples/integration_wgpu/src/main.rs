@@ -7,7 +7,6 @@ use scene::Scene;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
 use iced_winit::{conversion, futures, program, winit, Clipboard, Debug, Size};
 
-use futures::task::SpawnExt;
 use winit::{
     dpi::PhysicalPosition,
     event::{Event, ModifiersState, WindowEvent},
@@ -91,7 +90,9 @@ pub fn main() {
 
         (
             surface
-                .get_preferred_format(&adapter)
+                .get_supported_formats(&adapter)
+                .first()
+                .copied()
                 .expect("Get preferred format"),
             adapter
                 .request_device(
@@ -114,15 +115,14 @@ pub fn main() {
             format,
             width: physical_size.width,
             height: physical_size.height,
-            present_mode: wgpu::PresentMode::Mailbox,
+            present_mode: wgpu::PresentMode::AutoVsync,
         },
     );
 
     let mut resized = false;
 
-    // Initialize staging belt and local pool
+    // Initialize staging belt
     let mut staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
-    let mut local_pool = futures::executor::LocalPool::new();
 
     // Initialize scene and GUI controls
     let scene = Scene::new(&mut device, format);
@@ -208,7 +208,7 @@ pub fn main() {
                             format: format,
                             width: size.width,
                             height: size.height,
-                            present_mode: wgpu::PresentMode::Mailbox,
+                            present_mode: wgpu::PresentMode::AutoVsync,
                         },
                     );
 
@@ -263,12 +263,8 @@ pub fn main() {
                          );
 
                         // And recall staging buffers
-                        local_pool
-                            .spawner()
-                            .spawn(staging_belt.recall())
-                            .expect("Recall staging buffers");
+                        staging_belt.recall();
 
-                        local_pool.run_until_stalled();
                     }
                     Err(error) => match error {
                         wgpu::SurfaceError::OutOfMemory => {
