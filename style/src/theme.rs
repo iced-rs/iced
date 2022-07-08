@@ -171,21 +171,25 @@ impl checkbox::StyleSheet for Theme {
 
         match style {
             Checkbox::Primary => checkbox_appearance(
+                palette.primary.strong.text,
                 palette.background.base,
                 palette.primary.strong,
                 is_checked,
             ),
             Checkbox::Secondary => checkbox_appearance(
+                palette.background.base.text,
                 palette.background.base,
                 palette.background.base,
                 is_checked,
             ),
             Checkbox::Success => checkbox_appearance(
+                palette.success.base.text,
                 palette.background.base,
                 palette.success.base,
                 is_checked,
             ),
             Checkbox::Danger => checkbox_appearance(
+                palette.danger.base.text,
                 palette.background.base,
                 palette.danger.base,
                 is_checked,
@@ -202,21 +206,25 @@ impl checkbox::StyleSheet for Theme {
 
         match style {
             Checkbox::Primary => checkbox_appearance(
+                palette.primary.strong.text,
                 palette.background.weak,
                 palette.primary.base,
                 is_checked,
             ),
             Checkbox::Secondary => checkbox_appearance(
+                palette.background.base.text,
                 palette.background.weak,
                 palette.background.base,
                 is_checked,
             ),
             Checkbox::Success => checkbox_appearance(
+                palette.success.base.text,
                 palette.background.weak,
                 palette.success.base,
                 is_checked,
             ),
             Checkbox::Danger => checkbox_appearance(
+                palette.danger.base.text,
                 palette.background.weak,
                 palette.danger.base,
                 is_checked,
@@ -226,6 +234,7 @@ impl checkbox::StyleSheet for Theme {
 }
 
 fn checkbox_appearance(
+    checkmark_color: Color,
     base: palette::Pair,
     accent: palette::Pair,
     is_checked: bool,
@@ -236,7 +245,7 @@ fn checkbox_appearance(
         } else {
             base.color
         }),
-        checkmark_color: accent.text,
+        checkmark_color,
         border_radius: 2.0,
         border_width: 1.0,
         border_color: accent.color,
@@ -422,7 +431,7 @@ impl radio::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         radio::Appearance {
-            dot_color: palette.primary.weak.text.into(),
+            dot_color: palette.primary.strong.color.into(),
             background: palette.primary.weak.color.into(),
             ..active
         }
