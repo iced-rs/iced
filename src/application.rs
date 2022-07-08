@@ -1,3 +1,4 @@
+//! Build interactive cross-platform applications.
 use crate::window;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
