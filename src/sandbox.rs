@@ -1,6 +1,5 @@
-use crate::{
-    Application, Command, Element, Error, Settings, Subscription, Theme,
-};
+use crate::theme::{self, Theme};
+use crate::{Application, Command, Element, Error, Settings, Subscription};
 
 /// A sandboxed [`Application`].
 ///
@@ -121,6 +120,13 @@ pub trait Sandbox {
         Theme::default()
     }
 
+    /// Returns the current style variant of [`theme::Application`].
+    ///
+    /// By default, it returns [`theme::Application::default`].
+    fn style(&self) -> theme::Application {
+        theme::Application::default()
+    }
+
     /// Returns the scale factor of the [`Sandbox`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
@@ -184,6 +190,10 @@ where
 
     fn theme(&self) -> Self::Theme {
         T::theme(self)
+    }
+
+    fn style(&self) -> theme::Application {
+        T::style(self)
     }
 
     fn subscription(&self) -> Subscription<T::Message> {

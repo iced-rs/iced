@@ -7,7 +7,7 @@ use iced::theme;
 use iced::{
     Button, Checkbox, Color, Column, Container, ContentFit, Element, Image,
     Length, Radio, Row, Sandbox, Scrollable, Settings, Slider, Space, Text,
-    TextInput, Theme, Toggler,
+    TextInput, Toggler,
 };
 
 pub fn main() -> iced::Result {
@@ -21,7 +21,6 @@ pub struct Tour {
     scroll: scrollable::State,
     back_button: button::State,
     next_button: button::State,
-    theme: Theme,
     debug: bool,
 }
 
@@ -34,7 +33,6 @@ impl Sandbox for Tour {
             scroll: scrollable::State::new(),
             back_button: button::State::new(),
             next_button: button::State::new(),
-            theme: Theme::default(),
             debug: false,
         }
     }
@@ -52,8 +50,7 @@ impl Sandbox for Tour {
                 self.steps.advance();
             }
             Message::StepMessage(step_msg) => {
-                self.steps
-                    .update(step_msg, &mut self.theme, &mut self.debug);
+                self.steps.update(step_msg, &mut self.debug);
             }
         }
     }
@@ -91,7 +88,7 @@ impl Sandbox for Tour {
             .max_width(540)
             .spacing(20)
             .padding(20)
-            .push(steps.view(self.theme, self.debug).map(Message::StepMessage))
+            .push(steps.view(self.debug).map(Message::StepMessage))
             .push(controls)
             .into();
 
@@ -108,10 +105,6 @@ impl Sandbox for Tour {
             .height(Length::Fill)
             .center_y()
             .into()
-    }
-
-    fn theme(&self) -> Theme {
-        self.theme
     }
 }
 
@@ -132,7 +125,6 @@ impl Steps {
         Steps {
             steps: vec![
                 Step::Welcome,
-                Step::Theming,
                 Step::Slider {
                     state: slider::State::new(),
                     value: 50,
@@ -170,17 +162,12 @@ impl Steps {
         }
     }
 
-    fn update(
-        &mut self,
-        msg: StepMessage,
-        theme: &mut Theme,
-        debug: &mut bool,
-    ) {
-        self.steps[self.current].update(msg, theme, debug);
+    fn update(&mut self, msg: StepMessage, debug: &mut bool) {
+        self.steps[self.current].update(msg, debug);
     }
 
-    fn view(&mut self, theme: Theme, debug: bool) -> Element<StepMessage> {
-        self.steps[self.current].view(theme, debug)
+    fn view(&mut self, debug: bool) -> Element<StepMessage> {
+        self.steps[self.current].view(debug)
     }
 
     fn advance(&mut self) {
@@ -211,7 +198,6 @@ impl Steps {
 
 enum Step {
     Welcome,
-    Theming,
     Slider {
         state: slider::State,
         value: u8,
@@ -250,7 +236,6 @@ enum Step {
 
 #[derive(Debug, Clone)]
 pub enum StepMessage {
-    ThemeSelected(Theme),
     SliderChanged(u8),
     LayoutChanged(Layout),
     SpacingChanged(u16),
@@ -266,16 +251,8 @@ pub enum StepMessage {
 }
 
 impl<'a> Step {
-    fn update(
-        &mut self,
-        msg: StepMessage,
-        theme: &mut Theme,
-        debug: &mut bool,
-    ) {
+    fn update(&mut self, msg: StepMessage, debug: &mut bool) {
         match msg {
-            StepMessage::ThemeSelected(new_theme) => {
-                *theme = new_theme;
-            }
             StepMessage::DebugToggled(value) => {
                 if let Step::Debugger = self {
                     *debug = value;
@@ -342,7 +319,6 @@ impl<'a> Step {
     fn title(&self) -> &str {
         match self {
             Step::Welcome => "Welcome",
-            Step::Theming => "Theming",
             Step::Radio { .. } => "Radio button",
             Step::Toggler { .. } => "Toggler",
             Step::Slider { .. } => "Slider",
@@ -359,7 +335,6 @@ impl<'a> Step {
     fn can_continue(&self) -> bool {
         match self {
             Step::Welcome => true,
-            Step::Theming => true,
             Step::Radio { selection } => *selection == Some(Language::Rust),
             Step::Toggler { can_continue } => *can_continue,
             Step::Slider { .. } => true,
@@ -373,10 +348,9 @@ impl<'a> Step {
         }
     }
 
-    fn view(&mut self, theme: Theme, debug: bool) -> Element<StepMessage> {
+    fn view(&mut self, debug: bool) -> Element<StepMessage> {
         match self {
             Step::Welcome => Self::welcome(),
-            Step::Theming => Self::theme(theme),
             Step::Radio { selection } => Self::radio(*selection),
             Step::Toggler { can_continue } => Self::toggler(*can_continue),
             Step::Slider { state, value } => Self::slider(state, *value),
@@ -439,30 +413,6 @@ impl<'a> Step {
                 "You will need to interact with the UI in order to reach the \
                  end!",
             ))
-    }
-
-    fn theme(theme: Theme) -> Column<'a, StepMessage> {
-        let light_radio = Radio::new(
-            Theme::Light,
-            "Light",
-            Some(theme),
-            StepMessage::ThemeSelected,
-        );
-
-        let dark_radio = Radio::new(
-            Theme::Dark,
-            "Dark",
-            Some(theme),
-            StepMessage::ThemeSelected,
-        );
-
-        Self::container("Theming")
-            .push(Text::new(
-                "You can easily change the appearance of an application made \
-                with Iced by selecting a different theme!",
-            ))
-            .push(light_radio)
-            .push(dark_radio)
     }
 
     fn slider(
