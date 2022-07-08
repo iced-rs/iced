@@ -108,5 +108,5 @@ pub use iced_pure::Widget;
 pub use iced_pure::{Pure, State};
 
 /// A generic, pure [`Widget`].
-pub type Element<'a, Message, Theme = crate::Theme> =
-    iced_pure::Element<'a, Message, crate::Renderer<Theme>>;
+pub type Element<'a, Message, Renderer = crate::Renderer<crate::Theme>> =
+    iced_pure::Element<'a, Message, Renderer>;

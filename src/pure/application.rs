@@ -60,7 +60,9 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> pure::Element<'_, Self::Message, Self::Theme>;
+    fn view(
+        &self,
+    ) -> pure::Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
 
     /// Returns the current [`Theme`] of the [`Application`].
     fn theme(&self) -> Self::Theme {
@@ -167,7 +169,9 @@ where
         A::subscription(&self.application)
     }
 
-    fn view(&mut self) -> crate::Element<'_, Self::Message, Self::Theme> {
+    fn view(
+        &mut self,
+    ) -> crate::Element<'_, Self::Message, crate::Renderer<Self::Theme>> {
         let content = A::view(&self.application);
 
         Pure::new(&mut self.state, content).into()

@@ -139,7 +139,9 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message, Self::Theme>;
+    fn view(
+        &mut self,
+    ) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
 
     /// Returns the current [`Theme`] of the [`Application`].
     ///
@@ -239,14 +241,14 @@ impl<A> iced_winit::Program for Instance<A>
 where
     A: Application,
 {
-    type Renderer = crate::renderer::Renderer<A::Theme>;
+    type Renderer = crate::Renderer<A::Theme>;
     type Message = A::Message;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
     }
 
-    fn view(&mut self) -> Element<'_, Self::Message, A::Theme> {
+    fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer> {
         self.0.view()
     }
 }
