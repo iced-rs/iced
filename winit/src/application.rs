@@ -6,6 +6,7 @@ pub use state::State;
 use crate::clipboard::{self, Clipboard};
 use crate::conversion;
 use crate::mouse;
+use crate::renderer;
 use crate::{
     Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings, Size,
     Subscription,
@@ -18,7 +19,7 @@ use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
 
-pub use iced_native::application::StyleSheet;
+pub use iced_native::application::{Appearance, StyleSheet};
 
 use std::mem::ManuallyDrop;
 
@@ -33,7 +34,10 @@ use std::mem::ManuallyDrop;
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-pub trait Application: Program {
+pub trait Application: Program
+where
+    <Self::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     /// The data needed to initialize your [`Application`].
     type Flags;
 
@@ -54,7 +58,14 @@ pub trait Application: Program {
     fn title(&self) -> String;
 
     /// Returns the current [`Theme`] of the [`Application`].
-    fn theme(&self) -> <Self::Renderer as iced_native::Renderer>::Theme;
+    fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
+
+    /// Returns the [`Style`] variation of the [`Theme`].
+    fn style(
+        &self,
+    ) -> <<Self::Renderer as crate::Renderer>::Theme as StyleSheet>::Style {
+        Default::default()
+    }
 
     /// Returns the event `Subscription` for the current state of the
     /// application.
@@ -110,7 +121,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -246,7 +257,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
@@ -255,7 +266,6 @@ async fn run_instance<A, E, C>(
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
-    let mut theme = application.theme();
 
     let physical_size = state.physical_size();
 
@@ -328,7 +338,6 @@ async fn run_instance<A, E, C>(
 
                     let should_exit = application.should_exit();
 
-                    theme = application.theme();
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &mut application,
                         cache,
@@ -345,7 +354,10 @@ async fn run_instance<A, E, C>(
                 debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
-                    &theme,
+                    state.theme(),
+                    &renderer::Style {
+                        text_color: state.text_color(),
+                    },
                     state.cursor_position(),
                 );
                 debug.draw_finished();
@@ -396,7 +408,10 @@ async fn run_instance<A, E, C>(
                     debug.draw_started();
                     let new_mouse_interaction = user_interface.draw(
                         &mut renderer,
-                        &theme,
+                        state.theme(),
+                        &renderer::Style {
+                            text_color: state.text_color(),
+                        },
                         state.cursor_position(),
                     );
 
@@ -422,7 +437,7 @@ async fn run_instance<A, E, C>(
                     &mut renderer,
                     &mut surface,
                     state.viewport(),
-                    theme.background_color(),
+                    state.background_color(),
                     &debug.overlay(),
                 ) {
                     Ok(()) => {
@@ -531,7 +546,9 @@ pub fn update<A: Application, E: Executor>(
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
-) {
+) where
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     for message in messages.drain(..) {
         debug.log_message(&message);
 

@@ -6,13 +6,15 @@
 //! Inspired by the example found in the MDN docs[1].
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
+use iced::application;
 use iced::canvas::{self, Cursor, Path, Stroke};
 use iced::executor;
+use iced::theme::{self, Theme};
 use iced::time;
 use iced::window;
 use iced::{
     Application, Canvas, Color, Command, Element, Length, Point, Rectangle,
-    Settings, Size, Subscription, Theme, Vector,
+    Settings, Size, Subscription, Vector,
 };
 
 use std::time::Instant;
@@ -76,6 +78,13 @@ impl Application for SolarSystem {
 
     fn theme(&self) -> Theme {
         Theme::Dark
+    }
+
+    fn style(&self) -> theme::Application {
+        theme::Application::Custom(|_theme| application::Appearance {
+            background_color: Color::BLACK,
+            text_color: Color::WHITE,
+        })
     }
 }
 

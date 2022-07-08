@@ -12,7 +12,8 @@ use iced_glow::glow;
 use iced_glow::{Backend, Renderer, Settings, Viewport};
 use iced_glutin::conversion;
 use iced_glutin::glutin;
-use iced_glutin::{program, Clipboard, Debug, Size};
+use iced_glutin::renderer;
+use iced_glutin::{program, Clipboard, Color, Debug, Size};
 
 pub fn main() {
     env_logger::init();
@@ -126,6 +127,9 @@ pub fn main() {
                         ),
                         &mut renderer,
                         &iced_glow::Theme::Dark,
+                        &renderer::Style {
+                            text_color: Color::WHITE,
+                        },
                         &mut clipboard,
                         &mut debug,
                     );

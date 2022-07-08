@@ -1,7 +1,13 @@
 use iced_core::Color;
 
 pub trait StyleSheet {
-    fn background_color(&self) -> Color;
+    type Style: Default + Copy;
 
-    fn text_color(&self) -> Color;
+    fn appearance(&self, style: Self::Style) -> Appearance;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Appearance {
+    pub background_color: Color,
+    pub text_color: Color,
 }

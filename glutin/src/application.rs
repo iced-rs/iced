@@ -10,6 +10,7 @@ use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
+use iced_winit::renderer;
 use iced_winit::user_interface;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
@@ -212,7 +213,6 @@ async fn run_instance<A, E, C>(
 
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
-    let mut theme = application.theme();
 
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
@@ -278,7 +278,6 @@ async fn run_instance<A, E, C>(
 
                     let should_exit = application.should_exit();
 
-                    theme = application.theme();
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(
                             &mut application,
@@ -296,7 +295,10 @@ async fn run_instance<A, E, C>(
                 debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
-                    &theme,
+                    state.theme(),
+                    &renderer::Style {
+                        text_color: state.text_color(),
+                    },
                     state.cursor_position(),
                 );
                 debug.draw_finished();
@@ -352,7 +354,10 @@ async fn run_instance<A, E, C>(
                     debug.draw_started();
                     let new_mouse_interaction = user_interface.draw(
                         &mut renderer,
-                        &theme,
+                        state.theme(),
+                        &renderer::Style {
+                            text_color: state.text_color(),
+                        },
                         state.cursor_position(),
                     );
                     debug.draw_finished();
@@ -380,7 +385,7 @@ async fn run_instance<A, E, C>(
                 compositor.present(
                     &mut renderer,
                     state.viewport(),
-                    theme.background_color(),
+                    state.background_color(),
                     &debug.overlay(),
                 );
 

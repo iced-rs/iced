@@ -1,5 +1,6 @@
 use crate::application;
 use crate::mouse;
+use crate::renderer;
 use crate::user_interface::{self, UserInterface};
 use crate::{Clipboard, Command, Debug, Event, Point, Program, Size};
 
@@ -89,6 +90,7 @@ where
         cursor_position: Point,
         renderer: &mut P::Renderer,
         theme: &<P::Renderer as crate::Renderer>::Theme,
+        style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
@@ -118,7 +120,7 @@ where
         if messages.is_empty() {
             debug.draw_started();
             self.mouse_interaction =
-                user_interface.draw(renderer, theme, cursor_position);
+                user_interface.draw(renderer, theme, style, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -150,7 +152,7 @@ where
 
             debug.draw_started();
             self.mouse_interaction =
-                user_interface.draw(renderer, theme, cursor_position);
+                user_interface.draw(renderer, theme, style, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());

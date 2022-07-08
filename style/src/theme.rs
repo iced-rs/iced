@@ -48,17 +48,31 @@ impl Default for Theme {
     }
 }
 
-impl application::StyleSheet for Theme {
-    fn background_color(&self) -> Color {
-        let palette = self.extended_palette();
+#[derive(Debug, Clone, Copy)]
+pub enum Application {
+    Default,
+    Custom(fn(Theme) -> application::Appearance),
+}
 
-        palette.background.base.color
+impl Default for Application {
+    fn default() -> Self {
+        Self::Default
     }
+}
 
-    fn text_color(&self) -> Color {
+impl application::StyleSheet for Theme {
+    type Style = Application;
+
+    fn appearance(&self, style: Self::Style) -> application::Appearance {
         let palette = self.extended_palette();
 
-        palette.background.base.text
+        match style {
+            Application::Default => application::Appearance {
+                background_color: palette.background.base.color,
+                text_color: palette.background.base.text,
+            },
+            Application::Custom(f) => f(*self),
+        }
     }
 }
 

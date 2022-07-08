@@ -1,7 +1,7 @@
 use crate::window;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
-pub use iced_native::application::StyleSheet;
+pub use iced_native::application::{Appearance, StyleSheet};
 
 /// An interactive cross-platform application.
 ///
@@ -141,8 +141,18 @@ pub trait Application: Sized {
     fn view(&mut self) -> Element<'_, Self::Message, Self::Theme>;
 
     /// Returns the current [`Theme`] of the [`Application`].
+    ///
+    /// [`Theme`]: Self::Theme
     fn theme(&self) -> Self::Theme {
         Self::Theme::default()
+    }
+
+    /// Returns the current [`Style`] of the [`Theme`].
+    ///
+    /// [`Style`]: <Self::Theme as StyleSheet>::Style
+    /// [`Theme`]: Self::Theme
+    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
+        <Self::Theme as StyleSheet>::Style::default()
     }
 
     /// Returns the event [`Subscription`] for the current state of the
@@ -258,6 +268,10 @@ where
 
     fn theme(&self) -> A::Theme {
         self.0.theme()
+    }
+
+    fn style(&self) -> <A::Theme as StyleSheet>::Style {
+        self.0.style()
     }
 
     fn mode(&self) -> iced_winit::Mode {

@@ -303,8 +303,10 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::{clipboard, Size, Point, Theme};
+    /// use iced_native::clipboard;
+    /// use iced_native::renderer;
     /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_native::{Size, Point, Theme};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -351,7 +353,7 @@ where
     ///     );
     ///
     ///     // Draw the user interface
-    ///     let mouse_cursor = user_interface.draw(&mut renderer, &Theme::default(), cursor_position);
+    ///     let mouse_cursor = user_interface.draw(&mut renderer, &Theme::default(), &renderer::Style::default(), cursor_position);
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -367,6 +369,7 @@ where
         &mut self,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
+        style: &renderer::Style,
         cursor_position: Point,
     ) -> mouse::Interaction {
         // TODO: Move to shell level (?)
@@ -399,12 +402,7 @@ where
         self.root.widget.draw(
             renderer,
             theme,
-            &renderer::Style {
-                text_color: {
-                    use application::StyleSheet;
-                    theme.text_color()
-                },
-            },
+            style,
             Layout::new(&self.base),
             base_cursor,
             &viewport,
@@ -446,7 +444,7 @@ where
                         overlay.draw(
                             renderer,
                             theme,
-                            &renderer::Style::default(),
+                            style,
                             Layout::new(layout),
                             cursor_position,
                         );
