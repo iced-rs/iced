@@ -73,9 +73,8 @@ impl Path {
 
 pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
     Path::new(|builder| {
-        let segments_odd = (line_dash.segments.len() % 2 == 1).then(|| {
-            [line_dash.segments, line_dash.segments].concat()
-        });
+        let segments_odd = (line_dash.segments.len() % 2 == 1)
+            .then(|| [line_dash.segments, line_dash.segments].concat());
 
         let mut draw_line = false;
 
