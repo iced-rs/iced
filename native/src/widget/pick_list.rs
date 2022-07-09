@@ -525,7 +525,7 @@ where
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         overlay(
             layout,
-            &mut self.state,
+            self.state,
             self.padding,
             self.text_size,
             self.font.clone(),
@@ -535,8 +535,8 @@ where
     }
 }
 
-impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for PickList<'a, T, Message, Renderer>
+impl<'a, T: 'a, Message, Renderer> From<PickList<'a, T, Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
@@ -549,7 +549,7 @@ where
     <Renderer::Theme as StyleSheet>::Style:
         Into<<Renderer::Theme as menu::StyleSheet>::Style>,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(pick_list: PickList<'a, T, Message, Renderer>) -> Self {
+        Element::new(pick_list)
     }
 }

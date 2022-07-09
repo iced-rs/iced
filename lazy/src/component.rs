@@ -38,7 +38,7 @@ pub trait Component<Message, Renderer> {
 
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
-    fn view(&mut self) -> Element<Self::Event, Renderer>;
+    fn view(&mut self) -> Element<'_, Self::Event, Renderer>;
 }
 
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
@@ -350,7 +350,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.with_overlay_maybe(|overlay| {
+        let _ = self.with_overlay_maybe(|overlay| {
             overlay.draw(renderer, theme, style, layout, cursor_position);
         });
     }

@@ -5,7 +5,7 @@ use crate::{Background, Font, Point, Rectangle, Size, Theme, Vector};
 /// A renderer that does nothing.
 ///
 /// It can be useful if you are writing tests!
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Null;
 
 impl Null {

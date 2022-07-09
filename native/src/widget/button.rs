@@ -382,7 +382,7 @@ where
             self.on_press.is_some(),
             theme,
             self.style,
-            || &self.state,
+            || self.state,
         );
 
         self.content.draw(

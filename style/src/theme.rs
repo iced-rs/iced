@@ -419,7 +419,7 @@ impl radio::StyleSheet for Theme {
 
         radio::Appearance {
             background: Color::TRANSPARENT.into(),
-            dot_color: palette.primary.strong.color.into(),
+            dot_color: palette.primary.strong.color,
             border_width: 1.0,
             border_color: palette.primary.strong.color,
             text_color: None,
@@ -431,7 +431,7 @@ impl radio::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         radio::Appearance {
-            dot_color: palette.primary.strong.color.into(),
+            dot_color: palette.primary.strong.color,
             background: palette.primary.weak.color.into(),
             ..active
         }
@@ -599,7 +599,7 @@ impl scrollable::StyleSheet for Theme {
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
             scroller: scrollable::Scroller {
-                color: palette.background.strong.color.into(),
+                color: palette.background.strong.color,
                 border_radius: 2.0,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
@@ -616,7 +616,7 @@ impl scrollable::StyleSheet for Theme {
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
             scroller: scrollable::Scroller {
-                color: palette.primary.strong.color.into(),
+                color: palette.primary.strong.color,
                 border_radius: 2.0,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,

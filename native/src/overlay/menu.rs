@@ -489,15 +489,15 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for List<'a, T, Renderer>
+impl<'a, T, Message, Renderer> From<List<'a, T, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
     Renderer: 'a + text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(list: List<'a, T, Renderer>) -> Self {
+        Element::new(list)
     }
 }

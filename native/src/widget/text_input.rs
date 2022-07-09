@@ -176,7 +176,7 @@ where
             theme,
             layout,
             cursor_position,
-            &self.state,
+            self.state,
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,

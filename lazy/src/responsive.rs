@@ -363,7 +363,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.with_overlay_maybe(|overlay| {
+        let _ = self.with_overlay_maybe(|overlay| {
             overlay.draw(renderer, theme, style, layout, cursor_position);
         });
     }
