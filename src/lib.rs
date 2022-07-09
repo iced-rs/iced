@@ -180,12 +180,12 @@
 #![forbid(unsafe_code)]
 #![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-mod application;
 mod element;
 mod error;
 mod result;
 mod sandbox;
 
+pub mod application;
 pub mod clipboard;
 pub mod executor;
 pub mod keyboard;
@@ -211,6 +211,8 @@ use iced_wgpu as renderer;
 #[cfg(feature = "glow")]
 use iced_glow as renderer;
 
+pub use iced_native::theme;
+
 #[doc(no_inline)]
 pub use widget::*;
 
@@ -222,6 +224,7 @@ pub use renderer::Renderer;
 pub use result::Result;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
+pub use theme::Theme;
 
 pub use runtime::alignment;
 pub use runtime::futures;

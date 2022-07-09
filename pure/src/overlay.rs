@@ -14,7 +14,10 @@ pub fn from_children<'a, Message, Renderer>(
     tree: &'a mut Tree,
     layout: Layout<'_>,
     renderer: &Renderer,
-) -> Option<Element<'a, Message, Renderer>> {
+) -> Option<Element<'a, Message, Renderer>>
+where
+    Renderer: iced_native::Renderer,
+{
     children
         .iter()
         .zip(&mut tree.children)

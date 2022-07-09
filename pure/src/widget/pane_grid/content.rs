@@ -15,22 +15,27 @@ use iced_native::{Clipboard, Layout, Point, Rectangle, Shell, Size};
 ///
 /// [`Pane`]: crate::widget::pane_grid::Pane
 #[allow(missing_debug_implementations)]
-pub struct Content<'a, Message, Renderer> {
+pub struct Content<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: container::StyleSheet,
+{
     title_bar: Option<TitleBar<'a, Message, Renderer>>,
     body: Element<'a, Message, Renderer>,
-    style_sheet: Box<dyn container::StyleSheet + 'a>,
+    style: <Renderer::Theme as container::StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     /// Creates a new [`Content`] with the provided body.
     pub fn new(body: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Self {
             title_bar: None,
             body: body.into(),
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -46,9 +51,9 @@ where
     /// Sets the style of the [`Content`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn container::StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as container::StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -56,6 +61,7 @@ where
 impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     pub(super) fn state(&self) -> Tree {
         let children = if let Some(title_bar) = self.title_bar.as_ref() {
@@ -89,15 +95,18 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
+        use container::StyleSheet;
+
         let bounds = layout.bounds();
 
         {
-            let style = self.style_sheet.style();
+            let style = theme.appearance(self.style);
 
             container::draw_background(renderer, &style, bounds);
         }
@@ -112,6 +121,7 @@ where
             title_bar.draw(
                 &tree.children[1],
                 renderer,
+                theme,
                 style,
                 title_bar_layout,
                 cursor_position,
@@ -122,6 +132,7 @@ where
             self.body.as_widget().draw(
                 &tree.children[0],
                 renderer,
+                theme,
                 style,
                 body_layout,
                 cursor_position,
@@ -131,6 +142,7 @@ where
             self.body.as_widget().draw(
                 &tree.children[0],
                 renderer,
+                theme,
                 style,
                 layout,
                 cursor_position,
@@ -303,6 +315,7 @@ where
 impl<'a, Message, Renderer> Draggable for &Content<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     fn can_be_dragged_at(
         &self,
@@ -324,6 +337,7 @@ impl<'a, T, Message, Renderer> From<T> for Content<'a, Message, Renderer>
 where
     T: Into<Element<'a, Message, Renderer>>,
     Renderer: iced_native::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     fn from(element: T) -> Self {
         Self::new(element)

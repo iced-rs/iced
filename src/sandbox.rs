@@ -1,6 +1,5 @@
-use crate::{
-    Application, Color, Command, Element, Error, Settings, Subscription,
-};
+use crate::theme::{self, Theme};
+use crate::{Application, Command, Element, Error, Settings, Subscription};
 
 /// A sandboxed [`Application`].
 ///
@@ -111,11 +110,21 @@ pub trait Sandbox {
     /// These widgets can produce __messages__ based on user interaction.
     fn view(&mut self) -> Element<'_, Self::Message>;
 
-    /// Returns the background color of the [`Sandbox`].
+    /// Returns the current [`Theme`] of the [`Sandbox`].
     ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
+    /// If you want to use your own custom theme type, you will have to use an
+    /// [`Application`].
+    ///
+    /// By default, it returns [`Theme::default`].
+    fn theme(&self) -> Theme {
+        Theme::default()
+    }
+
+    /// Returns the current style variant of [`theme::Application`].
+    ///
+    /// By default, it returns [`theme::Application::default`].
+    fn style(&self) -> theme::Application {
+        theme::Application::default()
     }
 
     /// Returns the scale factor of the [`Sandbox`].
@@ -159,6 +168,7 @@ where
     type Executor = iced_futures::backend::null::Executor;
     type Flags = ();
     type Message = T::Message;
+    type Theme = Theme;
 
     fn new(_flags: ()) -> (Self, Command<T::Message>) {
         (T::new(), Command::none())
@@ -174,16 +184,20 @@ where
         Command::none()
     }
 
-    fn subscription(&self) -> Subscription<T::Message> {
-        Subscription::none()
-    }
-
     fn view(&mut self) -> Element<'_, T::Message> {
         T::view(self)
     }
 
-    fn background_color(&self) -> Color {
-        T::background_color(self)
+    fn theme(&self) -> Self::Theme {
+        T::theme(self)
+    }
+
+    fn style(&self) -> theme::Application {
+        T::style(self)
+    }
+
+    fn subscription(&self) -> Subscription<T::Message> {
+        Subscription::none()
     }
 
     fn scale_factor(&self) -> f64 {

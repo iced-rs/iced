@@ -1,6 +1,9 @@
+//! Build interactive cross-platform applications.
 use crate::pure::{self, Pure};
 use crate::window;
-use crate::{Color, Command, Executor, Settings, Subscription};
+use crate::{Command, Executor, Settings, Subscription};
+
+pub use iced_native::application::StyleSheet;
 
 /// A pure version of [`Application`].
 ///
@@ -20,6 +23,9 @@ pub trait Application: Sized {
 
     /// The type of __messages__ your [`Application`] will produce.
     type Message: std::fmt::Debug + Send;
+
+    /// The theme of your [`Application`].
+    type Theme: Default + StyleSheet;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -51,6 +57,18 @@ pub trait Application: Sized {
     /// Any [`Command`] returned will be executed immediately in the background.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
+    /// Returns the widgets to display in the [`Application`].
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
+    fn view(
+        &self,
+    ) -> pure::Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
+
+    /// Returns the current [`Theme`] of the [`Application`].
+    fn theme(&self) -> Self::Theme {
+        Self::Theme::default()
+    }
+
     /// Returns the event [`Subscription`] for the current state of the
     /// application.
     ///
@@ -63,11 +81,6 @@ pub trait Application: Sized {
         Subscription::none()
     }
 
-    /// Returns the widgets to display in the [`Application`].
-    ///
-    /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> pure::Element<'_, Self::Message>;
-
     /// Returns the current [`Application`] mode.
     ///
     /// The runtime will automatically transition your application if a new mode
@@ -78,13 +91,6 @@ pub trait Application: Sized {
     /// By default, an application will run in windowed mode.
     fn mode(&self) -> window::Mode {
         window::Mode::Windowed
-    }
-
-    /// Returns the background color of the [`Application`].
-    ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
     }
 
     /// Returns the scale factor of the [`Application`].
@@ -137,6 +143,7 @@ where
     type Executor = A::Executor;
     type Message = A::Message;
     type Flags = A::Flags;
+    type Theme = A::Theme;
 
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>) {
         let (application, command) = A::new(flags);
@@ -162,18 +169,20 @@ where
         A::subscription(&self.application)
     }
 
-    fn view(&mut self) -> crate::Element<'_, Self::Message> {
+    fn view(
+        &mut self,
+    ) -> crate::Element<'_, Self::Message, crate::Renderer<Self::Theme>> {
         let content = A::view(&self.application);
 
         Pure::new(&mut self.state, content).into()
     }
 
-    fn mode(&self) -> window::Mode {
-        A::mode(&self.application)
+    fn theme(&self) -> Self::Theme {
+        A::theme(&self.application)
     }
 
-    fn background_color(&self) -> Color {
-        A::background_color(&self.application)
+    fn mode(&self) -> window::Mode {
+        A::mode(&self.application)
     }
 
     fn scale_factor(&self) -> f64 {

@@ -1,6 +1,9 @@
+use iced::button;
+use iced::futures;
+use iced::image;
 use iced::{
-    button, futures, image, Alignment, Application, Button, Column, Command,
-    Container, Element, Length, Row, Settings, Text,
+    Alignment, Application, Button, Color, Column, Command, Container, Element,
+    Length, Row, Settings, Text, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -26,8 +29,9 @@ enum Message {
 }
 
 impl Application for Pokedex {
-    type Executor = iced::executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = iced::executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Pokedex, Command<Message>) {
@@ -139,7 +143,7 @@ impl Pokemon {
                             .push(
                                 Text::new(format!("#{}", self.number))
                                     .size(20)
-                                    .color([0.5, 0.5, 0.5]),
+                                    .style(Color::from([0.5, 0.5, 0.5])),
                             ),
                     )
                     .push(Text::new(&self.description)),
@@ -238,29 +242,5 @@ impl From<reqwest::Error> for Error {
 }
 
 fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
-    Button::new(state, Text::new(text))
-        .padding(10)
-        .style(style::Button::Primary)
-}
-
-mod style {
-    use iced::{button, Background, Color, Vector};
-
-    pub enum Button {
-        Primary,
-    }
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            button::Style {
-                background: Some(Background::Color(match self {
-                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
-                })),
-                border_radius: 12.0,
-                shadow_offset: Vector::new(1.0, 1.0),
-                text_color: Color::WHITE,
-                ..button::Style::default()
-            }
-        }
-    }
+    Button::new(state, Text::new(text)).padding(10)
 }

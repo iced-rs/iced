@@ -12,17 +12,22 @@ use crate::{
 ///
 /// [`Pane`]: crate::widget::pane_grid::Pane
 #[allow(missing_debug_implementations)]
-pub struct TitleBar<'a, Message, Renderer> {
+pub struct TitleBar<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: container::StyleSheet,
+{
     content: Element<'a, Message, Renderer>,
     controls: Option<Element<'a, Message, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style_sheet: Box<dyn container::StyleSheet + 'a>,
+    style: <Renderer::Theme as container::StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     /// Creates a new [`TitleBar`] with the given content.
     pub fn new<E>(content: E) -> Self
@@ -34,7 +39,7 @@ where
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -56,9 +61,9 @@ where
     /// Sets the style of the [`TitleBar`].
     pub fn style(
         mut self,
-        style: impl Into<Box<dyn container::StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as container::StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style.into();
+        self.style = style.into();
         self
     }
 
@@ -79,6 +84,7 @@ where
 impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: container::StyleSheet,
 {
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
@@ -86,14 +92,17 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
         show_controls: bool,
     ) {
+        use container::StyleSheet;
+
         let bounds = layout.bounds();
-        let style = self.style_sheet.style();
+        let style = theme.appearance(self.style);
         let inherited_style = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };
@@ -118,6 +127,7 @@ where
                 }
                 controls.draw(
                     renderer,
+                    theme,
                     &inherited_style,
                     controls_layout,
                     cursor_position,
@@ -129,6 +139,7 @@ where
         if show_title {
             self.content.draw(
                 renderer,
+                theme,
                 &inherited_style,
                 title_layout,
                 cursor_position,

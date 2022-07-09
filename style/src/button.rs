@@ -3,7 +3,7 @@ use iced_core::{Background, Color, Vector};
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
-pub struct Style {
+pub struct Appearance {
     pub shadow_offset: Vector,
     pub background: Option<Background>,
     pub border_radius: f32,
@@ -12,7 +12,7 @@ pub struct Style {
     pub text_color: Color,
 }
 
-impl std::default::Default for Style {
+impl std::default::Default for Appearance {
     fn default() -> Self {
         Self {
             shadow_offset: Vector::default(),
@@ -27,28 +27,30 @@ impl std::default::Default for Style {
 
 /// A set of rules that dictate the style of a button.
 pub trait StyleSheet {
-    fn active(&self) -> Style;
+    type Style: Default + Copy;
 
-    fn hovered(&self) -> Style {
-        let active = self.active();
+    fn active(&self, style: Self::Style) -> Appearance;
 
-        Style {
+    fn hovered(&self, style: Self::Style) -> Appearance {
+        let active = self.active(style);
+
+        Appearance {
             shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
             ..active
         }
     }
 
-    fn pressed(&self) -> Style {
-        Style {
+    fn pressed(&self, style: Self::Style) -> Appearance {
+        Appearance {
             shadow_offset: Vector::default(),
-            ..self.active()
+            ..self.active(style)
         }
     }
 
-    fn disabled(&self) -> Style {
-        let active = self.active();
+    fn disabled(&self, style: Self::Style) -> Appearance {
+        let active = self.active(style);
 
-        Style {
+        Appearance {
             shadow_offset: Vector::default(),
             background: active.background.map(|background| match background {
                 Background::Color(color) => Background::Color(Color {
@@ -62,35 +64,5 @@ pub trait StyleSheet {
             },
             ..active
         }
-    }
-}
-
-struct Default;
-
-impl StyleSheet for Default {
-    fn active(&self) -> Style {
-        Style {
-            shadow_offset: Vector::new(0.0, 0.0),
-            background: Some(Background::Color([0.87, 0.87, 0.87].into())),
-            border_radius: 2.0,
-            border_width: 1.0,
-            border_color: [0.7, 0.7, 0.7].into(),
-            text_color: Color::BLACK,
-        }
-    }
-}
-
-impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
-    fn default() -> Self {
-        Box::new(Default)
-    }
-}
-
-impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
-where
-    T: StyleSheet + 'a,
-{
-    fn from(style_sheet: T) -> Self {
-        Box::new(style_sheet)
     }
 }

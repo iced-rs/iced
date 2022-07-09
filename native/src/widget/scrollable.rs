@@ -25,7 +25,11 @@ pub mod style {
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
 #[allow(missing_debug_implementations)]
-pub struct Scrollable<'a, Message, Renderer> {
+pub struct Scrollable<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     state: &'a mut State,
     height: Length,
     max_height: u32,
@@ -34,10 +38,14 @@ pub struct Scrollable<'a, Message, Renderer> {
     scroller_width: u16,
     content: Column<'a, Message, Renderer>,
     on_scroll: Option<Box<dyn Fn(f32) -> Message + 'a>>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Scrollable<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     /// Creates a new [`Scrollable`] with the given [`State`].
     pub fn new(state: &'a mut State) -> Self {
         Scrollable {
@@ -49,7 +57,7 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
             scroller_width: 10,
             content: Column::new(),
             on_scroll: None,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -132,9 +140,9 @@ impl<'a, Message, Renderer: crate::Renderer> Scrollable<'a, Message, Renderer> {
     /// Sets the style of the [`Scrollable`] .
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 
@@ -428,15 +436,17 @@ pub fn mouse_interaction(
 pub fn draw<Renderer>(
     state: &State,
     renderer: &mut Renderer,
+    theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor_position: Point,
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
     draw_content: impl FnOnce(&mut Renderer, Layout<'_>, Point, &Rectangle),
 ) where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     let bounds = layout.bounds();
     let content_layout = layout.children().next().unwrap();
@@ -482,11 +492,11 @@ pub fn draw<Renderer>(
         });
 
         let style = if state.is_scroller_grabbed() {
-            style_sheet.dragging()
+            theme.dragging(style)
         } else if is_mouse_over_scrollbar {
-            style_sheet.hovered()
+            theme.hovered(style)
         } else {
-            style_sheet.active()
+            theme.active(style)
         };
 
         let is_scrollbar_visible =
@@ -618,6 +628,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Scrollable<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         Widget::<Message, Renderer>::width(&self.content)
@@ -702,6 +713,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -710,15 +722,17 @@ where
         draw(
             &self.state,
             renderer,
+            theme,
             layout,
             cursor_position,
             self.scrollbar_width,
             self.scrollbar_margin,
             self.scroller_width,
-            self.style_sheet.as_ref(),
+            self.style,
             |renderer, layout, cursor_position, viewport| {
                 self.content.draw(
                     renderer,
+                    theme,
                     style,
                     layout,
                     cursor_position,
@@ -914,8 +928,9 @@ struct Scroller {
 impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn from(
         scrollable: Scrollable<'a, Message, Renderer>,

@@ -5,7 +5,8 @@ use iced::pure::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::pure::{Element, Sandbox};
-use iced::{Color, Length, Settings};
+use iced::theme;
+use iced::{Color, Length, Renderer, Settings};
 
 pub fn main() -> iced::Result {
     env_logger::init();
@@ -55,7 +56,7 @@ impl Sandbox for Tour {
             controls = controls.push(
                 button("Back")
                     .on_press(Message::BackPressed)
-                    .style(style::Button::Secondary),
+                    .style(theme::Button::Secondary),
             );
         }
 
@@ -65,7 +66,7 @@ impl Sandbox for Tour {
             controls = controls.push(
                 button("Next")
                     .on_press(Message::NextPressed)
-                    .style(style::Button::Primary),
+                    .style(theme::Button::Primary),
             );
         }
 
@@ -432,7 +433,7 @@ impl<'a> Step {
             .padding(20)
             .spacing(20)
             .push("And its color:")
-            .push(text(format!("{:?}", color)).color(color))
+            .push(text(format!("{:?}", color)).style(color))
             .push(color_sliders);
 
         Self::container("Text")
@@ -575,7 +576,7 @@ impl<'a> Step {
             .push(if cfg!(target_arch = "wasm32") {
                 Element::new(
                     text("Not available on web yet!")
-                        .color([0.7, 0.7, 0.7])
+                        .style(Color::from([0.7, 0.7, 0.7]))
                         .horizontal_alignment(alignment::Horizontal::Center),
                 )
             } else {
@@ -621,7 +622,7 @@ fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
 fn color_slider<'a>(
     component: f32,
     update: impl Fn(f32) -> Color + 'a,
-) -> Slider<'a, f64, StepMessage> {
+) -> Slider<'a, f64, StepMessage, Renderer> {
     slider(0.0..=1.0, f64::from(component), move |c| {
         StepMessage::TextColorChanged(update(c as f32))
     })
@@ -668,36 +669,4 @@ impl From<Language> for String {
 pub enum Layout {
     Row,
     Column,
-}
-
-mod style {
-    use iced::{button, Background, Color, Vector};
-
-    pub enum Button {
-        Primary,
-        Secondary,
-    }
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            button::Style {
-                background: Some(Background::Color(match self {
-                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
-                    Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
-                })),
-                border_radius: 12.0,
-                shadow_offset: Vector::new(1.0, 1.0),
-                text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
-                ..button::Style::default()
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            button::Style {
-                text_color: Color::WHITE,
-                shadow_offset: Vector::new(1.0, 2.0),
-                ..self.active()
-            }
-        }
-    }
 }

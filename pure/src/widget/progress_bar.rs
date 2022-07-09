@@ -10,9 +10,10 @@ use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 pub use iced_native::widget::progress_bar::*;
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for ProgressBar<'a>
+impl<'a, Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         <Self as iced_native::Widget<Message, Renderer>>::width(self)
@@ -57,6 +58,7 @@ where
         &self,
         _tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -65,6 +67,7 @@ where
         <Self as iced_native::Widget<Message, Renderer>>::draw(
             self,
             renderer,
+            theme,
             style,
             layout,
             cursor_position,
@@ -91,9 +94,10 @@ where
 }
 
 impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for ProgressBar<'a>
+    for ProgressBar<Renderer>
 where
     Renderer: iced_native::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

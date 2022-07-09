@@ -9,6 +9,7 @@
 )]
 pub use iced_core::{Background, Color};
 
+pub mod application;
 pub mod button;
 pub mod checkbox;
 pub mod container;
@@ -20,5 +21,9 @@ pub mod radio;
 pub mod rule;
 pub mod scrollable;
 pub mod slider;
+pub mod text;
 pub mod text_input;
+pub mod theme;
 pub mod toggler;
+
+pub use theme::Theme;

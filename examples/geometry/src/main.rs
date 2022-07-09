@@ -25,7 +25,7 @@ mod rainbow {
         }
     }
 
-    impl<Message, B> Widget<Message, Renderer<B>> for Rainbow
+    impl<Message, B, T> Widget<Message, Renderer<B, T>> for Rainbow
     where
         B: Backend,
     {
@@ -39,7 +39,7 @@ mod rainbow {
 
         fn layout(
             &self,
-            _renderer: &Renderer<B>,
+            _renderer: &Renderer<B, T>,
             limits: &layout::Limits,
         ) -> layout::Node {
             let size = limits.width(Length::Fill).resolve(Size::ZERO);
@@ -49,7 +49,8 @@ mod rainbow {
 
         fn draw(
             &self,
-            renderer: &mut Renderer<B>,
+            renderer: &mut Renderer<B, T>,
+            _theme: &T,
             _style: &renderer::Style,
             layout: Layout<'_>,
             cursor_position: Point,
@@ -147,11 +148,11 @@ mod rainbow {
         }
     }
 
-    impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for Rainbow
+    impl<'a, Message, B, T> Into<Element<'a, Message, Renderer<B, T>>> for Rainbow
     where
         B: Backend,
     {
-        fn into(self) -> Element<'a, Message, Renderer<B>> {
+        fn into(self) -> Element<'a, Message, Renderer<B, T>> {
             Element::new(self)
         }
     }

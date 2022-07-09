@@ -76,6 +76,8 @@ pub use iced_core::{
     Rectangle, Size, Vector,
 };
 pub use iced_futures::{executor, futures};
+pub use iced_style::application;
+pub use iced_style::theme;
 
 #[doc(no_inline)]
 pub use executor::Executor;
@@ -93,5 +95,6 @@ pub use renderer::Renderer;
 pub use runtime::Runtime;
 pub use shell::Shell;
 pub use subscription::Subscription;
+pub use theme::Theme;
 pub use user_interface::UserInterface;
 pub use widget::Widget;

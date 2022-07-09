@@ -15,43 +15,43 @@
 //! [`TextInput`] has some [`text_input::State`].
 
 /// A container that distributes its contents vertically.
-pub type Column<'a, Message> =
-    iced_native::widget::Column<'a, Message, crate::Renderer>;
+pub type Column<'a, Message, Renderer = crate::Renderer> =
+    iced_native::widget::Column<'a, Message, Renderer>;
 
 /// A container that distributes its contents horizontally.
-pub type Row<'a, Message> =
-    iced_native::widget::Row<'a, Message, crate::Renderer>;
+pub type Row<'a, Message, Renderer = crate::Renderer> =
+    iced_native::widget::Row<'a, Message, Renderer>;
 
 /// A paragraph of text.
-pub type Text = iced_native::widget::Text<crate::Renderer>;
+pub type Text<Renderer = crate::Renderer> = iced_native::widget::Text<Renderer>;
 
 pub mod button {
     //! Allow your users to perform actions by pressing a button.
     //!
     //! A [`Button`] has some local [`State`].
-    pub use iced_native::widget::button::{State, Style, StyleSheet};
+    pub use iced_native::widget::button::{Appearance, State, StyleSheet};
 
     /// A widget that produces a message when clicked.
-    pub type Button<'a, Message> =
-        iced_native::widget::Button<'a, Message, crate::Renderer>;
+    pub type Button<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::Button<'a, Message, Renderer>;
 }
 
 pub mod checkbox {
     //! Show toggle controls using checkboxes.
-    pub use iced_native::widget::checkbox::{Style, StyleSheet};
+    pub use iced_native::widget::checkbox::{Appearance, StyleSheet};
 
     /// A box that can be checked.
-    pub type Checkbox<'a, Message> =
-        iced_native::widget::Checkbox<'a, Message, crate::Renderer>;
+    pub type Checkbox<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::Checkbox<'a, Message, Renderer>;
 }
 
 pub mod container {
     //! Decorate content and apply alignment.
-    pub use iced_native::widget::container::{Style, StyleSheet};
+    pub use iced_native::widget::container::{Appearance, StyleSheet};
 
     /// An element decorating some content.
-    pub type Container<'a, Message> =
-        iced_native::widget::Container<'a, Message, crate::Renderer>;
+    pub type Container<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::Container<'a, Message, Renderer>;
 }
 
 pub mod pane_grid {
@@ -73,35 +73,34 @@ pub mod pane_grid {
     /// to completely fill the space available.
     ///
     /// [![Pane grid - Iced](https://thumbs.gfycat.com/MixedFlatJellyfish-small.gif)](https://gfycat.com/mixedflatjellyfish)
-    pub type PaneGrid<'a, Message> =
-        iced_native::widget::PaneGrid<'a, Message, crate::Renderer>;
+    pub type PaneGrid<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::PaneGrid<'a, Message, Renderer>;
 
     /// The content of a [`Pane`].
-    pub type Content<'a, Message> =
-        iced_native::widget::pane_grid::Content<'a, Message, crate::Renderer>;
+    pub type Content<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::pane_grid::Content<'a, Message, Renderer>;
 
     /// The title bar of a [`Pane`].
-    pub type TitleBar<'a, Message> =
-        iced_native::widget::pane_grid::TitleBar<'a, Message, crate::Renderer>;
+    pub type TitleBar<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::pane_grid::TitleBar<'a, Message, Renderer>;
 }
 
 pub mod pick_list {
     //! Display a dropdown list of selectable values.
-    pub use iced_native::overlay::menu::Style as Menu;
-    pub use iced_native::widget::pick_list::{State, Style, StyleSheet};
+    pub use iced_native::widget::pick_list::{Appearance, State, StyleSheet};
 
     /// A widget allowing the selection of a single value from a list of options.
-    pub type PickList<'a, T, Message> =
-        iced_native::widget::PickList<'a, T, Message, crate::Renderer>;
+    pub type PickList<'a, T, Message, Renderer = crate::Renderer> =
+        iced_native::widget::PickList<'a, T, Message, Renderer>;
 }
 
 pub mod radio {
     //! Create choices using radio buttons.
-    pub use iced_native::widget::radio::{Style, StyleSheet};
+    pub use iced_native::widget::radio::{Appearance, StyleSheet};
 
     /// A circular button representing a choice.
-    pub type Radio<'a, Message> =
-        iced_native::widget::Radio<'a, Message, crate::Renderer>;
+    pub type Radio<Message, Renderer = crate::Renderer> =
+        iced_native::widget::Radio<Message, Renderer>;
 }
 
 pub mod scrollable {
@@ -112,29 +111,27 @@ pub mod scrollable {
 
     /// A widget that can vertically display an infinite amount of content
     /// with a scrollbar.
-    pub type Scrollable<'a, Message> =
-        iced_native::widget::Scrollable<'a, Message, crate::Renderer>;
+    pub type Scrollable<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::Scrollable<'a, Message, Renderer>;
 }
 
 pub mod toggler {
     //! Show toggle controls using togglers.
-    pub use iced_native::widget::toggler::{Style, StyleSheet};
+    pub use iced_native::widget::toggler::{Appearance, StyleSheet};
 
     /// A toggler widget.
-    pub type Toggler<'a, Message> =
-        iced_native::widget::Toggler<'a, Message, crate::Renderer>;
+    pub type Toggler<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::Toggler<'a, Message, Renderer>;
 }
 
 pub mod text_input {
     //! Display fields that can be filled with text.
     //!
     //! A [`TextInput`] has some local [`State`].
-    use crate::Renderer;
-
-    pub use iced_native::widget::text_input::{State, Style, StyleSheet};
+    pub use iced_native::widget::text_input::{Appearance, State, StyleSheet};
 
     /// A field that can be filled with text.
-    pub type TextInput<'a, Message> =
+    pub type TextInput<'a, Message, Renderer = crate::Renderer> =
         iced_native::widget::TextInput<'a, Message, Renderer>;
 }
 
@@ -143,8 +140,8 @@ pub mod tooltip {
     pub use iced_native::widget::tooltip::Position;
 
     /// A widget allowing the selection of a single value from a list of options.
-    pub type Tooltip<'a, Message> =
-        iced_native::widget::Tooltip<'a, Message, crate::Renderer>;
+    pub type Tooltip<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::Tooltip<'a, Message, Renderer>;
 }
 
 pub use iced_native::widget::progress_bar;

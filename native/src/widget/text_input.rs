@@ -24,7 +24,7 @@ use crate::{
     Shell, Size, Vector, Widget,
 };
 
-pub use iced_style::text_input::{Style, StyleSheet};
+pub use iced_style::text_input::{Appearance, StyleSheet};
 
 /// A field that can be filled with text.
 ///
@@ -52,7 +52,11 @@ pub use iced_style::text_input::{Style, StyleSheet};
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message, Renderer: text::Renderer> {
+pub struct TextInput<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     state: &'a mut State,
     placeholder: String,
     value: Value,
@@ -63,13 +67,14 @@ pub struct TextInput<'a, Message, Renderer: text::Renderer> {
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
     on_submit: Option<Message>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`TextInput`].
     ///
@@ -98,7 +103,7 @@ where
             size: None,
             on_change: Box::new(on_change),
             on_submit: None,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -143,9 +148,9 @@ where
     /// Sets the style of the [`TextInput`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 
@@ -161,12 +166,14 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         value: Option<&Value>,
     ) {
         draw(
             renderer,
+            theme,
             layout,
             cursor_position,
             &self.state,
@@ -175,7 +182,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.style_sheet.as_ref(),
+            self.style,
         )
     }
 }
@@ -575,6 +582,7 @@ where
 /// [`Renderer`]: text::Renderer
 pub fn draw<Renderer>(
     renderer: &mut Renderer,
+    theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor_position: Point,
     state: &State,
@@ -583,9 +591,10 @@ pub fn draw<Renderer>(
     size: Option<u16>,
     font: &Renderer::Font,
     is_secure: bool,
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     let secure_value = is_secure.then(|| value.secure());
     let value = secure_value.as_ref().unwrap_or(&value);
@@ -595,22 +604,22 @@ pub fn draw<Renderer>(
 
     let is_mouse_over = bounds.contains(cursor_position);
 
-    let style = if state.is_focused() {
-        style_sheet.focused()
+    let appearance = if state.is_focused() {
+        theme.focused(style)
     } else if is_mouse_over {
-        style_sheet.hovered()
+        theme.hovered(style)
     } else {
-        style_sheet.active()
+        theme.active(style)
     };
 
     renderer.fill_quad(
         renderer::Quad {
             bounds,
-            border_radius: style.border_radius,
-            border_width: style.border_width,
-            border_color: style.border_color,
+            border_radius: appearance.border_radius,
+            border_width: appearance.border_width,
+            border_color: appearance.border_color,
         },
-        style.background,
+        appearance.background,
     );
 
     let text = value.to_string();
@@ -642,7 +651,7 @@ pub fn draw<Renderer>(
                             border_width: 0.0,
                             border_color: Color::TRANSPARENT,
                         },
-                        style_sheet.value_color(),
+                        theme.value_color(style),
                     )),
                     offset,
                 )
@@ -686,7 +695,7 @@ pub fn draw<Renderer>(
                             border_width: 0.0,
                             border_color: Color::TRANSPARENT,
                         },
-                        style_sheet.selection_color(),
+                        theme.selection_color(style),
                     )),
                     if end == right {
                         right_offset
@@ -714,9 +723,9 @@ pub fn draw<Renderer>(
         renderer.fill_text(Text {
             content: if text.is_empty() { placeholder } else { &text },
             color: if text.is_empty() {
-                style_sheet.placeholder_color()
+                theme.placeholder_color(style)
             } else {
-                style_sheet.value_color()
+                theme.value_color(style)
             },
             font: font.clone(),
             bounds: Rectangle {
@@ -756,6 +765,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -812,12 +822,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        self.draw(renderer, layout, cursor_position, None)
+        self.draw(renderer, theme, layout, cursor_position, None)
     }
 }
 
@@ -826,6 +837,7 @@ impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
 where
     Message: 'a + Clone,
     Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn from(
         text_input: TextInput<'a, Message, Renderer>,

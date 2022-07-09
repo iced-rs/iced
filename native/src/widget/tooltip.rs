@@ -4,6 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text;
+use crate::widget;
 use crate::widget::container;
 use crate::widget::text::Text;
 use crate::{
@@ -13,18 +14,23 @@ use crate::{
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
-pub struct Tooltip<'a, Message, Renderer: text::Renderer> {
+pub struct Tooltip<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
+{
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
-    style_sheet: Box<dyn container::StyleSheet + 'a>,
     gap: u16,
     padding: u16,
+    style: <Renderer::Theme as container::StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16 = 5;
@@ -41,9 +47,9 @@ where
             content: content.into(),
             tooltip: Text::new(tooltip.to_string()),
             position,
-            style_sheet: Default::default(),
             gap: 0,
             padding: Self::DEFAULT_PADDING,
+            style: Default::default(),
         }
     }
 
@@ -76,9 +82,9 @@ where
     /// Sets the style of the [`Tooltip`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn container::StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as container::StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -99,8 +105,9 @@ pub enum Position {
 }
 
 /// Draws a [`Tooltip`].
-pub fn draw<Renderer: crate::Renderer>(
+pub fn draw<Renderer>(
     renderer: &mut Renderer,
+    theme: &Renderer::Theme,
     inherited_style: &renderer::Style,
     layout: Layout<'_>,
     cursor_position: Point,
@@ -108,7 +115,7 @@ pub fn draw<Renderer: crate::Renderer>(
     position: Position,
     gap: u16,
     padding: u16,
-    style_sheet: &dyn container::StyleSheet,
+    style: <Renderer::Theme as container::StyleSheet>::Style,
     layout_text: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
     draw_text: impl FnOnce(
         &mut Renderer,
@@ -117,12 +124,17 @@ pub fn draw<Renderer: crate::Renderer>(
         Point,
         &Rectangle,
     ),
-) {
+) where
+    Renderer: crate::Renderer,
+    Renderer::Theme: container::StyleSheet,
+{
+    use container::StyleSheet;
+
     let bounds = layout.bounds();
 
     if bounds.contains(cursor_position) {
         let gap = f32::from(gap);
-        let style = style_sheet.style();
+        let style = theme.appearance(style);
 
         let defaults = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
@@ -213,6 +225,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.content.width()
@@ -267,6 +280,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -274,6 +288,7 @@ where
     ) {
         self.content.draw(
             renderer,
+            theme,
             inherited_style,
             layout,
             cursor_position,
@@ -284,6 +299,7 @@ where
 
         draw(
             renderer,
+            theme,
             inherited_style,
             layout,
             cursor_position,
@@ -291,7 +307,7 @@ where
             self.position,
             self.gap,
             self.padding,
-            self.style_sheet.as_ref(),
+            self.style,
             |renderer, limits| {
                 Widget::<(), Renderer>::layout(tooltip, renderer, limits)
             },
@@ -299,6 +315,7 @@ where
                 Widget::<(), Renderer>::draw(
                     tooltip,
                     renderer,
+                    theme,
                     defaults,
                     layout,
                     cursor_position,
@@ -312,8 +329,9 @@ where
 impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + text::Renderer,
     Message: 'a,
+    Renderer: 'a + text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn from(
         tooltip: Tooltip<'a, Message, Renderer>,

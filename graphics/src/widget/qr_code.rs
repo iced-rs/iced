@@ -47,7 +47,7 @@ impl<'a> QRCode<'a> {
     }
 }
 
-impl<'a, Message, B> Widget<Message, Renderer<B>> for QRCode<'a>
+impl<'a, Message, B, T> Widget<Message, Renderer<B, T>> for QRCode<'a>
 where
     B: Backend,
 {
@@ -61,7 +61,7 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, T>,
         _limits: &layout::Limits,
     ) -> layout::Node {
         let side_length = (self.state.width + 2 * QUIET_ZONE) as f32
@@ -75,7 +75,8 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer<B>,
+        renderer: &mut Renderer<B, T>,
+        _theme: &T,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
@@ -127,11 +128,12 @@ where
     }
 }
 
-impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for QRCode<'a>
+impl<'a, Message, B, T> Into<Element<'a, Message, Renderer<B, T>>>
+    for QRCode<'a>
 where
     B: Backend,
 {
-    fn into(self) -> Element<'a, Message, Renderer<B>> {
+    fn into(self) -> Element<'a, Message, Renderer<B, T>> {
         Element::new(self)
     }
 }

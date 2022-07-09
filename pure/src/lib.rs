@@ -174,7 +174,9 @@ impl State {
     fn diff<Message, Renderer>(
         &mut self,
         new_element: &Element<'_, Message, Renderer>,
-    ) {
+    ) where
+        Renderer: iced_native::Renderer,
+    {
         self.state_tree.diff(new_element);
     }
 }
@@ -224,6 +226,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -232,6 +235,7 @@ where
         self.element.as_widget().draw(
             &self.state.state_tree,
             renderer,
+            theme,
             style,
             layout,
             cursor_position,

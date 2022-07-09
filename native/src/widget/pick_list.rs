@@ -9,19 +9,23 @@ use crate::overlay::menu::{self, Menu};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::container;
+use crate::widget::scrollable;
 use crate::{
     Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
     Widget,
 };
 use std::borrow::Cow;
 
-pub use iced_style::pick_list::{Style, StyleSheet};
+pub use iced_style::pick_list::{Appearance, StyleSheet};
 
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
-pub struct PickList<'a, T, Message, Renderer: text::Renderer>
+pub struct PickList<'a, T, Message, Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     state: &'a mut State<T>,
     on_selected: Box<dyn Fn(T) -> Message>,
@@ -32,7 +36,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 /// The local state of a [`PickList`].
@@ -64,11 +68,12 @@ impl<T> Default for State<T> {
     }
 }
 
-impl<'a, T: 'a, Message, Renderer: text::Renderer>
-    PickList<'a, T, Message, Renderer>
+impl<'a, T: 'a, Message, Renderer> PickList<'a, T, Message, Renderer>
 where
     T: ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// The default padding of a [`PickList`].
     pub const DEFAULT_PADDING: Padding = Padding::new(5);
@@ -92,7 +97,7 @@ where
             text_size: None,
             padding: Self::DEFAULT_PADDING,
             font: Default::default(),
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -129,9 +134,9 @@ where
     /// Sets the style of the [`PickList`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -317,12 +322,13 @@ pub fn overlay<'a, T, Message, Renderer>(
     text_size: Option<u16>,
     font: Renderer::Font,
     options: &'a [T],
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
 ) -> Option<overlay::Element<'a, Message, Renderer>>
 where
+    T: Clone + ToString,
     Message: 'a,
     Renderer: text::Renderer + 'a,
-    T: Clone + ToString,
+    Renderer::Theme: StyleSheet,
 {
     if state.is_open {
         let bounds = layout.bounds();
@@ -336,7 +342,7 @@ where
         .width(bounds.width.round() as u16)
         .padding(padding)
         .font(font)
-        .style(style_sheet.menu());
+        .style(style);
 
         if let Some(text_size) = text_size {
             menu = menu.text_size(text_size);
@@ -351,6 +357,7 @@ where
 /// Draws a [`PickList`].
 pub fn draw<T, Renderer>(
     renderer: &mut Renderer,
+    theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor_position: Point,
     padding: Padding,
@@ -358,9 +365,10 @@ pub fn draw<T, Renderer>(
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
     T: ToString,
 {
     let bounds = layout.bounds();
@@ -368,9 +376,9 @@ pub fn draw<T, Renderer>(
     let is_selected = selected.is_some();
 
     let style = if is_mouse_over {
-        style_sheet.hovered()
+        theme.hovered(style)
     } else {
-        style_sheet.active()
+        theme.active(style)
     };
 
     renderer.fill_quad(
@@ -430,6 +438,7 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'static,
     Renderer: text::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -490,6 +499,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -497,6 +507,7 @@ where
     ) {
         draw(
             renderer,
+            theme,
             layout,
             cursor_position,
             self.padding,
@@ -504,7 +515,7 @@ where
             &self.font,
             self.placeholder.as_ref().map(String::as_str),
             self.selected.as_ref(),
-            self.style_sheet.as_ref(),
+            self.style,
         )
     }
 
@@ -520,7 +531,7 @@ where
             self.text_size,
             self.font.clone(),
             &self.options,
-            self.style_sheet.as_ref(),
+            self.style,
         )
     }
 }
@@ -530,8 +541,14 @@ impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
 where
     T: Clone + ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
-    Renderer: text::Renderer + 'a,
     Message: 'static,
+    Renderer: text::Renderer + 'a,
+    Renderer::Theme: StyleSheet
+        + container::StyleSheet
+        + scrollable::StyleSheet
+        + menu::StyleSheet,
+    <Renderer::Theme as StyleSheet>::Style:
+        Into<<Renderer::Theme as menu::StyleSheet>::Style>,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

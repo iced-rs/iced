@@ -89,13 +89,13 @@ impl Program for Controls {
                             .spacing(10)
                             .push(
                                 Text::new("Background color")
-                                    .color(Color::WHITE),
+                                    .style(Color::WHITE),
                             )
                             .push(sliders)
                             .push(
                                 Text::new(format!("{:?}", background_color))
                                     .size(14)
-                                    .color(Color::WHITE),
+                                    .style(Color::WHITE),
                             ),
                     ),
             )

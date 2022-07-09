@@ -110,6 +110,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        _theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,

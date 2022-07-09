@@ -1,18 +1,19 @@
 //! This example showcases an interactive version of the Game of Life, invented
 //! by John Conway. It leverages a `Canvas` together with other widgets.
 mod preset;
-mod style;
 
 use grid::Grid;
+use preset::Preset;
+
 use iced::executor;
 use iced::pure::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
 use iced::pure::{Application, Element};
+use iced::theme::{self, Theme};
 use iced::time;
 use iced::window;
-use iced::{Alignment, Color, Command, Length, Settings, Subscription};
-use preset::Preset;
+use iced::{Alignment, Command, Length, Settings, Subscription};
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
@@ -52,6 +53,7 @@ enum Message {
 
 impl Application for GameOfLife {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
@@ -67,10 +69,6 @@ impl Application for GameOfLife {
 
     fn title(&self) -> String {
         String::from("Game of Life - Iced")
-    }
-
-    fn background_color(&self) -> Color {
-        style::BACKGROUND
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -153,8 +151,11 @@ impl Application for GameOfLife {
         container(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(style::Container)
             .into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
     }
 }
 
@@ -168,19 +169,19 @@ fn view_controls<'a>(
         .spacing(10)
         .push(
             button(if is_playing { "Pause" } else { "Play" })
-                .on_press(Message::TogglePlayback)
-                .style(style::Button),
+                .on_press(Message::TogglePlayback),
         )
-        .push(button("Next").on_press(Message::Next).style(style::Button));
+        .push(
+            button("Next")
+                .on_press(Message::Next)
+                .style(theme::Button::Secondary),
+        );
 
     let speed_controls = row()
         .width(Length::Fill)
         .align_items(Alignment::Center)
         .spacing(10)
-        .push(
-            slider(1.0..=1000.0, speed as f32, Message::SpeedChanged)
-                .style(style::Slider),
-        )
+        .push(slider(1.0..=1000.0, speed as f32, Message::SpeedChanged))
         .push(text(format!("x{}", speed)).size(16));
 
     row()
@@ -198,10 +199,13 @@ fn view_controls<'a>(
         .push(
             pick_list(preset::ALL, Some(preset), Message::PresetPicked)
                 .padding(8)
-                .text_size(16)
-                .style(style::PickList),
+                .text_size(16),
         )
-        .push(button("Clear").on_press(Message::Clear).style(style::Clear))
+        .push(
+            button("Clear")
+                .on_press(Message::Clear)
+                .style(theme::Button::Destructive),
+        )
         .into()
 }
 
@@ -213,7 +217,7 @@ mod grid {
     };
     use iced::pure::Element;
     use iced::{
-        alignment, mouse, Color, Length, Point, Rectangle, Size, Vector,
+        alignment, mouse, Color, Length, Point, Rectangle, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -522,6 +526,7 @@ mod grid {
         fn draw(
             &self,
             _interaction: &Interaction,
+            _theme: &Theme,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> Vec<Geometry> {

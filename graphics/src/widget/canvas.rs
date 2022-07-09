@@ -62,10 +62,10 @@ use std::marker::PhantomData;
 /// ```no_run
 /// # mod iced {
 /// #     pub use iced_graphics::canvas;
-/// #     pub use iced_native::{Color, Rectangle};
+/// #     pub use iced_native::{Color, Rectangle, Theme};
 /// # }
 /// use iced::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
-/// use iced::{Color, Rectangle};
+/// use iced::{Color, Rectangle, Theme};
 ///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
@@ -75,7 +75,7 @@ use std::marker::PhantomData;
 ///
 /// // Then, we implement the `Program` trait
 /// impl Program<()> for Circle {
-///     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
+///     fn draw(&self, _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
 ///         // We prepare a new `Frame`
 ///         let mut frame = Frame::new(bounds.size());
 ///
@@ -94,14 +94,21 @@ use std::marker::PhantomData;
 /// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<Message, P: Program<Message>> {
+pub struct Canvas<Message, Theme, P>
+where
+    P: Program<Message, Theme>,
+{
     width: Length,
     height: Length,
     program: P,
     message_: PhantomData<Message>,
+    theme_: PhantomData<Theme>,
 }
 
-impl<Message, P: Program<Message>> Canvas<Message, P> {
+impl<Message, Theme, P> Canvas<Message, Theme, P>
+where
+    P: Program<Message, Theme>,
+{
     const DEFAULT_SIZE: u16 = 100;
 
     /// Creates a new [`Canvas`].
@@ -111,6 +118,7 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
             height: Length::Units(Self::DEFAULT_SIZE),
             program,
             message_: PhantomData,
+            theme_: PhantomData,
         }
     }
 
@@ -127,9 +135,9 @@ impl<Message, P: Program<Message>> Canvas<Message, P> {
     }
 }
 
-impl<Message, P, B> Widget<Message, Renderer<B>> for Canvas<Message, P>
+impl<Message, P, B, T> Widget<Message, Renderer<B, T>> for Canvas<Message, T, P>
 where
-    P: Program<Message>,
+    P: Program<Message, T>,
     B: Backend,
 {
     fn width(&self) -> Length {
@@ -142,7 +150,7 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, T>,
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
@@ -156,7 +164,7 @@ where
         event: iced_native::Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, T>,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
@@ -193,7 +201,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, T>,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let cursor = Cursor::from_window_position(cursor_position);
@@ -203,7 +211,8 @@ where
 
     fn draw(
         &self,
-        renderer: &mut Renderer<B>,
+        renderer: &mut Renderer<B, T>,
+        theme: &T,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -224,7 +233,7 @@ where
             renderer.draw_primitive(Primitive::Group {
                 primitives: self
                     .program
-                    .draw(bounds, cursor)
+                    .draw(theme, bounds, cursor)
                     .into_iter()
                     .map(Geometry::into_primitive)
                     .collect(),
@@ -233,14 +242,17 @@ where
     }
 }
 
-impl<'a, Message, P, B> From<Canvas<Message, P>>
-    for Element<'a, Message, Renderer<B>>
+impl<'a, Message, P, B, T> From<Canvas<Message, T, P>>
+    for Element<'a, Message, Renderer<B, T>>
 where
     Message: 'static,
-    P: Program<Message> + 'a,
+    P: Program<Message, T> + 'a,
     B: Backend,
+    T: 'a,
 {
-    fn from(canvas: Canvas<Message, P>) -> Element<'a, Message, Renderer<B>> {
+    fn from(
+        canvas: Canvas<Message, T, P>,
+    ) -> Element<'a, Message, Renderer<B, T>> {
         Element::new(canvas)
     }
 }

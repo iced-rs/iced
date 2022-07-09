@@ -6,9 +6,11 @@ use iced_graphics::compositor;
 use iced_native::futures;
 use raw_window_handle::HasRawWindowHandle;
 
+use std::marker::PhantomData;
+
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
-pub struct Compositor {
+pub struct Compositor<Theme> {
     settings: Settings,
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
@@ -16,9 +18,10 @@ pub struct Compositor {
     queue: wgpu::Queue,
     staging_belt: wgpu::util::StagingBelt,
     format: wgpu::TextureFormat,
+    theme: PhantomData<Theme>,
 }
 
-impl Compositor {
+impl<Theme> Compositor<Theme> {
     const CHUNK_SIZE: u64 = 10 * 1024;
 
     /// Requests a new [`Compositor`] with the given [`Settings`].
@@ -105,6 +108,7 @@ impl Compositor {
             queue,
             staging_belt,
             format,
+            theme: PhantomData,
         })
     }
 
@@ -114,15 +118,15 @@ impl Compositor {
     }
 }
 
-impl iced_graphics::window::Compositor for Compositor {
+impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
     type Settings = Settings;
-    type Renderer = Renderer;
+    type Renderer = Renderer<Theme>;
     type Surface = wgpu::Surface;
 
     fn new<W: HasRawWindowHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
-    ) -> Result<(Self, Renderer), Error> {
+    ) -> Result<(Self, Self::Renderer), Error> {
         let compositor = futures::executor::block_on(Self::request(
             settings,
             compatible_window,

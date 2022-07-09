@@ -5,7 +5,10 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
-use iced_winit::{conversion, futures, program, winit, Clipboard, Debug, Size};
+use iced_winit::{
+    conversion, futures, program, renderer, winit, Clipboard, Color, Debug,
+    Size,
+};
 
 use winit::{
     dpi::PhysicalPosition,
@@ -188,6 +191,8 @@ pub fn main() {
                             viewport.scale_factor(),
                         ),
                         &mut renderer,
+                        &iced_wgpu::Theme::Dark,
+                        &renderer::Style { text_color: Color::WHITE },
                         &mut clipboard,
                         &mut debug,
                     );

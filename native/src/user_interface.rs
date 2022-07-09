@@ -1,4 +1,5 @@
 //! Implement your own event loop to drive a user interface.
+use crate::application;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -28,6 +29,7 @@ pub struct UserInterface<'a, Message, Renderer> {
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: application::StyleSheet,
 {
     /// Builds a user interface for an [`Element`].
     ///
@@ -301,8 +303,10 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::{clipboard, Size, Point};
+    /// use iced_native::clipboard;
+    /// use iced_native::renderer;
     /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_native::{Size, Point, Theme};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -349,7 +353,7 @@ where
     ///     );
     ///
     ///     // Draw the user interface
-    ///     let mouse_cursor = user_interface.draw(&mut renderer, cursor_position);
+    ///     let mouse_cursor = user_interface.draw(&mut renderer, &Theme::default(), &renderer::Style::default(), cursor_position);
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -364,6 +368,8 @@ where
     pub fn draw(
         &mut self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        style: &renderer::Style,
         cursor_position: Point,
     ) -> mouse::Interaction {
         // TODO: Move to shell level (?)
@@ -395,7 +401,8 @@ where
 
         self.root.widget.draw(
             renderer,
-            &renderer::Style::default(),
+            theme,
+            style,
             Layout::new(&self.base),
             base_cursor,
             &viewport,
@@ -436,7 +443,8 @@ where
                     renderer.with_layer(overlay_bounds, |renderer| {
                         overlay.draw(
                             renderer,
-                            &renderer::Style::default(),
+                            theme,
+                            style,
                             Layout::new(layout),
                             cursor_position,
                         );

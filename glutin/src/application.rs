@@ -2,6 +2,7 @@
 use crate::mouse;
 use crate::{Error, Executor, Runtime};
 
+pub use iced_winit::application::StyleSheet;
 pub use iced_winit::Application;
 
 use iced_graphics::window;
@@ -9,6 +10,7 @@ use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
+use iced_winit::renderer;
 use iced_winit::user_interface;
 use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
@@ -25,6 +27,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -203,12 +206,14 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
 
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
+
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
             &mut application,
@@ -288,8 +293,14 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.draw_started();
-                let new_mouse_interaction =
-                    user_interface.draw(&mut renderer, state.cursor_position());
+                let new_mouse_interaction = user_interface.draw(
+                    &mut renderer,
+                    state.theme(),
+                    &renderer::Style {
+                        text_color: state.text_color(),
+                    },
+                    state.cursor_position(),
+                );
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
@@ -341,8 +352,14 @@ async fn run_instance<A, E, C>(
                     debug.layout_finished();
 
                     debug.draw_started();
-                    let new_mouse_interaction = user_interface
-                        .draw(&mut renderer, state.cursor_position());
+                    let new_mouse_interaction = user_interface.draw(
+                        &mut renderer,
+                        state.theme(),
+                        &renderer::Style {
+                            text_color: state.text_color(),
+                        },
+                        state.cursor_position(),
+                    );
                     debug.draw_finished();
 
                     if new_mouse_interaction != mouse_interaction {

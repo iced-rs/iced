@@ -14,6 +14,7 @@ pub fn container<'a, Message, Renderer>(
 ) -> widget::Container<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::container::StyleSheet,
 {
     widget::Container::new(content)
 }
@@ -41,6 +42,7 @@ pub fn scrollable<'a, Message, Renderer>(
 ) -> widget::Scrollable<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::scrollable::StyleSheet,
 {
     widget::Scrollable::new(content)
 }
@@ -50,7 +52,11 @@ where
 /// [`Button`]: widget::Button
 pub fn button<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
-) -> widget::Button<'a, Message, Renderer> {
+) -> widget::Button<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::button::StyleSheet,
+{
     widget::Button::new(content)
 }
 
@@ -65,6 +71,7 @@ pub fn tooltip<'a, Message, Renderer>(
 ) -> widget::Tooltip<'a, Message, Renderer>
 where
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::container::StyleSheet + widget::text::StyleSheet,
 {
     widget::Tooltip::new(content, tooltip, position)
 }
@@ -75,6 +82,7 @@ where
 pub fn text<Renderer>(text: impl Into<String>) -> widget::Text<Renderer>
 where
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::text::StyleSheet,
 {
     widget::Text::new(text)
 }
@@ -89,6 +97,7 @@ pub fn checkbox<'a, Message, Renderer>(
 ) -> widget::Checkbox<'a, Message, Renderer>
 where
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::checkbox::StyleSheet + widget::text::StyleSheet,
 {
     widget::Checkbox::new(is_checked, label, f)
 }
@@ -96,15 +105,16 @@ where
 /// Creates a new [`Radio`].
 ///
 /// [`Radio`]: widget::Radio
-pub fn radio<'a, Message, Renderer, V>(
+pub fn radio<Message, Renderer, V>(
     label: impl Into<String>,
     value: V,
     selected: Option<V>,
     on_click: impl FnOnce(V) -> Message,
-) -> widget::Radio<'a, Message, Renderer>
+) -> widget::Radio<Message, Renderer>
 where
     Message: Clone,
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::radio::StyleSheet,
     V: Copy + Eq,
 {
     widget::Radio::new(value, label, selected, on_click)
@@ -120,6 +130,7 @@ pub fn toggler<'a, Message, Renderer>(
 ) -> widget::Toggler<'a, Message, Renderer>
 where
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::toggler::StyleSheet,
 {
     widget::Toggler::new(is_checked, label, f)
 }
@@ -135,6 +146,7 @@ pub fn text_input<'a, Message, Renderer>(
 where
     Message: Clone,
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::text_input::StyleSheet,
 {
     widget::TextInput::new(placeholder, value, on_change)
 }
@@ -142,14 +154,16 @@ where
 /// Creates a new [`Slider`].
 ///
 /// [`Slider`]: widget::Slider
-pub fn slider<'a, Message, T>(
+pub fn slider<'a, T, Message, Renderer>(
     range: std::ops::RangeInclusive<T>,
     value: T,
     on_change: impl Fn(T) -> Message + 'a,
-) -> widget::Slider<'a, T, Message>
+) -> widget::Slider<'a, T, Message, Renderer>
 where
-    Message: Clone,
     T: Copy + From<u8> + std::cmp::PartialOrd,
+    Message: Clone,
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::slider::StyleSheet,
 {
     widget::Slider::new(range, value, on_change)
 }
@@ -166,6 +180,7 @@ where
     T: ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: iced_native::text::Renderer,
+    Renderer::Theme: widget::pick_list::StyleSheet,
 {
     widget::PickList::new(options, selected, on_selected)
 }
@@ -194,14 +209,22 @@ pub fn vertical_space(height: Length) -> widget::Space {
 /// Creates a horizontal [`Rule`] with the given height.
 ///
 /// [`Rule`]: widget::Rule
-pub fn horizontal_rule<'a>(height: u16) -> widget::Rule<'a> {
+pub fn horizontal_rule<Renderer>(height: u16) -> widget::Rule<Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::rule::StyleSheet,
+{
     widget::Rule::horizontal(height)
 }
 
 /// Creates a vertical [`Rule`] with the given width.
 ///
 /// [`Rule`]: widget::Rule
-pub fn vertical_rule<'a>(width: u16) -> widget::Rule<'a> {
+pub fn vertical_rule<Renderer>(width: u16) -> widget::Rule<Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::rule::StyleSheet,
+{
     widget::Rule::vertical(width)
 }
 
@@ -212,9 +235,13 @@ pub fn vertical_rule<'a>(width: u16) -> widget::Rule<'a> {
 ///   * the current value of the [`ProgressBar`].
 ///
 /// [`ProgressBar`]: widget::ProgressBar
-pub fn progress_bar<'a>(
+pub fn progress_bar<Renderer>(
     range: RangeInclusive<f32>,
     value: f32,
-) -> widget::ProgressBar<'a> {
+) -> widget::ProgressBar<Renderer>
+where
+    Renderer: iced_native::Renderer,
+    Renderer::Theme: widget::progress_bar::StyleSheet,
+{
     widget::ProgressBar::new(range, value)
 }

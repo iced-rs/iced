@@ -95,9 +95,9 @@
 //! [the original widgets]: crate::widget
 //! [`button::State`]: crate::widget::button::State
 //! [impure `Application`]: crate::Application
+pub mod application;
 pub mod widget;
 
-mod application;
 mod sandbox;
 
 pub use application::Application;
@@ -108,5 +108,5 @@ pub use iced_pure::Widget;
 pub use iced_pure::{Pure, State};
 
 /// A generic, pure [`Widget`].
-pub type Element<'a, Message> =
-    iced_pure::Element<'a, Message, crate::Renderer>;
+pub type Element<'a, Message, Renderer = crate::Renderer> =
+    iced_pure::Element<'a, Message, Renderer>;

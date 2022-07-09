@@ -1,6 +1,8 @@
 use crate::canvas::event::{self, Event};
 use crate::canvas::{Cursor, Geometry};
-use iced_native::{mouse, Rectangle};
+
+use iced_native::mouse;
+use iced_native::Rectangle;
 
 /// The state and logic of a [`Canvas`].
 ///
@@ -8,7 +10,7 @@ use iced_native::{mouse, Rectangle};
 /// application.
 ///
 /// [`Canvas`]: crate::widget::Canvas
-pub trait Program<Message> {
+pub trait Program<Message, Theme = iced_native::Theme> {
     /// Updates the state of the [`Program`].
     ///
     /// When a [`Program`] is used in a [`Canvas`], the runtime will call this
@@ -36,7 +38,12 @@ pub trait Program<Message> {
     ///
     /// [`Frame`]: crate::widget::canvas::Frame
     /// [`Cache`]: crate::widget::canvas::Cache
-    fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry>;
+    fn draw(
+        &self,
+        theme: &Theme,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> Vec<Geometry>;
 
     /// Returns the current mouse interaction of the [`Program`].
     ///
@@ -53,9 +60,9 @@ pub trait Program<Message> {
     }
 }
 
-impl<T, Message> Program<Message> for &mut T
+impl<T, Message, Theme> Program<Message, Theme> for &mut T
 where
-    T: Program<Message>,
+    T: Program<Message, Theme>,
 {
     fn update(
         &mut self,
@@ -66,8 +73,13 @@ where
         T::update(self, event, bounds, cursor)
     }
 
-    fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
-        T::draw(self, bounds, cursor)
+    fn draw(
+        &self,
+        theme: &Theme,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> Vec<Geometry> {
+        T::draw(self, theme, bounds, cursor)
     }
 
     fn mouse_interaction(

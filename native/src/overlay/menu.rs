@@ -7,18 +7,22 @@ use crate::overlay;
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::container::{self, Container};
 use crate::widget::scrollable::{self, Scrollable};
-use crate::widget::Container;
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Size, Vector, Widget,
 };
 
-pub use iced_style::menu::Style;
+pub use iced_style::menu::{Appearance, StyleSheet};
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
-pub struct Menu<'a, T, Renderer: text::Renderer> {
+pub struct Menu<'a, T, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     state: &'a mut State,
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
@@ -27,13 +31,15 @@ pub struct Menu<'a, T, Renderer: text::Renderer> {
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style: Style,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, T, Renderer> Menu<'a, T, Renderer>
 where
     T: ToString + Clone,
     Renderer: text::Renderer + 'a,
+    Renderer::Theme:
+        StyleSheet + container::StyleSheet + scrollable::StyleSheet,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
     /// the message to produced when an option is selected.
@@ -81,7 +87,10 @@ where
     }
 
     /// Sets the style of the [`Menu`].
-    pub fn style(mut self, style: impl Into<Style>) -> Self {
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+    ) -> Self {
         self.style = style.into();
         self
     }
@@ -117,17 +126,24 @@ impl State {
     }
 }
 
-struct Overlay<'a, Message, Renderer: text::Renderer> {
+struct Overlay<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
+{
     container: Container<'a, Message, Renderer>,
     width: u16,
     target_height: f32,
-    style: Style,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer: text::Renderer> Overlay<'a, Message, Renderer>
+impl<'a, Message, Renderer> Overlay<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: 'a,
+    Renderer: text::Renderer,
+    Renderer::Theme:
+        StyleSheet + container::StyleSheet + scrollable::StyleSheet,
 {
     pub fn new<T>(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self
     where
@@ -153,9 +169,8 @@ where
                 font,
                 text_size,
                 padding,
-                style: style.clone(),
-            }))
-            .padding(1);
+                style,
+            }));
 
         Self {
             container,
@@ -170,6 +185,7 @@ impl<'a, Message, Renderer> crate::Overlay<Message, Renderer>
     for Overlay<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     fn layout(
         &self,
@@ -241,35 +257,50 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
+        let appearance = theme.appearance(self.style);
         let bounds = layout.bounds();
 
         renderer.fill_quad(
             renderer::Quad {
-                bounds,
-                border_color: self.style.border_color,
-                border_width: self.style.border_width,
+                bounds: Rectangle {
+                    width: bounds.width - 1.0,
+                    ..bounds
+                },
+                border_color: appearance.border_color,
+                border_width: appearance.border_width,
                 border_radius: 0.0,
             },
-            self.style.background,
+            appearance.background,
         );
 
-        self.container
-            .draw(renderer, style, layout, cursor_position, &bounds);
+        self.container.draw(
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            &bounds,
+        );
     }
 }
 
-struct List<'a, T, Renderer: text::Renderer> {
+struct List<'a, T, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style: Style,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, T, Message, Renderer> Widget<Message, Renderer>
@@ -277,6 +308,7 @@ impl<'a, T, Message, Renderer> Widget<Message, Renderer>
 where
     T: Clone + ToString,
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn width(&self) -> Length {
         Length::Fill
@@ -389,11 +421,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         viewport: &Rectangle,
     ) {
+        let appearance = theme.appearance(self.style);
         let bounds = layout.bounds();
 
         let text_size = self.text_size.unwrap_or(renderer.default_size());
@@ -425,7 +459,7 @@ where
                         border_width: 0.0,
                         border_radius: 0.0,
                     },
-                    self.style.selected_background,
+                    appearance.selected_background,
                 );
             }
 
@@ -440,9 +474,9 @@ where
                 size: f32::from(text_size),
                 font: self.font.clone(),
                 color: if is_selected {
-                    self.style.selected_text_color
+                    appearance.selected_text_color
                 } else {
-                    self.style.text_color
+                    appearance.text_color
                 },
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Center,
@@ -457,6 +491,7 @@ where
     T: ToString + Clone,
     Message: 'a,
     Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn into(self) -> Element<'a, Message, Renderer> {
         Element::new(self)

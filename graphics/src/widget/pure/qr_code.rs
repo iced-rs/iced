@@ -9,24 +9,24 @@ use iced_native::{Length, Point, Rectangle};
 use iced_pure::widget::tree::Tree;
 use iced_pure::{Element, Widget};
 
-impl<'a, Message, B> Widget<Message, Renderer<B>> for QRCode<'a>
+impl<'a, Message, B, T> Widget<Message, Renderer<B, T>> for QRCode<'a>
 where
     B: Backend,
 {
     fn width(&self) -> Length {
-        <Self as iced_native::Widget<Message, Renderer<B>>>::width(self)
+        <Self as iced_native::Widget<Message, Renderer<B, T>>>::width(self)
     }
 
     fn height(&self) -> Length {
-        <Self as iced_native::Widget<Message, Renderer<B>>>::height(self)
+        <Self as iced_native::Widget<Message, Renderer<B, T>>>::height(self)
     }
 
     fn layout(
         &self,
-        renderer: &Renderer<B>,
+        renderer: &Renderer<B, T>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        <Self as iced_native::Widget<Message, Renderer<B>>>::layout(
+        <Self as iced_native::Widget<Message, Renderer<B, T>>>::layout(
             self, renderer, limits,
         )
     }
@@ -34,15 +34,17 @@ where
     fn draw(
         &self,
         _tree: &Tree,
-        renderer: &mut Renderer<B>,
+        renderer: &mut Renderer<B, T>,
+        theme: &T,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        <Self as iced_native::Widget<Message, Renderer<B>>>::draw(
+        <Self as iced_native::Widget<Message, Renderer<B, T>>>::draw(
             self,
             renderer,
+            theme,
             style,
             layout,
             cursor_position,
@@ -51,11 +53,12 @@ where
     }
 }
 
-impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for QRCode<'a>
+impl<'a, Message, B, T> Into<Element<'a, Message, Renderer<B, T>>>
+    for QRCode<'a>
 where
     B: Backend,
 {
-    fn into(self) -> Element<'a, Message, Renderer<B>> {
+    fn into(self) -> Element<'a, Message, Renderer<B, T>> {
         Element::new(self)
     }
 }

@@ -22,55 +22,16 @@ pub struct Scroller {
 
 /// A set of rules that dictate the style of a scrollable.
 pub trait StyleSheet {
+    type Style: Default + Copy;
+
     /// Produces the style of an active scrollbar.
-    fn active(&self) -> Scrollbar;
+    fn active(&self, style: Self::Style) -> Scrollbar;
 
     /// Produces the style of an hovered scrollbar.
-    fn hovered(&self) -> Scrollbar;
+    fn hovered(&self, style: Self::Style) -> Scrollbar;
 
     /// Produces the style of a scrollbar that is being dragged.
-    fn dragging(&self) -> Scrollbar {
-        self.hovered()
-    }
-}
-
-struct Default;
-
-impl StyleSheet for Default {
-    fn active(&self) -> Scrollbar {
-        Scrollbar {
-            background: None,
-            border_radius: 5.0,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-            scroller: Scroller {
-                color: [0.0, 0.0, 0.0, 0.7].into(),
-                border_radius: 5.0,
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
-            },
-        }
-    }
-
-    fn hovered(&self) -> Scrollbar {
-        Scrollbar {
-            background: Some(Background::Color([0.0, 0.0, 0.0, 0.3].into())),
-            ..self.active()
-        }
-    }
-}
-
-impl<'a> std::default::Default for Box<dyn StyleSheet + 'a> {
-    fn default() -> Self {
-        Box::new(Default)
-    }
-}
-
-impl<'a, T> From<T> for Box<dyn StyleSheet + 'a>
-where
-    T: StyleSheet + 'a,
-{
-    fn from(style_sheet: T) -> Self {
-        Box::new(style_sheet)
+    fn dragging(&self, style: Self::Style) -> Scrollbar {
+        self.hovered(style)
     }
 }

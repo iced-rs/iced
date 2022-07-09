@@ -1,6 +1,9 @@
+use iced::alignment;
+use iced::button;
+use iced::executor;
 use iced::{
-    alignment, button, executor, Alignment, Application, Button, Checkbox,
-    Column, Command, Container, Element, Length, Settings, Subscription, Text,
+    Alignment, Application, Button, Checkbox, Column, Command, Container,
+    Element, Length, Settings, Subscription, Text, Theme,
 };
 use iced_native::{window, Event};
 
@@ -27,8 +30,9 @@ enum Message {
 }
 
 impl Application for Events {
-    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Events, Command<Message>) {

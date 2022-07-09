@@ -2,9 +2,10 @@ use iced::alignment::{self, Alignment};
 use iced::button::{self, Button};
 use iced::scrollable::{self, Scrollable};
 use iced::text_input::{self, TextInput};
+use iced::theme::{self, Theme};
 use iced::{
-    Application, Checkbox, Column, Command, Container, Element, Font, Length,
-    Row, Settings, Text,
+    Application, Checkbox, Color, Column, Command, Container, Element, Font,
+    Length, Row, Settings, Text,
 };
 use serde::{Deserialize, Serialize};
 
@@ -42,6 +43,7 @@ enum Message {
 
 impl Application for Todos {
     type Executor = iced::executor::Default;
+    type Theme = Theme;
     type Message = Message;
     type Flags = ();
 
@@ -153,7 +155,7 @@ impl Application for Todos {
                 let title = Text::new("todos")
                     .width(Length::Fill)
                     .size(100)
-                    .color([0.5, 0.5, 0.5])
+                    .style(Color::from([0.5, 0.5, 0.5]))
                     .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = TextInput::new(
@@ -304,7 +306,7 @@ impl Task {
                         Button::new(edit_button, edit_icon())
                             .on_press(TaskMessage::Edit)
                             .padding(10)
-                            .style(style::Button::Icon),
+                            .style(theme::Button::Text),
                     )
                     .into()
             }
@@ -335,7 +337,7 @@ impl Task {
                         )
                         .on_press(TaskMessage::Delete)
                         .padding(10)
-                        .style(style::Button::Destructive),
+                        .style(theme::Button::Destructive),
                     )
                     .into()
             }
@@ -364,9 +366,9 @@ impl Controls {
             let label = Text::new(label).size(16);
             let button =
                 Button::new(state, label).style(if filter == current_filter {
-                    style::Button::FilterSelected
+                    theme::Button::Primary
                 } else {
-                    style::Button::FilterActive
+                    theme::Button::Text
                 });
 
             button.on_press(Message::FilterChanged(filter)).padding(8)
@@ -451,7 +453,7 @@ fn empty_message<'a>(message: &str) -> Element<'a, Message> {
             .width(Length::Fill)
             .size(25)
             .horizontal_alignment(alignment::Horizontal::Center)
-            .color([0.7, 0.7, 0.7]),
+            .style(Color::from([0.7, 0.7, 0.7])),
     )
     .width(Length::Fill)
     .height(Length::Units(200))
@@ -597,59 +599,5 @@ impl SavedState {
         let _ = wasm_timer::Delay::new(std::time::Duration::from_secs(2)).await;
 
         Ok(())
-    }
-}
-
-mod style {
-    use iced::{button, Background, Color, Vector};
-
-    pub enum Button {
-        FilterActive,
-        FilterSelected,
-        Icon,
-        Destructive,
-    }
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            match self {
-                Button::FilterActive => button::Style::default(),
-                Button::FilterSelected => button::Style {
-                    background: Some(Background::Color(Color::from_rgb(
-                        0.2, 0.2, 0.7,
-                    ))),
-                    border_radius: 10.0,
-                    text_color: Color::WHITE,
-                    ..button::Style::default()
-                },
-                Button::Icon => button::Style {
-                    text_color: Color::from_rgb(0.5, 0.5, 0.5),
-                    ..button::Style::default()
-                },
-                Button::Destructive => button::Style {
-                    background: Some(Background::Color(Color::from_rgb(
-                        0.8, 0.2, 0.2,
-                    ))),
-                    border_radius: 5.0,
-                    text_color: Color::WHITE,
-                    shadow_offset: Vector::new(1.0, 1.0),
-                    ..button::Style::default()
-                },
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            let active = self.active();
-
-            button::Style {
-                text_color: match self {
-                    Button::Icon => Color::from_rgb(0.2, 0.2, 0.7),
-                    Button::FilterActive => Color::from_rgb(0.2, 0.2, 0.7),
-                    _ => active.text_color,
-                },
-                shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
-                ..active
-            }
-        }
     }
 }

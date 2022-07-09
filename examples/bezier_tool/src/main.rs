@@ -71,7 +71,7 @@ mod bezier {
     use iced::{
         canvas::event::{self, Event},
         canvas::{self, Canvas, Cursor, Frame, Geometry, Path, Stroke},
-        mouse, Element, Length, Point, Rectangle,
+        mouse, Element, Length, Point, Rectangle, Theme,
     };
 
     #[derive(Default)]
@@ -158,7 +158,12 @@ mod bezier {
             }
         }
 
-        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+        fn draw(
+            &self,
+            _theme: &Theme,
+            bounds: Rectangle,
+            cursor: Cursor,
+        ) -> Vec<Geometry> {
             let content =
                 self.state.cache.draw(bounds.size(), |frame: &mut Frame| {
                     Curve::draw_all(self.curves, frame);

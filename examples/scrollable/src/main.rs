@@ -1,8 +1,8 @@
-mod style;
-
+use iced::button;
+use iced::scrollable;
 use iced::{
-    button, scrollable, Button, Column, Container, Element, Length,
-    ProgressBar, Radio, Row, Rule, Sandbox, Scrollable, Settings, Space, Text,
+    Button, Column, Container, Element, Length, ProgressBar, Radio, Row, Rule,
+    Sandbox, Scrollable, Settings, Space, Text, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -10,13 +10,13 @@ pub fn main() -> iced::Result {
 }
 
 struct ScrollableDemo {
-    theme: style::Theme,
+    theme: Theme,
     variants: Vec<Variant>,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(style::Theme),
+    ThemeChanged(Theme),
     ScrollToTop(usize),
     ScrollToBottom(usize),
     Scrolled(usize, f32),
@@ -66,18 +66,15 @@ impl Sandbox for ScrollableDemo {
             theme, variants, ..
         } = self;
 
-        let choose_theme = style::Theme::ALL.iter().fold(
+        let choose_theme = [Theme::Light, Theme::Dark].iter().fold(
             Column::new().spacing(10).push(Text::new("Choose a theme:")),
             |column, option| {
-                column.push(
-                    Radio::new(
-                        *option,
-                        format!("{:?}", option),
-                        Some(*theme),
-                        Message::ThemeChanged,
-                    )
-                    .style(*theme),
-                )
+                column.push(Radio::new(
+                    *option,
+                    format!("{:?}", option),
+                    Some(*theme),
+                    Message::ThemeChanged,
+                ))
             },
         );
 
@@ -95,7 +92,6 @@ impl Sandbox for ScrollableDemo {
                             .on_scroll(move |offset| {
                                 Message::Scrolled(i, offset)
                             })
-                            .style(*theme)
                             .push(Text::new(variant.title))
                             .push(
                                 Button::new(
@@ -160,12 +156,7 @@ impl Sandbox for ScrollableDemo {
                         .width(Length::Fill)
                         .height(Length::Fill)
                         .spacing(10)
-                        .push(
-                            Container::new(scrollable)
-                                .width(Length::Fill)
-                                .height(Length::Fill)
-                                .style(*theme),
-                        )
+                        .push(scrollable)
                         .push(ProgressBar::new(
                             0.0..=1.0,
                             variant.latest_offset,
@@ -182,7 +173,7 @@ impl Sandbox for ScrollableDemo {
             .spacing(20)
             .padding(20)
             .push(choose_theme)
-            .push(Rule::horizontal(20).style(self.theme))
+            .push(Rule::horizontal(20))
             .push(scrollable_row);
 
         Container::new(content)
@@ -190,8 +181,11 @@ impl Sandbox for ScrollableDemo {
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .style(self.theme)
             .into()
+    }
+
+    fn theme(&self) -> Theme {
+        self.theme
     }
 }
 

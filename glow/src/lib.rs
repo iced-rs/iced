@@ -30,6 +30,7 @@ pub use settings::Settings;
 pub(crate) use iced_graphics::Transformation;
 
 pub use iced_graphics::{Error, Viewport};
+pub use iced_native::Theme;
 
 pub use iced_native::alignment;
 pub use iced_native::{Alignment, Background, Color, Command, Length, Vector};
@@ -38,4 +39,5 @@ pub use iced_native::{Alignment, Background, Color, Command, Length, Vector};
 ///
 /// [`glow`]: https://github.com/grovesNL/glow
 /// [`iced`]: https://github.com/iced-rs/iced
-pub type Renderer = iced_graphics::Renderer<Backend>;
+pub type Renderer<Theme = iced_native::Theme> =
+    iced_graphics::Renderer<Backend, Theme>;

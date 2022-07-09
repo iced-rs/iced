@@ -6,9 +6,10 @@ pub use state::State;
 use crate::clipboard::{self, Clipboard};
 use crate::conversion;
 use crate::mouse;
+use crate::renderer;
 use crate::{
-    Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings,
-    Size, Subscription,
+    Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings, Size,
+    Subscription,
 };
 
 use iced_futures::futures;
@@ -17,6 +18,8 @@ use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
+
+pub use iced_native::application::{Appearance, StyleSheet};
 
 use std::mem::ManuallyDrop;
 
@@ -31,7 +34,10 @@ use std::mem::ManuallyDrop;
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-pub trait Application: Program {
+pub trait Application: Program
+where
+    <Self::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     /// The data needed to initialize your [`Application`].
     type Flags;
 
@@ -50,6 +56,16 @@ pub trait Application: Program {
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
     fn title(&self) -> String;
+
+    /// Returns the current [`Theme`] of the [`Application`].
+    fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
+
+    /// Returns the [`Style`] variation of the [`Theme`].
+    fn style(
+        &self,
+    ) -> <<Self::Renderer as crate::Renderer>::Theme as StyleSheet>::Style {
+        Default::default()
+    }
 
     /// Returns the event `Subscription` for the current state of the
     /// application.
@@ -72,13 +88,6 @@ pub trait Application: Program {
     /// By default, an application will run in windowed mode.
     fn mode(&self) -> Mode {
         Mode::Windowed
-    }
-
-    /// Returns the background [`Color`] of the [`Application`].
-    ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
     }
 
     /// Returns the scale factor of the [`Application`].
@@ -112,6 +121,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -247,6 +257,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
@@ -341,8 +352,14 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.draw_started();
-                let new_mouse_interaction =
-                    user_interface.draw(&mut renderer, state.cursor_position());
+                let new_mouse_interaction = user_interface.draw(
+                    &mut renderer,
+                    state.theme(),
+                    &renderer::Style {
+                        text_color: state.text_color(),
+                    },
+                    state.cursor_position(),
+                );
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
@@ -389,8 +406,14 @@ async fn run_instance<A, E, C>(
                     debug.layout_finished();
 
                     debug.draw_started();
-                    let new_mouse_interaction = user_interface
-                        .draw(&mut renderer, state.cursor_position());
+                    let new_mouse_interaction = user_interface.draw(
+                        &mut renderer,
+                        state.theme(),
+                        &renderer::Style {
+                            text_color: state.text_color(),
+                        },
+                        state.cursor_position(),
+                    );
 
                     if new_mouse_interaction != mouse_interaction {
                         window.set_cursor_icon(conversion::mouse_interaction(
@@ -497,7 +520,10 @@ pub fn build_user_interface<'a, A: Application>(
     renderer: &mut A::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, A::Message, A::Renderer> {
+) -> UserInterface<'a, A::Message, A::Renderer>
+where
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     debug.view_started();
     let view = application.view();
     debug.view_finished();
@@ -520,7 +546,9 @@ pub fn update<A: Application, E: Executor>(
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
-) {
+) where
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     for message in messages.drain(..) {
         debug.log_message(&message);
 

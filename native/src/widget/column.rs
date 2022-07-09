@@ -187,13 +187,21 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
         for (child, layout) in self.children.iter().zip(layout.children()) {
-            child.draw(renderer, style, layout, cursor_position, viewport);
+            child.draw(
+                renderer,
+                theme,
+                style,
+                layout,
+                cursor_position,
+                viewport,
+            );
         }
     }
 

@@ -1,18 +1,18 @@
 //! This example showcases an interactive version of the Game of Life, invented
 //! by John Conway. It leverages a `Canvas` together with other widgets.
 mod preset;
-mod style;
 
 use grid::Grid;
 use iced::button::{self, Button};
 use iced::executor;
 use iced::pick_list::{self, PickList};
 use iced::slider::{self, Slider};
+use iced::theme::{self, Theme};
 use iced::time;
 use iced::window;
 use iced::{
-    Alignment, Application, Checkbox, Column, Command, Container, Element,
-    Length, Row, Settings, Subscription, Text,
+    Alignment, Application, Checkbox, Column, Command, Element, Length, Row,
+    Settings, Subscription, Text,
 };
 use preset::Preset;
 use std::time::{Duration, Instant};
@@ -55,6 +55,7 @@ enum Message {
 
 impl Application for GameOfLife {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
@@ -141,19 +142,18 @@ impl Application for GameOfLife {
             self.grid.preset(),
         );
 
-        let content = Column::new()
+        Column::new()
             .push(
                 self.grid
                     .view()
                     .map(move |message| Message::Grid(message, version)),
             )
-            .push(controls);
-
-        Container::new(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .style(style::Container)
+            .push(controls)
             .into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
     }
 }
 
@@ -163,7 +163,7 @@ mod grid {
         alignment,
         canvas::event::{self, Event},
         canvas::{self, Cache, Canvas, Cursor, Frame, Geometry, Path, Text},
-        mouse, Color, Element, Length, Point, Rectangle, Size, Vector,
+        mouse, Color, Element, Length, Point, Rectangle, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -445,7 +445,12 @@ mod grid {
             }
         }
 
-        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+        fn draw(
+            &self,
+            _theme: &Theme,
+            bounds: Rectangle,
+            cursor: Cursor,
+        ) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
             let life = self.life_cache.draw(bounds.size(), |frame| {
@@ -836,27 +841,24 @@ impl Controls {
                     Text::new(if is_playing { "Pause" } else { "Play" }),
                 )
                 .on_press(Message::TogglePlayback)
-                .style(style::Button),
+                .style(theme::Button::Primary),
             )
             .push(
                 Button::new(&mut self.next_button, Text::new("Next"))
                     .on_press(Message::Next)
-                    .style(style::Button),
+                    .style(theme::Button::Secondary),
             );
 
         let speed_controls = Row::new()
             .width(Length::Fill)
             .align_items(Alignment::Center)
             .spacing(10)
-            .push(
-                Slider::new(
-                    &mut self.speed_slider,
-                    1.0..=1000.0,
-                    speed as f32,
-                    Message::SpeedChanged,
-                )
-                .style(style::Slider),
-            )
+            .push(Slider::new(
+                &mut self.speed_slider,
+                1.0..=1000.0,
+                speed as f32,
+                Message::SpeedChanged,
+            ))
             .push(Text::new(format!("x{}", speed)).size(16));
 
         Row::new()
@@ -879,13 +881,12 @@ impl Controls {
                     Message::PresetPicked,
                 )
                 .padding(8)
-                .text_size(16)
-                .style(style::PickList),
+                .text_size(16),
             )
             .push(
                 Button::new(&mut self.clear_button, Text::new("Clear"))
                     .on_press(Message::Clear)
-                    .style(style::Clear),
+                    .style(theme::Button::Destructive),
             )
             .into()
     }

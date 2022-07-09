@@ -236,7 +236,12 @@ impl Theme {
 }
 
 impl<Message> canvas::Program<Message> for Theme {
-    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+    fn draw(
+        &self,
+        _theme: &iced::Theme,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(bounds.size(), |frame| {
             self.draw(frame);
         });
@@ -288,7 +293,7 @@ impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
             range: RangeInclusive<f64>,
             component: f32,
             update: impl Fn(f32) -> C + 'static,
-        ) -> Slider<f64, C> {
+        ) -> Slider<f64, C, iced::Renderer> {
             Slider::new(state, range, f64::from(component), move |v| {
                 update(v as f32)
             })

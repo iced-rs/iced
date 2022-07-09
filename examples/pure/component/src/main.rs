@@ -47,12 +47,13 @@ impl Sandbox for Component {
 }
 
 mod numeric_input {
-    use iced::pure::{button, row, text, text_input};
     use iced_lazy::pure::{self, Component};
     use iced_native::alignment::{self, Alignment};
     use iced_native::text;
+    use iced_native::widget;
     use iced_native::Length;
     use iced_pure::Element;
+    use iced_pure::{button, row, text, text_input};
 
     pub struct NumericInput<Message> {
         value: Option<u32>,
@@ -88,6 +89,9 @@ mod numeric_input {
     impl<Message, Renderer> Component<Message, Renderer> for NumericInput<Message>
     where
         Renderer: text::Renderer + 'static,
+        Renderer::Theme: widget::button::StyleSheet
+            + widget::text_input::StyleSheet
+            + widget::text::StyleSheet,
     {
         type State = ();
         type Event = Event;
@@ -158,6 +162,9 @@ mod numeric_input {
     where
         Message: 'a,
         Renderer: 'static + text::Renderer,
+        Renderer::Theme: widget::button::StyleSheet
+            + widget::text_input::StyleSheet
+            + widget::text::StyleSheet,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {
             pure::component(numeric_input)

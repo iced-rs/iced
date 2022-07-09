@@ -1,18 +1,21 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
-use core::ffi::c_void;
 use glow::HasContext;
 use iced_graphics::{compositor, Antialiasing, Size};
 
+use core::ffi::c_void;
+use std::marker::PhantomData;
+
 /// A window graphics backend for iced powered by `glow`.
 #[allow(missing_debug_implementations)]
-pub struct Compositor {
+pub struct Compositor<Theme> {
     gl: glow::Context,
+    theme: PhantomData<Theme>,
 }
 
-impl iced_graphics::window::GLCompositor for Compositor {
+impl<Theme> iced_graphics::window::GLCompositor for Compositor<Theme> {
     type Settings = Settings;
-    type Renderer = Renderer;
+    type Renderer = Renderer<Theme>;
 
     unsafe fn new(
         settings: Self::Settings,
@@ -46,7 +49,13 @@ impl iced_graphics::window::GLCompositor for Compositor {
 
         let renderer = Renderer::new(Backend::new(&gl, settings));
 
-        Ok((Self { gl }, renderer))
+        Ok((
+            Self {
+                gl,
+                theme: PhantomData,
+            },
+            renderer,
+        ))
     }
 
     fn sample_count(settings: &Settings) -> u32 {

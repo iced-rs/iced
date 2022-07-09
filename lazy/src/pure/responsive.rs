@@ -53,7 +53,10 @@ struct Content<'a, Message, Renderer> {
     element: Element<'a, Message, Renderer>,
 }
 
-impl<'a, Message, Renderer> Content<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Content<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+{
     fn update(
         &mut self,
         tree: &mut Tree,
@@ -174,6 +177,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -191,6 +195,7 @@ where
                 element.as_widget().draw(
                     tree,
                     renderer,
+                    theme,
                     style,
                     layout,
                     cursor_position,
@@ -331,12 +336,13 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
         self.with_overlay_maybe(|overlay| {
-            overlay.draw(renderer, style, layout, cursor_position);
+            overlay.draw(renderer, theme, style, layout, cursor_position);
         });
     }
 

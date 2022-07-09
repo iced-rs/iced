@@ -54,7 +54,7 @@ mod numeric_input {
     use iced_native::text;
     use iced_native::widget::button::{self, Button};
     use iced_native::widget::text_input::{self, TextInput};
-    use iced_native::widget::{Row, Text};
+    use iced_native::widget::{self, Row, Text};
     use iced_native::{Element, Length};
 
     pub struct NumericInput<'a, Message> {
@@ -95,6 +95,9 @@ mod numeric_input {
         for NumericInput<'a, Message>
     where
         Renderer: 'a + text::Renderer,
+        Renderer::Theme: button::StyleSheet
+            + text_input::StyleSheet
+            + widget::text::StyleSheet,
     {
         type Event = Event;
 
@@ -172,6 +175,9 @@ mod numeric_input {
     where
         Message: 'a,
         Renderer: text::Renderer + 'a,
+        Renderer::Theme: button::StyleSheet
+            + text_input::StyleSheet
+            + widget::text::StyleSheet,
     {
         fn from(numeric_input: NumericInput<'a, Message>) -> Self {
             component::view(numeric_input)
