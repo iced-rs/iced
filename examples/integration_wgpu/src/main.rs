@@ -73,7 +73,7 @@ pub fn main() {
     let instance = wgpu::Instance::new(backend);
     let surface = unsafe { instance.create_surface(&window) };
 
-    let (format, (mut device, queue)) = futures::executor::block_on(async {
+    let (format, (device, queue)) = futures::executor::block_on(async {
         let adapter = wgpu::util::initialize_adapter_from_env_or_default(
             &instance,
             backend,
@@ -128,13 +128,13 @@ pub fn main() {
     let mut staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
 
     // Initialize scene and GUI controls
-    let scene = Scene::new(&mut device, format);
+    let scene = Scene::new(&device, format);
     let controls = Controls::new();
 
     // Initialize iced
     let mut debug = Debug::new();
     let mut renderer =
-        Renderer::new(Backend::new(&mut device, Settings::default(), format));
+        Renderer::new(Backend::new(&device, Settings::default(), format));
 
     let mut state = program::State::new(
         controls,
@@ -208,8 +208,8 @@ pub fn main() {
                     surface.configure(
                         &device,
                         &wgpu::SurfaceConfiguration {
+                            format,
                             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                            format: format,
                             width: size.width,
                             height: size.height,
                             present_mode: wgpu::PresentMode::AutoVsync,
@@ -244,7 +244,7 @@ pub fn main() {
                         // And then iced on top
                         renderer.with_primitives(|backend, primitive| {
                             backend.present(
-                                &mut device,
+                                &device,
                                 &mut staging_belt,
                                 &mut encoder,
                                 &view,

@@ -280,13 +280,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<iced_native::Element<'a, Message, Renderer>>
-    for Pure<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Pure<'a, Message, Renderer>>
+    for iced_native::Element<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: iced_native::Renderer + 'a,
 {
-    fn into(self) -> iced_native::Element<'a, Message, Renderer> {
-        iced_native::Element::new(self)
+    fn from(pure: Pure<'a, Message, Renderer>) -> Self {
+        Self::new(pure)
     }
 }

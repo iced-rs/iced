@@ -54,16 +54,11 @@ impl Sandbox for Example {
             tooltip::Position::Right,
         );
 
-        let fixed_tooltips = Row::with_children(vec![
-            top.into(),
-            bottom.into(),
-            left.into(),
-            right.into(),
-        ])
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .align_items(Alignment::Center)
-        .spacing(50);
+        let fixed_tooltips = Row::with_children(vec![top, bottom, left, right])
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_items(Alignment::Center)
+            .spacing(50);
 
         let follow_cursor = tooltip(
             "Tooltip follows cursor",
@@ -78,7 +73,7 @@ impl Sandbox for Example {
                 .center_x()
                 .center_y()
                 .into(),
-            follow_cursor.into(),
+            follow_cursor,
         ])
         .width(Length::Fill)
         .height(Length::Fill)

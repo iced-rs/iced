@@ -96,14 +96,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Radio<Message, Renderer>
+impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: text::Renderer + 'a,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(radio: Radio<Message, Renderer>) -> Self {
+        Self::new(radio)
     }
 }

@@ -116,14 +116,7 @@ impl Pipeline {
         // TODO: Remove this allocation (or allocate only when needed)
         let indices: Vec<i32> = (0..instances.len().min(MAX_QUADS) as i32)
             .flat_map(|i| {
-                [
-                    0 + i * 4,
-                    1 + i * 4,
-                    2 + i * 4,
-                    2 + i * 4,
-                    1 + i * 4,
-                    3 + i * 4,
-                ]
+                [i * 4, 1 + i * 4, 2 + i * 4, 2 + i * 4, 1 + i * 4, 3 + i * 4]
             })
             .cycle()
             .take(instances.len() * 6)

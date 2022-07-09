@@ -11,7 +11,11 @@
     clippy::useless_conversion
 )]
 #![forbid(unsafe_code)]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
+#![allow(
+    clippy::await_holding_refcell_ref,
+    clippy::inherent_to_string,
+    clippy::type_complexity
+)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub mod component;
 pub mod responsive;

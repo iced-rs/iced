@@ -10,7 +10,7 @@ use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 pub use iced_native::widget::progress_bar::*;
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
+impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
 where
     Renderer: iced_native::Renderer,
     Renderer::Theme: StyleSheet,
@@ -93,13 +93,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for ProgressBar<Renderer>
+impl<'a, Message, Renderer> From<ProgressBar<Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(progress_bar: ProgressBar<Renderer>) -> Self {
+        Self::new(progress_bar)
     }
 }

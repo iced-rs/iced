@@ -49,7 +49,7 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Add => {
-                self.last_id = self.last_id + 1;
+                self.last_id += 1;
 
                 self.downloads.push(Download::new(self.last_id));
             }
@@ -134,8 +134,8 @@ impl Download {
     }
 
     pub fn progress(&mut self, new_progress: download::Progress) {
-        match &mut self.state {
-            State::Downloading { progress } => match new_progress {
+        if let State::Downloading { progress } = &mut self.state {
+            match new_progress {
                 download::Progress::Started => {
                     *progress = 0.0;
                 }
@@ -152,8 +152,7 @@ impl Download {
                         button: button::State::new(),
                     };
                 }
-            },
-            _ => {}
+            }
         }
     }
 

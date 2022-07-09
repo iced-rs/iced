@@ -57,7 +57,7 @@ impl Application for App {
 
     fn view(&mut self) -> Element<Message> {
         let content = match &self.url {
-            Some(url) => Text::new(format!("{}", url)),
+            Some(url) => Text::new(url),
             None => Text::new("No URL received yet!"),
         };
 

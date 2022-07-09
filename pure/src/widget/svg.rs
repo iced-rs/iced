@@ -54,12 +54,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for Svg
+impl<'a, Message, Renderer> From<Svg> for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_native::svg::Renderer + 'a,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(svg: Svg) -> Self {
+        Self::new(svg)
     }
 }

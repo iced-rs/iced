@@ -85,6 +85,12 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     }
 }
 
+impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Row<'a, Message, Renderer>
 where
@@ -215,13 +221,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Row<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: iced_native::Renderer + 'a,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(row: Row<'a, Message, Renderer>) -> Self {
+        Self::new(row)
     }
 }

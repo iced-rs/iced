@@ -9,4 +9,4 @@ jobs:
         components: clippy
     - uses: actions/checkout@master
     - name: Check lints
-      run: cargo clippy --all --no-deps
+      run: cargo clippy --all --all-features --no-deps

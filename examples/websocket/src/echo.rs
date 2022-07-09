@@ -32,7 +32,7 @@ pub fn connect() -> Subscription<Event> {
                             )
                         }
                         Err(_) => {
-                            let _ = tokio::time::sleep(
+                            tokio::time::sleep(
                                 tokio::time::Duration::from_secs(1),
                             )
                             .await;
@@ -79,6 +79,7 @@ pub fn connect() -> Subscription<Event> {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 enum State {
     Disconnected,
     Connected(
@@ -101,8 +102,7 @@ pub struct Connection(mpsc::Sender<Message>);
 
 impl Connection {
     pub fn send(&mut self, message: Message) {
-        let _ = self
-            .0
+        self.0
             .try_send(message)
             .expect("Send message to echo server");
     }

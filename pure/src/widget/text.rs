@@ -55,23 +55,23 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Text<Renderer>
+impl<'a, Message, Renderer> From<Text<Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Renderer: text::Renderer + 'a,
     Renderer::Theme: widget::text::StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(text: Text<Renderer>) -> Self {
+        Self::new(text)
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for &'a str
+impl<'a, Message, Renderer> From<&'a str> for Element<'a, Message, Renderer>
 where
     Renderer: text::Renderer + 'a,
     Renderer::Theme: widget::text::StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Text::new(self).into()
+    fn from(contents: &'a str) -> Self {
+        Text::new(contents).into()
     }
 }

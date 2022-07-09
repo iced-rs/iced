@@ -95,6 +95,12 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     }
 }
 
+impl<'a, Message, Renderer> Default for Column<'a, Message, Renderer> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Column<'a, Message, Renderer>
 where
@@ -228,13 +234,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Column<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Column<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: iced_native::Renderer + 'a,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(column: Column<'a, Message, Renderer>) -> Self {
+        Self::new(column)
     }
 }

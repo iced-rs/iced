@@ -192,8 +192,7 @@ impl Pokemon {
         let description = entry
             .flavor_text_entries
             .iter()
-            .filter(|text| text.language.name == "en")
-            .next()
+            .find(|text| text.language.name == "en")
             .ok_or(Error::LanguageError)?;
 
         Ok(Pokemon {

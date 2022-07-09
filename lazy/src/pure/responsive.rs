@@ -383,6 +383,6 @@ where
                 shell,
             )
         })
-        .unwrap_or_else(|| iced_native::event::Status::Ignored)
+        .unwrap_or(iced_native::event::Status::Ignored)
     }
 }

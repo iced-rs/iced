@@ -35,6 +35,9 @@ pub trait GLCompositor: Sized {
     /// Creates a new [`GLCompositor`] and [`Renderer`] with the given
     /// [`Settings`] and an OpenGL address loader function.
     ///
+    /// # Safety
+    /// The `loader_function` should resolve to valid OpenGL bindings.
+    ///
     /// [`Renderer`]: crate::Renderer
     /// [`Backend`]: crate::Backend
     /// [`Settings`]: Self::Settings

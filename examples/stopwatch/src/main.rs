@@ -67,13 +67,12 @@ impl Application for Stopwatch {
                     self.state = State::Idle;
                 }
             },
-            Message::Tick(now) => match &mut self.state {
-                State::Ticking { last_tick } => {
+            Message::Tick(now) => {
+                if let State::Ticking { last_tick } = &mut self.state {
                     self.duration += now - *last_tick;
                     *last_tick = now;
                 }
-                _ => {}
-            },
+            }
             Message::Reset => {
                 self.duration = Duration::default();
             }

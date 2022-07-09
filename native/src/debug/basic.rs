@@ -186,6 +186,12 @@ impl Debug {
     }
 }
 
+impl Default for Debug {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug)]
 struct TimeBuffer {
     head: usize,

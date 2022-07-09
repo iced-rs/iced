@@ -56,14 +56,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer, Handle> Into<Element<'a, Message, Renderer>>
-    for Image<Handle>
+impl<'a, Message, Renderer, Handle> From<Image<Handle>>
+    for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_native::image::Renderer<Handle = Handle> + 'a,
     Handle: Clone + Hash + 'a,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(image: Image<Handle>) -> Self {
+        Self::new(image)
     }
 }

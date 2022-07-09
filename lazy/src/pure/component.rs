@@ -428,7 +428,7 @@ where
                     &mut local_shell,
                 )
             })
-            .unwrap_or_else(|| iced_native::event::Status::Ignored);
+            .unwrap_or(iced_native::event::Status::Ignored);
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
