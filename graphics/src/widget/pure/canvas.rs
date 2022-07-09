@@ -28,7 +28,9 @@ use std::marker::PhantomData;
 /// ```no_run
 /// # mod iced {
 /// #     pub mod pure {
-/// #         pub use iced_graphics::pure::canvas;
+/// #         pub mod widget {
+/// #             pub use iced_graphics::pure::canvas;
+/// #         }
 /// #     }
 /// #     pub use iced_native::{Color, Rectangle, Theme};
 /// # }
