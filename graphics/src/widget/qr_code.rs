@@ -67,10 +67,7 @@ where
         let side_length = (self.state.width + 2 * QUIET_ZONE) as f32
             * f32::from(self.cell_size);
 
-        layout::Node::new(Size::new(
-            f32::from(side_length),
-            f32::from(side_length),
-        ))
+        layout::Node::new(Size::new(side_length, side_length))
     }
 
     fn draw(
@@ -128,13 +125,13 @@ where
     }
 }
 
-impl<'a, Message, B, T> Into<Element<'a, Message, Renderer<B, T>>>
-    for QRCode<'a>
+impl<'a, Message, B, T> From<QRCode<'a>>
+    for Element<'a, Message, Renderer<B, T>>
 where
     B: Backend,
 {
-    fn into(self) -> Element<'a, Message, Renderer<B, T>> {
-        Element::new(self)
+    fn from(qr_code: QRCode<'a>) -> Self {
+        Self::new(qr_code)
     }
 }
 

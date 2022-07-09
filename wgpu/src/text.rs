@@ -188,7 +188,8 @@ impl Pipeline {
                 }
                 b_count += utf8_len;
             }
-            return byte_index;
+
+            byte_index
         };
 
         if !nearest_only {

@@ -647,7 +647,7 @@ mod platform {
     {
         use winit::platform::run_return::EventLoopExtRunReturn;
 
-        let _ = event_loop.run_return(event_handler);
+        event_loop.run_return(event_handler);
 
         Ok(())
     }

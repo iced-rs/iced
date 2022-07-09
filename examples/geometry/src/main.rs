@@ -17,6 +17,7 @@ mod rainbow {
         layout, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
     };
 
+    #[derive(Default)]
     pub struct Rainbow;
 
     impl Rainbow {
@@ -148,12 +149,12 @@ mod rainbow {
         }
     }
 
-    impl<'a, Message, B, T> Into<Element<'a, Message, Renderer<B, T>>> for Rainbow
+    impl<'a, Message, B, T> From<Rainbow> for Element<'a, Message, Renderer<B, T>>
     where
         B: Backend,
     {
-        fn into(self) -> Element<'a, Message, Renderer<B, T>> {
-            Element::new(self)
+        fn from(rainbow: Rainbow) -> Self {
+            Self::new(rainbow)
         }
     }
 }

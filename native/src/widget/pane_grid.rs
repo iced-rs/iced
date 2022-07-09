@@ -835,8 +835,7 @@ fn hovered_split<'a>(
 ) -> Option<(Split, Axis, Rectangle)> {
     splits
         .filter_map(|(split, (axis, region, ratio))| {
-            let bounds =
-                axis.split_line_bounds(*region, *ratio, f32::from(spacing));
+            let bounds = axis.split_line_bounds(*region, *ratio, spacing);
 
             if bounds.contains(cursor_position) {
                 Some((*split, *axis, bounds))

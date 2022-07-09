@@ -9,7 +9,7 @@ use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 pub use iced_native::widget::Space;
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Space
+impl<Message, Renderer> Widget<Message, Renderer> for Space
 where
     Renderer: iced_native::Renderer,
 {
@@ -91,11 +91,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for Space
+impl<'a, Message, Renderer> From<Space> for Element<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer + 'a,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(space: Space) -> Self {
+        Self::new(space)
     }
 }

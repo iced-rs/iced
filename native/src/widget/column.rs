@@ -102,6 +102,12 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     }
 }
 
+impl<'a, Message, Renderer> Default for Column<'a, Message, Renderer> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Column<'a, Message, Renderer>
 where

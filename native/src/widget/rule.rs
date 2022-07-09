@@ -36,7 +36,7 @@ where
     /// Creates a vertical [`Rule`] with the given width.
     pub fn vertical(width: u16) -> Self {
         Rule {
-            width: Length::from(Length::Units(width)),
+            width: Length::Units(width),
             height: Length::Fill,
             is_horizontal: false,
             style: Default::default(),

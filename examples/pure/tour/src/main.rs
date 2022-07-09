@@ -78,14 +78,6 @@ impl Sandbox for Tour {
             .push(controls)
             .into();
 
-        let content = if self.debug {
-            // TODO
-            //content.explain(Color::BLACK)
-            content
-        } else {
-            content
-        };
-
         let scrollable =
             scrollable(container(content).width(Length::Fill).center_x());
 
@@ -494,7 +486,7 @@ impl<'a> Step {
             .push(ferris(width))
             .push(slider(100..=500, width, StepMessage::ImageWidthChanged))
             .push(
-                text(format!("Width: {} px", width.to_string()))
+                text(format!("Width: {} px", width))
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )

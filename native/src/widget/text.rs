@@ -131,7 +131,7 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
-        let size = self.size.unwrap_or(renderer.default_size());
+        let size = self.size.unwrap_or_else(|| renderer.default_size());
 
         let bounds = limits.max();
 
@@ -205,7 +205,7 @@ pub fn draw<Renderer>(
 
     renderer.fill_text(crate::text::Text {
         content,
-        size: f32::from(size.unwrap_or(renderer.default_size())),
+        size: f32::from(size.unwrap_or_else(|| renderer.default_size())),
         bounds: Rectangle { x, y, ..bounds },
         color: appearance.color.unwrap_or(style.text_color),
         font,

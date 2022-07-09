@@ -113,13 +113,7 @@ impl Atlas {
         match &entry {
             Entry::Contiguous(allocation) => {
                 self.upload_allocation(
-                    &buffer,
-                    width,
-                    height,
-                    padding,
-                    0,
-                    &allocation,
-                    encoder,
+                    &buffer, width, height, padding, 0, allocation, encoder,
                 );
             }
             Entry::Fragmented { fragments, .. } => {

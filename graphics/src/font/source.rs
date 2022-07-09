@@ -37,3 +37,9 @@ impl Source {
         }
     }
 }
+
+impl Default for Source {
+    fn default() -> Self {
+        Self::new()
+    }
+}

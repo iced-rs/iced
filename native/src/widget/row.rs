@@ -102,6 +102,12 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     }
 }
 
+impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Row<'a, Message, Renderer>
 where

@@ -159,7 +159,7 @@ where
             self.height,
             self.padding,
             |renderer, limits| {
-                self.content.as_widget().layout(renderer, &limits)
+                self.content.as_widget().layout(renderer, limits)
             },
         )
     }
@@ -261,14 +261,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Button<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_native::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(button: Button<'a, Message, Renderer>) -> Self {
+        Self::new(button)
     }
 }

@@ -662,7 +662,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(
-            &mut self.state,
+            self.state,
             event,
             layout,
             cursor_position,
@@ -693,7 +693,7 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         mouse_interaction(
-            &self.state,
+            self.state,
             layout,
             cursor_position,
             self.scrollbar_width,
@@ -720,7 +720,7 @@ where
         _viewport: &Rectangle,
     ) {
         draw(
-            &self.state,
+            self.state,
             renderer,
             theme,
             layout,

@@ -215,6 +215,7 @@ pub trait Application: Sized {
     where
         Self: 'static,
     {
+        #[allow(clippy::needless_update)]
         let renderer_settings = crate::renderer::Settings {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,

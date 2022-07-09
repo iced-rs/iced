@@ -5,7 +5,7 @@ bitflags! {
     #[derive(Default)]
     pub struct Modifiers: u32{
         /// The "shift" key.
-        const SHIFT = 0b100 << 0;
+        const SHIFT = 0b100;
         // const LSHIFT = 0b010 << 0;
         // const RSHIFT = 0b001 << 0;
         //

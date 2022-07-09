@@ -96,14 +96,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Toggler<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: text::Renderer + 'a,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(toggler: Toggler<'a, Message, Renderer>) -> Self {
+        Self::new(toggler)
     }
 }

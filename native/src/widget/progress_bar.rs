@@ -76,7 +76,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
+impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
 where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,

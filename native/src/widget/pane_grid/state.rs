@@ -66,6 +66,11 @@ impl<T> State<T> {
         self.panes.len()
     }
 
+    /// Returns `true` if the amount of panes in the [`State`] is 0.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the internal state of the given [`Pane`], if it exists.
     pub fn get(&self, pane: &Pane) -> Option<&T> {
         self.panes.get(pane)

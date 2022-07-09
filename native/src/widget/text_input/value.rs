@@ -37,7 +37,7 @@ impl Value {
         let previous_string =
             &self.graphemes[..index.min(self.graphemes.len())].concat();
 
-        UnicodeSegmentation::split_word_bound_indices(&previous_string as &str)
+        UnicodeSegmentation::split_word_bound_indices(previous_string as &str)
             .filter(|(_, word)| !word.trim_start().is_empty())
             .next_back()
             .map(|(i, previous_word)| {
@@ -58,9 +58,8 @@ impl Value {
     pub fn next_end_of_word(&self, index: usize) -> usize {
         let next_string = &self.graphemes[index..].concat();
 
-        UnicodeSegmentation::split_word_bound_indices(&next_string as &str)
-            .filter(|(_, word)| !word.trim_start().is_empty())
-            .next()
+        UnicodeSegmentation::split_word_bound_indices(next_string as &str)
+            .find(|(_, word)| !word.trim_start().is_empty())
             .map(|(i, next_word)| {
                 index
                     + UnicodeSegmentation::graphemes(next_word, true).count()

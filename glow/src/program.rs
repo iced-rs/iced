@@ -70,7 +70,7 @@ impl Shader {
         unsafe {
             let shader = gl.create_shader(stage).expect("Cannot create shader");
 
-            gl.shader_source(shader, &content);
+            gl.shader_source(shader, content);
             gl.compile_shader(shader);
 
             if !gl.get_shader_compile_status(shader) {

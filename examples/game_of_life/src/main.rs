@@ -280,7 +280,7 @@ mod grid {
             }
         }
 
-        pub fn view<'a>(&'a mut self) -> Element<'a, Message> {
+        pub fn view(&mut self) -> Element<Message> {
             Canvas::new(self)
                 .width(Length::Fill)
                 .height(Length::Fill)
@@ -328,7 +328,7 @@ mod grid {
         }
     }
 
-    impl<'a> canvas::Program<Message> for Grid {
+    impl canvas::Program<Message> for Grid {
         fn update(
             &mut self,
             event: Event,
@@ -826,13 +826,13 @@ struct Controls {
 }
 
 impl Controls {
-    fn view<'a>(
-        &'a mut self,
+    fn view(
+        &mut self,
         is_playing: bool,
         is_grid_enabled: bool,
         speed: usize,
         preset: Preset,
-    ) -> Element<'a, Message> {
+    ) -> Element<Message> {
         let playback_controls = Row::new()
             .spacing(10)
             .push(

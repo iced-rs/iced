@@ -96,14 +96,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Checkbox<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Checkbox<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: text::Renderer + 'a,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(checkbox: Checkbox<'a, Message, Renderer>) -> Self {
+        Self::new(checkbox)
     }
 }

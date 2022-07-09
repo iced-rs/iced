@@ -303,7 +303,7 @@ pub fn draw<T, R>(
         HandleShape::Rectangle {
             width,
             border_radius,
-        } => (f32::from(width), f32::from(bounds.height), border_radius),
+        } => (f32::from(width), bounds.height, border_radius),
     };
 
     let value = value.into() as f32;
@@ -410,7 +410,7 @@ where
             layout,
             cursor_position,
             shell,
-            &mut self.state,
+            self.state,
             &mut self.value,
             &self.range,
             self.step,
@@ -432,7 +432,7 @@ where
             renderer,
             layout,
             cursor_position,
-            &self.state,
+            self.state,
             self.value,
             &self.range,
             theme,
@@ -447,7 +447,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position, &self.state)
+        mouse_interaction(layout, cursor_position, self.state)
     }
 }
 

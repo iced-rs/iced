@@ -24,7 +24,7 @@ pub(crate) fn information(
 
     let memory_used = sysinfo::get_current_pid()
         .and_then(|pid| system.process(pid).ok_or("Process not found"))
-        .and_then(|process| Ok(process.memory()))
+        .map(|process| process.memory())
         .ok();
 
     Information {

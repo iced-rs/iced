@@ -53,12 +53,12 @@ where
     }
 }
 
-impl<'a, Message, B, T> Into<Element<'a, Message, Renderer<B, T>>>
-    for QRCode<'a>
+impl<'a, Message, B, T> From<QRCode<'a>>
+    for Element<'a, Message, Renderer<B, T>>
 where
     B: Backend,
 {
-    fn into(self) -> Element<'a, Message, Renderer<B, T>> {
-        Element::new(self)
+    fn from(qr_code: QRCode<'a>) -> Self {
+        Self::new(qr_code)
     }
 }

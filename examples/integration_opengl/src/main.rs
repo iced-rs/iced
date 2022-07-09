@@ -58,7 +58,7 @@ pub fn main() {
 
     let mut cursor_position = PhysicalPosition::new(-1.0, -1.0);
     let mut modifiers = ModifiersState::default();
-    let mut clipboard = Clipboard::connect(&windowed_context.window());
+    let mut clipboard = Clipboard::connect(windowed_context.window());
 
     let mut renderer = Renderer::new(Backend::new(&gl, Settings::default()));
 
@@ -73,13 +73,12 @@ pub fn main() {
     );
     let mut resized = false;
 
-    let scene = Scene::new(&gl, &shader_version);
+    let scene = Scene::new(&gl, shader_version);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::LoopDestroyed => return,
             Event::WindowEvent { event, .. } => {
                 match event {
                     WindowEvent::CursorMoved { position, .. } => {

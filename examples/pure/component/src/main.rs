@@ -143,8 +143,7 @@ mod numeric_input {
                         self.value
                             .as_ref()
                             .map(u32::to_string)
-                            .as_ref()
-                            .map(String::as_str)
+                            .as_deref()
                             .unwrap_or(""),
                         Event::InputChanged,
                     )

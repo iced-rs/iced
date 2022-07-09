@@ -158,7 +158,10 @@ where
                 Text::new(&self.label)
                     .font(self.font.clone())
                     .width(self.width)
-                    .size(self.text_size.unwrap_or(renderer.default_size())),
+                    .size(
+                        self.text_size
+                            .unwrap_or_else(|| renderer.default_size()),
+                    ),
             )
             .layout(renderer, limits)
     }

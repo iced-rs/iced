@@ -112,7 +112,7 @@ impl Program for Controls {
                                 t,
                                 "Placeholder",
                                 text,
-                                move |text| Message::TextChanged(text),
+                                Message::TextChanged,
                             )),
                     ),
             )

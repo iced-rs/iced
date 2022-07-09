@@ -154,7 +154,7 @@ impl Pipeline {
                 gl.buffer_sub_data_u8_slice(
                     glow::ARRAY_BUFFER,
                     0,
-                    bytemuck::cast_slice(&instances),
+                    bytemuck::cast_slice(instances),
                 );
 
                 gl.draw_arrays_instanced(

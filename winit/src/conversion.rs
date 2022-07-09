@@ -485,10 +485,10 @@ pub fn key_code(
 
 // As defined in: http://www.unicode.org/faq/private_use.html
 pub(crate) fn is_private_use_character(c: char) -> bool {
-    match c {
+    matches!(
+        c,
         '\u{E000}'..='\u{F8FF}'
         | '\u{F0000}'..='\u{FFFFD}'
-        | '\u{100000}'..='\u{10FFFD}' => true,
-        _ => false,
-    }
+        | '\u{100000}'..='\u{10FFFD}'
+    )
 }

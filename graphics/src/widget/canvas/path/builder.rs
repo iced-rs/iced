@@ -53,7 +53,7 @@ impl Builder {
             let _ = self.raw.line_to(a);
         }
 
-        let _ = self.raw.arc_to(
+        self.raw.arc_to(
             math::Vector::new(radius, radius),
             math::Angle::radians(0.0),
             path::ArcFlags::default(),
@@ -149,5 +149,11 @@ impl Builder {
         Path {
             raw: self.raw.build(),
         }
+    }
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
     }
 }

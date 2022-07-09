@@ -430,7 +430,7 @@ where
         overlay
             .as_ref()
             .and_then(|layout| {
-                root.overlay(Layout::new(&base), renderer).map(|overlay| {
+                root.overlay(Layout::new(base), renderer).map(|overlay| {
                     let overlay_interaction = overlay.mouse_interaction(
                         Layout::new(layout),
                         cursor_position,

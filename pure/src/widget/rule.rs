@@ -10,7 +10,7 @@ use iced_native::{Clipboard, Length, Point, Rectangle, Shell};
 
 pub use iced_native::widget::rule::*;
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Rule<Renderer>
+impl<Message, Renderer> Widget<Message, Renderer> for Rule<Renderer>
 where
     Renderer: iced_native::Renderer,
     Renderer::Theme: StyleSheet,
@@ -93,13 +93,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for Rule<Renderer>
+impl<'a, Message, Renderer> From<Rule<Renderer>>
+    for Element<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
+    fn from(rule: Rule<Renderer>) -> Self {
+        Self::new(rule)
     }
 }

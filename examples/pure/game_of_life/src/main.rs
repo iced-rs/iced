@@ -350,7 +350,7 @@ mod grid {
             }
         }
 
-        pub fn view<'a>(&'a self) -> Element<'a, Message> {
+        pub fn view(&self) -> Element<Message> {
             Canvas::new(self)
                 .width(Length::Fill)
                 .height(Length::Fill)

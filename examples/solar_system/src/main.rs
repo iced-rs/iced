@@ -65,8 +65,7 @@ impl Application for SolarSystem {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(10))
-            .map(|instant| Message::Tick(instant))
+        time::every(std::time::Duration::from_millis(10)).map(Message::Tick)
     }
 
     fn view(&mut self) -> Element<Message> {

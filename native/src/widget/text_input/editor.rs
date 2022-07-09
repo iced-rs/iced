@@ -15,12 +15,9 @@ impl<'a> Editor<'a> {
     }
 
     pub fn insert(&mut self, character: char) {
-        match self.cursor.selection(self.value) {
-            Some((left, right)) => {
-                self.cursor.move_left(self.value);
-                self.value.remove_many(left, right);
-            }
-            _ => {}
+        if let Some((left, right)) = self.cursor.selection(self.value) {
+            self.cursor.move_left(self.value);
+            self.value.remove_many(left, right);
         }
 
         self.value.insert(self.cursor.end(self.value), character);
@@ -29,13 +26,9 @@ impl<'a> Editor<'a> {
 
     pub fn paste(&mut self, content: Value) {
         let length = content.len();
-
-        match self.cursor.selection(self.value) {
-            Some((left, right)) => {
-                self.cursor.move_left(self.value);
-                self.value.remove_many(left, right);
-            }
-            _ => {}
+        if let Some((left, right)) = self.cursor.selection(self.value) {
+            self.cursor.move_left(self.value);
+            self.value.remove_many(left, right);
         }
 
         self.value.insert_many(self.cursor.end(self.value), content);

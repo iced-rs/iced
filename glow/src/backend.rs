@@ -173,7 +173,6 @@ impl Backend {
                                 glow_glyph::VerticalAlign::Bottom
                             }
                         }),
-                    ..Default::default()
                 };
 
                 self.text_pipeline.queue(text);

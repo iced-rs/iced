@@ -82,10 +82,18 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![deny(missing_docs)]
-#![deny(unused_results)]
-#![forbid(unsafe_code)]
-#![forbid(rust_2018_idioms)]
+#![deny(
+    missing_docs,
+    unused_results,
+    clippy::extra_unused_lifetimes,
+    clippy::from_over_into,
+    clippy::needless_borrow,
+    clippy::new_without_default,
+    clippy::useless_conversion
+)]
+#![forbid(rust_2018_idioms, unsafe_code)]
+#![allow(clippy::inherent_to_string, clippy::type_complexity)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod flex;
 pub mod helpers;
@@ -146,7 +154,7 @@ where
         content: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
         let element = content.into();
-        let _ = state.diff(&element);
+        state.diff(&element);
 
         Self { state, element }
     }
@@ -272,13 +280,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Into<iced_native::Element<'a, Message, Renderer>>
-    for Pure<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Pure<'a, Message, Renderer>>
+    for iced_native::Element<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: iced_native::Renderer + 'a,
 {
-    fn into(self) -> iced_native::Element<'a, Message, Renderer> {
-        iced_native::Element::new(self)
+    fn from(pure: Pure<'a, Message, Renderer>) -> Self {
+        Self::new(pure)
     }
 }

@@ -64,12 +64,12 @@ mod circle {
         }
     }
 
-    impl<'a, Message, Renderer> Into<Element<'a, Message, Renderer>> for Circle
+    impl<'a, Message, Renderer> From<Circle> for Element<'a, Message, Renderer>
     where
         Renderer: renderer::Renderer,
     {
-        fn into(self) -> Element<'a, Message, Renderer> {
-            Element::new(self)
+        fn from(circle: Circle) -> Self {
+            Self::new(circle)
         }
     }
 }

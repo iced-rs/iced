@@ -134,7 +134,7 @@ impl Blit {
         match &mut self.targets {
             None => {
                 self.targets = Some(Targets::new(
-                    &device,
+                    device,
                     self.format,
                     &self.texture_layout,
                     self.sample_count,
@@ -145,7 +145,7 @@ impl Blit {
             Some(targets) => {
                 if targets.width != width || targets.height != height {
                     self.targets = Some(Targets::new(
-                        &device,
+                        device,
                         self.format,
                         &self.texture_layout,
                         self.sample_count,

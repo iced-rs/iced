@@ -6,13 +6,7 @@ pub trait StyleSheet {
     fn appearance(&self, style: Self::Style) -> Appearance;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Appearance {
     pub color: Option<Color>,
-}
-
-impl Default for Appearance {
-    fn default() -> Self {
-        Self { color: None }
-    }
 }

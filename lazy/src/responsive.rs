@@ -224,7 +224,7 @@ where
     where
         R: Deref<Target = Renderer>,
     {
-        self.content.resolve(&mut self.state, renderer, f)
+        self.content.resolve(self.state, renderer, f)
     }
 }
 
@@ -363,7 +363,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.with_overlay_maybe(|overlay| {
+        let _ = self.with_overlay_maybe(|overlay| {
             overlay.draw(renderer, theme, style, layout, cursor_position);
         });
     }
@@ -405,6 +405,6 @@ where
                 shell,
             )
         })
-        .unwrap_or_else(|| iced_native::event::Status::Ignored)
+        .unwrap_or(iced_native::event::Status::Ignored)
     }
 }
