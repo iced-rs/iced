@@ -28,11 +28,13 @@ use std::marker::PhantomData;
 /// ```no_run
 /// # mod iced {
 /// #     pub mod pure {
-/// #         pub use iced_graphics::pure::canvas;
+/// #         pub mod widget {
+/// #             pub use iced_graphics::pure::canvas;
+/// #         }
 /// #     }
 /// #     pub use iced_native::{Color, Rectangle, Theme};
 /// # }
-/// use iced::pure::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
+/// use iced::pure::widget::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
 /// use iced::{Color, Rectangle, Theme};
 ///
 /// // First, we define the data we need for drawing
