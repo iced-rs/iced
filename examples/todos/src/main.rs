@@ -576,25 +576,25 @@ impl SavedState {
     }
 
     async fn load() -> Result<SavedState, LoadError> {
-        let storage = Self::storage().ok_or(LoadError::FileError)?;
+        let storage = Self::storage().ok_or(LoadError::File)?;
 
         let contents = storage
             .get_item("state")
-            .map_err(|_| LoadError::FileError)?
-            .ok_or(LoadError::FileError)?;
+            .map_err(|_| LoadError::File)?
+            .ok_or(LoadError::File)?;
 
-        serde_json::from_str(&contents).map_err(|_| LoadError::FormatError)
+        serde_json::from_str(&contents).map_err(|_| LoadError::Format)
     }
 
     async fn save(self) -> Result<(), SaveError> {
-        let storage = Self::storage().ok_or(SaveError::FileError)?;
+        let storage = Self::storage().ok_or(SaveError::File)?;
 
         let json = serde_json::to_string_pretty(&self)
-            .map_err(|_| SaveError::FormatError)?;
+            .map_err(|_| SaveError::Format)?;
 
         storage
             .set_item("state", &json)
-            .map_err(|_| SaveError::WriteError)?;
+            .map_err(|_| SaveError::Write)?;
 
         let _ = wasm_timer::Delay::new(std::time::Duration::from_secs(2)).await;
 
