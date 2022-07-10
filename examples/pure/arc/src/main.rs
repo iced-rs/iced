@@ -5,9 +5,7 @@ use iced::pure::widget::canvas::{
     self, Cache, Canvas, Cursor, Geometry, Path, Stroke,
 };
 use iced::pure::{Application, Element};
-use iced::{
-    Color, Command, Length, Point, Rectangle, Settings, Subscription, Theme,
-};
+use iced::{Command, Length, Point, Rectangle, Settings, Subscription, Theme};
 
 pub fn main() -> iced::Result {
     Arc::run(Settings {
@@ -80,6 +78,8 @@ impl<Message> canvas::Program<Message> for Arc {
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let geometry = self.cache.draw(bounds.size(), |frame| {
+            let palette = theme.palette();
+
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 5.0;
 
@@ -101,15 +101,13 @@ impl<Message> canvas::Program<Message> for Arc {
                 b.circle(end, 10.0);
             });
 
-            frame.fill(&circles, Color::WHITE);
+            frame.fill(&circles, palette.text);
 
             let path = Path::new(|b| {
                 b.move_to(start);
                 b.arc_to(center, end, 50.0);
                 b.line_to(end);
             });
-
-            let palette = theme.palette();
 
             frame.stroke(
                 &path,
