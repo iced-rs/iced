@@ -5,11 +5,11 @@ use palette::{FromColor, Hsl, Mix, RelativeContrast, Srgb};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Palette {
-    background: Color,
-    text: Color,
-    primary: Color,
-    success: Color,
-    danger: Color,
+    pub background: Color,
+    pub text: Color,
+    pub primary: Color,
+    pub success: Color,
+    pub danger: Color,
 }
 
 impl Palette {
