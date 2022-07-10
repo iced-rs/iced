@@ -27,11 +27,29 @@ pub fn column<'a, Message, Renderer>() -> widget::Column<'a, Message, Renderer>
     widget::Column::new()
 }
 
+/// Creates a new [`Column`] containing multiple child elements.
+///
+/// [`Column`]: widget::Column
+pub fn column_with_children<Message, Renderer>(
+    children: Vec<Element<'_, Message, Renderer>>,
+) -> widget::Column<'_, Message, Renderer> {
+    widget::Column::with_children(children)
+}
+
 /// Creates a new [`Row`].
 ///
 /// [`Row`]: widget::Row
 pub fn row<'a, Message, Renderer>() -> widget::Row<'a, Message, Renderer> {
     widget::Row::new()
+}
+
+/// Creates a new [`Row`] containing multiple child elements.
+///
+/// [`Row`]: widget::Row
+pub fn row_with_children<Message, Renderer>(
+    children: Vec<Element<'_, Message, Renderer>>,
+) -> widget::Row<'_, Message, Renderer> {
+    widget::Row::with_children(children)
 }
 
 /// Creates a new [`Scrollable`] with the provided content.
