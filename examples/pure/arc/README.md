@@ -1,4 +1,4 @@
-## arc_to
+## Arc
 
 An application that uses the `Canvas` widget to draw a rotating arc.
 
@@ -8,7 +8,7 @@ The __[`main`]__ file contains all the code of the example.
 
 You can run it with `cargo run`:
 ```
-cargo run --package arc_to
+cargo run --package arc
 ```
 
 [`main`]: src/main.rs
