@@ -8,7 +8,7 @@ use lyon::path::builder::SvgPathBuilder;
 /// Once a [`Path`] is built, it can no longer be mutated.
 #[allow(missing_debug_implementations)]
 pub struct Builder {
-    raw: lyon::path::builder::WithSvg<lyon::path::path::Builder>,
+    raw: lyon::path::builder::WithSvg<lyon::path::path::BuilderImpl>,
 }
 
 impl Builder {

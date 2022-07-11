@@ -42,7 +42,7 @@ path = "../pure"
 optional = true
 
 [dependencies.lyon]
-version = "0.17"
+version = "1.0"
 optional = true
 
 [dependencies.qrcode]
