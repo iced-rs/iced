@@ -144,7 +144,7 @@ impl Frame {
         let _ = self
             .fill_tessellator
             .tessellate_rectangle(
-                &lyon::math::Rect::new(top_left, size.into()),
+                &lyon::math::Box2D::new(top_left, top_left + size),
                 &options,
                 &mut buffers,
             )
