@@ -110,7 +110,7 @@ impl Frame {
             )
         };
 
-        let _ = result.expect("Tessellate path");
+        result.expect("Tessellate path");
     }
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
@@ -141,8 +141,7 @@ impl Frame {
         let options =
             tessellation::FillOptions::default().with_fill_rule(rule.into());
 
-        let _ = self
-            .fill_tessellator
+        self.fill_tessellator
             .tessellate_rectangle(
                 &lyon::math::Box2D::new(top_left, top_left + size),
                 &options,
@@ -189,7 +188,7 @@ impl Frame {
             )
         };
 
-        let _ = result.expect("Stroke path");
+        result.expect("Stroke path");
     }
 
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
