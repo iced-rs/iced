@@ -19,7 +19,7 @@ where
     title: String,
     scale_factor: f64,
     viewport: Viewport,
-    viewport_version: usize,
+    viewport_changed: bool,
     cursor_position: winit::dpi::PhysicalPosition<f64>,
     modifiers: winit::event::ModifiersState,
     theme: <A::Renderer as crate::Renderer>::Theme,
@@ -51,7 +51,7 @@ where
             title,
             scale_factor,
             viewport,
-            viewport_version: 0,
+            viewport_changed: false,
             // TODO: Encode cursor availability in the type-system
             cursor_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
             modifiers: winit::event::ModifiersState::default(),
@@ -66,11 +66,9 @@ where
         &self.viewport
     }
 
-    /// Returns the version of the [`Viewport`] of the [`State`].
-    ///
-    /// The version is incremented every time the [`Viewport`] changes.
-    pub fn viewport_version(&self) -> usize {
-        self.viewport_version
+    /// TODO(derezzedex)
+    pub fn viewport_changed(&self) -> bool {
+        self.viewport_changed
     }
 
     /// Returns the physical [`Size`] of the [`Viewport`] of the [`State`].
@@ -133,7 +131,7 @@ where
                     window.scale_factor() * self.scale_factor,
                 );
 
-                self.viewport_version = self.viewport_version.wrapping_add(1);
+                self.viewport_changed = true;
             }
             WindowEvent::ScaleFactorChanged {
                 scale_factor: new_scale_factor,
@@ -147,7 +145,7 @@ where
                     new_scale_factor * self.scale_factor,
                 );
 
-                self.viewport_version = self.viewport_version.wrapping_add(1);
+                self.viewport_changed = true;
             }
             WindowEvent::CursorMoved { position, .. }
             | WindowEvent::Touch(Touch {

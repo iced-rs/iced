@@ -301,50 +301,63 @@ async fn run_instance<A, E, C>(
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
-    // TODO(derezzedex)
     let mut clipboard =
         Clipboard::connect(windows.values().next().expect("No window found"));
     let mut cache = user_interface::Cache::default();
-    let mut surface = compositor
-        .create_surface(&windows.values().next().expect("No window found"));
+    let mut window_ids: HashMap<_, _> = windows
+        .iter()
+        .map(|(&id, window)| (window.id(), id))
+        .collect();
 
-    // TODO(derezzedex)
-    let mut state = State::new(
-        &application,
-        windows.values().next().expect("No window found"),
-    );
-    let mut viewport_version = state.viewport_version();
+    let mut states = HashMap::new();
+    let mut interfaces = ManuallyDrop::new(HashMap::new());
 
-    let physical_size = state.physical_size();
+    for (&id, window) in windows.keys().zip(windows.values()) {
+        let mut surface = compositor.create_surface(window);
 
-    compositor.configure_surface(
-        &mut surface,
-        physical_size.width,
-        physical_size.height,
-    );
+        let state = State::new(&application, window);
 
-    run_command(
-        &application,
-        &mut cache,
-        &state,
-        &mut renderer,
-        init_command,
-        &mut runtime,
-        &mut clipboard,
-        &mut proxy,
-        &mut debug,
-        &windows,
-        || compositor.fetch_information(),
-    );
+        let physical_size = state.physical_size();
+
+        compositor.configure_surface(
+            &mut surface,
+            physical_size.width,
+            physical_size.height,
+        );
+
+        let user_interface = build_user_interface(
+            &application,
+            user_interface::Cache::default(),
+            &mut renderer,
+            state.logical_size(),
+            &mut debug,
+        );
+
+        let window_state: WindowState<A, C> = WindowState { surface, state };
+
+        let _ = states.insert(id, window_state);
+        let _ = interfaces.insert(id, user_interface);
+    }
+
+    {
+        // TODO(derezzedex)
+        let window_state = states.values().next().expect("No state found");
+
+        run_command(
+            &application,
+            &mut cache,
+            &window_state.state,
+            &mut renderer,
+            init_command,
+            &mut runtime,
+            &mut clipboard,
+            &mut proxy,
+            &mut debug,
+            &windows,
+            || compositor.fetch_information(),
+        );
+    }
     runtime.track(application.subscription().map(Event::Application));
-
-    let mut user_interface = ManuallyDrop::new(build_user_interface(
-        &application,
-        user_interface::Cache::default(),
-        &mut renderer,
-        state.logical_size(),
-        &mut debug,
-    ));
 
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
@@ -352,93 +365,118 @@ async fn run_instance<A, E, C>(
 
     debug.startup_finished();
 
-    while let Some(event) = receiver.next().await {
+    'main: while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
-                if events.is_empty() && messages.is_empty() {
-                    continue;
-                }
+                dbg!(states.keys().collect::<Vec<_>>());
+                for id in states.keys().copied().collect::<Vec<_>>() {
+                    let cursor_position =
+                        states.get(&id).unwrap().state.cursor_position();
+                    let window = windows.get(&id).unwrap();
 
-                debug.event_processing_started();
-
-                let (interface_state, statuses) = user_interface.update(
-                    &events,
-                    state.cursor_position(),
-                    &mut renderer,
-                    &mut clipboard,
-                    &mut messages,
-                );
-
-                debug.event_processing_finished();
-
-                for event in events.drain(..).zip(statuses.into_iter()) {
-                    runtime.broadcast(event);
-                }
-
-                if !messages.is_empty()
-                    || matches!(
-                        interface_state,
-                        user_interface::State::Outdated,
-                    )
-                {
-                    let mut cache =
-                        ManuallyDrop::into_inner(user_interface).into_cache();
-
-                    // Update application
-                    update(
-                        &mut application,
-                        &mut cache,
-                        &state,
-                        &mut renderer,
-                        &mut runtime,
-                        &mut clipboard,
-                        &mut proxy,
-                        &mut debug,
-                        &mut messages,
-                        &windows,
-                        || compositor.fetch_information(),
-                    );
-
-                    // Update window
-                    state.synchronize(&application, &windows, &proxy);
-
-                    let should_exit = application.should_exit();
-
-                    user_interface = ManuallyDrop::new(build_user_interface(
-                        &application,
-                        cache,
-                        &mut renderer,
-                        state.logical_size(),
-                        &mut debug,
-                    ));
-
-                    if should_exit {
-                        break;
+                    if events.is_empty() && messages.is_empty() {
+                        continue;
                     }
+
+                    debug.event_processing_started();
+
+                    let (interface_state, statuses) = {
+                        let user_interface = interfaces.get_mut(&id).unwrap();
+                        user_interface.update(
+                            &events,
+                            cursor_position,
+                            &mut renderer,
+                            &mut clipboard,
+                            &mut messages,
+                        )
+                    };
+
+                    debug.event_processing_finished();
+
+                    // TODO(derezzedex): only drain events for this window
+                    for event in events.drain(..).zip(statuses.into_iter()) {
+                        runtime.broadcast(event);
+                    }
+
+                    if !messages.is_empty()
+                        || matches!(
+                            interface_state,
+                            user_interface::State::Outdated,
+                        )
+                    {
+                        let state = &mut states.get_mut(&id).unwrap().state;
+                        let pure_states: HashMap<_, _> =
+                            ManuallyDrop::into_inner(interfaces)
+                                .drain()
+                                .map(
+                                    |(id, interface): (
+                                        window::Id,
+                                        UserInterface<'_, _, _>,
+                                    )| {
+                                        (id, interface.into_cache())
+                                    },
+                                )
+                                .collect();
+
+                        // Update application
+                        update(
+                            &mut application,
+                            &mut cache,
+                            state,
+                            &mut renderer,
+                            &mut runtime,
+                            &mut clipboard,
+                            &mut proxy,
+                            &mut debug,
+                            &mut messages,
+                            &windows,
+                            || compositor.fetch_information(),
+                        );
+
+                        // Update window
+                        state.synchronize(&application, &windows, &proxy);
+
+                        let should_exit = application.should_exit();
+
+                        interfaces = ManuallyDrop::new(build_user_interfaces(
+                            &application,
+                            &mut renderer,
+                            &mut debug,
+                            &states,
+                            pure_states,
+                        ));
+
+                        if should_exit {
+                            break 'main;
+                        }
+                    }
+
+                    debug.draw_started();
+                    let new_mouse_interaction = {
+                        let user_interface = interfaces.get_mut(&id).unwrap();
+                        let state = &states.get(&id).unwrap().state;
+
+                        user_interface.draw(
+                            &mut renderer,
+                            state.theme(),
+                            &renderer::Style {
+                                text_color: state.text_color(),
+                            },
+                            state.cursor_position(),
+                        )
+                    };
+                    debug.draw_finished();
+
+                    if new_mouse_interaction != mouse_interaction {
+                        window.set_cursor_icon(conversion::mouse_interaction(
+                            new_mouse_interaction,
+                        ));
+
+                        mouse_interaction = new_mouse_interaction;
+                    }
+
+                    window.request_redraw();
                 }
-
-                debug.draw_started();
-                let new_mouse_interaction = user_interface.draw(
-                    &mut renderer,
-                    state.theme(),
-                    &renderer::Style {
-                        text_color: state.text_color(),
-                    },
-                    state.cursor_position(),
-                );
-                debug.draw_finished();
-
-                // TODO(derezzedex)
-                let window = windows.values().next().expect("No window found");
-                if new_mouse_interaction != mouse_interaction {
-                    window.set_cursor_icon(conversion::mouse_interaction(
-                        new_mouse_interaction,
-                    ));
-
-                    mouse_interaction = new_mouse_interaction;
-                }
-
-                window.request_redraw();
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),
@@ -456,43 +494,81 @@ async fn run_instance<A, E, C>(
                     messages.push(message);
                 }
                 Event::WindowCreated(id, window) => {
+                    let mut surface = compositor.create_surface(&window);
+
+                    let state = State::new(&application, &window);
+
+                    let physical_size = state.physical_size();
+
+                    compositor.configure_surface(
+                        &mut surface,
+                        physical_size.width,
+                        physical_size.height,
+                    );
+
+                    let user_interface = build_user_interface(
+                        &application,
+                        user_interface::Cache::default(),
+                        &mut renderer,
+                        state.logical_size(),
+                        &mut debug,
+                    );
+
+                    let window_state: WindowState<A, C> =
+                        WindowState { surface, state };
+
+                    let _ = states.insert(id, window_state);
+                    let _ = interfaces.insert(id, user_interface);
+                    let _ = window_ids.insert(window.id(), id);
                     let _ = windows.insert(id, window);
                 }
                 Event::NewWindow(_, _) => unreachable!(),
             },
-            event::Event::RedrawRequested(_) => {
-                let physical_size = state.physical_size();
+            event::Event::RedrawRequested(id) => {
+                let window_state = window_ids
+                    .get(&id)
+                    .and_then(|id| states.get_mut(id))
+                    .unwrap();
+
+                let mut user_interface = window_ids
+                    .get(&id)
+                    .and_then(|id| interfaces.remove(id))
+                    .unwrap();
+
+                let physical_size = window_state.state.physical_size();
 
                 if physical_size.width == 0 || physical_size.height == 0 {
                     continue;
                 }
 
                 debug.render_started();
-                let current_viewport_version = state.viewport_version();
 
-                if viewport_version != current_viewport_version {
-                    let logical_size = state.logical_size();
+                if window_state.state.viewport_changed() {
+                    let logical_size = window_state.state.logical_size();
 
                     debug.layout_started();
-                    user_interface = ManuallyDrop::new(
-                        ManuallyDrop::into_inner(user_interface)
-                            .relayout(logical_size, &mut renderer),
-                    );
+                    user_interface =
+                        user_interface.relayout(logical_size, &mut renderer);
                     debug.layout_finished();
 
                     debug.draw_started();
-                    let new_mouse_interaction = user_interface.draw(
-                        &mut renderer,
-                        state.theme(),
-                        &renderer::Style {
-                            text_color: state.text_color(),
-                        },
-                        state.cursor_position(),
-                    );
+                    let new_mouse_interaction = {
+                        let state = &window_state.state;
 
-                    // TODO(derezzedex)
-                    let window =
-                        windows.values().next().expect("No window found");
+                        user_interface.draw(
+                            &mut renderer,
+                            state.theme(),
+                            &renderer::Style {
+                                text_color: state.text_color(),
+                            },
+                            state.cursor_position(),
+                        )
+                    };
+
+                    let window = window_ids
+                        .get(&id)
+                        .and_then(|id| windows.get(id))
+                        .unwrap();
                     if new_mouse_interaction != mouse_interaction {
                         window.set_cursor_icon(conversion::mouse_interaction(
                             new_mouse_interaction,
@@ -502,20 +578,21 @@ async fn run_instance<A, E, C>(
                     }
                     debug.draw_finished();
 
+                    let _ = interfaces
+                        .insert(*window_ids.get(&id).unwrap(), user_interface);
+
                     compositor.configure_surface(
-                        &mut surface,
+                        &mut window_state.surface,
                         physical_size.width,
                         physical_size.height,
                     );
-
-                    viewport_version = current_viewport_version;
                 }
 
                 match compositor.present(
                     &mut renderer,
-                    &mut surface,
-                    state.viewport(),
-                    state.background_color(),
+                    &mut window_state.surface,
+                    window_state.state.viewport(),
+                    window_state.state.background_color(),
                     &debug.overlay(),
                 ) {
                     Ok(()) => {
@@ -545,22 +622,30 @@ async fn run_instance<A, E, C>(
             }
             event::Event::WindowEvent {
                 event: window_event,
-                ..
+                window_id,
             } => {
-                if requests_exit(&window_event, state.modifiers())
+                // dbg!(window_id);
+                let window = window_ids
+                    .get(&window_id)
+                    .and_then(|id| windows.get(id))
+                    .unwrap();
+                let window_state = window_ids
+                    .get(&window_id)
+                    .and_then(|id| states.get_mut(id))
+                    .unwrap();
+
+                if requests_exit(&window_event, window_state.state.modifiers())
                     && exit_on_close_request
                 {
                     break;
                 }
 
-                // TODO(derezzedex)
-                let window = windows.values().next().expect("No window found");
-                state.update(window, &window_event, &mut debug);
+                window_state.state.update(window, &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(
                     &window_event,
-                    state.scale_factor(),
-                    state.modifiers(),
+                    window_state.state.scale_factor(),
+                    window_state.state.modifiers(),
                 ) {
                     events.push(event);
                 }
@@ -570,7 +655,7 @@ async fn run_instance<A, E, C>(
     }
 
     // Manually drop the user interface
-    drop(ManuallyDrop::into_inner(user_interface));
+    // drop(ManuallyDrop::into_inner(user_interface));
 }
 
 /// Returns true if the provided event should cause an [`Application`] to
@@ -789,6 +874,54 @@ pub fn run_command<A, E>(
             }
         }
     }
+}
+
+struct WindowState<A, C>
+where
+    A: Application,
+    C: iced_graphics::window::Compositor<Renderer = A::Renderer>,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
+    surface: <C as iced_graphics::window::Compositor>::Surface,
+    state: State<A>,
+}
+
+fn build_user_interfaces<'a, A, C>(
+    application: &'a A,
+    renderer: &mut A::Renderer,
+    debug: &mut Debug,
+    states: &HashMap<window::Id, WindowState<A, C>>,
+    mut pure_states: HashMap<window::Id, user_interface::Cache>,
+) -> HashMap<
+    window::Id,
+    UserInterface<
+        'a,
+        <A as Application>::Message,
+        <A as Application>::Renderer,
+    >,
+>
+where
+    A: Application + 'static,
+    C: iced_graphics::window::Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
+    let mut interfaces = HashMap::new();
+
+    for (id, pure_state) in pure_states.drain() {
+        let state = &states.get(&id).unwrap().state;
+
+        let user_interface = build_user_interface(
+            application,
+            pure_state,
+            renderer,
+            state.logical_size(),
+            debug,
+        );
+
+        let _ = interfaces.insert(id, user_interface);
+    }
+
+    interfaces
 }
 
 #[cfg(not(target_arch = "wasm32"))]
