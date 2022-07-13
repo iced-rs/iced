@@ -227,7 +227,7 @@ where
             &self.font,
             self.is_secure,
             self.on_change.as_ref(),
-            &self.on_paste,
+            self.on_paste.as_deref(),
             &self.on_submit,
             || tree.state.downcast_mut::<text_input::State>(),
         )

@@ -237,7 +237,7 @@ pub fn update<'a, Message, Renderer>(
     font: &Renderer::Font,
     is_secure: bool,
     on_change: &dyn Fn(String) -> Message,
-    on_paste: &Option<Box<dyn Fn(String) -> Message + 'a>>,
+    on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
 ) -> event::Status
@@ -821,7 +821,7 @@ where
             &self.font,
             self.is_secure,
             self.on_change.as_ref(),
-            &self.on_paste,
+            self.on_paste.as_deref(),
             &self.on_submit,
             || &mut self.state,
         )
