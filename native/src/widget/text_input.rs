@@ -66,6 +66,7 @@ where
     padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
+    on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -102,6 +103,7 @@ where
             padding: Padding::ZERO,
             size: None,
             on_change: Box::new(on_change),
+            on_paste: None,
             on_submit: None,
             style: Default::default(),
         }
@@ -110,6 +112,16 @@ where
     /// Converts the [`TextInput`] into a secure password input.
     pub fn password(mut self) -> Self {
         self.is_secure = true;
+        self
+    }
+
+    /// Sets the message that should be produced when some text is pasted into
+    /// the [`TextInput`].
+    pub fn on_paste(
+        mut self,
+        on_paste: impl Fn(String) -> Message + 'a,
+    ) -> Self {
+        self.on_paste = Some(Box::new(on_paste));
         self
     }
 
@@ -225,6 +237,7 @@ pub fn update<'a, Message, Renderer>(
     font: &Renderer::Font,
     is_secure: bool,
     on_change: &dyn Fn(String) -> Message,
+    on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
 ) -> event::Status
@@ -512,7 +525,11 @@ where
 
                             editor.paste(content.clone());
 
-                            let message = (on_change)(editor.contents());
+                            let message = if let Some(paste) = &on_paste {
+                                (paste)(editor.contents())
+                            } else {
+                                (on_change)(editor.contents())
+                            };
                             shell.publish(message);
 
                             state.is_pasting = Some(content);
@@ -804,6 +821,7 @@ where
             &self.font,
             self.is_secure,
             self.on_change.as_ref(),
+            self.on_paste.as_deref(),
             &self.on_submit,
             || &mut self.state,
         )
