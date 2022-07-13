@@ -114,14 +114,17 @@ where
         self.is_secure = true;
         self
     }
-    /// Set's the message that should be produced when a message is pasted into the [`TextInput`].
-    pub fn on_paste<OnPaste>(mut self, on_paste: OnPaste) -> Self
-    where
-        OnPaste: 'a + Fn(String) -> Message,
-    {
+
+    /// Sets the message that should be produced when some text is pasted into
+    /// the [`TextInput`].
+    pub fn on_paste(
+        mut self,
+        on_paste: impl Fn(String) -> Message + 'a,
+    ) -> Self {
         self.on_paste = Some(Box::new(on_paste));
         self
     }
+
     /// Sets the [`Font`] of the [`TextInput`].
     ///
     /// [`Font`]: crate::text::Renderer::Font
