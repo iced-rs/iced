@@ -24,7 +24,7 @@ jobs:
         name: todos-x86_64-unknown-linux-gnu
         path: target/release-opt/todos
     - name: Pack todos .deb package
-      run: cargo deb --no-build --package todos
+      run: cargo deb --no-build --profile release-opt --package todos
     - name: Rename todos .deb package
       run: mv target/debian/*.deb target/debian/iced_todos-x86_64-debian-linux-gnu.deb
     - name: Archive todos .deb package
