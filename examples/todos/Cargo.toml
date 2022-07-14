@@ -20,6 +20,6 @@ wasm-timer = "0.2"
 
 [package.metadata.deb]
 assets = [
-    ["target/release/todos", "usr/bin/iced-todos", "755"],
+    ["target/release-opt/todos", "usr/bin/iced-todos", "755"],
     ["iced-todos.desktop", "usr/share/applications/", "644"],
 ]
