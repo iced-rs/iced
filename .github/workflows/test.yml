@@ -20,8 +20,8 @@ jobs:
         sudo apt-get install -y libxkbcommon-dev
     - name: Run tests
       run: |
-        cargo test --verbose --all
-        cargo test --verbose --all --all-features
+        cargo test --verbose --workspace
+        cargo test --verbose --workspace --all-features
 
   web:
     runs-on: ubuntu-latest
