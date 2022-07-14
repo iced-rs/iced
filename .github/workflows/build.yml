@@ -16,17 +16,13 @@ jobs:
         export DEBIAN_FRONTED=noninteractive
         sudo apt-get -qq update
         sudo apt-get install -y libxkbcommon-dev
-    - name: Enable Link Time Optimizations
-      run: |
-        echo "[profile.release]" >> Cargo.toml
-        echo "lto = true" >> Cargo.toml
     - name: Build todos binary
-      run: cargo build --verbose --release --package todos
+      run: cargo build --verbose --profile release-opt --package todos
     - name: Archive todos binary
       uses: actions/upload-artifact@v1
       with:
         name: todos-x86_64-unknown-linux-gnu
-        path: target/release/todos
+        path: target/release-opt/todos
     - name: Pack todos .deb package
       run: cargo deb --no-build --package todos
     - name: Rename todos .deb package
@@ -42,10 +38,6 @@ jobs:
     steps:
     - uses: hecrj/setup-rust-action@v1
     - uses: actions/checkout@master
-    - name: Enable Link Time Optimizations
-      run: |
-        echo "[profile.release]" >> Cargo.toml
-        echo "lto = true" >> Cargo.toml
     - name: Enable static CRT linkage
       run: |
         mkdir .cargo
@@ -55,33 +47,29 @@ jobs:
       run: |
         sed -i '1 i\#![windows_subsystem = \"windows\"]' examples/todos/src/main.rs
     - name: Build todos binary
-      run: cargo build --verbose --release --package todos
+      run: cargo build --verbose --profile release-opt --package todos
     - name: Archive todos binary
       uses: actions/upload-artifact@v1
       with:
         name: todos-x86_64-pc-windows-msvc
-        path: target/release/todos.exe
+        path: target/release-opt/todos.exe
 
   todos_macos:
     runs-on: macOS-latest
     steps:
     - uses: hecrj/setup-rust-action@v1
     - uses: actions/checkout@master
-    - name: Enable Link Time Optimizations
-      run: |
-        echo "[profile.release]" >> Cargo.toml
-        echo "lto = true" >> Cargo.toml
     - name: Build todos binary
       env:
         MACOSX_DEPLOYMENT_TARGET: 10.14
-      run: cargo build --verbose --release --package todos
+      run: cargo build --verbose --profile release-opt --package todos
     - name: Open binary via double-click
-      run: chmod +x target/release/todos
+      run: chmod +x target/release-opt/todos
     - name: Archive todos binary
       uses: actions/upload-artifact@v1
       with:
         name: todos-x86_64-apple-darwin
-        path: target/release/todos
+        path: target/release-opt/todos
 
   todos_raspberry:
     runs-on: ubuntu-latest
@@ -90,21 +78,17 @@ jobs:
     - uses: actions/checkout@master
     - name: Install cross
       run: cargo install cross
-    - name: Enable Link Time Optimizations
-      run: |
-        echo "[profile.release]" >> Cargo.toml
-        echo "lto = true" >> Cargo.toml
     - name: Build todos binary for Raspberry Pi 3/4 (64 bits)
-      run: cross build --verbose --release --package todos --target aarch64-unknown-linux-gnu
+      run: cross build --verbose --profile release-opt --package todos --target aarch64-unknown-linux-gnu
     - name: Archive todos binary
       uses: actions/upload-artifact@v1
       with:
         name: todos-aarch64-unknown-linux-gnu
-        path: target/aarch64-unknown-linux-gnu/release/todos
+        path: target/aarch64-unknown-linux-gnu/release-opt/todos
     - name: Build todos binary for Raspberry Pi 2/3/4 (32 bits)
-      run: cross build --verbose --release --package todos --target armv7-unknown-linux-gnueabihf
+      run: cross build --verbose --profile release-opt --package todos --target armv7-unknown-linux-gnueabihf
     - name: Archive todos binary
       uses: actions/upload-artifact@v1
       with:
         name: todos-armv7-unknown-linux-gnueabihf
-        path: target/armv7-unknown-linux-gnueabihf/release/todos
+        path: target/armv7-unknown-linux-gnueabihf/release-opt/todos
