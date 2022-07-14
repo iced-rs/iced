@@ -368,13 +368,27 @@ async fn run_instance<A, E, C>(
     'main: while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
-                dbg!(states.keys().collect::<Vec<_>>());
                 for id in states.keys().copied().collect::<Vec<_>>() {
+                    let (filtered, remaining): (Vec<_>, Vec<_>) = events
+                        .iter()
+                        .cloned()
+                        .partition(
+                            |(window_id, _event): &(
+                                Option<crate::window::Id>,
+                                iced_native::event::Event,
+                            )| {
+                                *window_id == Some(id) || *window_id == None
+                            },
+                        );
+
+                    events.retain(|el| remaining.contains(el));
+                    let filtered: Vec<_> = filtered.into_iter().map(|(_id, event)| event.clone()).collect();
+
                     let cursor_position =
                         states.get(&id).unwrap().state.cursor_position();
                     let window = windows.get(&id).unwrap();
 
-                    if events.is_empty() && messages.is_empty() {
+                    if filtered.is_empty() && messages.is_empty() {
                         continue;
                     }
 
@@ -383,7 +397,7 @@ async fn run_instance<A, E, C>(
                     let (interface_state, statuses) = {
                         let user_interface = interfaces.get_mut(&id).unwrap();
                         user_interface.update(
-                            &events,
+                            &filtered,
                             cursor_position,
                             &mut renderer,
                             &mut clipboard,
@@ -393,11 +407,11 @@ async fn run_instance<A, E, C>(
 
                     debug.event_processing_finished();
 
-                    // TODO(derezzedex): only drain events for this window
-                    for event in events.drain(..).zip(statuses.into_iter()) {
+                    for event in filtered.into_iter().zip(statuses.into_iter()) {
                         runtime.broadcast(event);
                     }
 
+                    // TODO(derezzedex): Should we redraw every window? We can't know what changed.
                     if !messages.is_empty()
                         || matches!(
                             interface_state,
@@ -475,18 +489,22 @@ async fn run_instance<A, E, C>(
                         mouse_interaction = new_mouse_interaction;
                     }
 
-                    window.request_redraw();
+                    for window in windows.values(){
+                        window.request_redraw();
+                    }
                 }
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),
             )) => {
                 use iced_native::event;
-
-                events.push(iced_native::Event::PlatformSpecific(
-                    event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
-                        url,
-                    )),
+                events.push((
+                    None,
+                    iced_native::Event::PlatformSpecific(
+                        event::PlatformSpecific::MacOS(
+                            event::MacOS::ReceivedUrl(url),
+                        ),
+                    ),
                 ));
             }
             event::Event::UserEvent(event) => match event {
@@ -529,12 +547,6 @@ async fn run_instance<A, E, C>(
                     .get(&id)
                     .and_then(|id| states.get_mut(id))
                     .unwrap();
-
-                let mut user_interface = window_ids
-                    .get(&id)
-                    .and_then(|id| interfaces.remove(id))
-                    .unwrap();
-
                 let physical_size = window_state.state.physical_size();
 
                 if physical_size.width == 0 || physical_size.height == 0 {
@@ -544,6 +556,11 @@ async fn run_instance<A, E, C>(
                 debug.render_started();
 
                 if window_state.state.viewport_changed() {
+                    let mut user_interface = window_ids
+                        .get(&id)
+                        .and_then(|id| interfaces.remove(id))
+                        .unwrap();
+
                     let logical_size = window_state.state.logical_size();
 
                     debug.layout_started();
@@ -647,7 +664,7 @@ async fn run_instance<A, E, C>(
                     window_state.state.scale_factor(),
                     window_state.state.modifiers(),
                 ) {
-                    events.push(event);
+                    events.push((window_ids.get(&window_id).cloned(), event));
                 }
             }
             _ => {}
