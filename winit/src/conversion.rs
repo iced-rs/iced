@@ -6,7 +6,7 @@ use crate::keyboard;
 use crate::mouse;
 use crate::touch;
 use crate::window;
-use crate::{Event, Mode, Point, Position};
+use crate::{Event, Point, Position};
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -179,29 +179,6 @@ pub fn position(
                 None
             }
         }
-    }
-}
-
-/// Converts a [`Mode`] to a [`winit`] fullscreen mode.
-///
-/// [`winit`]: https://github.com/rust-windowing/winit
-pub fn fullscreen(
-    monitor: Option<winit::monitor::MonitorHandle>,
-    mode: Mode,
-) -> Option<winit::window::Fullscreen> {
-    match mode {
-        Mode::Windowed | Mode::Hidden => None,
-        Mode::Fullscreen => {
-            Some(winit::window::Fullscreen::Borderless(monitor))
-        }
-    }
-}
-
-/// Converts a [`Mode`] to a visibility flag.
-pub fn visible(mode: Mode) -> bool {
-    match mode {
-        Mode::Windowed | Mode::Fullscreen => true,
-        Mode::Hidden => false,
     }
 }
 

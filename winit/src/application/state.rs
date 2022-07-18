@@ -1,6 +1,6 @@
 use crate::application::{self, StyleSheet as _};
 use crate::conversion;
-use crate::{Application, Color, Debug, Mode, Point, Size, Viewport};
+use crate::{Application, Color, Debug, Point, Size, Viewport};
 
 use std::marker::PhantomData;
 use winit::event::{Touch, WindowEvent};
@@ -13,7 +13,6 @@ where
     <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
     title: String,
-    mode: Mode,
     scale_factor: f64,
     viewport: Viewport,
     viewport_version: usize,
@@ -31,7 +30,6 @@ where
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {
         let title = application.title();
-        let mode = application.mode();
         let scale_factor = application.scale_factor();
         let theme = application.theme();
         let appearance = theme.appearance(application.style());
@@ -47,7 +45,6 @@ where
 
         Self {
             title,
-            mode,
             scale_factor,
             viewport,
             viewport_version: 0,
@@ -191,20 +188,6 @@ where
             window.set_title(&new_title);
 
             self.title = new_title;
-        }
-
-        // Update window mode
-        let new_mode = application.mode();
-
-        if self.mode != new_mode {
-            window.set_fullscreen(conversion::fullscreen(
-                window.current_monitor(),
-                new_mode,
-            ));
-
-            window.set_visible(conversion::visible(new_mode));
-
-            self.mode = new_mode;
         }
 
         // Update scale factor

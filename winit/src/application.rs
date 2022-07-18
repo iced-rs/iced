@@ -9,7 +9,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget::operation;
 use crate::{
-    Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings, Size,
+    Command, Debug, Error, Executor, Proxy, Runtime, Settings, Size,
     Subscription,
 };
 
@@ -81,16 +81,6 @@ where
         Subscription::none()
     }
 
-    /// Returns the current [`Application`] mode.
-    ///
-    /// The runtime will automatically transition your application if a new mode
-    /// is returned.
-    ///
-    /// By default, an application will run in windowed mode.
-    fn mode(&self) -> Mode {
-        Mode::Windowed
-    }
-
     /// Returns the scale factor of the [`Application`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
@@ -147,12 +137,15 @@ where
         runtime.enter(|| A::new(flags))
     };
 
-    let builder = settings.window.into_builder(
-        &application.title(),
-        application.mode(),
-        event_loop.primary_monitor(),
-        settings.id,
-    );
+    let should_be_visible = settings.window.visible;
+    let builder = settings
+        .window
+        .into_builder(
+            &application.title(),
+            event_loop.primary_monitor(),
+            settings.id,
+        )
+        .with_visible(false);
 
     log::info!("Window builder: {:#?}", builder);
 
@@ -189,6 +182,7 @@ where
         receiver,
         init_command,
         window,
+        should_be_visible,
         settings.exit_on_close_request,
     ));
 
@@ -239,6 +233,7 @@ async fn run_instance<A, E, C>(
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
     init_command: Command<A::Message>,
     window: winit::window::Window,
+    should_be_visible: bool,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
@@ -252,6 +247,7 @@ async fn run_instance<A, E, C>(
     let mut clipboard = Clipboard::connect(&window);
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(&window);
+    let mut visible = false;
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -383,6 +379,7 @@ async fn run_instance<A, E, C>(
                 event::MacOS::ReceivedUrl(url),
             )) => {
                 use iced_native::event;
+
                 events.push(iced_native::Event::PlatformSpecific(
                     event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
                         url,
@@ -449,6 +446,12 @@ async fn run_instance<A, E, C>(
                 ) {
                     Ok(()) => {
                         debug.render_finished();
+
+                        if !visible && should_be_visible {
+                            window.set_visible(true);
+
+                            visible = true;
+                        }
 
                         // TODO: Handle animations!
                         // Maybe we can use `ControlFlow::WaitUntil` for this.
