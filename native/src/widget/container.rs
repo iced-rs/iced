@@ -127,12 +127,20 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     height: Length,
+    max_width: u32,
+    max_height: u32,
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.loose().width(width).height(height).pad(padding);
+    let limits = limits
+        .loose()
+        .max_width(max_width)
+        .max_height(max_height)
+        .width(width)
+        .height(height)
+        .pad(padding);
 
     let mut content = layout_content(renderer, &limits.loose());
     let size = limits.resolve(content.size());
@@ -171,6 +179,8 @@ where
             limits,
             self.width,
             self.height,
+            self.max_width,
+            self.max_height,
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,

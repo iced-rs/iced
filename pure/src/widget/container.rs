@@ -156,6 +156,8 @@ where
             limits,
             self.width,
             self.height,
+            self.max_width,
+            self.max_height,
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
