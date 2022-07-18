@@ -162,9 +162,10 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     height: Length,
+    max_height: u32,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.width(width).height(height);
+    let limits = limits.max_height(max_height).width(width).height(height);
 
     let child_limits = layout::Limits::new(
         Size::new(limits.min().width, 0.0),
@@ -648,6 +649,7 @@ where
             limits,
             Widget::<Message, Renderer>::width(self),
             self.height,
+            self.max_height,
             |renderer, limits| self.content.layout(renderer, limits),
         )
     }
