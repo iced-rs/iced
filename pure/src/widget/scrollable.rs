@@ -133,6 +133,7 @@ where
             limits,
             Widget::<Message, Renderer>::width(self),
             self.height,
+            u32::MAX,
             |renderer, limits| {
                 self.content.as_widget().layout(renderer, limits)
             },
