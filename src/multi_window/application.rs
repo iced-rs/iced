@@ -88,7 +88,10 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
+    fn view(
+        &self,
+        window: window::Id,
+    ) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
 
     /// Returns the scale factor of the [`Application`].
     ///
@@ -178,8 +181,11 @@ where
         self.0.update(message)
     }
 
-    fn view(&self) -> Element<'_, Self::Message, Self::Renderer> {
-        self.0.view()
+    fn view(
+        &self,
+        window: window::Id,
+    ) -> Element<'_, Self::Message, Self::Renderer> {
+        self.0.view(window)
     }
 
     fn theme(&self) -> A::Theme {

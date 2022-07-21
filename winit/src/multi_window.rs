@@ -82,7 +82,10 @@ where
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message, Self::Renderer>;
+    fn view(
+        &self,
+        window: window::Id,
+    ) -> Element<'_, Self::Message, Self::Renderer>;
 
     /// Initializes the [`Application`] with the flags provided to
     /// [`run`] as part of the [`Settings`].
@@ -331,6 +334,7 @@ async fn run_instance<A, E, C>(
             &mut renderer,
             state.logical_size(),
             &mut debug,
+            id,
         );
 
         let window_state: WindowState<A, C> = WindowState { surface, state };
@@ -354,6 +358,7 @@ async fn run_instance<A, E, C>(
             &mut proxy,
             &mut debug,
             &windows,
+            &window_ids,
             || compositor.fetch_information(),
         );
     }
@@ -369,10 +374,8 @@ async fn run_instance<A, E, C>(
         match event {
             event::Event::MainEventsCleared => {
                 for id in states.keys().copied().collect::<Vec<_>>() {
-                    let (filtered, remaining): (Vec<_>, Vec<_>) = events
-                        .iter()
-                        .cloned()
-                        .partition(
+                    let (filtered, remaining): (Vec<_>, Vec<_>) =
+                        events.iter().cloned().partition(
                             |(window_id, _event): &(
                                 Option<crate::window::Id>,
                                 iced_native::event::Event,
@@ -382,7 +385,10 @@ async fn run_instance<A, E, C>(
                         );
 
                     events.retain(|el| remaining.contains(el));
-                    let filtered: Vec<_> = filtered.into_iter().map(|(_id, event)| event.clone()).collect();
+                    let filtered: Vec<_> = filtered
+                        .into_iter()
+                        .map(|(_id, event)| event)
+                        .collect();
 
                     let cursor_position =
                         states.get(&id).unwrap().state.cursor_position();
@@ -407,7 +413,8 @@ async fn run_instance<A, E, C>(
 
                     debug.event_processing_finished();
 
-                    for event in filtered.into_iter().zip(statuses.into_iter()) {
+                    for event in filtered.into_iter().zip(statuses.into_iter())
+                    {
                         runtime.broadcast(event);
                     }
 
@@ -444,6 +451,7 @@ async fn run_instance<A, E, C>(
                             &mut debug,
                             &mut messages,
                             &windows,
+                            &window_ids,
                             || compositor.fetch_information(),
                         );
 
@@ -489,7 +497,7 @@ async fn run_instance<A, E, C>(
                         mouse_interaction = new_mouse_interaction;
                     }
 
-                    for window in windows.values(){
+                    for window in windows.values() {
                         window.request_redraw();
                     }
                 }
@@ -530,6 +538,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         state.logical_size(),
                         &mut debug,
+                        id,
                     );
 
                     let window_state: WindowState<A, C> =
@@ -707,12 +716,13 @@ pub fn build_user_interface<'a, A: Application>(
     renderer: &mut A::Renderer,
     size: Size,
     debug: &mut Debug,
+    id: window::Id,
 ) -> UserInterface<'a, A::Message, A::Renderer>
 where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     debug.view_started();
-    let view = application.view();
+    let view = application.view(id);
     debug.view_finished();
 
     debug.layout_started();
@@ -735,6 +745,7 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     windows: &HashMap<window::Id, winit::window::Window>,
+    window_ids: &HashMap<winit::window::WindowId, window::Id>,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
@@ -757,6 +768,7 @@ pub fn update<A: Application, E: Executor>(
             proxy,
             debug,
             windows,
+            window_ids,
             graphics_info,
         );
     }
@@ -777,6 +789,7 @@ pub fn run_command<A, E>(
     proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
     debug: &mut Debug,
     windows: &HashMap<window::Id, winit::window::Window>,
+    window_ids: &HashMap<winit::window::WindowId, window::Id>,
     _graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     A: Application,
@@ -787,7 +800,9 @@ pub fn run_command<A, E>(
     use iced_native::system;
     use iced_native::window;
 
+    // TODO(derezzedex)
     let window = windows.values().next().expect("No window found");
+    let id = *window_ids.get(&window.id()).unwrap();
 
     for action in command.actions() {
         match action {
@@ -868,6 +883,7 @@ pub fn run_command<A, E>(
                     renderer,
                     state.logical_size(),
                     debug,
+                    id,
                 );
 
                 while let Some(mut operation) = current_operation.take() {
@@ -933,6 +949,7 @@ where
             renderer,
             state.logical_size(),
             debug,
+            id,
         );
 
         let _ = interfaces.insert(id, user_interface);
