@@ -39,6 +39,8 @@ pub enum Event<Message> {
     // (maybe we should also allow users to listen/react to those internal messages?)
     NewWindow(window::Id, settings::Window),
     /// TODO(derezzedex)
+    CloseWindow(window::Id),
+    /// TODO(derezzedex)
     WindowCreated(window::Id, winit::window::Window),
 }
 
@@ -549,6 +551,27 @@ async fn run_instance<A, E, C>(
                     let _ = window_ids.insert(window.id(), id);
                     let _ = windows.insert(id, window);
                 }
+                Event::CloseWindow(id) => {
+                    // TODO(derezzedex): log errors
+                    if let Some(window) = windows.get(&id) {
+                        if window_ids.remove(&window.id()).is_none() {
+                            println!("Failed to remove from `window_ids`!");
+                        }
+                    }
+                    if states.remove(&id).is_none() {
+                        println!("Failed to remove from `states`!")
+                    }
+                    if interfaces.remove(&id).is_none() {
+                        println!("Failed to remove from `interfaces`!");
+                    }
+                    if windows.remove(&id).is_none() {
+                        println!("Failed to remove from `windows`!")
+                    }
+
+                    if windows.is_empty() {
+                        break 'main;
+                    }
+                }
                 Event::NewWindow(_, _) => unreachable!(),
             },
             event::Event::RedrawRequested(id) => {
@@ -651,29 +674,43 @@ async fn run_instance<A, E, C>(
                 window_id,
             } => {
                 // dbg!(window_id);
-                let window = window_ids
-                    .get(&window_id)
-                    .and_then(|id| windows.get(id))
-                    .unwrap();
-                let window_state = window_ids
-                    .get(&window_id)
-                    .and_then(|id| states.get_mut(id))
-                    .unwrap();
-
-                if requests_exit(&window_event, window_state.state.modifiers())
-                    && exit_on_close_request
+                if let Some(window) =
+                    window_ids.get(&window_id).and_then(|id| windows.get(id))
                 {
-                    break;
-                }
+                    if let Some(window_state) = window_ids
+                        .get(&window_id)
+                        .and_then(|id| states.get_mut(id))
+                    {
+                        if requests_exit(
+                            &window_event,
+                            window_state.state.modifiers(),
+                        ) && exit_on_close_request
+                        {
+                            break;
+                        }
 
-                window_state.state.update(window, &window_event, &mut debug);
+                        window_state.state.update(
+                            window,
+                            &window_event,
+                            &mut debug,
+                        );
 
-                if let Some(event) = conversion::window_event(
-                    &window_event,
-                    window_state.state.scale_factor(),
-                    window_state.state.modifiers(),
-                ) {
-                    events.push((window_ids.get(&window_id).cloned(), event));
+                        if let Some(event) = conversion::window_event(
+                            &window_event,
+                            window_state.state.scale_factor(),
+                            window_state.state.modifiers(),
+                        ) {
+                            events.push((
+                                window_ids.get(&window_id).cloned(),
+                                event,
+                            ));
+                        }
+                    } else {
+                        // TODO(derezzedex): log error
+                    }
+                } else {
+                    // TODO(derezzedex): log error
+                    // println!("{:?}: {:?}", window_id, window_event);
                 }
             }
             _ => {}

@@ -189,6 +189,17 @@ where
         proxy: &EventLoopProxy<Event<A::Message>>,
     ) {
         let new_windows = application.windows();
+
+        // Check for windows to close
+        for window_id in windows.keys() {
+            if !new_windows.iter().any(|(id, _)| id == window_id) {
+                proxy
+                    .send_event(Event::CloseWindow(*window_id))
+                    .expect("Failed to send message");
+            }
+        }
+
+        // Check for windows to spawn
         for (id, settings) in new_windows {
             if !windows.contains_key(&id) {
                 proxy

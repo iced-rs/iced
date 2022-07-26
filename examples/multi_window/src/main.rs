@@ -50,6 +50,7 @@ enum WindowMessage {
     Close(pane_grid::Pane),
     CloseFocused,
     SelectedWindow(pane_grid::Pane, SelectableWindow),
+    CloseWindow,
 }
 
 impl Application for Example {
@@ -128,6 +129,9 @@ impl Application for Example {
                 let window = self.windows.get_mut(&id).unwrap();
                 window.focus = Some(pane);
             }
+            WindowMessage::CloseWindow => {
+                let _ = self.windows.remove(&id);
+            }
             WindowMessage::Resized(pane_grid::ResizeEvent { split, ratio }) => {
                 let window = self.windows.get_mut(&id).unwrap();
                 window.panes.resize(&split, ratio);
@@ -145,8 +149,6 @@ impl Application for Example {
                     if let Some((pane, _)) = result {
                         window.focus = Some(pane);
                     }
-
-                    self.panes_created += 1;
                 }
             }
             WindowMessage::ToggleMoving(pane) => {
@@ -260,6 +262,9 @@ impl Application for Example {
                     WindowMessage::TitleChanged,
                 ),
                 button(text("Apply")).style(theme::Button::Primary),
+                button(text("Close"))
+                    .on_press(WindowMessage::CloseWindow)
+                    .style(theme::Button::Destructive),
             ]
             .spacing(5)
             .align_items(Alignment::Center);
