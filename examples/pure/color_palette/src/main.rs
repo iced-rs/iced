@@ -89,7 +89,7 @@ impl Sandbox for ColorPalette {
 }
 
 #[derive(Debug)]
-pub struct Theme {
+struct Theme {
     lower: Vec<Color>,
     base: Color,
     higher: Vec<Color>,
