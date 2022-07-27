@@ -147,6 +147,9 @@ where
     fn should_exit(&self) -> bool {
         false
     }
+
+    /// TODO(derezzedex)
+    fn close_requested(&self, window: window::Id) -> Self::Message;
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -296,7 +299,7 @@ async fn run_instance<A, E, C>(
     >,
     init_command: Command<A::Message>,
     mut windows: HashMap<window::Id, winit::window::Window>,
-    exit_on_close_request: bool,
+    _exit_on_close_request: bool,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -684,9 +687,13 @@ async fn run_instance<A, E, C>(
                         if requests_exit(
                             &window_event,
                             window_state.state.modifiers(),
-                        ) && exit_on_close_request
-                        {
-                            break;
+                        ) {
+                            if let Some(id) =
+                                window_ids.get(&window_id).cloned()
+                            {
+                                let message = application.close_requested(id);
+                                messages.push(message);
+                            }
                         }
 
                         window_state.state.update(

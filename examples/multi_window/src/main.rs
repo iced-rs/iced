@@ -250,6 +250,10 @@ impl Application for Example {
             .collect()
     }
 
+    fn close_requested(&self, window: window::Id) -> Self::Message {
+        Message::Window(window, WindowMessage::CloseWindow)
+    }
+
     fn view(&self, window_id: window::Id) -> Element<Message> {
         if let Some(window) = self.windows.get(&window_id) {
             let focus = window.focus;
