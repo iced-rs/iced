@@ -181,6 +181,8 @@ where
             style,
         }));
 
+        state.tree.diff(&container as &dyn Widget<_, _>);
+
         Self {
             state: &mut state.tree,
             container,
