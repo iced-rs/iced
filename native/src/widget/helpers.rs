@@ -47,18 +47,18 @@ where
 /// Creates a new [`Column`] with the given children.
 ///
 /// [`Column`]: widget::Column
-pub fn column<'a, Message, Renderer>(
-    children: Vec<Element<'a, Message, Renderer>>,
-) -> widget::Row<'a, Message, Renderer> {
+pub fn column<Message, Renderer>(
+    children: Vec<Element<'_, Message, Renderer>>,
+) -> widget::Row<'_, Message, Renderer> {
     widget::Row::with_children(children)
 }
 
 /// Creates a new [`Row`] with the given children.
 ///
 /// [`Row`]: widget::Row
-pub fn row<'a, Message, Renderer>(
-    children: Vec<Element<'a, Message, Renderer>>,
-) -> widget::Row<'a, Message, Renderer> {
+pub fn row<Message, Renderer>(
+    children: Vec<Element<'_, Message, Renderer>>,
+) -> widget::Row<'_, Message, Renderer> {
     widget::Row::with_children(children)
 }
 

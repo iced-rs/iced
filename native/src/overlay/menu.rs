@@ -252,7 +252,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.container.on_event(
-            &mut self.state,
+            self.state,
             event,
             layout,
             cursor_position,
@@ -270,7 +270,7 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.container.mouse_interaction(
-            &self.state,
+            self.state,
             layout,
             cursor_position,
             viewport,
@@ -303,7 +303,7 @@ where
         );
 
         self.container.draw(
-            &self.state,
+            self.state,
             renderer,
             theme,
             style,

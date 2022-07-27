@@ -85,7 +85,7 @@ impl Sandbox for ScrollableDemo {
                 .enumerate()
                 .map(|(i, variant)| {
                     let mut contents = column![
-                        variant.title.as_ref(),
+                        variant.title,
                         button("Scroll to bottom",)
                             .width(Length::Fill)
                             .padding(10)
