@@ -1,11 +1,13 @@
 use std::{f32::consts::PI, time::Instant};
 
 use iced::executor;
-use iced::pure::widget::canvas::{
+use iced::widget::canvas::{
     self, Cache, Canvas, Cursor, Geometry, Path, Stroke,
 };
-use iced::pure::{Application, Element};
-use iced::{Command, Length, Point, Rectangle, Settings, Subscription, Theme};
+use iced::{
+    Application, Command, Element, Length, Point, Rectangle, Settings,
+    Subscription, Theme,
+};
 
 pub fn main() -> iced::Result {
     Arc::run(Settings {
