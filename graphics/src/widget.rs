@@ -14,6 +14,3 @@ pub mod qr_code;
 #[cfg(feature = "qr_code")]
 #[doc(no_inline)]
 pub use qr_code::QRCode;
-
-#[cfg(feature = "pure")]
-pub mod pure;
