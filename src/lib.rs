@@ -51,15 +51,9 @@
 //! We start by modelling the __state__ of our application:
 //!
 //! ```
-//! use iced::button;
-//!
 //! struct Counter {
 //!     // The counter value
 //!     value: i32,
-//!
-//!     // The local state of the two buttons
-//!     increment_button: button::State,
-//!     decrement_button: button::State,
 //! }
 //! ```
 //!
@@ -78,15 +72,9 @@
 //! __view logic__:
 //!
 //! ```
-//! # use iced::button;
-//! #
 //! # struct Counter {
 //! #     // The counter value
 //! #     value: i32,
-//! #
-//! #     // The local state of the two buttons
-//! #     increment_button: button::State,
-//! #     decrement_button: button::State,
 //! # }
 //! #
 //! # #[derive(Debug, Clone, Copy)]
@@ -95,28 +83,22 @@
 //! #     DecrementPressed,
 //! # }
 //! #
-//! use iced::{Button, Column, Text};
+//! use iced::widget::{button, column, text, Column};
 //!
 //! impl Counter {
 //!     pub fn view(&mut self) -> Column<Message> {
 //!         // We use a column: a simple vertical layout
-//!         Column::new()
-//!             .push(
-//!                 // The increment button. We tell it to produce an
-//!                 // `IncrementPressed` message when pressed
-//!                 Button::new(&mut self.increment_button, Text::new("+"))
-//!                     .on_press(Message::IncrementPressed),
-//!             )
-//!             .push(
-//!                 // We show the value of the counter here
-//!                 Text::new(self.value.to_string()).size(50),
-//!             )
-//!             .push(
-//!                 // The decrement button. We tell it to produce a
-//!                 // `DecrementPressed` message when pressed
-//!                 Button::new(&mut self.decrement_button, Text::new("-"))
-//!                     .on_press(Message::DecrementPressed),
-//!             )
+//!         column![
+//!             // The increment button. We tell it to produce an
+//!             // `IncrementPressed` message when pressed
+//!             button("+").on_press(Message::IncrementPressed),
+//!
+//!             // We show the value of the counter here
+//!             text(self.value.to_string()).size(50),
+//!
+//!             // The decrement button. We tell it to produce a
+//!             button("-").on_press(Message::DecrementPressed),
+//!         ]
 //!     }
 //! }
 //! ```
@@ -125,15 +107,9 @@
 //! our __state__ accordingly in our __update logic__:
 //!
 //! ```
-//! # use iced::button;
-//! #
 //! # struct Counter {
 //! #     // The counter value
 //! #     value: i32,
-//! #
-//! #     // The local state of the two buttons
-//! #     increment_button: button::State,
-//! #     decrement_button: button::State,
 //! # }
 //! #
 //! # #[derive(Debug, Clone, Copy)]
@@ -203,10 +179,6 @@ pub mod time;
 pub mod widget;
 pub mod window;
 
-#[cfg(feature = "pure")]
-#[cfg_attr(docsrs, doc(cfg(feature = "pure")))]
-pub mod pure;
-
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_winit as runtime;
 
@@ -220,9 +192,6 @@ use iced_wgpu as renderer;
 use iced_glow as renderer;
 
 pub use iced_native::theme;
-
-#[doc(no_inline)]
-pub use widget::*;
 
 pub use application::Application;
 pub use element::Element;

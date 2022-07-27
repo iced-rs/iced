@@ -1,10 +1,9 @@
-use iced::canvas::{
-    self, Cache, Canvas, Cursor, Geometry, LineCap, Path, Stroke,
-};
 use iced::executor;
+use iced::widget::canvas::{Cache, Cursor, Geometry, LineCap, Path, Stroke};
+use iced::widget::{canvas, container};
 use iced::{
-    Application, Color, Command, Container, Element, Length, Point, Rectangle,
-    Settings, Subscription, Theme, Vector,
+    Application, Color, Command, Element, Length, Point, Rectangle, Settings,
+    Subscription, Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -69,10 +68,12 @@ impl Application for Clock {
         })
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let canvas = Canvas::new(self).width(Length::Fill).height(Length::Fill);
+    fn view(&self) -> Element<Message> {
+        let canvas = canvas(self as &Self)
+            .width(Length::Fill)
+            .height(Length::Fill);
 
-        Container::new(canvas)
+        container(canvas)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)
@@ -81,8 +82,11 @@ impl Application for Clock {
 }
 
 impl<Message> canvas::Program<Message> for Clock {
+    type State = ();
+
     fn draw(
         &self,
+        _state: &Self::State,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: Cursor,

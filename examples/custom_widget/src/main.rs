@@ -11,7 +11,8 @@ mod circle {
     // implemented by `iced_wgpu` and other renderers.
     use iced_native::layout::{self, Layout};
     use iced_native::renderer;
-    use iced_native::{Color, Element, Length, Point, Rectangle, Size, Widget};
+    use iced_native::widget::{self, Widget};
+    use iced_native::{Color, Element, Length, Point, Rectangle, Size};
 
     pub struct Circle {
         radius: f32,
@@ -21,6 +22,10 @@ mod circle {
         pub fn new(radius: f32) -> Self {
             Self { radius }
         }
+    }
+
+    pub fn circle(radius: f32) -> Circle {
+        Circle::new(radius)
     }
 
     impl<Message, Renderer> Widget<Message, Renderer> for Circle
@@ -45,6 +50,7 @@ mod circle {
 
         fn draw(
             &self,
+            _state: &widget::Tree,
             renderer: &mut Renderer,
             _theme: &Renderer::Theme,
             _style: &renderer::Style,
@@ -74,11 +80,9 @@ mod circle {
     }
 }
 
-use circle::Circle;
-use iced::{
-    slider, Alignment, Column, Container, Element, Length, Sandbox, Settings,
-    Slider, Text,
-};
+use circle::circle;
+use iced::widget::{column, container, slider, text};
+use iced::{Alignment, Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -86,7 +90,6 @@ pub fn main() -> iced::Result {
 
 struct Example {
     radius: f32,
-    slider: slider::State,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -98,10 +101,7 @@ impl Sandbox for Example {
     type Message = Message;
 
     fn new() -> Self {
-        Example {
-            radius: 50.0,
-            slider: slider::State::new(),
-        }
+        Example { radius: 50.0 }
     }
 
     fn title(&self) -> String {
@@ -116,25 +116,18 @@ impl Sandbox for Example {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let content = Column::new()
-            .padding(20)
-            .spacing(20)
-            .max_width(500)
-            .align_items(Alignment::Center)
-            .push(Circle::new(self.radius))
-            .push(Text::new(format!("Radius: {:.2}", self.radius)))
-            .push(
-                Slider::new(
-                    &mut self.slider,
-                    1.0..=100.0,
-                    self.radius,
-                    Message::RadiusChanged,
-                )
-                .step(0.01),
-            );
+    fn view(&self) -> Element<Message> {
+        let content = column![
+            circle(self.radius),
+            text(format!("Radius: {:.2}", self.radius)),
+            slider(1.0..=100.0, self.radius, Message::RadiusChanged).step(0.01),
+        ]
+        .padding(20)
+        .spacing(20)
+        .max_width(500)
+        .align_items(Alignment::Center);
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()

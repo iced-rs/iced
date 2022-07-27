@@ -36,9 +36,6 @@ pub mod triangle;
 pub mod widget;
 pub mod window;
 
-#[doc(no_inline)]
-pub use widget::*;
-
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
 pub use error::Error;

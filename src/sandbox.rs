@@ -56,7 +56,7 @@ use crate::{Application, Command, Element, Error, Settings, Subscription};
 /// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::{Element, Sandbox, Settings, Text};
+/// use iced::{Element, Sandbox, Settings};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -79,8 +79,8 @@ use crate::{Application, Command, Element, Error, Settings, Subscription};
 ///         // This application has no interactions
 ///     }
 ///
-///     fn view(&mut self) -> Element<Self::Message> {
-///         Text::new("Hello, world!").into()
+///     fn view(&self) -> Element<Self::Message> {
+///         "Hello, world!".into()
 ///     }
 /// }
 /// ```
@@ -108,7 +108,7 @@ pub trait Sandbox {
     /// Returns the widgets to display in the [`Sandbox`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&mut self) -> Element<'_, Self::Message>;
+    fn view(&self) -> Element<'_, Self::Message>;
 
     /// Returns the current [`Theme`] of the [`Sandbox`].
     ///
@@ -184,7 +184,7 @@ where
         Command::none()
     }
 
-    fn view(&mut self) -> Element<'_, T::Message> {
+    fn view(&self) -> Element<'_, T::Message> {
         T::view(self)
     }
 

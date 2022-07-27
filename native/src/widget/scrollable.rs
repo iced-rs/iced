@@ -5,10 +5,10 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
-use crate::widget::Column;
+use crate::widget::tree::{self, Tree};
 use crate::{
-    Alignment, Background, Clipboard, Color, Element, Layout, Length, Padding,
-    Point, Rectangle, Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 use std::{f32, u32};
@@ -30,13 +30,11 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    state: &'a mut State,
     height: Length,
-    max_height: u32,
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    content: Column<'a, Message, Renderer>,
+    content: Element<'a, Message, Renderer>,
     on_scroll: Option<Box<dyn Fn(f32) -> Message + 'a>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -46,64 +44,22 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    /// Creates a new [`Scrollable`] with the given [`State`].
-    pub fn new(state: &'a mut State) -> Self {
+    /// Creates a new [`Scrollable`].
+    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Scrollable {
-            state,
             height: Length::Shrink,
-            max_height: u32::MAX,
             scrollbar_width: 10,
             scrollbar_margin: 0,
             scroller_width: 10,
-            content: Column::new(),
+            content: content.into(),
             on_scroll: None,
             style: Default::default(),
         }
     }
 
-    /// Sets the vertical spacing _between_ elements.
-    ///
-    /// Custom margins per element do not exist in Iced. You should use this
-    /// method instead! While less flexible, it helps you keep spacing between
-    /// elements consistent.
-    pub fn spacing(mut self, units: u16) -> Self {
-        self.content = self.content.spacing(units);
-        self
-    }
-
-    /// Sets the [`Padding`] of the [`Scrollable`].
-    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
-        self.content = self.content.padding(padding);
-        self
-    }
-
-    /// Sets the width of the [`Scrollable`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.content = self.content.width(width);
-        self
-    }
-
     /// Sets the height of the [`Scrollable`].
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
-        self
-    }
-
-    /// Sets the maximum width of the [`Scrollable`].
-    pub fn max_width(mut self, max_width: u32) -> Self {
-        self.content = self.content.max_width(max_width);
-        self
-    }
-
-    /// Sets the maximum height of the [`Scrollable`] in pixels.
-    pub fn max_height(mut self, max_height: u32) -> Self {
-        self.max_height = max_height;
-        self
-    }
-
-    /// Sets the horizontal alignment of the contents of the [`Scrollable`] .
-    pub fn align_items(mut self, align_items: Alignment) -> Self {
-        self.content = self.content.align_items(align_items);
         self
     }
 
@@ -132,7 +88,7 @@ where
     ///
     /// The function takes the new relative offset of the [`Scrollable`]
     /// (e.g. `0` means top, while `1` means bottom).
-    pub fn on_scroll(mut self, f: impl Fn(f32) -> Message + 'static) -> Self {
+    pub fn on_scroll(mut self, f: impl Fn(f32) -> Message + 'a) -> Self {
         self.on_scroll = Some(Box::new(f));
         self
     }
@@ -145,14 +101,189 @@ where
         self.style = style.into();
         self
     }
+}
 
-    /// Adds an element to the [`Scrollable`].
-    pub fn push<E>(mut self, child: E) -> Self
-    where
-        E: Into<Element<'a, Message, Renderer>>,
-    {
-        self.content = self.content.push(child);
-        self
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Scrollable<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
+    fn width(&self) -> Length {
+        self.content.as_widget().width()
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout(
+            renderer,
+            limits,
+            Widget::<Message, Renderer>::width(self),
+            self.height,
+            u32::MAX,
+            |renderer, limits| {
+                self.content.as_widget().layout(renderer, limits)
+            },
+        )
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        update(
+            tree.state.downcast_mut::<State>(),
+            event,
+            layout,
+            cursor_position,
+            clipboard,
+            shell,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+            &self.on_scroll,
+            |event, layout, cursor_position, clipboard, shell| {
+                self.content.as_widget_mut().on_event(
+                    &mut tree.children[0],
+                    event,
+                    layout,
+                    cursor_position,
+                    renderer,
+                    clipboard,
+                    shell,
+                )
+            },
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        draw(
+            tree.state.downcast_ref::<State>(),
+            renderer,
+            theme,
+            layout,
+            cursor_position,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+            self.style,
+            |renderer, layout, cursor_position, viewport| {
+                self.content.as_widget().draw(
+                    &tree.children[0],
+                    renderer,
+                    theme,
+                    style,
+                    layout,
+                    cursor_position,
+                    viewport,
+                )
+            },
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        mouse_interaction(
+            tree.state.downcast_ref::<State>(),
+            layout,
+            cursor_position,
+            self.scrollbar_width,
+            self.scrollbar_margin,
+            self.scroller_width,
+            |layout, cursor_position, viewport| {
+                self.content.as_widget().mouse_interaction(
+                    &tree.children[0],
+                    layout,
+                    cursor_position,
+                    viewport,
+                    renderer,
+                )
+            },
+        )
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.content
+            .as_widget()
+            .overlay(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+            )
+            .map(|overlay| {
+                let bounds = layout.bounds();
+                let content_layout = layout.children().next().unwrap();
+                let content_bounds = content_layout.bounds();
+                let offset = tree
+                    .state
+                    .downcast_ref::<State>()
+                    .offset(bounds, content_bounds);
+
+                overlay.translate(Vector::new(0.0, -(offset as f32)))
+            })
+    }
+}
+
+impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(
+        text_input: Scrollable<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(text_input)
     }
 }
 
@@ -625,145 +756,6 @@ fn notify_on_scroll<Message>(
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Scrollable<'a, Message, Renderer>
-where
-    Renderer: crate::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn width(&self) -> Length {
-        Widget::<Message, Renderer>::width(&self.content)
-    }
-
-    fn height(&self) -> Length {
-        self.height
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            Widget::<Message, Renderer>::width(self),
-            self.height,
-            self.max_height,
-            |renderer, limits| self.content.layout(renderer, limits),
-        )
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        update(
-            self.state,
-            event,
-            layout,
-            cursor_position,
-            clipboard,
-            shell,
-            self.scrollbar_width,
-            self.scrollbar_margin,
-            self.scroller_width,
-            &self.on_scroll,
-            |event, layout, cursor_position, clipboard, shell| {
-                self.content.on_event(
-                    event,
-                    layout,
-                    cursor_position,
-                    renderer,
-                    clipboard,
-                    shell,
-                )
-            },
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse_interaction(
-            self.state,
-            layout,
-            cursor_position,
-            self.scrollbar_width,
-            self.scrollbar_margin,
-            self.scroller_width,
-            |layout, cursor_position, viewport| {
-                self.content.mouse_interaction(
-                    layout,
-                    cursor_position,
-                    viewport,
-                    renderer,
-                )
-            },
-        )
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-    ) {
-        draw(
-            self.state,
-            renderer,
-            theme,
-            layout,
-            cursor_position,
-            self.scrollbar_width,
-            self.scrollbar_margin,
-            self.scroller_width,
-            self.style,
-            |renderer, layout, cursor_position, viewport| {
-                self.content.draw(
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor_position,
-                    viewport,
-                )
-            },
-        )
-    }
-
-    fn overlay(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        let Self { content, state, .. } = self;
-
-        content
-            .overlay(layout.children().next().unwrap(), renderer)
-            .map(|overlay| {
-                let bounds = layout.bounds();
-                let content_layout = layout.children().next().unwrap();
-                let content_bounds = content_layout.bounds();
-                let offset = state.offset(bounds, content_bounds);
-
-                overlay.translate(Vector::new(0.0, -(offset as f32)))
-            })
-    }
-}
-
 /// The local state of a [`Scrollable`].
 #[derive(Debug, Clone, Copy)]
 pub struct State {
@@ -925,18 +917,4 @@ impl Scrollbar {
 struct Scroller {
     /// The bounds of the [`Scroller`].
     bounds: Rectangle,
-}
-
-impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: 'a,
-    Renderer: 'a + crate::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn from(
-        scrollable: Scrollable<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(scrollable)
-    }
 }

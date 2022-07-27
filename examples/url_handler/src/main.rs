@@ -1,7 +1,7 @@
 use iced::executor;
+use iced::widget::{container, text};
 use iced::{
-    Application, Command, Container, Element, Length, Settings, Subscription,
-    Text, Theme,
+    Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 use iced_native::{
     event::{MacOS, PlatformSpecific},
@@ -55,13 +55,13 @@ impl Application for App {
         iced_native::subscription::events().map(Message::EventOccurred)
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let content = match &self.url {
-            Some(url) => Text::new(url),
-            None => Text::new("No URL received yet!"),
+            Some(url) => text(url),
+            None => text("No URL received yet!"),
         };
 
-        Container::new(content.size(48))
+        container(content.size(48))
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()

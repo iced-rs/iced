@@ -1,7 +1,5 @@
-use iced::{
-    button, Alignment, Button, Column, Container, Element, Length, Sandbox,
-    Settings, Text,
-};
+use iced::widget::{button, column, container};
+use iced::{Alignment, Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     Exit::run(Settings::default())
@@ -11,8 +9,6 @@ pub fn main() -> iced::Result {
 struct Exit {
     show_confirm: bool,
     exit: bool,
-    confirm_button: button::State,
-    exit_button: button::State,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -47,33 +43,24 @@ impl Sandbox for Exit {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let content = if self.show_confirm {
-            Column::new()
-                .spacing(10)
-                .align_items(Alignment::Center)
-                .push(Text::new("Are you sure you want to exit?"))
-                .push(
-                    Button::new(
-                        &mut self.confirm_button,
-                        Text::new("Yes, exit now"),
-                    )
+            column![
+                "Are you sure you want to exit?",
+                button("Yes, exit now")
                     .padding([10, 20])
                     .on_press(Message::Confirm),
-                )
+            ]
         } else {
-            Column::new()
-                .spacing(10)
-                .align_items(Alignment::Center)
-                .push(Text::new("Click the button to exit"))
-                .push(
-                    Button::new(&mut self.exit_button, Text::new("Exit"))
-                        .padding([10, 20])
-                        .on_press(Message::Exit),
-                )
-        };
+            column![
+                "Click the button to exit",
+                button("Exit").padding([10, 20]).on_press(Message::Exit),
+            ]
+        }
+        .spacing(10)
+        .align_items(Alignment::Center);
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)

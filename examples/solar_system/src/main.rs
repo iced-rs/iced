@@ -7,14 +7,15 @@
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::application;
-use iced::canvas::{self, Cursor, Path, Stroke};
 use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
+use iced::widget::canvas;
+use iced::widget::canvas::{Cursor, Path, Stroke};
 use iced::window;
 use iced::{
-    Application, Canvas, Color, Command, Element, Length, Point, Rectangle,
-    Settings, Size, Subscription, Vector,
+    Application, Color, Command, Element, Length, Point, Rectangle, Settings,
+    Size, Subscription, Vector,
 };
 
 use std::time::Instant;
@@ -68,8 +69,8 @@ impl Application for SolarSystem {
         time::every(std::time::Duration::from_millis(10)).map(Message::Tick)
     }
 
-    fn view(&mut self) -> Element<Message> {
-        Canvas::new(&mut self.state)
+    fn view(&self) -> Element<Message> {
+        canvas(&self.state)
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -145,8 +146,11 @@ impl State {
 }
 
 impl<Message> canvas::Program<Message> for State {
+    type State = ();
+
     fn draw(
         &self,
+        _state: &Self::State,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: Cursor,

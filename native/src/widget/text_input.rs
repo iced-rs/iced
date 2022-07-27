@@ -19,6 +19,7 @@ use crate::mouse::{self, click};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Size, Vector, Widget,
@@ -30,20 +31,15 @@ pub use iced_style::text_input::{Appearance, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_native::renderer::Null;
-/// # use iced_native::widget::text_input;
-/// #
-/// # pub type TextInput<'a, Message> = iced_native::widget::TextInput<'a, Message, Null>;
+/// # pub type TextInput<'a, Message> = iced_native::widget::TextInput<'a, Message, iced_native::renderer::Null>;
 /// #[derive(Debug, Clone)]
 /// enum Message {
 ///     TextInputChanged(String),
 /// }
 ///
-/// let mut state = text_input::State::new();
 /// let value = "Some text";
 ///
 /// let input = TextInput::new(
-///     &mut state,
 ///     "This is the placeholder...",
 ///     value,
 ///     Message::TextInputChanged,
@@ -57,7 +53,6 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    state: &'a mut State,
     placeholder: String,
     value: Value,
     is_secure: bool,
@@ -80,21 +75,14 @@ where
     /// Creates a new [`TextInput`].
     ///
     /// It expects:
-    /// - some [`State`]
-    /// - a placeholder
-    /// - the current value
-    /// - a function that produces a message when the [`TextInput`] changes
-    pub fn new<F>(
-        state: &'a mut State,
-        placeholder: &str,
-        value: &str,
-        on_change: F,
-    ) -> Self
+    /// - a placeholder,
+    /// - the current value, and
+    /// - a function that produces a message when the [`TextInput`] changes.
+    pub fn new<F>(placeholder: &str, value: &str, on_change: F) -> Self
     where
         F: 'a + Fn(String) -> Message,
     {
         TextInput {
-            state,
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
@@ -127,7 +115,7 @@ where
 
     /// Sets the [`Font`] of the [`TextInput`].
     ///
-    /// [`Font`]: crate::text::Renderer::Font
+    /// [`Font`]: text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
@@ -166,17 +154,13 @@ where
         self
     }
 
-    /// Returns the current [`State`] of the [`TextInput`].
-    pub fn state(&self) -> &State {
-        self.state
-    }
-
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
-    /// [`Value`] if provided.
+    /// [`text_input::Value`] if provided.
     ///
     /// [`Renderer`]: text::Renderer
     pub fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         layout: Layout<'_>,
@@ -188,7 +172,7 @@ where
             theme,
             layout,
             cursor_position,
-            self.state,
+            tree.state.downcast_ref::<State>(),
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
@@ -196,6 +180,116 @@ where
             self.is_secure,
             self.style,
         )
+    }
+}
+
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for TextInput<'a, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout(renderer, limits, self.width, self.padding, self.size)
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        update(
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+            &mut self.value,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.on_change.as_ref(),
+            self.on_paste.as_deref(),
+            &self.on_submit,
+            || tree.state.downcast_mut::<State>(),
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        draw(
+            renderer,
+            theme,
+            layout,
+            cursor_position,
+            tree.state.downcast_ref::<State>(),
+            &self.value,
+            &self.placeholder,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.style,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        mouse_interaction(layout, cursor_position)
+    }
+}
+
+impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a + Clone,
+    Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(
+        text_input: TextInput<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(text_input)
     }
 }
 
@@ -774,93 +868,6 @@ pub fn mouse_interaction(
         mouse::Interaction::Text
     } else {
         mouse::Interaction::default()
-    }
-}
-
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for TextInput<'a, Message, Renderer>
-where
-    Message: Clone,
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(renderer, limits, self.width, self.padding, self.size)
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        update(
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-            &mut self.value,
-            self.size,
-            &self.font,
-            self.is_secure,
-            self.on_change.as_ref(),
-            self.on_paste.as_deref(),
-            &self.on_submit,
-            || &mut self.state,
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        _style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-    ) {
-        self.draw(renderer, theme, layout, cursor_position, None)
-    }
-}
-
-impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: 'a + Clone,
-    Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn from(
-        text_input: TextInput<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(text_input)
     }
 }
 

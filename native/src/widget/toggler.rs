@@ -5,7 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text;
-use crate::widget::{self, Row, Text};
+use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
     Shell, Widget,
@@ -180,6 +180,7 @@ where
 
     fn on_event(
         &mut self,
+        _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -205,6 +206,7 @@ where
 
     fn mouse_interaction(
         &self,
+        _state: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -219,6 +221,7 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,

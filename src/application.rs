@@ -60,7 +60,8 @@ pub use iced_native::application::{Appearance, StyleSheet};
 /// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::{executor, Application, Command, Element, Settings, Text, Theme};
+/// use iced::executor;
+/// use iced::{Application, Command, Element, Settings, Theme};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -86,8 +87,8 @@ pub use iced_native::application::{Appearance, StyleSheet};
 ///         Command::none()
 ///     }
 ///
-///     fn view(&mut self) -> Element<Self::Message> {
-///         Text::new("Hello, world!").into()
+///     fn view(&self) -> Element<Self::Message> {
+///         "Hello, world!".into()
 ///     }
 /// }
 /// ```
@@ -139,9 +140,7 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(
-        &mut self,
-    ) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
+    fn view(&self) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
 
     /// Returns the current [`Theme`] of the [`Application`].
     ///
@@ -249,7 +248,7 @@ where
         self.0.update(message)
     }
 
-    fn view(&mut self) -> Element<'_, Self::Message, Self::Renderer> {
+    fn view(&self) -> Element<'_, Self::Message, Self::Renderer> {
         self.0.view()
     }
 }

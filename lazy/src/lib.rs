@@ -20,13 +20,32 @@
 pub mod component;
 pub mod responsive;
 
-#[cfg(feature = "pure")]
-#[cfg_attr(docsrs, doc(cfg(feature = "pure")))]
-pub mod pure;
-
 pub use component::Component;
 pub use responsive::Responsive;
 
 mod cache;
 
-use cache::{Cache, CacheBuilder};
+use iced_native::{Element, Size};
+
+/// Turns an implementor of [`Component`] into an [`Element`] that can be
+/// embedded in any application.
+pub fn component<'a, C, Message, Renderer>(
+    component: C,
+) -> Element<'a, Message, Renderer>
+where
+    C: Component<Message, Renderer> + 'a,
+    C::State: 'static,
+    Message: 'a,
+    Renderer: iced_native::Renderer + 'a,
+{
+    component::view(component)
+}
+
+pub fn responsive<'a, Message, Renderer>(
+    f: impl Fn(Size) -> Element<'a, Message, Renderer> + 'a,
+) -> Responsive<'a, Message, Renderer>
+where
+    Renderer: iced_native::Renderer,
+{
+    Responsive::new(f)
+}

@@ -1,18 +1,7 @@
 //! Display information and interactive controls in your application.
-//!
-//! # Re-exports
-//! For convenience, the contents of this module are available at the root
-//! module. Therefore, you can directly type:
-//!
-//! ```
-//! use iced::{button, Button};
-//! ```
-//!
-//! # Stateful widgets
-//! Some widgets need to keep track of __local state__.
-//!
-//! These widgets have their own module with a `State` type. For instance, a
-//! [`TextInput`] has some [`text_input::State`].
+pub use iced_native::widget::helpers::*;
+
+pub use iced_native::{column, row};
 
 /// A container that distributes its contents vertically.
 pub type Column<'a, Message, Renderer = crate::Renderer> =
@@ -22,14 +11,18 @@ pub type Column<'a, Message, Renderer = crate::Renderer> =
 pub type Row<'a, Message, Renderer = crate::Renderer> =
     iced_native::widget::Row<'a, Message, Renderer>;
 
-/// A paragraph of text.
-pub type Text<Renderer = crate::Renderer> = iced_native::widget::Text<Renderer>;
+pub mod text {
+    //! Write some text for your users to read.
+    pub use iced_native::widget::text::{Appearance, StyleSheet};
+
+    /// A paragraph of text.
+    pub type Text<Renderer = crate::Renderer> =
+        iced_native::widget::Text<Renderer>;
+}
 
 pub mod button {
     //! Allow your users to perform actions by pressing a button.
-    //!
-    //! A [`Button`] has some local [`State`].
-    pub use iced_native::widget::button::{Appearance, State, StyleSheet};
+    pub use iced_native::widget::button::{Appearance, StyleSheet};
 
     /// A widget that produces a message when clicked.
     pub type Button<'a, Message, Renderer = crate::Renderer> =
@@ -87,7 +80,7 @@ pub mod pane_grid {
 
 pub mod pick_list {
     //! Display a dropdown list of selectable values.
-    pub use iced_native::widget::pick_list::{Appearance, State, StyleSheet};
+    pub use iced_native::widget::pick_list::{Appearance, StyleSheet};
 
     /// A widget allowing the selection of a single value from a list of options.
     pub type PickList<'a, T, Message, Renderer = crate::Renderer> =
@@ -106,7 +99,7 @@ pub mod radio {
 pub mod scrollable {
     //! Navigate an endless amount of content with a scrollbar.
     pub use iced_native::widget::scrollable::{
-        style::Scrollbar, style::Scroller, State, StyleSheet,
+        style::Scrollbar, style::Scroller, StyleSheet,
     };
 
     /// A widget that can vertically display an infinite amount of content
@@ -126,9 +119,7 @@ pub mod toggler {
 
 pub mod text_input {
     //! Display fields that can be filled with text.
-    //!
-    //! A [`TextInput`] has some local [`State`].
-    pub use iced_native::widget::text_input::{Appearance, State, StyleSheet};
+    pub use iced_native::widget::text_input::{Appearance, StyleSheet};
 
     /// A field that can be filled with text.
     pub type TextInput<'a, Message, Renderer = crate::Renderer> =
@@ -159,6 +150,7 @@ pub use radio::Radio;
 pub use rule::Rule;
 pub use scrollable::Scrollable;
 pub use slider::Slider;
+pub use text::Text;
 pub use text_input::TextInput;
 pub use toggler::Toggler;
 pub use tooltip::Tooltip;
@@ -166,6 +158,16 @@ pub use tooltip::Tooltip;
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 pub use iced_graphics::widget::canvas;
+
+#[cfg(feature = "canvas")]
+#[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
+/// Creates a new [`Canvas`].
+pub fn canvas<P, Message, Theme>(program: P) -> Canvas<Message, Theme, P>
+where
+    P: canvas::Program<Message, Theme>,
+{
+    Canvas::new(program)
+}
 
 #[cfg(feature = "image")]
 #[cfg_attr(docsrs, doc(cfg(feature = "image")))]

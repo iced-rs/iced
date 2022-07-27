@@ -1,12 +1,9 @@
-use iced::button;
-use iced::scrollable;
-use iced::slider;
-use iced::text_input;
-use iced::{
-    Alignment, Button, Checkbox, Column, Container, Element, Length,
-    ProgressBar, Radio, Row, Rule, Sandbox, Scrollable, Settings, Slider,
-    Space, Text, TextInput, Theme, Toggler,
+use iced::widget::{
+    button, checkbox, column, container, horizontal_rule, progress_bar, radio,
+    row, scrollable, slider, text, text_input, toggler, vertical_rule,
+    vertical_space,
 };
+use iced::{Alignment, Element, Length, Sandbox, Settings, Theme};
 
 pub fn main() -> iced::Result {
     Styling::run(Settings::default())
@@ -15,11 +12,7 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct Styling {
     theme: Theme,
-    scroll: scrollable::State,
-    input: text_input::State,
     input_value: String,
-    button: button::State,
-    slider: slider::State,
     slider_value: f32,
     checkbox_value: bool,
     toggler_value: bool,
@@ -57,21 +50,20 @@ impl Sandbox for Styling {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let choose_theme = [Theme::Light, Theme::Dark].iter().fold(
-            Column::new().spacing(10).push(Text::new("Choose a theme:")),
+            column![text("Choose a theme:")].spacing(10),
             |column, theme| {
-                column.push(Radio::new(
-                    *theme,
+                column.push(radio(
                     format!("{:?}", theme),
+                    *theme,
                     Some(self.theme),
                     Message::ThemeChanged,
                 ))
             },
         );
 
-        let text_input = TextInput::new(
-            &mut self.input,
+        let text_input = text_input(
             "Type something...",
             &self.input_value,
             Message::InputChanged,
@@ -79,66 +71,59 @@ impl Sandbox for Styling {
         .padding(10)
         .size(20);
 
-        let button = Button::new(&mut self.button, Text::new("Submit"))
+        let button = button("Submit")
             .padding(10)
             .on_press(Message::ButtonPressed);
 
-        let slider = Slider::new(
-            &mut self.slider,
-            0.0..=100.0,
-            self.slider_value,
-            Message::SliderChanged,
-        );
+        let slider =
+            slider(0.0..=100.0, self.slider_value, Message::SliderChanged);
 
-        let progress_bar = ProgressBar::new(0.0..=100.0, self.slider_value);
+        let progress_bar = progress_bar(0.0..=100.0, self.slider_value);
 
-        let scrollable = Scrollable::new(&mut self.scroll)
-            .width(Length::Fill)
-            .height(Length::Units(100))
-            .push(Text::new("Scroll me!"))
-            .push(Space::with_height(Length::Units(800)))
-            .push(Text::new("You did it!"));
+        let scrollable = scrollable(
+            column![
+                "Scroll me!",
+                vertical_space(Length::Units(800)),
+                "You did it!"
+            ]
+            .width(Length::Fill),
+        )
+        .height(Length::Units(100));
 
-        let checkbox = Checkbox::new(
-            self.checkbox_value,
+        let checkbox = checkbox(
             "Check me!",
+            self.checkbox_value,
             Message::CheckboxToggled,
         );
 
-        let toggler = Toggler::new(
-            self.toggler_value,
+        let toggler = toggler(
             String::from("Toggle me!"),
+            self.toggler_value,
             Message::TogglerToggled,
         )
         .width(Length::Shrink)
         .spacing(10);
 
-        let content = Column::new()
-            .spacing(20)
-            .padding(20)
-            .max_width(600)
-            .push(choose_theme)
-            .push(Rule::horizontal(38))
-            .push(Row::new().spacing(10).push(text_input).push(button))
-            .push(slider)
-            .push(progress_bar)
-            .push(
-                Row::new()
-                    .spacing(10)
-                    .height(Length::Units(100))
-                    .align_items(Alignment::Center)
-                    .push(scrollable)
-                    .push(Rule::vertical(38))
-                    .push(
-                        Column::new()
-                            .width(Length::Shrink)
-                            .spacing(20)
-                            .push(checkbox)
-                            .push(toggler),
-                    ),
-            );
+        let content = column![
+            choose_theme,
+            horizontal_rule(38),
+            row![text_input, button].spacing(10),
+            slider,
+            progress_bar,
+            row![
+                scrollable,
+                vertical_rule(38),
+                column![checkbox, toggler].spacing(20)
+            ]
+            .spacing(10)
+            .height(Length::Units(100))
+            .align_items(Alignment::Center),
+        ]
+        .spacing(20)
+        .padding(20)
+        .max_width(600);
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()

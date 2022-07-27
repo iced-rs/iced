@@ -1,13 +1,12 @@
 mod echo;
 
 use iced::alignment::{self, Alignment};
-use iced::button::{self, Button};
 use iced::executor;
-use iced::scrollable::{self, Scrollable};
-use iced::text_input::{self, TextInput};
+use iced::widget::{
+    button, column, container, row, scrollable, text, text_input, Column,
+};
 use iced::{
-    Application, Color, Column, Command, Container, Element, Length, Row,
-    Settings, Subscription, Text, Theme,
+    Application, Color, Command, Element, Length, Settings, Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -17,10 +16,7 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct WebSocket {
     messages: Vec<echo::Message>,
-    message_log: scrollable::State,
     new_message: String,
-    new_message_state: text_input::State,
-    new_message_button: button::State,
     state: State,
 }
 
@@ -75,7 +71,9 @@ impl Application for WebSocket {
                 }
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
-                    self.message_log.snap_to(1.0);
+
+                    // TODO
+                    // self.message_log.snap_to(1.0);
                 }
             },
             Message::Server => {}
@@ -88,10 +86,10 @@ impl Application for WebSocket {
         echo::connect().map(Message::Echo)
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let message_log = if self.messages.is_empty() {
-            Container::new(
-                Text::new("Your messages will appear here...")
+    fn view(&self) -> Element<Message> {
+        let message_log: Element<_> = if self.messages.is_empty() {
+            container(
+                text("Your messages will appear here...")
                     .style(Color::from_rgb8(0x88, 0x88, 0x88)),
             )
             .width(Length::Fill)
@@ -100,31 +98,32 @@ impl Application for WebSocket {
             .center_y()
             .into()
         } else {
-            self.messages
-                .iter()
-                .cloned()
-                .fold(
-                    Scrollable::new(&mut self.message_log),
-                    |scrollable, message| scrollable.push(Text::new(message)),
+            scrollable(
+                Column::with_children(
+                    self.messages
+                        .iter()
+                        .cloned()
+                        .map(text)
+                        .map(Element::from)
+                        .collect(),
                 )
                 .width(Length::Fill)
-                .height(Length::Fill)
-                .spacing(10)
-                .into()
+                .spacing(10),
+            )
+            .height(Length::Fill)
+            .into()
         };
 
         let new_message_input = {
-            let mut input = TextInput::new(
-                &mut self.new_message_state,
+            let mut input = text_input(
                 "Type a message...",
                 &self.new_message,
                 Message::NewMessageChanged,
             )
             .padding(10);
 
-            let mut button = Button::new(
-                &mut self.new_message_button,
-                Text::new("Send")
+            let mut button = button(
+                text("Send")
                     .height(Length::Fill)
                     .vertical_alignment(alignment::Vertical::Center),
             )
@@ -137,12 +136,10 @@ impl Application for WebSocket {
                 }
             }
 
-            Row::with_children(vec![input.into(), button.into()])
-                .spacing(10)
-                .align_items(Alignment::Fill)
+            row![input, button].spacing(10).align_items(Alignment::Fill)
         };
 
-        Column::with_children(vec![message_log, new_message_input.into()])
+        column![message_log, new_message_input]
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)

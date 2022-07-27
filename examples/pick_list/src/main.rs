@@ -1,7 +1,5 @@
-use iced::{
-    pick_list, scrollable, Alignment, Container, Element, Length, PickList,
-    Sandbox, Scrollable, Settings, Space, Text,
-};
+use iced::widget::{column, container, pick_list, scrollable, vertical_space};
+use iced::{Alignment, Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -9,8 +7,6 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Example {
-    scroll: scrollable::State,
-    pick_list: pick_list::State<Language>,
     selected_language: Option<Language>,
 }
 
@@ -38,26 +34,25 @@ impl Sandbox for Example {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let pick_list = PickList::new(
-            &mut self.pick_list,
+    fn view(&self) -> Element<Message> {
+        let pick_list = pick_list(
             &Language::ALL[..],
             self.selected_language,
             Message::LanguageSelected,
         )
         .placeholder("Choose a language...");
 
-        let mut content = Scrollable::new(&mut self.scroll)
-            .width(Length::Fill)
-            .align_items(Alignment::Center)
-            .spacing(10)
-            .push(Space::with_height(Length::Units(600)))
-            .push(Text::new("Which is your favorite language?"))
-            .push(pick_list);
+        let content = column![
+            vertical_space(Length::Units(600)),
+            "Which is your favorite language?",
+            pick_list,
+            vertical_space(Length::Units(600)),
+        ]
+        .width(Length::Fill)
+        .align_items(Alignment::Center)
+        .spacing(10);
 
-        content = content.push(Space::with_height(Length::Units(600)));
-
-        Container::new(content)
+        container(scrollable(content))
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()

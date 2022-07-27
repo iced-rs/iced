@@ -1,11 +1,10 @@
 use iced_glow::Renderer;
-use iced_glutin::widget::slider::{self, Slider};
+use iced_glutin::widget::Slider;
 use iced_glutin::widget::{Column, Row, Text};
 use iced_glutin::{Alignment, Color, Command, Element, Length, Program};
 
 pub struct Controls {
     background_color: Color,
-    sliders: [slider::State; 3],
 }
 
 #[derive(Debug, Clone)]
@@ -17,7 +16,6 @@ impl Controls {
     pub fn new() -> Controls {
         Controls {
             background_color: Color::BLACK,
-            sliders: Default::default(),
         }
     }
 
@@ -40,15 +38,14 @@ impl Program for Controls {
         Command::none()
     }
 
-    fn view(&mut self) -> Element<Message, Renderer> {
-        let [r, g, b] = &mut self.sliders;
+    fn view(&self) -> Element<Message, Renderer> {
         let background_color = self.background_color;
 
         let sliders = Row::new()
             .width(Length::Units(500))
             .spacing(20)
             .push(
-                Slider::new(r, 0.0..=1.0, background_color.r, move |r| {
+                Slider::new(0.0..=1.0, background_color.r, move |r| {
                     Message::BackgroundColorChanged(Color {
                         r,
                         ..background_color
@@ -57,7 +54,7 @@ impl Program for Controls {
                 .step(0.01),
             )
             .push(
-                Slider::new(g, 0.0..=1.0, background_color.g, move |g| {
+                Slider::new(0.0..=1.0, background_color.g, move |g| {
                     Message::BackgroundColorChanged(Color {
                         g,
                         ..background_color
@@ -66,7 +63,7 @@ impl Program for Controls {
                 .step(0.01),
             )
             .push(
-                Slider::new(b, 0.0..=1.0, background_color.b, move |b| {
+                Slider::new(0.0..=1.0, background_color.b, move |b| {
                     Message::BackgroundColorChanged(Color {
                         b,
                         ..background_color

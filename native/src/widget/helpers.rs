@@ -1,10 +1,35 @@
 //! Helper functions to create pure widgets.
 use crate::widget;
-use crate::Element;
+use crate::{Element, Length};
 
-use iced_native::Length;
 use std::borrow::Cow;
 use std::ops::RangeInclusive;
+
+/// Creates a [`Column`] with the given children.
+///
+/// [`Column`]: widget::Column
+#[macro_export]
+macro_rules! column {
+    () => (
+        $crate::widget::Column::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Column::with_children(vec![$($crate::Element::from($x)),+])
+    );
+}
+
+/// Creates a [Row`] with the given children.
+///
+/// [`Row`]: widget::Row
+#[macro_export]
+macro_rules! row {
+    () => (
+        $crate::widget::Row::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Row::with_children(vec![$($crate::Element::from($x)),+])
+    );
+}
 
 /// Creates a new [`Container`] with the provided content.
 ///
@@ -13,25 +38,28 @@ pub fn container<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
 ) -> widget::Container<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: crate::Renderer,
     Renderer::Theme: widget::container::StyleSheet,
 {
     widget::Container::new(content)
 }
 
-/// Creates a new [`Column`].
+/// Creates a new [`Column`] with the given children.
 ///
 /// [`Column`]: widget::Column
-pub fn column<'a, Message, Renderer>() -> widget::Column<'a, Message, Renderer>
-{
-    widget::Column::new()
+pub fn column<'a, Message, Renderer>(
+    children: Vec<Element<'a, Message, Renderer>>,
+) -> widget::Row<'a, Message, Renderer> {
+    widget::Row::with_children(children)
 }
 
-/// Creates a new [`Row`].
+/// Creates a new [`Row`] with the given children.
 ///
 /// [`Row`]: widget::Row
-pub fn row<'a, Message, Renderer>() -> widget::Row<'a, Message, Renderer> {
-    widget::Row::new()
+pub fn row<'a, Message, Renderer>(
+    children: Vec<Element<'a, Message, Renderer>>,
+) -> widget::Row<'a, Message, Renderer> {
+    widget::Row::with_children(children)
 }
 
 /// Creates a new [`Scrollable`] with the provided content.
@@ -41,7 +69,7 @@ pub fn scrollable<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
 ) -> widget::Scrollable<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: crate::Renderer,
     Renderer::Theme: widget::scrollable::StyleSheet,
 {
     widget::Scrollable::new(content)
@@ -54,7 +82,7 @@ pub fn button<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
 ) -> widget::Button<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: crate::Renderer,
     Renderer::Theme: widget::button::StyleSheet,
 {
     widget::Button::new(content)
@@ -70,7 +98,7 @@ pub fn tooltip<'a, Message, Renderer>(
     position: widget::tooltip::Position,
 ) -> widget::Tooltip<'a, Message, Renderer>
 where
-    Renderer: iced_native::text::Renderer,
+    Renderer: crate::text::Renderer,
     Renderer::Theme: widget::container::StyleSheet + widget::text::StyleSheet,
 {
     widget::Tooltip::new(content, tooltip, position)
@@ -81,7 +109,7 @@ where
 /// [`Text`]: widget::Text
 pub fn text<Renderer>(text: impl Into<String>) -> widget::Text<Renderer>
 where
-    Renderer: iced_native::text::Renderer,
+    Renderer: crate::text::Renderer,
     Renderer::Theme: widget::text::StyleSheet,
 {
     widget::Text::new(text)
@@ -96,7 +124,7 @@ pub fn checkbox<'a, Message, Renderer>(
     f: impl Fn(bool) -> Message + 'a,
 ) -> widget::Checkbox<'a, Message, Renderer>
 where
-    Renderer: iced_native::text::Renderer,
+    Renderer: crate::text::Renderer,
     Renderer::Theme: widget::checkbox::StyleSheet + widget::text::StyleSheet,
 {
     widget::Checkbox::new(is_checked, label, f)
@@ -113,7 +141,7 @@ pub fn radio<Message, Renderer, V>(
 ) -> widget::Radio<Message, Renderer>
 where
     Message: Clone,
-    Renderer: iced_native::text::Renderer,
+    Renderer: crate::text::Renderer,
     Renderer::Theme: widget::radio::StyleSheet,
     V: Copy + Eq,
 {
@@ -129,7 +157,7 @@ pub fn toggler<'a, Message, Renderer>(
     f: impl Fn(bool) -> Message + 'a,
 ) -> widget::Toggler<'a, Message, Renderer>
 where
-    Renderer: iced_native::text::Renderer,
+    Renderer: crate::text::Renderer,
     Renderer::Theme: widget::toggler::StyleSheet,
 {
     widget::Toggler::new(is_checked, label, f)
@@ -145,7 +173,7 @@ pub fn text_input<'a, Message, Renderer>(
 ) -> widget::TextInput<'a, Message, Renderer>
 where
     Message: Clone,
-    Renderer: iced_native::text::Renderer,
+    Renderer: crate::text::Renderer,
     Renderer::Theme: widget::text_input::StyleSheet,
 {
     widget::TextInput::new(placeholder, value, on_change)
@@ -162,7 +190,7 @@ pub fn slider<'a, T, Message, Renderer>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Renderer: iced_native::Renderer,
+    Renderer: crate::Renderer,
     Renderer::Theme: widget::slider::StyleSheet,
 {
     widget::Slider::new(range, value, on_change)
@@ -179,7 +207,7 @@ pub fn pick_list<'a, Message, Renderer, T>(
 where
     T: ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
-    Renderer: iced_native::text::Renderer,
+    Renderer: crate::text::Renderer,
     Renderer::Theme: widget::pick_list::StyleSheet,
 {
     widget::PickList::new(options, selected, on_selected)
@@ -211,7 +239,7 @@ pub fn vertical_space(height: Length) -> widget::Space {
 /// [`Rule`]: widget::Rule
 pub fn horizontal_rule<Renderer>(height: u16) -> widget::Rule<Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: crate::Renderer,
     Renderer::Theme: widget::rule::StyleSheet,
 {
     widget::Rule::horizontal(height)
@@ -222,7 +250,7 @@ where
 /// [`Rule`]: widget::Rule
 pub fn vertical_rule<Renderer>(width: u16) -> widget::Rule<Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: crate::Renderer,
     Renderer::Theme: widget::rule::StyleSheet,
 {
     widget::Rule::vertical(width)
@@ -240,8 +268,16 @@ pub fn progress_bar<Renderer>(
     value: f32,
 ) -> widget::ProgressBar<Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: crate::Renderer,
     Renderer::Theme: widget::progress_bar::StyleSheet,
 {
     widget::ProgressBar::new(range, value)
+}
+
+/// Creates a new [`Svg`] widget from the given [`Handle`].
+///
+/// [`Svg`]: widget::Svg
+/// [`Handle`]: widget::svg::Handle
+pub fn svg(handle: impl Into<widget::svg::Handle>) -> widget::Svg {
+    widget::Svg::new(handle)
 }

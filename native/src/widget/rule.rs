@@ -1,6 +1,7 @@
 //! Display a horizontal or vertical rule for dividing content.
 use crate::layout;
 use crate::renderer;
+use crate::widget::Tree;
 use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 pub use iced_style::rule::{Appearance, FillMode, StyleSheet};
@@ -78,6 +79,7 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         _style: &renderer::Style,

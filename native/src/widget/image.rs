@@ -5,11 +5,17 @@ pub use viewer::Viewer;
 use crate::image;
 use crate::layout;
 use crate::renderer;
+use crate::widget::Tree;
 use crate::{
     ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::hash::Hash;
+
+/// Creates a new [`Viewer`] with the given image `Handle`.
+pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
+    Viewer::new(handle)
+}
 
 /// A frame that displays an image while keeping aspect ratio.
 ///
@@ -135,6 +141,7 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
         _theme: &Renderer::Theme,
         _style: &renderer::Style,

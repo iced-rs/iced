@@ -3,10 +3,12 @@ use crate::Widget;
 
 use std::any::{self, Any};
 use std::borrow::Borrow;
+use std::fmt;
 
 /// A persistent state widget tree.
 ///
 /// A [`Tree`] is normally associated with a specific widget in the widget tree.
+#[derive(Debug)]
 pub struct Tree {
     /// The tag of the [`Tree`].
     pub tag: Tag,
@@ -33,7 +35,7 @@ impl Tree {
         widget: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
     ) -> Self
     where
-        Renderer: iced_native::Renderer,
+        Renderer: crate::Renderer,
     {
         let widget = widget.borrow();
 
@@ -56,7 +58,7 @@ impl Tree {
         &mut self,
         new: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
     ) where
-        Renderer: iced_native::Renderer,
+        Renderer: crate::Renderer,
     {
         if self.tag == new.borrow().tag() {
             new.borrow().diff(self)
@@ -70,7 +72,7 @@ impl Tree {
         &mut self,
         new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],
     ) where
-        Renderer: iced_native::Renderer,
+        Renderer: crate::Renderer,
     {
         self.diff_children_custom(
             new_children,
@@ -171,6 +173,15 @@ impl State {
             State::Some(state) => {
                 state.downcast_mut().expect("Downcast widget state")
             }
+        }
+    }
+}
+
+impl fmt::Debug for State {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::None => write!(f, "State::None"),
+            Self::Some(_) => write!(f, "State::Some"),
         }
     }
 }

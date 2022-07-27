@@ -6,4 +6,4 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../../..", features = ["pure", "canvas", "tokio", "debug"] }
+iced = { path = "../../..", features = ["canvas", "tokio", "debug"] }

@@ -9,6 +9,7 @@ use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::container::{self, Container};
 use crate::widget::scrollable::{self, Scrollable};
+use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Size, Vector, Widget,
@@ -114,15 +115,23 @@ where
 }
 
 /// The local state of a [`Menu`].
-#[derive(Debug, Clone, Default)]
+#[derive(Debug)]
 pub struct State {
-    scrollable: scrollable::State,
+    tree: Tree,
 }
 
 impl State {
     /// Creates a new [`State`] for a [`Menu`].
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            tree: Tree::empty(),
+        }
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -131,6 +140,7 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet + container::StyleSheet,
 {
+    state: &'a mut Tree,
     container: Container<'a, Message, Renderer>,
     width: u16,
     target_height: f32,
@@ -161,18 +171,18 @@ where
             style,
         } = menu;
 
-        let container =
-            Container::new(Scrollable::new(&mut state.scrollable).push(List {
-                options,
-                hovered_option,
-                last_selection,
-                font,
-                text_size,
-                padding,
-                style,
-            }));
+        let container = Container::new(Scrollable::new(List {
+            options,
+            hovered_option,
+            last_selection,
+            font,
+            text_size,
+            padding,
+            style,
+        }));
 
         Self {
+            state: &mut state.tree,
             container,
             width,
             target_height,
@@ -187,6 +197,18 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + container::StyleSheet,
 {
+    fn tag(&self) -> tree::Tag {
+        self.container.tag()
+    }
+
+    fn state(&self) -> tree::State {
+        self.container.state()
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        self.container.children()
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,
@@ -230,6 +252,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.container.on_event(
+            &mut self.state,
             event,
             layout,
             cursor_position,
@@ -247,6 +270,7 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.container.mouse_interaction(
+            &self.state,
             layout,
             cursor_position,
             viewport,
@@ -279,6 +303,7 @@ where
         );
 
         self.container.draw(
+            &self.state,
             renderer,
             theme,
             style,
@@ -344,6 +369,7 @@ where
 
     fn on_event(
         &mut self,
+        _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -407,6 +433,7 @@ where
 
     fn mouse_interaction(
         &self,
+        _state: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -423,6 +450,7 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         _style: &renderer::Style,
