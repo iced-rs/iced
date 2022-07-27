@@ -8,6 +8,7 @@ use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 
 use async_tungstenite::tungstenite;
+use std::fmt;
 
 pub fn connect() -> Subscription<Event> {
     struct Connect;
@@ -63,7 +64,7 @@ pub fn connect() -> Subscription<Event> {
                         }
 
                         message = input.select_next_some() => {
-                            let result = websocket.send(tungstenite::Message::Text(String::from(message))).await;
+                            let result = websocket.send(tungstenite::Message::Text(message.to_string())).await;
 
                             if result.is_ok() {
                                 (None, State::Connected(websocket, input))
@@ -133,14 +134,14 @@ impl Message {
     }
 }
 
-impl From<Message> for String {
-    fn from(message: Message) -> Self {
-        match message {
-            Message::Connected => String::from("Connected successfully!"),
+impl fmt::Display for Message {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Message::Connected => write!(f, "Connected successfully!"),
             Message::Disconnected => {
-                String::from("Connection lost... Retrying...")
+                write!(f, "Connection lost... Retrying...")
             }
-            Message::User(message) => message,
+            Message::User(message) => write!(f, "{}", message),
         }
     }
 }

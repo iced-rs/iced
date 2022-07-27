@@ -40,7 +40,7 @@ impl Sandbox for Counter {
     fn view(&self) -> Element<Message> {
         column![
             button("Increment").on_press(Message::IncrementPressed),
-            text(self.value.to_string()).size(50),
+            text(self.value).size(50),
             button("Decrement").on_press(Message::DecrementPressed)
         ]
         .padding(20)

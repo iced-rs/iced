@@ -107,7 +107,7 @@ where
 /// Creates a new [`Text`] widget with the provided content.
 ///
 /// [`Text`]: widget::Text
-pub fn text<Renderer>(text: impl Into<String>) -> widget::Text<Renderer>
+pub fn text<Renderer>(text: impl ToString) -> widget::Text<Renderer>
 where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::text::StyleSheet,

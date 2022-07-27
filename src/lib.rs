@@ -94,7 +94,7 @@
 //!             button("+").on_press(Message::IncrementPressed),
 //!
 //!             // We show the value of the counter here
-//!             text(self.value.to_string()).size(50),
+//!             text(self.value).size(50),
 //!
 //!             // The decrement button. We tell it to produce a
 //!             button("-").on_press(Message::DecrementPressed),
