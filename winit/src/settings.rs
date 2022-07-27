@@ -38,6 +38,10 @@ pub struct Settings<Flags> {
     /// Whether the [`Application`] should exit when the user requests the
     /// window to close (e.g. the user presses the close button).
     ///
+    /// NOTE: This is not used for `multi-window`, instead check [`Application::close_requested`].
+    ///
+    /// [`close_requested`]: crate::multi_window::Application::close_requested
+    ///
     /// [`Application`]: crate::Application
     pub exit_on_close_request: bool,
 

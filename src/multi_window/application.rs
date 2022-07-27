@@ -113,6 +113,9 @@ pub trait Application: Sized {
         false
     }
 
+    /// TODO(derezzedex)
+    fn close_requested(&self, window: window::Id) -> Self::Message;
+
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -206,5 +209,9 @@ where
 
     fn should_exit(&self) -> bool {
         self.0.should_exit()
+    }
+
+    fn close_requested(&self, window: window::Id) -> Self::Message {
+        self.0.close_requested(window)
     }
 }
