@@ -7,7 +7,13 @@ use iced::widget::{
 use iced::window;
 use iced::{Application, Element};
 use iced::{Color, Command, Font, Length, Settings};
+
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+
+lazy_static! {
+    static ref INPUT_ID: text_input::Id = text_input::Id::unique();
+}
 
 pub fn main() -> iced::Result {
     Todos::run(Settings {
@@ -84,10 +90,11 @@ impl Application for Todos {
                     _ => {}
                 }
 
-                Command::none()
+                text_input::focus(INPUT_ID.clone())
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
+                let mut task_command = Command::none();
 
                 match message {
                     Message::InputChanged(value) => {
@@ -109,6 +116,11 @@ impl Application for Todos {
                     }
                     Message::TaskMessage(i, task_message) => {
                         if let Some(task) = state.tasks.get_mut(i) {
+                            if matches!(task_message, TaskMessage::Edit) {
+                                task_command =
+                                    text_input::focus(Task::text_input_id(i));
+                            }
+
                             task.update(task_message);
                         }
                     }
@@ -123,7 +135,7 @@ impl Application for Todos {
                     state.dirty = true;
                 }
 
-                if state.dirty && !state.saving {
+                let save = if state.dirty && !state.saving {
                     state.dirty = false;
                     state.saving = true;
 
@@ -138,7 +150,9 @@ impl Application for Todos {
                     )
                 } else {
                     Command::none()
-                }
+                };
+
+                Command::batch(vec![task_command, save])
             }
         }
     }
@@ -163,6 +177,7 @@ impl Application for Todos {
                     input_value,
                     Message::InputChanged,
                 )
+                .id(INPUT_ID.clone())
                 .padding(15)
                 .size(30)
                 .on_submit(Message::CreateTask);
@@ -178,12 +193,13 @@ impl Application for Todos {
                             .enumerate()
                             .filter(|(_, task)| filter.matches(task))
                             .map(|(i, task)| {
-                                task.view().map(move |message| {
+                                task.view(i).map(move |message| {
                                     Message::TaskMessage(i, message)
                                 })
                             })
                             .collect(),
                     )
+                    .spacing(10)
                     .into()
                 } else {
                     empty_message(match filter {
@@ -242,6 +258,10 @@ pub enum TaskMessage {
 }
 
 impl Task {
+    fn text_input_id(i: usize) -> text_input::Id {
+        text_input::Id::new(format!("task-{}", i))
+    }
+
     fn new(description: String) -> Self {
         Task {
             description,
@@ -270,7 +290,7 @@ impl Task {
         }
     }
 
-    fn view(&self) -> Element<TaskMessage> {
+    fn view(&self, i: usize) -> Element<TaskMessage> {
         match &self.state {
             TaskState::Idle => {
                 let checkbox = checkbox(
@@ -297,6 +317,7 @@ impl Task {
                     &self.description,
                     TaskMessage::DescriptionEdited,
                 )
+                .id(Self::text_input_id(i))
                 .on_submit(TaskMessage::FinishEdition)
                 .padding(10);
 

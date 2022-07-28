@@ -322,6 +322,10 @@ impl Id {
     pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
         Self(widget::Id::new(id))
     }
+
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
 }
 
 pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
