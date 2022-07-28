@@ -280,7 +280,7 @@ async fn run_instance<A, E, C>(
     runtime.track(application.subscription());
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
-        &mut application,
+        &application,
         cache,
         &mut renderer,
         state.logical_size(),
@@ -346,7 +346,7 @@ async fn run_instance<A, E, C>(
                     let should_exit = application.should_exit();
 
                     user_interface = ManuallyDrop::new(build_user_interface(
-                        &mut application,
+                        &application,
                         cache,
                         &mut renderer,
                         state.logical_size(),
@@ -659,9 +659,7 @@ pub fn run_command<A, E>(
                 }
             },
             command::Action::Widget(action) => {
-                let mut current_cache =
-                    std::mem::replace(cache, user_interface::Cache::default());
-
+                let mut current_cache = std::mem::take(cache);
                 let mut current_operation = Some(action.into_operation());
 
                 while let Some(mut operation) = current_operation.take() {

@@ -197,7 +197,7 @@ async fn run_instance<A, E, C>(
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
 
-    let mut clipboard = Clipboard::connect(&context.window());
+    let mut clipboard = Clipboard::connect(context.window());
     let mut cache = user_interface::Cache::default();
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
@@ -219,7 +219,7 @@ async fn run_instance<A, E, C>(
 
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
-            &mut application,
+            &application,
             user_interface::Cache::default(),
             &mut renderer,
             state.logical_size(),
@@ -286,7 +286,7 @@ async fn run_instance<A, E, C>(
 
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(
-                            &mut application,
+                            &application,
                             cache,
                             &mut renderer,
                             state.logical_size(),
