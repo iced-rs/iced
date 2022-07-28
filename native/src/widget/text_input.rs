@@ -19,6 +19,7 @@ use crate::mouse::{self, click};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::state;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
@@ -939,6 +940,20 @@ impl State {
     /// Selects all the content of the [`TextInput`].
     pub fn select_all(&mut self) {
         self.cursor.select_range(0, usize::MAX);
+    }
+}
+
+impl state::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
     }
 }
 

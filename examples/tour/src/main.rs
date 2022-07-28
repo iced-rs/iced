@@ -452,6 +452,7 @@ impl<'a> Step {
                     .map(Element::from)
                     .collect()
             )
+            .spacing(10)
         ]
         .padding(20)
         .spacing(10);
@@ -594,10 +595,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
         if cfg!(target_arch = "wasm32") {
             image("tour/images/ferris.png")
         } else {
-            image(format!(
-                "{}/../../tour/images/ferris.png",
-                env!("CARGO_MANIFEST_DIR")
-            ))
+            image(format!("{}/images/ferris.png", env!("CARGO_MANIFEST_DIR")))
         }
         .width(Length::Units(width)),
     )
