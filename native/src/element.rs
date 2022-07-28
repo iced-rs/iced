@@ -3,6 +3,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell, Widget};
 
@@ -246,6 +247,42 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         self.widget.layout(renderer, limits)
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<B>,
+    ) {
+        struct MapOperation<'a, B> {
+            operation: &'a mut dyn widget::Operation<B>,
+        }
+
+        impl<'a, T, B> widget::Operation<T> for MapOperation<'a, B> {
+            fn container(
+                &mut self,
+                id: Option<&widget::Id>,
+                operate_on_children: &mut dyn FnMut(
+                    &mut dyn widget::Operation<T>,
+                ),
+            ) {
+                self.operation.container(id, &mut |operation| {
+                    operate_on_children(&mut MapOperation { operation });
+                });
+            }
+
+            fn focusable(
+                &mut self,
+                state: &mut dyn widget::state::Focusable,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.focusable(state, id);
+            }
+        }
+
+        self.widget
+            .operate(tree, layout, &mut MapOperation { operation });
     }
 
     fn on_event(

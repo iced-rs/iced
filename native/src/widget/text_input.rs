@@ -19,11 +19,13 @@ use crate::mouse::{self, click};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget;
+use crate::widget::operation::{self, Operation};
 use crate::widget::state;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
@@ -54,6 +56,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     placeholder: String,
     value: Value,
     is_secure: bool,
@@ -84,6 +87,7 @@ where
         F: 'a + Fn(String) -> Message,
     {
         TextInput {
+            id: None,
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
@@ -96,6 +100,12 @@ where
             on_submit: None,
             style: Default::default(),
         }
+    }
+
+    /// Sets the [`Id`] of the [`TextInput`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Converts the [`TextInput`] into a secure password input.
@@ -215,6 +225,17 @@ where
         layout(renderer, limits, self.width, self.padding, self.size)
     }
 
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        _layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
+    }
+
     fn on_event(
         &mut self,
         tree: &mut Tree,
@@ -292,6 +313,19 @@ where
     ) -> Element<'a, Message, Renderer> {
         Element::new(text_input)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+}
+
+pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::focus(id.0))
 }
 
 /// Computes the layout of a [`TextInput`].
@@ -915,6 +949,7 @@ impl State {
     /// Focuses the [`TextInput`].
     pub fn focus(&mut self) {
         self.is_focused = true;
+        self.move_cursor_to_end();
     }
 
     /// Unfocuses the [`TextInput`].

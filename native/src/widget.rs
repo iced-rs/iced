@@ -171,6 +171,7 @@ where
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
         &self,
+        _state: &mut Tree,
         _layout: Layout<'_>,
         _operation: &mut dyn Operation<Message>,
     ) {

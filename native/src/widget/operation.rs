@@ -5,7 +5,7 @@ pub trait Operation<T> {
     fn container(
         &mut self,
         id: Option<&Id>,
-        operate_on_children: &dyn Fn(&mut dyn Operation<T>),
+        operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
     );
 
     fn focusable(
@@ -37,14 +37,12 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
             state: &mut dyn state::Focusable,
             id: Option<&Id>,
         ) {
-            if state.is_focused() {
-                match id {
-                    Some(id) if id == &self.target => {
-                        state.focus();
-                    }
-                    _ => {
-                        state.unfocus();
-                    }
+            match id {
+                Some(id) if id == &self.target => {
+                    state.focus();
+                }
+                _ => {
+                    state.unfocus();
                 }
             }
         }
@@ -52,7 +50,7 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
-            operate_on_children: &dyn Fn(&mut dyn Operation<T>),
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
             operate_on_children(self)
         }

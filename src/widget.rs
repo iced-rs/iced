@@ -119,7 +119,9 @@ pub mod toggler {
 
 pub mod text_input {
     //! Display fields that can be filled with text.
-    pub use iced_native::widget::text_input::{Appearance, StyleSheet};
+    pub use iced_native::widget::text_input::{
+        focus, Appearance, Id, StyleSheet,
+    };
 
     /// A field that can be filled with text.
     pub type TextInput<'a, Message, Renderer = crate::Renderer> =

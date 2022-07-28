@@ -42,7 +42,7 @@ where
     fn container(
         &mut self,
         id: Option<&Id>,
-        operate_on_children: &dyn Fn(&mut dyn Operation<B>),
+        operate_on_children: &mut dyn FnMut(&mut dyn Operation<B>),
     ) {
         struct MapRef<'a, A, B> {
             operation: &'a mut dyn Operation<A>,
@@ -53,11 +53,11 @@ where
             fn container(
                 &mut self,
                 id: Option<&Id>,
-                operate_on_children: &dyn Fn(&mut dyn Operation<B>),
+                operate_on_children: &mut dyn FnMut(&mut dyn Operation<B>),
             ) {
                 let Self { operation, f } = self;
 
-                operation.container(id, &|operation| {
+                operation.container(id, &mut |operation| {
                     operate_on_children(&mut MapRef { operation, f });
                 });
             }
