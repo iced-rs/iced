@@ -273,7 +273,7 @@ where
                 },
                 border_color: appearance.border_color,
                 border_width: appearance.border_width,
-                border_radius: 0.0,
+                border_radius: appearance.border_radius,
             },
             appearance.background,
         );
@@ -457,7 +457,7 @@ where
                         bounds,
                         border_color: Color::TRANSPARENT,
                         border_width: 0.0,
-                        border_radius: 0.0,
+                        border_radius: appearance.border_radius,
                     },
                     appearance.selected_background,
                 );
