@@ -662,17 +662,16 @@ pub fn run_command<A, E>(
                 let mut current_cache = std::mem::take(cache);
                 let mut current_operation = Some(action.into_operation());
 
-                while let Some(mut operation) = current_operation.take() {
-                    let mut user_interface = build_user_interface(
-                        application,
-                        current_cache,
-                        renderer,
-                        state.logical_size(),
-                        debug,
-                    );
+                let mut user_interface = build_user_interface(
+                    application,
+                    current_cache,
+                    renderer,
+                    state.logical_size(),
+                    debug,
+                );
 
+                while let Some(mut operation) = current_operation.take() {
                     user_interface.operate(renderer, operation.as_mut());
-                    current_cache = user_interface.into_cache();
 
                     match operation.finish() {
                         operation::Outcome::None => {}
@@ -687,6 +686,7 @@ pub fn run_command<A, E>(
                     }
                 }
 
+                current_cache = user_interface.into_cache();
                 *cache = current_cache;
             }
         }
