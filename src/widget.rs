@@ -211,3 +211,14 @@ pub use qr_code::QRCode;
 #[cfg(feature = "svg")]
 #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
 pub use svg::Svg;
+
+use crate::Command;
+use iced_native::widget::operation;
+
+/// Focuses the next focusable widget.
+pub fn focus_next<Message>() -> Command<Message>
+where
+    Message: 'static,
+{
+    Command::widget(operation::focus_next())
+}

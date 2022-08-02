@@ -1,12 +1,15 @@
 use iced::alignment::{self, Alignment};
+use iced::event::{self, Event};
+use iced::keyboard;
+use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::{
-    button, checkbox, column, container, row, scrollable, text, text_input,
-    Text,
+    self, button, checkbox, column, container, row, scrollable, text,
+    text_input, Text,
 };
 use iced::window;
 use iced::{Application, Element};
-use iced::{Color, Command, Font, Length, Settings};
+use iced::{Color, Command, Font, Length, Settings, Subscription};
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -48,6 +51,7 @@ enum Message {
     CreateTask,
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
+    TabPressed,
 }
 
 impl Application for Todos {
@@ -94,11 +98,12 @@ impl Application for Todos {
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
-                let mut task_command = Command::none();
 
-                match message {
+                let command = match message {
                     Message::InputChanged(value) => {
                         state.input_value = value;
+
+                        Command::none()
                     }
                     Message::CreateTask => {
                         if !state.input_value.is_empty() {
@@ -107,29 +112,44 @@ impl Application for Todos {
                                 .push(Task::new(state.input_value.clone()));
                             state.input_value.clear();
                         }
+
+                        Command::none()
                     }
                     Message::FilterChanged(filter) => {
                         state.filter = filter;
+
+                        Command::none()
                     }
                     Message::TaskMessage(i, TaskMessage::Delete) => {
                         state.tasks.remove(i);
+
+                        Command::none()
                     }
                     Message::TaskMessage(i, task_message) => {
                         if let Some(task) = state.tasks.get_mut(i) {
-                            if matches!(task_message, TaskMessage::Edit) {
-                                task_command =
-                                    text_input::focus(Task::text_input_id(i));
-                            }
+                            let should_focus =
+                                matches!(task_message, TaskMessage::Edit);
 
                             task.update(task_message);
+
+                            if should_focus {
+                                text_input::focus(Task::text_input_id(i))
+                            } else {
+                                Command::none()
+                            }
+                        } else {
+                            Command::none()
                         }
                     }
                     Message::Saved(_) => {
                         state.saving = false;
                         saved = true;
+
+                        Command::none()
                     }
-                    _ => {}
-                }
+                    Message::TabPressed => widget::focus_next(),
+                    _ => Command::none(),
+                };
 
                 if !saved {
                     state.dirty = true;
@@ -152,7 +172,7 @@ impl Application for Todos {
                     Command::none()
                 };
 
-                Command::batch(vec![task_command, save])
+                Command::batch(vec![command, save])
             }
         }
     }
@@ -224,6 +244,19 @@ impl Application for Todos {
                 .into()
             }
         }
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        subscription::events_with(|event, status| match (event, status) {
+            (
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key_code: keyboard::KeyCode::Tab,
+                    ..
+                }),
+                event::Status::Ignored,
+            ) => Some(Message::TabPressed),
+            _ => None,
+        })
     }
 }
 
