@@ -127,7 +127,9 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     height: Length,
+    min_width: u32,
     max_width: u32,
+    min_height: u32,
     max_height: u32,
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
@@ -136,7 +138,9 @@ pub fn layout<Renderer>(
 ) -> layout::Node {
     let limits = limits
         .loose()
+        .min_width(min_width)
         .max_width(max_width)
+        .min_height(min_height)
         .max_height(max_height)
         .width(width)
         .height(height)
@@ -179,7 +183,9 @@ where
             limits,
             self.width,
             self.height,
+            0,
             self.max_width,
+            0,
             self.max_height,
             self.padding,
             self.horizontal_alignment,

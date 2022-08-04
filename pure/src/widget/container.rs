@@ -29,7 +29,9 @@ where
     padding: Padding,
     width: Length,
     height: Length,
+    min_width: u32,
     max_width: u32,
+    min_height: u32,
     max_height: u32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
@@ -51,7 +53,9 @@ where
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
+            min_width: 0,
             max_width: u32::MAX,
+            min_height: 0,
             max_height: u32::MAX,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
@@ -78,9 +82,21 @@ where
         self
     }
 
+    /// Sets the minimum width of the [`Container`].
+    pub fn min_width(mut self, min_width: u32) -> Self {
+        self.min_width = min_width;
+        self
+    }
+
     /// Sets the maximum width of the [`Container`].
     pub fn max_width(mut self, max_width: u32) -> Self {
         self.max_width = max_width;
+        self
+    }
+
+    /// Sets the minimum height of the [`Container`].
+    pub fn min_height(mut self, min_height: u32) -> Self {
+        self.min_height = min_height;
         self
     }
 
@@ -156,7 +172,9 @@ where
             limits,
             self.width,
             self.height,
+            self.min_width,
             self.max_width,
+            self.min_height,
             self.max_height,
             self.padding,
             self.horizontal_alignment,
