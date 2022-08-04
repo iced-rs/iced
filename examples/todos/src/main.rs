@@ -51,7 +51,7 @@ enum Message {
     CreateTask,
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
-    TabPressed,
+    TabPressed { shift: bool },
 }
 
 impl Application for Todos {
@@ -147,7 +147,13 @@ impl Application for Todos {
 
                         Command::none()
                     }
-                    Message::TabPressed => widget::focus_next(),
+                    Message::TabPressed { shift } => {
+                        if shift {
+                            widget::focus_previous()
+                        } else {
+                            widget::focus_next()
+                        }
+                    }
                     _ => Command::none(),
                 };
 
@@ -251,10 +257,13 @@ impl Application for Todos {
             (
                 Event::Keyboard(keyboard::Event::KeyPressed {
                     key_code: keyboard::KeyCode::Tab,
+                    modifiers,
                     ..
                 }),
                 event::Status::Ignored,
-            ) => Some(Message::TabPressed),
+            ) => Some(Message::TabPressed {
+                shift: modifiers.shift(),
+            }),
             _ => None,
         })
     }
