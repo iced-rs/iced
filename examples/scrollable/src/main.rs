@@ -1,8 +1,9 @@
+use iced::executor;
 use iced::widget::{
     button, column, container, horizontal_rule, progress_bar, radio,
     scrollable, text, vertical_space, Row,
 };
-use iced::{Element, Length, Sandbox, Settings, Theme};
+use iced::{Application, Command, Element, Length, Settings, Theme};
 
 pub fn main() -> iced::Result {
     ScrollableDemo::run(Settings::default())
@@ -21,43 +22,57 @@ enum Message {
     Scrolled(usize, f32),
 }
 
-impl Sandbox for ScrollableDemo {
+impl Application for ScrollableDemo {
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
+    type Flags = ();
 
-    fn new() -> Self {
-        ScrollableDemo {
-            theme: Default::default(),
-            variants: Variant::all(),
-        }
+    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+        (
+            ScrollableDemo {
+                theme: Default::default(),
+                variants: Variant::all(),
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
         String::from("Scrollable - Iced")
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::ThemeChanged(theme) => self.theme = theme,
+            Message::ThemeChanged(theme) => {
+                self.theme = theme;
+
+                Command::none()
+            }
             Message::ScrollToTop(i) => {
                 if let Some(variant) = self.variants.get_mut(i) {
-                    // TODO
-                    // variant.scrollable.snap_to(0.0);
-
                     variant.latest_offset = 0.0;
+
+                    scrollable::snap_to(Variant::id(i), 0.0)
+                } else {
+                    Command::none()
                 }
             }
             Message::ScrollToBottom(i) => {
                 if let Some(variant) = self.variants.get_mut(i) {
-                    // TODO
-                    // variant.scrollable.snap_to(1.0);
-
                     variant.latest_offset = 1.0;
+
+                    scrollable::snap_to(Variant::id(i), 1.0)
+                } else {
+                    Command::none()
                 }
             }
             Message::Scrolled(i, offset) => {
                 if let Some(variant) = self.variants.get_mut(i) {
                     variant.latest_offset = offset;
                 }
+
+                Command::none()
             }
         }
     }
@@ -136,6 +151,7 @@ impl Sandbox for ScrollableDemo {
                         );
 
                     let mut scrollable = scrollable(contents)
+                        .id(Variant::id(i))
                         .height(Length::Fill)
                         .on_scroll(move |offset| Message::Scrolled(i, offset));
 
@@ -227,5 +243,9 @@ impl Variant {
                 latest_offset: 0.0,
             },
         ]
+    }
+
+    pub fn id(i: usize) -> scrollable::Id {
+        scrollable::Id::new(format!("scrollable-{}", i))
     }
 }

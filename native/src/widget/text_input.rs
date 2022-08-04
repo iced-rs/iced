@@ -21,7 +21,6 @@ use crate::text::{self, Text};
 use crate::touch;
 use crate::widget;
 use crate::widget::operation::{self, Operation};
-use crate::widget::state;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
@@ -329,7 +328,7 @@ impl Id {
 }
 
 pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::focus(id.0))
+    Command::widget(operation::focusable::focus(id.0))
 }
 
 /// Computes the layout of a [`TextInput`].
@@ -982,7 +981,7 @@ impl State {
     }
 }
 
-impl state::Focusable for State {
+impl operation::Focusable for State {
     fn is_focused(&self) -> bool {
         State::is_focused(self)
     }

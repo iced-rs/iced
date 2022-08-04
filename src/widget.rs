@@ -99,7 +99,7 @@ pub mod radio {
 pub mod scrollable {
     //! Navigate an endless amount of content with a scrollbar.
     pub use iced_native::widget::scrollable::{
-        style::Scrollbar, style::Scroller, StyleSheet,
+        snap_to, style::Scrollbar, style::Scroller, Id, StyleSheet,
     };
 
     /// A widget that can vertically display an infinite amount of content
@@ -220,7 +220,7 @@ pub fn focus_previous<Message>() -> Command<Message>
 where
     Message: 'static,
 {
-    Command::widget(operation::focus_previous())
+    Command::widget(operation::focusable::focus_previous())
 }
 
 /// Focuses the next focusable widget.
@@ -228,5 +228,5 @@ pub fn focus_next<Message>() -> Command<Message>
 where
     Message: 'static,
 {
-    Command::widget(operation::focus_next())
+    Command::widget(operation::focusable::focus_next())
 }

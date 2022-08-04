@@ -5,11 +5,12 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::widget;
+use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
-use crate::widget::Operation;
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Command, Element, Layout, Length, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::{f32, u32};
@@ -31,6 +32,7 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     height: Length,
     scrollbar_width: u16,
     scrollbar_margin: u16,
@@ -48,6 +50,7 @@ where
     /// Creates a new [`Scrollable`].
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Scrollable {
+            id: None,
             height: Length::Shrink,
             scrollbar_width: 10,
             scrollbar_margin: 0,
@@ -56,6 +59,12 @@ where
             on_scroll: None,
             style: Default::default(),
         }
+    }
+
+    /// Sets the [`Id`] of the [`Scrollable`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Sets the height of the [`Scrollable`].
@@ -157,6 +166,10 @@ where
         layout: Layout<'_>,
         operation: &mut dyn Operation<Message>,
     ) {
+        let state = tree.state.downcast_mut::<State>();
+
+        operation.scrollable(state, self.id.as_ref().map(|id| &id.0));
+
         operation.container(None, &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],
@@ -301,6 +314,23 @@ where
     ) -> Element<'a, Message, Renderer> {
         Element::new(text_input)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
+}
+
+pub fn snap_to<Message: 'static>(id: Id, percentage: f32) -> Command<Message> {
+    Command::widget(operation::scrollable::snap_to(id.0, percentage))
 }
 
 /// Computes the layout of a [`Scrollable`].
@@ -787,6 +817,12 @@ impl Default for State {
             scroll_box_touched_at: None,
             offset: Offset::Absolute(0.0),
         }
+    }
+}
+
+impl operation::Scrollable for State {
+    fn snap_to(&mut self, percentage: f32) {
+        State::snap_to(self, percentage);
     }
 }
 

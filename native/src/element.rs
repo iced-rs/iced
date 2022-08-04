@@ -274,7 +274,7 @@ where
 
             fn focusable(
                 &mut self,
-                state: &mut dyn widget::state::Focusable,
+                state: &mut dyn widget::operation::Focusable,
                 id: Option<&widget::Id>,
             ) {
                 self.operation.focusable(state, id);

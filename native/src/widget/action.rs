@@ -1,5 +1,5 @@
-use crate::widget::state;
-use crate::widget::{Id, Operation};
+use crate::widget::operation::{self, Operation};
+use crate::widget::Id;
 
 use iced_futures::MaybeSend;
 
@@ -72,7 +72,11 @@ where
         .container(id, operate_on_children);
     }
 
-    fn focusable(&mut self, state: &mut dyn state::Focusable, id: Option<&Id>) {
+    fn focusable(
+        &mut self,
+        state: &mut dyn operation::Focusable,
+        id: Option<&Id>,
+    ) {
         self.operation.focusable(state, id);
     }
 }
