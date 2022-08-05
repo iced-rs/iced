@@ -60,6 +60,7 @@ members = [
     "winit",
     "examples/arc",
     "examples/bezier_tool",
+    "examples/cached",
     "examples/clock",
     "examples/color_palette",
     "examples/component",
