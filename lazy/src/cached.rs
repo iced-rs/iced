@@ -3,8 +3,8 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
-use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell, Size};
 use iced_native::widget::tree::{self, Tree};
+use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell, Size};
 use iced_native::{Element, Widget};
 
 use ouroboros::self_referencing;
@@ -325,7 +325,7 @@ where
                 shell,
             )
         })
-        .unwrap_or_else(|| iced_native::event::Status::Ignored)
+        .unwrap_or(iced_native::event::Status::Ignored)
     }
 }
 
