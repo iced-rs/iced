@@ -1,18 +1,30 @@
+//! Operate on widgets that can be focused.
 use crate::widget::operation::{Operation, Outcome};
 use crate::widget::Id;
 
+/// The internal state of a widget that can be focused.
 pub trait Focusable {
+    /// Returns whether the widget is focused or not.
     fn is_focused(&self) -> bool;
+
+    /// Focuses the widget.
     fn focus(&mut self);
+
+    /// Unfocuses the widget.
     fn unfocus(&mut self);
 }
 
+/// A summary of the focusable widgets present on a widget tree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Count {
+    /// The index of the current focused widget, if any.
     focused: Option<usize>,
+
+    /// The total amount of focusable widgets.
     total: usize,
 }
 
+/// Produces an [`Operation`] that focuses the widget with the given [`Id`].
 pub fn focus<T>(target: Id) -> impl Operation<T> {
     struct Focus {
         target: Id,
@@ -42,6 +54,7 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
     Focus { target }
 }
 
+/// Produces an [`Operation`] that generates a [`Count`].
 pub fn count<T, O>(f: fn(Count) -> O) -> impl Operation<T>
 where
     O: Operation<T> + 'static,
@@ -82,6 +95,9 @@ where
     }
 }
 
+/// Produces an [`Operation`] that searches for the current focuses widget, and
+/// - if found, focuses the previous focusable widget.
+/// - if not found, focuses the last focusable widget.
 pub fn focus_previous<T>() -> impl Operation<T> {
     struct FocusPrevious {
         count: Count,
@@ -118,6 +134,9 @@ pub fn focus_previous<T>() -> impl Operation<T> {
     count(|count| FocusPrevious { count, current: 0 })
 }
 
+/// Produces an [`Operation`] that searches for the current focuses widget, and
+/// - if found, focuses the next focusable widget.
+/// - if not found, focuses the first focusable widget.
 pub fn focus_next<T>() -> impl Operation<T> {
     struct FocusNext {
         count: Count,

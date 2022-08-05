@@ -314,19 +314,25 @@ where
     }
 }
 
+/// The identifier of a [`TextInput`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(widget::Id);
 
 impl Id {
+    /// Creates a custom [`Id`].
     pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
         Self(widget::Id::new(id))
     }
 
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
         Self(widget::Id::unique())
     }
 }
 
+/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
     Command::widget(operation::focusable::focus(id.0))
 }

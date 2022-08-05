@@ -3,13 +3,17 @@ use crate::widget::Id;
 
 use iced_futures::MaybeSend;
 
+/// An operation to be performed on the widget tree.
+#[allow(missing_debug_implementations)]
 pub struct Action<T>(Box<dyn Operation<T>>);
 
 impl<T> Action<T> {
+    /// Creates a new [`Action`] with the given [`Operation`].
     pub fn new(operation: impl Operation<T> + 'static) -> Self {
         Self(Box::new(operation))
     }
 
+    /// Maps the output of an [`Action`] using the given function.
     pub fn map<A>(
         self,
         f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
@@ -24,11 +28,13 @@ impl<T> Action<T> {
         }))
     }
 
+    /// Consumes the [`Action`] and returns the internal [`Operation`].
     pub fn into_operation(self) -> Box<dyn Operation<T>> {
         self.0
     }
 }
 
+#[allow(missing_debug_implementations)]
 struct Map<A, B> {
     operation: Box<dyn Operation<A>>,
     f: Box<dyn Fn(A) -> B>,
