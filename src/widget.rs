@@ -99,7 +99,7 @@ pub mod radio {
 pub mod scrollable {
     //! Navigate an endless amount of content with a scrollbar.
     pub use iced_native::widget::scrollable::{
-        style::Scrollbar, style::Scroller, StyleSheet,
+        snap_to, style::Scrollbar, style::Scroller, Id, StyleSheet,
     };
 
     /// A widget that can vertically display an infinite amount of content
@@ -119,7 +119,9 @@ pub mod toggler {
 
 pub mod text_input {
     //! Display fields that can be filled with text.
-    pub use iced_native::widget::text_input::{Appearance, StyleSheet};
+    pub use iced_native::widget::text_input::{
+        focus, Appearance, Id, StyleSheet,
+    };
 
     /// A field that can be filled with text.
     pub type TextInput<'a, Message, Renderer = crate::Renderer> =
@@ -209,3 +211,22 @@ pub use qr_code::QRCode;
 #[cfg(feature = "svg")]
 #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
 pub use svg::Svg;
+
+use crate::Command;
+use iced_native::widget::operation;
+
+/// Focuses the previous focusable widget.
+pub fn focus_previous<Message>() -> Command<Message>
+where
+    Message: 'static,
+{
+    Command::widget(operation::focusable::focus_previous())
+}
+
+/// Focuses the next focusable widget.
+pub fn focus_next<Message>() -> Command<Message>
+where
+    Message: 'static,
+{
+    Command::widget(operation::focusable::focus_next())
+}

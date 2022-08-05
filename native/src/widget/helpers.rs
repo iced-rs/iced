@@ -49,8 +49,8 @@ where
 /// [`Column`]: widget::Column
 pub fn column<Message, Renderer>(
     children: Vec<Element<'_, Message, Renderer>>,
-) -> widget::Row<'_, Message, Renderer> {
-    widget::Row::with_children(children)
+) -> widget::Column<'_, Message, Renderer> {
+    widget::Column::with_children(children)
 }
 
 /// Creates a new [`Row`] with the given children.

@@ -192,22 +192,26 @@ use iced_wgpu as renderer;
 use iced_glow as renderer;
 
 pub use iced_native::theme;
+pub use runtime::event;
+pub use runtime::subscription;
 
 pub use application::Application;
 pub use element::Element;
 pub use error::Error;
+pub use event::Event;
 pub use executor::Executor;
 pub use renderer::Renderer;
 pub use result::Result;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
+pub use subscription::Subscription;
 pub use theme::Theme;
 
 pub use runtime::alignment;
 pub use runtime::futures;
 pub use runtime::{
     Alignment, Background, Color, Command, ContentFit, Font, Length, Padding,
-    Point, Rectangle, Size, Subscription, Vector,
+    Point, Rectangle, Size, Vector,
 };
 
 #[cfg(feature = "system")]

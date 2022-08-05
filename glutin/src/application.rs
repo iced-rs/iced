@@ -12,7 +12,7 @@ use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
 use iced_winit::renderer;
 use iced_winit::user_interface;
-use iced_winit::{Clipboard, Debug, Proxy, Settings};
+use iced_winit::{Clipboard, Command, Debug, Proxy, Settings};
 
 use glutin::window::Window;
 use std::mem::ManuallyDrop;
@@ -39,9 +39,9 @@ where
     debug.startup_started();
 
     let mut event_loop = EventLoop::with_user_event();
-    let mut proxy = event_loop.create_proxy();
+    let proxy = event_loop.create_proxy();
 
-    let mut runtime = {
+    let runtime = {
         let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
         let proxy = Proxy::new(event_loop.create_proxy());
 
@@ -53,8 +53,6 @@ where
 
         runtime.enter(|| A::new(flags))
     };
-
-    let subscription = application.subscription();
 
     let context = {
         let builder = settings.window.into_builder(
@@ -125,18 +123,6 @@ where
         })?
     };
 
-    let mut clipboard = Clipboard::connect(context.window());
-
-    application::run_command(
-        init_command,
-        &mut runtime,
-        &mut clipboard,
-        &mut proxy,
-        context.window(),
-        || compositor.fetch_information(),
-    );
-    runtime.track(subscription);
-
     let (mut sender, receiver) = mpsc::unbounded();
 
     let mut instance = Box::pin(run_instance::<A, E, C>(
@@ -144,11 +130,11 @@ where
         compositor,
         renderer,
         runtime,
-        clipboard,
         proxy,
         debug,
         receiver,
         context,
+        init_command,
         settings.exit_on_close_request,
     ));
 
@@ -196,11 +182,11 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
-    mut clipboard: Clipboard,
     mut proxy: glutin::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<glutin::event::Event<'_, A::Message>>,
     mut context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
+    init_command: Command<A::Message>,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
@@ -211,12 +197,29 @@ async fn run_instance<A, E, C>(
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
 
+    let mut clipboard = Clipboard::connect(context.window());
+    let mut cache = user_interface::Cache::default();
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
 
+    application::run_command(
+        &application,
+        &mut cache,
+        &state,
+        &mut renderer,
+        init_command,
+        &mut runtime,
+        &mut clipboard,
+        &mut proxy,
+        &mut debug,
+        context.window(),
+        || compositor.fetch_information(),
+    );
+    runtime.track(application.subscription());
+
     let mut user_interface =
         ManuallyDrop::new(application::build_user_interface(
-            &mut application,
+            &application,
             user_interface::Cache::default(),
             &mut renderer,
             state.logical_size(),
@@ -258,12 +261,15 @@ async fn run_instance<A, E, C>(
                         user_interface::State::Outdated
                     )
                 {
-                    let cache =
+                    let mut cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
 
                     // Update application
                     application::update(
                         &mut application,
+                        &mut cache,
+                        &state,
+                        &mut renderer,
                         &mut runtime,
                         &mut clipboard,
                         &mut proxy,
@@ -280,7 +286,7 @@ async fn run_instance<A, E, C>(
 
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(
-                            &mut application,
+                            &application,
                             cache,
                             &mut renderer,
                             state.logical_size(),

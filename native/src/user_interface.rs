@@ -479,6 +479,29 @@ where
             .unwrap_or(base_interaction)
     }
 
+    /// Applies a [`widget::Operation`] to the [`UserInterface`].
+    pub fn operate(
+        &mut self,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        self.root.as_widget().operate(
+            &mut self.state,
+            Layout::new(&self.base),
+            operation,
+        );
+
+        if let Some(layout) = self.overlay.as_ref() {
+            if let Some(overlay) = self.root.as_widget().overlay(
+                &mut self.state,
+                Layout::new(&self.base),
+                renderer,
+            ) {
+                overlay.operate(Layout::new(layout), operation);
+            }
+        }
+    }
+
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {

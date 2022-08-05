@@ -17,6 +17,7 @@ pub mod column;
 pub mod container;
 pub mod helpers;
 pub mod image;
+pub mod operation;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
@@ -32,6 +33,9 @@ pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
 pub mod tree;
+
+mod action;
+mod id;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -75,6 +79,10 @@ pub use toggler::Toggler;
 pub use tooltip::Tooltip;
 #[doc(no_inline)]
 pub use tree::Tree;
+
+pub use action::Action;
+pub use id::Id;
+pub use operation::Operation;
 
 use crate::event::{self, Event};
 use crate::layout;
@@ -158,6 +166,15 @@ where
 
     /// Reconciliates the [`Widget`] with the provided [`Tree`].
     fn diff(&self, _tree: &mut Tree) {}
+
+    /// Applies an [`Operation`] to the [`Widget`].
+    fn operate(
+        &self,
+        _state: &mut Tree,
+        _layout: Layout<'_>,
+        _operation: &mut dyn Operation<Message>,
+    ) {
+    }
 
     /// Processes a runtime [`Event`].
     ///

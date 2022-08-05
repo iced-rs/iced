@@ -10,6 +10,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
 
@@ -62,6 +63,14 @@ where
 
     /// Reconciliates the [`Widget`] with the provided [`Tree`].
     fn diff(&self, _tree: &mut Tree) {}
+
+    /// Applies an [`Operation`] to the [`Widget`].
+    fn operate(
+        &self,
+        _layout: Layout<'_>,
+        _operation: &mut dyn widget::Operation<Message>,
+    ) {
+    }
 
     /// Processes a runtime [`Event`].
     ///

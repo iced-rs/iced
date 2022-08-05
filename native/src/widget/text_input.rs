@@ -19,10 +19,12 @@ use crate::mouse::{self, click};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget;
+use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
@@ -53,6 +55,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     placeholder: String,
     value: Value,
     is_secure: bool,
@@ -83,6 +86,7 @@ where
         F: 'a + Fn(String) -> Message,
     {
         TextInput {
+            id: None,
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
@@ -95,6 +99,12 @@ where
             on_submit: None,
             style: Default::default(),
         }
+    }
+
+    /// Sets the [`Id`] of the [`TextInput`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Converts the [`TextInput`] into a secure password input.
@@ -214,6 +224,17 @@ where
         layout(renderer, limits, self.width, self.padding, self.size)
     }
 
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        _layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
+    }
+
     fn on_event(
         &mut self,
         tree: &mut Tree,
@@ -291,6 +312,29 @@ where
     ) -> Element<'a, Message, Renderer> {
         Element::new(text_input)
     }
+}
+
+/// The identifier of a [`TextInput`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    /// Creates a custom [`Id`].
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
+}
+
+/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
+pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::focusable::focus(id.0))
 }
 
 /// Computes the layout of a [`TextInput`].
@@ -914,6 +958,7 @@ impl State {
     /// Focuses the [`TextInput`].
     pub fn focus(&mut self) {
         self.is_focused = true;
+        self.move_cursor_to_end();
     }
 
     /// Unfocuses the [`TextInput`].
@@ -939,6 +984,20 @@ impl State {
     /// Selects all the content of the [`TextInput`].
     pub fn select_all(&mut self) {
         self.cursor.select_range(0, usize::MAX);
+    }
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
     }
 }
 

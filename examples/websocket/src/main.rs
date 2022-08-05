@@ -49,37 +49,42 @@ impl Application for WebSocket {
         match message {
             Message::NewMessageChanged(new_message) => {
                 self.new_message = new_message;
+
+                Command::none()
             }
             Message::Send(message) => match &mut self.state {
                 State::Connected(connection) => {
                     self.new_message.clear();
 
                     connection.send(message);
+
+                    Command::none()
                 }
-                State::Disconnected => {}
+                State::Disconnected => Command::none(),
             },
             Message::Echo(event) => match event {
                 echo::Event::Connected(connection) => {
                     self.state = State::Connected(connection);
 
                     self.messages.push(echo::Message::connected());
+
+                    Command::none()
                 }
                 echo::Event::Disconnected => {
                     self.state = State::Disconnected;
 
                     self.messages.push(echo::Message::disconnected());
+
+                    Command::none()
                 }
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
 
-                    // TODO
-                    // self.message_log.snap_to(1.0);
+                    scrollable::snap_to(MESSAGE_LOG.clone(), 1.0)
                 }
             },
-            Message::Server => {}
+            Message::Server => Command::none(),
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -110,6 +115,7 @@ impl Application for WebSocket {
                 .width(Length::Fill)
                 .spacing(10),
             )
+            .id(MESSAGE_LOG.clone())
             .height(Length::Fill)
             .into()
         };
@@ -157,4 +163,8 @@ impl Default for State {
     fn default() -> Self {
         Self::Disconnected
     }
+}
+
+lazy_static::lazy_static! {
+    static ref MESSAGE_LOG: scrollable::Id = scrollable::Id::unique();
 }

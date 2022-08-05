@@ -1,13 +1,22 @@
 use iced::alignment::{self, Alignment};
+use iced::event::{self, Event};
+use iced::keyboard;
+use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::{
-    button, checkbox, column, container, row, scrollable, text, text_input,
-    Text,
+    self, button, checkbox, column, container, row, scrollable, text,
+    text_input, Text,
 };
 use iced::window;
 use iced::{Application, Element};
-use iced::{Color, Command, Font, Length, Settings};
+use iced::{Color, Command, Font, Length, Settings, Subscription};
+
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+
+lazy_static! {
+    static ref INPUT_ID: text_input::Id = text_input::Id::unique();
+}
 
 pub fn main() -> iced::Result {
     Todos::run(Settings {
@@ -42,6 +51,7 @@ enum Message {
     CreateTask,
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
+    TabPressed { shift: bool },
 }
 
 impl Application for Todos {
@@ -84,14 +94,16 @@ impl Application for Todos {
                     _ => {}
                 }
 
-                Command::none()
+                text_input::focus(INPUT_ID.clone())
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
 
-                match message {
+                let command = match message {
                     Message::InputChanged(value) => {
                         state.input_value = value;
+
+                        Command::none()
                     }
                     Message::CreateTask => {
                         if !state.input_value.is_empty() {
@@ -100,30 +112,56 @@ impl Application for Todos {
                                 .push(Task::new(state.input_value.clone()));
                             state.input_value.clear();
                         }
+
+                        Command::none()
                     }
                     Message::FilterChanged(filter) => {
                         state.filter = filter;
+
+                        Command::none()
                     }
                     Message::TaskMessage(i, TaskMessage::Delete) => {
                         state.tasks.remove(i);
+
+                        Command::none()
                     }
                     Message::TaskMessage(i, task_message) => {
                         if let Some(task) = state.tasks.get_mut(i) {
+                            let should_focus =
+                                matches!(task_message, TaskMessage::Edit);
+
                             task.update(task_message);
+
+                            if should_focus {
+                                text_input::focus(Task::text_input_id(i))
+                            } else {
+                                Command::none()
+                            }
+                        } else {
+                            Command::none()
                         }
                     }
                     Message::Saved(_) => {
                         state.saving = false;
                         saved = true;
+
+                        Command::none()
                     }
-                    _ => {}
-                }
+                    Message::TabPressed { shift } => {
+                        if shift {
+                            widget::focus_previous()
+                        } else {
+                            widget::focus_next()
+                        }
+                    }
+                    _ => Command::none(),
+                };
 
                 if !saved {
                     state.dirty = true;
                 }
 
-                if state.dirty && !state.saving {
+                let save = if state.dirty && !state.saving {
                     state.dirty = false;
                     state.saving = true;
 
@@ -138,7 +176,9 @@ impl Application for Todos {
                     )
                 } else {
                     Command::none()
-                }
+                };
+
+                Command::batch(vec![command, save])
             }
         }
     }
@@ -163,6 +203,7 @@ impl Application for Todos {
                     input_value,
                     Message::InputChanged,
                 )
+                .id(INPUT_ID.clone())
                 .padding(15)
                 .size(30)
                 .on_submit(Message::CreateTask);
@@ -178,12 +219,13 @@ impl Application for Todos {
                             .enumerate()
                             .filter(|(_, task)| filter.matches(task))
                             .map(|(i, task)| {
-                                task.view().map(move |message| {
+                                task.view(i).map(move |message| {
                                     Message::TaskMessage(i, message)
                                 })
                             })
                             .collect(),
                     )
+                    .spacing(10)
                     .into()
                 } else {
                     empty_message(match filter {
@@ -208,6 +250,22 @@ impl Application for Todos {
                 .into()
             }
         }
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        subscription::events_with(|event, status| match (event, status) {
+            (
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key_code: keyboard::KeyCode::Tab,
+                    modifiers,
+                    ..
+                }),
+                event::Status::Ignored,
+            ) => Some(Message::TabPressed {
+                shift: modifiers.shift(),
+            }),
+            _ => None,
+        })
     }
 }
 
@@ -242,6 +300,10 @@ pub enum TaskMessage {
 }
 
 impl Task {
+    fn text_input_id(i: usize) -> text_input::Id {
+        text_input::Id::new(format!("task-{}", i))
+    }
+
     fn new(description: String) -> Self {
         Task {
             description,
@@ -270,7 +332,7 @@ impl Task {
         }
     }
 
-    fn view(&self) -> Element<TaskMessage> {
+    fn view(&self, i: usize) -> Element<TaskMessage> {
         match &self.state {
             TaskState::Idle => {
                 let checkbox = checkbox(
@@ -297,6 +359,7 @@ impl Task {
                     &self.description,
                     TaskMessage::DescriptionEdited,
                 )
+                .id(Self::text_input_id(i))
                 .on_submit(TaskMessage::FinishEdition)
                 .padding(10);
 

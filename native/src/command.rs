@@ -3,6 +3,8 @@ mod action;
 
 pub use action::Action;
 
+use crate::widget;
+
 use iced_futures::MaybeSend;
 
 use std::fmt;
@@ -22,6 +24,13 @@ impl<T> Command<T> {
     /// Creates a [`Command`] that performs a single [`Action`].
     pub const fn single(action: Action<T>) -> Self {
         Self(iced_futures::Command::single(action))
+    }
+
+    /// Creates a [`Command`] that performs a [`widget::Operation`].
+    pub fn widget(operation: impl widget::Operation<T> + 'static) -> Self {
+        Self(iced_futures::Command::single(Action::Widget(
+            widget::Action::new(operation),
+        )))
     }
 
     /// Creates a [`Command`] that performs the action of the given future.
@@ -51,6 +60,7 @@ impl<T> Command<T> {
     ) -> Command<A>
     where
         T: 'static,
+        A: 'static,
     {
         let Command(command) = self;
 
