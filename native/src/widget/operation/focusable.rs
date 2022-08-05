@@ -54,7 +54,8 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
     Focus { target }
 }
 
-/// Produces an [`Operation`] that generates a [`Count`].
+/// Produces an [`Operation`] that generates a [`Count`] and chains it with the
+/// provided function to build a new [`Operation`].
 pub fn count<T, O>(f: fn(Count) -> O) -> impl Operation<T>
 where
     O: Operation<T> + 'static,
@@ -95,7 +96,7 @@ where
     }
 }
 
-/// Produces an [`Operation`] that searches for the current focuses widget, and
+/// Produces an [`Operation`] that searches for the current focused widget, and
 /// - if found, focuses the previous focusable widget.
 /// - if not found, focuses the last focusable widget.
 pub fn focus_previous<T>() -> impl Operation<T> {
@@ -134,7 +135,7 @@ pub fn focus_previous<T>() -> impl Operation<T> {
     count(|count| FocusPrevious { count, current: 0 })
 }
 
-/// Produces an [`Operation`] that searches for the current focuses widget, and
+/// Produces an [`Operation`] that searches for the current focused widget, and
 /// - if found, focuses the next focusable widget.
 /// - if not found, focuses the first focusable widget.
 pub fn focus_next<T>() -> impl Operation<T> {
