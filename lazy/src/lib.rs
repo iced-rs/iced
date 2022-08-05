@@ -17,9 +17,11 @@
     clippy::type_complexity
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub mod cached;
 pub mod component;
 pub mod responsive;
 
+pub use cached::Cached;
 pub use component::Component;
 pub use responsive::Responsive;
 
