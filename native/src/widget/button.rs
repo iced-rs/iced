@@ -7,6 +7,8 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::widget::tree::{self, Tree};
+use crate::widget::Operation;
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
@@ -17,8 +19,6 @@ pub use iced_style::button::{Appearance, StyleSheet};
 /// A generic widget that produces a message when pressed.
 ///
 /// ```
-/// # use iced_native::widget::{button, Text};
-/// #
 /// # type Button<'a, Message> =
 /// #     iced_native::widget::Button<'a, Message, iced_native::renderer::Null>;
 /// #
@@ -27,17 +27,13 @@ pub use iced_style::button::{Appearance, StyleSheet};
 ///     ButtonPressed,
 /// }
 ///
-/// let mut state = button::State::new();
-/// let button = Button::new(&mut state, Text::new("Press me!"))
-///     .on_press(Message::ButtonPressed);
+/// let button = Button::new("Press me!").on_press(Message::ButtonPressed);
 /// ```
 ///
 /// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
 /// be disabled:
 ///
 /// ```
-/// # use iced_native::widget::{button, Text};
-/// #
 /// # type Button<'a, Message> =
 /// #     iced_native::widget::Button<'a, Message, iced_native::renderer::Null>;
 /// #
@@ -46,12 +42,12 @@ pub use iced_style::button::{Appearance, StyleSheet};
 ///     ButtonPressed,
 /// }
 ///
-/// fn disabled_button(state: &mut button::State) -> Button<'_, Message> {
-///     Button::new(state, Text::new("I'm disabled!"))
+/// fn disabled_button<'a>() -> Button<'a, Message> {
+///     Button::new("I'm disabled!")
 /// }
 ///
-/// fn enabled_button(state: &mut button::State) -> Button<'_, Message> {
-///     disabled_button(state).on_press(Message::ButtonPressed)
+/// fn enabled_button<'a>() -> Button<'a, Message> {
+///     disabled_button().on_press(Message::ButtonPressed)
 /// }
 /// ```
 #[allow(missing_debug_implementations)]
@@ -60,7 +56,6 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    state: &'a mut State,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
     width: Length,
@@ -71,24 +66,18 @@ where
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
-    Message: Clone,
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    /// Creates a new [`Button`] with some local [`State`] and the given
-    /// content.
-    pub fn new<E>(state: &'a mut State, content: E) -> Self
-    where
-        E: Into<Element<'a, Message, Renderer>>,
-    {
+    /// Creates a new [`Button`] with the given content.
+    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Button {
-            state,
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
             height: Length::Shrink,
             padding: Padding::new(5),
-            style: Default::default(),
+            style: <Renderer::Theme as StyleSheet>::Style::default(),
         }
     }
 
@@ -111,19 +100,188 @@ where
     }
 
     /// Sets the message that will be produced when the [`Button`] is pressed.
-    /// If on_press isn't set, button will be disabled.
+    ///
+    /// Unless `on_press` is called, the [`Button`] will be disabled.
     pub fn on_press(mut self, msg: Message) -> Self {
         self.on_press = Some(msg);
         self
     }
 
-    /// Sets the style of this [`Button`].
+    /// Sets the style variant of this [`Button`].
     pub fn style(
         mut self,
         style: <Renderer::Theme as StyleSheet>::Style,
     ) -> Self {
         self.style = style;
         self
+    }
+}
+
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Button<'a, Message, Renderer>
+where
+    Message: 'a + Clone,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.height,
+            self.padding,
+            |renderer, limits| {
+                self.content.as_widget().layout(renderer, limits)
+            },
+        )
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        operation.container(None, &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                operation,
+            );
+        });
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        if let event::Status::Captured = self.content.as_widget_mut().on_event(
+            &mut tree.children[0],
+            event.clone(),
+            layout.children().next().unwrap(),
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        ) {
+            return event::Status::Captured;
+        }
+
+        update(
+            event,
+            layout,
+            cursor_position,
+            shell,
+            &self.on_press,
+            || tree.state.downcast_mut::<State>(),
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+
+        let styling = draw(
+            renderer,
+            bounds,
+            cursor_position,
+            self.on_press.is_some(),
+            theme,
+            self.style,
+            || tree.state.downcast_ref::<State>(),
+        );
+
+        self.content.as_widget().draw(
+            &tree.children[0],
+            renderer,
+            theme,
+            &renderer::Style {
+                text_color: styling.text_color,
+            },
+            content_layout,
+            cursor_position,
+            &bounds,
+        );
+    }
+
+    fn mouse_interaction(
+        &self,
+        _tree: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        mouse_interaction(layout, cursor_position, self.on_press.is_some())
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.content.as_widget().overlay(
+            &mut tree.children[0],
+            layout.children().next().unwrap(),
+            renderer,
+        )
+    }
+}
+
+impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: Clone + 'a,
+    Renderer: crate::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(button: Button<'a, Message, Renderer>) -> Self {
+        Self::new(button)
     }
 }
 
@@ -290,133 +448,5 @@ pub fn mouse_interaction(
         mouse::Interaction::Pointer
     } else {
         mouse::Interaction::default()
-    }
-}
-
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Button<'a, Message, Renderer>
-where
-    Message: Clone,
-    Renderer: crate::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            self.width,
-            self.height,
-            self.padding,
-            |renderer, limits| self.content.layout(renderer, limits),
-        )
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        if let event::Status::Captured = self.content.on_event(
-            event.clone(),
-            layout.children().next().unwrap(),
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-        ) {
-            return event::Status::Captured;
-        }
-
-        update(
-            event,
-            layout,
-            cursor_position,
-            shell,
-            &self.on_press,
-            || &mut self.state,
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position, self.on_press.is_some())
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        _style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-    ) {
-        let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
-
-        let styling = draw(
-            renderer,
-            bounds,
-            cursor_position,
-            self.on_press.is_some(),
-            theme,
-            self.style,
-            || self.state,
-        );
-
-        self.content.draw(
-            renderer,
-            theme,
-            &renderer::Style {
-                text_color: styling.text_color,
-            },
-            content_layout,
-            cursor_position,
-            &bounds,
-        );
-    }
-
-    fn overlay(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.content
-            .overlay(layout.children().next().unwrap(), renderer)
-    }
-}
-
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: 'a + Clone,
-    Renderer: 'a + crate::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn from(
-        button: Button<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(button)
     }
 }

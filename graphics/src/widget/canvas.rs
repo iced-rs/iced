@@ -3,8 +3,6 @@
 //! A [`Canvas`] widget can be used to draw different kinds of 2D shapes in a
 //! [`Frame`]. It can be used for animation, data visualization, game graphics,
 //! and more!
-use crate::renderer::{self, Renderer};
-use crate::{Backend, Primitive};
 
 pub mod event;
 pub mod path;
@@ -29,42 +27,31 @@ pub use program::Program;
 pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use text::Text;
 
-use iced_native::layout;
+use crate::{Backend, Primitive, Renderer};
+
+use iced_native::layout::{self, Layout};
 use iced_native::mouse;
+use iced_native::renderer;
+use iced_native::widget::tree::{self, Tree};
 use iced_native::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::marker::PhantomData;
 
 /// A widget capable of drawing 2D graphics.
 ///
-/// # Examples
-/// The repository has a couple of [examples] showcasing how to use a
-/// [`Canvas`]:
-///
-/// - [`clock`], an application that uses the [`Canvas`] widget to draw a clock
-/// and its hands to display the current time.
-/// - [`game_of_life`], an interactive version of the Game of Life, invented by
-/// John Conway.
-/// - [`solar_system`], an animated solar system drawn using the [`Canvas`] widget
-/// and showcasing how to compose different transforms.
-///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.4/examples
-/// [`clock`]: https://github.com/iced-rs/iced/tree/0.4/examples/clock
-/// [`game_of_life`]: https://github.com/iced-rs/iced/tree/0.4/examples/game_of_life
-/// [`solar_system`]: https://github.com/iced-rs/iced/tree/0.4/examples/solar_system
-///
 /// ## Drawing a simple circle
 /// If you want to get a quick overview, here's how we can draw a simple circle:
 ///
 /// ```no_run
 /// # mod iced {
-/// #     pub use iced_graphics::canvas;
+/// #     pub mod widget {
+/// #         pub use iced_graphics::widget::canvas;
+/// #     }
 /// #     pub use iced_native::{Color, Rectangle, Theme};
 /// # }
-/// use iced::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
+/// use iced::widget::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
 /// use iced::{Color, Rectangle, Theme};
 ///
 /// // First, we define the data we need for drawing
@@ -75,7 +62,9 @@ use std::marker::PhantomData;
 ///
 /// // Then, we implement the `Program` trait
 /// impl Program<()> for Circle {
-///     fn draw(&self, _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
+///     type State = ();
+///
+///     fn draw(&self, _state: &(), _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
 ///         // We prepare a new `Frame`
 ///         let mut frame = Frame::new(bounds.size());
 ///
@@ -140,6 +129,15 @@ where
     P: Program<Message, T>,
     B: Backend,
 {
+    fn tag(&self) -> tree::Tag {
+        struct Tag<T>(T);
+        tree::Tag::of::<Tag<P::State>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(P::State::default())
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -161,6 +159,7 @@ where
 
     fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: iced_native::Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -183,8 +182,10 @@ where
         let cursor = Cursor::from_window_position(cursor_position);
 
         if let Some(canvas_event) = canvas_event {
+            let state = tree.state.downcast_mut::<P::State>();
+
             let (event_status, message) =
-                self.program.update(canvas_event, bounds, cursor);
+                self.program.update(state, canvas_event, bounds, cursor);
 
             if let Some(message) = message {
                 shell.publish(message);
@@ -198,6 +199,7 @@ where
 
     fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -205,12 +207,14 @@ where
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let cursor = Cursor::from_window_position(cursor_position);
+        let state = tree.state.downcast_ref::<P::State>();
 
-        self.program.mouse_interaction(bounds, cursor)
+        self.program.mouse_interaction(state, bounds, cursor)
     }
 
     fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer<B, T>,
         theme: &T,
         _style: &renderer::Style,
@@ -228,12 +232,13 @@ where
 
         let translation = Vector::new(bounds.x, bounds.y);
         let cursor = Cursor::from_window_position(cursor_position);
+        let state = tree.state.downcast_ref::<P::State>();
 
         renderer.with_translation(translation, |renderer| {
             renderer.draw_primitive(Primitive::Group {
                 primitives: self
                     .program
-                    .draw(theme, bounds, cursor)
+                    .draw(state, theme, bounds, cursor)
                     .into_iter()
                     .map(Geometry::into_primitive)
                     .collect(),
@@ -245,7 +250,7 @@ where
 impl<'a, Message, P, B, T> From<Canvas<Message, T, P>>
     for Element<'a, Message, Renderer<B, T>>
 where
-    Message: 'static,
+    Message: 'a,
     P: Program<Message, T> + 'a,
     B: Backend,
     T: 'a,

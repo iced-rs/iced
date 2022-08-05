@@ -1,15 +1,12 @@
-use iced::button::{self, Button};
-use iced::{Alignment, Column, Element, Sandbox, Settings, Text};
+use iced::widget::{button, column, text};
+use iced::{Alignment, Element, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     Counter::run(Settings::default())
 }
 
-#[derive(Default)]
 struct Counter {
     value: i32,
-    increment_button: button::State,
-    decrement_button: button::State,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -22,7 +19,7 @@ impl Sandbox for Counter {
     type Message = Message;
 
     fn new() -> Self {
-        Self::default()
+        Self { value: 0 }
     }
 
     fn title(&self) -> String {
@@ -40,19 +37,14 @@ impl Sandbox for Counter {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
-        Column::new()
-            .padding(20)
-            .align_items(Alignment::Center)
-            .push(
-                Button::new(&mut self.increment_button, Text::new("Increment"))
-                    .on_press(Message::IncrementPressed),
-            )
-            .push(Text::new(self.value.to_string()).size(50))
-            .push(
-                Button::new(&mut self.decrement_button, Text::new("Decrement"))
-                    .on_press(Message::DecrementPressed),
-            )
-            .into()
+    fn view(&self) -> Element<Message> {
+        column![
+            button("Increment").on_press(Message::IncrementPressed),
+            text(self.value).size(50),
+            button("Decrement").on_press(Message::DecrementPressed)
+        ]
+        .padding(20)
+        .align_items(Alignment::Center)
+        .into()
     }
 }

@@ -1,9 +1,10 @@
 //! Encode and display information in a QR code.
-use crate::canvas;
 use crate::renderer::{self, Renderer};
+use crate::widget::canvas;
 use crate::Backend;
 
 use iced_native::layout;
+use iced_native::widget::Tree;
 use iced_native::{
     Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
@@ -72,6 +73,7 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer<B, T>,
         _theme: &T,
         _style: &renderer::Style,

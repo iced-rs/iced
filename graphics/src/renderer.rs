@@ -58,7 +58,7 @@ where
         element: &Element<'a, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let layout = element.layout(self, limits);
+        let layout = element.as_widget().layout(self, limits);
 
         self.backend.trim_measurements();
 

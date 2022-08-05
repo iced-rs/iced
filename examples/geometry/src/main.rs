@@ -13,8 +13,9 @@ mod rainbow {
     use iced_graphics::renderer::{self, Renderer};
     use iced_graphics::{Backend, Primitive};
 
+    use iced_native::widget::{self, Widget};
     use iced_native::{
-        layout, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+        layout, Element, Layout, Length, Point, Rectangle, Size, Vector,
     };
 
     #[derive(Default)]
@@ -24,6 +25,10 @@ mod rainbow {
         pub fn new() -> Self {
             Self
         }
+    }
+
+    pub fn rainbow() -> Rainbow {
+        Rainbow
     }
 
     impl<Message, B, T> Widget<Message, Renderer<B, T>> for Rainbow
@@ -50,6 +55,7 @@ mod rainbow {
 
         fn draw(
             &self,
+            _tree: &widget::Tree,
             renderer: &mut Renderer<B, T>,
             _theme: &T,
             _style: &renderer::Style,
@@ -159,27 +165,21 @@ mod rainbow {
     }
 }
 
-use iced::{
-    scrollable, Alignment, Column, Container, Element, Length, Sandbox,
-    Scrollable, Settings, Text,
-};
-use rainbow::Rainbow;
+use iced::widget::{column, container, scrollable};
+use iced::{Alignment, Element, Length, Sandbox, Settings};
+use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
 }
 
-struct Example {
-    scroll: scrollable::State,
-}
+struct Example;
 
 impl Sandbox for Example {
     type Message = ();
 
     fn new() -> Self {
-        Example {
-            scroll: scrollable::State::new(),
-        }
+        Example
     }
 
     fn title(&self) -> String {
@@ -188,32 +188,27 @@ impl Sandbox for Example {
 
     fn update(&mut self, _: ()) {}
 
-    fn view(&mut self) -> Element<()> {
-        let content = Column::new()
-            .padding(20)
-            .spacing(20)
-            .max_width(500)
-            .align_items(Alignment::Start)
-            .push(Rainbow::new())
-            .push(Text::new(
-                "In this example we draw a custom widget Rainbow, using \
+    fn view(&self) -> Element<()> {
+        let content = column![
+            rainbow(),
+            "In this example we draw a custom widget Rainbow, using \
                  the Mesh2D primitive. This primitive supplies a list of \
                  triangles, expressed as vertices and indices.",
-            ))
-            .push(Text::new(
-                "Move your cursor over it, and see the center vertex \
+            "Move your cursor over it, and see the center vertex \
                  follow you!",
-            ))
-            .push(Text::new(
-                "Every Vertex2D defines its own color. You could use the \
+            "Every Vertex2D defines its own color. You could use the \
                  Mesh2D primitive to render virtually any two-dimensional \
                  geometry for your widget.",
-            ));
+        ]
+        .padding(20)
+        .spacing(20)
+        .max_width(500)
+        .align_items(Alignment::Start);
 
-        let scrollable = Scrollable::new(&mut self.scroll)
-            .push(Container::new(content).width(Length::Fill).center_x());
+        let scrollable =
+            scrollable(container(content).width(Length::Fill).center_x());
 
-        Container::new(scrollable)
+        container(scrollable)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_y()

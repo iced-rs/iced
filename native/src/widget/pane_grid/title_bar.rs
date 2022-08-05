@@ -4,6 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
+use crate::widget::Tree;
 use crate::{
     Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
 };
@@ -86,11 +87,37 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: container::StyleSheet,
 {
+    pub(super) fn state(&self) -> Tree {
+        let children = if let Some(controls) = self.controls.as_ref() {
+            vec![Tree::new(&self.content), Tree::new(controls)]
+        } else {
+            vec![Tree::new(&self.content), Tree::empty()]
+        };
+
+        Tree {
+            children,
+            ..Tree::empty()
+        }
+    }
+
+    pub(super) fn diff(&self, tree: &mut Tree) {
+        if tree.children.len() == 2 {
+            if let Some(controls) = self.controls.as_ref() {
+                tree.children[1].diff(controls);
+            }
+
+            tree.children[0].diff(&self.content);
+        } else {
+            *tree = self.state();
+        }
+    }
+
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer`]: iced_native::Renderer
     pub fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
@@ -118,14 +145,15 @@ where
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > padded.bounds().width
+            {
+                show_title = false;
+            }
 
             if show_controls || self.always_show_controls {
-                if title_layout.bounds().width + controls_layout.bounds().width
-                    > padded.bounds().width
-                {
-                    show_title = false;
-                }
-                controls.draw(
+                controls.as_widget().draw(
+                    &tree.children[1],
                     renderer,
                     theme,
                     &inherited_style,
@@ -137,7 +165,8 @@ where
         }
 
         if show_title {
-            self.content.draw(
+            self.content.as_widget().draw(
+                &tree.children[0],
                 renderer,
                 theme,
                 &inherited_style,
@@ -186,11 +215,14 @@ where
 
         let title_layout = self
             .content
+            .as_widget()
             .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
+
         let title_size = title_layout.size();
 
         let mut node = if let Some(controls) = &self.controls {
             let mut controls_layout = controls
+                .as_widget()
                 .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
 
             let controls_size = controls_layout.size();
@@ -221,6 +253,7 @@ where
 
     pub(crate) fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -243,7 +276,8 @@ where
                 show_title = false;
             }
 
-            controls.on_event(
+            controls.as_widget_mut().on_event(
+                &mut tree.children[1],
                 event.clone(),
                 controls_layout,
                 cursor_position,
@@ -256,7 +290,8 @@ where
         };
 
         let title_status = if show_title {
-            self.content.on_event(
+            self.content.as_widget_mut().on_event(
+                &mut tree.children[0],
                 event,
                 title_layout,
                 cursor_position,
@@ -273,6 +308,7 @@ where
 
     pub(crate) fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -284,7 +320,8 @@ where
         let mut children = padded.children();
         let title_layout = children.next().unwrap();
 
-        let title_interaction = self.content.mouse_interaction(
+        let title_interaction = self.content.as_widget().mouse_interaction(
+            &tree.children[0],
             title_layout,
             cursor_position,
             viewport,
@@ -293,7 +330,8 @@ where
 
         if let Some(controls) = &self.controls {
             let controls_layout = children.next().unwrap();
-            let controls_interaction = controls.mouse_interaction(
+            let controls_interaction = controls.as_widget().mouse_interaction(
+                &tree.children[1],
                 controls_layout,
                 cursor_position,
                 viewport,
@@ -312,11 +350,12 @@ where
         }
     }
 
-    pub(crate) fn overlay(
-        &mut self,
+    pub(crate) fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
         let mut children = layout.children();
         let padded = children.next()?;
 
@@ -327,12 +366,23 @@ where
             content, controls, ..
         } = self;
 
-        content.overlay(title_layout, renderer).or_else(move || {
-            controls.as_mut().and_then(|controls| {
-                let controls_layout = children.next()?;
+        let mut states = tree.children.iter_mut();
+        let title_state = states.next().unwrap();
+        let controls_state = states.next().unwrap();
 
-                controls.overlay(controls_layout, renderer)
+        content
+            .as_widget()
+            .overlay(title_state, title_layout, renderer)
+            .or_else(move || {
+                controls.as_ref().and_then(|controls| {
+                    let controls_layout = children.next()?;
+
+                    controls.as_widget().overlay(
+                        controls_state,
+                        controls_layout,
+                        renderer,
+                    )
+                })
             })
-        })
     }
 }

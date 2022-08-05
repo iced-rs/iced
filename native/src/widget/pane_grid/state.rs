@@ -31,8 +31,6 @@ pub struct State<T> {
     ///
     /// [`PaneGrid`]: crate::widget::PaneGrid
     pub internal: Internal,
-
-    pub(super) action: Action,
 }
 
 impl<T> State<T> {
@@ -54,11 +52,7 @@ impl<T> State<T> {
         let internal =
             Internal::from_configuration(&mut panes, config.into(), 0);
 
-        State {
-            panes,
-            internal,
-            action: Action::Idle,
-        }
+        State { panes, internal }
     }
 
     /// Returns the total amount of panes in the [`State`].

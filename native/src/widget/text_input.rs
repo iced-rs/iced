@@ -19,9 +19,12 @@ use crate::mouse::{self, click};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget;
+use crate::widget::operation::{self, Operation};
+use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
@@ -30,20 +33,15 @@ pub use iced_style::text_input::{Appearance, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_native::renderer::Null;
-/// # use iced_native::widget::text_input;
-/// #
-/// # pub type TextInput<'a, Message> = iced_native::widget::TextInput<'a, Message, Null>;
+/// # pub type TextInput<'a, Message> = iced_native::widget::TextInput<'a, Message, iced_native::renderer::Null>;
 /// #[derive(Debug, Clone)]
 /// enum Message {
 ///     TextInputChanged(String),
 /// }
 ///
-/// let mut state = text_input::State::new();
 /// let value = "Some text";
 ///
 /// let input = TextInput::new(
-///     &mut state,
 ///     "This is the placeholder...",
 ///     value,
 ///     Message::TextInputChanged,
@@ -57,7 +55,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    state: &'a mut State,
+    id: Option<Id>,
     placeholder: String,
     value: Value,
     is_secure: bool,
@@ -80,21 +78,15 @@ where
     /// Creates a new [`TextInput`].
     ///
     /// It expects:
-    /// - some [`State`]
-    /// - a placeholder
-    /// - the current value
-    /// - a function that produces a message when the [`TextInput`] changes
-    pub fn new<F>(
-        state: &'a mut State,
-        placeholder: &str,
-        value: &str,
-        on_change: F,
-    ) -> Self
+    /// - a placeholder,
+    /// - the current value, and
+    /// - a function that produces a message when the [`TextInput`] changes.
+    pub fn new<F>(placeholder: &str, value: &str, on_change: F) -> Self
     where
         F: 'a + Fn(String) -> Message,
     {
         TextInput {
-            state,
+            id: None,
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
@@ -107,6 +99,12 @@ where
             on_submit: None,
             style: Default::default(),
         }
+    }
+
+    /// Sets the [`Id`] of the [`TextInput`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Converts the [`TextInput`] into a secure password input.
@@ -127,7 +125,7 @@ where
 
     /// Sets the [`Font`] of the [`TextInput`].
     ///
-    /// [`Font`]: crate::text::Renderer::Font
+    /// [`Font`]: text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
@@ -166,17 +164,13 @@ where
         self
     }
 
-    /// Returns the current [`State`] of the [`TextInput`].
-    pub fn state(&self) -> &State {
-        self.state
-    }
-
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
-    /// [`Value`] if provided.
+    /// [`text_input::Value`] if provided.
     ///
     /// [`Renderer`]: text::Renderer
     pub fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         layout: Layout<'_>,
@@ -188,7 +182,7 @@ where
             theme,
             layout,
             cursor_position,
-            self.state,
+            tree.state.downcast_ref::<State>(),
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
@@ -197,6 +191,150 @@ where
             self.style,
         )
     }
+}
+
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for TextInput<'a, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout(renderer, limits, self.width, self.padding, self.size)
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        _layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        update(
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+            &mut self.value,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.on_change.as_ref(),
+            self.on_paste.as_deref(),
+            &self.on_submit,
+            || tree.state.downcast_mut::<State>(),
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        draw(
+            renderer,
+            theme,
+            layout,
+            cursor_position,
+            tree.state.downcast_ref::<State>(),
+            &self.value,
+            &self.placeholder,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.style,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        mouse_interaction(layout, cursor_position)
+    }
+}
+
+impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a + Clone,
+    Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(
+        text_input: TextInput<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(text_input)
+    }
+}
+
+/// The identifier of a [`TextInput`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    /// Creates a custom [`Id`].
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
+}
+
+/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
+pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::focusable::focus(id.0))
 }
 
 /// Computes the layout of a [`TextInput`].
@@ -777,93 +915,6 @@ pub fn mouse_interaction(
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for TextInput<'a, Message, Renderer>
-where
-    Message: Clone,
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(renderer, limits, self.width, self.padding, self.size)
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        update(
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-            &mut self.value,
-            self.size,
-            &self.font,
-            self.is_secure,
-            self.on_change.as_ref(),
-            self.on_paste.as_deref(),
-            &self.on_submit,
-            || &mut self.state,
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        _style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-    ) {
-        self.draw(renderer, theme, layout, cursor_position, None)
-    }
-}
-
-impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: 'a + Clone,
-    Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn from(
-        text_input: TextInput<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(text_input)
-    }
-}
-
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State {
@@ -907,6 +958,7 @@ impl State {
     /// Focuses the [`TextInput`].
     pub fn focus(&mut self) {
         self.is_focused = true;
+        self.move_cursor_to_end();
     }
 
     /// Unfocuses the [`TextInput`].
@@ -932,6 +984,20 @@ impl State {
     /// Selects all the content of the [`TextInput`].
     pub fn select_all(&mut self) {
         self.cursor.select_range(0, usize::MAX);
+    }
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
     }
 }
 

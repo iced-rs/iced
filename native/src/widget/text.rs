@@ -3,6 +3,7 @@ use crate::alignment;
 use crate::layout;
 use crate::renderer;
 use crate::text;
+use crate::widget::Tree;
 use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 pub use iced_style::text::{Appearance, StyleSheet};
@@ -44,9 +45,9 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new<T: Into<String>>(label: T) -> Self {
+    pub fn new<T: ToString>(label: T) -> Self {
         Text {
-            content: label.into(),
+            content: label.to_string(),
             size: None,
             font: Default::default(),
             width: Length::Shrink,
@@ -145,6 +146,7 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -241,5 +243,15 @@ where
             font: self.font.clone(),
             style: self.style,
         }
+    }
+}
+
+impl<'a, Message, Renderer> From<&'a str> for Element<'a, Message, Renderer>
+where
+    Renderer: text::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(contents: &'a str) -> Self {
+        Text::new(contents).into()
     }
 }

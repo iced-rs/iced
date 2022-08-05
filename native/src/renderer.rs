@@ -21,7 +21,7 @@ pub trait Renderer: Sized {
         element: &Element<'a, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        element.layout(self, limits)
+        element.as_widget().layout(self, limits)
     }
 
     /// Draws the primitives recorded in the given closure in a new layer.

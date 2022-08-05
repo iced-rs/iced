@@ -1,9 +1,9 @@
 use iced::alignment;
-use iced::button;
 use iced::executor;
+use iced::widget::{button, checkbox, container, text, Column};
 use iced::{
-    Alignment, Application, Button, Checkbox, Column, Command, Container,
-    Element, Length, Settings, Subscription, Text, Theme,
+    Alignment, Application, Command, Element, Length, Settings, Subscription,
+    Theme,
 };
 use iced_native::{window, Event};
 
@@ -18,7 +18,6 @@ pub fn main() -> iced::Result {
 struct Events {
     last: Vec<iced_native::Event>,
     enabled: bool,
-    exit: button::State,
     should_exit: bool,
 }
 
@@ -76,23 +75,23 @@ impl Application for Events {
         self.should_exit
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let events = self.last.iter().fold(
-            Column::new().spacing(10),
-            |column, event| {
-                column.push(Text::new(format!("{:?}", event)).size(40))
-            },
+    fn view(&self) -> Element<Message> {
+        let events = Column::with_children(
+            self.last
+                .iter()
+                .map(|event| text(format!("{:?}", event)).size(40))
+                .map(Element::from)
+                .collect(),
         );
 
-        let toggle = Checkbox::new(
-            self.enabled,
+        let toggle = checkbox(
             "Listen to runtime events",
+            self.enabled,
             Message::Toggled,
         );
 
-        let exit = Button::new(
-            &mut self.exit,
-            Text::new("Exit")
+        let exit = button(
+            text("Exit")
                 .width(Length::Fill)
                 .horizontal_alignment(alignment::Horizontal::Center),
         )
@@ -107,7 +106,7 @@ impl Application for Events {
             .push(toggle)
             .push(exit);
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()

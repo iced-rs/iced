@@ -2,11 +2,10 @@ use std::borrow::Cow;
 
 use iced_native::{Point, Rectangle, Size, Vector};
 
-use crate::{
-    canvas::path,
-    canvas::{Fill, Geometry, Path, Stroke, Text},
-    triangle, Primitive,
-};
+use crate::triangle;
+use crate::widget::canvas::path;
+use crate::widget::canvas::{Fill, Geometry, Path, Stroke, Text};
+use crate::Primitive;
 
 use lyon::tessellation;
 

@@ -1,11 +1,10 @@
 use iced::alignment;
-use iced::button;
 use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
+use iced::widget::{button, column, container, row, text};
 use iced::{
-    Alignment, Application, Button, Column, Command, Container, Element,
-    Length, Row, Settings, Subscription, Text,
+    Alignment, Application, Command, Element, Length, Settings, Subscription,
 };
 
 use std::time::{Duration, Instant};
@@ -17,8 +16,6 @@ pub fn main() -> iced::Result {
 struct Stopwatch {
     duration: Duration,
     state: State,
-    toggle: button::State,
-    reset: button::State,
 }
 
 enum State {
@@ -44,8 +41,6 @@ impl Application for Stopwatch {
             Stopwatch {
                 duration: Duration::default(),
                 state: State::Idle,
-                toggle: button::State::new(),
-                reset: button::State::new(),
             },
             Command::none(),
         )
@@ -90,13 +85,13 @@ impl Application for Stopwatch {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         const MINUTE: u64 = 60;
         const HOUR: u64 = 60 * MINUTE;
 
         let seconds = self.duration.as_secs();
 
-        let duration = Text::new(format!(
+        let duration = text(format!(
             "{:0>2}:{:0>2}:{:0>2}.{:0>2}",
             seconds / HOUR,
             (seconds % HOUR) / MINUTE,
@@ -105,11 +100,9 @@ impl Application for Stopwatch {
         ))
         .size(40);
 
-        let button = |state, label| {
-            Button::new(
-                state,
-                Text::new(label)
-                    .horizontal_alignment(alignment::Horizontal::Center),
+        let button = |label| {
+            button(
+                text(label).horizontal_alignment(alignment::Horizontal::Center),
             )
             .padding(10)
             .width(Length::Units(80))
@@ -121,25 +114,20 @@ impl Application for Stopwatch {
                 State::Ticking { .. } => "Stop",
             };
 
-            button(&mut self.toggle, label).on_press(Message::Toggle)
+            button(label).on_press(Message::Toggle)
         };
 
-        let reset_button = button(&mut self.reset, "Reset")
+        let reset_button = button("Reset")
             .style(theme::Button::Destructive)
             .on_press(Message::Reset);
 
-        let controls = Row::new()
-            .spacing(20)
-            .push(toggle_button)
-            .push(reset_button);
+        let controls = row![toggle_button, reset_button].spacing(20);
 
-        let content = Column::new()
+        let content = column![duration, controls]
             .align_items(Alignment::Center)
-            .spacing(20)
-            .push(duration)
-            .push(controls);
+            .spacing(20);
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()

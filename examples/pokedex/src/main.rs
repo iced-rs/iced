@@ -1,9 +1,7 @@
-use iced::button;
 use iced::futures;
-use iced::image;
+use iced::widget::{self, column, container, image, row, text};
 use iced::{
-    Alignment, Application, Button, Color, Column, Command, Container, Element,
-    Length, Row, Settings, Text, Theme,
+    Alignment, Application, Color, Command, Element, Length, Settings, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -13,13 +11,8 @@ pub fn main() -> iced::Result {
 #[derive(Debug)]
 enum Pokedex {
     Loading,
-    Loaded {
-        pokemon: Pokemon,
-        search: button::State,
-    },
-    Errored {
-        try_again: button::State,
-    },
+    Loaded { pokemon: Pokemon },
+    Errored,
 }
 
 #[derive(Debug, Clone)]
@@ -54,17 +47,12 @@ impl Application for Pokedex {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::PokemonFound(Ok(pokemon)) => {
-                *self = Pokedex::Loaded {
-                    pokemon,
-                    search: button::State::new(),
-                };
+                *self = Pokedex::Loaded { pokemon };
 
                 Command::none()
             }
             Message::PokemonFound(Err(_error)) => {
-                *self = Pokedex::Errored {
-                    try_again: button::State::new(),
-                };
+                *self = Pokedex::Errored;
 
                 Command::none()
             }
@@ -79,27 +67,28 @@ impl Application for Pokedex {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let content = match self {
-            Pokedex::Loading => Column::new()
-                .width(Length::Shrink)
-                .push(Text::new("Searching for Pokémon...").size(40)),
-            Pokedex::Loaded { pokemon, search } => Column::new()
-                .max_width(500)
-                .spacing(20)
-                .align_items(Alignment::End)
-                .push(pokemon.view())
-                .push(
-                    button(search, "Keep searching!").on_press(Message::Search),
-                ),
-            Pokedex::Errored { try_again, .. } => Column::new()
-                .spacing(20)
-                .align_items(Alignment::End)
-                .push(Text::new("Whoops! Something went wrong...").size(40))
-                .push(button(try_again, "Try again").on_press(Message::Search)),
+            Pokedex::Loading => {
+                column![text("Searching for Pokémon...").size(40),]
+                    .width(Length::Shrink)
+            }
+            Pokedex::Loaded { pokemon } => column![
+                pokemon.view(),
+                button("Keep searching!").on_press(Message::Search)
+            ]
+            .max_width(500)
+            .spacing(20)
+            .align_items(Alignment::End),
+            Pokedex::Errored => column![
+                text("Whoops! Something went wrong...").size(40),
+                button("Try again").on_press(Message::Search)
+            ]
+            .spacing(20)
+            .align_items(Alignment::End),
         };
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
@@ -114,41 +103,30 @@ struct Pokemon {
     name: String,
     description: String,
     image: image::Handle,
-    image_viewer: image::viewer::State,
 }
 
 impl Pokemon {
     const TOTAL: u16 = 807;
 
-    fn view(&mut self) -> Element<Message> {
-        Row::new()
-            .spacing(20)
-            .align_items(Alignment::Center)
-            .push(image::Viewer::new(
-                &mut self.image_viewer,
-                self.image.clone(),
-            ))
-            .push(
-                Column::new()
-                    .spacing(20)
-                    .push(
-                        Row::new()
-                            .align_items(Alignment::Center)
-                            .spacing(20)
-                            .push(
-                                Text::new(&self.name)
-                                    .size(30)
-                                    .width(Length::Fill),
-                            )
-                            .push(
-                                Text::new(format!("#{}", self.number))
-                                    .size(20)
-                                    .style(Color::from([0.5, 0.5, 0.5])),
-                            ),
-                    )
-                    .push(Text::new(&self.description)),
-            )
-            .into()
+    fn view(&self) -> Element<Message> {
+        row![
+            image::viewer(self.image.clone()),
+            column![
+                row![
+                    text(&self.name).size(30).width(Length::Fill),
+                    text(format!("#{}", self.number))
+                        .size(20)
+                        .style(Color::from([0.5, 0.5, 0.5])),
+                ]
+                .align_items(Alignment::Center)
+                .spacing(20),
+                self.description.as_ref(),
+            ]
+            .spacing(20),
+        ]
+        .spacing(20)
+        .align_items(Alignment::Center)
+        .into()
     }
 
     async fn search() -> Result<Pokemon, Error> {
@@ -204,7 +182,6 @@ impl Pokemon {
                 .map(|c| if c.is_control() { ' ' } else { c })
                 .collect(),
             image,
-            image_viewer: image::viewer::State::new(),
         })
     }
 
@@ -240,6 +217,6 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-fn button<'a>(state: &'a mut button::State, text: &str) -> Button<'a, Message> {
-    Button::new(state, Text::new(text)).padding(10)
+fn button(text: &str) -> widget::Button<'_, Message> {
+    widget::button(text).padding(10)
 }

@@ -1,6 +1,7 @@
 //! Provide progress feedback to your users.
 use crate::layout;
 use crate::renderer;
+use crate::widget::Tree;
 use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 use std::ops::RangeInclusive;
@@ -105,6 +106,7 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         _style: &renderer::Style,

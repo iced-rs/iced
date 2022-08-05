@@ -16,8 +16,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+use crate::Element;
+
 use crate::layout::{Limits, Node};
-use crate::{Alignment, Element, Padding, Point, Size};
+use crate::{Alignment, Padding, Point, Size};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -84,8 +86,8 @@ where
 
         items.iter().for_each(|child| {
             let cross_fill_factor = match axis {
-                Axis::Horizontal => child.height(),
-                Axis::Vertical => child.width(),
+                Axis::Horizontal => child.as_widget().height(),
+                Axis::Vertical => child.as_widget().width(),
             }
             .fill_factor();
 
@@ -95,7 +97,7 @@ where
                 let child_limits =
                     Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-                let layout = child.layout(renderer, &child_limits);
+                let layout = child.as_widget().layout(renderer, &child_limits);
                 let size = layout.size();
 
                 fill_cross = fill_cross.max(axis.cross(size));
@@ -107,8 +109,8 @@ where
 
     for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
-            Axis::Horizontal => child.width(),
-            Axis::Vertical => child.height(),
+            Axis::Horizontal => child.as_widget().width(),
+            Axis::Vertical => child.as_widget().height(),
         }
         .fill_factor();
 
@@ -130,7 +132,7 @@ where
                 Size::new(max_width, max_height),
             );
 
-            let layout = child.layout(renderer, &child_limits);
+            let layout = child.as_widget().layout(renderer, &child_limits);
             let size = layout.size();
 
             available -= axis.main(size);
@@ -149,8 +151,8 @@ where
 
     for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
-            Axis::Horizontal => child.width(),
-            Axis::Vertical => child.height(),
+            Axis::Horizontal => child.as_widget().width(),
+            Axis::Vertical => child.as_widget().height(),
         }
         .fill_factor();
 
@@ -179,7 +181,7 @@ where
                 Size::new(max_width, max_height),
             );
 
-            let layout = child.layout(renderer, &child_limits);
+            let layout = child.as_widget().layout(renderer, &child_limits);
 
             if align_items != Alignment::Fill {
                 cross = cross.max(axis.cross(layout.size()));

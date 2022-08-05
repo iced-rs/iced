@@ -5,6 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::widget::{Operation, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Widget,
@@ -121,6 +122,159 @@ where
     }
 }
 
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Container<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.height,
+            self.max_width,
+            self.max_height,
+            self.padding,
+            self.horizontal_alignment,
+            self.vertical_alignment,
+            |renderer, limits| {
+                self.content.as_widget().layout(renderer, limits)
+            },
+        )
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        operation.container(None, &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                operation,
+            );
+        });
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        self.content.as_widget_mut().on_event(
+            &mut tree.children[0],
+            event,
+            layout.children().next().unwrap(),
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.content.as_widget().mouse_interaction(
+            &tree.children[0],
+            layout.children().next().unwrap(),
+            cursor_position,
+            viewport,
+            renderer,
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        renderer_style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        let style = theme.appearance(self.style);
+
+        draw_background(renderer, &style, layout.bounds());
+
+        self.content.as_widget().draw(
+            &tree.children[0],
+            renderer,
+            theme,
+            &renderer::Style {
+                text_color: style
+                    .text_color
+                    .unwrap_or(renderer_style.text_color),
+            },
+            layout.children().next().unwrap(),
+            cursor_position,
+            viewport,
+        );
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.content.as_widget().overlay(
+            &mut tree.children[0],
+            layout.children().next().unwrap(),
+            renderer,
+        )
+    }
+}
+
+impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(
+        column: Container<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(column)
+    }
+}
+
 /// Computes the layout of a [`Container`].
 pub fn layout<Renderer>(
     renderer: &Renderer,
@@ -155,110 +309,6 @@ pub fn layout<Renderer>(
     layout::Node::with_children(size.pad(padding), vec![content])
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Container<'a, Message, Renderer>
-where
-    Renderer: crate::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            self.width,
-            self.height,
-            self.max_width,
-            self.max_height,
-            self.padding,
-            self.horizontal_alignment,
-            self.vertical_alignment,
-            |renderer, limits| self.content.layout(renderer, limits),
-        )
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        self.content.widget.on_event(
-            event,
-            layout.children().next().unwrap(),
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.content.widget.mouse_interaction(
-            layout.children().next().unwrap(),
-            cursor_position,
-            viewport,
-            renderer,
-        )
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        renderer_style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) {
-        let style = theme.appearance(self.style);
-
-        draw_background(renderer, &style, layout.bounds());
-
-        self.content.draw(
-            renderer,
-            theme,
-            &renderer::Style {
-                text_color: style
-                    .text_color
-                    .unwrap_or(renderer_style.text_color),
-            },
-            layout.children().next().unwrap(),
-            cursor_position,
-            viewport,
-        );
-    }
-
-    fn overlay(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.content
-            .overlay(layout.children().next().unwrap(), renderer)
-    }
-}
-
 /// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
 pub fn draw_background<Renderer>(
     renderer: &mut Renderer,
@@ -279,19 +329,5 @@ pub fn draw_background<Renderer>(
                 .background
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
-    }
-}
-
-impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: 'a,
-    Renderer: 'a + crate::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    fn from(
-        column: Container<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(column)
     }
 }

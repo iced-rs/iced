@@ -1,4 +1,4 @@
-use crate::canvas::path::{arc, Arc, Path};
+use crate::widget::canvas::path::{arc, Arc, Path};
 
 use iced_native::{Point, Size};
 use lyon::path::builder::SvgPathBuilder;

@@ -7,7 +7,7 @@ mod builder;
 pub use arc::Arc;
 pub use builder::Builder;
 
-use crate::canvas::LineDash;
+use crate::widget::canvas::LineDash;
 
 use iced_native::{Point, Size};
 use lyon::algorithms::walk::{walk_along_path, RepeatedPattern, WalkerEvent};
