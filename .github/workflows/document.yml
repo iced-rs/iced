@@ -22,7 +22,6 @@ jobs:
           -p iced_futures \
           -p iced_native \
           -p iced_lazy \
-          -p iced_pure \
           -p iced_graphics \
           -p iced_wgpu \
           -p iced_glow \
