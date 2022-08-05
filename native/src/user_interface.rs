@@ -95,11 +95,11 @@ where
     ) -> Self {
         let root = root.into();
 
-        let base =
-            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
-
         let Cache { mut state } = cache;
         state.diff(root.as_widget());
+
+        let base =
+            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
 
         UserInterface {
             root,
