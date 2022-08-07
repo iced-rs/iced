@@ -20,8 +20,9 @@ use crate::toggler;
 
 use iced_core::{Background, Color};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Theme {
+    #[default]
     Light,
     Dark,
 }
@@ -39,12 +40,6 @@ impl Theme {
             Self::Light => &palette::EXTENDED_LIGHT,
             Self::Dark => &palette::EXTENDED_DARK,
         }
-    }
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        Self::Light
     }
 }
 
