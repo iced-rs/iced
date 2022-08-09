@@ -349,7 +349,7 @@ pub fn draw<Renderer>(
                 viewport.y + viewport.height - tooltip_bounds.height;
         }
 
-        renderer.with_layer(*viewport, |renderer| {
+        renderer.with_layer(Rectangle::with_size(Size::INFINITY), |renderer| {
             container::draw_background(renderer, &style, tooltip_bounds);
 
             draw_text(
