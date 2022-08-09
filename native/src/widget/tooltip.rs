@@ -25,6 +25,7 @@ where
     position: Position,
     gap: u16,
     padding: u16,
+    snap_within_viewport: bool,
     style: <Renderer::Theme as container::StyleSheet>::Style,
 }
 
@@ -50,6 +51,7 @@ where
             position,
             gap: 0,
             padding: Self::DEFAULT_PADDING,
+            snap_within_viewport: true,
             style: Default::default(),
         }
     }
@@ -77,6 +79,12 @@ where
     /// Sets the padding of the [`Tooltip`].
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
+        self
+    }
+
+    /// Sets whether the [`Tooltip`] is snapped within the viewport.
+    pub fn snap_within_viewport(mut self, snap: bool) -> Self {
+        self.snap_within_viewport = snap;
         self
     }
 
@@ -190,6 +198,7 @@ where
             self.position,
             self.gap,
             self.padding,
+            self.snap_within_viewport,
             self.style,
             |renderer, limits| {
                 Widget::<(), Renderer>::layout(tooltip, renderer, limits)
@@ -263,6 +272,7 @@ pub fn draw<Renderer>(
     position: Position,
     gap: u16,
     padding: u16,
+    snap_within_viewport: bool,
     style: <Renderer::Theme as container::StyleSheet>::Style,
     layout_text: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
     draw_text: impl FnOnce(
@@ -331,22 +341,24 @@ pub fn draw<Renderer>(
             }
         };
 
-        if tooltip_bounds.x < viewport.x {
-            tooltip_bounds.x = viewport.x;
-        } else if viewport.x + viewport.width
-            < tooltip_bounds.x + tooltip_bounds.width
-        {
-            tooltip_bounds.x =
-                viewport.x + viewport.width - tooltip_bounds.width;
-        }
+        if snap_within_viewport {
+            if tooltip_bounds.x < viewport.x {
+                tooltip_bounds.x = viewport.x;
+            } else if viewport.x + viewport.width
+                < tooltip_bounds.x + tooltip_bounds.width
+            {
+                tooltip_bounds.x =
+                    viewport.x + viewport.width - tooltip_bounds.width;
+            }
 
-        if tooltip_bounds.y < viewport.y {
-            tooltip_bounds.y = viewport.y;
-        } else if viewport.y + viewport.height
-            < tooltip_bounds.y + tooltip_bounds.height
-        {
-            tooltip_bounds.y =
-                viewport.y + viewport.height - tooltip_bounds.height;
+            if tooltip_bounds.y < viewport.y {
+                tooltip_bounds.y = viewport.y;
+            } else if viewport.y + viewport.height
+                < tooltip_bounds.y + tooltip_bounds.height
+            {
+                tooltip_bounds.y =
+                    viewport.y + viewport.height - tooltip_bounds.height;
+            }
         }
 
         renderer.with_layer(Rectangle::with_size(Size::INFINITY), |renderer| {
