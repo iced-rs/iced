@@ -41,7 +41,7 @@ impl<T> Command<T> {
     }
 
     /// Applies a transformation to the result of a [`Command`].
-    pub fn map<A>(self, f: impl Fn(T) -> A) -> Command<A>
+    pub fn map<A>(self, mut f: impl FnMut(T) -> A) -> Command<A>
     where
         T: 'static,
     {

@@ -16,7 +16,7 @@ impl<T> Action<T> {
     /// Maps the output of an [`Action`] using the given function.
     pub fn map<A>(
         self,
-        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
+        f: impl FnMut(T) -> A + 'static + MaybeSend + Sync,
     ) -> Action<A>
     where
         T: 'static,
@@ -37,7 +37,7 @@ impl<T> Action<T> {
 #[allow(missing_debug_implementations)]
 struct Map<A, B> {
     operation: Box<dyn Operation<A>>,
-    f: Box<dyn Fn(A) -> B>,
+    f: Box<dyn FnMut(A) -> B>,
 }
 
 impl<A, B> Operation<B> for Map<A, B>
@@ -52,7 +52,7 @@ where
     ) {
         struct MapRef<'a, A, B> {
             operation: &'a mut dyn Operation<A>,
-            f: &'a dyn Fn(A) -> B,
+            f: &'a mut dyn FnMut(A) -> B,
         }
 
         impl<'a, A, B> Operation<B> for MapRef<'a, A, B> {

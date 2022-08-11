@@ -35,7 +35,7 @@ impl<T> Action<T> {
     /// [`Command`]: crate::Command
     pub fn map<A>(
         self,
-        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
+        f: impl FnMut(T) -> A + 'static + MaybeSend + Sync,
     ) -> Action<A>
     where
         A: 'static,

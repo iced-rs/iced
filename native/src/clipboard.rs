@@ -30,7 +30,7 @@ impl Clipboard for Null {
 /// [`Command`]: crate::Command
 pub enum Action<T> {
     /// Read the clipboard and produce `T` with the result.
-    Read(Box<dyn Fn(Option<String>) -> T>),
+    Read(Box<dyn FnOnce(Option<String>) -> T>),
 
     /// Write the given contents to the clipboard.
     Write(String),
@@ -40,7 +40,7 @@ impl<T> Action<T> {
     /// Maps the output of a clipboard [`Action`] using the provided closure.
     pub fn map<A>(
         self,
-        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
+        f: impl FnOnce(T) -> A + 'static + MaybeSend + Sync,
     ) -> Action<A>
     where
         T: 'static,

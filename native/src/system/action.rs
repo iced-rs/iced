@@ -9,15 +9,15 @@ pub enum Action<T> {
     QueryInformation(Box<dyn Closure<T>>),
 }
 
-pub trait Closure<T>: Fn(system::Information) -> T + MaybeSend {}
+pub trait Closure<T>: FnOnce(system::Information) -> T + MaybeSend {}
 
-impl<T, O> Closure<O> for T where T: Fn(system::Information) -> O + MaybeSend {}
+impl<T, O> Closure<O> for T where T: FnOnce(system::Information) -> O + MaybeSend {}
 
 impl<T> Action<T> {
     /// Maps the output of a system [`Action`] using the provided closure.
     pub fn map<A>(
         self,
-        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
+        f: impl FnOnce(T) -> A + 'static + MaybeSend + Sync,
     ) -> Action<A>
     where
         T: 'static,
