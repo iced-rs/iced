@@ -18,9 +18,9 @@ system = ["iced_winit/system"]
 version = "0.4"
 
 [dependencies.glutin]
-version = "0.28"
+version = "0.29"
 git = "https://github.com/iced-rs/glutin"
-rev = "7a0ee02782eb2bf059095e0c953c4bb53f1eef0e"
+rev = "da8d291486b4c9bec12487a46c119c4b1d386abf"
 
 [dependencies.iced_native]
 version = "0.5"

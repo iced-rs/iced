@@ -31,14 +31,14 @@ where
 {
     use futures::task;
     use futures::Future;
-    use glutin::event_loop::EventLoop;
+    use glutin::event_loop::EventLoopBuilder;
     use glutin::platform::run_return::EventLoopExtRunReturn;
     use glutin::ContextBuilder;
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let mut event_loop = EventLoop::with_user_event();
+    let mut event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
 
     let runtime = {
@@ -139,10 +139,10 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    event_loop.run_return(move |event, _, control_flow| {
+    let _ = event_loop.run_return(move |event, _, control_flow| {
         use glutin::event_loop::ControlFlow;
 
-        if let ControlFlow::Exit = control_flow {
+        if let ControlFlow::ExitWithCode(_) = control_flow {
             return;
         }
 

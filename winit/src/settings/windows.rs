@@ -5,7 +5,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PlatformSpecific {
     /// Parent window
-    pub parent: Option<winapi::shared::windef::HWND>,
+    pub parent: Option<winit::platform::windows::HWND>,
 
     /// Drag and drop support
     pub drag_and_drop: bool,
