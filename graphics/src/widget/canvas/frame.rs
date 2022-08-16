@@ -280,7 +280,7 @@ impl Frame {
                 Primitive::Translate {
                     translation,
                     content: Box::new(Primitive::Clip {
-                        bounds: region,
+                        bounds: Rectangle::with_size(region.size()),
                         content: Box::new(Primitive::Group {
                             primitives: text,
                         }),
