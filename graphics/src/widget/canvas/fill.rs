@@ -1,6 +1,6 @@
 use iced_native::Color;
 
-use crate::canvas::Gradient;
+use crate::widget::canvas::Gradient;
 
 /// The style used to fill geometry.
 #[derive(Debug, Clone, Copy)]

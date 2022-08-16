@@ -1,5 +1,6 @@
 use crate::clipboard;
 use crate::system;
+use crate::widget;
 use crate::window;
 
 use iced_futures::MaybeSend;
@@ -23,6 +24,9 @@ pub enum Action<T> {
 
     /// Run a system action.
     System(system::Action<T>),
+
+    /// Run a widget action.
+    Widget(widget::Action<T>),
 }
 
 impl<T> Action<T> {
@@ -34,6 +38,7 @@ impl<T> Action<T> {
         f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
     ) -> Action<A>
     where
+        A: 'static,
         T: 'static,
     {
         use iced_futures::futures::FutureExt;
@@ -43,6 +48,7 @@ impl<T> Action<T> {
             Self::Clipboard(action) => Action::Clipboard(action.map(f)),
             Self::Window(window) => Action::Window(window),
             Self::System(system) => Action::System(system.map(f)),
+            Self::Widget(widget) => Action::Widget(widget.map(f)),
         }
     }
 }
@@ -56,6 +62,7 @@ impl<T> fmt::Debug for Action<T> {
             }
             Self::Window(action) => write!(f, "Action::Window({:?})", action),
             Self::System(action) => write!(f, "Action::System({:?})", action),
+            Self::Widget(_action) => write!(f, "Action::Widget"),
         }
     }
 }

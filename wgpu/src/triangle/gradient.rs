@@ -133,7 +133,7 @@ impl Gradient {
             });
 
         let shader =
-            device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("iced_wgpu::triangle::gradient shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     include_str!("../shader/gradient.wgsl"),
@@ -161,11 +161,11 @@ impl Gradient {
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
                     entry_point: "fs_main",
-                    targets: &[wgpu::ColorTargetState {
+                    targets: &[Some(wgpu::ColorTargetState {
                         format,
                         blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                         write_mask: wgpu::ColorWrites::ALL,
-                    }],
+                    })],
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,

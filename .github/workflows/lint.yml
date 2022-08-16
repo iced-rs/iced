@@ -1,0 +1,12 @@
+name: Lint
+on: [push, pull_request]
+jobs:
+  all:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+      with:
+        components: clippy
+    - uses: actions/checkout@master
+    - name: Check lints
+      run: cargo clippy --workspace --all-features --all-targets --no-deps -- -D warnings

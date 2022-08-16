@@ -1,6 +1,6 @@
 [package]
 name = "iced_graphics"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
@@ -17,7 +17,6 @@ font-source = ["font-kit"]
 font-fallback = []
 font-icons = []
 opengl = []
-pure = ["iced_pure"]
 
 [dependencies]
 glam = "0.10"
@@ -36,13 +35,8 @@ path = "../native"
 version = "0.4"
 path = "../style"
 
-[dependencies.iced_pure]
-version = "0.2"
-path = "../pure"
-optional = true
-
 [dependencies.lyon]
-version = "0.17"
+version = "1.0"
 optional = true
 
 [dependencies.qrcode]

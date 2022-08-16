@@ -1,26 +1,27 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::stream::{self, StreamExt};
-use futures::task::SpawnExt;
 
 use iced_graphics::compositor;
 use iced_native::futures;
 use raw_window_handle::HasRawWindowHandle;
 
+use std::marker::PhantomData;
+
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
-pub struct Compositor {
+pub struct Compositor<Theme> {
     settings: Settings,
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     staging_belt: wgpu::util::StagingBelt,
-    local_pool: futures::executor::LocalPool,
     format: wgpu::TextureFormat,
+    theme: PhantomData<Theme>,
 }
 
-impl Compositor {
+impl<Theme> Compositor<Theme> {
     const CHUNK_SIZE: u64 = 10 * 1024;
 
     /// Requests a new [`Compositor`] with the given [`Settings`].
@@ -61,9 +62,9 @@ impl Compositor {
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
-        let format = compatible_surface
-            .as_ref()
-            .and_then(|surface| surface.get_preferred_format(&adapter))?;
+        let format = compatible_surface.as_ref().and_then(|surface| {
+            surface.get_supported_formats(&adapter).first().copied()
+        })?;
 
         log::info!("Selected format: {:?}", format);
 
@@ -98,7 +99,6 @@ impl Compositor {
             .await?;
 
         let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
-        let local_pool = futures::executor::LocalPool::new();
 
         Some(Compositor {
             instance,
@@ -107,8 +107,8 @@ impl Compositor {
             device,
             queue,
             staging_belt,
-            local_pool,
             format,
+            theme: PhantomData,
         })
     }
 
@@ -118,15 +118,15 @@ impl Compositor {
     }
 }
 
-impl iced_graphics::window::Compositor for Compositor {
+impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
     type Settings = Settings;
-    type Renderer = Renderer;
+    type Renderer = Renderer<Theme>;
     type Surface = wgpu::Surface;
 
     fn new<W: HasRawWindowHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
-    ) -> Result<(Self, Renderer), Error> {
+    ) -> Result<(Self, Self::Renderer), Error> {
         let compositor = futures::executor::block_on(Self::request(
             settings,
             compatible_window,
@@ -200,30 +200,32 @@ impl iced_graphics::window::Compositor for Compositor {
                         label: Some(
                             "iced_wgpu::window::Compositor render pass",
                         ),
-                        color_attachments: &[wgpu::RenderPassColorAttachment {
-                            view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear({
-                                    let [r, g, b, a] =
-                                        background_color.into_linear();
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear({
+                                        let [r, g, b, a] =
+                                            background_color.into_linear();
 
-                                    wgpu::Color {
-                                        r: f64::from(r),
-                                        g: f64::from(g),
-                                        b: f64::from(b),
-                                        a: f64::from(a),
-                                    }
-                                }),
-                                store: true,
+                                        wgpu::Color {
+                                            r: f64::from(r),
+                                            g: f64::from(g),
+                                            b: f64::from(b),
+                                            a: f64::from(a),
+                                        }
+                                    }),
+                                    store: true,
+                                },
                             },
-                        }],
+                        )],
                         depth_stencil_attachment: None,
                     });
 
                 renderer.with_primitives(|backend, primitives| {
                     backend.present(
-                        &mut self.device,
+                        &self.device,
                         &mut self.staging_belt,
                         &mut encoder,
                         view,
@@ -235,16 +237,11 @@ impl iced_graphics::window::Compositor for Compositor {
 
                 // Submit work
                 self.staging_belt.finish();
-                self.queue.submit(Some(encoder.finish()));
+                let _submission = self.queue.submit(Some(encoder.finish()));
                 frame.present();
 
                 // Recall staging buffers
-                self.local_pool
-                    .spawner()
-                    .spawn(self.staging_belt.recall())
-                    .expect("Recall staging belt");
-
-                self.local_pool.run_until_stalled();
+                self.staging_belt.recall();
 
                 Ok(())
             }

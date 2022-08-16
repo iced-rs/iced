@@ -4,8 +4,10 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text;
+use crate::widget;
 use crate::widget::container;
-use crate::widget::text::Text;
+use crate::widget::overlay;
+use crate::widget::{Text, Tree};
 use crate::{
     Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle,
     Shell, Size, Vector, Widget,
@@ -13,18 +15,23 @@ use crate::{
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
-pub struct Tooltip<'a, Message, Renderer: text::Renderer> {
+pub struct Tooltip<'a, Message, Renderer: text::Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
+{
     content: Element<'a, Message, Renderer>,
     tooltip: Text<Renderer>,
     position: Position,
-    style_sheet: Box<dyn container::StyleSheet + 'a>,
     gap: u16,
     padding: u16,
+    style: <Renderer::Theme as container::StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: u16 = 5;
@@ -41,9 +48,9 @@ where
             content: content.into(),
             tooltip: Text::new(tooltip.to_string()),
             position,
-            style_sheet: Default::default(),
             gap: 0,
             padding: Self::DEFAULT_PADDING,
+            style: Default::default(),
         }
     }
 
@@ -76,10 +83,157 @@ where
     /// Sets the style of the [`Tooltip`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn container::StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as container::StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
+    }
+}
+
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Tooltip<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
+{
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
+    fn width(&self) -> Length {
+        self.content.as_widget().width()
+    }
+
+    fn height(&self) -> Length {
+        self.content.as_widget().height()
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.content.as_widget().layout(renderer, limits)
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        self.content.as_widget_mut().on_event(
+            &mut tree.children[0],
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.content.as_widget().mouse_interaction(
+            &tree.children[0],
+            layout.children().next().unwrap(),
+            cursor_position,
+            viewport,
+            renderer,
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        inherited_style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        self.content.as_widget().draw(
+            &tree.children[0],
+            renderer,
+            theme,
+            inherited_style,
+            layout,
+            cursor_position,
+            viewport,
+        );
+
+        let tooltip = &self.tooltip;
+
+        draw(
+            renderer,
+            theme,
+            inherited_style,
+            layout,
+            cursor_position,
+            viewport,
+            self.position,
+            self.gap,
+            self.padding,
+            self.style,
+            |renderer, limits| {
+                Widget::<(), Renderer>::layout(tooltip, renderer, limits)
+            },
+            |renderer, defaults, layout, cursor_position, viewport| {
+                Widget::<(), Renderer>::draw(
+                    tooltip,
+                    &Tree::empty(),
+                    renderer,
+                    theme,
+                    defaults,
+                    layout,
+                    cursor_position,
+                    viewport,
+                );
+            },
+        );
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.content.as_widget().overlay(
+            &mut tree.children[0],
+            layout,
+            renderer,
+        )
+    }
+}
+
+impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a,
+    Renderer: 'a + text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
+{
+    fn from(
+        tooltip: Tooltip<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(tooltip)
     }
 }
 
@@ -99,8 +253,9 @@ pub enum Position {
 }
 
 /// Draws a [`Tooltip`].
-pub fn draw<Renderer: crate::Renderer>(
+pub fn draw<Renderer>(
     renderer: &mut Renderer,
+    theme: &Renderer::Theme,
     inherited_style: &renderer::Style,
     layout: Layout<'_>,
     cursor_position: Point,
@@ -108,7 +263,7 @@ pub fn draw<Renderer: crate::Renderer>(
     position: Position,
     gap: u16,
     padding: u16,
-    style_sheet: &dyn container::StyleSheet,
+    style: <Renderer::Theme as container::StyleSheet>::Style,
     layout_text: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
     draw_text: impl FnOnce(
         &mut Renderer,
@@ -117,12 +272,17 @@ pub fn draw<Renderer: crate::Renderer>(
         Point,
         &Rectangle,
     ),
-) {
+) where
+    Renderer: crate::Renderer,
+    Renderer::Theme: container::StyleSheet,
+{
+    use container::StyleSheet;
+
     let bounds = layout.bounds();
 
     if bounds.contains(cursor_position) {
         let gap = f32::from(gap);
-        let style = style_sheet.style();
+        let style = theme.appearance(style);
 
         let defaults = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
@@ -206,118 +366,5 @@ pub fn draw<Renderer: crate::Renderer>(
                 viewport,
             )
         });
-    }
-}
-
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Tooltip<'a, Message, Renderer>
-where
-    Renderer: text::Renderer,
-{
-    fn width(&self) -> Length {
-        self.content.width()
-    }
-
-    fn height(&self) -> Length {
-        self.content.height()
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.content.layout(renderer, limits)
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        self.content.widget.on_event(
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.content.mouse_interaction(
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        inherited_style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) {
-        self.content.draw(
-            renderer,
-            inherited_style,
-            layout,
-            cursor_position,
-            viewport,
-        );
-
-        let tooltip = &self.tooltip;
-
-        draw(
-            renderer,
-            inherited_style,
-            layout,
-            cursor_position,
-            viewport,
-            self.position,
-            self.gap,
-            self.padding,
-            self.style_sheet.as_ref(),
-            |renderer, limits| {
-                Widget::<(), Renderer>::layout(tooltip, renderer, limits)
-            },
-            |renderer, defaults, layout, cursor_position, viewport| {
-                Widget::<(), Renderer>::draw(
-                    tooltip,
-                    renderer,
-                    defaults,
-                    layout,
-                    cursor_position,
-                    viewport,
-                );
-            },
-        )
-    }
-}
-
-impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Renderer: 'a + text::Renderer,
-    Message: 'a,
-{
-    fn from(
-        tooltip: Tooltip<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(tooltip)
     }
 }

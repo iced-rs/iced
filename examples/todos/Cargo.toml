@@ -9,6 +9,7 @@ publish = false
 iced = { path = "../..", features = ["async-std", "debug"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+lazy_static = "1.4"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 async-std = "1.0"
@@ -20,6 +21,6 @@ wasm-timer = "0.2"
 
 [package.metadata.deb]
 assets = [
-    ["target/release/todos", "usr/bin/iced-todos", "755"],
+    ["target/release-opt/todos", "usr/bin/iced-todos", "755"],
     ["iced-todos.desktop", "usr/share/applications/", "644"],
 ]

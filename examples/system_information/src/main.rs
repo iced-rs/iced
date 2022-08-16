@@ -1,6 +1,6 @@
+use iced::widget::{button, column, container, text};
 use iced::{
-    button, executor, system, Application, Button, Column, Command, Container,
-    Element, Length, Settings, Text,
+    executor, system, Application, Command, Element, Length, Settings, Theme,
 };
 
 use bytesize::ByteSize;
@@ -11,10 +11,7 @@ pub fn main() -> iced::Result {
 
 enum Example {
     Loading,
-    Loaded {
-        information: system::Information,
-        refresh_button: button::State,
-    },
+    Loaded { information: system::Information },
 }
 
 #[derive(Clone, Debug)]
@@ -25,6 +22,7 @@ enum Message {
 
 impl Application for Example {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
@@ -47,25 +45,18 @@ impl Application for Example {
                 return system::fetch_information(Message::InformationReceived);
             }
             Message::InformationReceived(information) => {
-                let refresh_button = button::State::new();
-                *self = Self::Loaded {
-                    information,
-                    refresh_button,
-                };
+                *self = Self::Loaded { information };
             }
         }
 
         Command::none()
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let content: Element<Message> = match self {
-            Example::Loading => Text::new("Loading...").size(40).into(),
-            Example::Loaded {
-                information,
-                refresh_button,
-            } => {
-                let system_name = Text::new(format!(
+    fn view(&self) -> Element<Message> {
+        let content: Element<_> = match self {
+            Example::Loading => text("Loading...").size(40).into(),
+            Example::Loaded { information } => {
+                let system_name = text(format!(
                     "System name: {}",
                     information
                         .system_name
@@ -73,7 +64,7 @@ impl Application for Example {
                         .unwrap_or(&"unknown".to_string())
                 ));
 
-                let system_kernel = Text::new(format!(
+                let system_kernel = text(format!(
                     "System kernel: {}",
                     information
                         .system_kernel
@@ -81,7 +72,7 @@ impl Application for Example {
                         .unwrap_or(&"unknown".to_string())
                 ));
 
-                let system_version = Text::new(format!(
+                let system_version = text(format!(
                     "System version: {}",
                     information
                         .system_version
@@ -89,12 +80,10 @@ impl Application for Example {
                         .unwrap_or(&"unknown".to_string())
                 ));
 
-                let cpu_brand = Text::new(format!(
-                    "Processor brand: {}",
-                    information.cpu_brand
-                ));
+                let cpu_brand =
+                    text(format!("Processor brand: {}", information.cpu_brand));
 
-                let cpu_cores = Text::new(format!(
+                let cpu_cores = text(format!(
                     "Processor cores: {}",
                     information
                         .cpu_cores
@@ -105,12 +94,9 @@ impl Application for Example {
                 let memory_readable =
                     ByteSize::kb(information.memory_total).to_string();
 
-                let memory_total = Text::new(format!(
-                    "Memory (total): {}",
-                    format!(
-                        "{} kb ({})",
-                        information.memory_total, memory_readable
-                    )
+                let memory_total = text(format!(
+                    "Memory (total): {} kb ({})",
+                    information.memory_total, memory_readable
                 ));
 
                 let memory_text = if let Some(memory_used) =
@@ -124,38 +110,36 @@ impl Application for Example {
                 };
 
                 let memory_used =
-                    Text::new(format!("Memory (used): {}", memory_text));
+                    text(format!("Memory (used): {}", memory_text));
 
-                let graphics_adapter = Text::new(format!(
+                let graphics_adapter = text(format!(
                     "Graphics adapter: {}",
                     information.graphics_adapter
                 ));
 
-                let graphics_backend = Text::new(format!(
+                let graphics_backend = text(format!(
                     "Graphics backend: {}",
                     information.graphics_backend
                 ));
 
-                Column::with_children(vec![
-                    system_name.size(30).into(),
-                    system_kernel.size(30).into(),
-                    system_version.size(30).into(),
-                    cpu_brand.size(30).into(),
-                    cpu_cores.size(30).into(),
-                    memory_total.size(30).into(),
-                    memory_used.size(30).into(),
-                    graphics_adapter.size(30).into(),
-                    graphics_backend.size(30).into(),
-                    Button::new(refresh_button, Text::new("Refresh"))
-                        .on_press(Message::Refresh)
-                        .into(),
-                ])
+                column![
+                    system_name.size(30),
+                    system_kernel.size(30),
+                    system_version.size(30),
+                    cpu_brand.size(30),
+                    cpu_cores.size(30),
+                    memory_total.size(30),
+                    memory_used.size(30),
+                    graphics_adapter.size(30),
+                    graphics_backend.size(30),
+                    button("Refresh").on_press(Message::Refresh)
+                ]
                 .spacing(10)
                 .into()
             }
         };
 
-        Container::new(content)
+        container(content)
             .center_x()
             .center_y()
             .width(Length::Fill)

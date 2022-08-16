@@ -1,176 +1,182 @@
-mod style;
-
-use iced::{
-    button, scrollable, Button, Column, Container, Element, Length,
-    ProgressBar, Radio, Row, Rule, Sandbox, Scrollable, Settings, Space, Text,
+use iced::executor;
+use iced::widget::{
+    button, column, container, horizontal_rule, progress_bar, radio,
+    scrollable, text, vertical_space, Row,
 };
+use iced::{Application, Command, Element, Length, Settings, Theme};
 
 pub fn main() -> iced::Result {
     ScrollableDemo::run(Settings::default())
 }
 
 struct ScrollableDemo {
-    theme: style::Theme,
+    theme: Theme,
     variants: Vec<Variant>,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(style::Theme),
+    ThemeChanged(Theme),
     ScrollToTop(usize),
     ScrollToBottom(usize),
     Scrolled(usize, f32),
 }
 
-impl Sandbox for ScrollableDemo {
+impl Application for ScrollableDemo {
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
+    type Flags = ();
 
-    fn new() -> Self {
-        ScrollableDemo {
-            theme: Default::default(),
-            variants: Variant::all(),
-        }
+    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+        (
+            ScrollableDemo {
+                theme: Default::default(),
+                variants: Variant::all(),
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
         String::from("Scrollable - Iced")
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::ThemeChanged(theme) => self.theme = theme,
+            Message::ThemeChanged(theme) => {
+                self.theme = theme;
+
+                Command::none()
+            }
             Message::ScrollToTop(i) => {
                 if let Some(variant) = self.variants.get_mut(i) {
-                    variant.scrollable.snap_to(0.0);
-
                     variant.latest_offset = 0.0;
+
+                    scrollable::snap_to(Variant::id(i), 0.0)
+                } else {
+                    Command::none()
                 }
             }
             Message::ScrollToBottom(i) => {
                 if let Some(variant) = self.variants.get_mut(i) {
-                    variant.scrollable.snap_to(1.0);
-
                     variant.latest_offset = 1.0;
+
+                    scrollable::snap_to(Variant::id(i), 1.0)
+                } else {
+                    Command::none()
                 }
             }
             Message::Scrolled(i, offset) => {
                 if let Some(variant) = self.variants.get_mut(i) {
                     variant.latest_offset = offset;
                 }
+
+                Command::none()
             }
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let ScrollableDemo {
             theme, variants, ..
         } = self;
 
-        let choose_theme = style::Theme::ALL.iter().fold(
-            Column::new().spacing(10).push(Text::new("Choose a theme:")),
+        let choose_theme = [Theme::Light, Theme::Dark].iter().fold(
+            column!["Choose a theme:"].spacing(10),
             |column, option| {
-                column.push(
-                    Radio::new(
-                        *option,
-                        format!("{:?}", option),
-                        Some(*theme),
-                        Message::ThemeChanged,
-                    )
-                    .style(*theme),
-                )
+                column.push(radio(
+                    format!("{:?}", option),
+                    *option,
+                    Some(*theme),
+                    Message::ThemeChanged,
+                ))
             },
         );
 
         let scrollable_row = Row::with_children(
             variants
-                .iter_mut()
+                .iter()
                 .enumerate()
                 .map(|(i, variant)| {
-                    let mut scrollable =
-                        Scrollable::new(&mut variant.scrollable)
-                            .padding(10)
-                            .spacing(10)
+                    let mut contents = column![
+                        variant.title,
+                        button("Scroll to bottom",)
                             .width(Length::Fill)
-                            .height(Length::Fill)
-                            .on_scroll(move |offset| {
-                                Message::Scrolled(i, offset)
-                            })
-                            .style(*theme)
-                            .push(Text::new(variant.title))
-                            .push(
-                                Button::new(
-                                    &mut variant.scroll_to_bottom,
-                                    Text::new("Scroll to bottom"),
-                                )
-                                .width(Length::Fill)
-                                .padding(10)
-                                .on_press(Message::ScrollToBottom(i)),
-                            );
+                            .padding(10)
+                            .on_press(Message::ScrollToBottom(i)),
+                    ]
+                    .padding(10)
+                    .spacing(10)
+                    .width(Length::Fill);
 
                     if let Some(scrollbar_width) = variant.scrollbar_width {
-                        scrollable = scrollable
-                            .scrollbar_width(scrollbar_width)
-                            .push(Text::new(format!(
-                                "scrollbar_width: {:?}",
-                                scrollbar_width
-                            )));
+                        contents = contents.push(text(format!(
+                            "scrollbar_width: {:?}",
+                            scrollbar_width
+                        )));
                     }
 
                     if let Some(scrollbar_margin) = variant.scrollbar_margin {
-                        scrollable = scrollable
-                            .scrollbar_margin(scrollbar_margin)
-                            .push(Text::new(format!(
-                                "scrollbar_margin: {:?}",
-                                scrollbar_margin
-                            )));
+                        contents = contents.push(text(format!(
+                            "scrollbar_margin: {:?}",
+                            scrollbar_margin
+                        )));
                     }
 
                     if let Some(scroller_width) = variant.scroller_width {
-                        scrollable = scrollable
-                            .scroller_width(scroller_width)
-                            .push(Text::new(format!(
-                                "scroller_width: {:?}",
-                                scroller_width
-                            )));
+                        contents = contents.push(text(format!(
+                            "scroller_width: {:?}",
+                            scroller_width
+                        )));
                     }
 
-                    scrollable = scrollable
-                        .push(Space::with_height(Length::Units(100)))
-                        .push(Text::new(
+                    contents = contents
+                        .push(vertical_space(Length::Units(100)))
+                        .push(
                             "Some content that should wrap within the \
                             scrollable. Let's output a lot of short words, so \
                             that we'll make sure to see how wrapping works \
                             with these scrollbars.",
-                        ))
-                        .push(Space::with_height(Length::Units(1200)))
-                        .push(Text::new("Middle"))
-                        .push(Space::with_height(Length::Units(1200)))
-                        .push(Text::new("The End."))
+                        )
+                        .push(vertical_space(Length::Units(1200)))
+                        .push("Middle")
+                        .push(vertical_space(Length::Units(1200)))
+                        .push("The End.")
                         .push(
-                            Button::new(
-                                &mut variant.scroll_to_top,
-                                Text::new("Scroll to top"),
-                            )
-                            .width(Length::Fill)
-                            .padding(10)
-                            .on_press(Message::ScrollToTop(i)),
+                            button("Scroll to top")
+                                .width(Length::Fill)
+                                .padding(10)
+                                .on_press(Message::ScrollToTop(i)),
                         );
 
-                    Column::new()
-                        .width(Length::Fill)
+                    let mut scrollable = scrollable(contents)
+                        .id(Variant::id(i))
                         .height(Length::Fill)
-                        .spacing(10)
-                        .push(
-                            Container::new(scrollable)
-                                .width(Length::Fill)
-                                .height(Length::Fill)
-                                .style(*theme),
-                        )
-                        .push(ProgressBar::new(
-                            0.0..=1.0,
-                            variant.latest_offset,
-                        ))
-                        .into()
+                        .on_scroll(move |offset| Message::Scrolled(i, offset));
+
+                    if let Some(scrollbar_width) = variant.scrollbar_width {
+                        scrollable =
+                            scrollable.scrollbar_width(scrollbar_width);
+                    }
+
+                    if let Some(scrollbar_margin) = variant.scrollbar_margin {
+                        scrollable =
+                            scrollable.scrollbar_margin(scrollbar_margin);
+                    }
+
+                    if let Some(scroller_width) = variant.scroller_width {
+                        scrollable = scrollable.scroller_width(scroller_width);
+                    }
+
+                    column![
+                        scrollable,
+                        progress_bar(0.0..=1.0, variant.latest_offset,)
+                    ]
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .spacing(10)
+                    .into()
                 })
                 .collect(),
         )
@@ -178,29 +184,27 @@ impl Sandbox for ScrollableDemo {
         .width(Length::Fill)
         .height(Length::Fill);
 
-        let content = Column::new()
-            .spacing(20)
-            .padding(20)
-            .push(choose_theme)
-            .push(Rule::horizontal(20).style(self.theme))
-            .push(scrollable_row);
+        let content =
+            column![choose_theme, horizontal_rule(20), scrollable_row]
+                .spacing(20)
+                .padding(20);
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .style(self.theme)
             .into()
+    }
+
+    fn theme(&self) -> Theme {
+        self.theme
     }
 }
 
 /// A version of a scrollable
 struct Variant {
     title: &'static str,
-    scrollable: scrollable::State,
-    scroll_to_top: button::State,
-    scroll_to_bottom: button::State,
     scrollbar_width: Option<u16>,
     scrollbar_margin: Option<u16>,
     scroller_width: Option<u16>,
@@ -212,9 +216,6 @@ impl Variant {
         vec![
             Self {
                 title: "Default Scrollbar",
-                scrollable: scrollable::State::new(),
-                scroll_to_top: button::State::new(),
-                scroll_to_bottom: button::State::new(),
                 scrollbar_width: None,
                 scrollbar_margin: None,
                 scroller_width: None,
@@ -222,9 +223,6 @@ impl Variant {
             },
             Self {
                 title: "Slimmed & Margin",
-                scrollable: scrollable::State::new(),
-                scroll_to_top: button::State::new(),
-                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(4),
                 scrollbar_margin: Some(3),
                 scroller_width: Some(4),
@@ -232,9 +230,6 @@ impl Variant {
             },
             Self {
                 title: "Wide Scroller",
-                scrollable: scrollable::State::new(),
-                scroll_to_top: button::State::new(),
-                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(4),
                 scrollbar_margin: None,
                 scroller_width: Some(10),
@@ -242,14 +237,15 @@ impl Variant {
             },
             Self {
                 title: "Narrow Scroller",
-                scrollable: scrollable::State::new(),
-                scroll_to_top: button::State::new(),
-                scroll_to_bottom: button::State::new(),
                 scrollbar_width: Some(10),
                 scrollbar_margin: None,
                 scroller_width: Some(4),
                 latest_offset: 0.0,
             },
         ]
+    }
+
+    pub fn id(i: usize) -> scrollable::Id {
+        scrollable::Id::new(format!("scrollable-{}", i))
     }
 }

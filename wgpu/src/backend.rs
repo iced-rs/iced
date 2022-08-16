@@ -93,7 +93,7 @@ impl Backend {
                 &layer,
                 staging_belt,
                 encoder,
-                &frame,
+                frame,
                 target_size.width,
                 target_size.height,
             );
@@ -230,7 +230,6 @@ impl Backend {
                                 wgpu_glyph::VerticalAlign::Bottom
                             }
                         }),
-                    ..Default::default()
                 };
 
                 self.text_pipeline.queue(text);

@@ -207,7 +207,7 @@ impl<'a> Layer<'a> {
                 Self::process_primitive(
                     layers,
                     translation + *new_translation,
-                    &content,
+                    content,
                     current_layer,
                 );
             }
@@ -215,7 +215,7 @@ impl<'a> Layer<'a> {
                 Self::process_primitive(
                     layers,
                     translation,
-                    &cache,
+                    cache,
                     current_layer,
                 );
             }

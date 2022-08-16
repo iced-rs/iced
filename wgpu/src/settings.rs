@@ -63,7 +63,7 @@ impl Settings {
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
-            present_mode: wgpu::PresentMode::Mailbox,
+            present_mode: wgpu::PresentMode::AutoVsync,
             internal_backend: wgpu::Backends::all(),
             default_font: None,
             default_text_size: 20,

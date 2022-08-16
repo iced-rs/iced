@@ -6,20 +6,20 @@ use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::touch;
-use crate::widget::{self, Row, Text};
+use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
     Shell, Widget,
 };
 
-pub use iced_style::radio::{Style, StyleSheet};
+pub use iced_style::radio::{Appearance, StyleSheet};
 
 /// A circular button representing a choice.
 ///
 /// # Example
 /// ```
-/// # type Radio<'a, Message> =
-/// #     iced_native::widget::Radio<'a, Message, iced_native::renderer::Null>;
+/// # type Radio<Message> =
+/// #     iced_native::widget::Radio<Message, iced_native::renderer::Null>;
 /// #
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {
@@ -41,7 +41,11 @@ pub use iced_style::radio::{Style, StyleSheet};
 ///
 /// ![Radio buttons drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Radio<'a, Message, Renderer: text::Renderer> {
+pub struct Radio<Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     is_selected: bool,
     on_click: Message,
     label: String,
@@ -50,12 +54,14 @@ pub struct Radio<'a, Message, Renderer: text::Renderer> {
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer: text::Renderer> Radio<'a, Message, Renderer>
+impl<Message, Renderer> Radio<Message, Renderer>
 where
     Message: Clone,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Radio`] button.
     pub const DEFAULT_SIZE: u16 = 28;
@@ -90,7 +96,7 @@ where
             spacing: Self::DEFAULT_SPACING, //15
             text_size: None,
             font: Default::default(),
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -127,18 +133,18 @@ where
     /// Sets the style of the [`Radio`] button.
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Radio<'a, Message, Renderer>
+impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -162,16 +168,15 @@ where
                     .width(Length::Units(self.size))
                     .height(Length::Units(self.size)),
             )
-            .push(
-                Text::new(&self.label)
-                    .width(self.width)
-                    .size(self.text_size.unwrap_or(renderer.default_size())),
-            )
+            .push(Text::new(&self.label).width(self.width).size(
+                self.text_size.unwrap_or_else(|| renderer.default_size()),
+            ))
             .layout(renderer, limits)
     }
 
     fn on_event(
         &mut self,
+        _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -196,6 +201,7 @@ where
 
     fn mouse_interaction(
         &self,
+        _state: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -210,7 +216,9 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -222,9 +230,9 @@ where
         let mut children = layout.children();
 
         let custom_style = if is_mouse_over {
-            self.style_sheet.hovered()
+            theme.hovered(self.style)
         } else {
-            self.style_sheet.active()
+            theme.active(self.style)
         };
 
         {
@@ -270,9 +278,11 @@ where
                 style,
                 label_layout,
                 &self.label,
-                self.font.clone(),
                 self.text_size,
-                custom_style.text_color,
+                self.font.clone(),
+                widget::text::Appearance {
+                    color: custom_style.text_color,
+                },
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
@@ -280,15 +290,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Radio<'a, Message, Renderer>>
+impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn from(
-        radio: Radio<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(radio)
     }
 }

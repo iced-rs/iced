@@ -1,8 +1,11 @@
-use iced::{
-    alignment, button, scrollable, slider, text_input, Button, Checkbox, Color,
-    Column, Container, ContentFit, Element, Image, Length, Radio, Row, Sandbox,
-    Scrollable, Settings, Slider, Space, Text, TextInput, Toggler,
+use iced::alignment;
+use iced::theme;
+use iced::widget::{
+    checkbox, column, container, horizontal_space, image, radio, row,
+    scrollable, slider, text, text_input, toggler, vertical_space,
 };
+use iced::widget::{Button, Column, Container, Slider};
+use iced::{Color, Element, Length, Renderer, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     env_logger::init();
@@ -12,9 +15,6 @@ pub fn main() -> iced::Result {
 
 pub struct Tour {
     steps: Steps,
-    scroll: scrollable::State,
-    back_button: button::State,
-    next_button: button::State,
     debug: bool,
 }
 
@@ -24,9 +24,6 @@ impl Sandbox for Tour {
     fn new() -> Tour {
         Tour {
             steps: Steps::new(),
-            scroll: scrollable::State::new(),
-            back_button: button::State::new(),
-            next_button: button::State::new(),
             debug: false,
         }
     }
@@ -49,56 +46,41 @@ impl Sandbox for Tour {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let Tour {
-            steps,
-            scroll,
-            back_button,
-            next_button,
-            ..
-        } = self;
+    fn view(&self) -> Element<Message> {
+        let Tour { steps, .. } = self;
 
-        let mut controls = Row::new();
+        let mut controls = row![];
 
         if steps.has_previous() {
             controls = controls.push(
-                button(back_button, "Back")
+                button("Back")
                     .on_press(Message::BackPressed)
-                    .style(style::Button::Secondary),
+                    .style(theme::Button::Secondary),
             );
         }
 
-        controls = controls.push(Space::with_width(Length::Fill));
+        controls = controls.push(horizontal_space(Length::Fill));
 
         if steps.can_continue() {
             controls = controls.push(
-                button(next_button, "Next")
+                button("Next")
                     .on_press(Message::NextPressed)
-                    .style(style::Button::Primary),
+                    .style(theme::Button::Primary),
             );
         }
 
-        let content: Element<_> = Column::new()
-            .max_width(540)
-            .spacing(20)
-            .padding(20)
-            .push(steps.view(self.debug).map(Message::StepMessage))
-            .push(controls)
-            .into();
+        let content = column![
+            steps.view(self.debug).map(Message::StepMessage),
+            controls,
+        ]
+        .max_width(540)
+        .spacing(20)
+        .padding(20);
 
-        let content = if self.debug {
-            content.explain(Color::BLACK)
-        } else {
-            content
-        };
+        let scrollable =
+            scrollable(container(content).width(Length::Fill).center_x());
 
-        let scrollable = Scrollable::new(scroll)
-            .push(Container::new(content).width(Length::Fill).center_x());
-
-        Container::new(scrollable)
-            .height(Length::Fill)
-            .center_y()
-            .into()
+        container(scrollable).height(Length::Fill).center_y().into()
     }
 }
 
@@ -119,35 +101,24 @@ impl Steps {
         Steps {
             steps: vec![
                 Step::Welcome,
-                Step::Slider {
-                    state: slider::State::new(),
-                    value: 50,
-                },
+                Step::Slider { value: 50 },
                 Step::RowsAndColumns {
                     layout: Layout::Row,
-                    spacing_slider: slider::State::new(),
                     spacing: 20,
                 },
                 Step::Text {
-                    size_slider: slider::State::new(),
                     size: 30,
-                    color_sliders: [slider::State::new(); 3],
                     color: Color::BLACK,
                 },
                 Step::Radio { selection: None },
                 Step::Toggler {
                     can_continue: false,
                 },
-                Step::Image {
-                    height: 200,
-                    current_fit: ContentFit::Contain,
-                    slider: slider::State::new(),
-                },
+                Step::Image { width: 300 },
                 Step::Scrollable,
                 Step::TextInput {
                     value: String::new(),
                     is_secure: false,
-                    state: text_input::State::new(),
                 },
                 Step::Debugger,
                 Step::End,
@@ -160,7 +131,7 @@ impl Steps {
         self.steps[self.current].update(msg, debug);
     }
 
-    fn view(&mut self, debug: bool) -> Element<StepMessage> {
+    fn view(&self, debug: bool) -> Element<StepMessage> {
         self.steps[self.current].view(debug)
     }
 
@@ -192,38 +163,14 @@ impl Steps {
 
 enum Step {
     Welcome,
-    Slider {
-        state: slider::State,
-        value: u8,
-    },
-    RowsAndColumns {
-        layout: Layout,
-        spacing_slider: slider::State,
-        spacing: u16,
-    },
-    Text {
-        size_slider: slider::State,
-        size: u16,
-        color_sliders: [slider::State; 3],
-        color: Color,
-    },
-    Radio {
-        selection: Option<Language>,
-    },
-    Toggler {
-        can_continue: bool,
-    },
-    Image {
-        height: u16,
-        slider: slider::State,
-        current_fit: ContentFit,
-    },
+    Slider { value: u8 },
+    RowsAndColumns { layout: Layout, spacing: u16 },
+    Text { size: u16, color: Color },
+    Radio { selection: Option<Language> },
+    Toggler { can_continue: bool },
+    Image { width: u16 },
     Scrollable,
-    TextInput {
-        value: String,
-        is_secure: bool,
-        state: text_input::State,
-    },
+    TextInput { value: String, is_secure: bool },
     Debugger,
     End,
 }
@@ -236,8 +183,7 @@ pub enum StepMessage {
     TextSizeChanged(u16),
     TextColorChanged(Color),
     LanguageSelected(Language),
-    ImageHeightChanged(u16),
-    ImageFitSelected(ContentFit),
+    ImageWidthChanged(u16),
     InputChanged(String),
     ToggleSecureInput(bool),
     DebugToggled(bool),
@@ -282,14 +228,9 @@ impl<'a> Step {
                     *spacing = new_spacing;
                 }
             }
-            StepMessage::ImageHeightChanged(new_height) => {
-                if let Step::Image { height, .. } = self {
-                    *height = new_height;
-                }
-            }
-            StepMessage::ImageFitSelected(fit) => {
-                if let Step::Image { current_fit, .. } = self {
-                    *current_fit = fit;
+            StepMessage::ImageWidthChanged(new_width) => {
+                if let Step::Image { width, .. } = self {
+                    *width = new_width;
                 }
             }
             StepMessage::InputChanged(new_value) => {
@@ -342,34 +283,21 @@ impl<'a> Step {
         }
     }
 
-    fn view(&mut self, debug: bool) -> Element<StepMessage> {
+    fn view(&self, debug: bool) -> Element<StepMessage> {
         match self {
             Step::Welcome => Self::welcome(),
             Step::Radio { selection } => Self::radio(*selection),
             Step::Toggler { can_continue } => Self::toggler(*can_continue),
-            Step::Slider { state, value } => Self::slider(state, *value),
-            Step::Text {
-                size_slider,
-                size,
-                color_sliders,
-                color,
-            } => Self::text(size_slider, *size, color_sliders, *color),
-            Step::Image {
-                height,
-                slider,
-                current_fit,
-            } => Self::image(*height, slider, *current_fit),
-            Step::RowsAndColumns {
-                layout,
-                spacing_slider,
-                spacing,
-            } => Self::rows_and_columns(*layout, spacing_slider, *spacing),
+            Step::Slider { value } => Self::slider(*value),
+            Step::Text { size, color } => Self::text(*size, *color),
+            Step::Image { width } => Self::image(*width),
+            Step::RowsAndColumns { layout, spacing } => {
+                Self::rows_and_columns(*layout, *spacing)
+            }
             Step::Scrollable => Self::scrollable(),
-            Step::TextInput {
-                value,
-                is_secure,
-                state,
-            } => Self::text_input(value, *is_secure, state),
+            Step::TextInput { value, is_secure } => {
+                Self::text_input(value, *is_secure)
+            }
             Step::Debugger => Self::debugger(debug),
             Step::End => Self::end(),
         }
@@ -377,59 +305,51 @@ impl<'a> Step {
     }
 
     fn container(title: &str) -> Column<'a, StepMessage> {
-        Column::new().spacing(20).push(Text::new(title).size(50))
+        column![text(title).size(50)].spacing(20)
     }
 
     fn welcome() -> Column<'a, StepMessage> {
         Self::container("Welcome!")
-            .push(Text::new(
+            .push(
                 "This is a simple tour meant to showcase a bunch of widgets \
                  that can be easily implemented on top of Iced.",
-            ))
-            .push(Text::new(
+            )
+            .push(
                 "Iced is a cross-platform GUI library for Rust focused on \
                  simplicity and type-safety. It is heavily inspired by Elm.",
-            ))
-            .push(Text::new(
+            )
+            .push(
                 "It was originally born as part of Coffee, an opinionated \
                  2D game engine for Rust.",
-            ))
-            .push(Text::new(
+            )
+            .push(
                 "On native platforms, Iced provides by default a renderer \
                  built on top of wgpu, a graphics library supporting Vulkan, \
                  Metal, DX11, and DX12.",
-            ))
-            .push(Text::new(
+            )
+            .push(
                 "Additionally, this tour can also run on WebAssembly thanks \
                  to dodrio, an experimental VDOM library for Rust.",
-            ))
-            .push(Text::new(
+            )
+            .push(
                 "You will need to interact with the UI in order to reach the \
                  end!",
-            ))
+            )
     }
 
-    fn slider(
-        state: &'a mut slider::State,
-        value: u8,
-    ) -> Column<'a, StepMessage> {
+    fn slider(value: u8) -> Column<'a, StepMessage> {
         Self::container("Slider")
-            .push(Text::new(
+            .push(
                 "A slider allows you to smoothly select a value from a range \
                  of values.",
-            ))
-            .push(Text::new(
+            )
+            .push(
                 "The following slider lets you choose an integer from \
                  0 to 100:",
-            ))
-            .push(Slider::new(
-                state,
-                0..=100,
-                value,
-                StepMessage::SliderChanged,
-            ))
+            )
+            .push(slider(0..=100, value, StepMessage::SliderChanged))
             .push(
-                Text::new(value.to_string())
+                text(value.to_string())
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
@@ -437,257 +357,198 @@ impl<'a> Step {
 
     fn rows_and_columns(
         layout: Layout,
-        spacing_slider: &'a mut slider::State,
         spacing: u16,
     ) -> Column<'a, StepMessage> {
-        let row_radio = Radio::new(
-            Layout::Row,
-            "Row",
-            Some(layout),
-            StepMessage::LayoutChanged,
-        );
+        let row_radio =
+            radio("Row", Layout::Row, Some(layout), StepMessage::LayoutChanged);
 
-        let column_radio = Radio::new(
-            Layout::Column,
+        let column_radio = radio(
             "Column",
+            Layout::Column,
             Some(layout),
             StepMessage::LayoutChanged,
         );
 
         let layout_section: Element<_> = match layout {
-            Layout::Row => Row::new()
-                .spacing(spacing)
-                .push(row_radio)
-                .push(column_radio)
-                .into(),
-            Layout::Column => Column::new()
-                .spacing(spacing)
-                .push(row_radio)
-                .push(column_radio)
-                .into(),
+            Layout::Row => {
+                row![row_radio, column_radio].spacing(spacing).into()
+            }
+            Layout::Column => {
+                column![row_radio, column_radio].spacing(spacing).into()
+            }
         };
 
-        let spacing_section = Column::new()
-            .spacing(10)
-            .push(Slider::new(
-                spacing_slider,
-                0..=80,
-                spacing,
-                StepMessage::SpacingChanged,
-            ))
-            .push(
-                Text::new(format!("{} px", spacing))
-                    .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-            );
+        let spacing_section = column![
+            slider(0..=80, spacing, StepMessage::SpacingChanged),
+            text(format!("{} px", spacing))
+                .width(Length::Fill)
+                .horizontal_alignment(alignment::Horizontal::Center),
+        ]
+        .spacing(10);
 
         Self::container("Rows and columns")
             .spacing(spacing)
-            .push(Text::new(
+            .push(
                 "Iced uses a layout model based on flexbox to position UI \
                  elements.",
-            ))
-            .push(Text::new(
+            )
+            .push(
                 "Rows and columns can be used to distribute content \
                  horizontally or vertically, respectively.",
-            ))
+            )
             .push(layout_section)
-            .push(Text::new(
-                "You can also easily change the spacing between elements:",
-            ))
+            .push("You can also easily change the spacing between elements:")
             .push(spacing_section)
     }
 
-    fn text(
-        size_slider: &'a mut slider::State,
-        size: u16,
-        color_sliders: &'a mut [slider::State; 3],
-        color: Color,
-    ) -> Column<'a, StepMessage> {
-        let size_section = Column::new()
-            .padding(20)
-            .spacing(20)
-            .push(Text::new("You can change its size:"))
-            .push(Text::new(format!("This text is {} pixels", size)).size(size))
-            .push(Slider::new(
-                size_slider,
-                10..=70,
-                size,
-                StepMessage::TextSizeChanged,
-            ));
+    fn text(size: u16, color: Color) -> Column<'a, StepMessage> {
+        let size_section = column![
+            "You can change its size:",
+            text(format!("This text is {} pixels", size)).size(size),
+            slider(10..=70, size, StepMessage::TextSizeChanged),
+        ]
+        .padding(20)
+        .spacing(20);
 
-        let [red, green, blue] = color_sliders;
+        let color_sliders = row![
+            color_slider(color.r, move |r| Color { r, ..color }),
+            color_slider(color.g, move |g| Color { g, ..color }),
+            color_slider(color.b, move |b| Color { b, ..color }),
+        ]
+        .spacing(10);
 
-        let color_sliders = Row::new()
-            .spacing(10)
-            .push(color_slider(red, color.r, move |r| Color { r, ..color }))
-            .push(color_slider(green, color.g, move |g| Color { g, ..color }))
-            .push(color_slider(blue, color.b, move |b| Color { b, ..color }));
-
-        let color_section = Column::new()
-            .padding(20)
-            .spacing(20)
-            .push(Text::new("And its color:"))
-            .push(Text::new(format!("{:?}", color)).color(color))
-            .push(color_sliders);
+        let color_section = column![
+            "And its color:",
+            text(format!("{:?}", color)).style(color),
+            color_sliders,
+        ]
+        .padding(20)
+        .spacing(20);
 
         Self::container("Text")
-            .push(Text::new(
+            .push(
                 "Text is probably the most essential widget for your UI. \
                  It will try to adapt to the dimensions of its container.",
-            ))
+            )
             .push(size_section)
             .push(color_section)
     }
 
     fn radio(selection: Option<Language>) -> Column<'a, StepMessage> {
-        let question = Column::new()
-            .padding(20)
+        let question = column![
+            text("Iced is written in...").size(24),
+            column(
+                Language::all()
+                    .iter()
+                    .cloned()
+                    .map(|language| {
+                        radio(
+                            language,
+                            language,
+                            selection,
+                            StepMessage::LanguageSelected,
+                        )
+                    })
+                    .map(Element::from)
+                    .collect()
+            )
             .spacing(10)
-            .push(Text::new("Iced is written in...").size(24))
-            .push(Language::all().iter().cloned().fold(
-                Column::new().padding(10).spacing(20),
-                |choices, language| {
-                    choices.push(Radio::new(
-                        language,
-                        language,
-                        selection,
-                        StepMessage::LanguageSelected,
-                    ))
-                },
-            ));
+        ]
+        .padding(20)
+        .spacing(10);
 
         Self::container("Radio button")
-            .push(Text::new(
+            .push(
                 "A radio button is normally used to represent a choice... \
                  Surprise test!",
-            ))
+            )
             .push(question)
-            .push(Text::new(
+            .push(
                 "Iced works very well with iterators! The list above is \
                  basically created by folding a column over the different \
                  choices, creating a radio button for each one of them!",
-            ))
+            )
     }
 
     fn toggler(can_continue: bool) -> Column<'a, StepMessage> {
         Self::container("Toggler")
-            .push(Text::new(
-                "A toggler is mostly used to enable or disable something.",
-            ))
+            .push("A toggler is mostly used to enable or disable something.")
             .push(
-                Container::new(Toggler::new(
+                Container::new(toggler(
+                    "Toggle me to continue...".to_owned(),
                     can_continue,
-                    String::from("Toggle me to continue..."),
                     StepMessage::TogglerChanged,
                 ))
                 .padding([0, 40]),
             )
     }
 
-    fn image(
-        height: u16,
-        slider: &'a mut slider::State,
-        current_fit: ContentFit,
-    ) -> Column<'a, StepMessage> {
-        const FIT_MODES: [(ContentFit, &str); 3] = [
-            (ContentFit::Contain, "Contain"),
-            (ContentFit::Cover, "Cover"),
-            (ContentFit::Fill, "Fill"),
-        ];
-
-        let mode_selector = FIT_MODES.iter().fold(
-            Column::new().padding(10).spacing(20),
-            |choices, (mode, name)| {
-                choices.push(Radio::new(
-                    *mode,
-                    *name,
-                    Some(current_fit),
-                    StepMessage::ImageFitSelected,
-                ))
-            },
-        );
-
+    fn image(width: u16) -> Column<'a, StepMessage> {
         Self::container("Image")
-            .push(Text::new("Pictures of things in all shapes and sizes!"))
-            .push(ferris(height, current_fit))
-            .push(Slider::new(
-                slider,
-                50..=500,
-                height,
-                StepMessage::ImageHeightChanged,
-            ))
+            .push("An image that tries to keep its aspect ratio.")
+            .push(ferris(width))
+            .push(slider(100..=500, width, StepMessage::ImageWidthChanged))
             .push(
-                Text::new(format!("Height: {} px", height))
+                text(format!("Width: {} px", width))
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
-            .push(Text::new("Pick a content fit strategy:"))
-            .push(mode_selector)
     }
 
     fn scrollable() -> Column<'a, StepMessage> {
         Self::container("Scrollable")
-            .push(Text::new(
+            .push(
                 "Iced supports scrollable content. Try it out! Find the \
                  button further below.",
-            ))
-            .push(
-                Text::new(
-                    "Tip: You can use the scrollbar to scroll down faster!",
-                )
-                .size(16),
             )
-            .push(Column::new().height(Length::Units(4096)))
             .push(
-                Text::new("You are halfway there!")
+                text("Tip: You can use the scrollbar to scroll down faster!")
+                    .size(16),
+            )
+            .push(vertical_space(Length::Units(4096)))
+            .push(
+                text("You are halfway there!")
                     .width(Length::Fill)
                     .size(30)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
-            .push(Column::new().height(Length::Units(4096)))
-            .push(ferris(200, ContentFit::Contain))
+            .push(vertical_space(Length::Units(4096)))
+            .push(ferris(300))
             .push(
-                Text::new("You made it!")
+                text("You made it!")
                     .width(Length::Fill)
                     .size(50)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
     }
 
-    fn text_input(
-        value: &str,
-        is_secure: bool,
-        state: &'a mut text_input::State,
-    ) -> Column<'a, StepMessage> {
-        let text_input = TextInput::new(
-            state,
+    fn text_input(value: &str, is_secure: bool) -> Column<'a, StepMessage> {
+        let text_input = text_input(
             "Type something to continue...",
             value,
             StepMessage::InputChanged,
         )
         .padding(10)
         .size(30);
+
         Self::container("Text input")
-            .push(Text::new(
-                "Use a text input to ask for different kinds of information.",
-            ))
+            .push("Use a text input to ask for different kinds of information.")
             .push(if is_secure {
                 text_input.password()
             } else {
                 text_input
             })
-            .push(Checkbox::new(
-                is_secure,
+            .push(checkbox(
                 "Enable password mode",
+                is_secure,
                 StepMessage::ToggleSecureInput,
             ))
-            .push(Text::new(
+            .push(
                 "A text input produces a message every time it changes. It is \
                  very easy to keep track of its contents:",
-            ))
+            )
             .push(
-                Text::new(if value.is_empty() {
+                text(if value.is_empty() {
                     "You have not typed anything yet..."
                 } else {
                     value
@@ -699,79 +560,62 @@ impl<'a> Step {
 
     fn debugger(debug: bool) -> Column<'a, StepMessage> {
         Self::container("Debugger")
-            .push(Text::new(
+            .push(
                 "You can ask Iced to visually explain the layouting of the \
                  different elements comprising your UI!",
-            ))
-            .push(Text::new(
+            )
+            .push(
                 "Give it a shot! Check the following checkbox to be able to \
                  see element boundaries.",
-            ))
+            )
             .push(if cfg!(target_arch = "wasm32") {
                 Element::new(
-                    Text::new("Not available on web yet!")
-                        .color([0.7, 0.7, 0.7])
+                    text("Not available on web yet!")
+                        .style(Color::from([0.7, 0.7, 0.7]))
                         .horizontal_alignment(alignment::Horizontal::Center),
                 )
             } else {
-                Element::new(Checkbox::new(
-                    debug,
-                    "Explain layout",
-                    StepMessage::DebugToggled,
-                ))
+                checkbox("Explain layout", debug, StepMessage::DebugToggled)
+                    .into()
             })
-            .push(Text::new("Feel free to go back and take a look."))
+            .push("Feel free to go back and take a look.")
     }
 
     fn end() -> Column<'a, StepMessage> {
         Self::container("You reached the end!")
-            .push(Text::new(
-                "This tour will be updated as more features are added.",
-            ))
-            .push(Text::new("Make sure to keep an eye on it!"))
+            .push("This tour will be updated as more features are added.")
+            .push("Make sure to keep an eye on it!")
     }
 }
 
-fn ferris<'a>(
-    height: u16,
-    content_fit: ContentFit,
-) -> Container<'a, StepMessage> {
-    Container::new(
+fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
+    container(
         // This should go away once we unify resource loading on native
         // platforms
         if cfg!(target_arch = "wasm32") {
-            Image::new("tour/images/ferris.png")
+            image("tour/images/ferris.png")
         } else {
-            Image::new(format!(
-                "{}/images/ferris.png",
-                env!("CARGO_MANIFEST_DIR"),
-            ))
+            image(format!("{}/images/ferris.png", env!("CARGO_MANIFEST_DIR")))
         }
-        .height(Length::Units(height))
-        .content_fit(content_fit),
+        .width(Length::Units(width)),
     )
     .width(Length::Fill)
     .center_x()
 }
 
-fn button<'a, Message: Clone>(
-    state: &'a mut button::State,
-    label: &str,
-) -> Button<'a, Message> {
-    Button::new(
-        state,
-        Text::new(label).horizontal_alignment(alignment::Horizontal::Center),
+fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
+    iced::widget::button(
+        text(label).horizontal_alignment(alignment::Horizontal::Center),
     )
     .padding(12)
     .width(Length::Units(100))
 }
 
-fn color_slider(
-    state: &mut slider::State,
+fn color_slider<'a>(
     component: f32,
-    update: impl Fn(f32) -> Color + 'static,
-) -> Slider<f64, StepMessage> {
-    Slider::new(state, 0.0..=1.0, f64::from(component), move |c| {
+    update: impl Fn(f32) -> Color + 'a,
+) -> Slider<'a, f64, StepMessage, Renderer> {
+    slider(0.0..=1.0, f64::from(component), move |c| {
         StepMessage::TextColorChanged(update(c as f32))
     })
     .step(0.01)
@@ -817,37 +661,4 @@ impl From<Language> for String {
 pub enum Layout {
     Row,
     Column,
-}
-
-mod style {
-    use iced::button;
-    use iced::{Background, Color, Vector};
-
-    pub enum Button {
-        Primary,
-        Secondary,
-    }
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            button::Style {
-                background: Some(Background::Color(match self {
-                    Button::Primary => Color::from_rgb(0.11, 0.42, 0.87),
-                    Button::Secondary => Color::from_rgb(0.5, 0.5, 0.5),
-                })),
-                border_radius: 12.0,
-                shadow_offset: Vector::new(1.0, 1.0),
-                text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
-                ..button::Style::default()
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            button::Style {
-                text_color: Color::WHITE,
-                shadow_offset: Vector::new(1.0, 2.0),
-                ..self.active()
-            }
-        }
-    }
 }

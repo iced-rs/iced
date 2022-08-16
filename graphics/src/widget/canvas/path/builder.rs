@@ -1,4 +1,4 @@
-use crate::canvas::path::{arc, Arc, Path};
+use crate::widget::canvas::path::{arc, Arc, Path};
 
 use iced_native::{Point, Size};
 use lyon::path::builder::SvgPathBuilder;
@@ -8,7 +8,7 @@ use lyon::path::builder::SvgPathBuilder;
 /// Once a [`Path`] is built, it can no longer be mutated.
 #[allow(missing_debug_implementations)]
 pub struct Builder {
-    raw: lyon::path::builder::WithSvg<lyon::path::path::Builder>,
+    raw: lyon::path::builder::WithSvg<lyon::path::path::BuilderImpl>,
 }
 
 impl Builder {
@@ -42,22 +42,61 @@ impl Builder {
     /// Adds a circular arc to the [`Path`] with the given control points and
     /// radius.
     ///
-    /// The arc is connected to the previous point by a straight line, if
-    /// necessary.
+    /// This essentially draws a straight line segment from the current
+    /// position to `a`, but fits a circular arc of `radius` tangent to that
+    /// segment and tangent to the line between `a` and `b`.
+    ///
+    /// With another `.line_to(b)`, the result will be a path connecting the
+    /// starting point and `b` with straight line segments towards `a` and a
+    /// circular arc smoothing out the corner at `a`.
+    ///
+    /// See [the HTML5 specification of `arcTo`](https://html.spec.whatwg.org/multipage/canvas.html#building-paths:dom-context-2d-arcto)
+    /// for more details and examples.
     pub fn arc_to(&mut self, a: Point, b: Point, radius: f32) {
         use lyon::{math, path};
 
-        let a = math::Point::new(a.x, a.y);
+        let start = self.raw.current_position();
+        let mid = math::Point::new(a.x, a.y);
+        let end = math::Point::new(b.x, b.y);
 
-        if self.raw.current_position() != a {
-            let _ = self.raw.line_to(a);
+        if start == mid || mid == end || radius == 0.0 {
+            let _ = self.raw.line_to(mid);
+            return;
         }
 
-        let _ = self.raw.arc_to(
+        let double_area = start.x * (mid.y - end.y)
+            + mid.x * (end.y - start.y)
+            + end.x * (start.y - mid.y);
+
+        if double_area == 0.0 {
+            let _ = self.raw.line_to(mid);
+            return;
+        }
+
+        let to_start = (start - mid).normalize();
+        let to_end = (end - mid).normalize();
+
+        let inner_angle = to_start.dot(to_end).acos();
+
+        let origin_angle = inner_angle / 2.0;
+
+        let origin_adjacent = radius / origin_angle.tan();
+
+        let arc_start = mid + to_start * origin_adjacent;
+        let arc_end = mid + to_end * origin_adjacent;
+
+        let sweep = to_start.cross(to_end) < 0.0;
+
+        let _ = self.raw.line_to(arc_start);
+
+        self.raw.arc_to(
             math::Vector::new(radius, radius),
             math::Angle::radians(0.0),
-            path::ArcFlags::default(),
-            math::Point::new(b.x, b.y),
+            path::ArcFlags {
+                large_arc: false,
+                sweep,
+            },
+            arc_end,
         );
     }
 
@@ -149,5 +188,11 @@ impl Builder {
         Path {
             raw: self.raw.build(),
         }
+    }
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
     }
 }

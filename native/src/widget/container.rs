@@ -5,6 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::widget::{Operation, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Widget,
@@ -12,13 +13,17 @@ use crate::{
 
 use std::u32;
 
-pub use iced_style::container::{Style, StyleSheet};
+pub use iced_style::container::{Appearance, StyleSheet};
 
 /// An element decorating some content.
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer> {
+pub struct Container<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     padding: Padding,
     width: Length,
     height: Length,
@@ -26,13 +31,14 @@ pub struct Container<'a, Message, Renderer> {
     max_height: u32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
     content: Element<'a, Message, Renderer>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
@@ -47,7 +53,7 @@ where
             max_height: u32::MAX,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style_sheet: Default::default(),
+            style: Default::default(),
             content: content.into(),
         }
     }
@@ -109,44 +115,27 @@ where
     /// Sets the style of the [`Container`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
-}
-
-/// Computes the layout of a [`Container`].
-pub fn layout<Renderer>(
-    renderer: &Renderer,
-    limits: &layout::Limits,
-    width: Length,
-    height: Length,
-    padding: Padding,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
-    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
-) -> layout::Node {
-    let limits = limits.loose().width(width).height(height).pad(padding);
-
-    let mut content = layout_content(renderer, &limits.loose());
-    let size = limits.resolve(content.size());
-
-    content.move_to(Point::new(padding.left.into(), padding.top.into()));
-    content.align(
-        Alignment::from(horizontal_alignment),
-        Alignment::from(vertical_alignment),
-        size,
-    );
-
-    layout::Node::with_children(size.pad(padding), vec![content])
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Container<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
+    fn children(&self) -> Vec<Tree> {
+        vec![Tree::new(&self.content)]
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -165,15 +154,35 @@ where
             limits,
             self.width,
             self.height,
+            self.max_width,
+            self.max_height,
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |renderer, limits| self.content.layout(renderer, limits),
+            |renderer, limits| {
+                self.content.as_widget().layout(renderer, limits)
+            },
         )
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        operation.container(None, &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                operation,
+            );
+        });
     }
 
     fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -181,7 +190,8 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        self.content.widget.on_event(
+        self.content.as_widget_mut().on_event(
+            &mut tree.children[0],
             event,
             layout.children().next().unwrap(),
             cursor_position,
@@ -193,12 +203,14 @@ where
 
     fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.widget.mouse_interaction(
+        self.content.as_widget().mouse_interaction(
+            &tree.children[0],
             layout.children().next().unwrap(),
             cursor_position,
             viewport,
@@ -208,18 +220,22 @@ where
 
     fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        let style = self.style_sheet.style();
+        let style = theme.appearance(self.style);
 
         draw_background(renderer, &style, layout.bounds());
 
-        self.content.draw(
+        self.content.as_widget().draw(
+            &tree.children[0],
             renderer,
+            theme,
             &renderer::Style {
                 text_color: style
                     .text_color
@@ -231,48 +247,87 @@ where
         );
     }
 
-    fn overlay(
-        &mut self,
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.content
-            .overlay(layout.children().next().unwrap(), renderer)
-    }
-}
-
-/// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
-pub fn draw_background<Renderer>(
-    renderer: &mut Renderer,
-    style: &Style,
-    bounds: Rectangle,
-) where
-    Renderer: crate::Renderer,
-{
-    if style.background.is_some() || style.border_width > 0.0 {
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border_radius: style.border_radius,
-                border_width: style.border_width,
-                border_color: style.border_color,
-            },
-            style
-                .background
-                .unwrap_or(Background::Color(Color::TRANSPARENT)),
-        );
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.content.as_widget().overlay(
+            &mut tree.children[0],
+            layout.children().next().unwrap(),
+            renderer,
+        )
     }
 }
 
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     fn from(
         column: Container<'a, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(column)
+    }
+}
+
+/// Computes the layout of a [`Container`].
+pub fn layout<Renderer>(
+    renderer: &Renderer,
+    limits: &layout::Limits,
+    width: Length,
+    height: Length,
+    max_width: u32,
+    max_height: u32,
+    padding: Padding,
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
+    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
+) -> layout::Node {
+    let limits = limits
+        .loose()
+        .max_width(max_width)
+        .max_height(max_height)
+        .width(width)
+        .height(height)
+        .pad(padding);
+
+    let mut content = layout_content(renderer, &limits.loose());
+    let size = limits.resolve(content.size());
+
+    content.move_to(Point::new(padding.left.into(), padding.top.into()));
+    content.align(
+        Alignment::from(horizontal_alignment),
+        Alignment::from(vertical_alignment),
+        size,
+    );
+
+    layout::Node::with_children(size.pad(padding), vec![content])
+}
+
+/// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
+pub fn draw_background<Renderer>(
+    renderer: &mut Renderer,
+    appearance: &Appearance,
+    bounds: Rectangle,
+) where
+    Renderer: crate::Renderer,
+{
+    if appearance.background.is_some() || appearance.border_width > 0.0 {
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_radius: appearance.border_radius,
+                border_width: appearance.border_width,
+                border_color: appearance.border_color,
+            },
+            appearance
+                .background
+                .unwrap_or(Background::Color(Color::TRANSPARENT)),
+        );
     }
 }

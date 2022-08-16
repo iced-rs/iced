@@ -2,11 +2,12 @@ use std::borrow::Cow;
 
 use iced_native::{Color, Point, Rectangle, Size, Vector};
 
-use crate::{
-    canvas::path,
-    canvas::{Fill, FillStyle, Geometry, Path, Stroke, StrokeStyle, Text},
-    triangle, Primitive,
+use crate::triangle;
+use crate::widget::canvas::path;
+use crate::widget::canvas::{
+    Fill, FillStyle, Geometry, Path, Stroke, StrokeStyle, Text,
 };
+use crate::Primitive;
 
 use lyon::tessellation;
 
@@ -111,7 +112,7 @@ impl Frame {
                 )
             };
 
-            let _ = result.expect("Tessellate path");
+            result.expect("Tessellate path");
         };
 
         match style {
@@ -161,10 +162,10 @@ impl Frame {
             let options = tessellation::FillOptions::default()
                 .with_fill_rule(rule.into());
 
-            let _ = frame
+            frame
                 .fill_tessellator
                 .tessellate_rectangle(
-                    &lyon::math::Rect::new(top_left, size.into()),
+                    &lyon::math::Box2D::new(top_left, top_left + size),
                     &options,
                     &mut buffers,
                 )
@@ -230,7 +231,7 @@ impl Frame {
                 )
             };
 
-            let _ = result.expect("Stroke path");
+            result.expect("Stroke path");
         };
 
         match stroke.style {
@@ -343,7 +344,7 @@ impl Frame {
                 Primitive::Translate {
                     translation,
                     content: Box::new(Primitive::Clip {
-                        bounds: region,
+                        bounds: Rectangle::with_size(region.size()),
                         content: Box::new(Primitive::Group {
                             primitives: text,
                         }),

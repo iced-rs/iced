@@ -1,14 +1,13 @@
 use iced::alignment::{self, Alignment};
-use iced::button::{self, Button};
 use iced::executor;
 use iced::keyboard;
-use iced::pane_grid::{self, PaneGrid};
-use iced::scrollable::{self, Scrollable};
+use iced::theme::{self, Theme};
+use iced::widget::pane_grid::{self, PaneGrid};
+use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{
-    Application, Color, Column, Command, Container, Element, Length, Row,
-    Settings, Size, Subscription, Text,
+    Application, Color, Command, Element, Length, Settings, Size, Subscription,
 };
-use iced_lazy::responsive::{self, Responsive};
+use iced_lazy::responsive;
 use iced_native::{event, subscription, Event};
 
 pub fn main() -> iced::Result {
@@ -36,6 +35,7 @@ enum Message {
 
 impl Application for Example {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
@@ -153,57 +153,47 @@ impl Application for Example {
         })
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
-        let pane_grid = PaneGrid::new(&mut self.panes, |id, pane| {
+        let pane_grid = PaneGrid::new(&self.panes, |id, pane| {
             let is_focused = focus == Some(id);
 
-            let Pane {
-                responsive,
+            let pin_button = button(
+                text(if pane.is_pinned { "Unpin" } else { "Pin" }).size(14),
+            )
+            .on_press(Message::TogglePin(id))
+            .padding(3);
+
+            let title = row![
                 pin_button,
-                is_pinned,
-                content,
-                ..
-            } = pane;
-
-            let text = if *is_pinned { "Unpin" } else { "Pin" };
-            let pin_button = Button::new(pin_button, Text::new(text).size(14))
-                .on_press(Message::TogglePin(id))
-                .style(style::Button::Pin)
-                .padding(3);
-
-            let title = Row::with_children(vec![
-                pin_button.into(),
-                Text::new("Pane").into(),
-                Text::new(content.id.to_string())
-                    .color(if is_focused {
-                        PANE_ID_COLOR_FOCUSED
-                    } else {
-                        PANE_ID_COLOR_UNFOCUSED
-                    })
-                    .into(),
-            ])
+                "Pane",
+                text(pane.id.to_string()).style(if is_focused {
+                    PANE_ID_COLOR_FOCUSED
+                } else {
+                    PANE_ID_COLOR_UNFOCUSED
+                }),
+            ]
             .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
-                .controls(pane.controls.view(id, total_panes, *is_pinned))
+                .controls(view_controls(id, total_panes, pane.is_pinned))
                 .padding(10)
                 .style(if is_focused {
-                    style::TitleBar::Focused
+                    style::title_bar_focused
                 } else {
-                    style::TitleBar::Active
+                    style::title_bar_active
                 });
 
-            pane_grid::Content::new(Responsive::new(responsive, move |size| {
-                content.view(id, total_panes, *is_pinned, size)
+            pane_grid::Content::new(responsive(move |size| {
+                view_content(id, total_panes, pane.is_pinned, size)
             }))
             .title_bar(title_bar)
             .style(if is_focused {
-                style::Pane::Focused
+                style::pane_focused
             } else {
-                style::Pane::Active
+                style::pane_active
             })
         })
         .width(Length::Fill)
@@ -213,7 +203,7 @@ impl Application for Example {
         .on_drag(Message::Dragged)
         .on_resize(10, Message::Resized);
 
-        Container::new(pane_grid)
+        container(pane_grid)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(10)
@@ -253,247 +243,132 @@ fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
 }
 
 struct Pane {
-    pub responsive: responsive::State,
-    pub is_pinned: bool,
-    pub pin_button: button::State,
-    pub content: Content,
-    pub controls: Controls,
-}
-
-struct Content {
     id: usize,
-    scroll: scrollable::State,
-    split_horizontally: button::State,
-    split_vertically: button::State,
-    close: button::State,
-}
-
-struct Controls {
-    close: button::State,
+    pub is_pinned: bool,
 }
 
 impl Pane {
     fn new(id: usize) -> Self {
         Self {
-            responsive: responsive::State::new(),
-            is_pinned: false,
-            pin_button: button::State::new(),
-            content: Content::new(id),
-            controls: Controls::new(),
-        }
-    }
-}
-
-impl Content {
-    fn new(id: usize) -> Self {
-        Content {
             id,
-            scroll: scrollable::State::new(),
-            split_horizontally: button::State::new(),
-            split_vertically: button::State::new(),
-            close: button::State::new(),
+            is_pinned: false,
         }
-    }
-    fn view(
-        &mut self,
-        pane: pane_grid::Pane,
-        total_panes: usize,
-        is_pinned: bool,
-        size: Size,
-    ) -> Element<Message> {
-        let Content {
-            scroll,
-            split_horizontally,
-            split_vertically,
-            close,
-            ..
-        } = self;
-
-        let button = |state, label, message, style| {
-            Button::new(
-                state,
-                Text::new(label)
-                    .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center)
-                    .size(16),
-            )
-            .width(Length::Fill)
-            .padding(8)
-            .on_press(message)
-            .style(style)
-        };
-
-        let mut controls = Column::new()
-            .spacing(5)
-            .max_width(150)
-            .push(button(
-                split_horizontally,
-                "Split horizontally",
-                Message::Split(pane_grid::Axis::Horizontal, pane),
-                style::Button::Primary,
-            ))
-            .push(button(
-                split_vertically,
-                "Split vertically",
-                Message::Split(pane_grid::Axis::Vertical, pane),
-                style::Button::Primary,
-            ));
-
-        if total_panes > 1 && !is_pinned {
-            controls = controls.push(button(
-                close,
-                "Close",
-                Message::Close(pane),
-                style::Button::Destructive,
-            ));
-        }
-
-        let content = Scrollable::new(scroll)
-            .width(Length::Fill)
-            .spacing(10)
-            .align_items(Alignment::Center)
-            .push(Text::new(format!("{}x{}", size.width, size.height)).size(24))
-            .push(controls);
-
-        Container::new(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(5)
-            .center_y()
-            .into()
     }
 }
 
-impl Controls {
-    fn new() -> Self {
-        Self {
-            close: button::State::new(),
-        }
+fn view_content<'a>(
+    pane: pane_grid::Pane,
+    total_panes: usize,
+    is_pinned: bool,
+    size: Size,
+) -> Element<'a, Message> {
+    let button = |label, message| {
+        button(
+            text(label)
+                .width(Length::Fill)
+                .horizontal_alignment(alignment::Horizontal::Center)
+                .size(16),
+        )
+        .width(Length::Fill)
+        .padding(8)
+        .on_press(message)
+    };
+
+    let mut controls = column![
+        button(
+            "Split horizontally",
+            Message::Split(pane_grid::Axis::Horizontal, pane),
+        ),
+        button(
+            "Split vertically",
+            Message::Split(pane_grid::Axis::Vertical, pane),
+        )
+    ]
+    .spacing(5)
+    .max_width(150);
+
+    if total_panes > 1 && !is_pinned {
+        controls = controls.push(
+            button("Close", Message::Close(pane))
+                .style(theme::Button::Destructive),
+        );
     }
 
-    pub fn view(
-        &mut self,
-        pane: pane_grid::Pane,
-        total_panes: usize,
-        is_pinned: bool,
-    ) -> Element<Message> {
-        let mut button =
-            Button::new(&mut self.close, Text::new("Close").size(14))
-                .style(style::Button::Control)
-                .padding(3);
-        if total_panes > 1 && !is_pinned {
-            button = button.on_press(Message::Close(pane));
-        }
-        button.into()
+    let content = column![
+        text(format!("{}x{}", size.width, size.height)).size(24),
+        controls,
+    ]
+    .width(Length::Fill)
+    .spacing(10)
+    .align_items(Alignment::Center);
+
+    container(scrollable(content))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .padding(5)
+        .center_y()
+        .into()
+}
+
+fn view_controls<'a>(
+    pane: pane_grid::Pane,
+    total_panes: usize,
+    is_pinned: bool,
+) -> Element<'a, Message> {
+    let mut button = button(text("Close").size(14))
+        .style(theme::Button::Destructive)
+        .padding(3);
+
+    if total_panes > 1 && !is_pinned {
+        button = button.on_press(Message::Close(pane));
     }
+
+    button.into()
 }
 
 mod style {
-    use crate::PANE_ID_COLOR_FOCUSED;
-    use iced::{button, container, Background, Color, Vector};
+    use iced::widget::container;
+    use iced::Theme;
 
-    const SURFACE: Color = Color::from_rgb(
-        0xF2 as f32 / 255.0,
-        0xF3 as f32 / 255.0,
-        0xF5 as f32 / 255.0,
-    );
+    pub fn title_bar_active(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
 
-    const ACTIVE: Color = Color::from_rgb(
-        0x72 as f32 / 255.0,
-        0x89 as f32 / 255.0,
-        0xDA as f32 / 255.0,
-    );
-
-    const HOVERED: Color = Color::from_rgb(
-        0x67 as f32 / 255.0,
-        0x7B as f32 / 255.0,
-        0xC4 as f32 / 255.0,
-    );
-
-    pub enum TitleBar {
-        Active,
-        Focused,
-    }
-
-    impl container::StyleSheet for TitleBar {
-        fn style(&self) -> container::Style {
-            let pane = match self {
-                Self::Active => Pane::Active,
-                Self::Focused => Pane::Focused,
-            }
-            .style();
-
-            container::Style {
-                text_color: Some(Color::WHITE),
-                background: Some(pane.border_color.into()),
-                ..Default::default()
-            }
+        container::Appearance {
+            text_color: Some(palette.background.strong.text),
+            background: Some(palette.background.strong.color.into()),
+            ..Default::default()
         }
     }
 
-    pub enum Pane {
-        Active,
-        Focused,
-    }
+    pub fn title_bar_focused(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
 
-    impl container::StyleSheet for Pane {
-        fn style(&self) -> container::Style {
-            container::Style {
-                background: Some(Background::Color(SURFACE)),
-                border_width: 2.0,
-                border_color: match self {
-                    Self::Active => Color::from_rgb(0.7, 0.7, 0.7),
-                    Self::Focused => Color::BLACK,
-                },
-                ..Default::default()
-            }
+        container::Appearance {
+            text_color: Some(palette.primary.strong.text),
+            background: Some(palette.primary.strong.color.into()),
+            ..Default::default()
         }
     }
 
-    pub enum Button {
-        Primary,
-        Destructive,
-        Control,
-        Pin,
+    pub fn pane_active(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
+
+        container::Appearance {
+            background: Some(palette.background.weak.color.into()),
+            border_width: 2.0,
+            border_color: palette.background.strong.color,
+            ..Default::default()
+        }
     }
 
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            let (background, text_color) = match self {
-                Button::Primary => (Some(ACTIVE), Color::WHITE),
-                Button::Destructive => {
-                    (None, Color::from_rgb8(0xFF, 0x47, 0x47))
-                }
-                Button::Control => (Some(PANE_ID_COLOR_FOCUSED), Color::WHITE),
-                Button::Pin => (Some(ACTIVE), Color::WHITE),
-            };
+    pub fn pane_focused(theme: &Theme) -> container::Appearance {
+        let palette = theme.extended_palette();
 
-            button::Style {
-                text_color,
-                background: background.map(Background::Color),
-                border_radius: 5.0,
-                shadow_offset: Vector::new(0.0, 0.0),
-                ..button::Style::default()
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            let active = self.active();
-
-            let background = match self {
-                Button::Primary => Some(HOVERED),
-                Button::Destructive => Some(Color {
-                    a: 0.2,
-                    ..active.text_color
-                }),
-                Button::Control => Some(PANE_ID_COLOR_FOCUSED),
-                Button::Pin => Some(HOVERED),
-            };
-
-            button::Style {
-                background: background.map(Background::Color),
-                ..active
-            }
+        container::Appearance {
+            background: Some(palette.background.weak.color.into()),
+            border_width: 2.0,
+            border_color: palette.primary.strong.color,
+            ..Default::default()
         }
     }
 }

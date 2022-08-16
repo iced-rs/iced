@@ -1,11 +1,11 @@
 use crate::renderer::{self, Renderer};
 use crate::text::{self, Text};
-use crate::{Background, Font, Point, Rectangle, Size, Vector};
+use crate::{Background, Font, Point, Rectangle, Size, Theme, Vector};
 
 /// A renderer that does nothing.
 ///
 /// It can be useful if you are writing tests!
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Null;
 
 impl Null {
@@ -16,6 +16,8 @@ impl Null {
 }
 
 impl Renderer for Null {
+    type Theme = Theme;
+
     fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
 
     fn with_translation(

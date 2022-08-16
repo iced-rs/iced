@@ -59,7 +59,7 @@ impl Cache {
                 }
             }
             image::Data::Bytes(bytes) => {
-                if let Ok(image) = image_rs::load_from_memory(&bytes) {
+                if let Ok(image) = image_rs::load_from_memory(bytes) {
                     let operation =
                         Operation::from_exif(&mut std::io::Cursor::new(bytes))
                             .ok()
@@ -103,7 +103,7 @@ impl Cache {
         if let Memory::Host(image) = memory {
             let (width, height) = image.dimensions();
 
-            let entry = atlas.upload(width, height, &image, device, encoder)?;
+            let entry = atlas.upload(width, height, image, device, encoder)?;
 
             *memory = Memory::Device(entry);
         }

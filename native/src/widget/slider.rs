@@ -6,6 +6,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::touch;
+use crate::widget::tree::{self, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
     Shell, Size, Widget,
@@ -13,7 +14,7 @@ use crate::{
 
 use std::ops::RangeInclusive;
 
-pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
+pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -25,37 +26,44 @@ pub use iced_style::slider::{Handle, HandleShape, Style, StyleSheet};
 ///
 /// # Example
 /// ```
-/// # use iced_native::widget::slider::{self, Slider};
+/// # use iced_native::widget::slider;
+/// # use iced_native::renderer::Null;
+/// #
+/// # type Slider<'a, T, Message> = slider::Slider<'a, T, Message, Null>;
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {
 ///     SliderChanged(f32),
 /// }
 ///
-/// let state = &mut slider::State::new();
 /// let value = 50.0;
 ///
-/// Slider::new(state, 0.0..=100.0, value, Message::SliderChanged);
+/// Slider::new(0.0..=100.0, value, Message::SliderChanged);
 /// ```
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message> {
-    state: &'a mut State,
+pub struct Slider<'a, T, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     range: RangeInclusive<T>,
     step: T,
     value: T,
-    on_change: Box<dyn Fn(T) -> Message>,
+    on_change: Box<dyn Fn(T) -> Message + 'a>,
     on_release: Option<Message>,
     width: Length,
     height: u16,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, T, Message> Slider<'a, T, Message>
+impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// The default height of a [`Slider`].
     pub const DEFAULT_HEIGHT: u16 = 22;
@@ -63,20 +71,14 @@ where
     /// Creates a new [`Slider`].
     ///
     /// It expects:
-    ///   * the local [`State`] of the [`Slider`]
     ///   * an inclusive range of possible values
     ///   * the current value of the [`Slider`]
     ///   * a function that will be called when the [`Slider`] is dragged.
     ///   It receives the new value of the [`Slider`] and must produce a
     ///   `Message`.
-    pub fn new<F>(
-        state: &'a mut State,
-        range: RangeInclusive<T>,
-        value: T,
-        on_change: F,
-    ) -> Self
+    pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
-        F: 'static + Fn(T) -> Message,
+        F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
             value
@@ -91,7 +93,6 @@ where
         };
 
         Slider {
-            state,
             value,
             range,
             step: T::from(1),
@@ -99,7 +100,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -129,9 +130,9 @@ where
     /// Sets the style of the [`Slider`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 
@@ -139,6 +140,120 @@ where
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
         self
+    }
+}
+
+impl<'a, T, Message, Renderer> Widget<Message, Renderer>
+    for Slider<'a, T, Message, Renderer>
+where
+    T: Copy + Into<f64> + num_traits::FromPrimitive,
+    Message: Clone,
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn layout(
+        &self,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits =
+            limits.width(self.width).height(Length::Units(self.height));
+
+        let size = limits.resolve(Size::ZERO);
+
+        layout::Node::new(size)
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _renderer: &Renderer,
+        _clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        update(
+            event,
+            layout,
+            cursor_position,
+            shell,
+            tree.state.downcast_mut::<State>(),
+            &mut self.value,
+            &self.range,
+            self.step,
+            self.on_change.as_ref(),
+            &self.on_release,
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        draw(
+            renderer,
+            layout,
+            cursor_position,
+            tree.state.downcast_ref::<State>(),
+            self.value,
+            &self.range,
+            theme,
+            self.style,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        mouse_interaction(
+            layout,
+            cursor_position,
+            tree.state.downcast_ref::<State>(),
+        )
+    }
+}
+
+impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
+    Message: 'a + Clone,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(
+        slider: Slider<'a, T, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(slider)
     }
 }
 
@@ -230,26 +345,29 @@ where
 }
 
 /// Draws a [`Slider`].
-pub fn draw<T>(
-    renderer: &mut impl crate::Renderer,
+pub fn draw<T, R>(
+    renderer: &mut R,
     layout: Layout<'_>,
     cursor_position: Point,
     state: &State,
     value: T,
     range: &RangeInclusive<T>,
-    style_sheet: &dyn StyleSheet,
+    style_sheet: &dyn StyleSheet<Style = <R::Theme as StyleSheet>::Style>,
+    style: <R::Theme as StyleSheet>::Style,
 ) where
     T: Into<f64> + Copy,
+    R: crate::Renderer,
+    R::Theme: StyleSheet,
 {
     let bounds = layout.bounds();
     let is_mouse_over = bounds.contains(cursor_position);
 
     let style = if state.is_dragging {
-        style_sheet.dragging()
+        style_sheet.dragging(style)
     } else if is_mouse_over {
-        style_sheet.hovered()
+        style_sheet.hovered(style)
     } else {
-        style_sheet.active()
+        style_sheet.active(style)
     };
 
     let rail_y = bounds.y + (bounds.height / 2.0).round();
@@ -292,7 +410,7 @@ pub fn draw<T>(
         HandleShape::Rectangle {
             width,
             border_radius,
-        } => (f32::from(width), f32::from(bounds.height), border_radius),
+        } => (f32::from(width), bounds.height, border_radius),
     };
 
     let value = value.into() as f32;
@@ -353,98 +471,5 @@ impl State {
     /// Creates a new [`State`].
     pub fn new() -> State {
         State::default()
-    }
-}
-
-impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, T, Message>
-where
-    T: Copy + Into<f64> + num_traits::FromPrimitive,
-    Message: Clone,
-    Renderer: crate::Renderer,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn layout(
-        &self,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        let limits =
-            limits.width(self.width).height(Length::Units(self.height));
-
-        let size = limits.resolve(Size::ZERO);
-
-        layout::Node::new(size)
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        update(
-            event,
-            layout,
-            cursor_position,
-            shell,
-            &mut self.state,
-            &mut self.value,
-            &self.range,
-            self.step,
-            self.on_change.as_ref(),
-            &self.on_release,
-        )
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        _style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-    ) {
-        draw(
-            renderer,
-            layout,
-            cursor_position,
-            &self.state,
-            self.value,
-            &self.range,
-            self.style_sheet.as_ref(),
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position, &self.state)
-    }
-}
-
-impl<'a, T, Message, Renderer> From<Slider<'a, T, Message>>
-    for Element<'a, Message, Renderer>
-where
-    T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
-    Message: 'a + Clone,
-    Renderer: 'a + crate::Renderer,
-{
-    fn from(slider: Slider<'a, T, Message>) -> Element<'a, Message, Renderer> {
-        Element::new(slider)
     }
 }

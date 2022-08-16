@@ -1,4 +1,6 @@
+use crate::application;
 use crate::mouse;
+use crate::renderer;
 use crate::user_interface::{self, UserInterface};
 use crate::{Clipboard, Command, Debug, Event, Point, Program, Size};
 
@@ -19,6 +21,7 @@ where
 impl<P> State<P>
 where
     P: Program + 'static,
+    <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
@@ -86,6 +89,8 @@ where
         bounds: Size,
         cursor_position: Point,
         renderer: &mut P::Renderer,
+        theme: &<P::Renderer as crate::Renderer>::Theme,
+        style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
     ) -> Option<Command<P::Message>> {
@@ -108,14 +113,14 @@ where
             &mut messages,
         );
 
-        messages.extend(self.queued_messages.drain(..));
+        messages.append(&mut self.queued_messages);
         self.queued_events.clear();
         debug.event_processing_finished();
 
         if messages.is_empty() {
             debug.draw_started();
             self.mouse_interaction =
-                user_interface.draw(renderer, cursor_position);
+                user_interface.draw(renderer, theme, style, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -147,7 +152,7 @@ where
 
             debug.draw_started();
             self.mouse_interaction =
-                user_interface.draw(renderer, cursor_position);
+                user_interface.draw(renderer, theme, style, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -163,7 +168,10 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, P::Message, P::Renderer> {
+) -> UserInterface<'a, P::Message, P::Renderer>
+where
+    <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
+{
     debug.view_started();
     let view = program.view();
     debug.view_finished();

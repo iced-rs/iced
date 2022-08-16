@@ -98,15 +98,9 @@ that can be incremented and decremented using two buttons.
 We start by modelling the __state__ of our application:
 
 ```rust
-use iced::button;
-
 struct Counter {
     // The counter value
     value: i32,
-
-    // The local state of the two buttons
-    increment_button: button::State,
-    decrement_button: button::State,
 }
 ```
 
@@ -125,28 +119,23 @@ Now, let's show the actual counter by putting it all together in our
 __view logic__:
 
 ```rust
-use iced::{Button, Column, Text};
+use iced::widget::{button, column, text, Column};
 
 impl Counter {
-    pub fn view(&mut self) -> Column<Message> {
+    pub fn view(&self) -> Column<Message> {
         // We use a column: a simple vertical layout
-        Column::new()
-            .push(
-                // The increment button. We tell it to produce an
-                // `IncrementPressed` message when pressed
-                Button::new(&mut self.increment_button, Text::new("+"))
-                    .on_press(Message::IncrementPressed),
-            )
-            .push(
-                // We show the value of the counter here
-                Text::new(self.value.to_string()).size(50),
-            )
-            .push(
-                // The decrement button. We tell it to produce a
-                // `DecrementPressed` message when pressed
-                Button::new(&mut self.decrement_button, Text::new("-"))
-                    .on_press(Message::DecrementPressed),
-            )
+        column![
+            // The increment button. We tell it to produce an
+            // `IncrementPressed` message when pressed
+            button("+").on_press(Message::IncrementPressed),
+
+            // We show the value of the counter here
+            text(self.value).size(50),
+
+            // The decrement button. We tell it to produce a
+            // `DecrementPressed` message when pressed
+            button("-").on_press(Message::DecrementPressed),
+        ]
     }
 }
 ```

@@ -1,12 +1,15 @@
 //! Display vector graphics in your application.
 use crate::layout;
 use crate::renderer;
-use crate::svg::{self, Handle};
+use crate::svg;
+use crate::widget::Tree;
 use crate::{
     ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::path::PathBuf;
+
+pub use svg::Handle;
 
 /// A vector graphics image.
 ///
@@ -109,7 +112,9 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
+        _theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,

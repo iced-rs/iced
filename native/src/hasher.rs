@@ -1,12 +1,6 @@
 /// The hasher used to compare layouts.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Hasher(twox_hash::XxHash64);
-
-impl Default for Hasher {
-    fn default() -> Self {
-        Hasher(twox_hash::XxHash64::default())
-    }
-}
 
 impl core::hash::Hasher for Hasher {
     fn write(&mut self, bytes: &[u8]) {

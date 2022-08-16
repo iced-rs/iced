@@ -4,6 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::widget::{Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Widget,
@@ -19,7 +20,6 @@ pub struct Column<'a, Message, Renderer> {
     width: Length,
     height: Length,
     max_width: u32,
-    max_height: u32,
     align_items: Alignment,
     children: Vec<Element<'a, Message, Renderer>>,
 }
@@ -40,7 +40,6 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
             width: Length::Shrink,
             height: Length::Shrink,
             max_width: u32::MAX,
-            max_height: u32::MAX,
             align_items: Alignment::Start,
             children,
         }
@@ -80,12 +79,6 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         self
     }
 
-    /// Sets the maximum height of the [`Column`] in pixels.
-    pub fn max_height(mut self, max_height: u32) -> Self {
-        self.max_height = max_height;
-        self
-    }
-
     /// Sets the horizontal alignment of the contents of the [`Column`] .
     pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
@@ -93,12 +86,18 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     }
 
     /// Adds an element to the [`Column`].
-    pub fn push<E>(mut self, child: E) -> Self
-    where
-        E: Into<Element<'a, Message, Renderer>>,
-    {
+    pub fn push(
+        mut self,
+        child: impl Into<Element<'a, Message, Renderer>>,
+    ) -> Self {
         self.children.push(child.into());
         self
+    }
+}
+
+impl<'a, Message, Renderer> Default for Column<'a, Message, Renderer> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -107,6 +106,14 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
+    fn children(&self) -> Vec<Tree> {
+        self.children.iter().map(Tree::new).collect()
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(&self.children);
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -122,7 +129,6 @@ where
     ) -> layout::Node {
         let limits = limits
             .max_width(self.max_width)
-            .max_height(self.max_height)
             .width(self.width)
             .height(self.height);
 
@@ -137,8 +143,26 @@ where
         )
     }
 
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        operation.container(None, &mut |operation| {
+            self.children
+                .iter()
+                .zip(&mut tree.children)
+                .zip(layout.children())
+                .for_each(|((child, state), layout)| {
+                    child.as_widget().operate(state, layout, operation);
+                })
+        });
+    }
+
     fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -148,9 +172,11 @@ where
     ) -> event::Status {
         self.children
             .iter_mut()
+            .zip(&mut tree.children)
             .zip(layout.children())
-            .map(|(child, layout)| {
-                child.widget.on_event(
+            .map(|((child, state), layout)| {
+                child.as_widget_mut().on_event(
+                    state,
                     event.clone(),
                     layout,
                     cursor_position,
@@ -164,6 +190,7 @@ where
 
     fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -171,9 +198,11 @@ where
     ) -> mouse::Interaction {
         self.children
             .iter()
+            .zip(&tree.children)
             .zip(layout.children())
-            .map(|(child, layout)| {
-                child.widget.mouse_interaction(
+            .map(|((child, state), layout)| {
+                child.as_widget().mouse_interaction(
+                    state,
                     layout,
                     cursor_position,
                     viewport,
@@ -186,41 +215,49 @@ where
 
     fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        for (child, layout) in self.children.iter().zip(layout.children()) {
-            child.draw(renderer, style, layout, cursor_position, viewport);
+        for ((child, state), layout) in self
+            .children
+            .iter()
+            .zip(&tree.children)
+            .zip(layout.children())
+        {
+            child.as_widget().draw(
+                state,
+                renderer,
+                theme,
+                style,
+                layout,
+                cursor_position,
+                viewport,
+            );
         }
     }
 
-    fn overlay(
-        &mut self,
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.children
-            .iter_mut()
-            .zip(layout.children())
-            .filter_map(|(child, layout)| {
-                child.widget.overlay(layout, renderer)
-            })
-            .next()
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        overlay::from_children(&self.children, tree, layout, renderer)
     }
 }
 
 impl<'a, Message, Renderer> From<Column<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Renderer: crate::Renderer + 'a,
 {
-    fn from(
-        column: Column<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(column)
+    fn from(column: Column<'a, Message, Renderer>) -> Self {
+        Self::new(column)
     }
 }

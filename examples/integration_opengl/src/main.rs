@@ -12,7 +12,8 @@ use iced_glow::glow;
 use iced_glow::{Backend, Renderer, Settings, Viewport};
 use iced_glutin::conversion;
 use iced_glutin::glutin;
-use iced_glutin::{program, Clipboard, Debug, Size};
+use iced_glutin::renderer;
+use iced_glutin::{program, Clipboard, Color, Debug, Size};
 
 pub fn main() {
     env_logger::init();
@@ -57,7 +58,7 @@ pub fn main() {
 
     let mut cursor_position = PhysicalPosition::new(-1.0, -1.0);
     let mut modifiers = ModifiersState::default();
-    let mut clipboard = Clipboard::connect(&windowed_context.window());
+    let mut clipboard = Clipboard::connect(windowed_context.window());
 
     let mut renderer = Renderer::new(Backend::new(&gl, Settings::default()));
 
@@ -72,13 +73,12 @@ pub fn main() {
     );
     let mut resized = false;
 
-    let scene = Scene::new(&gl, &shader_version);
+    let scene = Scene::new(&gl, shader_version);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::LoopDestroyed => return,
             Event::WindowEvent { event, .. } => {
                 match event {
                     WindowEvent::CursorMoved { position, .. } => {
@@ -125,6 +125,10 @@ pub fn main() {
                             viewport.scale_factor(),
                         ),
                         &mut renderer,
+                        &iced_glow::Theme::Dark,
+                        &renderer::Style {
+                            text_color: Color::WHITE,
+                        },
                         &mut clipboard,
                         &mut debug,
                     );

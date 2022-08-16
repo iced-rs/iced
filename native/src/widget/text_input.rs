@@ -19,31 +19,29 @@ use crate::mouse::{self, click};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget;
+use crate::widget::operation::{self, Operation};
+use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
-pub use iced_style::text_input::{Style, StyleSheet};
+pub use iced_style::text_input::{Appearance, StyleSheet};
 
 /// A field that can be filled with text.
 ///
 /// # Example
 /// ```
-/// # use iced_native::renderer::Null;
-/// # use iced_native::widget::text_input;
-/// #
-/// # pub type TextInput<'a, Message> = iced_native::widget::TextInput<'a, Message, Null>;
+/// # pub type TextInput<'a, Message> = iced_native::widget::TextInput<'a, Message, iced_native::renderer::Null>;
 /// #[derive(Debug, Clone)]
 /// enum Message {
 ///     TextInputChanged(String),
 /// }
 ///
-/// let mut state = text_input::State::new();
 /// let value = "Some text";
 ///
 /// let input = TextInput::new(
-///     &mut state,
 ///     "This is the placeholder...",
 ///     value,
 ///     Message::TextInputChanged,
@@ -52,8 +50,12 @@ pub use iced_style::text_input::{Style, StyleSheet};
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message, Renderer: text::Renderer> {
-    state: &'a mut State,
+pub struct TextInput<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    id: Option<Id>,
     placeholder: String,
     value: Value,
     is_secure: bool,
@@ -62,33 +64,29 @@ pub struct TextInput<'a, Message, Renderer: text::Renderer> {
     padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
+    on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`TextInput`].
     ///
     /// It expects:
-    /// - some [`State`]
-    /// - a placeholder
-    /// - the current value
-    /// - a function that produces a message when the [`TextInput`] changes
-    pub fn new<F>(
-        state: &'a mut State,
-        placeholder: &str,
-        value: &str,
-        on_change: F,
-    ) -> Self
+    /// - a placeholder,
+    /// - the current value, and
+    /// - a function that produces a message when the [`TextInput`] changes.
+    pub fn new<F>(placeholder: &str, value: &str, on_change: F) -> Self
     where
         F: 'a + Fn(String) -> Message,
     {
         TextInput {
-            state,
+            id: None,
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
@@ -97,9 +95,16 @@ where
             padding: Padding::ZERO,
             size: None,
             on_change: Box::new(on_change),
+            on_paste: None,
             on_submit: None,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
+    }
+
+    /// Sets the [`Id`] of the [`TextInput`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Converts the [`TextInput`] into a secure password input.
@@ -108,9 +113,19 @@ where
         self
     }
 
+    /// Sets the message that should be produced when some text is pasted into
+    /// the [`TextInput`].
+    pub fn on_paste(
+        mut self,
+        on_paste: impl Fn(String) -> Message + 'a,
+    ) -> Self {
+        self.on_paste = Some(Box::new(on_paste));
+        self
+    }
+
     /// Sets the [`Font`] of the [`TextInput`].
     ///
-    /// [`Font`]: crate::text::Renderer::Font
+    /// [`Font`]: text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
@@ -143,41 +158,183 @@ where
     /// Sets the style of the [`TextInput`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 
-    /// Returns the current [`State`] of the [`TextInput`].
-    pub fn state(&self) -> &State {
-        self.state
-    }
-
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
-    /// [`Value`] if provided.
+    /// [`text_input::Value`] if provided.
     ///
     /// [`Renderer`]: text::Renderer
     pub fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         layout: Layout<'_>,
         cursor_position: Point,
         value: Option<&Value>,
     ) {
         draw(
             renderer,
+            theme,
             layout,
             cursor_position,
-            &self.state,
+            tree.state.downcast_ref::<State>(),
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
             &self.font,
             self.is_secure,
-            self.style_sheet.as_ref(),
+            self.style,
         )
     }
+}
+
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for TextInput<'a, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout(renderer, limits, self.width, self.padding, self.size)
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        _layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        update(
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+            &mut self.value,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.on_change.as_ref(),
+            self.on_paste.as_deref(),
+            &self.on_submit,
+            || tree.state.downcast_mut::<State>(),
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        draw(
+            renderer,
+            theme,
+            layout,
+            cursor_position,
+            tree.state.downcast_ref::<State>(),
+            &self.value,
+            &self.placeholder,
+            self.size,
+            &self.font,
+            self.is_secure,
+            self.style,
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        mouse_interaction(layout, cursor_position)
+    }
+}
+
+impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a + Clone,
+    Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(
+        text_input: TextInput<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(text_input)
+    }
+}
+
+/// The identifier of a [`TextInput`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    /// Creates a custom [`Id`].
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
+}
+
+/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
+pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::focusable::focus(id.0))
 }
 
 /// Computes the layout of a [`TextInput`].
@@ -191,7 +348,7 @@ pub fn layout<Renderer>(
 where
     Renderer: text::Renderer,
 {
-    let text_size = size.unwrap_or(renderer.default_size());
+    let text_size = size.unwrap_or_else(|| renderer.default_size());
 
     let limits = limits
         .pad(padding)
@@ -218,6 +375,7 @@ pub fn update<'a, Message, Renderer>(
     font: &Renderer::Font,
     is_secure: bool,
     on_change: &dyn Fn(String) -> Message,
+    on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
 ) -> event::Status
@@ -491,7 +649,7 @@ where
                                 None => {
                                     let content: String = clipboard
                                         .read()
-                                        .unwrap_or(String::new())
+                                        .unwrap_or_default()
                                         .chars()
                                         .filter(|c| !c.is_control())
                                         .collect();
@@ -505,7 +663,11 @@ where
 
                             editor.paste(content.clone());
 
-                            let message = (on_change)(editor.contents());
+                            let message = if let Some(paste) = &on_paste {
+                                (paste)(editor.contents())
+                            } else {
+                                (on_change)(editor.contents())
+                            };
                             shell.publish(message);
 
                             state.is_pasting = Some(content);
@@ -575,6 +737,7 @@ where
 /// [`Renderer`]: text::Renderer
 pub fn draw<Renderer>(
     renderer: &mut Renderer,
+    theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor_position: Point,
     state: &State,
@@ -583,47 +746,48 @@ pub fn draw<Renderer>(
     size: Option<u16>,
     font: &Renderer::Font,
     is_secure: bool,
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     let secure_value = is_secure.then(|| value.secure());
-    let value = secure_value.as_ref().unwrap_or(&value);
+    let value = secure_value.as_ref().unwrap_or(value);
 
     let bounds = layout.bounds();
     let text_bounds = layout.children().next().unwrap().bounds();
 
     let is_mouse_over = bounds.contains(cursor_position);
 
-    let style = if state.is_focused() {
-        style_sheet.focused()
+    let appearance = if state.is_focused() {
+        theme.focused(style)
     } else if is_mouse_over {
-        style_sheet.hovered()
+        theme.hovered(style)
     } else {
-        style_sheet.active()
+        theme.active(style)
     };
 
     renderer.fill_quad(
         renderer::Quad {
             bounds,
-            border_radius: style.border_radius,
-            border_width: style.border_width,
-            border_color: style.border_color,
+            border_radius: appearance.border_radius,
+            border_width: appearance.border_width,
+            border_color: appearance.border_color,
         },
-        style.background,
+        appearance.background,
     );
 
     let text = value.to_string();
-    let size = size.unwrap_or(renderer.default_size());
+    let size = size.unwrap_or_else(|| renderer.default_size());
 
     let (cursor, offset) = if state.is_focused() {
-        match state.cursor.state(&value) {
+        match state.cursor.state(value) {
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        &value,
+                        value,
                         size,
                         position,
                         font.clone(),
@@ -642,7 +806,7 @@ pub fn draw<Renderer>(
                             border_width: 0.0,
                             border_color: Color::TRANSPARENT,
                         },
-                        style_sheet.value_color(),
+                        theme.value_color(style),
                     )),
                     offset,
                 )
@@ -655,7 +819,7 @@ pub fn draw<Renderer>(
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        &value,
+                        value,
                         size,
                         left,
                         font.clone(),
@@ -665,7 +829,7 @@ pub fn draw<Renderer>(
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        &value,
+                        value,
                         size,
                         right,
                         font.clone(),
@@ -686,7 +850,7 @@ pub fn draw<Renderer>(
                             border_width: 0.0,
                             border_color: Color::TRANSPARENT,
                         },
-                        style_sheet.selection_color(),
+                        theme.selection_color(style),
                     )),
                     if end == right {
                         right_offset
@@ -714,9 +878,9 @@ pub fn draw<Renderer>(
         renderer.fill_text(Text {
             content: if text.is_empty() { placeholder } else { &text },
             color: if text.is_empty() {
-                style_sheet.placeholder_color()
+                theme.placeholder_color(style)
             } else {
-                style_sheet.value_color()
+                theme.value_color(style)
             },
             font: font.clone(),
             bounds: Rectangle {
@@ -748,89 +912,6 @@ pub fn mouse_interaction(
         mouse::Interaction::Text
     } else {
         mouse::Interaction::default()
-    }
-}
-
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for TextInput<'a, Message, Renderer>
-where
-    Message: Clone,
-    Renderer: text::Renderer,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(renderer, limits, self.width, self.padding, self.size)
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        update(
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
-            &mut self.value,
-            self.size,
-            &self.font,
-            self.is_secure,
-            self.on_change.as_ref(),
-            &self.on_submit,
-            || &mut self.state,
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        _style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-    ) {
-        self.draw(renderer, layout, cursor_position, None)
-    }
-}
-
-impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Message: 'a + Clone,
-    Renderer: 'a + text::Renderer,
-{
-    fn from(
-        text_input: TextInput<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(text_input)
     }
 }
 
@@ -877,6 +958,7 @@ impl State {
     /// Focuses the [`TextInput`].
     pub fn focus(&mut self) {
         self.is_focused = true;
+        self.move_cursor_to_end();
     }
 
     /// Unfocuses the [`TextInput`].
@@ -902,6 +984,20 @@ impl State {
     /// Selects all the content of the [`TextInput`].
     pub fn select_all(&mut self) {
         self.cursor.select_range(0, usize::MAX);
+    }
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
     }
 }
 
@@ -986,16 +1082,16 @@ fn find_cursor_position<Renderer>(
 where
     Renderer: text::Renderer,
 {
-    let size = size.unwrap_or(renderer.default_size());
+    let size = size.unwrap_or_else(|| renderer.default_size());
 
     let offset =
-        offset(renderer, text_bounds, font.clone(), size, &value, &state);
+        offset(renderer, text_bounds, font.clone(), size, value, state);
 
     renderer
         .hit_test(
             &value.to_string(),
             size.into(),
-            font.clone(),
+            font,
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),
             true,

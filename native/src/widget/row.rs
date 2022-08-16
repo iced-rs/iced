@@ -1,15 +1,14 @@
 //! Distribute content horizontally.
 use crate::event::{self, Event};
-use crate::layout;
+use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::widget::{Operation, Tree};
 use crate::{
-    Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Widget,
+    Alignment, Clipboard, Element, Length, Padding, Point, Rectangle, Shell,
+    Widget,
 };
-
-use std::u32;
 
 /// A container that distributes its contents horizontally.
 #[allow(missing_debug_implementations)]
@@ -18,8 +17,6 @@ pub struct Row<'a, Message, Renderer> {
     padding: Padding,
     width: Length,
     height: Length,
-    max_width: u32,
-    max_height: u32,
     align_items: Alignment,
     children: Vec<Element<'a, Message, Renderer>>,
 }
@@ -39,8 +36,6 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
-            max_width: u32::MAX,
-            max_height: u32::MAX,
             align_items: Alignment::Start,
             children,
         }
@@ -74,18 +69,6 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         self
     }
 
-    /// Sets the maximum width of the [`Row`].
-    pub fn max_width(mut self, max_width: u32) -> Self {
-        self.max_width = max_width;
-        self
-    }
-
-    /// Sets the maximum height of the [`Row`].
-    pub fn max_height(mut self, max_height: u32) -> Self {
-        self.max_height = max_height;
-        self
-    }
-
     /// Sets the vertical alignment of the contents of the [`Row`] .
     pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
@@ -93,12 +76,18 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     }
 
     /// Adds an [`Element`] to the [`Row`].
-    pub fn push<E>(mut self, child: E) -> Self
-    where
-        E: Into<Element<'a, Message, Renderer>>,
-    {
+    pub fn push(
+        mut self,
+        child: impl Into<Element<'a, Message, Renderer>>,
+    ) -> Self {
         self.children.push(child.into());
         self
+    }
+}
+
+impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -107,6 +96,14 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
+    fn children(&self) -> Vec<Tree> {
+        self.children.iter().map(Tree::new).collect()
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children(&self.children)
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -120,11 +117,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .max_width(self.max_width)
-            .max_height(self.max_height)
-            .width(self.width)
-            .height(self.height);
+        let limits = limits.width(self.width).height(self.height);
 
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
@@ -137,8 +130,26 @@ where
         )
     }
 
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        operation.container(None, &mut |operation| {
+            self.children
+                .iter()
+                .zip(&mut tree.children)
+                .zip(layout.children())
+                .for_each(|((child, state), layout)| {
+                    child.as_widget().operate(state, layout, operation);
+                })
+        });
+    }
+
     fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -148,9 +159,11 @@ where
     ) -> event::Status {
         self.children
             .iter_mut()
+            .zip(&mut tree.children)
             .zip(layout.children())
-            .map(|(child, layout)| {
-                child.widget.on_event(
+            .map(|((child, state), layout)| {
+                child.as_widget_mut().on_event(
+                    state,
                     event.clone(),
                     layout,
                     cursor_position,
@@ -164,6 +177,7 @@ where
 
     fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
@@ -171,9 +185,11 @@ where
     ) -> mouse::Interaction {
         self.children
             .iter()
+            .zip(&tree.children)
             .zip(layout.children())
-            .map(|(child, layout)| {
-                child.widget.mouse_interaction(
+            .map(|((child, state), layout)| {
+                child.as_widget().mouse_interaction(
+                    state,
                     layout,
                     cursor_position,
                     viewport,
@@ -186,39 +202,49 @@ where
 
     fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        for (child, layout) in self.children.iter().zip(layout.children()) {
-            child.draw(renderer, style, layout, cursor_position, viewport);
+        for ((child, state), layout) in self
+            .children
+            .iter()
+            .zip(&tree.children)
+            .zip(layout.children())
+        {
+            child.as_widget().draw(
+                state,
+                renderer,
+                theme,
+                style,
+                layout,
+                cursor_position,
+                viewport,
+            );
         }
     }
 
-    fn overlay(
-        &mut self,
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.children
-            .iter_mut()
-            .zip(layout.children())
-            .filter_map(|(child, layout)| {
-                child.widget.overlay(layout, renderer)
-            })
-            .next()
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        overlay::from_children(&self.children, tree, layout, renderer)
     }
 }
 
 impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Renderer: crate::Renderer + 'a,
 {
-    fn from(row: Row<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
-        Element::new(row)
+    fn from(row: Row<'a, Message, Renderer>) -> Self {
+        Self::new(row)
     }
 }

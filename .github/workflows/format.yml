@@ -9,4 +9,4 @@ jobs:
         components: rustfmt
     - uses: actions/checkout@master
     - name: Check format
-      run: cargo fmt --all -- --check
+      run: cargo fmt --all -- --check --verbose

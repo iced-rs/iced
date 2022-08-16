@@ -5,13 +5,13 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text;
-use crate::widget::{Row, Text};
+use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
     Shell, Widget,
 };
 
-pub use iced_style::toggler::{Style, StyleSheet};
+pub use iced_style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
 ///
@@ -29,7 +29,11 @@ pub use iced_style::toggler::{Style, StyleSheet};
 /// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Toggler<'a, Message, Renderer: text::Renderer> {
+pub struct Toggler<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
@@ -39,10 +43,14 @@ pub struct Toggler<'a, Message, Renderer: text::Renderer> {
     text_alignment: alignment::Horizontal,
     spacing: u16,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: u16 = 20;
 
@@ -72,7 +80,7 @@ impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
             text_alignment: alignment::Horizontal::Left,
             spacing: 0,
             font: Renderer::Font::default(),
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -117,9 +125,9 @@ impl<'a, Message, Renderer: text::Renderer> Toggler<'a, Message, Renderer> {
     /// Sets the style of the [`Toggler`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -128,6 +136,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -153,7 +162,10 @@ where
                     .horizontal_alignment(self.text_alignment)
                     .font(self.font.clone())
                     .width(self.width)
-                    .size(self.text_size.unwrap_or(renderer.default_size())),
+                    .size(
+                        self.text_size
+                            .unwrap_or_else(|| renderer.default_size()),
+                    ),
             );
         }
 
@@ -168,6 +180,7 @@ where
 
     fn on_event(
         &mut self,
+        _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -193,6 +206,7 @@ where
 
     fn mouse_interaction(
         &self,
+        _state: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -207,7 +221,9 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -229,10 +245,10 @@ where
                 renderer,
                 style,
                 label_layout,
-                &label,
-                self.font.clone(),
+                label,
                 self.text_size,
-                None,
+                self.font.clone(),
+                Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
             );
@@ -244,9 +260,9 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
 
         let style = if is_mouse_over {
-            self.style_sheet.hovered(self.is_active)
+            theme.hovered(self.style, self.is_active)
         } else {
-            self.style_sheet.active(self.is_active)
+            theme.active(self.style, self.is_active)
         };
 
         let border_radius = bounds.height as f32 / BORDER_RADIUS_RATIO;
@@ -300,8 +316,9 @@ where
 impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + text::Renderer,
     Message: 'a,
+    Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn from(
         toggler: Toggler<'a, Message, Renderer>,

@@ -15,7 +15,9 @@ pub mod button;
 pub mod checkbox;
 pub mod column;
 pub mod container;
+pub mod helpers;
 pub mod image;
+pub mod operation;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
@@ -30,6 +32,10 @@ pub mod text;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
+pub mod tree;
+
+mod action;
+mod id;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -39,6 +45,8 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use helpers::*;
 #[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]
@@ -69,6 +77,12 @@ pub use text_input::TextInput;
 pub use toggler::Toggler;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
+#[doc(no_inline)]
+pub use tree::Tree;
+
+pub use action::Action;
+pub use id::Id;
+pub use operation::Operation;
 
 use crate::event::{self, Event};
 use crate::layout;
@@ -109,12 +123,10 @@ where
     /// Returns the height of the [`Widget`].
     fn height(&self) -> Length;
 
-    /// Returns the [`Node`] of the [`Widget`].
+    /// Returns the [`layout::Node`] of the [`Widget`].
     ///
-    /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
+    /// This [`layout::Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
-    ///
-    /// [`Node`]: layout::Node
     fn layout(
         &self,
         renderer: &Renderer,
@@ -124,27 +136,52 @@ where
     /// Draws the [`Widget`] using the associated `Renderer`.
     fn draw(
         &self,
+        state: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
     );
 
-    /// Processes a runtime [`Event`].
+    /// Returns the [`Tag`] of the [`Widget`].
     ///
-    /// It receives:
-    ///   * an [`Event`] describing user interaction
-    ///   * the computed [`Layout`] of the [`Widget`]
-    ///   * the current cursor position
-    ///   * a mutable `Message` list, allowing the [`Widget`] to produce
-    ///   new messages based on user interaction.
-    ///   * the `Renderer`
-    ///   * a [`Clipboard`], if available
+    /// [`Tag`]: tree::Tag
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::stateless()
+    }
+
+    /// Returns the [`State`] of the [`Widget`].
+    ///
+    /// [`State`]: tree::State
+    fn state(&self) -> tree::State {
+        tree::State::None
+    }
+
+    /// Returns the state [`Tree`] of the children of the [`Widget`].
+    fn children(&self) -> Vec<Tree> {
+        Vec::new()
+    }
+
+    /// Reconciliates the [`Widget`] with the provided [`Tree`].
+    fn diff(&self, _tree: &mut Tree) {}
+
+    /// Applies an [`Operation`] to the [`Widget`].
+    fn operate(
+        &self,
+        _state: &mut Tree,
+        _layout: Layout<'_>,
+        _operation: &mut dyn Operation<Message>,
+    ) {
+    }
+
+    /// Processes a runtime [`Event`].
     ///
     /// By default, it does nothing.
     fn on_event(
         &mut self,
+        _state: &mut Tree,
         _event: Event,
         _layout: Layout<'_>,
         _cursor_position: Point,
@@ -160,6 +197,7 @@ where
     /// By default, it returns [`mouse::Interaction::Idle`].
     fn mouse_interaction(
         &self,
+        _state: &Tree,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
@@ -169,11 +207,12 @@ where
     }
 
     /// Returns the overlay of the [`Widget`], if there is any.
-    fn overlay(
-        &mut self,
+    fn overlay<'a>(
+        &'a self,
+        _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'a, Message, Renderer>> {
         None
     }
 }

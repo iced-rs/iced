@@ -1,5 +1,7 @@
-use iced::{Container, Element, Length, Sandbox, Settings};
-use numeric_input::NumericInput;
+use iced::widget::container;
+use iced::{Element, Length, Sandbox, Settings};
+
+use numeric_input::numeric_input;
 
 pub fn main() -> iced::Result {
     Component::run(Settings::default())
@@ -7,7 +9,6 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Component {
-    numeric_input: numeric_input::State,
     value: Option<u32>,
 }
 
@@ -35,39 +36,31 @@ impl Sandbox for Component {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
-        Container::new(NumericInput::new(
-            &mut self.numeric_input,
-            self.value,
-            Message::NumericInputChanged,
-        ))
-        .padding(20)
-        .height(Length::Fill)
-        .center_y()
-        .into()
+    fn view(&self) -> Element<Message> {
+        container(numeric_input(self.value, Message::NumericInputChanged))
+            .padding(20)
+            .height(Length::Fill)
+            .center_y()
+            .into()
     }
 }
 
 mod numeric_input {
-    use iced_lazy::component::{self, Component};
-    use iced_native::alignment::{self, Alignment};
-    use iced_native::text;
-    use iced_native::widget::button::{self, Button};
-    use iced_native::widget::text_input::{self, TextInput};
-    use iced_native::widget::{Row, Text};
-    use iced_native::{Element, Length};
+    use iced::alignment::{self, Alignment};
+    use iced::widget::{self, button, row, text, text_input};
+    use iced::{Element, Length};
+    use iced_lazy::{self, Component};
 
-    pub struct NumericInput<'a, Message> {
-        state: &'a mut State,
+    pub struct NumericInput<Message> {
         value: Option<u32>,
         on_change: Box<dyn Fn(Option<u32>) -> Message>,
     }
 
-    #[derive(Default)]
-    pub struct State {
-        input: text_input::State,
-        decrement_button: button::State,
-        increment_button: button::State,
+    pub fn numeric_input<Message>(
+        value: Option<u32>,
+        on_change: impl Fn(Option<u32>) -> Message + 'static,
+    ) -> NumericInput<Message> {
+        NumericInput::new(value, on_change)
     }
 
     #[derive(Debug, Clone)]
@@ -77,28 +70,33 @@ mod numeric_input {
         DecrementPressed,
     }
 
-    impl<'a, Message> NumericInput<'a, Message> {
+    impl<Message> NumericInput<Message> {
         pub fn new(
-            state: &'a mut State,
             value: Option<u32>,
             on_change: impl Fn(Option<u32>) -> Message + 'static,
         ) -> Self {
             Self {
-                state,
                 value,
                 on_change: Box::new(on_change),
             }
         }
     }
 
-    impl<'a, Message, Renderer> Component<Message, Renderer>
-        for NumericInput<'a, Message>
+    impl<Message, Renderer> Component<Message, Renderer> for NumericInput<Message>
     where
-        Renderer: 'a + text::Renderer,
+        Renderer: iced_native::text::Renderer + 'static,
+        Renderer::Theme: widget::button::StyleSheet
+            + widget::text_input::StyleSheet
+            + widget::text::StyleSheet,
     {
+        type State = ();
         type Event = Event;
 
-        fn update(&mut self, event: Event) -> Option<Message> {
+        fn update(
+            &mut self,
+            _state: &mut Self::State,
+            event: Event,
+        ) -> Option<Message> {
             match event {
                 Event::IncrementPressed => Some((self.on_change)(Some(
                     self.value.unwrap_or_default().saturating_add(1),
@@ -120,11 +118,10 @@ mod numeric_input {
             }
         }
 
-        fn view(&mut self) -> Element<Event, Renderer> {
-            let button = |state, label, on_press| {
-                Button::new(
-                    state,
-                    Text::new(label)
+        fn view(&self, _state: &Self::State) -> Element<Event, Renderer> {
+            let button = |label, on_press| {
+                button(
+                    text(label)
                         .width(Length::Fill)
                         .height(Length::Fill)
                         .horizontal_alignment(alignment::Horizontal::Center)
@@ -134,47 +131,37 @@ mod numeric_input {
                 .on_press(on_press)
             };
 
-            Row::with_children(vec![
-                button(
-                    &mut self.state.decrement_button,
-                    "-",
-                    Event::DecrementPressed,
-                )
-                .into(),
-                TextInput::new(
-                    &mut self.state.input,
+            row![
+                button("-", Event::DecrementPressed),
+                text_input(
                     "Type a number",
                     self.value
                         .as_ref()
                         .map(u32::to_string)
-                        .as_ref()
-                        .map(String::as_str)
+                        .as_deref()
                         .unwrap_or(""),
                     Event::InputChanged,
                 )
-                .padding(10)
-                .into(),
-                button(
-                    &mut self.state.increment_button,
-                    "+",
-                    Event::IncrementPressed,
-                )
-                .into(),
-            ])
+                .padding(10),
+                button("+", Event::IncrementPressed),
+            ]
             .align_items(Alignment::Fill)
             .spacing(10)
             .into()
         }
     }
 
-    impl<'a, Message, Renderer> From<NumericInput<'a, Message>>
+    impl<'a, Message, Renderer> From<NumericInput<Message>>
         for Element<'a, Message, Renderer>
     where
         Message: 'a,
-        Renderer: text::Renderer + 'a,
+        Renderer: 'static + iced_native::text::Renderer,
+        Renderer::Theme: widget::button::StyleSheet
+            + widget::text_input::StyleSheet
+            + widget::text::StyleSheet,
     {
-        fn from(numeric_input: NumericInput<'a, Message>) -> Self {
-            component::view(numeric_input)
+        fn from(numeric_input: NumericInput<Message>) -> Self {
+            iced_lazy::component(numeric_input)
         }
     }
 }

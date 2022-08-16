@@ -30,18 +30,20 @@ pub use split::Split;
 pub use state::State;
 pub use title_bar::TitleBar;
 
+pub use iced_style::pane_grid::{Line, StyleSheet};
+
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::widget::container;
+use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Element, Layout, Length, Point, Rectangle, Shell, Size,
     Vector, Widget,
 };
-
-pub use iced_style::pane_grid::{Line, StyleSheet};
 
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
@@ -65,7 +67,7 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 /// ## Example
 ///
 /// ```
-/// # use iced_native::widget::{pane_grid, Text};
+/// # use iced_native::widget::{pane_grid, text};
 /// #
 /// # type PaneGrid<'a, Message> =
 /// #     iced_native::widget::PaneGrid<'a, Message, iced_native::renderer::Null>;
@@ -83,19 +85,22 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 /// let (mut state, _) = pane_grid::State::new(PaneState::SomePane);
 ///
 /// let pane_grid =
-///     PaneGrid::new(&mut state, |pane, state| {
+///     PaneGrid::new(&state, |pane, state| {
 ///         pane_grid::Content::new(match state {
-///             PaneState::SomePane => Text::new("This is some pane"),
-///             PaneState::AnotherKindOfPane => Text::new("This is another kind of pane"),
+///             PaneState::SomePane => text("This is some pane"),
+///             PaneState::AnotherKindOfPane => text("This is another kind of pane"),
 ///         })
 ///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(10, Message::PaneResized);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct PaneGrid<'a, Message, Renderer> {
-    state: &'a mut state::Internal,
-    action: &'a mut state::Action,
+pub struct PaneGrid<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
+{
+    state: &'a state::Internal,
     elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
     width: Length,
     height: Length,
@@ -103,40 +108,40 @@ pub struct PaneGrid<'a, Message, Renderer> {
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
 impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
     /// The view function will be called to display each [`Pane`] present in the
     /// [`State`].
     pub fn new<T>(
-        state: &'a mut State<T>,
-        view: impl Fn(Pane, &'a mut T) -> Content<'a, Message, Renderer>,
+        state: &'a State<T>,
+        view: impl Fn(Pane, &'a T) -> Content<'a, Message, Renderer>,
     ) -> Self {
         let elements = {
             state
                 .panes
-                .iter_mut()
+                .iter()
                 .map(|(pane, pane_state)| (*pane, view(*pane, pane_state)))
                 .collect()
         };
 
         Self {
-            state: &mut state.internal,
-            action: &mut state.action,
             elements,
+            state: &state.internal,
             width: Length::Fill,
             height: Length::Fill,
             spacing: 0,
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -196,9 +201,226 @@ where
     }
 
     /// Sets the style of the [`PaneGrid`].
-    pub fn style(mut self, style: impl Into<Box<dyn StyleSheet + 'a>>) -> Self {
-        self.style_sheet = style.into();
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+    ) -> Self {
+        self.style = style.into();
         self
+    }
+}
+
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for PaneGrid<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<state::Action>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(state::Action::Idle)
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        self.elements
+            .iter()
+            .map(|(_, content)| content.state())
+            .collect()
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        tree.diff_children_custom(
+            &self.elements,
+            |state, (_, content)| content.diff(state),
+            |(_, content)| content.state(),
+        )
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        self.height
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout(
+            renderer,
+            limits,
+            self.state,
+            self.width,
+            self.height,
+            self.spacing,
+            self.elements.iter().map(|(pane, content)| (*pane, content)),
+            |element, renderer, limits| element.layout(renderer, limits),
+        )
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        let action = tree.state.downcast_mut::<state::Action>();
+
+        let event_status = update(
+            action,
+            self.state,
+            &event,
+            layout,
+            cursor_position,
+            shell,
+            self.spacing,
+            self.elements.iter().map(|(pane, content)| (*pane, content)),
+            &self.on_click,
+            &self.on_drag,
+            &self.on_resize,
+        );
+
+        let picked_pane = action.picked_pane().map(|(pane, _)| pane);
+
+        self.elements
+            .iter_mut()
+            .zip(&mut tree.children)
+            .zip(layout.children())
+            .map(|(((pane, content), tree), layout)| {
+                let is_picked = picked_pane == Some(*pane);
+
+                content.on_event(
+                    tree,
+                    event.clone(),
+                    layout,
+                    cursor_position,
+                    renderer,
+                    clipboard,
+                    shell,
+                    is_picked,
+                )
+            })
+            .fold(event_status, event::Status::merge)
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        mouse_interaction(
+            tree.state.downcast_ref(),
+            self.state,
+            layout,
+            cursor_position,
+            self.spacing,
+            self.on_resize.as_ref().map(|(leeway, _)| *leeway),
+        )
+        .unwrap_or_else(|| {
+            self.elements
+                .iter()
+                .zip(&tree.children)
+                .zip(layout.children())
+                .map(|(((_pane, content), tree), layout)| {
+                    content.mouse_interaction(
+                        tree,
+                        layout,
+                        cursor_position,
+                        viewport,
+                        renderer,
+                    )
+                })
+                .max()
+                .unwrap_or_default()
+        })
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        draw(
+            tree.state.downcast_ref(),
+            self.state,
+            layout,
+            cursor_position,
+            renderer,
+            theme,
+            style,
+            viewport,
+            self.spacing,
+            self.on_resize.as_ref().map(|(leeway, _)| *leeway),
+            self.style,
+            self.elements
+                .iter()
+                .zip(&tree.children)
+                .map(|((pane, content), tree)| (*pane, (content, tree))),
+            |(content, tree),
+             renderer,
+             style,
+             layout,
+             cursor_position,
+             rectangle| {
+                content.draw(
+                    tree,
+                    renderer,
+                    theme,
+                    style,
+                    layout,
+                    cursor_position,
+                    rectangle,
+                );
+            },
+        )
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.elements
+            .iter()
+            .zip(&mut tree.children)
+            .zip(layout.children())
+            .filter_map(|(((_, pane), tree), layout)| {
+                pane.overlay(tree, layout, renderer)
+            })
+            .next()
+    }
+}
+
+impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    Message: 'a,
+    Renderer: 'a + crate::Renderer,
+    Renderer::Theme: StyleSheet + container::StyleSheet,
+{
+    fn from(
+        pane_grid: PaneGrid<'a, Message, Renderer>,
+    ) -> Element<'a, Message, Renderer> {
+        Element::new(pane_grid)
     }
 }
 
@@ -468,11 +690,12 @@ pub fn draw<Renderer, T>(
     layout: Layout<'_>,
     cursor_position: Point,
     renderer: &mut Renderer,
-    style: &renderer::Style,
+    theme: &Renderer::Theme,
+    default_style: &renderer::Style,
     viewport: &Rectangle,
     spacing: u16,
     resize_leeway: Option<u16>,
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
     elements: impl Iterator<Item = (Pane, T)>,
     draw_pane: impl Fn(
         T,
@@ -484,6 +707,7 @@ pub fn draw<Renderer, T>(
     ),
 ) where
     Renderer: crate::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     let picked_pane = action.picked_pane();
 
@@ -545,7 +769,7 @@ pub fn draw<Renderer, T>(
                             draw_pane(
                                 pane,
                                 renderer,
-                                style,
+                                default_style,
                                 layout,
                                 pane_cursor_position,
                                 viewport,
@@ -558,7 +782,7 @@ pub fn draw<Renderer, T>(
                 draw_pane(
                     pane,
                     renderer,
-                    style,
+                    default_style,
                     layout,
                     pane_cursor_position,
                     viewport,
@@ -569,9 +793,9 @@ pub fn draw<Renderer, T>(
 
     if let Some((axis, split_region, is_picked)) = picked_split {
         let highlight = if is_picked {
-            style_sheet.picked_split()
+            theme.picked_split(style)
         } else {
-            style_sheet.hovered_split()
+            theme.hovered_split(style)
         };
 
         if let Some(highlight) = highlight {
@@ -645,164 +869,6 @@ pub struct ResizeEvent {
     pub ratio: f32,
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for PaneGrid<'a, Message, Renderer>
-where
-    Renderer: crate::Renderer,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            self.state,
-            self.width,
-            self.height,
-            self.spacing,
-            self.elements.iter().map(|(pane, content)| (*pane, content)),
-            |element, renderer, limits| element.layout(renderer, limits),
-        )
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        let event_status = update(
-            self.action,
-            self.state,
-            &event,
-            layout,
-            cursor_position,
-            shell,
-            self.spacing,
-            self.elements.iter().map(|(pane, content)| (*pane, content)),
-            &self.on_click,
-            &self.on_drag,
-            &self.on_resize,
-        );
-
-        let picked_pane = self.action.picked_pane().map(|(pane, _)| pane);
-
-        self.elements
-            .iter_mut()
-            .zip(layout.children())
-            .map(|((pane, content), layout)| {
-                let is_picked = picked_pane == Some(*pane);
-
-                content.on_event(
-                    event.clone(),
-                    layout,
-                    cursor_position,
-                    renderer,
-                    clipboard,
-                    shell,
-                    is_picked,
-                )
-            })
-            .fold(event_status, event::Status::merge)
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse_interaction(
-            self.action,
-            self.state,
-            layout,
-            cursor_position,
-            self.spacing,
-            self.on_resize.as_ref().map(|(leeway, _)| *leeway),
-        )
-        .unwrap_or_else(|| {
-            self.elements
-                .iter()
-                .zip(layout.children())
-                .map(|((_pane, content), layout)| {
-                    content.mouse_interaction(
-                        layout,
-                        cursor_position,
-                        viewport,
-                        renderer,
-                    )
-                })
-                .max()
-                .unwrap_or_default()
-        })
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-    ) {
-        draw(
-            self.action,
-            self.state,
-            layout,
-            cursor_position,
-            renderer,
-            style,
-            viewport,
-            self.spacing,
-            self.on_resize.as_ref().map(|(leeway, _)| *leeway),
-            self.style_sheet.as_ref(),
-            self.elements.iter().map(|(pane, content)| (*pane, content)),
-            |pane, renderer, style, layout, cursor_position, rectangle| {
-                pane.draw(renderer, style, layout, cursor_position, rectangle);
-            },
-        )
-    }
-
-    fn overlay(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.elements
-            .iter_mut()
-            .zip(layout.children())
-            .filter_map(|((_, pane), layout)| pane.overlay(layout, renderer))
-            .next()
-    }
-}
-
-impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
-where
-    Renderer: 'a + crate::Renderer,
-    Message: 'a,
-{
-    fn from(
-        pane_grid: PaneGrid<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
-        Element::new(pane_grid)
-    }
-}
-
 /*
  * Helpers
  */
@@ -813,8 +879,7 @@ fn hovered_split<'a>(
 ) -> Option<(Split, Axis, Rectangle)> {
     splits
         .filter_map(|(split, (axis, region, ratio))| {
-            let bounds =
-                axis.split_line_bounds(*region, *ratio, f32::from(spacing));
+            let bounds = axis.split_line_bounds(*region, *ratio, spacing);
 
             if bounds.contains(cursor_position) {
                 Some((*split, *axis, bounds))

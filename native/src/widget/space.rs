@@ -1,6 +1,7 @@
 //! Distribute content vertically.
 use crate::layout;
 use crate::renderer;
+use crate::widget::Tree;
 use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 /// An amount of empty space.
@@ -59,7 +60,9 @@ where
 
     fn draw(
         &self,
+        _state: &Tree,
         _renderer: &mut Renderer,
+        _theme: &Renderer::Theme,
         _style: &renderer::Style,
         _layout: Layout<'_>,
         _cursor_position: Point,

@@ -1,4 +1,5 @@
-use iced::{slider, Column, Element, ProgressBar, Sandbox, Settings, Slider};
+use iced::widget::{column, progress_bar, slider};
+use iced::{Element, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     Progress::run(Settings::default())
@@ -7,7 +8,6 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct Progress {
     value: f32,
-    progress_bar_slider: slider::State,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -32,19 +32,12 @@ impl Sandbox for Progress {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
-        Column::new()
-            .padding(20)
-            .push(ProgressBar::new(0.0..=100.0, self.value))
-            .push(
-                Slider::new(
-                    &mut self.progress_bar_slider,
-                    0.0..=100.0,
-                    self.value,
-                    Message::SliderChanged,
-                )
-                .step(0.01),
-            )
-            .into()
+    fn view(&self) -> Element<Message> {
+        column![
+            progress_bar(0.0..=100.0, self.value),
+            slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01)
+        ]
+        .padding(20)
+        .into()
     }
 }

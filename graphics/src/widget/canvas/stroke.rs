@@ -1,6 +1,6 @@
 use iced_native::Color;
 
-use crate::canvas::Gradient;
+use crate::widget::canvas::Gradient;
 
 /// The style of a stroke.
 #[derive(Debug, Clone, Copy)]

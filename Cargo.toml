@@ -40,8 +40,6 @@ async-std = ["iced_futures/async-std"]
 smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
-# Enables pure, virtual widgets in the `pure` module
-pure = ["iced_pure", "iced_graphics/pure"]
 # Enables querying system information
 system = ["iced_winit/system"]
 
@@ -57,10 +55,10 @@ members = [
     "glutin",
     "lazy",
     "native",
-    "pure",
     "style",
     "wgpu",
     "winit",
+    "examples/arc",
     "examples/bezier_tool",
     "examples/clock",
     "examples/color_palette",
@@ -90,14 +88,6 @@ members = [
     "examples/tour",
     "examples/url_handler",
     "examples/websocket",
-    "examples/pure/component",
-    "examples/pure/counter",
-    "examples/pure/game_of_life",
-    "examples/pure/pane_grid",
-    "examples/pure/pick_list",
-    "examples/pure/todos",
-    "examples/pure/tooltip",
-    "examples/pure/tour",
 ]
 
 [dependencies]
@@ -108,7 +98,6 @@ iced_graphics = { version = "0.3", path = "graphics" }
 iced_winit = { version = "0.4", path = "winit" }
 iced_glutin = { version = "0.3", path = "glutin", optional = true }
 iced_glow = { version = "0.3", path = "glow", optional = true }
-iced_pure = { version = "0.2", path = "pure", optional = true }
 thiserror = "1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -120,3 +109,13 @@ iced_wgpu = { version = "0.5", path = "wgpu", features = ["webgl"], optional = t
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 features = ["image", "svg", "canvas", "qr_code", "pure"]
+
+[profile.release-opt]
+inherits = "release"
+codegen-units = 1
+debug = false
+lto = true
+incremental = false
+opt-level = 3
+overflow-checks = false
+strip = "debuginfo"

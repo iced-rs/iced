@@ -10,19 +10,23 @@ use iced_native::{Background, Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
 
+use std::marker::PhantomData;
+
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
-pub struct Renderer<B: Backend> {
+pub struct Renderer<B: Backend, Theme> {
     backend: B,
     primitives: Vec<Primitive>,
+    theme: PhantomData<Theme>,
 }
 
-impl<B: Backend> Renderer<B> {
+impl<B: Backend, T> Renderer<B, T> {
     /// Creates a new [`Renderer`] from the given [`Backend`].
     pub fn new(backend: B) -> Self {
         Self {
             backend,
             primitives: Vec::new(),
+            theme: PhantomData,
         }
     }
 
@@ -43,16 +47,18 @@ impl<B: Backend> Renderer<B> {
     }
 }
 
-impl<B> iced_native::Renderer for Renderer<B>
+impl<B, T> iced_native::Renderer for Renderer<B, T>
 where
     B: Backend,
 {
+    type Theme = T;
+
     fn layout<'a, Message>(
         &mut self,
         element: &Element<'a, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let layout = element.layout(self, limits);
+        let layout = element.as_widget().layout(self, limits);
 
         self.backend.trim_measurements();
 
@@ -114,7 +120,7 @@ where
     }
 }
 
-impl<B> text::Renderer for Renderer<B>
+impl<B, T> text::Renderer for Renderer<B, T>
 where
     B: Backend + backend::Text,
 {
@@ -171,7 +177,7 @@ where
     }
 }
 
-impl<B> image::Renderer for Renderer<B>
+impl<B, T> image::Renderer for Renderer<B, T>
 where
     B: Backend + backend::Image,
 {
@@ -186,7 +192,7 @@ where
     }
 }
 
-impl<B> svg::Renderer for Renderer<B>
+impl<B, T> svg::Renderer for Renderer<B, T>
 where
     B: Backend + backend::Svg,
 {

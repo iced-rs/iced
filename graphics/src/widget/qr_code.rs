@@ -1,9 +1,10 @@
 //! Encode and display information in a QR code.
-use crate::canvas;
 use crate::renderer::{self, Renderer};
+use crate::widget::canvas;
 use crate::Backend;
 
 use iced_native::layout;
+use iced_native::widget::Tree;
 use iced_native::{
     Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
@@ -47,7 +48,7 @@ impl<'a> QRCode<'a> {
     }
 }
 
-impl<'a, Message, B> Widget<Message, Renderer<B>> for QRCode<'a>
+impl<'a, Message, B, T> Widget<Message, Renderer<B, T>> for QRCode<'a>
 where
     B: Backend,
 {
@@ -61,21 +62,20 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer<B>,
+        _renderer: &Renderer<B, T>,
         _limits: &layout::Limits,
     ) -> layout::Node {
         let side_length = (self.state.width + 2 * QUIET_ZONE) as f32
             * f32::from(self.cell_size);
 
-        layout::Node::new(Size::new(
-            f32::from(side_length),
-            f32::from(side_length),
-        ))
+        layout::Node::new(Size::new(side_length, side_length))
     }
 
     fn draw(
         &self,
-        renderer: &mut Renderer<B>,
+        _state: &Tree,
+        renderer: &mut Renderer<B, T>,
+        _theme: &T,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
@@ -127,12 +127,13 @@ where
     }
 }
 
-impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for QRCode<'a>
+impl<'a, Message, B, T> From<QRCode<'a>>
+    for Element<'a, Message, Renderer<B, T>>
 where
     B: Backend,
 {
-    fn into(self) -> Element<'a, Message, Renderer<B>> {
-        Element::new(self)
+    fn from(qr_code: QRCode<'a>) -> Self {
+        Self::new(qr_code)
     }
 }
 

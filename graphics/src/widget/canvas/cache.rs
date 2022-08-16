@@ -1,7 +1,5 @@
-use crate::{
-    canvas::{Frame, Geometry},
-    Primitive,
-};
+use crate::widget::canvas::{Frame, Geometry};
+use crate::Primitive;
 
 use iced_native::Size;
 use std::{cell::RefCell, sync::Arc};

@@ -1,8 +1,10 @@
 //! Implement your own event loop to drive a user interface.
+use crate::application;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::widget;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -21,6 +23,7 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
     base: layout::Node,
+    state: widget::Tree,
     overlay: Option<layout::Node>,
     bounds: Size,
 }
@@ -28,6 +31,7 @@ pub struct UserInterface<'a, Message, Renderer> {
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
+    Renderer::Theme: application::StyleSheet,
 {
     /// Builds a user interface for an [`Element`].
     ///
@@ -86,10 +90,13 @@ where
     pub fn build<E: Into<Element<'a, Message, Renderer>>>(
         root: E,
         bounds: Size,
-        _cache: Cache,
+        cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
         let root = root.into();
+
+        let Cache { mut state } = cache;
+        state.diff(root.as_widget());
 
         let base =
             renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
@@ -97,6 +104,7 @@ where
         UserInterface {
             root,
             base,
+            state,
             overlay: None,
             bounds,
         }
@@ -180,9 +188,12 @@ where
         use std::mem::ManuallyDrop;
 
         let mut state = State::Updated;
-        let mut manual_overlay = ManuallyDrop::new(
-            self.root.overlay(Layout::new(&self.base), renderer),
-        );
+        let mut manual_overlay =
+            ManuallyDrop::new(self.root.as_widget().overlay(
+                &mut self.state,
+                Layout::new(&self.base),
+                renderer,
+            ));
 
         let (base_cursor, overlay_statuses) = if manual_overlay.is_some() {
             let bounds = self.bounds;
@@ -213,9 +224,12 @@ where
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    manual_overlay = ManuallyDrop::new(
-                        self.root.overlay(Layout::new(&self.base), renderer),
-                    );
+                    manual_overlay =
+                        ManuallyDrop::new(self.root.as_widget().overlay(
+                            &mut self.state,
+                            Layout::new(&self.base),
+                            renderer,
+                        ));
 
                     if manual_overlay.is_none() {
                         break;
@@ -260,7 +274,8 @@ where
 
                 let mut shell = Shell::new(messages);
 
-                let event_status = self.root.widget.on_event(
+                let event_status = self.root.as_widget_mut().on_event(
+                    &mut self.state,
                     event,
                     Layout::new(&self.base),
                     base_cursor,
@@ -301,8 +316,10 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::{clipboard, Size, Point};
+    /// use iced_native::clipboard;
+    /// use iced_native::renderer;
     /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_native::{Size, Point, Theme};
     /// use iced_wgpu::Renderer;
     ///
     /// # mod iced_wgpu {
@@ -349,7 +366,7 @@ where
     ///     );
     ///
     ///     // Draw the user interface
-    ///     let mouse_cursor = user_interface.draw(&mut renderer, cursor_position);
+    ///     let mouse_cursor = user_interface.draw(&mut renderer, &Theme::default(), &renderer::Style::default(), cursor_position);
     ///
     ///     cache = user_interface.into_cache();
     ///
@@ -364,6 +381,8 @@ where
     pub fn draw(
         &mut self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        style: &renderer::Style,
         cursor_position: Point,
     ) -> mouse::Interaction {
         // TODO: Move to shell level (?)
@@ -371,9 +390,11 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let base_cursor = if let Some(overlay) =
-            self.root.overlay(Layout::new(&self.base), renderer)
-        {
+        let base_cursor = if let Some(overlay) = self.root.as_widget().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+        ) {
             let overlay_layout = self
                 .overlay
                 .take()
@@ -393,15 +414,18 @@ where
             cursor_position
         };
 
-        self.root.widget.draw(
+        self.root.as_widget().draw(
+            &self.state,
             renderer,
-            &renderer::Style::default(),
+            theme,
+            style,
             Layout::new(&self.base),
             base_cursor,
             &viewport,
         );
 
-        let base_interaction = self.root.widget.mouse_interaction(
+        let base_interaction = self.root.as_widget().mouse_interaction(
+            &self.state,
             Layout::new(&self.base),
             cursor_position,
             &viewport,
@@ -423,51 +447,79 @@ where
         overlay
             .as_ref()
             .and_then(|layout| {
-                root.overlay(Layout::new(&base), renderer).map(|overlay| {
-                    let overlay_interaction = overlay.mouse_interaction(
-                        Layout::new(layout),
-                        cursor_position,
-                        &viewport,
-                        renderer,
-                    );
-
-                    let overlay_bounds = layout.bounds();
-
-                    renderer.with_layer(overlay_bounds, |renderer| {
-                        overlay.draw(
-                            renderer,
-                            &renderer::Style::default(),
+                root.as_widget()
+                    .overlay(&mut self.state, Layout::new(base), renderer)
+                    .map(|overlay| {
+                        let overlay_interaction = overlay.mouse_interaction(
                             Layout::new(layout),
                             cursor_position,
+                            &viewport,
+                            renderer,
                         );
-                    });
 
-                    if overlay_bounds.contains(cursor_position) {
-                        overlay_interaction
-                    } else {
-                        base_interaction
-                    }
-                })
+                        let overlay_bounds = layout.bounds();
+
+                        renderer.with_layer(overlay_bounds, |renderer| {
+                            overlay.draw(
+                                renderer,
+                                theme,
+                                style,
+                                Layout::new(layout),
+                                cursor_position,
+                            );
+                        });
+
+                        if overlay_bounds.contains(cursor_position) {
+                            overlay_interaction
+                        } else {
+                            base_interaction
+                        }
+                    })
             })
             .unwrap_or(base_interaction)
+    }
+
+    /// Applies a [`widget::Operation`] to the [`UserInterface`].
+    pub fn operate(
+        &mut self,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        self.root.as_widget().operate(
+            &mut self.state,
+            Layout::new(&self.base),
+            operation,
+        );
+
+        if let Some(layout) = self.overlay.as_ref() {
+            if let Some(overlay) = self.root.as_widget().overlay(
+                &mut self.state,
+                Layout::new(&self.base),
+                renderer,
+            ) {
+                overlay.operate(Layout::new(layout), operation);
+            }
+        }
     }
 
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(self.root, bounds, Cache, renderer)
+        Self::build(self.root, bounds, Cache { state: self.state }, renderer)
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
     pub fn into_cache(self) -> Cache {
-        Cache
+        Cache { state: self.state }
     }
 }
 
 /// Reusable data of a specific [`UserInterface`].
-#[derive(Debug, Clone)]
-pub struct Cache;
+#[derive(Debug)]
+pub struct Cache {
+    state: widget::Tree,
+}
 
 impl Cache {
     /// Creates an empty [`Cache`].
@@ -475,7 +527,9 @@ impl Cache {
     /// You should use this to initialize a [`Cache`] before building your first
     /// [`UserInterface`].
     pub fn new() -> Cache {
-        Cache
+        Cache {
+            state: widget::Tree::empty(),
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Preset {
     Custom,
-    XKCD,
+    Xkcd,
     Glider,
     SmallExploder,
     Exploder,
@@ -14,7 +14,7 @@ pub enum Preset {
 
 pub static ALL: &[Preset] = &[
     Preset::Custom,
-    Preset::XKCD,
+    Preset::Xkcd,
     Preset::Glider,
     Preset::SmallExploder,
     Preset::Exploder,
@@ -30,7 +30,7 @@ impl Preset {
         #[rustfmt::skip]
         let cells = match self {
             Preset::Custom => vec![],
-            Preset::XKCD => vec![
+            Preset::Xkcd => vec![
                 "  xxx  ",
                 "  x x  ",
                 "  x x  ",
@@ -116,7 +116,7 @@ impl Preset {
 
 impl Default for Preset {
     fn default() -> Preset {
-        Preset::XKCD
+        Preset::Xkcd
     }
 }
 
@@ -127,7 +127,7 @@ impl std::fmt::Display for Preset {
             "{}",
             match self {
                 Preset::Custom => "Custom",
-                Preset::XKCD => "xkcd #2293",
+                Preset::Xkcd => "xkcd #2293",
                 Preset::Glider => "Glider",
                 Preset::SmallExploder => "Small Exploder",
                 Preset::Exploder => "Exploder",

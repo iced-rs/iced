@@ -60,7 +60,7 @@ impl Cache {
             }
             svg::Data::Bytes(bytes) => {
                 match usvg::Tree::from_data(
-                    &bytes,
+                    bytes,
                     &usvg::Options::default().to_ref(),
                 ) {
                     Ok(tree) => Svg::Loaded(tree),
@@ -112,7 +112,7 @@ impl Cache {
                 // It would be cool to be able to smooth resize the `svg` example.
                 let mut img = tiny_skia::Pixmap::new(width, height)?;
 
-                let _ = resvg::render(
+                resvg::render(
                     tree,
                     if width > height {
                         usvg::FitTo::Width(width)

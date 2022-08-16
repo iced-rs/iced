@@ -51,15 +51,9 @@
 //! We start by modelling the __state__ of our application:
 //!
 //! ```
-//! use iced::button;
-//!
 //! struct Counter {
 //!     // The counter value
 //!     value: i32,
-//!
-//!     // The local state of the two buttons
-//!     increment_button: button::State,
-//!     decrement_button: button::State,
 //! }
 //! ```
 //!
@@ -78,15 +72,9 @@
 //! __view logic__:
 //!
 //! ```
-//! # use iced::button;
-//! #
 //! # struct Counter {
 //! #     // The counter value
 //! #     value: i32,
-//! #
-//! #     // The local state of the two buttons
-//! #     increment_button: button::State,
-//! #     decrement_button: button::State,
 //! # }
 //! #
 //! # #[derive(Debug, Clone, Copy)]
@@ -95,28 +83,22 @@
 //! #     DecrementPressed,
 //! # }
 //! #
-//! use iced::{Button, Column, Text};
+//! use iced::widget::{button, column, text, Column};
 //!
 //! impl Counter {
 //!     pub fn view(&mut self) -> Column<Message> {
 //!         // We use a column: a simple vertical layout
-//!         Column::new()
-//!             .push(
-//!                 // The increment button. We tell it to produce an
-//!                 // `IncrementPressed` message when pressed
-//!                 Button::new(&mut self.increment_button, Text::new("+"))
-//!                     .on_press(Message::IncrementPressed),
-//!             )
-//!             .push(
-//!                 // We show the value of the counter here
-//!                 Text::new(self.value.to_string()).size(50),
-//!             )
-//!             .push(
-//!                 // The decrement button. We tell it to produce a
-//!                 // `DecrementPressed` message when pressed
-//!                 Button::new(&mut self.decrement_button, Text::new("-"))
-//!                     .on_press(Message::DecrementPressed),
-//!             )
+//!         column![
+//!             // The increment button. We tell it to produce an
+//!             // `IncrementPressed` message when pressed
+//!             button("+").on_press(Message::IncrementPressed),
+//!
+//!             // We show the value of the counter here
+//!             text(self.value).size(50),
+//!
+//!             // The decrement button. We tell it to produce a
+//!             button("-").on_press(Message::DecrementPressed),
+//!         ]
 //!     }
 //! }
 //! ```
@@ -125,15 +107,9 @@
 //! our __state__ accordingly in our __update logic__:
 //!
 //! ```
-//! # use iced::button;
-//! #
 //! # struct Counter {
 //! #     // The counter value
 //! #     value: i32,
-//! #
-//! #     // The local state of the two buttons
-//! #     increment_button: button::State,
-//! #     decrement_button: button::State,
 //! # }
 //! #
 //! # #[derive(Debug, Clone, Copy)]
@@ -174,18 +150,26 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![deny(missing_docs)]
-#![deny(missing_debug_implementations)]
-#![deny(unused_results)]
-#![forbid(unsafe_code)]
-#![forbid(rust_2018_idioms)]
+#![deny(
+    missing_debug_implementations,
+    missing_docs,
+    unused_results,
+    clippy::extra_unused_lifetimes,
+    clippy::from_over_into,
+    clippy::needless_borrow,
+    clippy::new_without_default,
+    clippy::useless_conversion
+)]
+#![forbid(rust_2018_idioms, unsafe_code)]
+#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-mod application;
+
 mod element;
 mod error;
 mod result;
 mod sandbox;
 
+pub mod application;
 pub mod clipboard;
 pub mod executor;
 pub mod keyboard;
@@ -194,10 +178,6 @@ pub mod settings;
 pub mod time;
 pub mod widget;
 pub mod window;
-
-#[cfg(feature = "pure")]
-#[cfg_attr(docsrs, doc(cfg(feature = "pure")))]
-pub mod pure;
 
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_winit as runtime;
@@ -211,23 +191,27 @@ use iced_wgpu as renderer;
 #[cfg(feature = "glow")]
 use iced_glow as renderer;
 
-#[doc(no_inline)]
-pub use widget::*;
+pub use iced_native::theme;
+pub use runtime::event;
+pub use runtime::subscription;
 
 pub use application::Application;
 pub use element::Element;
 pub use error::Error;
+pub use event::Event;
 pub use executor::Executor;
 pub use renderer::Renderer;
 pub use result::Result;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
+pub use subscription::Subscription;
+pub use theme::Theme;
 
 pub use runtime::alignment;
 pub use runtime::futures;
 pub use runtime::{
     Alignment, Background, Color, Command, ContentFit, Font, Length, Padding,
-    Point, Rectangle, Size, Subscription, Vector,
+    Point, Rectangle, Size, Vector,
 };
 
 #[cfg(feature = "system")]

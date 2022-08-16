@@ -1,20 +1,20 @@
 //! This example showcases an interactive version of the Game of Life, invented
 //! by John Conway. It leverages a `Canvas` together with other widgets.
 mod preset;
-mod style;
 
 use grid::Grid;
-use iced::button::{self, Button};
+use preset::Preset;
+
 use iced::executor;
-use iced::pick_list::{self, PickList};
-use iced::slider::{self, Slider};
+use iced::theme::{self, Theme};
 use iced::time;
+use iced::widget::{
+    button, checkbox, column, container, pick_list, row, slider, text,
+};
 use iced::window;
 use iced::{
-    Alignment, Application, Checkbox, Column, Command, Container, Element,
-    Length, Row, Settings, Subscription, Text,
+    Alignment, Application, Command, Element, Length, Settings, Subscription,
 };
-use preset::Preset;
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
@@ -33,7 +33,6 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct GameOfLife {
     grid: Grid,
-    controls: Controls,
     is_playing: bool,
     queued_ticks: usize,
     speed: usize,
@@ -55,6 +54,7 @@ enum Message {
 
 impl Application for GameOfLife {
     type Message = Message;
+    type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
@@ -131,39 +131,87 @@ impl Application for GameOfLife {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let version = self.version;
         let selected_speed = self.next_speed.unwrap_or(self.speed);
-        let controls = self.controls.view(
+        let controls = view_controls(
             self.is_playing,
             self.grid.are_lines_visible(),
             selected_speed,
             self.grid.preset(),
         );
 
-        let content = Column::new()
-            .push(
-                self.grid
-                    .view()
-                    .map(move |message| Message::Grid(message, version)),
-            )
-            .push(controls);
+        let content = column![
+            self.grid
+                .view()
+                .map(move |message| Message::Grid(message, version)),
+            controls
+        ];
 
-        Container::new(content)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(style::Container)
             .into()
     }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
+    }
+}
+
+fn view_controls<'a>(
+    is_playing: bool,
+    is_grid_enabled: bool,
+    speed: usize,
+    preset: Preset,
+) -> Element<'a, Message> {
+    let playback_controls = row![
+        button(if is_playing { "Pause" } else { "Play" })
+            .on_press(Message::TogglePlayback),
+        button("Next")
+            .on_press(Message::Next)
+            .style(theme::Button::Secondary),
+    ]
+    .spacing(10);
+
+    let speed_controls = row![
+        slider(1.0..=1000.0, speed as f32, Message::SpeedChanged),
+        text(format!("x{}", speed)).size(16),
+    ]
+    .width(Length::Fill)
+    .align_items(Alignment::Center)
+    .spacing(10);
+
+    row![
+        playback_controls,
+        speed_controls,
+        checkbox("Grid", is_grid_enabled, Message::ToggleGrid)
+            .size(16)
+            .spacing(5)
+            .text_size(16),
+        pick_list(preset::ALL, Some(preset), Message::PresetPicked)
+            .padding(8)
+            .text_size(16),
+        button("Clear")
+            .on_press(Message::Clear)
+            .style(theme::Button::Destructive),
+    ]
+    .padding(10)
+    .spacing(20)
+    .align_items(Alignment::Center)
+    .into()
 }
 
 mod grid {
     use crate::Preset;
+    use iced::widget::canvas;
+    use iced::widget::canvas::event::{self, Event};
+    use iced::widget::canvas::{
+        Cache, Canvas, Cursor, Frame, Geometry, Path, Text,
+    };
     use iced::{
-        alignment,
-        canvas::event::{self, Event},
-        canvas::{self, Cache, Canvas, Cursor, Frame, Geometry, Path, Text},
-        mouse, Color, Element, Length, Point, Rectangle, Size, Vector,
+        alignment, mouse, Color, Element, Length, Point, Rectangle, Size,
+        Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -173,7 +221,6 @@ mod grid {
     pub struct Grid {
         state: State,
         preset: Preset,
-        interaction: Interaction,
         life_cache: Cache,
         grid_cache: Cache,
         translation: Vector,
@@ -187,6 +234,8 @@ mod grid {
     pub enum Message {
         Populate(Cell),
         Unpopulate(Cell),
+        Translated(Vector),
+        Scaled(f32, Option<Vector>),
         Ticked {
             result: Result<Life, TickError>,
             tick_duration: Duration,
@@ -218,7 +267,6 @@ mod grid {
                         .collect(),
                 ),
                 preset,
-                interaction: Interaction::None,
                 life_cache: Cache::default(),
                 grid_cache: Cache::default(),
                 translation: Vector::default(),
@@ -263,6 +311,22 @@ mod grid {
 
                     self.preset = Preset::Custom;
                 }
+                Message::Translated(translation) => {
+                    self.translation = translation;
+
+                    self.life_cache.clear();
+                    self.grid_cache.clear();
+                }
+                Message::Scaled(scaling, translation) => {
+                    self.scaling = scaling;
+
+                    if let Some(translation) = translation {
+                        self.translation = translation;
+                    }
+
+                    self.life_cache.clear();
+                    self.grid_cache.clear();
+                }
                 Message::Ticked {
                     result: Ok(life),
                     tick_duration,
@@ -280,7 +344,7 @@ mod grid {
             }
         }
 
-        pub fn view<'a>(&'a mut self) -> Element<'a, Message> {
+        pub fn view(&self) -> Element<Message> {
             Canvas::new(self)
                 .width(Length::Fill)
                 .height(Length::Fill)
@@ -328,15 +392,18 @@ mod grid {
         }
     }
 
-    impl<'a> canvas::Program<Message> for Grid {
+    impl canvas::Program<Message> for Grid {
+        type State = Interaction;
+
         fn update(
-            &mut self,
+            &self,
+            interaction: &mut Interaction,
             event: Event,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> (event::Status, Option<Message>) {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
-                self.interaction = Interaction::None;
+                *interaction = Interaction::None;
             }
 
             let cursor_position =
@@ -360,7 +427,7 @@ mod grid {
                     mouse::Event::ButtonPressed(button) => {
                         let message = match button {
                             mouse::Button::Left => {
-                                self.interaction = if is_populated {
+                                *interaction = if is_populated {
                                     Interaction::Erasing
                                 } else {
                                     Interaction::Drawing
@@ -369,7 +436,7 @@ mod grid {
                                 populate.or(unpopulate)
                             }
                             mouse::Button::Right => {
-                                self.interaction = Interaction::Panning {
+                                *interaction = Interaction::Panning {
                                     translation: self.translation,
                                     start: cursor_position,
                                 };
@@ -382,23 +449,20 @@ mod grid {
                         (event::Status::Captured, message)
                     }
                     mouse::Event::CursorMoved { .. } => {
-                        let message = match self.interaction {
+                        let message = match *interaction {
                             Interaction::Drawing => populate,
                             Interaction::Erasing => unpopulate,
                             Interaction::Panning { translation, start } => {
-                                self.translation = translation
-                                    + (cursor_position - start)
-                                        * (1.0 / self.scaling);
-
-                                self.life_cache.clear();
-                                self.grid_cache.clear();
-
-                                None
+                                Some(Message::Translated(
+                                    translation
+                                        + (cursor_position - start)
+                                            * (1.0 / self.scaling),
+                                ))
                             }
                             _ => None,
                         };
 
-                        let event_status = match self.interaction {
+                        let event_status = match interaction {
                             Interaction::None => event::Status::Ignored,
                             _ => event::Status::Captured,
                         };
@@ -413,30 +477,38 @@ mod grid {
                             {
                                 let old_scaling = self.scaling;
 
-                                self.scaling = (self.scaling
-                                    * (1.0 + y / 30.0))
+                                let scaling = (self.scaling * (1.0 + y / 30.0))
                                     .max(Self::MIN_SCALING)
                                     .min(Self::MAX_SCALING);
 
-                                if let Some(cursor_to_center) =
-                                    cursor.position_from(bounds.center())
-                                {
-                                    let factor = self.scaling - old_scaling;
+                                let translation =
+                                    if let Some(cursor_to_center) =
+                                        cursor.position_from(bounds.center())
+                                    {
+                                        let factor = scaling - old_scaling;
 
-                                    self.translation = self.translation
-                                        - Vector::new(
-                                            cursor_to_center.x * factor
-                                                / (old_scaling * old_scaling),
-                                            cursor_to_center.y * factor
-                                                / (old_scaling * old_scaling),
-                                        );
-                                }
+                                        Some(
+                                            self.translation
+                                                - Vector::new(
+                                                    cursor_to_center.x * factor
+                                                        / (old_scaling
+                                                            * old_scaling),
+                                                    cursor_to_center.y * factor
+                                                        / (old_scaling
+                                                            * old_scaling),
+                                                ),
+                                        )
+                                    } else {
+                                        None
+                                    };
 
-                                self.life_cache.clear();
-                                self.grid_cache.clear();
+                                (
+                                    event::Status::Captured,
+                                    Some(Message::Scaled(scaling, translation)),
+                                )
+                            } else {
+                                (event::Status::Captured, None)
                             }
-
-                            (event::Status::Captured, None)
                         }
                     },
                     _ => (event::Status::Ignored, None),
@@ -445,7 +517,13 @@ mod grid {
             }
         }
 
-        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+        fn draw(
+            &self,
+            _interaction: &Interaction,
+            _theme: &Theme,
+            bounds: Rectangle,
+            cursor: Cursor,
+        ) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
             let life = self.life_cache.draw(bounds.size(), |frame| {
@@ -571,10 +649,11 @@ mod grid {
 
         fn mouse_interaction(
             &self,
+            interaction: &Interaction,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> mouse::Interaction {
-            match self.interaction {
+            match interaction {
                 Interaction::Drawing => mouse::Interaction::Crosshair,
                 Interaction::Erasing => mouse::Interaction::Crosshair,
                 Interaction::Panning { .. } => mouse::Interaction::Grabbing,
@@ -803,90 +882,16 @@ mod grid {
         }
     }
 
-    enum Interaction {
+    pub enum Interaction {
         None,
         Drawing,
         Erasing,
         Panning { translation: Vector, start: Point },
     }
-}
 
-#[derive(Default)]
-struct Controls {
-    toggle_button: button::State,
-    next_button: button::State,
-    clear_button: button::State,
-    speed_slider: slider::State,
-    preset_list: pick_list::State<Preset>,
-}
-
-impl Controls {
-    fn view<'a>(
-        &'a mut self,
-        is_playing: bool,
-        is_grid_enabled: bool,
-        speed: usize,
-        preset: Preset,
-    ) -> Element<'a, Message> {
-        let playback_controls = Row::new()
-            .spacing(10)
-            .push(
-                Button::new(
-                    &mut self.toggle_button,
-                    Text::new(if is_playing { "Pause" } else { "Play" }),
-                )
-                .on_press(Message::TogglePlayback)
-                .style(style::Button),
-            )
-            .push(
-                Button::new(&mut self.next_button, Text::new("Next"))
-                    .on_press(Message::Next)
-                    .style(style::Button),
-            );
-
-        let speed_controls = Row::new()
-            .width(Length::Fill)
-            .align_items(Alignment::Center)
-            .spacing(10)
-            .push(
-                Slider::new(
-                    &mut self.speed_slider,
-                    1.0..=1000.0,
-                    speed as f32,
-                    Message::SpeedChanged,
-                )
-                .style(style::Slider),
-            )
-            .push(Text::new(format!("x{}", speed)).size(16));
-
-        Row::new()
-            .padding(10)
-            .spacing(20)
-            .align_items(Alignment::Center)
-            .push(playback_controls)
-            .push(speed_controls)
-            .push(
-                Checkbox::new(is_grid_enabled, "Grid", Message::ToggleGrid)
-                    .size(16)
-                    .spacing(5)
-                    .text_size(16),
-            )
-            .push(
-                PickList::new(
-                    &mut self.preset_list,
-                    preset::ALL,
-                    Some(preset),
-                    Message::PresetPicked,
-                )
-                .padding(8)
-                .text_size(16)
-                .style(style::PickList),
-            )
-            .push(
-                Button::new(&mut self.clear_button, Text::new("Clear"))
-                    .on_press(Message::Clear)
-                    .style(style::Clear),
-            )
-            .into()
+    impl Default for Interaction {
+        fn default() -> Self {
+            Self::None
+        }
     }
 }

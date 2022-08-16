@@ -4,6 +4,7 @@ use crate::image;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
@@ -13,8 +14,7 @@ use std::hash::Hash;
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
 #[allow(missing_debug_implementations)]
-pub struct Viewer<'a, Handle> {
-    state: &'a mut State,
+pub struct Viewer<Handle> {
     padding: u16,
     width: Length,
     height: Length,
@@ -24,11 +24,10 @@ pub struct Viewer<'a, Handle> {
     handle: Handle,
 }
 
-impl<'a, Handle> Viewer<'a, Handle> {
+impl<Handle> Viewer<Handle> {
     /// Creates a new [`Viewer`] with the given [`State`].
-    pub fn new(state: &'a mut State, handle: Handle) -> Self {
+    pub fn new(handle: Handle) -> Self {
         Viewer {
-            state,
             padding: 0,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -81,43 +80,21 @@ impl<'a, Handle> Viewer<'a, Handle> {
         self.scale_step = scale_step;
         self
     }
-
-    /// Returns the bounds of the underlying image, given the bounds of
-    /// the [`Viewer`]. Scaling will be applied and original aspect ratio
-    /// will be respected.
-    fn image_size<Renderer>(&self, renderer: &Renderer, bounds: Size) -> Size
-    where
-        Renderer: image::Renderer<Handle = Handle>,
-    {
-        let (width, height) = renderer.dimensions(&self.handle);
-
-        let (width, height) = {
-            let dimensions = (width as f32, height as f32);
-
-            let width_ratio = bounds.width / dimensions.0;
-            let height_ratio = bounds.height / dimensions.1;
-
-            let ratio = width_ratio.min(height_ratio);
-
-            let scale = self.state.scale;
-
-            if ratio < 1.0 {
-                (dimensions.0 * ratio * scale, dimensions.1 * ratio * scale)
-            } else {
-                (dimensions.0 * scale, dimensions.1 * scale)
-            }
-        };
-
-        Size::new(width, height)
-    }
 }
 
-impl<'a, Message, Renderer, Handle> Widget<Message, Renderer>
-    for Viewer<'a, Handle>
+impl<Message, Renderer, Handle> Widget<Message, Renderer> for Viewer<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -164,6 +141,7 @@ where
 
     fn on_event(
         &mut self,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -181,39 +159,43 @@ where
                 match delta {
                     mouse::ScrollDelta::Lines { y, .. }
                     | mouse::ScrollDelta::Pixels { y, .. } => {
-                        let previous_scale = self.state.scale;
+                        let state = tree.state.downcast_mut::<State>();
+                        let previous_scale = state.scale;
 
                         if y < 0.0 && previous_scale > self.min_scale
                             || y > 0.0 && previous_scale < self.max_scale
                         {
-                            self.state.scale = (if y > 0.0 {
-                                self.state.scale * (1.0 + self.scale_step)
+                            state.scale = (if y > 0.0 {
+                                state.scale * (1.0 + self.scale_step)
                             } else {
-                                self.state.scale / (1.0 + self.scale_step)
+                                state.scale / (1.0 + self.scale_step)
                             })
                             .max(self.min_scale)
                             .min(self.max_scale);
 
-                            let image_size =
-                                self.image_size(renderer, bounds.size());
+                            let image_size = image_size(
+                                renderer,
+                                &self.handle,
+                                state,
+                                bounds.size(),
+                            );
 
-                            let factor =
-                                self.state.scale / previous_scale - 1.0;
+                            let factor = state.scale / previous_scale - 1.0;
 
                             let cursor_to_center =
                                 cursor_position - bounds.center();
 
                             let adjustment = cursor_to_center * factor
-                                + self.state.current_offset * factor;
+                                + state.current_offset * factor;
 
-                            self.state.current_offset = Vector::new(
+                            state.current_offset = Vector::new(
                                 if image_size.width > bounds.width {
-                                    self.state.current_offset.x + adjustment.x
+                                    state.current_offset.x + adjustment.x
                                 } else {
                                     0.0
                                 },
                                 if image_size.height > bounds.height {
-                                    self.state.current_offset.y + adjustment.y
+                                    state.current_offset.y + adjustment.y
                                 } else {
                                     0.0
                                 },
@@ -227,21 +209,34 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                 if is_mouse_over =>
             {
-                self.state.cursor_grabbed_at = Some(cursor_position);
-                self.state.starting_offset = self.state.current_offset;
+                let state = tree.state.downcast_mut::<State>();
+
+                state.cursor_grabbed_at = Some(cursor_position);
+                state.starting_offset = state.current_offset;
 
                 event::Status::Captured
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-                if self.state.cursor_grabbed_at.is_some() =>
-            {
-                self.state.cursor_grabbed_at = None;
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                let state = tree.state.downcast_mut::<State>();
 
-                event::Status::Captured
+                if state.cursor_grabbed_at.is_some() {
+                    state.cursor_grabbed_at = None;
+
+                    event::Status::Captured
+                } else {
+                    event::Status::Ignored
+                }
             }
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                if let Some(origin) = self.state.cursor_grabbed_at {
-                    let image_size = self.image_size(renderer, bounds.size());
+                let state = tree.state.downcast_mut::<State>();
+
+                if let Some(origin) = state.cursor_grabbed_at {
+                    let image_size = image_size(
+                        renderer,
+                        &self.handle,
+                        state,
+                        bounds.size(),
+                    );
 
                     let hidden_width = (image_size.width - bounds.width / 2.0)
                         .max(0.0)
@@ -255,7 +250,7 @@ where
                     let delta = position - origin;
 
                     let x = if bounds.width < image_size.width {
-                        (self.state.starting_offset.x - delta.x)
+                        (state.starting_offset.x - delta.x)
                             .min(hidden_width)
                             .max(-hidden_width)
                     } else {
@@ -263,14 +258,14 @@ where
                     };
 
                     let y = if bounds.height < image_size.height {
-                        (self.state.starting_offset.y - delta.y)
+                        (state.starting_offset.y - delta.y)
                             .min(hidden_height)
                             .max(-hidden_height)
                     } else {
                         0.0
                     };
 
-                    self.state.current_offset = Vector::new(x, y);
+                    state.current_offset = Vector::new(x, y);
 
                     event::Status::Captured
                 } else {
@@ -283,15 +278,17 @@ where
 
     fn mouse_interaction(
         &self,
+        tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
+        let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
 
-        if self.state.is_cursor_grabbed() {
+        if state.is_cursor_grabbed() {
             mouse::Interaction::Grabbing
         } else if is_mouse_over {
             mouse::Interaction::Grab
@@ -302,15 +299,19 @@ where
 
     fn draw(
         &self,
+        tree: &Tree,
         renderer: &mut Renderer,
+        _theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
 
-        let image_size = self.image_size(renderer, bounds.size());
+        let image_size =
+            image_size(renderer, &self.handle, state, bounds.size());
 
         let translation = {
             let image_top_left = Vector::new(
@@ -318,7 +319,7 @@ where
                 bounds.height / 2.0 - image_size.height / 2.0,
             );
 
-            image_top_left - self.state.offset(bounds, image_size)
+            image_top_left - state.offset(bounds, image_size)
         };
 
         renderer.with_layer(bounds, |renderer| {
@@ -384,14 +385,47 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer, Handle> From<Viewer<'a, Handle>>
+impl<'a, Message, Renderer, Handle> From<Viewer<Handle>>
     for Element<'a, Message, Renderer>
 where
     Renderer: 'a + image::Renderer<Handle = Handle>,
     Message: 'a,
     Handle: Clone + Hash + 'a,
 {
-    fn from(viewer: Viewer<'a, Handle>) -> Element<'a, Message, Renderer> {
+    fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Renderer> {
         Element::new(viewer)
     }
+}
+
+/// Returns the bounds of the underlying image, given the bounds of
+/// the [`Viewer`]. Scaling will be applied and original aspect ratio
+/// will be respected.
+pub fn image_size<Renderer>(
+    renderer: &Renderer,
+    handle: &<Renderer as image::Renderer>::Handle,
+    state: &State,
+    bounds: Size,
+) -> Size
+where
+    Renderer: image::Renderer,
+{
+    let (width, height) = renderer.dimensions(handle);
+
+    let (width, height) = {
+        let dimensions = (width as f32, height as f32);
+
+        let width_ratio = bounds.width / dimensions.0;
+        let height_ratio = bounds.height / dimensions.1;
+
+        let ratio = width_ratio.min(height_ratio);
+        let scale = state.scale;
+
+        if ratio < 1.0 {
+            (dimensions.0 * ratio * scale, dimensions.1 * ratio * scale)
+        } else {
+            (dimensions.0 * scale, dimensions.1 * scale)
+        }
+    };
+
+    Size::new(width, height)
 }

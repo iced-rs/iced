@@ -127,7 +127,7 @@ where
             futures.push(Box::pin(future));
         }
 
-        self.subscriptions.retain(|id, _| alive.contains(&id));
+        self.subscriptions.retain(|id, _| alive.contains(id));
 
         futures
     }
@@ -154,5 +154,15 @@ where
                     );
                 }
             });
+    }
+}
+
+impl<Hasher, Event> Default for Tracker<Hasher, Event>
+where
+    Hasher: std::hash::Hasher + Default,
+    Event: 'static + Send + Clone,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }

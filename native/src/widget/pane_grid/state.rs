@@ -31,8 +31,6 @@ pub struct State<T> {
     ///
     /// [`PaneGrid`]: crate::widget::PaneGrid
     pub internal: Internal,
-
-    pub(super) action: Action,
 }
 
 impl<T> State<T> {
@@ -54,16 +52,17 @@ impl<T> State<T> {
         let internal =
             Internal::from_configuration(&mut panes, config.into(), 0);
 
-        State {
-            panes,
-            internal,
-            action: Action::Idle,
-        }
+        State { panes, internal }
     }
 
     /// Returns the total amount of panes in the [`State`].
     pub fn len(&self) -> usize {
         self.panes.len()
+    }
+
+    /// Returns `true` if the amount of panes in the [`State`] is 0.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Returns the internal state of the given [`Pane`], if it exists.

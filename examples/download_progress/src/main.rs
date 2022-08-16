@@ -1,6 +1,8 @@
+use iced::executor;
+use iced::widget::{button, column, container, progress_bar, text, Column};
 use iced::{
-    button, executor, Alignment, Application, Button, Column, Command,
-    Container, Element, Length, ProgressBar, Settings, Subscription, Text,
+    Alignment, Application, Command, Element, Length, Settings, Subscription,
+    Theme,
 };
 
 mod download;
@@ -13,7 +15,6 @@ pub fn main() -> iced::Result {
 struct Example {
     downloads: Vec<Download>,
     last_id: usize,
-    add: button::State,
 }
 
 #[derive(Debug, Clone)]
@@ -24,8 +25,9 @@ pub enum Message {
 }
 
 impl Application for Example {
-    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Example, Command<Message>) {
@@ -33,7 +35,6 @@ impl Application for Example {
             Example {
                 downloads: vec![Download::new(0)],
                 last_id: 0,
-                add: button::State::new(),
             },
             Command::none(),
         )
@@ -46,7 +47,7 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Add => {
-                self.last_id = self.last_id + 1;
+                self.last_id += 1;
 
                 self.downloads.push(Download::new(self.last_id));
             }
@@ -71,21 +72,19 @@ impl Application for Example {
         Subscription::batch(self.downloads.iter().map(Download::subscription))
     }
 
-    fn view(&mut self) -> Element<Message> {
-        let downloads = self
-            .downloads
-            .iter_mut()
-            .fold(Column::new().spacing(20), |column, download| {
-                column.push(download.view())
-            })
-            .push(
-                Button::new(&mut self.add, Text::new("Add another download"))
-                    .on_press(Message::Add)
-                    .padding(10),
-            )
-            .align_items(Alignment::End);
+    fn view(&self) -> Element<Message> {
+        let downloads = Column::with_children(
+            self.downloads.iter().map(Download::view).collect(),
+        )
+        .push(
+            button("Add another download")
+                .on_press(Message::Add)
+                .padding(10),
+        )
+        .spacing(20)
+        .align_items(Alignment::End);
 
-        Container::new(downloads)
+        container(downloads)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
@@ -103,19 +102,17 @@ struct Download {
 
 #[derive(Debug)]
 enum State {
-    Idle { button: button::State },
+    Idle,
     Downloading { progress: f32 },
-    Finished { button: button::State },
-    Errored { button: button::State },
+    Finished,
+    Errored,
 }
 
 impl Download {
     pub fn new(id: usize) -> Self {
         Download {
             id,
-            state: State::Idle {
-                button: button::State::new(),
-            },
+            state: State::Idle,
         }
     }
 
@@ -131,8 +128,8 @@ impl Download {
     }
 
     pub fn progress(&mut self, new_progress: download::Progress) {
-        match &mut self.state {
-            State::Downloading { progress } => match new_progress {
+        if let State::Downloading { progress } = &mut self.state {
+            match new_progress {
                 download::Progress::Started => {
                     *progress = 0.0;
                 }
@@ -140,17 +137,12 @@ impl Download {
                     *progress = percentage;
                 }
                 download::Progress::Finished => {
-                    self.state = State::Finished {
-                        button: button::State::new(),
-                    }
+                    self.state = State::Finished;
                 }
                 download::Progress::Errored => {
-                    self.state = State::Errored {
-                        button: button::State::new(),
-                    };
+                    self.state = State::Errored;
                 }
-            },
-            _ => {}
+            }
         }
     }
 
@@ -164,7 +156,7 @@ impl Download {
         }
     }
 
-    pub fn view(&mut self) -> Element<Message> {
+    pub fn view(&self) -> Element<Message> {
         let current_progress = match &self.state {
             State::Idle { .. } => 0.0,
             State::Downloading { progress } => *progress,
@@ -172,36 +164,28 @@ impl Download {
             State::Errored { .. } => 0.0,
         };
 
-        let progress_bar = ProgressBar::new(0.0..=100.0, current_progress);
+        let progress_bar = progress_bar(0.0..=100.0, current_progress);
 
-        let control: Element<_> = match &mut self.state {
-            State::Idle { button } => {
-                Button::new(button, Text::new("Start the download!"))
-                    .on_press(Message::Download(self.id))
+        let control: Element<_> = match &self.state {
+            State::Idle => button("Start the download!")
+                .on_press(Message::Download(self.id))
+                .into(),
+            State::Finished => {
+                column!["Download finished!", button("Start again")]
+                    .spacing(10)
+                    .align_items(Alignment::Center)
                     .into()
             }
-            State::Finished { button } => Column::new()
-                .spacing(10)
-                .align_items(Alignment::Center)
-                .push(Text::new("Download finished!"))
-                .push(
-                    Button::new(button, Text::new("Start again"))
-                        .on_press(Message::Download(self.id)),
-                )
-                .into(),
             State::Downloading { .. } => {
-                Text::new(format!("Downloading... {:.2}%", current_progress))
-                    .into()
+                text(format!("Downloading... {:.2}%", current_progress)).into()
             }
-            State::Errored { button } => Column::new()
-                .spacing(10)
-                .align_items(Alignment::Center)
-                .push(Text::new("Something went wrong :("))
-                .push(
-                    Button::new(button, Text::new("Try again"))
-                        .on_press(Message::Download(self.id)),
-                )
-                .into(),
+            State::Errored => column![
+                "Something went wrong :(",
+                button("Try again").on_press(Message::Download(self.id)),
+            ]
+            .spacing(10)
+            .align_items(Alignment::Center)
+            .into(),
         };
 
         Column::new()

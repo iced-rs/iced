@@ -4,6 +4,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::widget;
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// A generic [`Overlay`].
@@ -94,11 +95,22 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.overlay.draw(renderer, style, layout, cursor_position)
+        self.overlay
+            .draw(renderer, theme, style, layout, cursor_position)
+    }
+
+    /// Applies an [`Operation`] to the [`Element`].
+    pub fn operate(
+        &self,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        self.overlay.operate(layout, operation);
     }
 }
 
@@ -173,10 +185,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        self.content.draw(renderer, style, layout, cursor_position)
+        self.content
+            .draw(renderer, theme, style, layout, cursor_position)
     }
 }

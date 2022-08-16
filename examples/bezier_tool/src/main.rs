@@ -1,7 +1,6 @@
 //! This example showcases an interactive `Canvas` for drawing Bézier curves.
-use iced::{
-    button, Alignment, Button, Column, Element, Length, Sandbox, Settings, Text,
-};
+use iced::widget::{button, column, text};
+use iced::{Alignment, Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     Example::run(Settings {
@@ -14,7 +13,6 @@ pub fn main() -> iced::Result {
 struct Example {
     bezier: bezier::State,
     curves: Vec<bezier::Curve>,
-    button_state: button::State,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -47,44 +45,34 @@ impl Sandbox for Example {
         }
     }
 
-    fn view(&mut self) -> Element<Message> {
-        Column::new()
-            .padding(20)
-            .spacing(20)
-            .align_items(Alignment::Center)
-            .push(
-                Text::new("Bezier tool example")
-                    .width(Length::Shrink)
-                    .size(50),
-            )
-            .push(self.bezier.view(&self.curves).map(Message::AddCurve))
-            .push(
-                Button::new(&mut self.button_state, Text::new("Clear"))
-                    .padding(8)
-                    .on_press(Message::Clear),
-            )
-            .into()
+    fn view(&self) -> Element<Message> {
+        column![
+            text("Bezier tool example").width(Length::Shrink).size(50),
+            self.bezier.view(&self.curves).map(Message::AddCurve),
+            button("Clear").padding(8).on_press(Message::Clear),
+        ]
+        .padding(20)
+        .spacing(20)
+        .align_items(Alignment::Center)
+        .into()
     }
 }
 
 mod bezier {
-    use iced::{
-        canvas::event::{self, Event},
-        canvas::{self, Canvas, Cursor, Frame, Geometry, Path, Stroke},
-        mouse, Element, Length, Point, Rectangle,
+    use iced::mouse;
+    use iced::widget::canvas::event::{self, Event};
+    use iced::widget::canvas::{
+        self, Canvas, Cursor, Frame, Geometry, Path, Stroke,
     };
+    use iced::{Element, Length, Point, Rectangle, Theme};
 
     #[derive(Default)]
     pub struct State {
-        pending: Option<Pending>,
         cache: canvas::Cache,
     }
 
     impl State {
-        pub fn view<'a>(
-            &'a mut self,
-            curves: &'a [Curve],
-        ) -> Element<'a, Curve> {
+        pub fn view<'a>(&'a self, curves: &'a [Curve]) -> Element<'a, Curve> {
             Canvas::new(Bezier {
                 state: self,
                 curves,
@@ -100,13 +88,16 @@ mod bezier {
     }
 
     struct Bezier<'a> {
-        state: &'a mut State,
+        state: &'a State,
         curves: &'a [Curve],
     }
 
     impl<'a> canvas::Program<Curve> for Bezier<'a> {
+        type State = Option<Pending>;
+
         fn update(
-            &mut self,
+            &self,
+            state: &mut Self::State,
             event: Event,
             bounds: Rectangle,
             cursor: Cursor,
@@ -122,16 +113,16 @@ mod bezier {
                 Event::Mouse(mouse_event) => {
                     let message = match mouse_event {
                         mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                            match self.state.pending {
+                            match *state {
                                 None => {
-                                    self.state.pending = Some(Pending::One {
+                                    *state = Some(Pending::One {
                                         from: cursor_position,
                                     });
 
                                     None
                                 }
                                 Some(Pending::One { from }) => {
-                                    self.state.pending = Some(Pending::Two {
+                                    *state = Some(Pending::Two {
                                         from,
                                         to: cursor_position,
                                     });
@@ -139,7 +130,7 @@ mod bezier {
                                     None
                                 }
                                 Some(Pending::Two { from, to }) => {
-                                    self.state.pending = None;
+                                    *state = None;
 
                                     Some(Curve {
                                         from,
@@ -158,18 +149,24 @@ mod bezier {
             }
         }
 
-        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+        fn draw(
+            &self,
+            state: &Self::State,
+            _theme: &Theme,
+            bounds: Rectangle,
+            cursor: Cursor,
+        ) -> Vec<Geometry> {
             let content =
                 self.state.cache.draw(bounds.size(), |frame: &mut Frame| {
                     Curve::draw_all(self.curves, frame);
 
                     frame.stroke(
                         &Path::rectangle(Point::ORIGIN, frame.size()),
-                        Stroke::default(),
+                        Stroke::default().with_width(2.0),
                     );
                 });
 
-            if let Some(pending) = &self.state.pending {
+            if let Some(pending) = state {
                 let pending_curve = pending.draw(bounds, cursor);
 
                 vec![content, pending_curve]
@@ -180,6 +177,7 @@ mod bezier {
 
         fn mouse_interaction(
             &self,
+            _state: &Self::State,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> mouse::Interaction {

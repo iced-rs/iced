@@ -1,7 +1,8 @@
-use iced::canvas::{self, Cursor, Frame, Geometry, Path};
+use iced::widget::canvas::{self, Canvas, Cursor, Frame, Geometry, Path};
+use iced::widget::{column, row, text, Slider};
 use iced::{
-    alignment, slider, Alignment, Canvas, Color, Column, Element, Length,
-    Point, Rectangle, Row, Sandbox, Settings, Size, Slider, Text, Vector,
+    alignment, Alignment, Color, Element, Length, Point, Rectangle, Sandbox,
+    Settings, Size, Vector,
 };
 use palette::{self, convert::FromColor, Hsl, Srgb};
 use std::marker::PhantomData;
@@ -59,7 +60,7 @@ impl Sandbox for ColorPalette {
         self.theme = Theme::new(srgb);
     }
 
-    fn view(&mut self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let base = self.theme.base;
 
         let srgb = palette::Srgb::from(base);
@@ -69,22 +70,23 @@ impl Sandbox for ColorPalette {
         let lab = palette::Lab::from_color(srgb);
         let lch = palette::Lch::from_color(srgb);
 
-        Column::new()
-            .padding(10)
-            .spacing(10)
-            .push(self.rgb.view(base).map(Message::RgbColorChanged))
-            .push(self.hsl.view(hsl).map(Message::HslColorChanged))
-            .push(self.hsv.view(hsv).map(Message::HsvColorChanged))
-            .push(self.hwb.view(hwb).map(Message::HwbColorChanged))
-            .push(self.lab.view(lab).map(Message::LabColorChanged))
-            .push(self.lch.view(lch).map(Message::LchColorChanged))
-            .push(self.theme.view())
-            .into()
+        column![
+            self.rgb.view(base).map(Message::RgbColorChanged),
+            self.hsl.view(hsl).map(Message::HslColorChanged),
+            self.hsv.view(hsv).map(Message::HsvColorChanged),
+            self.hwb.view(hwb).map(Message::HwbColorChanged),
+            self.lab.view(lab).map(Message::LabColorChanged),
+            self.lch.view(lch).map(Message::LchColorChanged),
+            self.theme.view(),
+        ]
+        .padding(10)
+        .spacing(10)
+        .into()
     }
 }
 
 #[derive(Debug)]
-pub struct Theme {
+struct Theme {
     lower: Vec<Color>,
     base: Color,
     higher: Vec<Color>,
@@ -139,7 +141,7 @@ impl Theme {
             .chain(self.higher.iter())
     }
 
-    pub fn view(&mut self) -> Element<Message> {
+    pub fn view(&self) -> Element<Message> {
         Canvas::new(self)
             .width(Length::Fill)
             .height(Length::Fill)
@@ -236,7 +238,15 @@ impl Theme {
 }
 
 impl<Message> canvas::Program<Message> for Theme {
-    fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+    type State = ();
+
+    fn draw(
+        &self,
+        _state: &Self::State,
+        _theme: &iced::Theme,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(bounds.size(), |frame| {
             self.draw(frame);
         });
@@ -262,7 +272,6 @@ fn color_hex_string(color: &Color) -> String {
 
 #[derive(Default)]
 struct ColorPicker<C: ColorSpace> {
-    sliders: [slider::State; 3],
     color_space: PhantomData<C>,
 }
 
@@ -277,37 +286,30 @@ trait ColorSpace: Sized {
     fn to_string(&self) -> String;
 }
 
-impl<C: 'static + ColorSpace + Copy> ColorPicker<C> {
-    fn view(&mut self, color: C) -> Element<C> {
+impl<C: ColorSpace + Copy> ColorPicker<C> {
+    fn view(&self, color: C) -> Element<C> {
         let [c1, c2, c3] = color.components();
-        let [s1, s2, s3] = &mut self.sliders;
         let [cr1, cr2, cr3] = C::COMPONENT_RANGES;
 
-        fn slider<C: Clone>(
-            state: &mut slider::State,
+        fn slider<'a, C: Clone>(
             range: RangeInclusive<f64>,
             component: f32,
-            update: impl Fn(f32) -> C + 'static,
-        ) -> Slider<f64, C> {
-            Slider::new(state, range, f64::from(component), move |v| {
-                update(v as f32)
-            })
-            .step(0.01)
+            update: impl Fn(f32) -> C + 'a,
+        ) -> Slider<'a, f64, C, iced::Renderer> {
+            Slider::new(range, f64::from(component), move |v| update(v as f32))
+                .step(0.01)
         }
 
-        Row::new()
-            .spacing(10)
-            .align_items(Alignment::Center)
-            .push(Text::new(C::LABEL).width(Length::Units(50)))
-            .push(slider(s1, cr1, c1, move |v| C::new(v, c2, c3)))
-            .push(slider(s2, cr2, c2, move |v| C::new(c1, v, c3)))
-            .push(slider(s3, cr3, c3, move |v| C::new(c1, c2, v)))
-            .push(
-                Text::new(color.to_string())
-                    .width(Length::Units(185))
-                    .size(14),
-            )
-            .into()
+        row![
+            text(C::LABEL).width(Length::Units(50)),
+            slider(cr1, c1, move |v| C::new(v, c2, c3)),
+            slider(cr2, c2, move |v| C::new(c1, v, c3)),
+            slider(cr3, c3, move |v| C::new(c1, c2, v)),
+            text(color.to_string()).width(Length::Units(185)).size(14),
+        ]
+        .spacing(10)
+        .align_items(Alignment::Center)
+        .into()
     }
 }
 

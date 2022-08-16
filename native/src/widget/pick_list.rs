@@ -9,22 +9,24 @@ use crate::overlay::menu::{self, Menu};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
     Widget,
 };
 use std::borrow::Cow;
 
-pub use iced_style::pick_list::{Style, StyleSheet};
+pub use iced_style::pick_list::{Appearance, StyleSheet};
 
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
-pub struct PickList<'a, T, Message, Renderer: text::Renderer>
+pub struct PickList<'a, T, Message, Renderer>
 where
     [T]: ToOwned<Owned = Vec<T>>,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
-    state: &'a mut State<T>,
-    on_selected: Box<dyn Fn(T) -> Message>,
+    on_selected: Box<dyn Fn(T) -> Message + 'a>,
     options: Cow<'a, [T]>,
     placeholder: Option<String>,
     selected: Option<T>,
@@ -32,58 +34,27 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-/// The local state of a [`PickList`].
-#[derive(Debug, Clone)]
-pub struct State<T> {
-    menu: menu::State,
-    keyboard_modifiers: keyboard::Modifiers,
-    is_open: bool,
-    hovered_option: Option<usize>,
-    last_selection: Option<T>,
-}
-
-impl<T> State<T> {
-    /// Creates a new [`State`] for a [`PickList`].
-    pub fn new() -> Self {
-        Self {
-            menu: menu::State::default(),
-            keyboard_modifiers: keyboard::Modifiers::default(),
-            is_open: bool::default(),
-            hovered_option: Option::default(),
-            last_selection: Option::default(),
-        }
-    }
-}
-
-impl<T> Default for State<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'a, T: 'a, Message, Renderer: text::Renderer>
-    PickList<'a, T, Message, Renderer>
+impl<'a, T: 'a, Message, Renderer> PickList<'a, T, Message, Renderer>
 where
     T: ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
 {
     /// The default padding of a [`PickList`].
     pub const DEFAULT_PADDING: Padding = Padding::new(5);
 
-    /// Creates a new [`PickList`] with the given [`State`], a list of options,
-    /// the current selected value, and the message to produce when an option is
-    /// selected.
+    /// Creates a new [`PickList`] with the given list of options, the current
+    /// selected value, and the message to produce when an option is selected.
     pub fn new(
-        state: &'a mut State<T>,
         options: impl Into<Cow<'a, [T]>>,
         selected: Option<T>,
-        on_selected: impl Fn(T) -> Message + 'static,
+        on_selected: impl Fn(T) -> Message + 'a,
     ) -> Self {
         Self {
-            state,
             on_selected: Box::new(on_selected),
             options: options.into(),
             placeholder: None,
@@ -92,7 +63,7 @@ where
             text_size: None,
             padding: Self::DEFAULT_PADDING,
             font: Default::default(),
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -129,10 +100,172 @@ where
     /// Sets the style of the [`PickList`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
+    }
+}
+
+impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
+    for PickList<'a, T, Message, Renderer>
+where
+    T: Clone + ToString + Eq + 'static,
+    [T]: ToOwned<Owned = Vec<T>>,
+    Message: 'a,
+    Renderer: text::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<T>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::<T>::new())
+    }
+
+    fn width(&self) -> Length {
+        self.width
+    }
+
+    fn height(&self) -> Length {
+        Length::Shrink
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.padding,
+            self.text_size,
+            &self.font,
+            self.placeholder.as_deref(),
+            &self.options,
+        )
+    }
+
+    fn on_event(
+        &mut self,
+        tree: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _renderer: &Renderer,
+        _clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        update(
+            event,
+            layout,
+            cursor_position,
+            shell,
+            self.on_selected.as_ref(),
+            self.selected.as_ref(),
+            &self.options,
+            || tree.state.downcast_mut::<State<T>>(),
+        )
+    }
+
+    fn mouse_interaction(
+        &self,
+        _tree: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        mouse_interaction(layout, cursor_position)
+    }
+
+    fn draw(
+        &self,
+        _tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        _style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        _viewport: &Rectangle,
+    ) {
+        draw(
+            renderer,
+            theme,
+            layout,
+            cursor_position,
+            self.padding,
+            self.text_size,
+            &self.font,
+            self.placeholder.as_deref(),
+            self.selected.as_ref(),
+            self.style,
+        )
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        tree: &'b mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        let state = tree.state.downcast_mut::<State<T>>();
+
+        overlay(
+            layout,
+            state,
+            self.padding,
+            self.text_size,
+            self.font.clone(),
+            &self.options,
+            self.style,
+        )
+    }
+}
+
+impl<'a, T: 'a, Message, Renderer> From<PickList<'a, T, Message, Renderer>>
+    for Element<'a, Message, Renderer>
+where
+    T: Clone + ToString + Eq + 'static,
+    [T]: ToOwned<Owned = Vec<T>>,
+    Message: 'a,
+    Renderer: text::Renderer + 'a,
+    Renderer::Theme: StyleSheet,
+{
+    fn from(pick_list: PickList<'a, T, Message, Renderer>) -> Self {
+        Self::new(pick_list)
+    }
+}
+
+/// The local state of a [`PickList`].
+#[derive(Debug)]
+pub struct State<T> {
+    menu: menu::State,
+    keyboard_modifiers: keyboard::Modifiers,
+    is_open: bool,
+    hovered_option: Option<usize>,
+    last_selection: Option<T>,
+}
+
+impl<T> State<T> {
+    /// Creates a new [`State`] for a [`PickList`].
+    pub fn new() -> Self {
+        Self {
+            menu: menu::State::default(),
+            keyboard_modifiers: keyboard::Modifiers::default(),
+            is_open: bool::default(),
+            hovered_option: Option::default(),
+            last_selection: Option::default(),
+        }
+    }
+}
+
+impl<T> Default for State<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -155,7 +288,7 @@ where
 
     let limits = limits.width(width).height(Length::Shrink).pad(padding);
 
-    let text_size = text_size.unwrap_or(renderer.default_size());
+    let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
     let max_width = match width {
         Length::Shrink => {
@@ -317,12 +450,13 @@ pub fn overlay<'a, T, Message, Renderer>(
     text_size: Option<u16>,
     font: Renderer::Font,
     options: &'a [T],
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
 ) -> Option<overlay::Element<'a, Message, Renderer>>
 where
+    T: Clone + ToString,
     Message: 'a,
     Renderer: text::Renderer + 'a,
-    T: Clone + ToString,
+    Renderer::Theme: StyleSheet,
 {
     if state.is_open {
         let bounds = layout.bounds();
@@ -336,7 +470,7 @@ where
         .width(bounds.width.round() as u16)
         .padding(padding)
         .font(font)
-        .style(style_sheet.menu());
+        .style(style);
 
         if let Some(text_size) = text_size {
             menu = menu.text_size(text_size);
@@ -351,6 +485,7 @@ where
 /// Draws a [`PickList`].
 pub fn draw<T, Renderer>(
     renderer: &mut Renderer,
+    theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor_position: Point,
     padding: Padding,
@@ -358,9 +493,10 @@ pub fn draw<T, Renderer>(
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
-    style_sheet: &dyn StyleSheet,
+    style: <Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
     T: ToString,
 {
     let bounds = layout.bounds();
@@ -368,9 +504,9 @@ pub fn draw<T, Renderer>(
     let is_selected = selected.is_some();
 
     let style = if is_mouse_over {
-        style_sheet.hovered()
+        theme.hovered(style)
     } else {
-        style_sheet.active()
+        theme.active(style)
     };
 
     renderer.fill_quad(
@@ -399,10 +535,9 @@ pub fn draw<T, Renderer>(
 
     let label = selected.map(ToString::to_string);
 
-    if let Some(label) =
-        label.as_ref().map(String::as_str).or_else(|| placeholder)
-    {
-        let text_size = f32::from(text_size.unwrap_or(renderer.default_size()));
+    if let Some(label) = label.as_deref().or(placeholder) {
+        let text_size =
+            f32::from(text_size.unwrap_or_else(|| renderer.default_size()));
 
         renderer.fill_text(Text {
             content: label,
@@ -420,120 +555,5 @@ pub fn draw<T, Renderer>(
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
         });
-    }
-}
-
-impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
-    for PickList<'a, T, Message, Renderer>
-where
-    T: Clone + ToString + Eq,
-    [T]: ToOwned<Owned = Vec<T>>,
-    Message: 'static,
-    Renderer: text::Renderer + 'a,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            self.width,
-            self.padding,
-            self.text_size,
-            &self.font,
-            self.placeholder.as_ref().map(String::as_str),
-            &self.options,
-        )
-    }
-
-    fn on_event(
-        &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
-    ) -> event::Status {
-        update(
-            event,
-            layout,
-            cursor_position,
-            shell,
-            self.on_selected.as_ref(),
-            self.selected.as_ref(),
-            &self.options,
-            || &mut self.state,
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        _style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-    ) {
-        draw(
-            renderer,
-            layout,
-            cursor_position,
-            self.padding,
-            self.text_size,
-            &self.font,
-            self.placeholder.as_ref().map(String::as_str),
-            self.selected.as_ref(),
-            self.style_sheet.as_ref(),
-        )
-    }
-
-    fn overlay(
-        &mut self,
-        layout: Layout<'_>,
-        _renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        overlay(
-            layout,
-            &mut self.state,
-            self.padding,
-            self.text_size,
-            self.font.clone(),
-            &self.options,
-            self.style_sheet.as_ref(),
-        )
-    }
-}
-
-impl<'a, T: 'a, Message, Renderer> Into<Element<'a, Message, Renderer>>
-    for PickList<'a, T, Message, Renderer>
-where
-    T: Clone + ToString + Eq,
-    [T]: ToOwned<Owned = Vec<T>>,
-    Renderer: text::Renderer + 'a,
-    Message: 'static,
-{
-    fn into(self) -> Element<'a, Message, Renderer> {
-        Element::new(self)
     }
 }

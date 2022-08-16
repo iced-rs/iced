@@ -6,9 +6,11 @@ pub use state::State;
 use crate::clipboard::{self, Clipboard};
 use crate::conversion;
 use crate::mouse;
+use crate::renderer;
+use crate::widget::operation;
 use crate::{
-    Color, Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings,
-    Size, Subscription,
+    Command, Debug, Error, Executor, Mode, Proxy, Runtime, Settings, Size,
+    Subscription,
 };
 
 use iced_futures::futures;
@@ -17,6 +19,8 @@ use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
+
+pub use iced_native::application::{Appearance, StyleSheet};
 
 use std::mem::ManuallyDrop;
 
@@ -31,7 +35,10 @@ use std::mem::ManuallyDrop;
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
-pub trait Application: Program {
+pub trait Application: Program
+where
+    <Self::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     /// The data needed to initialize your [`Application`].
     type Flags;
 
@@ -50,6 +57,16 @@ pub trait Application: Program {
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
     fn title(&self) -> String;
+
+    /// Returns the current [`Theme`] of the [`Application`].
+    fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
+
+    /// Returns the [`Style`] variation of the [`Theme`].
+    fn style(
+        &self,
+    ) -> <<Self::Renderer as crate::Renderer>::Theme as StyleSheet>::Style {
+        Default::default()
+    }
 
     /// Returns the event `Subscription` for the current state of the
     /// application.
@@ -72,13 +89,6 @@ pub trait Application: Program {
     /// By default, an application will run in windowed mode.
     fn mode(&self) -> Mode {
         Mode::Windowed
-    }
-
-    /// Returns the background [`Color`] of the [`Application`].
-    ///
-    /// By default, it returns [`Color::WHITE`].
-    fn background_color(&self) -> Color {
-        Color::WHITE
     }
 
     /// Returns the scale factor of the [`Application`].
@@ -112,6 +122,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -121,9 +132,9 @@ where
     debug.startup_started();
 
     let event_loop = EventLoop::with_user_event();
-    let mut proxy = event_loop.create_proxy();
+    let proxy = event_loop.create_proxy();
 
-    let mut runtime = {
+    let runtime = {
         let proxy = Proxy::new(event_loop.create_proxy());
         let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
 
@@ -135,8 +146,6 @@ where
 
         runtime.enter(|| A::new(flags))
     };
-
-    let subscription = application.subscription();
 
     let builder = settings.window.into_builder(
         &application.title(),
@@ -166,19 +175,7 @@ where
             .expect("Append canvas to HTML body");
     }
 
-    let mut clipboard = Clipboard::connect(&window);
-
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
-
-    run_command(
-        init_command,
-        &mut runtime,
-        &mut clipboard,
-        &mut proxy,
-        &window,
-        || compositor.fetch_information(),
-    );
-    runtime.track(subscription);
 
     let (mut sender, receiver) = mpsc::unbounded();
 
@@ -187,10 +184,10 @@ where
         compositor,
         renderer,
         runtime,
-        clipboard,
         proxy,
         debug,
         receiver,
+        init_command,
         window,
         settings.exit_on_close_request,
     ));
@@ -237,20 +234,23 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
-    mut clipboard: Clipboard,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
+    init_command: Command<A::Message>,
     window: winit::window::Window,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
     C: window::Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
 
+    let mut clipboard = Clipboard::connect(&window);
+    let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(&window);
 
     let mut state = State::new(&application, &window);
@@ -264,9 +264,24 @@ async fn run_instance<A, E, C>(
         physical_size.height,
     );
 
+    run_command(
+        &application,
+        &mut cache,
+        &state,
+        &mut renderer,
+        init_command,
+        &mut runtime,
+        &mut clipboard,
+        &mut proxy,
+        &mut debug,
+        &window,
+        || compositor.fetch_information(),
+    );
+    runtime.track(application.subscription());
+
     let mut user_interface = ManuallyDrop::new(build_user_interface(
-        &mut application,
-        user_interface::Cache::default(),
+        &application,
+        cache,
         &mut renderer,
         state.logical_size(),
         &mut debug,
@@ -307,12 +322,15 @@ async fn run_instance<A, E, C>(
                         user_interface::State::Outdated,
                     )
                 {
-                    let cache =
+                    let mut cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
 
                     // Update application
                     update(
                         &mut application,
+                        &mut cache,
+                        &state,
+                        &mut renderer,
                         &mut runtime,
                         &mut clipboard,
                         &mut proxy,
@@ -328,7 +346,7 @@ async fn run_instance<A, E, C>(
                     let should_exit = application.should_exit();
 
                     user_interface = ManuallyDrop::new(build_user_interface(
-                        &mut application,
+                        &application,
                         cache,
                         &mut renderer,
                         state.logical_size(),
@@ -341,8 +359,14 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.draw_started();
-                let new_mouse_interaction =
-                    user_interface.draw(&mut renderer, state.cursor_position());
+                let new_mouse_interaction = user_interface.draw(
+                    &mut renderer,
+                    state.theme(),
+                    &renderer::Style {
+                        text_color: state.text_color(),
+                    },
+                    state.cursor_position(),
+                );
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
@@ -389,8 +413,14 @@ async fn run_instance<A, E, C>(
                     debug.layout_finished();
 
                     debug.draw_started();
-                    let new_mouse_interaction = user_interface
-                        .draw(&mut renderer, state.cursor_position());
+                    let new_mouse_interaction = user_interface.draw(
+                        &mut renderer,
+                        state.theme(),
+                        &renderer::Style {
+                            text_color: state.text_color(),
+                        },
+                        state.cursor_position(),
+                    );
 
                     if new_mouse_interaction != mouse_interaction {
                         window.set_cursor_icon(conversion::mouse_interaction(
@@ -492,12 +522,15 @@ pub fn requests_exit(
 /// Builds a [`UserInterface`] for the provided [`Application`], logging
 /// [`struct@Debug`] information accordingly.
 pub fn build_user_interface<'a, A: Application>(
-    application: &'a mut A,
+    application: &'a A,
     cache: user_interface::Cache,
     renderer: &mut A::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, A::Message, A::Renderer> {
+) -> UserInterface<'a, A::Message, A::Renderer>
+where
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     debug.view_started();
     let view = application.view();
     debug.view_finished();
@@ -513,6 +546,9 @@ pub fn build_user_interface<'a, A: Application>(
 /// resulting [`Command`], and tracking its [`Subscription`].
 pub fn update<A: Application, E: Executor>(
     application: &mut A,
+    cache: &mut user_interface::Cache,
+    state: &State<A>,
+    renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
@@ -520,7 +556,9 @@ pub fn update<A: Application, E: Executor>(
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
-) {
+) where
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     for message in messages.drain(..) {
         debug.log_message(&message);
 
@@ -528,7 +566,19 @@ pub fn update<A: Application, E: Executor>(
         let command = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        run_command(command, runtime, clipboard, proxy, window, graphics_info);
+        run_command(
+            application,
+            cache,
+            state,
+            renderer,
+            command,
+            runtime,
+            clipboard,
+            proxy,
+            debug,
+            window,
+            graphics_info,
+        );
     }
 
     let subscription = application.subscription();
@@ -536,14 +586,23 @@ pub fn update<A: Application, E: Executor>(
 }
 
 /// Runs the actions of a [`Command`].
-pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
-    command: Command<Message>,
-    runtime: &mut Runtime<E, Proxy<Message>, Message>,
+pub fn run_command<A, E>(
+    application: &A,
+    cache: &mut user_interface::Cache,
+    state: &State<A>,
+    renderer: &mut A::Renderer,
+    command: Command<A::Message>,
+    runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
-    proxy: &mut winit::event_loop::EventLoopProxy<Message>,
+    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    debug: &mut Debug,
     window: &winit::window::Window,
     _graphics_info: impl FnOnce() -> compositor::Information + Copy,
-) {
+) where
+    A: Application,
+    E: Executor,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
     use iced_native::command;
     use iced_native::system;
     use iced_native::window;
@@ -599,6 +658,37 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                     }
                 }
             },
+            command::Action::Widget(action) => {
+                let mut current_cache = std::mem::take(cache);
+                let mut current_operation = Some(action.into_operation());
+
+                let mut user_interface = build_user_interface(
+                    application,
+                    current_cache,
+                    renderer,
+                    state.logical_size(),
+                    debug,
+                );
+
+                while let Some(mut operation) = current_operation.take() {
+                    user_interface.operate(renderer, operation.as_mut());
+
+                    match operation.finish() {
+                        operation::Outcome::None => {}
+                        operation::Outcome::Some(message) => {
+                            proxy
+                                .send_event(message)
+                                .expect("Send message to event loop");
+                        }
+                        operation::Outcome::Chain(next) => {
+                            current_operation = Some(next);
+                        }
+                    }
+                }
+
+                current_cache = user_interface.into_cache();
+                *cache = current_cache;
+            }
         }
     }
 }
@@ -619,7 +709,7 @@ mod platform {
     {
         use winit::platform::run_return::EventLoopExtRunReturn;
 
-        let _ = event_loop.run_return(event_handler);
+        event_loop.run_return(event_handler);
 
         Ok(())
     }

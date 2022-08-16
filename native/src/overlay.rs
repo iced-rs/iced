@@ -10,6 +10,8 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::widget;
+use crate::widget::tree::{self, Tree};
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
 
 /// An interactive component that can be displayed on top of other widgets.
@@ -34,10 +36,41 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     );
+
+    /// Returns the [`Tag`] of the [`Widget`].
+    ///
+    /// [`Tag`]: tree::Tag
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::stateless()
+    }
+
+    /// Returns the [`State`] of the [`Widget`].
+    ///
+    /// [`State`]: tree::State
+    fn state(&self) -> tree::State {
+        tree::State::None
+    }
+
+    /// Returns the state [`Tree`] of the children of the [`Widget`].
+    fn children(&self) -> Vec<Tree> {
+        Vec::new()
+    }
+
+    /// Reconciliates the [`Widget`] with the provided [`Tree`].
+    fn diff(&self, _tree: &mut Tree) {}
+
+    /// Applies an [`Operation`] to the [`Widget`].
+    fn operate(
+        &self,
+        _layout: Layout<'_>,
+        _operation: &mut dyn widget::Operation<Message>,
+    ) {
+    }
 
     /// Processes a runtime [`Event`].
     ///
@@ -75,4 +108,27 @@ where
     ) -> mouse::Interaction {
         mouse::Interaction::Idle
     }
+}
+
+/// Obtains the first overlay [`Element`] found in the given children.
+///
+/// This method will generally only be used by advanced users that are
+/// implementing the [`Widget`](crate::Widget) trait.
+pub fn from_children<'a, Message, Renderer>(
+    children: &'a [crate::Element<'_, Message, Renderer>],
+    tree: &'a mut Tree,
+    layout: Layout<'_>,
+    renderer: &Renderer,
+) -> Option<Element<'a, Message, Renderer>>
+where
+    Renderer: crate::Renderer,
+{
+    children
+        .iter()
+        .zip(&mut tree.children)
+        .zip(layout.children())
+        .filter_map(|((child, state), layout)| {
+            child.as_widget().overlay(state, layout, renderer)
+        })
+        .next()
 }

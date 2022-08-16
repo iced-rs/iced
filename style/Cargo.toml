@@ -13,3 +13,10 @@ categories = ["gui"]
 [dependencies.iced_core]
 version = "0.5"
 path = "../core"
+features = ["palette"]
+
+[dependencies.palette]
+version = "0.6"
+
+[dependencies.lazy_static]
+version = "1.4"

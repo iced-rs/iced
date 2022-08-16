@@ -1,3 +1,4 @@
+use crate::application::{self, StyleSheet as _};
 use crate::conversion;
 use crate::{Application, Color, Debug, Mode, Point, Size, Viewport};
 
@@ -6,26 +7,34 @@ use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
 /// The state of a windowed [`Application`].
-#[derive(Debug, Clone)]
-pub struct State<A: Application> {
+#[allow(missing_debug_implementations)]
+pub struct State<A: Application>
+where
+    <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
+{
     title: String,
     mode: Mode,
-    background_color: Color,
     scale_factor: f64,
     viewport: Viewport,
     viewport_version: usize,
     cursor_position: winit::dpi::PhysicalPosition<f64>,
     modifiers: winit::event::ModifiersState,
+    theme: <A::Renderer as crate::Renderer>::Theme,
+    appearance: application::Appearance,
     application: PhantomData<A>,
 }
 
-impl<A: Application> State<A> {
+impl<A: Application> State<A>
+where
+    <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
+{
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {
         let title = application.title();
         let mode = application.mode();
-        let background_color = application.background_color();
         let scale_factor = application.scale_factor();
+        let theme = application.theme();
+        let appearance = theme.appearance(application.style());
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -39,20 +48,16 @@ impl<A: Application> State<A> {
         Self {
             title,
             mode,
-            background_color,
             scale_factor,
             viewport,
             viewport_version: 0,
             // TODO: Encode cursor availability in the type-system
             cursor_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
             modifiers: winit::event::ModifiersState::default(),
+            theme,
+            appearance,
             application: PhantomData,
         }
-    }
-
-    /// Returns the current background [`Color`] of the [`State`].
-    pub fn background_color(&self) -> Color {
-        self.background_color
     }
 
     /// Returns the current [`Viewport`] of the [`State`].
@@ -93,6 +98,21 @@ impl<A: Application> State<A> {
     /// Returns the current keyboard modifiers of the [`State`].
     pub fn modifiers(&self) -> winit::event::ModifiersState {
         self.modifiers
+    }
+
+    /// Returns the current theme of the [`State`].
+    pub fn theme(&self) -> &<A::Renderer as crate::Renderer>::Theme {
+        &self.theme
+    }
+
+    /// Returns the current background [`Color`] of the [`State`].
+    pub fn background_color(&self) -> Color {
+        self.appearance.background_color
+    }
+
+    /// Returns the current text [`Color`] of the [`State`].
+    pub fn text_color(&self) -> Color {
+        self.appearance.text_color
     }
 
     /// Processes the provided window event and updates the [`State`]
@@ -187,9 +207,6 @@ impl<A: Application> State<A> {
             self.mode = new_mode;
         }
 
-        // Update background color
-        self.background_color = application.background_color();
-
         // Update scale factor
         let new_scale_factor = application.scale_factor();
 
@@ -203,5 +220,9 @@ impl<A: Application> State<A> {
 
             self.scale_factor = new_scale_factor;
         }
+
+        // Update theme and appearance
+        self.theme = application.theme();
+        self.appearance = self.theme.appearance(application.style());
     }
 }

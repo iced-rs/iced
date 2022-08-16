@@ -27,9 +27,9 @@ use warp::Filter;
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 pub async fn run() {
-    let routes = warp::path::end().and(warp::ws()).map(|ws: warp::ws::Ws| {
-        ws.on_upgrade(move |socket| user_connected(socket))
-    });
+    let routes = warp::path::end()
+        .and(warp::ws())
+        .map(|ws: warp::ws::Ws| ws.on_upgrade(user_connected));
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
@@ -40,7 +40,7 @@ async fn user_connected(ws: WebSocket) {
 
     tokio::task::spawn(async move {
         while let Some(message) = rx.next().await {
-            let _ = user_ws_tx.send(message).await.unwrap_or_else(|e| {
+            user_ws_tx.send(message).await.unwrap_or_else(|e| {
                 eprintln!("websocket send error: {}", e);
             });
         }

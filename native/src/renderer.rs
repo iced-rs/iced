@@ -9,6 +9,9 @@ use crate::{Background, Color, Element, Rectangle, Vector};
 
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer: Sized {
+    /// The supported theme of the [`Renderer`].
+    type Theme;
+
     /// Lays out the elements of a user interface.
     ///
     /// You should override this if you need to perform any operations before or
@@ -18,7 +21,7 @@ pub trait Renderer: Sized {
         element: &Element<'a, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        element.layout(self, limits)
+        element.as_widget().layout(self, limits)
     }
 
     /// Draws the primitives recorded in the given closure in a new layer.

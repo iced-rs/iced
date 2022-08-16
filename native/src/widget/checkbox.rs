@@ -6,13 +6,13 @@ use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::touch;
-use crate::widget::{self, Row, Text};
+use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Point, Rectangle, Shell,
     Widget,
 };
 
-pub use iced_style::checkbox::{Style, StyleSheet};
+pub use iced_style::checkbox::{Appearance, StyleSheet};
 
 /// A box that can be checked.
 ///
@@ -32,7 +32,11 @@ pub use iced_style::checkbox::{Style, StyleSheet};
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
+pub struct Checkbox<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
+{
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: String,
@@ -41,10 +45,14 @@ pub struct Checkbox<'a, Message, Renderer: text::Renderer> {
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
-    style_sheet: Box<dyn StyleSheet + 'a>,
+    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Checkbox<'a, Message, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
+{
     /// The default size of a [`Checkbox`].
     const DEFAULT_SIZE: u16 = 20;
 
@@ -72,7 +80,7 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             font: Renderer::Font::default(),
-            style_sheet: Default::default(),
+            style: Default::default(),
         }
     }
 
@@ -111,9 +119,9 @@ impl<'a, Message, Renderer: text::Renderer> Checkbox<'a, Message, Renderer> {
     /// Sets the style of the [`Checkbox`].
     pub fn style(
         mut self,
-        style_sheet: impl Into<Box<dyn StyleSheet + 'a>>,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style_sheet = style_sheet.into();
+        self.style = style.into();
         self
     }
 }
@@ -122,6 +130,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Checkbox<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -149,13 +158,17 @@ where
                 Text::new(&self.label)
                     .font(self.font.clone())
                     .width(self.width)
-                    .size(self.text_size.unwrap_or(renderer.default_size())),
+                    .size(
+                        self.text_size
+                            .unwrap_or_else(|| renderer.default_size()),
+                    ),
             )
             .layout(renderer, limits)
     }
 
     fn on_event(
         &mut self,
+        _tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -182,6 +195,7 @@ where
 
     fn mouse_interaction(
         &self,
+        _tree: &Tree,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
@@ -196,7 +210,9 @@ where
 
     fn draw(
         &self,
+        _tree: &Tree,
         renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -208,9 +224,9 @@ where
         let mut children = layout.children();
 
         let custom_style = if is_mouse_over {
-            self.style_sheet.hovered(self.is_checked)
+            theme.hovered(self.style, self.is_checked)
         } else {
-            self.style_sheet.active(self.is_checked)
+            theme.active(self.style, self.is_checked)
         };
 
         {
@@ -252,9 +268,11 @@ where
                 style,
                 label_layout,
                 &self.label,
-                self.font.clone(),
                 self.text_size,
-                custom_style.text_color,
+                self.font.clone(),
+                widget::text::Appearance {
+                    color: custom_style.text_color,
+                },
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
             );
@@ -265,8 +283,9 @@ where
 impl<'a, Message, Renderer> From<Checkbox<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + text::Renderer,
     Message: 'a,
+    Renderer: 'a + text::Renderer,
+    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     fn from(
         checkbox: Checkbox<'a, Message, Renderer>,
