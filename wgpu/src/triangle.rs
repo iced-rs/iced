@@ -1,12 +1,11 @@
 //! Draw meshes of triangles.
 use crate::{settings, Transformation};
-use iced_graphics::layer;
 
 use bytemuck::{Pod, Zeroable};
-use iced_graphics::pattern::Pattern;
+use iced_graphics::layer;
 use std::mem;
 
-pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
+pub use iced_graphics::triangle::{Mesh2D, Shader, Vertex2D};
 
 mod gradient;
 mod msaa;
@@ -313,7 +312,7 @@ impl Pipeline {
                 last_vertex += mesh.buffers.vertices.len();
                 last_index += mesh.buffers.indices.len();
 
-                if let Some(Pattern::Gradient(gradient)) = mesh.pattern {
+                if let Shader::Gradient(gradient) = mesh.shader {
                     self.gradient.add(transform, gradient);
                 }
             }
@@ -371,8 +370,8 @@ impl Pipeline {
             {
                 let clip_bounds = (meshes[i].clip_bounds * scale_factor).snap();
 
-                match meshes[i].pattern {
-                    None => {
+                match meshes[i].shader {
+                    Shader::Solid => {
                         render_pass.set_scissor_rect(
                             clip_bounds.x,
                             clip_bounds.y,
@@ -403,7 +402,7 @@ impl Pipeline {
 
                         render_pass.draw_indexed(0..indices as u32, 0, 0..1);
                     }
-                    Some(Pattern::Gradient { .. }) => {
+                    Shader::Gradient { .. } => {
                         self.gradient.draw(
                             &mut render_pass,
                             clip_bounds,

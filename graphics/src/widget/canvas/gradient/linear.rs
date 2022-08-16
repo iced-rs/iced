@@ -1,8 +1,8 @@
 //! A linear color gradient.
 use iced_native::{Color, Point};
 
-use crate::pattern;
-use crate::pattern::ColorStop;
+use crate::triangle::shader;
+use crate::triangle::shader::gradient::ColorStop;
 
 use super::Gradient;
 
@@ -15,8 +15,8 @@ pub struct Linear {
 }
 
 impl Linear {
-    pub(super) fn gradient(&self) -> pattern::Gradient {
-        pattern::Gradient::Linear {
+    pub(super) fn gradient(&self) -> shader::Gradient {
+        shader::Gradient::Linear {
             start: self.start,
             end: self.end,
             stops: self.color_stops.clone(),

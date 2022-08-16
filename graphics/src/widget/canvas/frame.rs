@@ -128,7 +128,7 @@ impl Frame {
                         indices: frame.buffers.indices,
                     },
                     size: frame.size,
-                    pattern: Some(gradient.pattern()),
+                    shader: gradient.shader(),
                 });
             }
         }
@@ -185,7 +185,7 @@ impl Frame {
                         indices: frame.buffers.indices,
                     },
                     size: frame.size,
-                    pattern: Some(gradient.pattern()),
+                    shader: gradient.shader(),
                 });
             }
         }
@@ -247,7 +247,7 @@ impl Frame {
                         indices: frame.buffers.indices,
                     },
                     size: frame.size,
-                    pattern: Some(gradient.pattern()),
+                    shader: gradient.shader(),
                 });
             }
         }
@@ -401,7 +401,7 @@ impl Frame {
                     indices: self.buffers.indices,
                 },
                 size: self.size,
-                pattern: None,
+                shader: triangle::Shader::default(),
             });
         }
 

@@ -2,8 +2,9 @@ use std::mem;
 
 use bytemuck::{Pod, Zeroable};
 use iced_graphics::layer::Mesh;
-use iced_graphics::pattern::{self, ColorStop, Pattern};
-use iced_graphics::triangle::Vertex2D;
+use iced_graphics::triangle::shader;
+use iced_graphics::triangle::shader::gradient::ColorStop;
+use iced_graphics::triangle::{Shader, Vertex2D};
 use iced_graphics::{Rectangle, Transformation};
 
 use crate::settings;
@@ -201,13 +202,11 @@ impl Gradient {
     ) {
         let total_color_stops = meshes
             .iter()
-            .filter_map(|mesh| {
-                mesh.pattern.as_ref().map(|pattern| match pattern {
-                    Pattern::Gradient(pattern::Gradient::Linear {
-                        stops,
-                        ..
-                    }) => stops,
-                })
+            .filter_map(|mesh| match mesh.shader {
+                Shader::Solid => None,
+                Shader::Gradient(shader::Gradient::Linear {
+                    stops, ..
+                }) => Some(stops),
             })
             .flatten()
             .count();
@@ -261,9 +260,9 @@ impl Gradient {
     pub(super) fn add(
         &mut self,
         transformation: Transformation,
-        gradient: &pattern::Gradient,
+        gradient: &shader::Gradient,
     ) {
-        let pattern::Gradient::Linear { start, end, stops } = gradient;
+        let shader::Gradient::Linear { start, end, stops } = gradient;
 
         let start_stop = self.color_stops_offset as i32;
         self.color_stops_offset += stops.len();

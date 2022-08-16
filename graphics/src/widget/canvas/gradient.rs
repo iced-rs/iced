@@ -1,7 +1,7 @@
 //! Define a color gradient.
 use iced_native::Point;
 
-use crate::pattern::Pattern;
+use crate::triangle::shader::Shader;
 
 pub mod linear;
 
@@ -20,9 +20,9 @@ impl Gradient {
         linear::Builder::new(start, end)
     }
 
-    pub(super) fn pattern(&self) -> Pattern {
+    pub(super) fn shader(&self) -> Shader {
         match self {
-            Gradient::Linear(linear) => Pattern::Gradient(linear.gradient()),
+            Gradient::Linear(linear) => Shader::Gradient(linear.gradient()),
         }
     }
 }

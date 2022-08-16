@@ -55,7 +55,7 @@ mod rainbow {
             cursor_position: Point,
             _viewport: &Rectangle,
         ) {
-            use iced_graphics::triangle::{Mesh2D, Vertex2D};
+            use iced_graphics::triangle::{Mesh2D, Shader, Vertex2D};
             use iced_native::Renderer as _;
 
             let b = layout.bounds();
@@ -139,7 +139,7 @@ mod rainbow {
                         0, 8, 1, // L
                     ],
                 },
-                pattern: None,
+                shader: Shader::Solid,
             };
 
             renderer.with_translation(Vector::new(b.x, b.y), |renderer| {

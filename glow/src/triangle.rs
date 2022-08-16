@@ -180,8 +180,8 @@ impl Pipeline {
             buffers,
             origin,
             clip_bounds,
-            // TODO: Handle pattern
-            pattern: _pattern,
+            // TODO: Handle shader
+            shader: _shader,
         } in meshes
         {
             let transform =

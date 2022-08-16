@@ -1,6 +1,10 @@
 //! Draw geometry using meshes of triangles.
 use bytemuck::{Pod, Zeroable};
 
+pub mod shader;
+
+pub use shader::Shader;
+
 /// A set of [`Vertex2D`] and indices representing a list of triangles.
 #[derive(Clone, Debug)]
 pub struct Mesh2D {
