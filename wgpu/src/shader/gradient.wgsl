@@ -1,34 +1,34 @@
 struct Globals {
-    transform: mat4x4<f32>;
-    start: vec2<f32>;
-    end: vec2<f32>;
-    start_stop: i32;
-    end_stop: i32;
+    transform: mat4x4<f32>,
+    start: vec2<f32>,
+    end: vec2<f32>,
+    start_stop: i32,
+    end_stop: i32,
 };
 
 struct Stop {
-    offset: f32;
-    color: vec4<f32>;
+    offset: f32,
+    color: vec4<f32>,
 };
 
 struct Stops {
-    stops: array<Stop>;
+    stops: array<Stop>,
 };
 
-[[group(0), binding(0)]] var<uniform> globals: Globals;
-[[group(1), binding(0)]] var<storage, read> color_stops: Stops;
+@group(0) @binding(0) var<uniform> globals: Globals;
+@group(1) @binding(0) var<storage, read> color_stops: Stops;
 
 struct VertexInput {
-    [[location(0)]] position: vec2<f32>;
-    [[location(1)]] color: vec4<f32>;
+    @location(0) position: vec2<f32>,
+    @location(1) color: vec4<f32>,
 };
 
 struct VertexOutput {
-    [[builtin(position)]] position: vec4<f32>;
-    [[location(0),interpolate(flat)]] color: vec4<f32>;
+    @builtin(position) position: vec4<f32>,
+    @location(0) @interpolate(flat) color: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
@@ -38,8 +38,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     return out;
 }
 
-[[stage(fragment)]]
-fn fs_main(input: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let v1 = globals.end - globals.start;
     let v2 = input.position.xy - globals.start;
     let unit = normalize(v1);
