@@ -56,7 +56,7 @@ impl<T> Command<T> {
     /// Applies a transformation to the result of a [`Command`].
     pub fn map<A>(
         self,
-        f: impl FnMut(T) -> A + 'static + MaybeSend + Sync + Clone,
+        f: impl Fn(T) -> A + 'static + MaybeSend + Sync + Clone,
     ) -> Command<A>
     where
         T: 'static,
