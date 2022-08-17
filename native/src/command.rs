@@ -36,7 +36,7 @@ impl<T> Command<T> {
     /// Creates a [`Command`] that performs the action of the given future.
     pub fn perform<A>(
         future: impl Future<Output = T> + 'static + MaybeSend,
-        f: impl Fn(T) -> A + 'static + MaybeSend,
+        f: impl FnOnce(T) -> A + 'static + MaybeSend,
     ) -> Command<A> {
         use iced_futures::futures::FutureExt;
 
