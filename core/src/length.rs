@@ -1,5 +1,5 @@
 /// The strategy used to fill space in a specific dimension.
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Length {
     /// Fill all the remaining space
     Fill,

@@ -1,5 +1,5 @@
 /// A 2D vector.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Vector<T = f32> {
     /// The X component of the [`Vector`]
     pub x: T,

@@ -29,14 +29,14 @@ pub enum Event {
 }
 
 /// A platform specific event
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlatformSpecific {
     /// A MacOS specific event
     MacOS(MacOS),
 }
 
 /// Describes an event specific to MacOS
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MacOS {
     /// Triggered when the app receives an URL from the system
     ///

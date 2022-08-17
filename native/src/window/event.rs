@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 /// A window-related event.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Event {
     /// A window was moved.
     Moved {

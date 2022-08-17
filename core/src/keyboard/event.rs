@@ -6,7 +6,7 @@ use super::{KeyCode, Modifiers};
 /// additional events, feel free to [open an issue] and share your use case!_
 ///
 /// [open an issue]: https://github.com/iced-rs/iced/issues
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Event {
     /// A keyboard key was pressed.
     KeyPressed {
