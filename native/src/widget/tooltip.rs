@@ -300,8 +300,13 @@ pub fn draw<Renderer>(
 
         let text_layout = layout_text(
             renderer,
-            &layout::Limits::new(Size::ZERO, viewport.size())
-                .pad(Padding::new(padding)),
+            &layout::Limits::new(
+                Size::ZERO,
+                snap_within_viewport
+                    .then(|| viewport.size())
+                    .unwrap_or(Size::INFINITY),
+            )
+            .pad(Padding::new(padding)),
         );
 
         let padding = f32::from(padding);
