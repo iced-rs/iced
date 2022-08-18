@@ -1,5 +1,4 @@
 //! Build interactive cross-platform applications.
-use crate::window;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
 pub use iced_native::application::{Appearance, StyleSheet};
@@ -169,18 +168,6 @@ pub trait Application: Sized {
         Subscription::none()
     }
 
-    /// Returns the current [`Application`] mode.
-    ///
-    /// The runtime will automatically transition your application if a new mode
-    /// is returned.
-    ///
-    /// Currently, the mode only has an effect in native platforms.
-    ///
-    /// By default, an application will run in windowed mode.
-    fn mode(&self) -> window::Mode {
-        window::Mode::Windowed
-    }
-
     /// Returns the scale factor of the [`Application`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
@@ -275,14 +262,6 @@ where
 
     fn style(&self) -> <A::Theme as StyleSheet>::Style {
         self.0.style()
-    }
-
-    fn mode(&self) -> iced_winit::Mode {
-        match self.0.mode() {
-            window::Mode::Windowed => iced_winit::Mode::Windowed,
-            window::Mode::Fullscreen => iced_winit::Mode::Fullscreen,
-            window::Mode::Hidden => iced_winit::Mode::Hidden,
-        }
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {

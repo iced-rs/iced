@@ -15,6 +15,9 @@ pub struct Settings {
     /// The maximum size of the window.
     pub max_size: Option<(u32, u32)>,
 
+    /// Whether the window should be visible or not.
+    pub visible: bool,
+
     /// Whether the window should be resizable or not.
     pub resizable: bool,
 
@@ -38,6 +41,7 @@ impl Default for Settings {
             position: Position::default(),
             min_size: None,
             max_size: None,
+            visible: true,
             resizable: true,
             decorations: true,
             transparent: false,
@@ -54,6 +58,7 @@ impl From<Settings> for iced_winit::settings::Window {
             position: iced_winit::Position::from(settings.position),
             min_size: settings.min_size,
             max_size: settings.max_size,
+            visible: settings.visible,
             resizable: settings.resizable,
             decorations: settings.decorations,
             transparent: settings.transparent,

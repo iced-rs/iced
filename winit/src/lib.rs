@@ -45,14 +45,12 @@ pub mod window;
 pub mod system;
 
 mod error;
-mod mode;
 mod position;
 mod proxy;
 
 pub use application::Application;
 pub use clipboard::Clipboard;
 pub use error::Error;
-pub use mode::Mode;
 pub use position::Position;
 pub use proxy::Proxy;
 pub use settings::Settings;
