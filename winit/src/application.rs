@@ -640,6 +640,20 @@ pub fn run_command<A, E>(
                         y,
                     });
                 }
+                window::Action::SetMode(mode) => {
+                    window.set_visible(conversion::visible(mode));
+                    window.set_fullscreen(conversion::fullscreen(
+                        window.primary_monitor(),
+                        mode,
+                    ));
+                }
+                window::Action::FetchMode(tag) => {
+                    let mode = conversion::mode(window.fullscreen());
+
+                    proxy
+                        .send_event(tag(mode))
+                        .expect("Send message to event loop");
+                }
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {

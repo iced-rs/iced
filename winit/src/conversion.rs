@@ -182,6 +182,39 @@ pub fn position(
     }
 }
 
+/// Converts a [`window::Mode`] to a [`winit`] fullscreen mode.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn fullscreen(
+    monitor: Option<winit::monitor::MonitorHandle>,
+    mode: window::Mode,
+) -> Option<winit::window::Fullscreen> {
+    match mode {
+        window::Mode::Windowed | window::Mode::Hidden => None,
+        window::Mode::Fullscreen => {
+            Some(winit::window::Fullscreen::Borderless(monitor))
+        }
+    }
+}
+
+/// Converts a [`window::Mode`] to a visibility flag.
+pub fn visible(mode: window::Mode) -> bool {
+    match mode {
+        window::Mode::Windowed | window::Mode::Fullscreen => true,
+        window::Mode::Hidden => false,
+    }
+}
+
+/// Converts a [`winit`] fullscreen mode to a [`window::Mode`].
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
+    match mode {
+        None => window::Mode::Windowed,
+        Some(_) => window::Mode::Fullscreen,
+    }
+}
+
 /// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
