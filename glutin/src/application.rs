@@ -54,17 +54,12 @@ where
         runtime.enter(|| A::new(flags))
     };
 
-    let should_be_visible = settings.window.visible;
-
     let context = {
-        let builder = settings
-            .window
-            .into_builder(
-                &application.title(),
-                event_loop.primary_monitor(),
-                settings.id,
-            )
-            .with_visible(false);
+        let builder = settings.window.into_builder(
+            &application.title(),
+            event_loop.primary_monitor(),
+            settings.id,
+        );
 
         log::info!("Window builder: {:#?}", builder);
 
@@ -139,7 +134,6 @@ where
         receiver,
         context,
         init_command,
-        should_be_visible,
         settings.exit_on_close_request,
     ));
 
@@ -192,7 +186,6 @@ async fn run_instance<A, E, C>(
     mut receiver: mpsc::UnboundedReceiver<glutin::event::Event<'_, A::Message>>,
     mut context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
     init_command: Command<A::Message>,
-    should_be_visible: bool,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
@@ -206,7 +199,6 @@ async fn run_instance<A, E, C>(
     let mut clipboard = Clipboard::connect(context.window());
     let mut cache = user_interface::Cache::default();
     let mut state = application::State::new(&application, context.window());
-    let mut visible = false;
     let mut viewport_version = state.viewport_version();
 
     application::run_command(
@@ -405,12 +397,6 @@ async fn run_instance<A, E, C>(
                 context.swap_buffers().expect("Swap buffers");
 
                 debug.render_finished();
-
-                if !visible && should_be_visible {
-                    context.window().set_visible(true);
-
-                    visible = true;
-                }
 
                 // TODO: Handle animations!
                 // Maybe we can use `ControlFlow::WaitUntil` for this.

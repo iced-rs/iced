@@ -106,7 +106,8 @@ impl Window {
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
             .with_window_icon(self.icon)
-            .with_always_on_top(self.always_on_top);
+            .with_always_on_top(self.always_on_top)
+            .with_visible(self.visible);
 
         if let Some(position) = conversion::position(
             primary_monitor.as_ref(),
