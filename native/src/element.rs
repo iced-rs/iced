@@ -5,7 +5,9 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell, Widget};
+use crate::{
+    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
+};
 
 use std::borrow::Borrow;
 
@@ -189,6 +191,41 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     {
         Element::new(Map::new(self.widget, f))
     }
+
+    /// Marks the [`Element`] as _to-be-explained_.
+    ///
+    /// The [`Renderer`] will explain the layout of the [`Element`] graphically.
+    /// This can be very useful for debugging your layout!
+    ///
+    /// [`Renderer`]: crate::Renderer
+    pub fn explain<C: Into<Color>>(
+        self,
+        color: C,
+    ) -> Element<'a, Message, Renderer>
+    where
+        Message: 'static,
+        Renderer: crate::Renderer + 'a,
+    {
+        Element {
+            widget: Box::new(Explain::new(self, color.into())),
+        }
+    }
+}
+
+impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
+    for Element<'a, Message, Renderer>
+{
+    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow()
+    }
+}
+
+impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
+    for &Element<'a, Message, Renderer>
+{
+    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow()
+    }
 }
 
 struct Map<'a, A, B, Renderer> {
@@ -365,18 +402,153 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
-    for Element<'a, Message, Renderer>
+struct Explain<'a, Message, Renderer: crate::Renderer> {
+    element: Element<'a, Message, Renderer>,
+    color: Color,
+}
+
+impl<'a, Message, Renderer> Explain<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
 {
-    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
-        self.widget.borrow()
+    fn new(element: Element<'a, Message, Renderer>, color: Color) -> Self {
+        Explain { element, color }
     }
 }
 
-impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
-    for &Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer>
+    for Explain<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
 {
-    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
-        self.widget.borrow()
+    fn width(&self) -> Length {
+        self.element.widget.width()
+    }
+
+    fn height(&self) -> Length {
+        self.element.widget.height()
+    }
+
+    fn tag(&self) -> tree::Tag {
+        self.element.widget.tag()
+    }
+
+    fn state(&self) -> tree::State {
+        self.element.widget.state()
+    }
+
+    fn children(&self) -> Vec<Tree> {
+        self.element.widget.children()
+    }
+
+    fn diff(&self, tree: &mut Tree) {
+        self.element.widget.diff(tree);
+    }
+
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.element.widget.layout(renderer, limits)
+    }
+
+    fn operate(
+        &self,
+        state: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        self.element.widget.operate(state, layout, operation)
+    }
+
+    fn on_event(
+        &mut self,
+        state: &mut Tree,
+        event: Event,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        self.element.widget.on_event(
+            state,
+            event,
+            layout,
+            cursor_position,
+            renderer,
+            clipboard,
+            shell,
+        )
+    }
+
+    fn draw(
+        &self,
+        state: &Tree,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) {
+        fn explain_layout<Renderer: crate::Renderer>(
+            renderer: &mut Renderer,
+            color: Color,
+            layout: Layout<'_>,
+        ) {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: layout.bounds(),
+                    border_color: color,
+                    border_width: 1.0,
+                    border_radius: 0.0,
+                },
+                Color::TRANSPARENT,
+            );
+
+            for child in layout.children() {
+                explain_layout(renderer, color, child);
+            }
+        }
+
+        self.element.widget.draw(
+            state,
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            viewport,
+        );
+
+        explain_layout(renderer, self.color, layout);
+    }
+
+    fn mouse_interaction(
+        &self,
+        state: &Tree,
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.element.widget.mouse_interaction(
+            state,
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
+    }
+
+    fn overlay<'b>(
+        &'b self,
+        state: &'b mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        self.element.widget.overlay(state, layout, renderer)
     }
 }
