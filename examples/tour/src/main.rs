@@ -69,16 +69,24 @@ impl Sandbox for Tour {
             );
         }
 
-        let content = column![
+        let content: Element<_> = column![
             steps.view(self.debug).map(Message::StepMessage),
             controls,
         ]
         .max_width(540)
         .spacing(20)
-        .padding(20);
+        .padding(20)
+        .into();
 
-        let scrollable =
-            scrollable(container(content).width(Length::Fill).center_x());
+        let scrollable = scrollable(
+            container(if self.debug {
+                content.explain(Color::BLACK)
+            } else {
+                content
+            })
+            .width(Length::Fill)
+            .center_x(),
+        );
 
         container(scrollable).height(Length::Fill).center_y().into()
     }
