@@ -144,14 +144,14 @@ where
         let mut show_title = true;
 
         if let Some(controls) = &self.controls {
-            let controls_layout = children.next().unwrap();
-            if title_layout.bounds().width + controls_layout.bounds().width
-                > padded.bounds().width
-            {
-                show_title = false;
-            }
-
             if show_controls || self.always_show_controls {
+                let controls_layout = children.next().unwrap();
+                if title_layout.bounds().width + controls_layout.bounds().width
+                    > padded.bounds().width
+                {
+                    show_title = false;
+                }
+
                 controls.as_widget().draw(
                     &tree.children[1],
                     renderer,
@@ -195,8 +195,14 @@ where
             if self.controls.is_some() {
                 let controls_layout = children.next().unwrap();
 
-                !controls_layout.bounds().contains(cursor_position)
-                    && !title_layout.bounds().contains(cursor_position)
+                if title_layout.bounds().width + controls_layout.bounds().width
+                    > padded.bounds().width
+                {
+                    !controls_layout.bounds().contains(cursor_position)
+                } else {
+                    !controls_layout.bounds().contains(cursor_position)
+                        && !title_layout.bounds().contains(cursor_position)
+                }
             } else {
                 !title_layout.bounds().contains(cursor_position)
             }
