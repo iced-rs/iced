@@ -635,7 +635,11 @@ pub fn run_command<A, E>(
                     ));
                 }
                 window::Action::FetchMode(tag) => {
-                    let mode = conversion::mode(window.fullscreen());
+                    let mode = if window.is_visible().unwrap_or(true) {
+                        conversion::mode(window.fullscreen())
+                    } else {
+                        window::Mode::Hidden
+                    };
 
                     proxy
                         .send_event(tag(mode))
