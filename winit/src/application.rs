@@ -116,12 +116,12 @@ where
 {
     use futures::task;
     use futures::Future;
-    use winit::event_loop::EventLoop;
+    use winit::event_loop::EventLoopBuilder;
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let event_loop = EventLoop::with_user_event();
+    let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
 
     let runtime = {
@@ -186,7 +186,7 @@ where
     platform::run(event_loop, move |event, _, control_flow| {
         use winit::event_loop::ControlFlow;
 
-        if let ControlFlow::Exit = control_flow {
+        if let ControlFlow::ExitWithCode(_) = control_flow {
             return;
         }
 
@@ -635,7 +635,11 @@ pub fn run_command<A, E>(
                     ));
                 }
                 window::Action::FetchMode(tag) => {
-                    let mode = conversion::mode(window.fullscreen());
+                    let mode = if window.is_visible().unwrap_or(true) {
+                        conversion::mode(window.fullscreen())
+                    } else {
+                        window::Mode::Hidden
+                    };
 
                     proxy
                         .send_event(tag(mode))
@@ -713,7 +717,7 @@ mod platform {
     {
         use winit::platform::run_return::EventLoopExtRunReturn;
 
-        event_loop.run_return(event_handler);
+        let _ = event_loop.run_return(event_handler);
 
         Ok(())
     }
