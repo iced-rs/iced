@@ -153,7 +153,7 @@ where
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
-            layout.children().next().unwrap(),
+            layout,
             cursor_position,
             viewport,
             renderer,
