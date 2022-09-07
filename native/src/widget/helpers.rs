@@ -143,7 +143,7 @@ where
     Message: Clone,
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::radio::StyleSheet,
-    V: Copy + PartialEq,
+    V: Copy + Eq,
 {
     widget::Radio::new(value, label, selected, on_click)
 }

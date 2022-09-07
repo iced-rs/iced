@@ -23,6 +23,13 @@ pub fn main() -> iced::Result {
 
 static CUSTOM_THEME: OnceCell<Theme> = OnceCell::new();
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum ThemeType {
+    Light,
+    Dark,
+    Custom,
+}
+
 #[derive(Default)]
 struct Styling {
     theme: Theme,
@@ -34,7 +41,7 @@ struct Styling {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(Theme),
+    ThemeChanged(ThemeType),
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
@@ -55,7 +62,11 @@ impl Sandbox for Styling {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::ThemeChanged(theme) => self.theme = theme,
+            Message::ThemeChanged(theme) => self.theme = match theme {
+                ThemeType::Light => Theme::Light,
+                ThemeType::Dark => Theme::Dark,
+                ThemeType::Custom => *CUSTOM_THEME.get().unwrap(),
+            },
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => {}
             Message::SliderChanged(value) => self.slider_value = value,
@@ -65,17 +76,17 @@ impl Sandbox for Styling {
     }
 
     fn view(&self) -> Element<Message> {
-        let choose_theme = [Theme::Light, Theme::Dark, *CUSTOM_THEME.get().unwrap()].iter().fold(
+        let choose_theme = [ThemeType::Light, ThemeType::Dark, ThemeType::Custom].iter().fold(
             column![text("Choose a theme:")].spacing(10),
             |column, theme| {
                 column.push(radio(
-                    match theme {
-                        Theme::Light => "Light",
-                        Theme::Dark => "Dark",
-                        Theme::Custom { .. } => "Custom",
-                    },
+                    format!("{:?}", theme),
                     *theme,
-                    Some(self.theme),
+                    Some(match self.theme {
+                        Theme::Light => ThemeType::Light,
+                        Theme::Dark => ThemeType::Dark,
+                        Theme::Custom { .. } => ThemeType::Custom,
+                    }),
                     Message::ThemeChanged,
                 ))
             },
