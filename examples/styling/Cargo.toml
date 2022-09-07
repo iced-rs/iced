@@ -7,3 +7,4 @@ publish = false
 
 [dependencies]
 iced = { path = "../.." }
+once_cell = "1.14.0"

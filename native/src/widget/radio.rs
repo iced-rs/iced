@@ -84,7 +84,7 @@ where
         f: F,
     ) -> Self
     where
-        V: Eq + Copy,
+        V: PartialEq + Copy,
         F: FnOnce(V) -> Message,
     {
         Radio {

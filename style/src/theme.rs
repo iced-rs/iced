@@ -1,5 +1,6 @@
 pub mod palette;
 
+use self::palette::Extended;
 pub use self::palette::Palette;
 
 use crate::application;
@@ -20,10 +21,14 @@ use crate::toggler;
 
 use iced_core::{Background, Color};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Theme {
     Light,
     Dark,
+    Custom {
+        palette: Palette,
+        extended: Extended
+    }
 }
 
 impl Theme {
@@ -31,6 +36,7 @@ impl Theme {
         match self {
             Self::Light => Palette::LIGHT,
             Self::Dark => Palette::DARK,
+            Self::Custom { palette, .. } => palette
         }
     }
 
@@ -38,6 +44,7 @@ impl Theme {
         match self {
             Self::Light => &palette::EXTENDED_LIGHT,
             Self::Dark => &palette::EXTENDED_DARK,
+            Self::Custom { extended, .. } => extended,
         }
     }
 }

@@ -1,13 +1,27 @@
+use iced::theme::Palette;
+use iced::theme::palette::Extended;
 use iced::widget::{
     button, checkbox, column, container, horizontal_rule, progress_bar, radio,
     row, scrollable, slider, text, text_input, toggler, vertical_rule,
     vertical_space,
 };
-use iced::{Alignment, Element, Length, Sandbox, Settings, Theme};
+use iced::{Alignment, Element, Length, Sandbox, Settings, Theme, Color};
+use once_cell::sync::OnceCell;
 
 pub fn main() -> iced::Result {
+    let palette = Palette {
+        background: Color::from_rgb(1.0, 0.9, 1.0),
+        text: Color::BLACK,
+        primary: Color::from_rgb(0.5, 0.5, 0.0),
+        success: Color::from_rgb(0.0, 1.0, 0.0),
+        danger: Color::from_rgb(1.0, 0.0, 0.0),
+    };
+    let extended = Extended::generate(palette);
+    CUSTOM_THEME.set(Theme::Custom { palette, extended }).unwrap();
     Styling::run(Settings::default())
 }
+
+static CUSTOM_THEME: OnceCell<Theme> = OnceCell::new();
 
 #[derive(Default)]
 struct Styling {
@@ -51,11 +65,15 @@ impl Sandbox for Styling {
     }
 
     fn view(&self) -> Element<Message> {
-        let choose_theme = [Theme::Light, Theme::Dark].iter().fold(
+        let choose_theme = [Theme::Light, Theme::Dark, *CUSTOM_THEME.get().unwrap()].iter().fold(
             column![text("Choose a theme:")].spacing(10),
             |column, theme| {
                 column.push(radio(
-                    format!("{:?}", theme),
+                    match theme {
+                        Theme::Light => "Light",
+                        Theme::Dark => "Dark",
+                        Theme::Custom { .. } => "Custom",
+                    },
                     *theme,
                     Some(self.theme),
                     Message::ThemeChanged,
