@@ -6,22 +6,12 @@ use iced::widget::{
     vertical_space,
 };
 use iced::{Alignment, Element, Length, Sandbox, Settings, Theme, Color};
-use once_cell::sync::OnceCell;
 
 pub fn main() -> iced::Result {
-    let palette = Palette {
-        background: Color::from_rgb(1.0, 0.9, 1.0),
-        text: Color::BLACK,
-        primary: Color::from_rgb(0.5, 0.5, 0.0),
-        success: Color::from_rgb(0.0, 1.0, 0.0),
-        danger: Color::from_rgb(1.0, 0.0, 0.0),
-    };
-    let extended = Extended::generate(palette);
-    CUSTOM_THEME.set(Theme::Custom { palette, extended }).unwrap();
+
     Styling::run(Settings::default())
 }
 
-static CUSTOM_THEME: OnceCell<Theme> = OnceCell::new();
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum ThemeType {
@@ -32,6 +22,7 @@ enum ThemeType {
 
 #[derive(Default)]
 struct Styling {
+    custom_theme: Theme,
     theme: Theme,
     input_value: String,
     slider_value: f32,
@@ -53,7 +44,18 @@ impl Sandbox for Styling {
     type Message = Message;
 
     fn new() -> Self {
-        Styling::default()
+        let palette = Palette {
+            background: Color::from_rgb(1.0, 0.9, 1.0),
+            text: Color::BLACK,
+            primary: Color::from_rgb(0.5, 0.5, 0.0),
+            success: Color::from_rgb(0.0, 1.0, 0.0),
+            danger: Color::from_rgb(1.0, 0.0, 0.0),
+        };
+        let extended = Extended::generate(palette);
+        Styling {
+            custom_theme: Theme::Custom { palette, extended },
+            ..Default::default()
+        }
     }
 
     fn title(&self) -> String {
@@ -65,7 +67,7 @@ impl Sandbox for Styling {
             Message::ThemeChanged(theme) => self.theme = match theme {
                 ThemeType::Light => Theme::Light,
                 ThemeType::Dark => Theme::Dark,
-                ThemeType::Custom => *CUSTOM_THEME.get().unwrap(),
+                ThemeType::Custom => self.custom_theme,
             },
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => {}
