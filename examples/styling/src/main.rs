@@ -53,7 +53,10 @@ impl Sandbox for Styling {
         };
         let extended = Extended::generate(palette);
         Styling {
-            custom_theme: Theme::Custom { palette, extended },
+            custom_theme: Theme::Custom {
+                palette: Box::new(palette),
+                extended: Box::new(extended)
+            },
             ..Default::default()
         }
     }
@@ -67,7 +70,7 @@ impl Sandbox for Styling {
             Message::ThemeChanged(theme) => self.theme = match theme {
                 ThemeType::Light => Theme::Light,
                 ThemeType::Dark => Theme::Dark,
-                ThemeType::Custom => self.custom_theme,
+                ThemeType::Custom => self.custom_theme.clone(),
             },
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => {}
@@ -163,6 +166,6 @@ impl Sandbox for Styling {
     }
 
     fn theme(&self) -> Theme {
-        self.theme
+        self.theme.clone()
     }
 }

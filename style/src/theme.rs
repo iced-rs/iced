@@ -21,13 +21,13 @@ use crate::toggler;
 
 use iced_core::{Background, Color};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Theme {
     Light,
     Dark,
     Custom {
-        palette: Palette,
-        extended: Extended
+        palette: Box<Palette>,
+        extended: Box<Extended>,
     }
 }
 
@@ -36,7 +36,7 @@ impl Theme {
         match self {
             Self::Light => Palette::LIGHT,
             Self::Dark => Palette::DARK,
-            Self::Custom { palette, .. } => palette
+            Self::Custom { palette, .. } => *palette
         }
     }
 
@@ -78,7 +78,7 @@ impl application::StyleSheet for Theme {
                 background_color: palette.background.base.color,
                 text_color: palette.background.base.text,
             },
-            Application::Custom(f) => f(*self),
+            Application::Custom(f) => f(self.clone()),
         }
     }
 }

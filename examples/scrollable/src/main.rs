@@ -207,7 +207,7 @@ impl Application for ScrollableDemo {
     }
 
     fn theme(&self) -> Theme {
-        self.theme
+        self.theme.clone()
     }
 }
 
