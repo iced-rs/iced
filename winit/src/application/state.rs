@@ -194,8 +194,13 @@ where
         // Update scale factor and size
         let new_scale_factor = application.scale_factor();
         let Size { width, height } = self.viewport.physical_size();
-        let PhysicalSize { width: w_width, height: w_height} = window.inner_size();
-        if self.scale_factor != new_scale_factor || (width, height) != (w_width, w_height) {
+        let PhysicalSize {
+            width: w_width,
+            height: w_height,
+        } = window.inner_size();
+        if self.scale_factor != new_scale_factor
+            || (width, height) != (w_width, w_height)
+        {
             let size = window.inner_size();
 
             self.viewport = Viewport::with_physical_size(
