@@ -3,6 +3,7 @@ use crate::conversion;
 use crate::{Application, Color, Debug, Point, Size, Viewport};
 
 use std::marker::PhantomData;
+use winit::dpi::PhysicalSize;
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
@@ -190,16 +191,18 @@ where
             self.title = new_title;
         }
 
-        // Update scale factor
+        // Update scale factor and size
         let new_scale_factor = application.scale_factor();
-
-        if self.scale_factor != new_scale_factor {
+        let Size { width, height } = self.viewport.physical_size();
+        let PhysicalSize { width: w_width, height: w_height} = window.inner_size();
+        if self.scale_factor != new_scale_factor || (width, height) != (w_width, w_height) {
             let size = window.inner_size();
 
             self.viewport = Viewport::with_physical_size(
                 Size::new(size.width, size.height),
                 window.scale_factor() * new_scale_factor,
             );
+            self.viewport_version = self.viewport_version.wrapping_add(1);
 
             self.scale_factor = new_scale_factor;
         }
