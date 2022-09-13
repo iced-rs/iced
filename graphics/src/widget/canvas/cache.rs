@@ -35,7 +35,7 @@ impl Cache {
     }
 
     /// Clears the [`Cache`], forcing a redraw the next time it is used.
-    pub fn clear(&mut self) {
+    pub fn clear(&self) {
         *self.state.borrow_mut() = State::Empty;
     }
 
