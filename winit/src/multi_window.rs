@@ -318,6 +318,7 @@ async fn run_instance<A, E, C>(
         .collect();
 
     let mut states = HashMap::new();
+    let mut surfaces = HashMap::new();
     let mut interfaces = ManuallyDrop::new(HashMap::new());
 
     for (&id, window) in windows.keys().zip(windows.values()) {
@@ -342,20 +343,19 @@ async fn run_instance<A, E, C>(
             id,
         );
 
-        let window_state: WindowState<A, C> = WindowState { surface, state };
-
-        let _ = states.insert(id, window_state);
+        let _ = states.insert(id, state);
+        let _ = surfaces.insert(id, surface);
         let _ = interfaces.insert(id, user_interface);
     }
 
     {
         // TODO(derezzedex)
-        let window_state = states.values().next().expect("No state found");
+        let state = states.values().next().expect("No state found");
 
         run_command(
             &application,
             &mut cache,
-            &window_state.state,
+            state,
             &mut renderer,
             init_command,
             &mut runtime,
@@ -396,7 +396,7 @@ async fn run_instance<A, E, C>(
                         .collect();
 
                     let cursor_position =
-                        states.get(&id).unwrap().state.cursor_position();
+                        states.get(&id).unwrap().cursor_position();
                     let window = windows.get(&id).unwrap();
 
                     if filtered.is_empty() && messages.is_empty() {
@@ -430,7 +430,7 @@ async fn run_instance<A, E, C>(
                             user_interface::State::Outdated,
                         )
                     {
-                        let state = &mut states.get_mut(&id).unwrap().state;
+                        let state = &mut states.get_mut(&id).unwrap();
                         let pure_states: HashMap<_, _> =
                             ManuallyDrop::into_inner(interfaces)
                                 .drain()
@@ -481,7 +481,7 @@ async fn run_instance<A, E, C>(
                     debug.draw_started();
                     let new_mouse_interaction = {
                         let user_interface = interfaces.get_mut(&id).unwrap();
-                        let state = &states.get(&id).unwrap().state;
+                        let state = states.get(&id).unwrap();
 
                         user_interface.draw(
                             &mut renderer,
@@ -546,10 +546,8 @@ async fn run_instance<A, E, C>(
                         id,
                     );
 
-                    let window_state: WindowState<A, C> =
-                        WindowState { surface, state };
-
-                    let _ = states.insert(id, window_state);
+                    let _ = states.insert(id, state);
+                    let _ = surfaces.insert(id, surface);
                     let _ = interfaces.insert(id, user_interface);
                     let _ = window_ids.insert(window.id(), id);
                     let _ = windows.insert(id, window);
@@ -570,6 +568,9 @@ async fn run_instance<A, E, C>(
                     if windows.remove(&id).is_none() {
                         println!("Failed to remove from `windows`!")
                     }
+                    if surfaces.remove(&id).is_none() {
+                        println!("Failed to remove from `surfaces`!")
+                    }
 
                     if windows.is_empty() {
                         break 'main;
@@ -578,11 +579,15 @@ async fn run_instance<A, E, C>(
                 Event::NewWindow(_, _) => unreachable!(),
             },
             event::Event::RedrawRequested(id) => {
-                let window_state = window_ids
+                let state = window_ids
                     .get(&id)
                     .and_then(|id| states.get_mut(id))
                     .unwrap();
-                let physical_size = window_state.state.physical_size();
+                let surface = window_ids
+                    .get(&id)
+                    .and_then(|id| surfaces.get_mut(id))
+                    .unwrap();
+                let physical_size = state.physical_size();
 
                 if physical_size.width == 0 || physical_size.height == 0 {
                     continue;
@@ -590,13 +595,13 @@ async fn run_instance<A, E, C>(
 
                 debug.render_started();
 
-                if window_state.state.viewport_changed() {
+                if state.viewport_changed() {
                     let mut user_interface = window_ids
                         .get(&id)
                         .and_then(|id| interfaces.remove(id))
                         .unwrap();
 
-                    let logical_size = window_state.state.logical_size();
+                    let logical_size = state.logical_size();
 
                     debug.layout_started();
                     user_interface =
@@ -605,7 +610,7 @@ async fn run_instance<A, E, C>(
 
                     debug.draw_started();
                     let new_mouse_interaction = {
-                        let state = &window_state.state;
+                        let state = &state;
 
                         user_interface.draw(
                             &mut renderer,
@@ -634,7 +639,7 @@ async fn run_instance<A, E, C>(
                         .insert(*window_ids.get(&id).unwrap(), user_interface);
 
                     compositor.configure_surface(
-                        &mut window_state.surface,
+                        surface,
                         physical_size.width,
                         physical_size.height,
                     );
@@ -642,9 +647,9 @@ async fn run_instance<A, E, C>(
 
                 match compositor.present(
                     &mut renderer,
-                    &mut window_state.surface,
-                    window_state.state.viewport(),
-                    window_state.state.background_color(),
+                    surface,
+                    state.viewport(),
+                    state.background_color(),
                     &debug.overlay(),
                 ) {
                     Ok(()) => {
@@ -680,14 +685,11 @@ async fn run_instance<A, E, C>(
                 if let Some(window) =
                     window_ids.get(&window_id).and_then(|id| windows.get(id))
                 {
-                    if let Some(window_state) = window_ids
+                    if let Some(state) = window_ids
                         .get(&window_id)
                         .and_then(|id| states.get_mut(id))
                     {
-                        if requests_exit(
-                            &window_event,
-                            window_state.state.modifiers(),
-                        ) {
+                        if requests_exit(&window_event, state.modifiers()) {
                             if let Some(id) =
                                 window_ids.get(&window_id).cloned()
                             {
@@ -696,16 +698,12 @@ async fn run_instance<A, E, C>(
                             }
                         }
 
-                        window_state.state.update(
-                            window,
-                            &window_event,
-                            &mut debug,
-                        );
+                        state.update(window, &window_event, &mut debug);
 
                         if let Some(event) = conversion::window_event(
                             &window_event,
-                            window_state.state.scale_factor(),
-                            window_state.state.modifiers(),
+                            state.scale_factor(),
+                            state.modifiers(),
                         ) {
                             events.push((
                                 window_ids.get(&window_id).cloned(),
@@ -953,21 +951,12 @@ pub fn run_command<A, E>(
     }
 }
 
-struct WindowState<A, C>
-where
-    A: Application,
-    C: iced_graphics::window::Compositor<Renderer = A::Renderer>,
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
-{
-    surface: <C as iced_graphics::window::Compositor>::Surface,
-    state: State<A>,
-}
-
-fn build_user_interfaces<'a, A, C>(
+/// TODO(derezzedex)
+pub fn build_user_interfaces<'a, A>(
     application: &'a A,
     renderer: &mut A::Renderer,
     debug: &mut Debug,
-    states: &HashMap<window::Id, WindowState<A, C>>,
+    states: &HashMap<window::Id, State<A>>,
     mut pure_states: HashMap<window::Id, user_interface::Cache>,
 ) -> HashMap<
     window::Id,
@@ -979,13 +968,12 @@ fn build_user_interfaces<'a, A, C>(
 >
 where
     A: Application + 'static,
-    C: iced_graphics::window::Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     let mut interfaces = HashMap::new();
 
     for (id, pure_state) in pure_states.drain() {
-        let state = &states.get(&id).unwrap().state;
+        let state = &states.get(&id).unwrap();
 
         let user_interface = build_user_interface(
             application,
