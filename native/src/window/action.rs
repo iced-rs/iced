@@ -13,6 +13,8 @@ pub enum Action<T> {
         height: u32,
     },
     /// Move the window.
+    ///
+    /// Unsupported on Wayland.
     Move {
         /// The new logical x location of the window
         x: i32,
