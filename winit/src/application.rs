@@ -159,9 +159,14 @@ where
         let document = window.document().unwrap();
         let body = document.body().unwrap();
 
-        let _ = body
-            .append_child(&canvas)
-            .expect("Append canvas to HTML body");
+        let _ = match body.query_selector("#iced_root").unwrap() {
+            Some(e) => body
+                .replace_child(&canvas, &e)
+                .expect("Could not replace iced_root"),
+            None => body
+                .append_child(&canvas)
+                .expect("Append canvas to HTML body"),
+        };
     }
 
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
