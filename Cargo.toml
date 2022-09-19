@@ -43,7 +43,7 @@ palette = ["iced_core/palette"]
 # Enables querying system information
 system = ["iced_winit/system"]
 # Enables experimental multi-window support
-multi_window = ["iced_winit/multi_window"]
+multi_window = ["iced_winit/multi_window", "iced_glutin/multi_window"]
 
 [badges]
 maintenance = { status = "actively-developed" }

@@ -29,5 +29,8 @@ pub use iced_winit::*;
 
 pub mod application;
 
+#[cfg(feature = "multi_window")]
+pub mod multi_window;
+
 #[doc(no_inline)]
 pub use application::Application;

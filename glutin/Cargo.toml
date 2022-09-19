@@ -13,6 +13,7 @@ categories = ["gui"]
 [features]
 debug = ["iced_winit/debug"]
 system = ["iced_winit/system"]
+multi_window = ["iced_winit/multi_window"]
 
 [dependencies.log]
 version = "0.4"
