@@ -52,7 +52,7 @@ impl Application for Events {
                 }
             }
             Message::EventOccurred(event) => {
-                if let Event::Window(window::Event::CloseRequested) = event {
+                if let Event::Window(_, window::Event::CloseRequested) = event {
                     self.should_exit = true;
                 }
             }

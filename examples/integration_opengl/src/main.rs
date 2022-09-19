@@ -13,6 +13,7 @@ use iced_glow::{Backend, Renderer, Settings, Viewport};
 use iced_glutin::conversion;
 use iced_glutin::glutin;
 use iced_glutin::renderer;
+use iced_glutin::window;
 use iced_glutin::{program, Clipboard, Color, Debug, Size};
 
 pub fn main() {
@@ -107,6 +108,7 @@ pub fn main() {
 
                 // Map window event to iced event
                 if let Some(event) = iced_winit::conversion::window_event(
+                    window::Id::MAIN,
                     &event,
                     windowed_context.window().scale_factor(),
                     modifiers,

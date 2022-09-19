@@ -435,6 +435,7 @@ async fn run_instance<A, E, C>(
                 state.update(context.window(), &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(
+                    crate::window::Id::MAIN,
                     &window_event,
                     state.scale_factor(),
                     state.modifiers(),

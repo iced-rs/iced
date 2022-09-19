@@ -6,8 +6,8 @@ use scene::Scene;
 
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
 use iced_winit::{
-    conversion, futures, program, renderer, winit, Clipboard, Color, Debug,
-    Size,
+    conversion, futures, program, renderer, window, winit, Clipboard, Color,
+    Debug, Size,
 };
 
 use winit::{
@@ -169,6 +169,7 @@ pub fn main() {
 
                 // Map window event to iced event
                 if let Some(event) = iced_winit::conversion::window_event(
+                    window::Id::MAIN,
                     &event,
                     window.scale_factor(),
                     modifiers,

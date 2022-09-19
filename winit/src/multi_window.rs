@@ -363,7 +363,6 @@ async fn run_instance<A, E, C>(
             &mut proxy,
             &mut debug,
             &windows,
-            &window_ids,
             || compositor.fetch_information(),
         );
     }
@@ -456,7 +455,6 @@ async fn run_instance<A, E, C>(
                             &mut debug,
                             &mut messages,
                             &windows,
-                            &window_ids,
                             || compositor.fetch_information(),
                         );
 
@@ -701,6 +699,7 @@ async fn run_instance<A, E, C>(
                         state.update(window, &window_event, &mut debug);
 
                         if let Some(event) = conversion::window_event(
+                            *window_ids.get(&window_id).unwrap(),
                             &window_event,
                             state.scale_factor(),
                             state.modifiers(),
@@ -787,7 +786,6 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     windows: &HashMap<window::Id, winit::window::Window>,
-    window_ids: &HashMap<winit::window::WindowId, window::Id>,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
@@ -810,7 +808,6 @@ pub fn update<A: Application, E: Executor>(
             proxy,
             debug,
             windows,
-            window_ids,
             graphics_info,
         );
     }
@@ -831,7 +828,6 @@ pub fn run_command<A, E>(
     proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
     debug: &mut Debug,
     windows: &HashMap<window::Id, winit::window::Window>,
-    window_ids: &HashMap<winit::window::WindowId, window::Id>,
     _graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     A: Application,
@@ -841,10 +837,6 @@ pub fn run_command<A, E>(
     use iced_native::command;
     use iced_native::system;
     use iced_native::window;
-
-    // TODO(derezzedex)
-    let window = windows.values().next().expect("No window found");
-    let id = *window_ids.get(&window.id()).unwrap();
 
     for action in command.actions() {
         match action {
@@ -863,38 +855,41 @@ pub fn run_command<A, E>(
                     clipboard.write(contents);
                 }
             },
-            command::Action::Window(action) => match action {
-                window::Action::Resize { width, height } => {
-                    window.set_inner_size(winit::dpi::LogicalSize {
-                        width,
-                        height,
-                    });
-                }
-                window::Action::Move { x, y } => {
-                    window.set_outer_position(winit::dpi::LogicalPosition {
-                        x,
-                        y,
-                    });
-                }
-                window::Action::SetMode(mode) => {
-                    window.set_visible(conversion::visible(mode));
-                    window.set_fullscreen(conversion::fullscreen(
-                        window.primary_monitor(),
-                        mode,
-                    ));
-                }
-                window::Action::FetchMode(tag) => {
-                    let mode = if window.is_visible().unwrap_or(true) {
-                        conversion::mode(window.fullscreen())
-                    } else {
-                        window::Mode::Hidden
-                    };
+            command::Action::Window(id, action) => {
+                let window = windows.get(&id).expect("No window found");
 
-                    proxy
-                        .send_event(Event::Application(tag(mode)))
-                        .expect("Send message to event loop");
+                match action {
+                    window::Action::Resize { width, height } => {
+                        window.set_inner_size(winit::dpi::LogicalSize {
+                            width,
+                            height,
+                        });
+                    }
+                    window::Action::Move { x, y } => {
+                        window.set_outer_position(
+                            winit::dpi::LogicalPosition { x, y },
+                        );
+                    }
+                    window::Action::SetMode(mode) => {
+                        window.set_visible(conversion::visible(mode));
+                        window.set_fullscreen(conversion::fullscreen(
+                            window.primary_monitor(),
+                            mode,
+                        ));
+                    }
+                    window::Action::FetchMode(tag) => {
+                        let mode = if window.is_visible().unwrap_or(true) {
+                            conversion::mode(window.fullscreen())
+                        } else {
+                            window::Mode::Hidden
+                        };
+
+                        proxy
+                            .send_event(Event::Application(tag(mode)))
+                            .expect("Send message to event loop");
+                    }
                 }
-            },
+            }
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
                     #[cfg(feature = "system")]
@@ -925,7 +920,7 @@ pub fn run_command<A, E>(
                     renderer,
                     state.logical_size(),
                     debug,
-                    id,
+                    window::Id::MAIN, // TODO(derezzedex): run the operation on every widget tree
                 );
 
                 while let Some(mut operation) = current_operation.take() {
